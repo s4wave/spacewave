@@ -23,7 +23,7 @@ type EsbuildDirective struct {
 	// If unset, uses "default".
 	BundleID string
 	// EsbuildFlags are the esbuild build options.
-	// Note that all BuildOptions for the same BundleID are merged.
+	// All BuildOptions for the same BundleID are merged.
 	EsbuildFlags []string
 	// EsbuildVarType is the type of esbuild output variable.
 	EsbuildVarType EsbuildVarType

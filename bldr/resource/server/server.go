@@ -55,16 +55,17 @@ func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilte
 	}
 }
 
-// SetOriginController names controllerID as the origin of directives from resource calls.
+// SetOriginController sets controllerID as the origin of directives from
+// resource calls.
 // The resources those calls construct use the same origin.
-// A call whose context already names an origin controller keeps it.
-// Call it before serving.
+// A call whose context already records an origin controller keeps that origin.
+// Call SetOriginController before serving.
 func (s *ResourceServer) SetOriginController(controllerID string) {
 	s.originID = controllerID
 }
 
-// withOrigin returns ctx naming the server's origin controller.
-// A ctx that already names an origin controller is returned unchanged.
+// withOrigin returns ctx recording the server's origin controller.
+// A ctx that already records an origin controller is returned unchanged.
 func (s *ResourceServer) withOrigin(ctx context.Context) context.Context {
 	if s.originID == "" || directive.OriginFromContext(ctx).ControllerID != "" {
 		return ctx
@@ -78,7 +79,7 @@ func (s *ResourceServer) Register(mux srpc.Mux) error {
 }
 
 // ResourceClient starts a new immutable client generation. The first packet
-// must be Init; every later packet is one FIFO Adopt or Release control.
+// must be Init. Every later packet is one FIFO Adopt or Release control.
 func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_ResourceClientStream) error {
 	// Require Init before allocating generation state.
 	ctx := strm.Context()
@@ -275,7 +276,7 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 func (s *ResourceServer) ResourceAttach(
 	strm resource.SRPCResourceService_ResourceAttachStream,
 ) error {
-	// Read Init packet.
+	// Read the Init packet.
 	initPkt, err := strm.Recv()
 	if err != nil {
 		return err
@@ -292,7 +293,7 @@ func (s *ResourceServer) ResourceAttach(
 		return strm.Send(resp)
 	}
 
-	// Find owning client.
+	// Find the owning client.
 	var client *RemoteResourceClient
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		client = s.clients[clientHandleID]
@@ -306,7 +307,7 @@ func (s *ResourceServer) ResourceAttach(
 		return resource.ErrResourceOrClientReleased
 	}
 
-	// Send session Ack.
+	// Send the session Ack.
 	if err := send(&resource.ResourceAttachResponse{
 		Body: &resource.ResourceAttachResponse_Ack{
 			Ack: &resource.ResourceAttachAck{},
@@ -315,7 +316,7 @@ func (s *ResourceServer) ResourceAttach(
 		return err
 	}
 
-	// Create attach context derived from the stream.
+	// Create an attach context derived from the stream.
 	ctx := strm.Context()
 	attachCtx, attachCancel := context.WithCancel(ctx)
 	defer attachCancel()
@@ -369,7 +370,7 @@ func (s *ResourceServer) ResourceAttach(
 			attachID := add.GetAttachId()
 			label := add.GetLabel()
 
-			// Allocate resource ID.
+			// Allocate a resource ID.
 			var resourceID uint32
 			s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				s.resourceIDCtr++
@@ -380,10 +381,11 @@ func (s *ResourceServer) ResourceAttach(
 			// not tear down the entire yamux session.
 			resCtx, resCancel := context.WithCancel(attachCtx)
 
-			// Create srpc.Client for this resource via routed SRPC over yamux.
+			// Create an srpc.Client for this resource via
+			// routed SRPC over yamux.
 			resClient := resource.NewRoutedClientWithDone(srpcClient, resourceID, resCtx.Done())
 
-			// Register on client.
+			// Register the resource on the client.
 			addErr := client.AddAttachedResource(resourceID, label, resCancel, resClient, func() {
 				_ = send(&resource.ResourceAttachResponse{
 					Body: &resource.ResourceAttachResponse_DetachAck{
@@ -420,7 +422,7 @@ func (s *ResourceServer) ResourceAttach(
 		case *resource.ResourceAttachRequest_Detach:
 			resourceID := body.Detach.GetResourceId()
 			client.removeAttachedResource(resourceID, false)
-			// Remove from our cleanup list.
+			// Remove the resource ID from the cleanup list.
 			attachedMtx.Lock()
 			for i, id := range attachedIDs {
 				if id == resourceID {
@@ -439,8 +441,9 @@ func (s *ResourceServer) ResourceAttach(
 		}
 	}
 
-	// Build ReadWriteCloser adapter bridging mux_data and yamux.
-	// The recv loop runs inside Read(), dispatching control messages via onControl.
+	// Build a ReadWriteCloser adapter bridging mux_data and yamux.
+	// The recv loop runs inside Read(), dispatching control messages via
+	// onControl.
 	rwc := resource.NewAttachMuxDataRwc(
 		func(data []byte) error {
 			return send(&resource.ResourceAttachResponse{
@@ -463,8 +466,8 @@ func (s *ResourceServer) ResourceAttach(
 		},
 	)
 
-	// SERVER side is yamux client (outbound=true): opens sub-streams to
-	// invoke the client's muxes via routed SRPC.
+	// The SERVER side is the yamux client (outbound=true): opens sub-streams
+	// to invoke the client's muxes via routed SRPC.
 	mc, mcErr := srpc.NewMuxedConnWithRwc(attachCtx, rwc, true, nil)
 	if mcErr != nil {
 		return mcErr

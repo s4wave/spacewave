@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/identity"
 )
 
-// lookupEntityResolver resolves a lookup entity directive
+// lookupEntityResolver resolves a lookup entity directive.
 type lookupEntityResolver struct {
 	c   *Controller
 	ctx context.Context

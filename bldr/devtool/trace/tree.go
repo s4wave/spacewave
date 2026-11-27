@@ -79,9 +79,9 @@ type aggregatedChild struct {
 	Name     string
 	Duration time.Duration
 	Count    int
-	// Set when count == 1 (single instance).
+	// Node is set when count == 1 (single instance).
 	Node *TaskNode
-	// Stats for aggregated groups.
+	// Min holds stats for aggregated groups along with Max, P50 and P99.
 	Min time.Duration
 	Max time.Duration
 	P50 time.Duration

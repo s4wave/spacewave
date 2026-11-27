@@ -1,4 +1,4 @@
-// opfs-primitives.ts - OPFS primitives verification fixture.
+// opfs-primitives.ts: OPFS primitives verification fixture.
 //
 // Tests all OPFS operations that the Go hydra/opfs package wraps:
 // GetRoot, GetDirectory, WriteFile, ReadFile, DeleteFile, ListDirectory,
@@ -74,7 +74,7 @@ async function run() {
     const a = await testDir.getDirectoryHandle('a', { create: true })
     const b = await a.getDirectoryHandle('b', { create: true })
     await b.getDirectoryHandle('c', { create: true })
-    // Verify we can re-open the nested path
+    // Verify the fixture can re-open the nested path.
     const aAgain = await testDir.getDirectoryHandle('a', { create: false })
     const bAgain = await aAgain.getDirectoryHandle('b', { create: false })
     await bAgain.getDirectoryHandle('c', { create: false })
@@ -82,7 +82,7 @@ async function run() {
 
     // --- Iteration 2: WriteFile, ReadFile, DeleteFile ---
 
-    // Write and read
+    // Write and read the file.
     const testData = new Uint8Array([72, 101, 108, 108, 111]) // "Hello"
     const fileDir = await testDir.getDirectoryHandle('files', { create: true })
 
@@ -113,7 +113,7 @@ async function run() {
     }
     results.writeRead = errors.length === 0
 
-    // Overwrite
+    // Overwrite the file.
     const newData = new Uint8Array([87, 111, 114, 108, 100]) // "World"
     const fhOw = await fileDir.getFileHandle('test.bin', { create: true })
     const wOw = await fhOw.createWritable()
@@ -138,7 +138,7 @@ async function run() {
     }
     results.overwrite = owMatch
 
-    // Delete
+    // Delete the file.
     await fileDir.removeEntry('test.bin')
     let deletedGone = false
     try {
@@ -166,7 +166,7 @@ async function run() {
       await lw.close()
     }
 
-    // Also create a subdirectory to verify it appears in listing
+    // Also create a subdirectory to verify it appears in the listing.
     await listDir.getDirectoryHandle('delta-dir', { create: true })
 
     const entries: string[] = []
@@ -189,7 +189,7 @@ async function run() {
 
     // --- Iteration 4: Error handling ---
 
-    // ReadFile on missing file returns NotFoundError
+    // ReadFile on a missing file returns NotFoundError.
     let notFoundFile = false
     try {
       await fileDir.getFileHandle('nonexistent.bin')
@@ -202,7 +202,7 @@ async function run() {
     }
     results.notFoundFile = notFoundFile
 
-    // GetDirectory with create=false on missing dir returns NotFoundError
+    // GetDirectory with create=false on a missing dir returns NotFoundError.
     let notFoundDir = false
     try {
       await testDir.getDirectoryHandle('nonexistent-dir', { create: false })
@@ -215,7 +215,7 @@ async function run() {
     }
     results.notFoundDir = notFoundDir
 
-    // DeleteFile on missing file returns NotFoundError
+    // DeleteFile on a missing file returns NotFoundError.
     let deleteNotFound = false
     try {
       await fileDir.removeEntry('nonexistent.bin')
@@ -228,7 +228,7 @@ async function run() {
     }
     results.deleteNotFound = deleteNotFound
 
-    // Cleanup: remove test directory tree
+    // Cleanup: remove the test directory tree.
     await root.removeEntry(prefix, { recursive: true })
 
     results.pass = errors.length === 0

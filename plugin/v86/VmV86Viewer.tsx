@@ -44,8 +44,8 @@ const overridePredicate: Record<OverrideSlot, string> = {
 // VmEdges are the objects a VM boots from.
 interface VmEdges {
   imageKey: string
-  // imageLabel names the linked image for display, or is "" when it has no
-  // readable metadata.
+  // imageLabel is the linked image display name, or "" when the image has
+  // no readable metadata.
   imageLabel: string
   overrides: Record<OverrideSlot, string>
 }
@@ -89,7 +89,7 @@ async function readVmEdges(
 }
 
 // requestVmState asks the VM at objectKey for a target state. A start first
-// approves the VM's process binding, which has the Space run the VM; the
+// approves the VM's process binding, which has the Space run the VM. The
 // approval outlasts a stop, so the runner commits it. A start needs contents
 // to approve the binding.
 async function requestVmState(
@@ -141,7 +141,7 @@ function useVmV86(
     [],
   )
 
-  // Watch its edges, and read the UnixFS objects an override may name.
+  // Watch its edges, and read the UnixFS objects an override may reference.
   const edgesResource = useWorldQuery(
     worldState,
     (world, signal) => readVmEdges(world, objectKey, signal),
@@ -159,7 +159,7 @@ function useVmV86(
   useObjectName(vm.name)
 
   // Hold the view while the edges for this VM first load, so no default
-  // image stands in for them; a reconnect keeps the edges it had, and a
+  // image stands in for them. A reconnect keeps the edges it had, and a
   // failed read keeps them under its notice.
   const edges = resourceContent(edgesResource)
   return {
@@ -181,7 +181,7 @@ function useVmV86(
 }
 
 // VmV86Viewer displays a V86 virtual machine. A stopped or failed VM shows
-// its machine card with Start or Reset; a running VM shows its screen and
+// its machine card with Start or Reset. A running VM shows its screen and
 // serial console.
 export default function VmV86Viewer({
   objectInfo,
@@ -202,7 +202,8 @@ export default function VmV86Viewer({
     request(() => requestVmState(world, contents, objectKey, target))
   }
 
-  // Hold the view until the VM record loads, so no default stands in for it.
+  // Hold the view until the VM record loads, so no default record stands
+  // in for it.
   if (!vm.loaded) {
     return (
       <div className="bg-background-primary h-full w-full">

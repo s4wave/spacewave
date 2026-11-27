@@ -19,7 +19,9 @@ export { SecretTypeID }
 
 type SecretGrant = SecretState['grantStatus']
 
-/** grantLabel describes a boolean grant flag, or Unknown before the grant arrives. */
+/**
+ * grantLabel describes a boolean grant flag, or Unknown before the grant arrives.
+ */
 function grantLabel(
   grant: SecretGrant,
   flag: boolean | undefined,
@@ -115,7 +117,9 @@ function SecretMetadataCard({
   )
 }
 
-/** SecretAccessCard reports nested SharedObject access once its health is ready. */
+/**
+ * SecretAccessCard reports nested SharedObject access once its health is ready.
+ */
 function SecretAccessCard({
   grant,
   healthStatus,
@@ -187,9 +191,9 @@ function SecretDetails({
 }
 
 /**
- * SecretBody renders the state stream's status, or the details once read. A
- * failure never shows the stream's error text, which could carry more than
- * the redacted state does.
+ * SecretBody renders the state stream's status, or the details once the state
+ * is read. A failure never shows the stream's error text, which could carry
+ * more than the redacted state does.
  */
 function SecretBody({
   error,

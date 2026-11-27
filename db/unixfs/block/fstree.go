@@ -15,17 +15,17 @@ import (
 // The handle can be used to manipulate the tree.
 // A FSTree handle can be located at any position in the tree.
 type FSTree struct {
-	// ctx is the context to use for ops
+	// ctx is the context to use for ops.
 	ctx context.Context
-	// node is the node located at fstree root
+	// node is the node located at fstree root.
 	node *FSNode
-	// bcs is a block cursor located at node
+	// bcs is a block cursor located at node.
 	bcs *block.Cursor
 }
 
 // NewFSTree creates a handle with a root block cursor.
 //
-// Ntype can be set to 0 (Unknown) to allow any.
+// Ntype can be set to 0 (Unknown) to allow any node type.
 func NewFSTree(ctx context.Context, bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
 	// Load the filesystem node at the root cursor and require it to exist.
 	var err error
@@ -301,7 +301,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 		return outputCursors, nil
 	}
 
-	// all dirs are stored in one node, so we can do this:
+	// Sort dirs together because all dirs are stored in one node.
 	slices.Sort(dirs)
 	nodeDirs := f.node.GetDirectoryEntry()
 	skipDirs := make([]bool, len(dirs))

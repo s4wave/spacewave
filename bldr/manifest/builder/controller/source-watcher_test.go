@@ -42,7 +42,8 @@ func TestSourceWatcher(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// waitChanged waits for the next change and checks it names want.
+	// waitChanged waits for the next change and checks the changed file
+	// is want.
 	waitChanged := func(step string, want *bldr_manifest_builder.InputManifest_File) {
 		t.Helper()
 		files, events, err := w.Wait(ctx, 50*time.Millisecond)
@@ -82,7 +83,8 @@ func TestSourceWatcher(t *testing.T) {
 	}
 	waitQuiet("unwatched write and chmod")
 
-	// Touching the input moves its modification time, which counts.
+	// Touching the input moves its modification time and counts as a
+	// change.
 	now := time.Now().Add(time.Second)
 	if err := os.Chtimes(inputPath, now, now); err != nil {
 		t.Fatal(err)
@@ -100,8 +102,8 @@ func TestSourceWatcher(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Creating the directory changed it; a file without the suffix does not,
-	// and a schema file does.
+	// Creating the directory changed it. A file without the suffix does
+	// not, and a schema file does.
 	waitChanged("schema dir created", schemaInput)
 	if err := os.WriteFile(filepath.Join(schemaDir, "notes.txt"), []byte("a"), 0o644); err != nil {
 		t.Fatal(err)

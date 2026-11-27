@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	// walkChunkLen is the nodes or entries one state file chunk holds.
+	// walkChunkLen is the number of nodes or entries one state file chunk
+	// holds.
 	walkChunkLen = 4096
-	// walkStateMsgMax bounds one message of a state file, so a damaged length
-	// fails the read instead of allocating it.
+	// walkStateMsgMax bounds one message of a state file, so a damaged
+	// length fails the read instead of allocating a buffer of that length.
 	walkStateMsgMax = 64 << 20
 	// walkStateTmp is the suffix of the file a save writes before renaming it
 	// into place.
@@ -36,7 +37,7 @@ func ReadWalkState(path string) (*WalkState, error) {
 	}
 	defer f.Close()
 
-	// Read its first message, which names the pin.
+	// Read the file's first message, which records the pin.
 	state := &WalkState{}
 	if err := readWalkMsg(bufio.NewReader(f), state); err != nil {
 		return nil, errors.Wrap(err, "read the walk state header")
@@ -80,7 +81,7 @@ func writeWalkMsg(w io.Writer, buf []byte, msg walkMsg) ([]byte, error) {
 		return buf, err
 	}
 
-	// Write both.
+	// Write the length and the message.
 	_, err := w.Write(buf)
 	return buf, err
 }
@@ -124,7 +125,7 @@ func (w *Walk) takeFrontier() *frontier {
 	state.Status = w.status.CloneVT()
 	st := state.Status
 
-	// Add the queue sizes; no read runs in a saved position.
+	// Add the queue sizes. No read runs in a saved position.
 	st.Visited = w.visitedBefore + uint64(len(w.visited))
 	st.Queued = uint64(len(w.stacks[0]) + len(w.stacks[1]) + len(w.held))
 	st.RetryPending = uint64(len(w.retry))
@@ -148,7 +149,7 @@ func (w *Walk) takeFrontier() *frontier {
 }
 
 // frontierEncoder encodes a frontier's blocks for a state file: each block's
-// type, and the blocks that named them, each node after its parent.
+// type, and the blocks that referenced them, each node after its parent.
 type frontierEncoder struct {
 	// types saves the block types.
 	types *typeSaver
@@ -170,7 +171,7 @@ func (e *frontierEncoder) node(n *walkNode) (uint64, error) {
 		return id, nil
 	}
 
-	// Number its parent first, then save it with its type.
+	// Number the node's parent first, then save the node with its type.
 	parent, err := e.node(n.parent)
 	if err != nil {
 		return 0, err
@@ -186,7 +187,7 @@ func (e *frontierEncoder) node(n *walkNode) (uint64, error) {
 
 // entry encodes a block the walk will read.
 func (e *frontierEncoder) entry(it walkItem) error {
-	// Number the block that named it and save its type.
+	// Number the entry's parent block and save the entry's type.
 	parent, err := e.node(it.parent)
 	if err != nil {
 		return err
@@ -196,7 +197,7 @@ func (e *frontierEncoder) entry(it walkItem) error {
 		return err
 	}
 
-	// Record it.
+	// Record the entry.
 	e.entries = append(e.entries, &WalkEntry{
 		Ref:       it.ref,
 		Parent:    parent,
@@ -274,7 +275,7 @@ func writeWalkState(path string, state *WalkState, nodes []*WalkNode, entries []
 		return 0, err
 	}
 
-	// Sync the directory that names it.
+	// Sync the directory that contains the file.
 	dir, err := os.Open(filepath.Dir(path))
 	if err != nil {
 		return 0, err
@@ -323,7 +324,7 @@ func writeWalkFile(path string, state *WalkState, nodes []*WalkNode, entries []*
 }
 
 // persistLoop saves the position every PersistEvery, or longer when a save
-// was slow, until ctx ends or the returned stop is called; stop waits for a
+// was slow, until ctx ends or the returned stop is called. stop waits for a
 // save in progress.
 func (w *Walk) persistLoop(ctx context.Context) func() {
 	// A walk with no state file saves nothing.
@@ -348,7 +349,7 @@ func (w *Walk) persistLoop(ctx context.Context) func() {
 			case <-t.C:
 			}
 
-			// Save, logging a failure; the next save tries again.
+			// Save and log a failure. The next save tries again.
 			if err := w.persist(); err != nil {
 				w.le.WithError(err).Warn("World block walk: save the position")
 			}
@@ -366,7 +367,7 @@ func (w *Walk) persistLoop(ctx context.Context) func() {
 type loadNode struct {
 	// saved is the node as saved.
 	saved *WalkNode
-	// parent is the node that named it, nil for none.
+	// parent is the node that referenced this node, nil for none.
 	parent *loadNode
 	// node is the rebuilt node.
 	node *walkNode
@@ -375,12 +376,12 @@ type loadNode struct {
 	// typed marks a node whose type is known without its parent: saved, or a
 	// pinned root's.
 	typed bool
-	// need marks a node read again to type a block it names.
+	// need marks a node read again to type a block the node references.
 	need bool
 	// kids types the node's children by ref, nil for none known.
 	kids map[string]any
 	// gone marks a needed node that could not be read again, or whose
-	// ancestor could not; the walk reads the first such node again.
+	// ancestor could not. The walk reads the first such node again.
 	gone bool
 	// depth counts the needed nodes above this one.
 	depth int
@@ -390,7 +391,7 @@ type loadNode struct {
 type loadEntry struct {
 	// saved is the entry as saved.
 	saved *WalkEntry
-	// parent is the node that named it, nil for none.
+	// parent is the node that referenced this entry, nil for none.
 	parent *loadNode
 	// typ is the entry's type, when typed.
 	typ any
@@ -399,9 +400,9 @@ type loadEntry struct {
 }
 
 // load reads the saved frontier and queues it. A block saved with its type
-// is queued as saved; a block whose type was not saved is typed by reading
-// its parent again and decoding it, and a parent it cannot read is queued
-// itself, so the walk reads its subtree again.
+// is queued as saved. A block whose type was not saved is typed by reading
+// its parent again and decoding the parent, and a parent the walk cannot
+// read is queued itself, so the walk reads that parent's subtree again.
 func (w *Walk) load(ctx context.Context) error {
 	// Read the saved header.
 	f, err := os.Open(w.conf.StatePath)
@@ -500,7 +501,7 @@ func (w *Walk) load(ctx context.Context) error {
 	return nil
 }
 
-// loadItem builds the item of a saved block named by p.
+// loadItem builds the item of a saved block referenced by p.
 func (w *Walk) loadItem(p *loadNode, ref *block.BlockRef, typ any, stage uint8, okraValue bool) walkItem {
 	it := walkItem{ref: ref, typ: typ, stage: min(stage, walkStageObjects), okraValue: okraValue}
 	if p != nil {
@@ -564,8 +565,8 @@ func (w *Walk) typeNodes(ctx context.Context, nodes []*loadNode) error {
 }
 
 // typeNode types one needed node, by its parent's decode unless its type is
-// known, then reads it again and decodes it to type its children. A node it
-// cannot read is gone.
+// known, then reads the node again and decodes the node to type its children.
+// A node the walk cannot read is gone.
 func (w *Walk) typeNode(ctx context.Context, n *loadNode) {
 	// Take the node's type from its parent unless it is known.
 	if !n.typed {

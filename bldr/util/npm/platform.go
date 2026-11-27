@@ -15,7 +15,7 @@ func GOOSToNodePlatform(goos string) string {
 }
 
 // GOARCHToNodeArch maps a Go GOARCH value to the corresponding Node.js
-// process.arch value. Electron ships redistributables for a subset; values
+// process.arch value. Electron ships redistributables for a subset. Values
 // not in that subset are returned as-is and will surface as a download
 // failure from @electron/get rather than a silent host-arch fallback.
 func GOARCHToNodeArch(goarch string) string {

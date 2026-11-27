@@ -93,7 +93,8 @@ export interface Config {
   /**
    * ProviderId is the provider identifier.
    * Defaults to "local" if unset.
-   * NOTE: Many places in the codebase expect this to be "local" so change carefully!
+   * NOTE: Many places in the codebase expect ProviderId to be "local", so
+   * change carefully!
    */
   providerId?: string
   /**
@@ -109,7 +110,7 @@ export interface Config {
   /**
    * SignalingUrl is the trusted Spacewave Cloud signaling base URL used by
    * standalone local sessions without a linked cloud account. Each session
-   * signs its own short-lived ticket request with its session keypair; no
+   * signs its own short-lived ticket request with its session keypair. No
    * cloud account or provider credential is involved. Empty disables WebRTC
    * signaling for standalone sessions.
    */
@@ -182,7 +183,8 @@ export interface AccountReplicaCopyState {
    */
   complete?: boolean
   /**
-   * Error describes why this head could not finish; a later attempt resumes from local blocks.
+   * Error describes why this head could not finish. A later attempt resumes
+   * from local blocks.
    */
   error?: string
   /**
@@ -219,7 +221,7 @@ export const AccountReplicaCopyState: MessageType<AccountReplicaCopyState> =
 export interface SharedObjectOrigin {
   /**
    * Generation is the list entry generation of the object the origin was
-   * written for. An origin naming another generation belongs to an earlier
+   * written for. An origin referencing another generation belongs to an earlier
    * lifetime of the id and counts as no origin.
    */
   generation?: string

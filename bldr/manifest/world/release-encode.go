@@ -21,15 +21,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ReleaseManifestTime stamps every UnixFS node of a released Manifest. It is a
-// constant so the encoding is a pure function of the logical content: the same
-// files always produce the same blocks, and a Manifest that did not change
-// keeps the same dist and assets references.
+// ReleaseManifestTime is the timestamp for every UnixFS node of a released
+// Manifest. It is a constant so the encoding is a pure function of the logical
+// content: the same files always produce the same blocks, and a Manifest that
+// did not change keeps the same dist and assets references.
 var ReleaseManifestTime = timestamp.New(time.Unix(1, 0).UTC())
 
 // ReleaseManifestAccess writes new manifest objects with the gzip transform
 // understood by both native and browser readers. Existing references retain
-// their own transforms; only new payloads use this release policy.
+// their own transforms. Only new payloads use this release policy.
 func ReleaseManifestAccess(le *logrus.Entry, storage world.WorldStorage) world.AccessWorldStateFunc {
 	return func(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
 		// Read an existing reference with the transform it already has.
@@ -65,8 +65,8 @@ func ReleaseManifestAccess(le *logrus.Entry, storage world.WorldStorage) world.A
 
 // EncodeReleaseManifest encodes the source Manifest into the destination World
 // with the release policy and returns the encoded Manifest and its reference.
-// The encoding is not linked into the World; dest owns its blocks until the
-// caller links it.
+// The encoding is not linked into the World. dest owns its blocks until the
+// caller links the encoding.
 //
 // meta carries the revision of the encoded Manifest. The encoded blocks of
 // unchanged files and directories equal the ones already encoded anywhere, so

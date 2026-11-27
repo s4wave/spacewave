@@ -20,7 +20,7 @@ type GitRepoKeyTakenError struct {
 	Key string
 }
 
-// Error names the taken key.
+// Error reports the taken key.
 func (e *GitRepoKeyTakenError) Error() string {
 	return "a repository already exists at " + e.Key
 }

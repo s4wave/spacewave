@@ -140,7 +140,8 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer sess.Release()
 
-			// Decode a link or token locally; look a short code up in the cloud.
+			// Decode a link or token locally, or look a short code
+			// up in the cloud.
 			invite, err := decodeInvite(input)
 			if err != nil {
 				return err
@@ -217,7 +218,7 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 }
 
 // decodeInvite decodes an invite link or bearer token. It returns nil when the
-// input carries neither, which makes it a cloud short code.
+// input carries neither, so the input is a cloud short code.
 func decodeInvite(input string) (*sobject.SOInviteMessage, error) {
 	// Take the encoded invite from a link or a bearer token.
 	var encoded string

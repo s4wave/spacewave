@@ -246,7 +246,7 @@ func namedValuesToProto(args []driver.NamedValue) ([]*hydra_sql.SqlValue, error)
 	return params, nil
 }
 
-// valuesToNamed converts driver.Value slice to driver.NamedValue slice.
+// valuesToNamed converts a driver.Value slice to a driver.NamedValue slice.
 func valuesToNamed(args []driver.Value) []driver.NamedValue {
 	named := make([]driver.NamedValue, len(args))
 	for i, v := range args {

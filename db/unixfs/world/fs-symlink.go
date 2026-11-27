@@ -45,7 +45,7 @@ func NewFsSymlinkOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsSymlinkOp) Validate() error {
 	if err := unixfs_block.ValidateSymlink(o.GetPath(), o.GetSymlink()); err != nil {
 		return err

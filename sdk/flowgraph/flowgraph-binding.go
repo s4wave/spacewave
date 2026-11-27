@@ -10,9 +10,9 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
-// ReadBindings derives the binding of each node that names a Space object.
+// ReadBindings derives the binding of each node that references a Space object.
 // A node with no object key has no entry. The state is read from the World and
-// the object type registry on b; a nil bus has no registry, so every existing
+// the object type registry on b. A nil bus has no registry, so every existing
 // object reads UNREGISTERED. engineID scopes the registry lookup to the plugins
 // demanded by the World engine, as an object type factory's context does.
 func ReadBindings(ctx context.Context, ws world.WorldState, b bus.Bus, engineID string, graph *Flowgraph) (map[string]*FlowgraphBinding, error) {

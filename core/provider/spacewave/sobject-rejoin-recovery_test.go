@@ -98,7 +98,7 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 
 // TestTryRecoverMissingSharedObjectPeerRemovedEntity rejects an entity absent from the signed configuration.
 func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
-	// Recover an object whose signed configuration names another entity.
+	// Recover an object whose signed configuration references another entity.
 	sc := newRejoinScenario(t, rejoinOptions{memberEntity: "other-account"})
 	if err := sc.try(t); !errors.Is(err, sobject.ErrNotParticipant) {
 		t.Fatalf("expected not-participant error, got %v", err)
@@ -194,8 +194,8 @@ type rejoinOptions struct {
 	// enrolled signs the recovering peer into the configuration without its
 	// decryption grant.
 	enrolled bool
-	// memberEntity is the entity the signed configuration names, when it is not
-	// the recovering account.
+	// memberEntity is the entity the signed configuration references, when it
+	// is not the recovering account.
 	memberEntity string
 	// locked leaves the entity key locked.
 	locked bool
@@ -364,7 +364,7 @@ func (sc *rejoinScenario) primeKeypairCache(t *testing.T) {
 	sc.acc.recoveryKeypairs.set(sc.soID, sc.keypairResp)
 }
 
-// try performs recovery through the normal shared-object tracker.
+// try recovers through the normal shared-object tracker.
 func (sc *rejoinScenario) try(t *testing.T) error {
 	t.Helper()
 	return sc.so.tkr.tryRecoverMissingSharedObjectPeer(
@@ -375,7 +375,7 @@ func (sc *rejoinScenario) try(t *testing.T) error {
 	)
 }
 
-// run performs recovery and requires it to succeed.
+// run recovers and requires success.
 func (sc *rejoinScenario) run(t *testing.T) {
 	t.Helper()
 	if err := sc.try(t); err != nil {

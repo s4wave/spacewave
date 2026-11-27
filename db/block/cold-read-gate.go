@@ -5,7 +5,7 @@ import "context"
 // ColdReadGate admits one reader's reads of blocks that no cache above the
 // store holds, such as a view run whose first view waits for an admission
 // slot only once it needs the store. A cursor calls EnterCold before each
-// store read, after a decoded block cache miss; a read the decoded cache
+// store read, after a decoded block cache miss. A read the decoded cache
 // answers never reaches the gate, so a reader whose blocks are warm never
 // waits on it. The reader calls Lend before it waits on work another reader
 // does, such as a shared value another view computes, since that reader may
@@ -16,7 +16,7 @@ type ColdReadGate interface {
 	// EnterCold waits until the reader may read from the store. It returns at
 	// once while the reader holds its admission, and fails only when ctx ends.
 	EnterCold(ctx context.Context) error
-	// Lend gives back the admission EnterCold took, if any; the next
+	// Lend gives back the admission EnterCold took, if any. The next
 	// EnterCold takes it again.
 	Lend()
 	// Inherit admits the reader at least as urgently as the reader of

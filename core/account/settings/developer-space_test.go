@@ -6,7 +6,7 @@ import (
 )
 
 // TestSetDeveloperSpace checks that SetDeveloperSpace replaces the recorded
-// Space only when it names that Space as previous.
+// Space only when the operation records that Space as previous.
 func TestSetDeveloperSpace(t *testing.T) {
 	s := &AccountSettings{}
 	set := func(id, previous string) error {
@@ -28,7 +28,7 @@ func TestSetDeveloperSpace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A racing writer that observed no Space loses to the first.
+	// A racing writer that observed no Space loses to the first writer.
 	if err := set("second", ""); !errors.Is(err, ErrDeveloperSpaceChanged) {
 		t.Fatalf("expected ErrDeveloperSpaceChanged, got %v", err)
 	}

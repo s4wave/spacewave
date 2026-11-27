@@ -60,7 +60,7 @@ func (t *pluginInstance) execWatchWorldManifest(ctx context.Context, hosts *plug
 		},
 	)
 
-	// Re-run selection when a bucket an unreadable candidate names mounts.
+	// Re-run selection when a bucket an unreadable candidate references mounts.
 	mounts := newBucketMountWake(ctx, t.c.bus, objLoop.Wake)
 	t.bucketMounts.Store(mounts)
 	defer t.bucketMounts.CompareAndSwap(mounts, nil)
@@ -93,7 +93,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		ws = world_vlogger.NewWorldState(le, ws)
 	}
 
-	// Collect the plugin's linked manifests for currently available hosts.
+	// Collect the plugin's linked manifests for available hosts.
 	// Build the sorted platform id list for the available hosts.
 	platformIDsMap := t.platformHosts(hosts)
 	platformIDs := sortedPlatformIDs(platformIDsMap)
@@ -128,7 +128,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		return true, nil, nil
 	}
 
-	// Set aside candidates whose blocks are gone; the caller unlinks them.
+	// Set aside candidates whose blocks are gone. The caller unlinks them.
 	candidateEligibility = slices.DeleteFunc(candidateEligibility, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 		if c.Missing {
 			missing = append(missing, c)
@@ -198,10 +198,10 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		}
 		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, candidateEligibility)
-		// When store is disabled, the fetch handler may drive
+		// When the store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set. A host loss keeps
-		// the admitted worker; only a plugin with no manifest releases it.
+		// the admitted worker. Only a plugin with no manifest releases it.
 		if t.manifestRoot != "" || !t.c.conf.GetDisableStoreManifest() {
 			_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
 			changed2 := !linksManifest(candidateEligibility) && t.releaseCatalogExecution()
@@ -410,8 +410,8 @@ func (t *pluginInstance) processManifestWorldStateCore(
 // linksManifest reports whether the World links the plugin to a manifest on
 // any platform: a candidate that is neither a store or bundle leading to
 // manifests nor a manifest of another plugin. An unreadable candidate counts,
-// since its storage may only be unmounted; candidates whose blocks are gone
-// were set aside before this is asked.
+// since its storage may only be unmounted. Candidates whose blocks are gone
+// were set aside before linksManifest is called.
 func linksManifest(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 	return slices.ContainsFunc(candidates, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 		return c != nil && !c.Intermediate && c.Eligibility != bldr_manifest_world.StartupManifestEligibilityQuarantined
@@ -587,7 +587,7 @@ func addManifestSelectionFields(
 
 // failPinnedSelection fails a pinned load that found no manifest to run. It
 // fails with PinnedManifestMissingError only when the pinned root is proven to
-// hold no build for this host; any other cause, such as no candidate at the
+// hold no build for this host. Any other cause, such as no candidate at the
 // root yet or blocks that could not be read, fails registration without a
 // cause, and the load waits for the World, the storage or the hosts to change.
 func (t *pluginInstance) failPinnedSelection(
@@ -596,12 +596,12 @@ func (t *pluginInstance) failPinnedSelection(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 ) {
 	// The proof needs a complete host set and one manifest at the root that
-	// was read whole and names a platform no host runs.
+	// was read whole and declares a platform no host runs.
 	//
 	// Complete means the host lookup was idle with no resolver error when the
 	// set was taken: every resolver running then had reported its hosts. It
 	// does not cover a host kind that registers later, such as a web runtime
-	// opened afterwards; that host publishes a new set and reruns selection.
+	// opened afterwards. That host publishes a new set and reruns selection.
 	// A set taken while the lookup is busy or failing proves nothing, so a
 	// build for a host still starting stays a wait, not a refusal. A manifest
 	// of the root is content addressed, so one readable copy decides for every

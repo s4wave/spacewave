@@ -25,7 +25,7 @@ type execWatcherKey struct {
 
 // execWatcher watches a Execution instance for completion.
 type execWatcher struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
 	// key is the execution snapshot this watcher validates.
 	key execWatcherKey
@@ -121,11 +121,12 @@ func (e *execWatcher) processState(
 
 	// check if the execution state matches the ExecState
 	if e.key.matchesExecution(exState) {
-		// matches, continue to watch
+		// The execution matches the ExecState, so continue to watch.
 		return true, nil
 	}
 
-	// does not match: stop this watcher & notify controller
+	// The execution differs from the ExecState: stop the watcher and notify
+	// the controller.
 	e.c.triggerSyncExecStates()
 	return false, nil
 }

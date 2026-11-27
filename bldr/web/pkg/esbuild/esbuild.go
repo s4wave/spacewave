@@ -75,7 +75,8 @@ func NewImportBannerShim(pkgs []string, minify bool, xfrmImport func(pkg string)
 	_, _ = sb.WriteString("    throw Error('Dynamic require of \"' + pkgName + '\" is not supported');\n")
 	_, _ = sb.WriteString("  }\n};\n")
 
-	// minify
+	// Transform the generated JavaScript, minifying whitespace and syntax when
+	// minify is set.
 	code := sb.String()
 	result := esbuild_api.Transform(code, esbuild_api.TransformOptions{
 		Target:    esbuild_api.ES2022,

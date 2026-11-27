@@ -19,7 +19,8 @@ import {
   type InspectableStateAtom,
 } from './StateAtomRegistry.js'
 
-// Stable empty resource used when no backend accessor is available.
+// nullAccessor is a stable empty resource used when no backend accessor is
+// available.
 const nullAccessor: StateAtomAccessor = {
   value: null,
   loading: false,
@@ -27,7 +28,7 @@ const nullAccessor: StateAtomAccessor = {
   retry: () => {},
 }
 
-// Storage interface for persistence
+// Storage defines the interface for persistence.
 export interface Storage {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
@@ -48,14 +49,14 @@ export class LocalStorageImpl implements Storage {
   }
 }
 
-// Atom interface
+// Atom defines the atom interface.
 export interface Atom<T> {
   get(): T
   set: (value: T) => void
   subscribe(callback: () => void): () => void
 }
 
-// Base implementation of an Atom
+// BasicAtom is the base implementation of an Atom.
 class BasicAtom<T> implements Atom<T> {
   protected _value: T
   protected listeners: Set<() => void>
@@ -84,7 +85,7 @@ class BasicAtom<T> implements Atom<T> {
   }
 }
 
-// Storage-backed Atom implementation with cross-window sync
+// StorageAtom is a storage-backed Atom implementation with cross-window sync.
 export class StorageAtom<T> extends BasicAtom<T> {
   private storage: Storage
   private key: string
@@ -159,7 +160,7 @@ export class StorageAtom<T> extends BasicAtom<T> {
     this.notify()
   }
 
-  // dispose removes the storage event listener
+  // dispose removes the storage event listener.
   dispose(): void {
     if (this.storageListener) {
       window.removeEventListener('storage', this.storageListener)
@@ -168,7 +169,7 @@ export class StorageAtom<T> extends BasicAtom<T> {
   }
 }
 
-// Derived Atom implementation
+// DerivedAtom implements a derived Atom.
 export class DerivedAtom<T, U> implements Atom<U> {
   private source: Atom<T>
   private deriveFn: (value: T) => U
@@ -207,7 +208,7 @@ export function useMemoPath(path: string[] | null | undefined): string[] {
 }
 
 /**
- * Context type for managing namespaced state
+ * StateType is the context type for managing namespaced state.
  */
 export type StateType = Record<string, unknown>
 
@@ -216,13 +217,16 @@ export const StateNamespaceContext = createContext<StateNamespace | undefined>(
 )
 
 /**
- * Provider component for managing namespaced state
+ * StateNamespaceProvider is a provider component for managing namespaced state.
  * @param {Object} props - Component props
  * @param {ReactNode} props.children - Child components
  * @param {string[]} [props.namespace] - Optional namespace identifier
- * @param {StateNamespace} [props.stateNamespace] - Optional state namespace to inherit path from
- * @param {ReturnType<typeof atomWithStorage<StateType>>} [props.rootAtom] - Optional root storage atom
- * @param {boolean} [props.inheritStateAtomAccessor] - Whether to inherit a parent backend accessor
+ * @param {StateNamespace} [props.stateNamespace] - Optional state namespace
+ * to inherit path from
+ * @param {ReturnType<typeof atomWithStorage<StateType>>} [props.rootAtom] -
+ * Optional root storage atom
+ * @param {boolean} [props.inheritStateAtomAccessor] - Whether to inherit a
+ * parent backend accessor
  */
 export function StateNamespaceProvider({
   children,
@@ -278,7 +282,7 @@ export function StateNamespaceProvider({
 }
 
 /**
- * Type representing a state namespace
+ * StateNamespace represents a state namespace.
  */
 export type StateNamespace = {
   namespace: string[]
@@ -290,9 +294,12 @@ export type StateNamespace = {
 export type { StateAtomAccessor } from './useBackendStateAtom.js'
 
 /**
- * Hook to create a namespace by combining current context with segments and/or partial namespace
- * @param {string[]} [segments] - Additional path segments to append to context path
- * @param {Partial<StateNamespace>} [partial] - Partial namespace to override context
+ * useStateNamespace creates a namespace by combining the current context
+ * with segments and/or a partial namespace.
+ * @param {string[]} [segments] - Additional path segments to append to the
+ * context path
+ * @param {Partial<StateNamespace>} [partial] - Partial namespace to override
+ * context
  * @returns {StateNamespace} Combined namespace
  */
 export function useStateNamespace(
@@ -325,7 +332,7 @@ export function useStateNamespace(
 }
 
 /**
- * Hook to get the parent state namespace from context
+ * useParentStateNamespace gets the parent state namespace from context.
  * @returns {StateNamespace} The parent state namespace or an empty StateNamespace
  */
 export function useParentStateNamespace(): StateNamespace {
@@ -347,7 +354,8 @@ export function useStateAtom<T>(
   const hasAccessor = !!accessor
 
   // Backend accessor mode: each atom is a separate StateAtom resource.
-  // Always called (hooks must be unconditional), uses nullAccessor when inactive.
+  // useBackendStateAtom is always called (hooks must be unconditional) and uses
+  // nullAccessor when inactive.
   const storeId = useMemo(() => [...path, key].join('/'), [path, key])
   const backendResult = useBackendStateAtom<T>(
     accessor ?? nullAccessor,
@@ -546,14 +554,14 @@ function getStateAtomScope(atom: Atom<StateType>): StateAtomScope {
   return atom instanceof StorageAtom ? 'persistent' : 'local'
 }
 
-// Helper function to check if an object is empty
+// isEmptyObject checks if an object is empty.
 function isEmptyObject(obj: unknown): boolean {
   return (
     obj !== null && typeof obj === 'object' && Object.keys(obj).length === 0
   )
 }
 
-// Helper function to set deeply nested value
+// setDeepValue sets a deeply nested value.
 function setDeepValue(
   obj: StateType,
   keys: string[],
@@ -562,7 +570,7 @@ function setDeepValue(
   defaultValue: unknown,
 ): StateType {
   if (keys.length === 0) {
-    // If value equals default, remove the key
+    // If value equals the default value, remove the key
     if (isDeepEqual(value, defaultValue)) {
       const { [key]: _, ...rest } = obj
       return rest
@@ -592,8 +600,8 @@ function setDeepValue(
 }
 
 /**
- * Component for debugging namespace state
- * Displays the current state for the active namespace
+ * StateDebugger is a component for debugging namespace state.
+ * Displays the current state for the active namespace.
  */
 export function StateDebugger() {
   const { namespace = [], stateAtom = null } = use(StateNamespaceContext) ?? {}

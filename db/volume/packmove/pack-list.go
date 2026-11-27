@@ -15,15 +15,15 @@ import (
 )
 
 // PackList writes the blocks of cfg.Source that the key list at cfg.ListPath
-// names, in key order, as packs in cfg.Packer. The list is FindUnpacked's
+// lists, in key order, as packs in cfg.Packer. The list is FindUnpacked's
 // output: one hex-encoded block key per line, ascending.
 //
 // It reads each listed block from one snapshot per pack, as Pack does, and
 // shares Pack's log, hash check and references: a block whose data does not
 // match its hash, or a key that is not a block ref, is recorded as bad and is
 // in no pack. A listed key the volume does not hold fails the run, since the
-// list came from the volume. The log at cfg.LogPath resumes a killed run
-// after its last committed pack.
+// list came from the volume. The log at cfg.LogPath resumes a killed run after
+// its last committed pack.
 func PackList(ctx context.Context, cfg PackConfig) (PackProgress, error) {
 	// Check the volume's format.
 	if err := requireFormat(ctx, cfg); err != nil {
@@ -142,8 +142,9 @@ func (r *listBatchReader) read(ctx context.Context, tx kvtx.Tx) (*packBatch, int
 	return batch, used, nil
 }
 
-// fill reads keys from the list into the queue until it holds n or the list
-// ends, passing the keys up to resume and failing on a key out of order.
+// fill reads keys from the list into the queue until the queue holds n keys or
+// the list ends, passing the keys up to resume and failing on a key out of
+// order.
 func (r *listBatchReader) fill(n int) error {
 	for len(r.queue) < n {
 		line, err := r.list.ReadBytes('\n')

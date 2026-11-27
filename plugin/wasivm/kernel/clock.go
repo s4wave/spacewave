@@ -152,7 +152,7 @@ func (p *Process) sysSettimeofday(tvPtr uint32) uint64 {
 }
 
 // sysGetitimer writes the time until the interval timer which next expires
-// and its period. Only ITIMER_REAL runs; the CPU time timers read disarmed.
+// and its period. Only ITIMER_REAL runs. The CPU time timers read disarmed.
 func (p *Process) sysGetitimer(which, curPtr uint32) uint64 {
 	// Read the timer, then write its setting.
 	if which > itimerProf {
@@ -169,7 +169,7 @@ func (p *Process) sysGetitimer(which, curPtr uint32) uint64 {
 }
 
 // sysSetitimer sets an interval timer from the itimerval at newPtr, writing
-// the old setting to oldPtr when it is set. ITIMER_REAL sends SIGALRM; the
+// the old setting to oldPtr when it is set. ITIMER_REAL sends SIGALRM. The
 // kernel keeps no CPU time, so the CPU time timers can only be disarmed.
 func (p *Process) sysSetitimer(which, newPtr, oldPtr uint32) uint64 {
 	// Read the new setting.
@@ -185,7 +185,7 @@ func (p *Process) sysSetitimer(which, newPtr, oldPtr uint32) uint64 {
 		return negErrno(errno)
 	}
 
-	// Apply it and report the old one.
+	// Apply the new setting and report the old setting.
 	var oldValue, oldInterval time.Duration
 	switch {
 	case which == itimerReal:

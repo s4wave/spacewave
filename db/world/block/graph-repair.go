@@ -114,10 +114,10 @@ func (t *WorldState) RepairGraphTree(
 }
 
 // readGraphRange returns the keys in [low, high) of the graph tree of the
-// World at root, failing when any page in the range is missing. With copyValues set,
-// values kept in their own blocks are written again through into, so the keys
-// stay readable in into without the older World's blocks; without it nothing
-// is written, which a read-only transaction requires.
+// World at root, failing when any page in the range is missing. With copyValues
+// set, values kept in their own blocks are written again through into, so the
+// keys stay readable in into without the older World's blocks. Without
+// copyValues nothing is written, as a read-only transaction requires.
 func (t *WorldState) readGraphRange(
 	ctx context.Context,
 	into *kvtx_block_okra.Tx,
@@ -345,7 +345,7 @@ func postingBucketName(index cayley_kv.QuadIndex) string {
 
 // DumpGraphTree walks the graph tree of this World in key order, calling
 // entry with each readable key and its value and hole with each missing page,
-// and writes nothing. A value the tree keeps in a page is passed as it is; a
+// and writes nothing. A value the tree keeps in a page is passed as it is. A
 // value kept in its own block is read after the walk, in key order among
 // those values only. The walk holds only the pages on its current path.
 func (t *WorldState) DumpGraphTree(
@@ -363,7 +363,7 @@ func (t *WorldState) DumpGraphTree(
 		return errors.Errorf("graph tree is %T, not an okra tree", graphTree)
 	}
 
-	// Walk the readable entries and the holes; stop at the first error.
+	// Walk the readable entries and the holes and stop at the first error.
 	var cbErr error
 	var refKeys [][]byte
 	err = tree.Salvage(ctx, nil, nil, func(e kvtx_block_okra.BuildEntry) bool {
@@ -554,7 +554,7 @@ func (t *WorldState) SalvageObjectRange(ctx context.Context, low, high string, e
 		return errors.Errorf("object tree is %T, not an okra tree", t.objTree)
 	}
 
-	// Bound the walk to the object keys in range; an open high bound ends
+	// Bound the walk to the object keys in range. An open high bound ends
 	// at the first key past the object prefix.
 	var lo, hi []byte
 	if low != "" {

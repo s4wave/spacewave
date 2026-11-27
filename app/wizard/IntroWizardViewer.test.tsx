@@ -135,7 +135,7 @@ async function advanceToFinish(user: ReturnType<typeof userEvent.setup>) {
   )
 }
 
-// expectFinished checks the index names the introduced object and the
+// expectFinished checks the index points to the introduced object and the
 // wizard is gone, with nothing created.
 async function expectFinished() {
   await waitFor(() =>
@@ -166,7 +166,7 @@ describe('IntroWizardViewer', () => {
 
     expect(screen.getByTestId('object-viewer')).toBeTruthy()
     expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
-    // The tour opens on the first callout only; later callouts stay hidden.
+    // The tour opens on the first callout only. Later callouts stay hidden.
     expect(screen.getByText('Add files')).toBeTruthy()
     expect(screen.queryByText('Upload progress')).toBeNull()
   })

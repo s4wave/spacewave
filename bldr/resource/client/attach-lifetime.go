@@ -9,7 +9,7 @@ import (
 type attachLifetime struct {
 	client *Client
 
-	// mtx guards below fields.
+	// mtx guards the fields below.
 	mtx sync.Mutex
 	// sess is the cached shared attach session.
 	sess *attachSession
@@ -89,7 +89,7 @@ func (l *attachLifetime) setRelease(resourceID uint32, releaseFn func()) {
 }
 
 type attachPendingAcks struct {
-	// mtx guards below fields.
+	// mtx guards the fields below.
 	mtx sync.Mutex
 	// nextID is the next attach correlation id.
 	nextID uint32

@@ -9,22 +9,22 @@ import (
 
 // ObjectIterator implements ObjectIterator for WorldState.
 type ObjectIterator struct {
-	// w is the world state
+	// w is the world state.
 	w *WorldState
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// prefix is the prefix to filter by
+	// prefix is the prefix to filter by.
 	prefix string
-	// reversed indicates if iteration is reversed
+	// reversed indicates if iteration is reversed.
 	reversed bool
 
-	// err is any error that occurred
+	// err is any error that occurred.
 	err error
-	// currKey is the current key if valid
+	// currKey is the current key if valid.
 	currKey string
-	// valid indicates if the iterator is valid
+	// valid indicates if the iterator is valid.
 	valid bool
-	// iter is the underlying iterator
+	// iter is the underlying iterator.
 	iter world.ObjectIterator
 }
 

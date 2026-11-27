@@ -64,7 +64,7 @@ func TestReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Store a block and close.
+	// Store a block and close the volume.
 	id := vol.GetID()
 	data := writerBlock("reopen", 0)
 	ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
@@ -95,8 +95,9 @@ func TestReopen(t *testing.T) {
 	}
 }
 
-// multiprocessEnv names the environment that runs a test process as a block
-// writer: its value is the writer number, and multiprocessPathEnv the file.
+// multiprocessEnv is the environment variable that runs a test process as a
+// block writer: its value is the writer number, and multiprocessPathEnv selects
+// the file.
 const (
 	multiprocessEnv     = "SPACEWAVE_S4DB_VOLUME_WRITER"
 	multiprocessPathEnv = "SPACEWAVE_S4DB_VOLUME_PATH"

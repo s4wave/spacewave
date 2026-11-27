@@ -41,7 +41,8 @@ type benchWorld struct {
 // when absent. The testbed's bucket ID is fixed, so a reopen finds the same
 // root.
 func openBenchWorld(ctx context.Context, path string) (*benchWorld, error) {
-	// Open the Volume quietly and the World's bucket on it.
+	// Open the Volume with warning-level logging and the World's bucket on
+	// the Volume.
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
 	le := logrus.NewEntry(log)

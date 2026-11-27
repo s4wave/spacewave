@@ -947,7 +947,7 @@ func envIntDefault(t testing.TB, key string, def int) int {
 
 // BenchmarkOpfsChromeProductVolumeKVWrite commits one key per write
 // transaction on the product OPFS volume inside real Chromium workers. The
-// worker reports total elapsed nanos and ops; ns/op is derived here.
+// worker reports total elapsed nanos and ops. ns/op is derived here.
 func BenchmarkOpfsChromeProductVolumeKVWrite(b *testing.B) {
 	benchmarkOpfsChromeProductVolumeKVWrite(b, "volume-kv-write-per-op")
 }
@@ -1527,7 +1527,7 @@ func buildWasm(out string) error {
 type tinyGoBuildEnvelope struct {
 	// profile selects the compiler default policy.
 	profile string
-	// target names the TinyGo build target.
+	// target selects the TinyGo build target.
 	target string
 	// opt overrides optimization when nonempty.
 	opt string
@@ -1910,7 +1910,7 @@ func int64FieldOK(m map[string]any, key string) (int64, bool) {
 type workerArgs struct {
 	// scenario selects the worker action.
 	scenario string
-	// root names the disposable shared OPFS directory.
+	// root selects the disposable shared OPFS directory.
 	root string
 	// worker identifies one concurrent worker.
 	worker int
@@ -1978,7 +1978,7 @@ type workerScriptProgress struct {
 	worker int
 	// hasWorker distinguishes worker zero from an absent worker.
 	hasWorker bool
-	// phase names the current operation stage.
+	// phase records the current operation stage.
 	phase string
 	// offset records completed progress when hasOffset is set.
 	offset int

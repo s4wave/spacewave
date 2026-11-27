@@ -35,10 +35,10 @@ func bridgeFilter(conf *plugin_space.Config, appPluginIDs []string) func(directi
 
 // bridgeDirective reports whether dir resolves on the parent bus. World engine
 // and operation lookups forward only for engineID, so a Space plugin cannot
-// reach another Space's World; an empty engine ID would match any engine and
+// reach another Space's World. An empty engine ID would match any engine and
 // stays inside. Volume lookups forward only for volumeIDs. Signing forwards
 // only for the session's peer, whose running Session holds the key on the
-// parent; the host controllers that ask each fix their own signing context.
+// parent. The host controllers that ask each fix their own signing context.
 // Plugin root admission forwards, since the device's approvals are on the
 // parent. Space plugin loads, manifests, and RPC services stay inside the
 // generation.
@@ -66,7 +66,7 @@ func bridgeDirective(dir directive.Directive, engineID, sessionPeerID string, vo
 	}
 }
 
-// parentFilter forwards parent lookups the generation answers into it.
+// parentFilter forwards parent lookups into the generation that answers them.
 func parentFilter(instanceKey string, appPluginIDs []string) func(directive.Instance) (bool, error) {
 	return func(inst directive.Instance) (bool, error) {
 		return parentDirective(inst.GetDirective(), instanceKey, appPluginIDs), nil
@@ -94,9 +94,9 @@ func parentDirective(dir directive.Directive, instanceKey string, appPluginIDs [
 	}
 }
 
-// pinnedPluginFiles reports whether fsID names the dist or assets files of a
-// Space plugin pinned to a manifest root. The root names the exact content, so
-// every generation that answers serves the same files.
+// pinnedPluginFiles reports whether fsID selects the dist or assets files of a
+// Space plugin pinned to a manifest root. The root selects the exact content,
+// so every generation that answers serves the same files.
 func pinnedPluginFiles(fsID string, appPluginIDs []string) bool {
 	// Cut the assets or dist prefix from the filesystem ID.
 	artifactID, ok := strings.CutPrefix(fsID, bldr_plugin.PluginAssetsFsIdPrefix)

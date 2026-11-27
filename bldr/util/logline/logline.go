@@ -1,5 +1,5 @@
 // Package logline provides an io.Writer that logs each line a child process
-// writes at the logrus level the line names.
+// writes at the logrus level the line specifies.
 package logline
 
 import (
@@ -12,7 +12,7 @@ import (
 
 // Writer logs each complete line written to it through an entry. A line in
 // logrus text format, starting with level=NAME, logs at that level with the
-// level field removed; any other line logs at the fallback level. A trailing
+// level field removed. Any other line logs at the fallback level. A trailing
 // partial line waits for its newline.
 type Writer struct {
 	le       *logrus.Entry
@@ -21,7 +21,7 @@ type Writer struct {
 	buf      []byte
 }
 
-// New constructs a Writer logging through le, with lines that name no level
+// New constructs a Writer logging through le, with lines that specify no level
 // logged at fallback.
 func New(le *logrus.Entry, fallback logrus.Level) *Writer {
 	return &Writer{le: le, fallback: fallback}
@@ -43,7 +43,8 @@ func (w *Writer) Write(p []byte) (int, error) {
 	}
 }
 
-// logLine logs one line at the level it names, or at the fallback.
+// logLine logs one line at the level the line specifies, or at the fallback
+// level.
 func (w *Writer) logLine(line string) {
 	if line == "" {
 		return

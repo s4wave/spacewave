@@ -14,8 +14,9 @@ type PluginDemand struct {
 	c *Controller
 	// all selects every plugin the Space lists.
 	all bool
-	// replay selects its plugins even when the Space no longer lists them,
-	// for a replay that waits at an operation they handle.
+	// replay selects the demand's plugins even when the Space no longer
+	// lists them, for a replay that waits at an operation those plugins
+	// handle.
 	replay bool
 	// pluginIDs is the sorted selection when all is false. Guarded by c.bcast.
 	pluginIDs []string
@@ -40,9 +41,9 @@ func (c *Controller) DemandPlugins(pluginIDs []string) *PluginDemand {
 }
 
 // DemandReplayPlugins demands the listed plugins until Release, including
-// ones the Space no longer lists: the plugins a World before an operation
-// that replay waits at lists. Each still starts only once the host's
-// scheduler admits its manifest root.
+// ones the Space no longer lists: the plugins listed by the World before
+// the operation where replay waits. Each plugin still starts only once the
+// host's scheduler admits its manifest root.
 func (c *Controller) DemandReplayPlugins(pluginIDs []string) *PluginDemand {
 	d := &PluginDemand{c: c, replay: true, pluginIDs: canonicalPluginIDs(pluginIDs)}
 	c.updateDemands(func() {

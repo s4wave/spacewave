@@ -11,7 +11,7 @@ import (
 
 // BucketStore implements a BucketStore backed by a BucketStore service.
 type BucketStore struct {
-	// client is the client to use
+	// client is the client to use.
 	client bucket_store_rpc.SRPCBucketStoreClient
 }
 

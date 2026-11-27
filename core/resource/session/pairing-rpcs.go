@@ -21,7 +21,7 @@ func (r *SessionResource) getPairingEngine() (*pairing.Engine, error) {
 }
 
 // getPairingRelay returns the relay endpoint and signing context that must be
-// used as one contract; staging rejects prod-context signatures.
+// used as one contract. Staging rejects prod-context signatures.
 func (r *SessionResource) getPairingRelay(ctx context.Context) (pairing.Relay, error) {
 	// Look up the Spacewave cloud provider for the pairing relay.
 	swProv, swProvRef, err := provider.ExLookupProvider(ctx, r.b, "spacewave", false, nil)

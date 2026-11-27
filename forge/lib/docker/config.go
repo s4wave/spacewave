@@ -49,7 +49,8 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Each input names a checkout directory and an absolute container path.
+	// Each input declares a checkout directory and an absolute container
+	// path.
 	for name, path := range c.GetInputMounts() {
 		if err := forge_lib_util_inputfs.ValidateName(name); err != nil {
 			return errors.Wrap(err, "input_mounts")

@@ -17,7 +17,7 @@ import (
 // SOOperationProtocolVersion is the operation format this build writes and accepts.
 const SOOperationProtocolVersion = 1
 
-// MaxSOOperationParents bounds the causal parents named by one operation.
+// MaxSOOperationParents bounds the causal parents referenced by one operation.
 const MaxSOOperationParents = 256
 
 // soOperationHashDomain separates operation hashes from other SHA-256 digests.
@@ -122,7 +122,7 @@ func compareOpHash(a, b *SOOperationPosition) int {
 
 // validateLinks checks the operation's chain, parent and config references.
 func (i *SOOperationInner) validateLinks() error {
-	// The body names this protocol and an object.
+	// The body specifies this protocol and an object.
 	if i.GetProtocolVersion() != SOOperationProtocolVersion {
 		return errors.Errorf("unsupported operation protocol version %d", i.GetProtocolVersion())
 	}
@@ -130,7 +130,8 @@ func (i *SOOperationInner) validateLinks() error {
 		return errors.New("operation shared_object_id is empty")
 	}
 
-	// The author's first operation has no predecessor; every later one names it.
+	// The author's first operation has no predecessor. Every later
+	// operation references its predecessor.
 	prev := i.GetPrevOpHash()
 	if i.GetNonce() == 1 && len(prev) != 0 {
 		return errors.New("first operation of an author must not name a previous operation")
@@ -163,7 +164,7 @@ func (i *SOOperationInner) validateLinks() error {
 		}
 	}
 
-	// The operation names the config it was written under.
+	// The operation references the config it was written under.
 	if len(i.GetConfigHash()) != sha256.Size {
 		return errors.New("operation config_hash must be a 32-byte hash")
 	}
@@ -171,7 +172,8 @@ func (i *SOOperationInner) validateLinks() error {
 }
 
 // Verify authenticates the operation as written for sharedObjectID by the
-// author it names, and returns its body. It does not check authorization.
+// author the operation specifies, and returns its body. It does not check
+// authorization.
 func (op *SOOperation) Verify(sharedObjectID string) (*SOOperationInner, error) {
 	// Decode the well-formed body.
 	if err := op.Validate(); err != nil {
@@ -285,7 +287,7 @@ func (s *SOOperationSet) Covers(peerID string, nonce uint64) bool {
 	return ok && nonce <= author.GetNonce()
 }
 
-// links returns the positions an operation names: its causal parents, then
+// links returns the positions an operation references: its causal parents, then
 // its author's previous operation.
 func links(inner *SOOperationInner) []*SOOperationPosition {
 	parents := inner.GetParents()
@@ -333,9 +335,9 @@ func (s *SOOperationSet) Len() int {
 }
 
 // Heads returns the operations in the set and the checkpoint's author heads
-// that no operation in the set names, in hash order.
+// that no operation in the set references, in hash order.
 func (s *SOOperationSet) Heads() []*SOOperationPosition {
-	// Collect every hash an operation names.
+	// Collect every hash an operation references.
 	named := make(map[string]struct{}, len(s.ops))
 	for _, inner := range s.ops {
 		for _, link := range links(inner) {
@@ -343,7 +345,7 @@ func (s *SOOperationSet) Heads() []*SOOperationPosition {
 		}
 	}
 
-	// The heads are the operations and checkpoint heads left unnamed.
+	// The heads are the operations and checkpoint heads left unreferenced.
 	heads := make([]*SOOperationPosition, 0, len(s.ops)+len(s.authors))
 	for key, inner := range s.ops {
 		if _, ok := named[key]; !ok {
@@ -396,7 +398,8 @@ func (s *SOOperationSet) CountAbove(peerID string, nonce uint64) int {
 }
 
 // AuthorAt returns the hash of peerID's operation at nonce in the set. It
-// fails when the set holds none there, or several, which is equivocation.
+// fails when the set holds none there, or several operations at that nonce
+// (equivocation).
 func (s *SOOperationSet) AuthorAt(peerID string, nonce uint64) ([]byte, error) {
 	keys := s.byAuthorSeq[soAuthorSeq{author: peerID, nonce: nonce}]
 	switch len(keys) {
@@ -458,16 +461,16 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 }
 
 // Order returns the replay order of the operations whose ancestry the set or
-// its checkpoint holds. The sequenced operations come first, in sequence
-// order. The rest follow in a topological order of the operation DAG with
-// concurrent operations in byte order of their hashes. Every member holding
-// the same operations and positions above the same checkpoint computes the
-// same order. A link to a position the checkpoint covers is satisfied, even
-// when the set holds an operation with its hash, so placement never depends on
-// which other operations have arrived. An operation naming one the set lacks
-// and the checkpoint does not cover waits, with its descendants, until the
-// missing operation arrives. An operation that arrives after the checkpoint
-// covered what it names, such as an edit from a device off the trimming
+// its checkpoint holds. The sequenced operations come first, in sequence order.
+// The rest follow in a topological order of the operation DAG with concurrent
+// operations in byte order of their hashes. Every member holding the same
+// operations and positions above the same checkpoint computes the same order. A
+// link to a position the checkpoint covers is satisfied, even when the set
+// holds an operation with its hash, so placement never depends on which other
+// operations have arrived. An operation referencing one the set lacks and the
+// checkpoint does not cover waits, with its descendants, until the missing
+// operation arrives. An operation that arrives after the checkpoint covered
+// what the operation references, such as an edit from a device off the trimming
 // roster, is placed above the checkpoint. The set computes the order once and
 // shares it, so callers must not modify it.
 func (s *SOOperationSet) Order() [][]byte {
@@ -502,8 +505,9 @@ func (s *SOOperationSet) order() soOrder {
 
 // placeOrder computes the replay order and the sequenced prefix.
 func (s *SOOperationSet) placeOrder() soOrder {
-	// Place the sequenced operations in sequence order, skipping covered and
-	// repeated ones, until one is missing or names an unplaced operation.
+	// Place the sequenced operations in sequence order, skipping covered
+	// and repeated ones, until one is missing or references an unplaced
+	// operation.
 	out := soOrder{order: make([][]byte, 0, len(s.ops)), tail: s.sequence.base, complete: true}
 	placed := make(map[string]struct{}, len(s.ops))
 	for _, pos := range s.sequence.positions {
@@ -665,7 +669,7 @@ func (s *SOOperationSet) Equivocations() []SOEquivocation {
 
 // CoveredPrefix returns how many of the first operations of order, an order
 // of this set's operations, checkpoint covers. It returns -1 when checkpoint
-// covers an operation after one it does not cover, or names an author head
+// covers an operation after one it does not cover, or references an author head
 // this set neither holds among the covered operations nor covers itself: a
 // member missing a covered operation, or holding another that sorts among
 // them, cannot tell what the covered operations reached.
@@ -686,8 +690,8 @@ func (s *SOOperationSet) CoveredPrefix(order [][]byte, checkpoint *SOCheckpointI
 		return -1
 	}
 
-	// Each author head checkpoint names is among them or below this set's
-	// checkpoint.
+	// Each author head checkpoint references is among them or below this
+	// set's checkpoint.
 	prefix := make(map[string]struct{}, n)
 	for _, h := range order[:n] {
 		prefix[string(h)] = struct{}{}

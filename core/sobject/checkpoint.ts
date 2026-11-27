@@ -49,7 +49,7 @@ export function hashSOCheckpointInner(inner: Uint8Array): Uint8Array {
 // validateSOCheckpointInner checks the body's structure, matching Go
 // SOCheckpointInner.Validate. It throws on the first violation.
 export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
-  // The body names an object, a config and a known replay rule.
+  // The body identifies an object, a config and a known replay rule.
   if (!inner.sharedObjectId) {
     throw new Error('checkpoint shared_object_id is empty')
   }
@@ -65,7 +65,8 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
     throw new Error('checkpoint state_data exceeds the maximum size')
   }
 
-  // Genesis starts the chain; every later checkpoint names its predecessor.
+  // Genesis starts the chain. Every later checkpoint references its
+  // predecessor.
   const authors = inner.authors ?? []
   const prev = inner.prevCheckpointHash ?? new Uint8Array()
   if ((inner.height ?? 0n) === 0n) {
@@ -84,7 +85,7 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
 // verifySOCheckpoint authenticates every signature on the checkpoint as
 // written for sharedObjectID and returns the body and the signers. A
 // checkpoint a group decided carries a commit and may carry no signature. It
-// does not check authority; verifySOCheckpointAuthority does. It throws when
+// does not check authority. verifySOCheckpointAuthority does. It throws when
 // the checkpoint is invalid.
 export async function verifySOCheckpoint(
   sharedObjectID: string,

@@ -28,7 +28,7 @@ func (a *ProviderAccount) buildPairingIdentity(ctx context.Context, offer *pairi
 }
 
 // installPairingObject accepts a checkpoint only for the offered account. The
-// authenticated enrollment exchange supplies its trust; the catalog does not.
+// authenticated enrollment exchange supplies its trust. The catalog does not.
 func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairing.AccountOffer, object *pairing.SharedObject) error {
 	// Validate the object reference and its account binding.
 	entry := object.GetEntry()
@@ -121,8 +121,9 @@ func (a *ProviderAccount) bindPairingSettingsOnce(ctx context.Context, offer *pa
 		return err
 	}
 
-	// The offered settings arrive later as a checkpoint; until then the
-	// binding names a placeholder genesis, so every mount of it succeeds.
+	// The offered settings arrive later as a checkpoint. Until then the
+	// binding references a placeholder genesis, so every mount of the settings
+	// succeeds.
 	// Finish an earlier lifetime's pending release first, so the placeholder
 	// does not adopt its roots.
 	writeGenesis, err := a.genesisSOStateWriter(ctx, offer.GetSettingsId())

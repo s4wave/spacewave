@@ -52,7 +52,7 @@ func ExLookupObjectType(
 	return av.GetValue(), avRef, nil
 }
 
-// lookupObjectType implements LookupObjectType
+// lookupObjectType implements LookupObjectType.
 type lookupObjectType struct {
 	objectTypeID string
 	engineID     string
@@ -73,7 +73,7 @@ func NewLookupObjectTypeForEngine(objectTypeID, engineID string) LookupObjectTyp
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory to see if the values "look correct."
 func (d *lookupObjectType) Validate() error {
 	return nil
 }
@@ -101,7 +101,8 @@ func (d *lookupObjectType) LookupObjectTypeEngineID() string {
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
-// old, then the new directive will be merged (de-duplicated) into the old.
+// old directive, then the new directive will be merged (de-duplicated) into
+// the old directive.
 func (d *lookupObjectType) IsEquivalent(other directive.Directive) bool {
 	// Require another object-type lookup before comparing its scope.
 	od, ok := other.(LookupObjectType)
@@ -127,14 +128,15 @@ func (d *lookupObjectType) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *lookupObjectType) GetName() string {
 	return "LookupObjectType"
 }
 
 // GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug output is not necessarily unique, and is primarily intended for
+// display.
 func (d *lookupObjectType) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if d.objectTypeID != "" {

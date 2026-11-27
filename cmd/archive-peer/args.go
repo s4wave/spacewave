@@ -68,7 +68,7 @@ func (a *Args) BuildFlags() []cli.Flag {
 
 // Run creates the key, or serves the archive until interrupted.
 func (a *Args) Run(*cli.Context) error {
-	// Create the key and report the peer id to name in the peer's settings.
+	// Create the key and report the peer id to use in the peer's settings.
 	if a.GenKey {
 		id, err := createKey(a.Key)
 		if err != nil {
@@ -170,8 +170,8 @@ func (a *Args) serve(ctx context.Context, le *logrus.Entry) error {
 	}
 	defer dexRef.Release()
 
-	// Listen, dial the served peer, and hold its link: a link this end does
-	// not hold closes shortly after each dial.
+	// Listen, dial the served peer, and hold its link: a link closes shortly
+	// after each dial if this end does not hold the link.
 	addr, err := st.StartUDP(ctx, transport.UDPConfig{
 		ListenAddr: a.Listen,
 		Peers:      map[peer.ID]string{served: remoteAddr},
@@ -226,7 +226,7 @@ func createKey(path string) (peer.ID, error) {
 	return peer.IDFromPrivateKey(priv)
 }
 
-// File formats archive-peer serves.
+// formatS4db and formatBolt are the file formats archive-peer serves.
 const (
 	// formatS4db is an s4db file.
 	formatS4db = "s4db"

@@ -129,7 +129,7 @@ function isFirefoxBrowserRuntime(): boolean {
 // sharedWorkerOpfsBugHardDisable keeps the entrypoint runtime out of
 // SharedWorker mode while Chromium issue 528332884 is active. Remove this
 // single guard only after the fix is in stable Chrome and the
-// E2E_WASM_WORKER_MODE=shared runtime OPFS bridge probe is green; the fallback
+// E2E_WASM_WORKER_MODE=shared runtime OPFS bridge probe is green. The fallback
 // does not remove the SharedWorker architecture or OPFS bridge.
 const sharedWorkerOpfsBugHardDisable = true
 
@@ -146,8 +146,8 @@ export function shouldForceDedicatedWorkers(
   )
 }
 
-// buildWorkerURL builds the shw.mjs wrapper URL with the user script path and
-// plugin marker encoded into the query string.
+// buildWorkerParams builds the query string for the shw.mjs wrapper URL with
+// the user script path and plugin marker encoded.
 function buildWorkerParams(scriptPath: string, hasInitData: boolean): string {
   const encodedPath = encodeURIComponent(scriptPath).replace(/%2F/g, '/')
   const pluginParam = hasInitData ? '&p=1' : ''
@@ -181,11 +181,11 @@ interface DedicatedRuntimeHostLostMessage {
 
 // WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
 class WebDocumentWebWorker {
-  // worker is the instance of the worker if !shared
+  // worker is the instance of the worker if !shared.
   public readonly worker?: Worker
-  // sharedWorker is the instance of the worker if shared
+  // sharedWorker is the instance of the worker if shared.
   public readonly sharedWorker?: SharedWorker
-  // port is the MessagePort passed to the Worker on startup
+  // port is the MessagePort passed to the Worker on startup.
   public readonly port: MessagePort
   public readonly plugin: boolean
   // ready indicates the worker finished startup and runtime registration.
@@ -312,7 +312,7 @@ class WebDocumentWebWorker {
     }
 
     // Capture worker errors (module load failures, uncaught exceptions).
-    // Without this, dedicated workers that fail during module loading
+    // Without error capture, dedicated workers that fail during module loading
     // produce no console output and silently disappear.
     const w = this.worker
     if (w) {
@@ -442,9 +442,9 @@ function classifyWorkerCloseGenerationState(
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
-  // id is the web view id
+  // id is the web view id.
   public readonly id: string
-  // parent is the parent web view id
+  // parent is the parent web view id.
   public readonly parent?: string
   // webView is the underlying web view object.
   public readonly webView: WebView
@@ -567,7 +567,7 @@ class WebDocumentImpl implements WebDocumentService {
 // WebDocumentOptions are optional parameters to WebDocument.
 export interface WebDocumentOptions {
   // webRuntimeId sets the ID to use for the web runtime.
-  // If unset, defaults to "default"
+  // If unset, defaults to "default".
   webRuntimeId?: string
   // webDocumentId sets the ID to use for this WebDocument.
   // If unset, a random ID will be generated.
@@ -576,32 +576,34 @@ export interface WebDocumentOptions {
   // if unset, the Go runtime will not be able to create new WebViews.
   createWebViewCb?: CreateWebViewFunc
   // disableStoragePersist disables requesting persistent storage permission
-  // from the user on startup. This is useful if you want to call
-  // navigator.storage.persist() later after displaying a message to the user
-  // explaining why you are requesting the permission & requesting they approve.
+  // from the user on startup. The caller can call navigator.storage.persist()
+  // after displaying a message to the user explaining why the caller requests
+  // the permission and asking the user to approve.
   disableStoragePersist?: boolean
   // opfsWorkerPath sets the path to the OPFS protocol worker.
   // If unset, defaults to "/opfs-worker.mjs".
   opfsWorkerPath?: string
   // closedCallback is a callback to call during close() on WebDocument.
   closedCallback?: (err?: Error) => void
-  // runtimeWorkerPath is the path to the runtime-wasm.mjs
-  // if unset, defaults to ./runtime-wasm.mjs
-  // this is the .mjs file that loads the main Go program (the plugin host)
+  // runtimeWorkerPath is the path to the runtime-wasm.mjs.
+  // If unset, defaults to ./runtime-wasm.mjs.
+  // The .mjs file loads the main Go program (the plugin host).
   runtimeWorkerPath?: string
-  // serviceWorkerPath is the path to the bldr sw.mjs
+  // serviceWorkerPath is the path to the bldr sw.mjs.
   // NOTE: ServiceWorker controls the URL space below the script address!
-  // NOTE: You MUST include sw.mjs next to your index.html.
-  // if unset, defaults to /sw.mjs
+  // NOTE: The caller MUST include sw.mjs next to index.html.
+  // If unset, defaults to /sw.mjs.
   serviceWorkerPath?: string
-  // sharedWorkerPath is the path to the bldr shw.mjs
-  // if unset, defaults to /shw.mjs
-  // This unified worker wraps plugin modules with Bldr runtime lifecycle wiring.
+  // sharedWorkerPath is the path to the bldr shw.mjs.
+  // If unset, defaults to /shw.mjs.
+  // This unified worker wraps plugin modules with Bldr runtime lifecycle
+  // wiring.
   sharedWorkerPath?: string
   // forceDedicatedWorkers forces the runtime to use a dedicated Worker instead
   // of a SharedWorker. Useful for testing with Playwright which can capture
-  // console output from dedicated workers but not shared. Also used as the
-  // automatic fallback when SharedWorker is not supported (e.g. Chrome Android).
+  // console output from dedicated workers but not shared workers. Also used as
+  // the automatic fallback when SharedWorker is not supported (e.g. Chrome
+  // Android).
   forceDedicatedWorkers?: boolean
   // forceMessagePortWorkerComms forces Config A worker communication even when
   // SAB and OPFS are available.
@@ -611,7 +613,7 @@ export interface WebDocumentOptions {
   browserIceServers?: RTCIceServer[]
   // browserIceServersEndpoint is an optional same-origin endpoint that returns
   // short-lived trusted ICE credentials ({ iceServers, expiresAt }). When set,
-  // its response replaces the static list; the static list remains the fallback
+  // its response replaces the static list. The static list remains the fallback
   // if the endpoint fails.
   browserIceServersEndpoint?: string
   // watchVisibility watches the page visibility API.
@@ -705,7 +707,7 @@ export async function registerUpdatedServiceWorker(
 // Browsers throttle background tabs, and timers / callbacks can be delayed by
 // up to a minute. WebDocument treats Page Visibility as state for runtime
 // handoff, but liveness is owned by ports and Web Locks rather than timeouts.
-// In Electron, we can disable background throttling in the BrowserWindow.
+// In Electron, the BrowserWindow can disable background throttling.
 //
 // Note: to put libp2p into debugging mode:
 //  - Node: set the environment variable DEBUG="*"
@@ -719,11 +721,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webRuntimeClientId is the runtime-client identity for this page incarnation.
   public readonly webRuntimeClientId: string
 
-  // isElectron indicates this is electron and we will use ipcRenderer.
+  // isElectron indicates the runtime is electron and uses ipcRenderer.
   private isElectron?: boolean
-  // isSaucer indicates this is saucer and we will use HTTP endpoints.
+  // isSaucer indicates the runtime is saucer and uses HTTP endpoints.
   private isSaucer?: boolean
-  // disableStoragePersist disables requesting persistent storage permission
+  // disableStoragePersist disables requesting persistent storage permission.
   private disableStoragePersist?: boolean
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
@@ -739,13 +741,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webStatusStream is a stream of web status updates.
   public readonly webStatusStream: ItState<WebDocumentStatus>
 
-  // serviceWorker is the loaded runtime service worker
+  // serviceWorker is the loaded runtime service worker.
   private serviceWorker?: Workbox
   // serviceWorkerPort is the Port connected to the ServiceWorker.
   private serviceWorkerPort?: MessagePort
 
   // worker is the shared worker containing the WebRuntime (SharedWorker mode).
-  // electron: not used
+  // electron: not used.
   private worker?: SharedWorker
   // runtimeWorker is the dedicated worker containing the WebRuntime.
   // Used when forceDedicatedWorkers is set or SharedWorker is unavailable.
@@ -793,9 +795,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // frontend owns this document's live compiler subscription.
   private frontend?: FrontendResource
 
-  // hidden indicates the web document is hidden
+  // hidden indicates the web document is hidden.
   private hidden: boolean
-  // closed indicates the web document is closed with an optional error
+  // closed indicates the web document is closed with an optional error.
   private closed?: true | Error
   // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
   // This unified worker wraps plugin modules with Bldr runtime lifecycle wiring.
@@ -855,12 +857,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // swMessageListenerAttached ensures ServiceWorker messages have one page listener.
   private swMessageListenerAttached = false
 
-  // isClosed checks if the web document is closed
+  // isClosed checks if the web document is closed.
   public get isClosed(): boolean | Error {
     return this.closed ?? false
   }
 
-  // isHidden checks if the web document is hidden
+  // isHidden checks if the web document is hidden.
   public get isHidden(): boolean {
     return this.hidden
   }
@@ -878,7 +880,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // getRuntimePresentationState exposes only the current-generation gate used
-  // by the owning WebView; Web-Lock and ServiceWorker telemetry stay private.
+  // by the owning WebView. Web-Lock and ServiceWorker telemetry stay private.
   public getRuntimePresentationState(): WebDocumentRuntimePresentationState {
     return {
       connected: this.runtimeConnected,
@@ -962,7 +964,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }))
     this.browserIceServersEndpoint = opts?.browserIceServersEndpoint ?? ''
 
-    // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
+    // Detect if the browser can use WebAssembly (not needed for saucer because
+    // the Go runtime is native).
     if (!this.isSaucer) {
       const useWasm = detectWasmSupported()
       if (!useWasm) {
@@ -1053,7 +1056,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       )
     }
 
-    // add a global shutdown callback to terminate this
+    // add a global shutdown callback to terminate this WebDocument
     // Before closing, send snapshotNow to all plugin DedicatedWorkers.
     this.releaseShutdownCallback = addShutdownCallback(() => {
       this.sendSnapshotNow()
@@ -1215,7 +1218,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         })
       }
 
-      // we don't expect any messages directly from the main worker port.
+      // The WebDocument expects no messages directly from the main worker port.
       this.webRuntimePort.start()
     }
 
@@ -1238,7 +1241,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         },
         promoteToHost: () => {
           startWebRuntimeWorker()
-          // Promoted hosts own a new DedicatedWorker generation; publish it
+          // Promoted hosts own a new DedicatedWorker generation. Publish it
           // through the normal connection path so runtime and resume-ready
           // state belong to the new worker, not the stale attached relay.
           this.setRuntimeConnected(false)
@@ -1384,7 +1387,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     )
     this.notifyWebViewUpdated(webViewId, webView)
 
-    // openStream opens a stream to the WebViewHost service.
+    // rpcClient opens a stream to the WebViewHost service.
     const rpcClient = this.buildWebViewHostClient(webViewId)
     const reg: WebViewRegistration = {
       rpcClient,
@@ -1419,7 +1422,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   public async getWebViewRpcHandler(
     webViewId: string,
   ): Promise<RpcStreamHandler | null> {
-    // if a local web view
+    // Check for a local web view.
     const webView = this.webViews[webViewId]
     if (!webView) {
       throw new Error(`unknown web view: ${webViewId}`)
@@ -1820,7 +1823,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // initServiceWorker asynchronously initializes the service worker.
-  // called in the constructor
+  // Called in the constructor.
   private async initServiceWorker(
     wb: Workbox,
     swUrl: string,
@@ -1846,8 +1849,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // the service worker wants a new message port for requests
       if (!currSw || this.closed) return
       this.initServiceWorkerPort(currSw)
-      // A service worker talking to this document is proof that one controls
-      // it, which is the condition the runtime start is waiting for.
+      // A service worker talking to this document proves that a service worker
+      // controls the document, the condition the runtime start is waiting for.
       this.startRuntimeOnce?.()
       this.taskEnsureWebRuntimeConnAfterStartGate()
     }
@@ -1900,8 +1903,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         runtimeId: this.webRuntimeId,
       })
       if (this.closed) return
-      // A forced reload bypasses an already-installed controller. Recover once;
-      // a first installation has no prior active worker and must wait for claim.
+      // A forced reload bypasses an already-installed controller. Recover once.
+      // A first installation has no prior active worker and must wait for
+      // claim.
       if (
         !this.isElectron &&
         registration?.active &&
@@ -2067,8 +2071,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.clearResumeReadyState('dedicated-runtime-host-lost')
 
     // Attach to the next elected host. The ServiceWorker holds the open until
-    // a host accepts it; if this document wins the election instead, the
-    // promotion cancels the pending attach and connects its own worker.
+    // a host accepts the open request. If this document wins the election
+    // instead, the promotion cancels the pending attach and connects its own
+    // worker.
     if ('rerouteChannel' in this.webRuntimeClient) {
       void this.webRuntimeClient
         .rerouteChannel({ reconnect: false, runtimeLost: true })
@@ -2087,7 +2092,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.
-  // this is the function passed to the WebRuntimeClient for the WebDocument
+  // The function is passed to the WebRuntimeClient for the WebDocument.
   private async openWebRuntimeClient(
     init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
@@ -2125,11 +2130,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // handleRuntimeFailed ends this document's dedicated host term once the
   // runtime it hosted or attached to has failed. The document ends the dead
-  // runtime's worker and the plugin workers it scheduled for it, releasing
-  // their storage handles, then returns the election lease and the plugin
-  // singleton, so the next election starts a fresh runtime whose plugins can
-  // run. The failure itself stays on this document's startup surface; its
-  // Retry reloads into that election.
+  // runtime's worker and the plugin workers the document scheduled for the
+  // runtime, releasing their storage handles, then returns the election lease
+  // and the plugin singleton, so the next election starts a fresh runtime whose
+  // plugins can run. The failure itself stays on this document's startup
+  // surface. Its Retry reloads into that election.
   private handleRuntimeFailed(reason: string) {
     if (!this.dedicatedRuntimeHost) {
       return
@@ -2173,12 +2178,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // handleWebRuntimeOpenStream handles the web runtime opening a rpc stream.
-  // resolves once the stream has been passed off to be handled
+  // Resolves once the stream has been passed off to be handled.
   private async handleWebRuntimeOpenStream(ch: PacketStream) {
     this.server.handlePacketStream(ch)
   }
 
-  // pushChangeEvent pushes a change event to the webStatusStream
+  // pushChangeEvent pushes a change event to the webStatusStream.
   private async pushChangeEvent(status: WebDocumentStatus) {
     status.pluginWorkersBlocked =
       this.pluginSingletonLockEnabled && !this.pluginSingletonAcquired
@@ -2191,7 +2196,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
   }
 
-  // onVisibilityChange handles page visibility changing
+  // onVisibilityChange handles page visibility changing.
   private onVisibilityChange(hidden: boolean) {
     hidden = hidden || false
     if (hidden === this.hidden) {
@@ -2264,7 +2269,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   private refreshPluginSingletonLock() {
     // A document whose runtime failed schedules no plugin workers for the
-    // next runtime; only its Retry, a new document, contends again.
+    // next runtime. Only its Retry, a new document, contends again.
     if (
       !this.pluginSingletonLockEnabled ||
       this.closed ||
@@ -2934,9 +2939,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         return
       }
       if (!postAck({ from: this.webDocumentUuid, requestId }, clientPort)) {
-        // The broker port closed before the runtime received the bridge port, so
-        // it never got a usable OPFS worker. Tear down the worker we just created
-        // instead of leaking it, and do not emit a false readiness mark.
+        // The broker port closed before the runtime received the bridge port,
+        // so the runtime never got a usable OPFS worker. Tear down the newly
+        // created worker instead of leaking the worker, and do not emit a false
+        // readiness mark.
         this.closeOpfsWorker(requesterId)
         return
       }
@@ -3108,9 +3114,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     navigator.locks
       .request(lockName, { signal }, () => {
         if (this.closed || this.webDocumentLivenessAbort?.signal !== signal) {
-          // Stale or closed grant: release the lock immediately. If this request
-          // still owns the pending state, return it to idle so a later
-          // connection attempt is not wedged behind a lock we just released
+          // Stale or closed grant: release the lock immediately. If this
+          // request still owns the pending state, return the state to idle so a
+          // later connection attempt is not wedged behind the released lock
           // (close() already resets state on its own path).
           if (!this.closed && this.webDocumentLivenessLockState === 'pending') {
             this.webDocumentLivenessLockState = 'idle'
@@ -3123,7 +3129,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           this.serviceWorkerOnLivenessHeld = undefined
           this.initServiceWorkerPort(sw)
         }
-        // The runtime waits for this lock when we send armWebLock.
+        // The runtime waits for this lock when the document sends armWebLock.
         if (this.webRuntimeConnectOnLivenessHeld) {
           this.taskEnsureWebRuntimeConn()
         }
@@ -3139,8 +3145,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // taskEnsureWebRuntimeConnAfterStartGate ensures the runtime connection once
   // the control observation can route a client open. While the DedicatedWorker
   // host election is pending, neither the attach relay nor the runtime port
-  // exists, so an immediate open fails with webRuntimePort not initialized;
-  // the election callbacks own the first attempt until they resolve the role.
+  // exists, so an immediate open fails with webRuntimePort not initialized.
+  // The election callbacks own the first attempt until they resolve the role.
   private taskEnsureWebRuntimeConnAfterStartGate() {
     if (this.dedicatedRuntimeHost?.role === 'pending') {
       return

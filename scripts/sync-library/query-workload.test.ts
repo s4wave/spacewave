@@ -117,8 +117,8 @@ test(
         note: 'edited',
       }
       // A change with wakes false commits to an object the query never read,
-      // so the query takes no snapshot for it; the next change accounts for
-      // both commits.
+      // so the query takes no snapshot for that change. The next change
+      // accounts for both commits.
       const changes: {
         label: string
         operation?: Operation

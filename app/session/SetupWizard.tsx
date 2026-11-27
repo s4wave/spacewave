@@ -104,8 +104,8 @@ function useCompleteProviderChoice(
 }
 
 // LocalSetupWizard renders a single page for local session setup.
-// Matches the cloud wizard pattern: top card with storage warning,
-// collapsible backup key and PIN lock cards, continue button.
+// The page matches the cloud wizard pattern: a top card with a storage warning,
+// collapsible backup key and PIN lock cards, and a continue button.
 function LocalSetupWizard({
   wiz,
   onboarding,

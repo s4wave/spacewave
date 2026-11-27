@@ -36,7 +36,7 @@ export enum State {
 
   /**
    * JobState_COMPLETE is the normal terminal state of the job.
-   * This includes both success and failure termination states.
+   * This state includes both success and failure termination states.
    */
   JobState_COMPLETE = 3,
 }

@@ -17,8 +17,8 @@ import (
 )
 
 // Engine owns approval and enrollment for one mounted Session. Account adapters
-// own provider authorization and persistence; its transport remains owned by the
-// Session's ordinary transport lifecycle.
+// own provider authorization and persistence. The Engine's transport remains
+// owned by the Session's ordinary transport lifecycle.
 type Engine struct {
 	ctx       context.Context
 	le        *logrus.Entry
@@ -33,7 +33,7 @@ type Engine struct {
 }
 
 // attempt is one pairing operation. The Engine's bcast guards snapshot,
-// result, and release; the other fields are fixed when the attempt begins.
+// result, and release. The other fields are fixed when the attempt begins.
 type attempt struct {
 	// snapshot is the published state of the operation.
 	snapshot Snapshot
@@ -41,7 +41,8 @@ type attempt struct {
 	offering bool
 	// offerCurrent includes this Session's account in the exchange.
 	offerCurrent bool
-	// label names this client to the other client; empty uses the machine name.
+	// label identifies this client to the other client. An empty label
+	// uses the machine name.
 	label string
 	// choose delivers the code-entering client's account outcome.
 	choose chan AccountOutcome
@@ -273,8 +274,8 @@ var (
 	// ErrExchangeUnconfirmed is returned before both clients approve and the
 	// receiving side holds its enrolled Session.
 	ErrExchangeUnconfirmed = errors.New("account enrollment is not complete")
-	// ErrExchangePeerMismatch is returned when the caller names a peer other
-	// than the active operation's pairing link.
+	// ErrExchangePeerMismatch is returned when the caller specifies a peer
+	// other than the active operation's pairing link.
 	ErrExchangePeerMismatch = errors.New("pairing exchange peer does not match")
 )
 
@@ -301,8 +302,9 @@ func (e *Engine) Result(remote peer.ID) (*session.SessionRef, error) {
 }
 
 // StartOnStream runs enrollment on an already authenticated duplex connection.
-// The caller retains the stream's transport through completion. Label names
-// this client to the other client; empty uses the machine name.
+// The caller retains the stream's transport through completion. Label
+// identifies this client to the other client. An empty label uses the machine
+// name.
 func (e *Engine) StartOnStream(ctx context.Context, stream io.ReadWriteCloser, remote peer.ID, offering, offerCurrent bool, label string) {
 	attemptCtx, active := e.begin(offering, offerCurrent, label, "", remote, StatusPeerConnected)
 	stop := context.AfterFunc(ctx, active.cancel)

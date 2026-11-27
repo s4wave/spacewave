@@ -27,11 +27,12 @@ type scheduler struct {
 	// releaseCursor resumes bounded free batches without rescanning their prefix.
 	// mtx guards it with the other release state.
 	releaseCursor int
-	// marked is the published seq after the last mark step; a quiet file
+	// marked is the published seq after the last mark step. A quiet file
 	// marks again only once a record follows it. The loop alone uses it.
 	marked uint64
 	// releaseRemaining counts the entries left in a bounded release pass.
-	// mtx guards it; a positive count schedules the next batch immediately.
+	// mtx guards releaseRemaining. A positive count schedules the next
+	// batch immediately.
 	releaseRemaining int
 	// db is the database.
 	db *DB
@@ -41,7 +42,7 @@ type scheduler struct {
 	fg quiet
 	// cleaner evacuates value chunks.
 	cleaner *cleaner
-	// ctx ends the jobs; cancel ends it.
+	// ctx and cancel end the jobs and their context, respectively.
 	ctx    context.Context
 	cancel context.CancelFunc
 	// done is closed when the loop has stopped.
@@ -60,7 +61,7 @@ func startScheduler(db *DB) {
 	go s.run()
 }
 
-// stop ends the jobs and waits for the loop; a running flush finishes its
+// stop ends the jobs and waits for the loop. A running flush finishes its
 // current step first.
 func (s *scheduler) stop() {
 	s.cancel()
@@ -97,9 +98,9 @@ func (s *scheduler) run() {
 			continue
 		}
 
-		// Merge when a level is over its target, in a quiet spell, or at once
-		// when level 0 passed its stall; the gate goes first, since the pick
-		// compares runs.
+		// Merge when a level is over its target, in a quiet spell, or
+		// at once when level 0 passed its stall. The gate goes first,
+		// since the pick compares runs.
 		if s.fg.wait() <= 0 || st.stalled() {
 			if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok && s.merge() {
 				quietAt = time.Now()
@@ -116,8 +117,8 @@ func (s *scheduler) run() {
 			}
 		}
 
-		// Shrink a file whose tail is free, a release step at a time in a
-		// quiet spell; each job's release step also takes one.
+		// Shrink a file whose tail is free, a release step at a time in
+		// a quiet spell. Each job's release step also takes one.
 		if _, shrinks := st.shrinkEnd(1); shrinks && s.fg.wait() <= 0 {
 			if s.releaseStep(s.ctx) == nil {
 				quietAt = time.Now()

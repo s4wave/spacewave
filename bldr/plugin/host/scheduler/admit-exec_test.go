@@ -40,9 +40,9 @@ func (alwaysAdmit) WatchPluginRootAdmitted(
 
 // TestExecControllerCannotStartAdmission checks that a plugin cannot make the
 // host admit a root by asking PluginHost.ExecController for an admission
-// controller naming itself as the owner and answering it. No factory builds
-// one: the host constructs its only admission controllers in code. The host
-// bus has an empty trust set and the owner's admit controller with no
+// controller declaring itself as the owner and answering the watch. No factory
+// builds one: the host constructs its only admission controllers in code. The
+// host bus has an empty trust set and the owner's admit controller with no
 // approvals behind it.
 func TestExecControllerCannotStartAdmission(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -96,8 +96,9 @@ func TestExecControllerCannotStartAdmission(t *testing.T) {
 	}
 	hostClient := plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostMux))))
 
-	// The evil plugin asks for a second admit controller naming itself. It
-	// must never run; the request may fail or wait for a factory.
+	// The evil plugin asks for a second admit controller declaring itself
+	// as the owner. The controller must never run. The request may fail or
+	// wait for a factory.
 	execCtx, stopExec := context.WithTimeout(ctx, 2*time.Second)
 	defer stopExec()
 	strm, err := hostClient.ExecController(execCtx, &controller_exec.ExecControllerRequest{

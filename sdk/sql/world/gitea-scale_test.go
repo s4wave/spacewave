@@ -24,7 +24,7 @@ import (
 )
 
 // scaleGitea grows the real application's issue table without retaining its rows.
-// GITEA_SCALE opts in to expensive seed work; GITEA_PROFILE_DIR retains profiles.
+// GITEA_SCALE opts in to expensive seed work. GITEA_PROFILE_DIR retains profiles.
 func scaleGitea(t *testing.T, ctx context.Context, db *sql.DB, base, password string, issue int64, tb *testbed.Testbed) {
 	// Read only the fixed schema, then build a bounded row-number source.
 	t.Helper()
@@ -102,7 +102,7 @@ func measureGitea(t *testing.T, ctx context.Context, db *sql.DB, base, password 
 	}
 	_ = rows.Close()
 
-	// Profile the adapter and storage process; Gitea is a separate process.
+	// Profile the adapter and storage process. Gitea is a separate process.
 	if dir := os.Getenv("GITEA_PROFILE_DIR"); dir != "" {
 		file, err := os.Create(filepath.Join(dir, fmt.Sprintf("sql-gitea-%d.cpu.pprof", size)))
 		if err != nil {

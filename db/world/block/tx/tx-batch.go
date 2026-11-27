@@ -52,7 +52,7 @@ func (t *TxBatch) GetEmpty() bool {
 }
 
 // Validate checks each transaction in the batch. An empty transaction is a
-// *world.OpRefusedError; an unknown transaction type is returned as is.
+// *world.OpRefusedError. An unknown transaction type is returned as is.
 func (t *TxBatch) Validate() error {
 	for i, tx := range t.GetTxs() {
 		err := func() error {
@@ -91,9 +91,9 @@ func (t *TxBatch) Clone() *TxBatch {
 }
 
 // ClearBucketID removes bucketID from the object roots the batch sets. A
-// bucket ID names one participant's local store. Another participant replaying
-// the batch keeps a bucket-qualified root out of its World DAG, so its World
-// would not own the root's blocks.
+// bucket ID references one participant's local store. Another participant
+// replaying the batch keeps a bucket-qualified root out of its World DAG, so
+// its World would not own the root's blocks.
 func (t *TxBatch) ClearBucketID(bucketID string) {
 	for _, tx := range t.GetTxs() {
 		if create := tx.GetTxCreateObject(); create != nil {

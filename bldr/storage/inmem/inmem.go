@@ -25,7 +25,7 @@ type InmemStorage struct {
 	// volumes holds the store behind each volume id.
 	volumes map[string]*inmemVolume
 	// storeConf configures each volume's store, such as its collector, or is
-	// nil for the defaults.
+	// nil for the default store config.
 	storeConf *store_kvtx.Config
 }
 

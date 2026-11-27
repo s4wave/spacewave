@@ -68,7 +68,8 @@ message Terminal {
   string device_object_key = 2;
   // DevicePeerId is the DEVICE session peer id to open the shell stream to.
   string device_peer_id = 3;
-  // Command is the optional command to run; empty opens the default shell.
+  // Command is the optional command to run. An empty command opens the default
+  // shell.
   string command = 4;
   // Environment contains optional KEY=VALUE entries for the shell process.
   repeated string environment = 5;

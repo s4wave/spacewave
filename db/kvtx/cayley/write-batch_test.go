@@ -16,8 +16,9 @@ import (
 	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
 
-// Hide only the optional write capability to compare the production scalar and
-// coalesced graph paths over otherwise identical Okra/TxStore implementations.
+// scalarGraphStore hides only the optional write capability to compare the
+// production scalar and coalesced graph paths over otherwise identical
+// Okra/TxStore implementations.
 type scalarGraphStore struct{ kvtx.Store }
 
 func (s scalarGraphStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {

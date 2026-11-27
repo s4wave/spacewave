@@ -25,7 +25,8 @@ func (c *Config) Validate() error {
 }
 
 // ParseSignalingURL accepts an absolute HTTP(S) URL or an origin-relative path
-// for browser signaling. Empty disables signaling for standalone local sessions.
+// for browser signaling. An empty URL disables signaling for standalone local
+// sessions.
 func (c *Config) ParseSignalingURL() (*url.URL, error) {
 	// Treat a blank signaling URL as signaling disabled.
 	raw := strings.TrimSpace(c.GetSignalingUrl())

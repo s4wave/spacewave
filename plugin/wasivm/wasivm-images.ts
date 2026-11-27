@@ -89,7 +89,7 @@ export async function linkCdnWasiVmImage(
   )
 }
 
-// formatWasiVmImageLabel names an image for display, with its version.
+// formatWasiVmImageLabel formats an image label for display, with its version.
 export function formatWasiVmImageLabel(image: WasiVmImage): string {
   const name = image.name || 'VM image'
   return image.version ? `${name} (${image.version})` : name

@@ -9,7 +9,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * Config audits the SkiffOS source a build consumes against upstream.
  *
  * The audit reads three Repo snapshots and changes none: it compares the
- * build's commit with upstream's head, names the nearest release tag of each
+ * build's commit with upstream's head, selects the nearest release tag of each
  * and of each one's Buildroot pin, counts the Buildroot fork's skiff-* tags,
  * and writes the result as one Report. A maintenance Flowgraph refreshes the
  * upstream Repos with forge/lib/git/clone before the audit, apart from the
@@ -30,8 +30,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * UpstreamRef names the upstream Repo's ref holding upstream's head, the ref
-   * a fetch moves, such as refs/remotes/origin/master.
+   * UpstreamRef selects the upstream Repo's ref holding upstream's head, the
+   * ref a fetch moves, such as refs/remotes/origin/master.
    */
   upstreamRef?: string
 }
@@ -120,7 +120,7 @@ export const Behind: MessageType<Behind> =
 
 /**
  * Diverged reports a build commit that upstream's head does not hold, so an
- * update to upstream's head would drop it; a person decides.
+ * update to upstream's head would drop the build commit. A person decides.
  *
  * @generated from message forge.lib.skiffos.audit.Diverged
  */
@@ -159,7 +159,7 @@ export const Revision: MessageType<Revision> =
 
 /**
  * Described is a commit with its nearest tagged ancestor, as git describe
- * names it.
+ * describes the commit.
  *
  * @generated from message forge.lib.skiffos.audit.Described
  */
@@ -170,7 +170,7 @@ export interface Described {
   commit?: string
   /**
    * Tag is the nearest tag on the commit or its ancestors. Tag is empty when
-   * the Repo holds no tagged ancestor, or not the commit.
+   * the Repo holds no tagged ancestor, or does not hold the commit.
    */
   tag?: string
   /**

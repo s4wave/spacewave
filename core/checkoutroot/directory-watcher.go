@@ -64,7 +64,8 @@ func NewDirectoryWatcher(le *logrus.Entry, root *os.Root) *DirectoryWatcher {
 }
 
 // Watch subscribes a cursor until the returned function releases it.
-// changed receives true when the cursor's path no longer names its directory.
+// changed receives true when the cursor's path no longer refers to its
+// directory.
 // When native refresh is unavailable, the cursor can still read a snapshot.
 func (w *DirectoryWatcher) Watch(path string, changed func(bool)) func() {
 	// Report replacements after the registry lock is released.
@@ -87,7 +88,8 @@ func (w *DirectoryWatcher) Watch(path string, changed func(bool)) func() {
 		return func() {}
 	}
 
-	// Retain each cursor's path even when another path names the same inode.
+	// Retain each cursor's path even when another path refers to the same
+	// inode.
 	listeners := d.listeners[path]
 	if listeners == nil {
 		listeners = make(map[*func(bool)]struct{})

@@ -13,7 +13,7 @@ var errSourceStoreWrite = errors.New("source store is read-only")
 
 // SourceStore reads blocks from sources in order, for code that reads a
 // graph through a block store, such as a World snapshot. It serves the bytes
-// alone; writes and the store's other operations are refused.
+// alone. Writes and the store's other operations are refused.
 type SourceStore struct {
 	block.StoreOps
 	// sources serve the blocks, tried in order.
@@ -50,7 +50,8 @@ func (s *SourceStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			continue
 		}
 		// A source need not verify its reads, as FrameStore does not, so
-		// check the bytes here; a source that does verify fails the read.
+		// check the bytes here. A source that does verify fails the
+		// read.
 		if ref.VerifyData(stored.Data, false) == nil {
 			return stored, nil
 		}

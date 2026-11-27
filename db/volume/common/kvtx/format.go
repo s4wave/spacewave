@@ -88,9 +88,9 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 
 	// Start an empty store adopted at the current format, with frees as
 	// configured: it has no holder to count again. A versioned store holds
-	// its version key, so only an unversioned one can be empty; the scan for
-	// any key steps past every deleted key at the front of the keyspace,
-	// which on a large store reads gigabytes.
+	// its version key, so only an unversioned one can be empty. The scan
+	// for any key steps past every deleted key at the front of the
+	// keyspace, which on a large store reads gigabytes.
 	empty := false
 	if version == 0 {
 		empty, err = storeEmpty(ctx, store)
@@ -156,10 +156,10 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		}
 	}
 
-	// Record the format, unadopted, with the old graph left for its sweep and
-	// its old generation Open: the old graph committed a large edge set in
-	// slices, so a crash or a failed slice could leave a list without a child
-	// its block names.
+	// Record the format, unadopted, with the old graph left for its sweep
+	// and its old generation Open: the old graph committed a large edge set
+	// in slices, so a crash or a failed slice could leave a list without a
+	// child its block references.
 	state := &block_gc.LivenessState{
 		Adoption:      block_gc.Adoption_ADOPTION_UNADOPTED,
 		ObsoleteKinds: legacyGraphKinds,
@@ -239,16 +239,16 @@ func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	})
 }
 
-// carryFormat10Leases moves the leased roots of a format 10 or older store
-// onto new leases in slices of obsoleteSweepKeys, each its own commit and
-// lease expiring at the largest expiry it carries, as
-// Records.CarryFormat10Leases describes, before the upgrade records the new
-// format, so a crash leaves a store a rerun carries the rest of. Once a
-// carried lease lapses the collector releases its roots in slices like any
-// lapsed lease's, and each block they held waits the grace period in the down
-// log before a free. The upgrade runs at open, before this process holds a
-// root; the carried expiries keep the roots of another process that shares
-// the store, which only s4db refuses, until they would have lapsed.
+// carryFormat10Leases moves the leased roots of a format 10 or older store onto
+// new leases in slices of obsoleteSweepKeys, each its own commit and lease
+// expiring at the largest expiry it carries, as Records.CarryFormat10Leases
+// describes, before the upgrade records the new format, so a crash leaves a
+// store a rerun carries the rest of. Once a carried lease lapses the collector
+// releases its roots in slices like any lapsed lease's, and each block they
+// held waits the grace period in the down log before a free. The upgrade runs
+// at open, before this process holds a root. The carried expiries keep the
+// roots of another process that shares the store, which only s4db refuses,
+// until they would have lapsed.
 func carryFormat10Leases(ctx context.Context, store kvtx.Store) error {
 	for more := true; more; {
 		tx, err := store.NewTransaction(ctx, true)
@@ -358,16 +358,16 @@ func carryLegacyRoots(ctx context.Context, store kvtx.Store) error {
 
 // legacyRoot is a named root an old graph's root owner edge holds.
 type legacyRoot struct {
-	// bucketID and name name the root.
+	// bucketID and name identify the root.
 	bucketID, name string
 	// ref is the block it holds.
 	ref *block.BlockRef
 }
 
-// parseLegacyRootEdge parses the subject and object of a forward edge record
-// of the old graph, enc being the record key after its kind byte, and returns
-// the root it names when the subject is a root owner node and the object a
-// block.
+// parseLegacyRootEdge parses the subject and object of a forward edge record of
+// the old graph, enc being the record key after its kind byte, and returns the
+// root the edge identifies when the subject is a root owner node and the object
+// a block.
 func parseLegacyRootEdge(enc []byte) (legacyRoot, bool) {
 	// Read the subject, a text node.
 	if len(enc) == 0 || enc[0] != legacyTextNode {
@@ -468,10 +468,10 @@ func deletePrefix(ctx context.Context, store kvtx.Store, prefix []byte) error {
 // scanRun bounds the keys one snapshot of scanRuns reads.
 const scanRun = 4096
 
-// scanRuns calls fn with each run of the keys under prefix, in key order, up
-// to scanRun keys a run, each run read in its own short snapshot of store
-// after the last key the run before reached. parse names the item a key
-// holds; a key it rejects counts toward its run and is left out of it.
+// scanRuns calls fn with each run of the keys under prefix, in key order, up to
+// scanRun keys a run, each run read in its own short snapshot of store after
+// the last key the run before reached. parse returns the item a key holds. A
+// key parse rejects counts toward its run and is left out of the run.
 func scanRuns[T any](ctx context.Context, store kvtx.Store, prefix []byte, parse func(key []byte) (T, bool), fn func(run []T) error) error {
 	var after []byte
 	for {
@@ -487,7 +487,7 @@ func scanRuns[T any](ctx context.Context, store kvtx.Store, prefix []byte, parse
 }
 
 // readRun reads up to scanRun keys under prefix after the key after, nil for
-// the first, in one snapshot, and returns the items parse names among them
+// the first, in one snapshot, and returns the items parse returns among them
 // and the last key, nil when none remain.
 func readRun[T any](ctx context.Context, store kvtx.Store, prefix, after []byte, parse func(key []byte) (T, bool)) ([]T, []byte, error) {
 	// Position a sorted iterator past after.

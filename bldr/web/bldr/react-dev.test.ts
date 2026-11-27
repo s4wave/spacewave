@@ -73,8 +73,9 @@ async function sha256(text: string): Promise<string> {
   ).join('')
 }
 
-// devSource serves a release's react-dev directory. failAt names a file that
-// answers 503 and alter one whose content differs from its listed hash.
+// devSource serves a release's react-dev directory. failAt identifies a file
+// that answers 503 and alter identifies a file whose content differs from its
+// listed hash.
 function devSource(
   opts: { failAt?: string; alter?: string } = {},
 ): (url: string) => Promise<Response> {
@@ -178,7 +179,7 @@ describe('Development React generations', () => {
     await fill(storage)
     const picks = newPicks(storage)
 
-    // The document's first file picks the generation; eviction follows.
+    // The document's first file picks the generation, then eviction follows.
     expect(await load(picks, 'doc', reactPath)).toMatch(/^dev /)
     await storage.delete(reactDevCacheName)
     expect(await load(picks, 'doc', domPath)).toMatch(/^dev /)

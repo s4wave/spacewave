@@ -34,9 +34,9 @@ export interface PackfileEntry {
   createdAt?: Date
   /**
    * BloomFormatVersion is the encoding version of the bloom_filter bytes.
-   * Version 1 means the current serialized Hydra BloomFilter bytes; future
+   * Version 1 means the current serialized Hydra BloomFilter bytes. Future
    * bloom layouts add new versions, not mutations of v1. Required on every
-   * entry; cloud rejects pushes whose advertised version is not in its
+   * entry. The cloud rejects pushes whose advertised version is not in its
    * accepted-versions allowlist.
    */
   bloomFormatVersion?: number
@@ -47,20 +47,20 @@ export interface PackfileEntry {
    */
   sequence?: bigint
   /**
-   * SupersededBy is the replacement packfile ID; empty when the row is
-   * current or was retired from the trash without a replacement.
+   * SupersededBy is the replacement packfile ID. The ID is empty when the row
+   * is current or was retired from the trash without a replacement.
    */
   supersededBy?: string
   /**
-   * SupersededAt is the time supersession or retirement was recorded; absent
-   * when the row is current.
+   * SupersededAt is the time supersession or retirement was recorded. The
+   * timestamp is absent when the row is current.
    */
   supersededAt?: Date
   /**
-   * TrashedAt is the time a reclaim pass marked the pack as trash; absent
-   * when the pack is not trash. A trash pack stays readable, but new uploads
-   * do not deduplicate against it, and a reclaim pass retires it once
-   * TrashAge has passed.
+   * TrashedAt is the time a reclaim pass marked the pack as trash. The
+   * timestamp is absent when the pack is not trash. A trash pack stays
+   * readable, but new uploads do not deduplicate against it, and a reclaim pass
+   * retires it once TrashAge has passed.
    */
   trashedAt?: Date
 }
@@ -139,7 +139,8 @@ export const ColdPackEntry: MessageType<ColdPackEntry> =
  */
 export interface ColdPackManifest {
   /**
-   * Entries are ordered by subpath and pack ID; positions number promoted packs.
+   * Entries are ordered by subpath and pack ID. Positions number promoted
+   * packs.
    */
   entries?: ColdPackEntry[]
 }
@@ -228,7 +229,7 @@ export const PullResponse: MessageType<PullResponse> =
 
 /**
  * PushRequest describes a packfile a client uploads to a block store. The
- * server admits the upload and returns where to send the bytes; the packfile
+ * server admits the upload and returns where to send the bytes. The packfile
  * joins the catalog only when the client commits it and the stored bytes match
  * SizeBytes and Sha256.
  *
@@ -360,7 +361,7 @@ export const ReadRequest: MessageType<ReadRequest> =
   ])
 
 /**
- * ReadGrant authorizes reads of one packfile's bytes until it expires.
+ * ReadGrant authorizes reads of one packfile's bytes until the grant expires.
  *
  * @generated from message packfile.ReadGrant
  */
@@ -370,8 +371,8 @@ export interface ReadGrant {
    */
   packId?: string
   /**
-   * Url is the opaque URL the client reads the packfile from with GET and
-   * Range requests. It sends no other credentials.
+   * Url is the opaque URL the client reads the packfile from with GET and Range
+   * requests. The client sends no other credentials.
    */
   url?: string
   /**

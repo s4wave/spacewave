@@ -10,7 +10,7 @@ import (
 // hold, its puts of blocks the volume held, the puts it refused, and the
 // copied entries it dropped, since the volume opened.
 type PutFlow struct {
-	// Path names the write path, such as "fill".
+	// Path identifies the write path, such as "fill".
 	Path string
 	// Blocks is the number of blocks the path stored.
 	Blocks uint64
@@ -34,7 +34,7 @@ type PutFlow struct {
 // under one key family, and the stored values it replaced or deleted there,
 // since the volume opened.
 type ValueFlow struct {
-	// Family names the keys, such as "block" or "graph".
+	// Family identifies the keys, such as "block" or "graph".
 	Family string
 	// Written is the length of the values stored.
 	Written uint64
@@ -76,7 +76,7 @@ func FlowSnapshots() []*VolumeFlows {
 	}
 	healthSources.mtx.Unlock()
 
-	// Snapshot each and sort them.
+	// Snapshot each reporter and sort the flows.
 	out := make([]*VolumeFlows, 0, len(reporters))
 	for _, r := range reporters {
 		out = append(out, r.GetFlows())

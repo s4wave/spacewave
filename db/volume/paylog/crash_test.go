@@ -118,7 +118,7 @@ func TestCrashCollect(t *testing.T) {
 		t.Run(e.name, func(t *testing.T) {
 			calls := 0
 			for n := -1; n < calls; n++ {
-				// Publish two blocks, orphan the second, and sync.
+				// Publish two blocks, orphan the second block, and sync.
 				ctx := t.Context()
 				d := device.NewMemory()
 				s := reopen(t, e, d, nil)

@@ -31,7 +31,7 @@ export enum State {
   TaskState_PENDING = 1,
 
   /**
-   * TaskState_RUNNING is the state when a Pass is assigned and currently executing.
+   * TaskState_RUNNING is the state when a Pass is assigned and executing.
    * If the linked Target does not match the linked pass, cancel the pass.
    * If the inputs do not match the linked Pass inputs, cancel the pass.
    * If the pass becomes canceled, return to PENDING state.
@@ -138,7 +138,8 @@ export interface Task {
    */
   timestamp?: Date
   /**
-   * Placement freezes the selected Worker and Device peer for every Pass of this Task.
+   * Placement freezes the selected Worker and Device peer for every Pass of
+   * this Task.
    */
   placement?: Placement
 }

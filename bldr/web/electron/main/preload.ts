@@ -37,7 +37,7 @@ async function applyElectronAppUpdate(webViewId: string): Promise<void> {
 }
 
 // installedAppVersion returns the version of the app that opened this desktop,
-// or an empty string when it is unknown.
+// or an empty string when the version is unknown.
 async function installedAppVersion(): Promise<string> {
   return await ipcRenderer.invoke('BLDR_ELECTRON_INSTALLED_APP_VERSION')
 }

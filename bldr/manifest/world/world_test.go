@@ -650,7 +650,7 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Assert the skip error names the missing bucket.
+	// Assert the skip error identifies the missing bucket.
 	if len(errs) != 1 {
 		t.Fatalf("manifest errors = %v", errs)
 	}
@@ -1124,7 +1124,8 @@ func TestUnlinkMissingStartupManifests(t *testing.T) {
 		t.Fatalf("unlinked = %v, want [%s]", unlinked, missingKey)
 	}
 
-	// The missing object and its edge are gone; the readable one remains.
+	// The missing object and its edge are gone, but the readable object
+	// remains.
 	for key, want := range map[string]bool{presentKey: true, missingKey: false} {
 		obj, ok, err := ws.GetObject(ctx, key)
 		world.ReleaseObjectState(obj)
@@ -1634,7 +1635,7 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 	assertStartupEligibility(t, byKey, nestedStoreKey, StartupManifestEligibilityIgnored, "intermediate:bldr/manifest-store")
 	assertStartupEligibility(t, byKey, missingBucketRefKey, StartupManifestEligibilityUnsafe, "manifest-ref-unreadable:")
 
-	// The unreadable ref names the bucket its selection waits on.
+	// The unreadable ref identifies the bucket its selection waits on.
 	if got := byKey[missingBucketRefKey].UnmountedBucketID; got != "missing-retained-bucket" {
 		t.Fatalf("unmounted bucket = %q, want missing-retained-bucket", got)
 	}

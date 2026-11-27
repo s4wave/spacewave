@@ -16,20 +16,22 @@ import (
 // AferoFSFile implements the Afero filesystem File interface with a FSHandle.
 // Note: this interface is nearly identical in behavior to os.File interfaces.
 type AferoFSFile struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// name is the filename as passed to open
+	// name is the filename as passed to open.
 	name string
-	// h is the filesystem handle
+	// h is the filesystem handle.
 	h *unixfs.FSHandle
-	// flag contains file open flags
+	// flag contains file open flags.
 	flag int
-	// t is a constant write timestamp
+	// t is a constant write timestamp.
 	t atomic.Pointer[time.Time]
-	// idx is the current file index
+	// idx is the current file index.
 	// note: concurrent read() and write() calls have undefined behavior.
-	// while not expected, the atomic integer will protect against concurrent access.
-	// note: concurrent ReadAt calls will work correctly (even during a Write()).
+	// while not expected, the atomic integer will protect against concurrent
+	// access.
+	// note: concurrent ReadAt calls will work correctly
+	// (even during a Write()).
 	idx atomic.Int64
 }
 
@@ -166,13 +168,13 @@ func (f *AferoFSFile) Read(p []byte) (n int, err error) {
 	return int(rn), err
 }
 
-// ReadAt attempts to read data at a location in the file.
+// ReadAt tries to read data at a location in the file.
 func (f *AferoFSFile) ReadAt(p []byte, off int64) (n int, err error) {
 	rn, err := f.h.ReadAt(f.ctx, off, p)
 	return int(rn), err
 }
 
-// Seek attempts to move the file handle to a location in a file.
+// Seek tries to move the file handle to a location in a file.
 func (f *AferoFSFile) Seek(offset int64, whence int) (int64, error) {
 	var out int64
 	switch whence {
@@ -205,7 +207,7 @@ func (f *AferoFSFile) Sync() error {
 	return f.h.Sync(f.ctx)
 }
 
-// Truncate the file.
+// Truncate truncates the file.
 func (f *AferoFSFile) Truncate(size int64) error {
 	if f.GetReadOnly() {
 		return syscall.EPERM

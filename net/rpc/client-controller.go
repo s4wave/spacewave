@@ -12,13 +12,13 @@ import (
 
 // ClientController wraps a srpc.Client and serves LookupRpcClient requests.
 type ClientController struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// client is the prefix client
+	// client is the prefix client.
 	client *srpc.PrefixClient
 	// baseClient is the base client (not prefixed).
 	baseClient srpc.Client

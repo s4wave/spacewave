@@ -71,7 +71,7 @@ func auditFields(path string, res block_gc.AuditResult) [][2]string {
 		{"Undercounted blocks", strconv.FormatUint(res.Undercount, 10)},
 	}
 
-	// Name a sample of the blocks behind each finding.
+	// List a sample of the blocks behind each finding.
 	fields = appendRefSample(fields, "Live queued sample", res.LiveQueuedSample)
 	fields = appendRefSample(fields, "Undercount sample", res.UndercountSample)
 	fields = appendRefSample(fields, "Unlisted sample", res.UnlistedSample)
@@ -99,7 +99,7 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 	path := c.Args().First()
 	res, err := adoptVolume(c.Context, logrus.NewEntry(logrus.New()), path, a.upgrade.StoreConfig(nil))
 
-	// Print the counts, then name the step a refusal waits on.
+	// Print the counts, then report the step a refusal waits on.
 	writeFields(os.Stdout, adoptFields(path, res))
 	switch {
 	case errors.Is(err, block_gc.ErrAdoptUnknown):
@@ -109,8 +109,8 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 }
 
 // adoptVolume adopts the stopped volume at path, opened with the store
-// configuration storeConf, nil for the default. A refusal returns the counts
-// the adoption reached with its error.
+// configuration storeConf, nil for the default configuration. A refusal returns
+// the counts the adoption reached with its error.
 func adoptVolume(ctx context.Context, le *logrus.Entry, path string, storeConf *store_kvtx.Config) (block_gc.AdoptResult, error) {
 	// Open the stopped volume and adopt it.
 	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, storeConf)
@@ -134,7 +134,7 @@ func adoptFields(path string, res block_gc.AdoptResult) [][2]string {
 		{"Holders naming a listless block", strconv.FormatUint(res.Unknown, 10)},
 	}
 
-	// Name a sample of the listless blocks.
+	// List a sample of the listless blocks.
 	return appendRefSample(fields, "Listless sample", res.UnknownSample)
 }
 
@@ -164,12 +164,12 @@ func (a *debugVolumeStateArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// readVolumeState opens the stopped volume at path read-only and reads what
-// the settle's flip checks find, its liveness state among them, and whether
-// an Open generation parked any block. It reads with the collector's
-// default grace period, not the one a collection passes. A file
-// that needs a conversion or a format upgrade fails with
-// volume.ErrReadOnlyUpgrade naming its format, and is left as it was.
+// readVolumeState opens the stopped volume at path read-only and reads what the
+// settle's flip checks find, its liveness state among them, and whether an Open
+// generation parked any block. It reads with the collector's default grace
+// period, not the one a collection passes. A file that needs a conversion or a
+// format upgrade fails with volume.ErrReadOnlyUpgrade reporting its format, and
+// is left as it was.
 func readVolumeState(ctx context.Context, le *logrus.Entry, path string) (*block_gc.SettleStatus, bool, error) {
 	// Open the volume read-only.
 	vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
@@ -178,7 +178,8 @@ func readVolumeState(ctx context.Context, le *logrus.Entry, path string) (*block
 	}
 	defer vol.Close()
 
-	// Read whether it parked a block, then the flip's checks.
+	// Read whether the Open generation parked a block, then the flip's
+	// checks.
 	_, parked, err := vol.ReadLiveness(ctx)
 	if err != nil {
 		return nil, false, err

@@ -230,7 +230,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Assert the completion names the local provider, Space, and Device.
+	// Assert the completion references the local provider, Space, and
+	// Device.
 	completion := resp.GetCompletion()
 	if completion == nil {
 		t.Fatal("approval returned no completion")

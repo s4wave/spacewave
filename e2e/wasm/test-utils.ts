@@ -11,7 +11,7 @@ interface Disposable {
 export interface CleanupTracker {
   // Track a resource for cleanup. Returns the resource for chaining.
   <T>(resource: T): T
-  // Release all tracked resources in reverse order.
+  // releaseAll releases all tracked resources in reverse order.
   releaseAll(): void
 }
 
@@ -53,7 +53,7 @@ export async function withCleanup<T>(
 }
 
 // withTimeout runs an async callback with an AbortSignal that fires
-// after the given deadline in milliseconds. Clears the timer on
+// after the given deadline in milliseconds. It clears the timer on
 // completion regardless of success or failure.
 export async function withTimeout<T>(
   ms: number,
@@ -70,19 +70,22 @@ export async function withTimeout<T>(
 
 // RetryOptions configures the retryUntil polling loop.
 export interface RetryOptions {
-  // Total deadline in milliseconds from the start of the first attempt.
+  // deadlineMs sets the total deadline in milliseconds from the start of the
+  // first attempt.
   deadlineMs: number
-  // Delay between attempts in milliseconds. Default 500.
+  // intervalMs sets the delay between attempts in milliseconds. The default
+  // delay is 500 milliseconds.
   intervalMs?: number
-  // Error message when the deadline is exceeded without success.
+  // message supplies the error message when the deadline is exceeded without
+  // success.
   message?: string
-  // AbortSignal from an outer timeout. If aborted, the loop throws
-  // immediately instead of retrying.
+  // signal supplies the AbortSignal from an outer timeout. If aborted, the
+  // loop throws immediately instead of retrying.
   signal?: AbortSignal
 }
 
 // retryUntil polls an async condition until it returns a truthy value or
-// the deadline expires. Returns the first truthy result. Throws if the
+// the deadline expires. It returns the first truthy result. It throws if the
 // deadline is exceeded or the signal is aborted.
 export async function retryUntil<T>(
   fn: (signal: AbortSignal) => Promise<T | null | undefined | false>,

@@ -7,7 +7,7 @@ describe('Retry', () => {
     const fn = vi.fn().mockResolvedValue('success')
     const retry = new Retry(fn)
 
-    // It resolves after one call.
+    // The retry result resolves after one call.
     const result = await retry.result
     expect(result).toBe('success')
     expect(fn).toHaveBeenCalledTimes(1)

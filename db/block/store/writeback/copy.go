@@ -83,8 +83,8 @@ type copyRun struct {
 	cursor []byte
 	// ended reports that the step ending the list landed with all before it.
 	ended bool
-	// held reports that a contiguous landed step left a corrupt block out;
-	// the cursor stays before that step.
+	// held reports that a contiguous landed step left a corrupt block out.
+	// The cursor stays before that step.
 	held bool
 	// counts are the step counts not yet published.
 	counts CopyStatus
@@ -135,12 +135,12 @@ func (r *copyRun) take() ([]byte, bool, CopyStatus, int64) {
 	return r.cursor, r.ended && !r.held, counts, r.corrupt
 }
 
-// Copy writes every block list names to remote, resuming after the cursor a
+// Copy writes every block list returns to remote, resuming after the cursor a
 // previous copy to target saved, until the list ends or ctx ends. It records
 // the copy complete durably, so a later call returns at once.
 //
-// A copy writes nothing per block to the local store: it reads each block
-// with its refs, writes the ones the remote lacks in batches, and confirms the
+// A copy writes nothing per block to the local store: it reads each block with
+// its refs, writes the ones the remote lacks in batches, and confirms the
 // remote holds them before its cursor passes them. Local reads share the
 // upload's bound, which falls while the disk is loaded. Blocks the copy writes
 // are not queued for eviction.

@@ -200,7 +200,8 @@ func encryptLeanRecovery(t *testing.T, material *SOEntityRecoveryMaterial, recip
 	return env.MarshalVT()
 }
 
-// decodeLeanRecovery performs only primitive envelope parsing, decryption and material parsing.
+// decodeLeanRecovery uses only primitive operations to parse and decrypt the
+// envelope and parse the material.
 func decodeLeanRecovery(t *testing.T, keys []crypto.PrivKey, env *SOEntityRecoveryEnvelope) *SOEntityRecoveryMaterial {
 	// Parse and unlock the envelope.
 	t.Helper()

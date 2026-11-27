@@ -80,7 +80,8 @@ func BuildEsbuildBundlerConfig(
 			}
 
 			// restrict to a single entrypoint per variable.
-			// NOTE; we could remove this restriction, but then we wouldn't know which to store in the variable.
+			// The restriction could be removed, but then the compiler could not choose
+			// which entrypoint to store in the variable.
 			if len(entryPoints) != 1 {
 				return nil, errors.Errorf(
 					"expected single entrypoint per bldr:esbuild variable but got %v: %s.%s",
@@ -90,7 +91,8 @@ func BuildEsbuildBundlerConfig(
 				)
 			}
 
-			// note: we enforce just one here, but use a for loop for completeness.
+			// note: the compiler enforces one entrypoint here, but uses a for loop
+			// for completeness.
 			bundleFlags = append(bundleFlags, varEsbuildFlags...)
 			for _, entryPoint := range entryPoints {
 				bundleEntrypoints = append(bundleEntrypoints, &bldr_web_bundler_esbuild.EsbuildBundleEntrypoint{

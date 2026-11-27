@@ -17,7 +17,7 @@ const syncDeadline = time.Second
 type flusher struct {
 	// s is the database file.
 	s storage
-	// cur is the published state; a flush covers every commit in it.
+	// cur is the published state. A flush covers every commit in it.
 	cur *atomic.Pointer[state]
 	// onFlush, when set, runs after each durable flush with the state it
 	// covered, so the writer can learn the marks without polling.
@@ -36,7 +36,7 @@ type flusher struct {
 	// flushing is set while one caller flushes for every waiting commit.
 	flushing bool
 	// deadline flushes ordered commits syncDeadline after the first one
-	// left unflushed; nil when none is armed.
+	// left unflushed. nil when none is armed.
 	deadline *time.Timer
 	// deadlineFlushing is set while a fired deadline flushes.
 	deadlineFlushing bool

@@ -50,7 +50,8 @@ func TestCopyCredentialPreservesPINAcrossTransactionRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Copy the PIN credential through a destination transaction that fails before commit.
+	// Copy the PIN credential through a destination transaction that fails before
+	// commit.
 	fault := kvtest.NewFaultStore(destination, kvtest.FaultBeforeCommit)
 	if err := CopyCredential(ctx, source, fault, "source", "destination", key, [32]byte{3}); err != nil {
 		t.Fatal(err)
@@ -81,7 +82,8 @@ func TestCopyCredentialPreservesPINAcrossTransactionRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Open a destination read transaction to inspect the retained session metadata.
+	// Open a destination read transaction to inspect the retained session
+	// metadata.
 	read, err := destination.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +126,7 @@ func TestCopyCredentialRewrapsAutoUnlockAndRejectsConflictingKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Read the copied auto-unlock credential from the destination.
+	// Read the copied auto-unlock credential from the destination store.
 	encrypted, _, err := ReadAutoUnlockKey(ctx, destination, "destination")
 	if err != nil {
 		t.Fatal(err)

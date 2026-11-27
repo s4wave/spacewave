@@ -261,12 +261,12 @@ export const Access: MessageType<Access> =
 export interface PutOpts {
   /**
    * HashType is the hash type to use.
-   * If unset (0 value) will use default for the store.
+   * If unset (0 value), the store uses its default hash type.
    */
   hashType?: HashType
   /**
    * ForceBlockRef forces the block ref to equal the given ref.
-   * Can be unset to indicate none (allow any).
+   * Can be unset to indicate no forced ref (allow any).
    *
    * If the generated BlockRef does not match, the storage operation is aborted
    * and returns block.ErrBlockRefMismatch.
@@ -303,7 +303,7 @@ export interface PutOpts {
   /**
    * Background marks the write as work no person waits for, as
    * WithBackground does for a caller in the store's process. A store that
-   * schedules background writes queues it behind foreground writes; the field
+   * schedules background writes queues it behind foreground writes. The field
    * carries the mark across a process boundary, where a context does not.
    */
   background?: boolean

@@ -18,16 +18,17 @@ func NodeKeyPrefix() []byte {
 	return bytes.Clone(nodePrefix)
 }
 
-// WalkChangedQuads calls fn with the quad each out key in keys names, keys
+// WalkChangedQuads calls fn with the quad each out key in keys identifies, keys
 // being keys whose values differ between the trees of before and after, as a
-// tree diff lists them. added is whether after holds the quad; otherwise
-// before does. Other keys are skipped.
+// tree diff lists them. added is whether after holds the quad. Otherwise before
+// does. Other keys are skipped.
 //
-// Node IDs are never reused, so a key held by both trees names the same quad
-// in each, and the changed quads are exactly the changed out keys. A changed
-// meta or ID map key names a node created, deleted or pinned, whose quads
-// show as out keys of their own. Edge values are empty, so a changed out key
-// is in exactly one tree, and one read of the after tree finds which.
+// Node IDs are never reused, so a key held by both trees identifies the same
+// quad in each, and the changed quads are exactly the changed out keys. A
+// changed meta or ID map key identifies a node created, deleted or pinned,
+// whose quads show as out keys of their own. Edge values are empty, so a
+// changed out key is in exactly one tree, and one read of the after tree finds
+// which tree.
 func WalkChangedQuads(ctx context.Context, before, after kvtx.TxOps, keys [][]byte, fn func(q quad.Quad, added bool) error) error {
 	// Resolve names in each tree through its own cache.
 	var trees [2]*QuadStore

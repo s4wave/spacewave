@@ -36,7 +36,7 @@ const (
 // raise counters under the shard's read lock, and each shard keeps its own
 // counters, so lookups on different shards share no cache line.
 type decodedBlockPool struct {
-	// shards holds the entries by key hash; nil when caching is disabled.
+	// shards holds the entries by key hash. Nil when caching is disabled.
 	shards []decodedBlockShard
 	// seed hashes keys to shards.
 	seed maphash.Seed
@@ -44,8 +44,8 @@ type decodedBlockPool struct {
 	maxCost atomic.Int64
 	// off bypasses the shards from then on, as a disabled pool does.
 	off atomic.Bool
-	// budget, when set, is the shared read-cache budget the pool draws on. The
-	// pool runs its Reclaim after every store.
+	// budget is the shared read-cache budget the pool draws on when set.
+	// The pool runs its Reclaim after every store.
 	budget *ReadCacheBudget
 	// nextEvict rotates the shard ReadCacheEvict starts from.
 	nextEvict atomic.Uint64
@@ -53,7 +53,7 @@ type decodedBlockPool struct {
 
 // decodedBlockShard is one lock's share of a pool.
 type decodedBlockShard struct {
-	// mtx guards entries and the queues; lookups take it for reading.
+	// mtx guards entries and the queues. Lookups take it for reading.
 	mtx sync.RWMutex
 	// hits and misses count lookups. They share the cache line of mtx, which
 	// every lookup writes anyway.
@@ -99,7 +99,8 @@ type decodedBlockPoolEntry struct {
 	// cost is the budget the entry is charged.
 	cost int64
 	// freq counts lookups since the entry last moved. Lookups raise it under
-	// the read lock, so it may pass decodedBlockMaxFreq; eviction clamps it.
+	// the read lock, so it may pass decodedBlockMaxFreq. Eviction clamps
+	// the count.
 	freq atomic.Int32
 	// queue is the queue holding the entry.
 	queue *decodedBlockQueue
@@ -342,8 +343,8 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 		}
 		e.queue.remove(e)
 
-		// A probation entry found by a lookup moves to main; a main entry
-		// found by a lookup gets another pass with one lookup fewer.
+		// A probation entry found by a lookup moves to main. A main
+		// entry found by a lookup gets another pass with one lookup fewer.
 		f := min(e.freq.Load(), decodedBlockMaxFreq)
 		if e.value.read != nil && e.value.read.recent.Swap(false) {
 			f = max(f, 1)
@@ -368,7 +369,7 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 // delIfCurrent removes the observed version of key. A stale lookup can
 // race with a new publication of the same key.
 func (p *decodedBlockPool) delIfCurrent(key string, version uint64) {
-	// Unlink the entry and release its cost if the lookup still names it.
+	// Unlink the entry and release its cost if the lookup still selects it.
 	s := p.shard(key)
 	s.mtx.Lock()
 	e := s.entries[key]
@@ -435,8 +436,8 @@ func (q *decodedBlockQueue) remove(e *decodedBlockPoolEntry) {
 }
 
 // retireReadData releases decoded payloads and child links before an entry leaves,
-// and uncounts the metadata it had charged. The caller holds the shard lock;
-// existing readers may finish with local data.
+// and uncounts the metadata it had charged. The caller holds the shard lock.
+// Existing readers may finish with local data.
 func (s *decodedBlockShard) retireReadData(slot *decodedBlockReadSlot) {
 	if slot == nil {
 		return

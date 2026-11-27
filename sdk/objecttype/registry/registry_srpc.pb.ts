@@ -215,7 +215,7 @@ export class ObjectTypeHandlerServiceClient implements ObjectTypeHandlerService 
 }
 /**
  * ObjectTypeBodyService renders a plugin's object bodies as JSON. A plugin
- * serves it on its handler root beside ObjectTypeHandlerService; the host
+ * serves it on its handler root beside ObjectTypeHandlerService. The host
  * leaves the bodies of a plugin that does not serve it without JSON.
  *
  * @generated from service s4wave.objecttype.registry.ObjectTypeBodyService
@@ -251,7 +251,7 @@ export const ObjectTypeBodyServiceDefinition = {
 
 /**
  * ObjectTypeBodyService renders a plugin's object bodies as JSON. A plugin
- * serves it on its handler root beside ObjectTypeHandlerService; the host
+ * serves it on its handler root beside ObjectTypeHandlerService. The host
  * leaves the bodies of a plugin that does not serve it without JSON.
  *
  * @generated from service s4wave.objecttype.registry.ObjectTypeBodyService
@@ -281,7 +281,7 @@ export interface ObjectTypeBodyService {
 
 /**
  * ObjectTypeBodyService renders a plugin's object bodies as JSON. A plugin
- * serves it on its handler root beside ObjectTypeHandlerService; the host
+ * serves it on its handler root beside ObjectTypeHandlerService. The host
  * leaves the bodies of a plugin that does not serve it without JSON.
  *
  * @generated from service s4wave.objecttype.registry.ObjectTypeBodyService

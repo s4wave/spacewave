@@ -11,13 +11,13 @@ export interface VmHeaderProps {
   state: VmState
   // activity follows the state badge, such as the downloads of a run.
   activity?: ReactNode
-  // children are the controls of a VM that is running or about to; a
+  // children are the controls of a VM that is running or about to run. A
   // stopped VM shows only its state.
   children?: ReactNode
 }
 
 // VmHeader is the 28px toolbar above a VM: its state and activity, then its
-// controls. The tab names the VM, so the strip does not. The strip is a
+// controls. The tab displays the VM name, so the strip does not. The strip is a
 // container, so controls can collapse their labels in a narrow panel, and it
 // positions the activity's progress line along its bottom edge.
 export function VmHeader({ state, activity, children }: VmHeaderProps) {

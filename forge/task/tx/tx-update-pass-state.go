@@ -25,13 +25,13 @@ func NewTxUpdateWithPassStateTxn() Transaction {
 	return &TxUpdateWithPassState{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction's type.
 func (t *TxUpdateWithPassState) GetTxType() TxType {
 	return TxType_TxType_UPDATE_WITH_PASS_STATE
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate checks the transaction cursorily.
+// Note: Validate should not fetch network data.
 func (t *TxUpdateWithPassState) Validate() error {
 	return nil
 }
@@ -45,7 +45,7 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
-	// ensure RUNNING state
+	// Ensure the Task is in the RUNNING state.
 	err := root.GetTaskState().EnsureMatches(forge_task.State_TaskState_RUNNING)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 		return nil
 	}
 
-	// mark as dirty
+	// Mark the Task as dirty.
 	bcs.SetBlock(root, true)
 	return nil
 }

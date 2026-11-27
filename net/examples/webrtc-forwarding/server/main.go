@@ -17,10 +17,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// listenAddr is the listen address
+// listenAddr is the listen address.
 var listenAddr string = ":2253"
 
-// httpPath is the http path to listen on
+// httpPath is the http path to listen on.
 var httpPath string = "/bifrost-ws"
 
 func main() {
@@ -65,7 +65,7 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
-	// Create the Controller Bus which will manage our controllers.
+	// Create the Controller Bus to manage the controllers.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err

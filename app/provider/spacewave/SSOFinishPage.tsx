@@ -36,8 +36,8 @@ type SSOFinishState =
 
 // SSOFinishPage handles the OAuth redirect return.
 // Route: #/auth/sso/finish/:nonce
-// Exchanges the nonce for the OAuth result, then handles the linked (existing
-// user) flow or redirects new users to /auth/sso/:provider/confirm.
+// The page exchanges the nonce for the OAuth result, then handles the linked
+// (existing user) flow or redirects new users to /auth/sso/:provider/confirm.
 export function SSOFinishPage() {
   const params = useParams()
   const nonce = params?.nonce ?? ''
@@ -122,7 +122,7 @@ export function SSOFinishPage() {
     }
   }, [exchangeResult.data, exchangeResult.error, nonce, navigate, state.step])
 
-  // Existing user: decrypt blob and login with entity key.
+  // Existing user: decrypt the blob and log in with the entity key.
   useEffect(() => {
     if (!linkedResult || !root) return
     const controller = new AbortController()
@@ -181,7 +181,7 @@ export function SSOFinishPage() {
     }
   }, [linkedResult, root, navigate])
 
-  // PIN-wrapped: decrypt Layer 1 with PIN, then login.
+  // PIN-wrapped key: decrypt Layer 1 with the PIN, then log in.
   const handlePinSubmit = useCallback(async () => {
     if (!pinPromptResult) return
     if (!pin || !root) return

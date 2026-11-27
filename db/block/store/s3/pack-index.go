@@ -30,28 +30,30 @@ import (
 //	n/list        present when the index may lack packs the bucket holds
 //
 // Pack numbers grow by one for each pack the index learns and are never reused,
-// so an h row of a removed pack names a number no pack holds and reads as a
-// miss. A remove records the next number, since the removed packs may have
-// held the highest ones and the p/ rows alone would give them out again after
-// a restart, pointing their stale h rows at packs that lack the blocks. The number table is the only place the id strings live: a block costs
-// its key and 4 bytes, not a 20 byte id.
+// so an h row of a removed pack records a number no pack holds and reads as a
+// miss. A remove records the next number, since the removed packs may have held
+// the highest ones and the p/ rows alone would give them out again after a
+// restart, pointing their stale h rows at packs that lack the blocks. The
+// number table is the only place the id strings live: a block costs its key and
+// 4 bytes, not a 20 byte id.
 //
 // Invariants:
-//   - A pack with an indexed p/ row has every block key in h rows, written in
-//     a transaction that committed no later than the row.
+//   - A pack with an indexed p/ row has every block key in h rows, written in a
+//     transaction that committed no later than the row.
 //   - An e/ row is written in one transaction with a p/ row of its pack, so
 //     neither is written without the other. Marking the pack indexed later
 //     rewrites its p/ row alone.
 //   - The h row key is the last indexKeyBytes bytes of the block key, the end
 //     of its hash digest: 128 bits, so two blocks share a row only by a
 //     collision no one will find. It halves the bytes the index costs.
-//   - An h row names the number of the last pack that wrote it, so a block
+//   - An h row records the number of the last pack that wrote it, so a block
 //     written twice is found in one pack, and the lookups fall back to the
 //     filters when that pack has left the manifest. The background indexer
-//     never replaces a row that names a pack the table holds, so a listed pack
-//     indexed while a tail merge replaces it cannot shadow the merged pack.
+//     never replaces a row that identifies a pack the table holds, so a listed
+//     pack indexed while a tail merge replaces it cannot shadow the merged
+//     pack.
 //   - A t/ row holds the tail bytes of a pack id, which never change, so a
-//     reader loads it instead of reading the tail again; removing the pack
+//     reader loads it instead of reading the tail again. Removing the pack
 //     removes its row.
 const (
 	indexEntryPrefix = "e/"
@@ -107,7 +109,7 @@ func unmarshalPackRow(b []byte) (packRow, error) {
 }
 
 // packIndex is the entry cache and block location index of a PackStore in a
-// local KV store. The KV store is the durable copy; the pack table is kept in
+// local KV store. The KV store is the durable copy. The pack table is kept in
 // memory too, as a read needs it for every lookup.
 type packIndex struct {
 	store kvtx.Store
@@ -120,7 +122,7 @@ type packIndex struct {
 	mtx sync.RWMutex
 	// rows is the pack table by pack id.
 	rows map[string]packRow
-	// ids is the pack table by pack number; "" is a removed pack.
+	// ids is the pack table by pack number. "" is a removed pack.
 	ids []string
 	// pending holds the persisted packs whose keys are not all indexed.
 	pending map[string]*packfile.PackfileEntry
@@ -129,7 +131,7 @@ type packIndex struct {
 	// work wakes the background indexer when pending grows.
 	work chan struct{}
 	// version counts the changes to rows, so Indexed answers stay valid
-	// while it holds. Changed with mtx held.
+	// while version is unchanged. Changed with mtx held.
 	version atomic.Uint64
 	// tails holds the index tails awaiting their write.
 	tails tailQueue
@@ -169,14 +171,14 @@ const readChunk = 1024
 // and returns the number of packs the table holds with those entries. Those
 // are the unindexed packs, and the indexed packs that share a number with
 // another pack: an index written before the table loaded gave out numbers
-// that indexed packs held, so an h row of a shared number may name a pack
+// that indexed packs held, so an h row of a shared number may identify a pack
 // that lacks the block. Publishing every pack of a shared number lets the
 // filters find the block in whichever pack holds it. The other indexed packs'
 // entries stay in the KV store until a lookup places a key in one. A failed
 // load registers nothing that a retry would not register again, so the caller
 // may call it until it succeeds.
 func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, error) {
-	// Read the pack table, which names every pack that may have a cached
+	// Read the pack table, which lists every pack that may have a cached
 	// entry, and register it.
 	rows, ids, nextNum, err := x.loadTable(ctx)
 	if err != nil {
@@ -206,8 +208,8 @@ func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, e
 		}
 	}
 
-	// Read their entries. A pack removed since the table read has no entry;
-	// forget its row.
+	// Read their entries. A pack removed since the table read has no entry.
+	// Forget its row.
 	read, err := x.readEntries(ctx, unplaced)
 	if err != nil {
 		return 0, nil, err
@@ -273,7 +275,7 @@ func getEntry(ctx context.Context, tx kvtx.Tx, id string) (*packfile.PackfileEnt
 }
 
 // forgetMissing forgets the rows of the packs in ids that read has no entry
-// for, which the table named before they were removed.
+// for. The table listed those packs before their removal.
 func (x *packIndex) forgetMissing(ids []string, read []*packfile.PackfileEntry) {
 	if len(read) == len(ids) {
 		return
@@ -563,26 +565,26 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 // slice go before the next, rather than holding them for every key.
 //
 // The first transaction writes the e/ row and an unindexed p/ row with the
-// first slice, so the pack's number is durable before any h row names it: a
-// number taken only in memory would be given out again after a restart, and
-// h rows left by an interrupted index would place their blocks in a pack that
-// lacks them. The last slice marks the row indexed. A pack interrupted
-// between them loads as unindexed and the background indexer finishes it.
-// The pack is not in the manifest until this returns, so no lookup trusts its
-// row early. A pack of at most indexBatchKeys keys takes one transaction.
+// first slice, so the pack's number is durable before any h row identifies it:
+// a number taken only in memory would be given out again after a restart, and h
+// rows left by an interrupted index would place their blocks in a pack that
+// lacks them. The last slice marks the row indexed. A pack interrupted between
+// them loads as unindexed and the background indexer finishes it. The pack is
+// not in the manifest until addWritten returns, so no lookup trusts its row
+// early. A pack of at most indexBatchKeys keys takes one transaction.
 //
-// tail is the pack's index tail, or nil when the caller holds none. With
-// extent writes on (SetIndexExtentWrites) and a tail that gives every key an
-// extent a row can hold, each h row is written once with its block's extent,
-// and the tail is not queued: the rows already hold what its drain would
-// write. Otherwise the rows name only the pack, and a tail is queued for the
+// tail is the pack's index tail, or nil when the caller holds none. With extent
+// writes on (SetIndexExtentWrites) and a tail that gives every key an extent a
+// row can hold, each h row is written once with its block's extent, and the
+// tail is not queued: the rows already hold what its drain would write.
+// Otherwise the rows identify only the pack, and a tail is queued for the
 // drain, as before rows were written with extents.
 //
-// Invariant: an h row written with an extent holds exactly the offset and
-// size the tail lists for its key in this pack of entry's size, the values
+// Invariant: an h row written with an extent holds exactly the offset and size
+// the tail lists for its key in this pack of entry's size, the values
 // planTailUpgrades would plan. An extent read verifies the block's hash, so a
-// row that is wrong anyway costs one range read and the lookup through the
-// pack readers, never a wrong block.
+// row that is wrong anyway costs one range read and the lookup through the pack
+// readers, never a wrong block.
 func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte, tail []byte) error {
 	// Number the pack, or keep the number of an earlier attempt that failed,
 	// so its durable rows stay right.
@@ -615,7 +617,7 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 	}
 
 	// Only now is every key in the index: Indexed tells a drain or an adopter
-	// that the pack is registered, and it then stops retrying.
+	// that the pack is registered, and that caller then stops retrying.
 	x.mtx.Lock()
 	row.indexed = true
 	x.rows[entry.GetId()] = row
@@ -629,7 +631,7 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 	return nil
 }
 
-// extentWritesOn turns on the extent writes of addWritten; see
+// extentWritesOn turns on the extent writes of addWritten. See
 // SetIndexExtentWrites.
 var extentWritesOn atomic.Bool
 
@@ -639,17 +641,17 @@ func init() {
 
 // SetIndexExtentWrites turns the extent writes of every pack index on or off.
 // On, a pack written or adopted with its index tail writes each block's h row
-// once, with the block's extent; off, the rows name only the pack and the
+// once, with the block's extent. Off, the rows identify only the pack and the
 // tail's drain rewrites each row with its extent afterwards, as before. The
-// rows are the same either way; on saves the second write of every row.
+// rows are the same either way. On saves the second write of every row.
 func SetIndexExtentWrites(on bool) {
 	extentWritesOn.Store(on)
 }
 
-// extentValues returns the h row value of each of keys, naming the pack num
-// with the key's extent from the index tail of the pack of size bytes, or nil
-// when the tail does not open or does not give every key an extent a row can
-// hold.
+// extentValues returns the h row value of each of keys, identifying the pack
+// num with the key's extent from the index tail of the pack of size bytes, or
+// nil when the tail does not open or does not give every key an extent a row
+// can hold.
 func extentValues(tail []byte, size uint64, num uint32, keys [][]byte) [][]byte {
 	// Collect the tail's extents by h row key.
 	found := make(map[string]hashValue, len(keys))
@@ -760,7 +762,7 @@ const (
 
 // hashValue is a decoded h row value.
 type hashValue struct {
-	// num is the number of the pack the row names.
+	// num is the number of the pack the row identifies.
 	num uint32
 	// off and size are the block's bytes in the pack, when extent is set.
 	off  uint64
@@ -773,7 +775,7 @@ type hashValue struct {
 	reach uint32
 }
 
-// parseHashValue decodes an h row value; ok is false for a malformed one.
+// parseHashValue decodes an h row value. ok is false for a malformed one.
 func parseHashValue(value []byte) (v hashValue, ok bool) {
 	// Read the pack number, then the extent and the reach a longer row holds.
 	if len(value) < 4 {
@@ -820,10 +822,10 @@ func hashRowKey(key []byte) []byte {
 	return append([]byte(indexHashPrefix), key[max(len(key)-indexKeyBytes, 0):]...)
 }
 
-// namesLivePack reports whether the h row at rowKey names a pack other than
-// num that the table still holds.
+// namesLivePack reports whether the h row at rowKey identifies a pack other
+// than num that the table still holds.
 func (x *packIndex) namesLivePack(ctx context.Context, tx kvtx.Tx, rowKey []byte, num uint32) (bool, error) {
-	// Read the row; a missing row or one of this pack is free to write.
+	// Read the row. A missing row or one of this pack is free to write.
 	value, ok, err := tx.Get(ctx, rowKey)
 	if err != nil || !ok {
 		return false, err
@@ -837,7 +839,7 @@ func (x *packIndex) namesLivePack(ctx context.Context, tx kvtx.Tx, rowKey []byte
 		return false, nil
 	}
 
-	// Check the number it names against the table.
+	// Check the row's pack number against the table.
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 	return int(at) < len(x.ids) && x.ids[at] != "", nil
@@ -947,9 +949,9 @@ func (x *packIndex) cacheTail(ctx context.Context, packID string, tail []byte) {
 	x.queueTail(packID, bytes.Clone(tail), false)
 }
 
-// Locate returns the pack that holds a block key. A row that names a removed
-// pack reports found with an empty id: the block may sit in an older pack the
-// row shadowed, so the lookup must test every filter rather than end.
+// Locate returns the pack that holds a block key. A row that identifies a
+// removed pack reports found with an empty id: the block may sit in an older
+// pack the row shadowed, so the lookup must test every filter rather than end.
 func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error) {
 	// Read the key's h row.
 	tx, err := x.store.NewTransaction(ctx, false)
@@ -977,8 +979,8 @@ func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error
 }
 
 // locateExtent returns the pack and byte range of a block key when its h row
-// holds the block's extent and names a pack the table holds. A pack that
-// shares its number with another may be the wrong one; the caller checks the
+// holds the block's extent and identifies a pack the table holds. A pack that
+// shares its number with another may be the wrong one. The caller checks the
 // bytes against the block's hash.
 func (x *packIndex) locateExtent(ctx context.Context, key []byte) (id string, off int64, size int, ok bool, err error) {
 	// Read the key's h row.
@@ -1005,9 +1007,9 @@ func (x *packIndex) locateExtent(ctx context.Context, key []byte) (id string, of
 	return x.ids[row.num], int64(row.off), int(row.size), true, nil
 }
 
-// locate reads the rows of keys in one snapshot, sets placed for each key
-// that has one, and returns the id of the pack each row names: "" for a key
-// with no row, a nil key, or a row naming a removed pack.
+// locate reads the rows of keys in one snapshot, sets placed for each key that
+// has one, and returns the id of the pack each row identifies: "" for a key
+// with no row, a nil key, or a row identifying a removed pack.
 func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([]string, error) {
 	// Read every row in one snapshot.
 	tx, err := x.store.NewTransaction(ctx, false)
@@ -1016,7 +1018,7 @@ func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([
 	}
 	defer tx.Discard()
 
-	// Name the pack of each key the index places.
+	// Identify the pack of each key the index places.
 	ids := make([]string, len(keys))
 	for i, key := range keys {
 		if key == nil {
@@ -1041,7 +1043,7 @@ func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([
 	return ids, nil
 }
 
-// locateAll reports for each key whether its row names a pack the table
+// locateAll reports for each key whether its row identifies a pack the table
 // holds.
 func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error) {
 	// Locate every key, then report which found a pack.
@@ -1057,21 +1059,21 @@ func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error
 }
 
 // confirmAll reports for each key whether its h row proves a pack the bucket
-// durably holds lists the key: the row holds an extent and names a pack the
-// table holds. It reads the rows in one snapshot and reads nothing else.
+// durably holds lists the key: the row holds an extent and identifies a pack
+// the table holds. It reads the rows in one snapshot and reads nothing else.
 //
 // An extent row is proof because only a pack's own index tail writes one:
 // addWritten takes it from the tail of the pack it just uploaded or verified,
-// and the tail drain upgrades only rows that name the pack whose tail it read.
-// A pack enters the table only once the bucket holds it: publishPack uploads
-// it before its rows, a listing reads it from the bucket, and adopt verifies
-// it there. The caller checks ConfirmsDurable, so nothing deletes a pack the
-// bucket holds, and the pack whose tail listed the block stays there. A pack
-// number that older builds gave to two packs does not break this, since the
-// tail that wrote the extent listed the block in a held pack either way. A
-// bare row, which names only a number, may come from such a shared number
-// without any tail behind it, so it proves nothing here, and neither does a
-// missing row.
+// and the tail drain upgrades only rows that identify the pack whose tail it
+// read. A pack enters the table only once the bucket holds it: publishPack
+// uploads it before its rows, a listing reads it from the bucket, and adopt
+// verifies it there. The caller checks ConfirmsDurable, so nothing deletes a
+// pack the bucket holds, and the pack whose tail listed the block stays there.
+// A pack number that older builds gave to two packs does not break this
+// durability proof, since the tail that wrote the extent listed the block in a
+// held pack either way. A bare row, which records only a number, may come from
+// such a shared number without any tail behind it, so it proves nothing here,
+// and neither does a missing row.
 func (x *packIndex) confirmAll(ctx context.Context, keys [][]byte) ([]bool, error) {
 	// Read every row in one snapshot.
 	tx, err := x.store.NewTransaction(ctx, false)
@@ -1189,8 +1191,8 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 			}
 		}
 
-		// Keep a row that names another live pack, which wrote the block
-		// later or replaced this one.
+		// Keep a row that identifies another live pack, which wrote the
+		// block later or replaced this one.
 		rowKey := hashRowKey(key)
 		live, err := x.namesLivePack(ctx, tx, rowKey, row.num)
 		if err != nil {

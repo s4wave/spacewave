@@ -73,7 +73,7 @@ func (s *PackStore) runCompaction(ctx context.Context) error {
 //
 // A packfile's weight is the larger of its share of the store's compaction
 // unit, compactMaxBytes or MaxPackBytes when that is smaller, and of
-// compactMaxBlocks. Weights below 1/512, 1/64, and 1/8 form tiers 0 to 2; the
+// compactMaxBlocks. Weights below 1/512, 1/64, and 1/8 form tiers 0 to 2. The
 // rest are final. The compactFanout packfiles of one tier merge into a
 // packfile of weight below 1, so each block is rewritten at most compactTiers
 // times and at most compactFanout-1 packfiles wait in each tier.
@@ -161,8 +161,9 @@ func (s *PackStore) knowsAll(entries []*packfile.PackfileEntry) bool {
 // ErrNotFound when an input is gone.
 //
 // Invariant: the merged packfile holds exactly the blocks its inputs hold, so
-// the layout changes where a block sits and never whether it is kept; it is
-// listed before the inputs' entries and then their packfiles are deleted.
+// the layout changes where a block sits and never whether it is kept. The
+// merged packfile is listed before the inputs' entries and then their
+// packfiles are deleted.
 // Copies of one key have identical block bytes; keep the copy with the strongest
 // refs source, so a later copy cannot discard refs an earlier one recorded.
 func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry) error {

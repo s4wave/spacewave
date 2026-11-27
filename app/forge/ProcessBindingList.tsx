@@ -7,7 +7,8 @@ interface ProcessBindingListProps {
   // bindings is the list of process binding info objects.
   bindings: ProcessBindingInfo[]
   // onToggle is called when the user toggles the approval state of a binding.
-  // If undefined, the toggle buttons are disabled (not yet connected).
+  // If onToggle is undefined, the toggle buttons are disabled (not yet
+  // connected).
   onToggle?: (objectKey: string, approved: boolean) => void
 }
 

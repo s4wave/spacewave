@@ -17,12 +17,13 @@ const maxComponentBytes = 256
 // maxRecordKeyBytes bounds a record key in UTF-8 bytes.
 const maxRecordKeyBytes = 1024
 
-// Shared codec instances; ignoreBOM keeps a leading U+FEFF in decoded text.
+// Shared codec instances encode and decode UTF-8. ignoreBOM keeps a leading
+// U+FEFF in decoded text.
 const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
 
 /**
- * CollectionKey returns the canonical collection key for one identity.
+ * collectionKey returns the canonical collection key for one identity.
  * Components are encoded as lowercase hex of their UTF-8 bytes, so any
  * well-formed component produces a structurally unambiguous key.
  */
@@ -39,7 +40,7 @@ export function collectionKey(
 }
 
 /**
- * ReceiptKey returns the canonical receipt key for one identity.
+ * receiptKey returns the canonical receipt key for one identity.
  * Components are encoded like collectionKey.
  */
 export function receiptKey(application: string, scope: string): string {
@@ -51,10 +52,11 @@ export function receiptKey(application: string, scope: string): string {
 }
 
 /**
- * ParseCollectionKey parses a canonical collection key back to its identity.
- * Accepts exactly the shape collectionKey generates, including lowercase hex
- * and valid UTF-8. Returns undefined for malformed, noncanonical, or
- * reserved keys, including metadata and receipt locations.
+ * parseCollectionKey parses a canonical collection key back to its identity.
+ * parseCollectionKey accepts exactly the shape collectionKey generates,
+ * including lowercase hex and valid UTF-8. parseCollectionKey returns undefined
+ * for malformed, noncanonical, or reserved keys, including metadata and receipt
+ * locations.
  */
 export function parseCollectionKey(
   key: string,
@@ -72,23 +74,25 @@ export function parseCollectionKey(
 }
 
 /**
- * EncodeRecordKey returns the raw UTF-8 bytes of a valid record key.
- * Record keys are nonempty well-formed Unicode of at most 1024 UTF-8 bytes;
- * invalid keys throw TypeError naming the field, never the value.
+ * encodeRecordKey returns the raw UTF-8 bytes of a valid record key.
+ * Record keys are nonempty well-formed Unicode of at most 1024 UTF-8 bytes.
+ * Invalid keys throw TypeError naming the field, never the value.
  */
 export function encodeRecordKey(key: string): Uint8Array {
   return checkComponent('record key', key, maxRecordKeyBytes)
 }
 
 // encodeComponent validates one identity component and returns its lowercase
-// hex form. Throws TypeError naming the field on any invalid component.
+// hex form. encodeComponent throws TypeError naming the field on any invalid
+// component.
 function encodeComponent(field: string, value: string): string {
   return toHex(checkComponent(field, value, maxComponentBytes))
 }
 
 // checkComponent enforces the shared component contract: nonempty,
-// well-formed Unicode, and at most maxBytes UTF-8 bytes. Returns the UTF-8
-// bytes; throws TypeError naming the field, never the value.
+// well-formed Unicode, and at most maxBytes UTF-8 bytes. checkComponent returns
+// the UTF-8 bytes. checkComponent throws TypeError naming the field, never the
+// value.
 function checkComponent(
   field: string,
   value: string,
@@ -108,8 +112,8 @@ function checkComponent(
 }
 
 // decodeComponent parses lowercase hex back to a validated component string.
-// Returns undefined unless the text is canonical: paired lowercase hex of
-// nonempty valid UTF-8 within the component byte limit.
+// decodeComponent returns undefined unless the text is canonical: paired
+// lowercase hex of nonempty valid UTF-8 within the component byte limit.
 function decodeComponent(text: string): string | undefined {
   // Reject oversize hex before allocating decoded bytes.
   if (text.length > maxComponentBytes * 2) return undefined

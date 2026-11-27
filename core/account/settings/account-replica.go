@@ -64,19 +64,20 @@ func (s *AccountSettings) applyAccountSession(member *AccountSession) error {
 
 // applyCatalogEntry folds one catalog op into the object's record. A tombstone
 // of generation g adds g to the record's deleted generations, and becomes the
-// record only if the record is absent or is generation g; a live entry of a
-// deleted generation is ignored; a live entry of any other generation replaces
+// record only if the record is absent or is generation g. A live entry of a
+// deleted generation is ignored. A live entry of any other generation replaces
 // the record. The deleted set survives every replacement. Whether each
 // generation is deleted does not depend on the order of the ops, and with at
-// most one live generation among them neither does whether the record is live;
-// two live generations are last writer wins. A tombstone record's entry is the
-// tombstone that replaced it, so which generation it names does depend on the
-// order: readers rely on Deleted and the deleted set, never on a tombstone
-// record's generation. Entries made before generations carry none; the empty
-// generation is a member like any other. A tombstone record written before
-// deleted sets counts as deleting its own generation; see DeletesGeneration. A
-// tombstone that becomes the record also releases the block store placement,
-// which belongs to the id and so to every lifetime of it.
+// most one live generation among them neither does whether the record is live.
+// Two live generations are last writer wins. A tombstone record's entry is the
+// tombstone that replaced the record, so the generation the entry records does
+// depend on the order: readers rely on Deleted and the deleted set, never on a
+// tombstone record's generation. Entries made before generations carry none.
+// The empty generation is a member like any other. A tombstone record written
+// before deleted sets counts as deleting its own generation. See
+// DeletesGeneration. A tombstone that becomes the record also releases the
+// block store placement, which belongs to the id and so to every lifetime of
+// that id.
 func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 	// Validate the entry's resource reference and metadata.
 	ref := entry.GetEntry().GetRef()
@@ -103,7 +104,7 @@ func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 	}
 
 	// A tombstone joins the deleted set, and replaces the record only when
-	// the record is absent or is its generation.
+	// the record is absent or has the tombstone's generation.
 	if !found {
 		deleted = slices.Insert(deleted, idx, generation)
 	}

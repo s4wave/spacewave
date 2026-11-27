@@ -517,7 +517,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Require the daemon selection to name the app bundle executable.
+	// Require the daemon selection to reference the app bundle executable.
 	bundleState := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()
 	if bundleState.GetArtifactManifestId() != nativeEntrypointManifestID || bundleState.GetStagedPath() != appExecutable {
 		t.Fatalf("bundle daemon selection = %#v", bundleState)
@@ -754,7 +754,8 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 	}
 	defer relRefresh()
 
-	// The pushed selector names revision 2 while the mounted World holds 1.
+	// The pushed selector selects revision 2 while the mounted World holds
+	// revision 1.
 	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: &spacewave_launcher.DistConfig{ProjectId: "spacewave", Rev: 2, ChannelKey: "stable"},
@@ -1383,7 +1384,7 @@ func writeReleaseManifestTestBlockWithMeta(
 }
 
 // writeReleaseDesktopArtifactTestBlock creates the platform's installed-app
-// shape; Darwin verification uses a signed copy under the test directory.
+// shape. Darwin verification uses a signed copy under the test directory.
 func writeReleaseDesktopArtifactTestBlock(
 	t *testing.T,
 	ctx context.Context,

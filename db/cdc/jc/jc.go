@@ -69,21 +69,22 @@ func embedMask(maskC uint64) uint64 {
 }
 
 // nonceBlake3Context is the blake3 nonce constant.
-// don't change this
+// Do not change nonceBlake3Context.
 const nonceBlake3Context = "aperturerobotics/hydra 2025-08-10 jc nonce v1."
 
-// gLen is the length of G
+// gLen is the length of G.
 const gLen = 256
 
-// Default chunking parameters
+// DefaultMinSize, DefaultMaxSize and DefaultTargetSize are the default
+// chunking parameters.
 const (
 	DefaultMinSize    uint64 = 2 * 1024  // 2KB
 	DefaultMaxSize    uint64 = 64 * 1024 // 64KB
 	DefaultTargetSize uint64 = 8 * 1024  // 8KB
 )
 
-// defaultG is the default value for G pre-computed and used if len(key) == 0
-// returns [256]uint64 as a []uint64
+// defaultG returns the pre-computed default value for G if len(key) == 0.
+// Returns [256]uint64 as a []uint64.
 var defaultG = sync.OnceValue(func() []uint64 {
 	out := make([]uint64, gLen)
 	hashKeyForG([]byte("default G value for jc cdc"), out)
@@ -106,11 +107,11 @@ func hashKeyForG(key []byte, out []uint64) {
 
 // Chunk represents a chunk of data with its position and data.
 type Chunk struct {
-	// Start is the absolute position in the stream where this chunk begins
+	// Start is the absolute position in the stream where this chunk begins.
 	Start uint64
-	// Length is the length of the chunk
+	// Length is the length of the chunk.
 	Length int
-	// Data contains the actual chunk data
+	// Data contains the actual chunk data.
 	Data []byte
 }
 
@@ -168,8 +169,9 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 	c.maskC = generateSpacedMask(int(cOnes), 64) //nolint:gosec
 	c.maskJ = embedMask(c.maskC)
 
-	// Populate the hash table from the caller key or deterministic defaults.
-	// the key can be len(0) here and this will still be acceptable.
+	// Populate the hash table from the caller key or deterministic
+	// defaults.
+	// The key can be len(0) here and still be acceptable.
 	if len(key) == 0 {
 		copy(c.G[:], defaultG())
 	} else {
@@ -265,21 +267,26 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 		return Chunk{}, io.EOF
 	}
 
-	// Fill the sliding buffer until a boundary is available or the reader ends.
-	// Keep reading until we have enough data for chunk boundary detection or reach EOF
+	// Fill the sliding buffer until a boundary is available or the reader
+	// ends.
+	// Keep reading until the buffer has enough data for chunk boundary
+	// detection or the reader reaches EOF.
 	for !c.eof {
-		// If we have enough data to potentially find a boundary, try that first
+		// If the buffer has enough data to potentially find a boundary,
+		// try finding a boundary first.
 		if availableData >= c.jc.minSize {
-			// Check if we can find a chunk boundary
+			// Check if the JC algorithm can find a chunk boundary.
 			chunkSize := c.jc.Algorithm(c.buf[c.bufPos:c.bufLen], availableData)
 
-			// If we found a boundary before maxSize, use it
+			// Stop filling once the JC algorithm finds a boundary inside the
+			// buffered data or the buffer holds maxSize bytes.
 			if chunkSize < availableData || availableData >= c.jc.maxSize {
 				break
 			}
 		}
 
-		// Compact buffer if needed - only compact when we've consumed a significant portion
+		// Compact the buffer if needed, but only when the chunker has
+		// consumed a significant portion.
 		if c.bufPos > len(c.buf)/4 && c.bufLen > c.bufPos {
 			copy(c.buf, c.buf[c.bufPos:c.bufLen])
 			c.bufLen -= c.bufPos
@@ -321,14 +328,15 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 	// Find chunk boundary using JC algorithm
 	chunkSize := c.jc.Algorithm(c.buf[c.bufPos:c.bufLen], availableData)
 
-	// Extract chunk data - avoid allocation when possible
+	// Extract chunk data and avoid allocation when possible.
 	var chunkData []byte
 	if data != nil && len(data) >= chunkSize {
-		// Use provided buffer - copy data into it
+		// Use the provided buffer and copy data into the buffer.
 		chunkData = data[:chunkSize]
 		copy(chunkData, c.buf[c.bufPos:c.bufPos+chunkSize])
 	} else {
-		// Return a slice of our internal buffer - caller must not modify
+		// Return a slice of the internal buffer. The caller must not
+		// modify the slice.
 		chunkData = c.buf[c.bufPos : c.bufPos+chunkSize]
 	}
 

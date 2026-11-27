@@ -27,8 +27,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// The endpoint peers have no shared simulated LAN. Only their signaling peer
-// bridges the LANs, forcing the application stream through native WebRTC.
+// TestDatagramsOverWebRTC uses endpoint peers with no shared simulated LAN.
+// Only their signaling peer bridges the LANs, forcing the application stream
+// through native WebRTC.
 func TestDatagramsOverWebRTC(t *testing.T) {
 	// Bound the test and build the two-LAN simulation graph.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)

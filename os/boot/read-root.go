@@ -18,8 +18,9 @@ import (
 const (
 	// imageBucket scopes the image store's blocks and durable roots.
 	imageBucket = "os-image"
-	// builtImageRoot names the image a seed built, through the block
-	// imageBlock writes, until a card authorizes it as the accepted revision.
+	// builtImageRoot selects the image a seed built, through the block
+	// imageBlock writes, until a card authorizes it as the accepted
+	// revision.
 	builtImageRoot = "image"
 )
 
@@ -44,7 +45,7 @@ func ReadImage(ctx context.Context, dir string) (_ *bucket.ObjectRef, retErr err
 	return readImageBlock(ctx, store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil), built)
 }
 
-// readImageBlock reads and decodes the block that names an image, as
+// readImageBlock reads and decodes the block that records an image, as
 // imageBlock wrote it.
 func readImageBlock(ctx context.Context, store blockReader, ref *block.BlockRef) (*bucket.ObjectRef, error) {
 	// Read the block, refusing a store that lacks it.
@@ -56,7 +57,7 @@ func readImageBlock(ctx context.Context, store blockReader, ref *block.BlockRef)
 		return nil, errors.New("image block " + ref.MarshalString() + " missing; store preserved")
 	}
 
-	// Decode the image and check that it names one.
+	// Decode the image and check that the reference specifies an image.
 	image := &bucket.ObjectRef{}
 	if err := image.UnmarshalVT(data); err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func readImageBlock(ctx context.Context, store blockReader, ref *block.BlockRef)
 // readBootRoot reads a named root that must be held, in one immutable
 // snapshot. It cannot adopt an older head, initialize data or move a root.
 func readBootRoot(ctx context.Context, db *s4db.DB, bucket, name string) (*block.BlockRef, error) {
-	// Read the name from one snapshot; a free name is an error here.
+	// Read the name from one snapshot. A free name is an error here.
 	tx, err := db.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func readBootRoot(ctx context.Context, db *s4db.DB, bucket, name string) (*block
 	return ref, err
 }
 
-// checkImageFormat refuses a store in any format but this one's, without
+// checkImageFormat refuses a store in any format but this build's, without
 // modifying a byte, so nothing migrates or adopts an unknown store.
 func checkImageFormat(ctx context.Context, db *s4db.DB) error {
 	// Read the stored format version.
@@ -106,7 +107,7 @@ func checkImageFormat(ctx context.Context, db *s4db.DB) error {
 // readNamedRoot returns the block a named root holds, or nil when the name is
 // free. It never adopts, initializes or moves a root.
 func readNamedRoot(ctx context.Context, records *block_gc.Records, bucket, name string) (*block.BlockRef, error) {
-	// Decode just the indexed root record.
+	// Decode only the indexed root record.
 	entry, err := records.GetRoot(ctx, bucket, name)
 	if err != nil || entry == nil {
 		return nil, err

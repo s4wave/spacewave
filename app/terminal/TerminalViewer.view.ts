@@ -9,7 +9,7 @@ type Terminal = {
 export const title = 'Terminal viewer: handle, state watch and connection'
 
 export const state = (v: Terminal) => {
-  // The handle's status takes the body until it opens.
+  // The body shows the handle's status until the handle opens.
   if (v.handle === 'waiting') return 'Opening the terminal'
   if (v.handle === 'failed') return 'Could not open, Retry shown'
   const notice = v.watch === 'failed' ? ', state notice with Retry' : ''
@@ -28,7 +28,7 @@ export const step = (action: string, from: Terminal, to: Terminal) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // Each action names the edge it draws.
+  // Each action labels the edge it draws.
   if (action === 'HandleOpen') return 'handle opens'
   if (action === 'HandleFail') return 'handle fails'
   if (action === 'RetryHandle') return 'presses Retry'

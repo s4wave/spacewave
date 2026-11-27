@@ -128,7 +128,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				// Another live daemon holds the socket. Retrying under the
 				// controller backoff loop cannot succeed while that daemon
 				// lives and would leave this daemon running without its
-				// front door, so surface the conflict as process-fatal
+				// listener socket, so surface the conflict as process-fatal
 				// and stop the restart loop.
 				le.WithError(err).Errorf("another daemon owns %s; stop it or run with takeover", absPath)
 				entrypoint_fatal.Report(err)
@@ -162,7 +162,7 @@ func handoffBlocksListener(handoff yield_policy.HandoffState) bool {
 // serveOnce prepares the socket, listens, and serves until either the
 // serve context is canceled externally or a daemon-control Shutdown
 // is honored. When allowTakeover is true the live socket holder is
-// asked to yield; otherwise it is refused with a typed in-use error.
+// asked to yield. Otherwise it is refused with a typed in-use error.
 // The returned bool is true when the listener yielded cleanly so the
 // caller can enter the reclaim-wait loop.
 func (c *Controller) serveOnce(
@@ -268,7 +268,7 @@ func acceptCountingListener(
 	srv *srpc.Server,
 	status *StatusBroker,
 ) (func(), error) {
-	// connectionsBcast guards the set of live client connections; drain waits
+	// connectionsBcast guards the set of live client connections. Drain waits
 	// for it to empty instead of counting goroutines in a WaitGroup.
 	var connectionsBcast broadcast.Broadcast
 	connections := make(map[*countingConn]struct{})

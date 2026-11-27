@@ -22,7 +22,7 @@ message WorldContentsObject {
   // ObjectKey is the key of the object in the world.
   string object_key = 1;
   // ParentObjectKey is the key of the parent of the object.
-  // Can be empty.
+  // ParentObjectKey can be empty.
   string parent_object_key = 2;
   // ObjectType is the type of the object.
   string object_type = 3;
@@ -43,7 +43,7 @@ message SpaceSettings {
   // IndexPath is the default URL path to display at /.
   string index_path = 1;
   // PluginIds lists manifest IDs of plugins this Space uses.
-  // Shared with all Space participants.
+  // PluginIds is shared with all Space participants.
   repeated string plugin_ids = 2;
   // KeybindingOverrides stores Space-scope keybinding overrides.
   .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
@@ -51,8 +51,9 @@ message SpaceSettings {
   // Plugins without an installation follow their configured application catalog.
   map<string, SpacePluginInstallation> plugin_installations = 4;
   // ChangelogEnabled keeps a changelog of World changes for this Space.
-  // Writing the settings applies it to the World in the same transaction.
-  // Enabling starts history after that write; disabling drops it.
+  // Writing the settings applies ChangelogEnabled to the World in the same
+  // transaction. Enabling starts history after that write. Disabling drops
+  // the history.
   bool changelog_enabled = 5;
 }
 
@@ -67,7 +68,8 @@ message SpacePluginInstallation {
 // a World, served by the one World engine over the Space's agreed order.
 message Config {
   // EngineId identifies the World on the bus. LookupWorldEngine directives
-  // naming it resolve to the engine. Empty serves no lookup.
+  // specifying EngineId resolve to the engine. An empty EngineId serves no
+  // lookup.
   string engine_id = 1;
   // Ref is the Space's SharedObject.
   .sobject.SharedObjectRef ref = 2;
@@ -79,14 +81,14 @@ message Config {
   bool disable_lookup = 4;
   // Verbose logs every operation's outcome.
   bool verbose = 7;
-  // ReaderPinDelay is how long a replaced World head a reader still holds
-  // waits before the engine pins it, as a duration string. The pin lands
+  // ReaderPinDelay is how long the engine waits before pinning a replaced
+  // World head a reader still holds, as a duration string. The pin lands
   // within this delay plus the head watch's lag, on whichever goroutine
   // installs the replacing head, so the Volume collector's grace must cover
-  // both. Empty uses the engine's default.
+  // both. An empty ReaderPinDelay uses the engine's default delay.
   string reader_pin_delay = 8;
   // MaxPendingBytes bounds the World pages the adapter keeps in memory
-  // before it stores them. Zero uses the adapter's default.
+  // before it stores them. Zero uses the adapter's default byte limit.
   uint64 max_pending_bytes = 9;
 }
 
@@ -153,11 +155,11 @@ message InitWorldOp {
   // LastChangeDisable starts the World without a changelog.
   bool last_change_disable = 1;
   // TransformConf is the transform the World's blocks are written with. The
-  // author sets it so every member replays the same World; replay rejects an
-  // operation without it.
+  // author sets it so every member replays the same World. Replay rejects an
+  // operation without TransformConf.
   .block.transform.Config transform_conf = 2;
   // GraphSettings are the settings the World's graph store starts with.
-  // Empty means the default settings.
+  // An empty GraphSettings value means the default settings.
   .world.block.GraphSettings graph_settings = 3;
   // Format is the stored layout the World starts with.
   .world.block.WorldFormat format = 4;
@@ -190,8 +192,8 @@ message SetTransformConfOp {
 // new graph settings, such as building or dropping an index. A step on a World
 // that already has the target settings changes nothing.
 message GraphSettingsStepOp {
-  // Target are the graph settings to move to. Empty means the default
-  // settings.
+  // Target are the graph settings to move to. An empty Target means the
+  // default settings.
   .world.block.GraphSettings target = 1;
   // Max bounds the links the step indexes or the postings it deletes.
   uint32 max = 2;
@@ -223,15 +225,16 @@ message HeldRoots {
   // Roots are the held roots, in the order the holder gave them.
   repeated .block.BlockRef roots = 1;
   // Prev is an earlier HeldRoots block whose roots, and its own earlier
-  // blocks' roots, are held before these, or empty. An append names the
-  // block it extends instead of naming every root again.
+  // blocks' roots, are held before these roots, or empty. An append references
+  // the block it extends instead of referencing every root again.
   .block.BlockRef prev = 2;
 }
 
 // ReplaySpan is the block a Space engine before the adapter held under its
 // replay-span root: the Worlds after the replayed operations above the
-// checkpoint and their payloads, in a chain. The adapter writes none; the
-// child list repair of a Volume written before it reads them.
+// checkpoint and their payloads, in a chain. The adapter writes no replay
+// spans. The child list repair of a Volume written before the adapter reads
+// these spans.
 message ReplaySpan {
   option (typeid.id) = "space/replay-span";
 
@@ -258,8 +261,8 @@ enum ReplayRefusalRule {
 }
 
 // ReplayCursor is the replay a Space engine last saved on this device, so a
-// remount resumes after it instead of replaying from the checkpoint. It names
-// a head World only once the replay cursor root holds that World.
+// remount resumes after it instead of replaying from the checkpoint. The cursor
+// records a head World only once the replay cursor root holds that World.
 message ReplayCursor {
   // Base is the World of the checkpoint the replay started from.
   InnerState base = 1;
@@ -292,31 +295,31 @@ message ReplayCursorOutcome {
   RetainedRootSet retained_roots = 7;
   // Seqno is the World seqno after the operation.
   uint64 seqno = 8;
-  // PayloadHandlers identifies the handlers that named Payloads. A remount
-  // reuses Payloads only when every handler still names the same roots, and
-  // resolves the operation again when this is unset.
+  // PayloadHandlers identifies the handlers that reported Payloads. A remount
+  // reuses Payloads only when every handler still reports the same roots, and
+  // resolves the operation again when PayloadHandlers is unset.
   PayloadHandlers payload_handlers = 9;
 }
 
-// PayloadHandlers identifies the handlers that named an operation's payload
+// PayloadHandlers identifies the handlers that reported an operation's payload
 // roots.
 message PayloadHandlers {
   // Handlers are the operation types of the operation's transaction, each
   // once and sorted by type.
   repeated PayloadHandler handlers = 1;
-  // TxVersion is the PayloadRefsVersion of the transaction rules that named
-  // the transaction's own roots. Zero, as in handlers saved before it was
-  // recorded, is never current.
+  // TxVersion is the PayloadRefsVersion of the transaction rules that reported
+  // the transaction's own roots. Zero, as in handlers saved before TxVersion
+  // was recorded, is never current.
   uint32 tx_version = 2;
 }
 
 // PayloadHandler is the handler of one operation type, as far as the payload
-// roots it names.
+// roots it reports.
 message PayloadHandler {
   // OpTypeId is the operation type.
   string op_type_id = 1;
   // Version is the PayloadRefsVersion of the type's handler, or zero for a
-  // type that names no payload roots of its own.
+  // type that reports no payload roots of its own.
   uint32 version = 2;
 }
 
@@ -333,7 +336,7 @@ message BackfillState {
   uint64 seqno = 3;
 }
 
-// WorldOpKind names the body of a WorldOp by its field in the body oneof.
+// WorldOpKind identifies the body of a WorldOp by its field in the body oneof.
 enum WorldOpKind {
   // WORLD_OP_KIND_UNKNOWN is no body this build declares.
   WORLD_OP_KIND_UNKNOWN = 0;
@@ -387,7 +390,7 @@ message OrderOperation {
 
 // OrderOperationBody is an operation whose body this build decodes.
 message OrderOperationBody {
-  // Kind names the body.
+  // Kind identifies the body.
   WorldOpKind kind = 1;
 }
 
@@ -444,7 +447,7 @@ message OrderInspection {
 
 // OrderKindCount is the number of decoded bodies of one kind.
 message OrderKindCount {
-  // Kind names the body.
+  // Kind identifies the body.
   WorldOpKind kind = 1;
   // Count is the number of operations with it.
   uint32 count = 2;

@@ -24,6 +24,7 @@ const (
 )
 
 // uartDevice models a 16550A UART: divisor latch, line/modem registers,
+// and input queue.
 type uartDevice struct {
 	host            *HostRuntime
 	port            uint16
@@ -41,7 +42,8 @@ type uartDevice struct {
 	input           []byte
 }
 
-// registerUART wires a COM port at port on its ISA interrupt line; COM1
+// registerUART wires a COM port at port on its ISA interrupt line. COM1
+// connects to the Host serial interface.
 func (h *HostRuntime) registerUART(port uint16) {
 	// Select the UART interrupt line from its COM port.
 	irq := uint32(4)
@@ -67,6 +69,7 @@ func (h *HostRuntime) registerUART(port uint16) {
 }
 
 // register wires the eight UART register ports, including the DLAB-shared
+// divisor latch ports.
 func (u *uartDevice) register() {
 	// Register UART data transfers and the low divisor latch.
 	u.host.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
@@ -152,7 +155,7 @@ func (u *uartDevice) register() {
 	u.host.RegisterIOWrite(u.port|7, 8, func(_ context.Context, _ uint16, value uint32) { u.scratchRegister = value })
 }
 
-// writeData transmits one byte: in loopback mode it feeds the receiver,
+// writeData transmits one byte: in loopback mode the byte feeds the receiver.
 func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 	// Program the low UART divisor byte while the latch is selected.
 	if u.lineControl&uartDLAB != 0 {
@@ -186,6 +189,7 @@ func (u *uartDevice) receive(ctx context.Context, value byte) {
 }
 
 // checkInterrupt reevaluates the pending interrupt priority against the
+// interrupt mask.
 func (u *uartDevice) checkInterrupt(ctx context.Context) {
 	switch {
 	case u.ints&(1<<uartIirCTI) != 0 && u.ier&uartIerRDI != 0:

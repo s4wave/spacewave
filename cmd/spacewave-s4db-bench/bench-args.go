@@ -28,17 +28,17 @@ type BenchArgs struct {
 	Path string
 	// Ops is the number of key writes.
 	Ops int
-	// Keys is the key space the writes draw from uniformly; a draw of a
+	// Keys is the key space the writes draw from uniformly. A draw of a
 	// written key overwrites it.
 	Keys int
-	// Batch is the keys per commit.
+	// Batch is the number of keys per commit.
 	Batch int
 	// Writers is the number of concurrent writers.
 	Writers int
 	// ValueBytes is the inline value length.
 	ValueBytes int
 	// LargeEvery writes a LargeBytes value every this many keys, so value
-	// chunks fill and the cleaner has work; zero writes none.
+	// chunks fill and the cleaner has work. Zero writes none.
 	LargeEvery int
 	// LargeBytes is the length of a large value.
 	LargeBytes int
@@ -48,12 +48,14 @@ type BenchArgs struct {
 	Sample time.Duration
 	// Seed seeds the key draws.
 	Seed uint64
-	// ReportPath is where the JSON report goes; empty prints it.
+	// ReportPath is where the JSON report goes. An empty path prints the
+	// report.
 	ReportPath string
-	// Progress is the interval between progress lines on stderr; zero
+	// Progress is the interval between progress lines on stderr. Zero
 	// prints none.
 	Progress time.Duration
-	// Pprof is the address serving the Go profiles; empty serves none.
+	// Pprof is the address serving the Go profiles. An empty address serves
+	// none.
 	Pprof string
 }
 
@@ -81,7 +83,8 @@ func (a *BenchArgs) BuildFlags() []cli.Flag {
 type sample struct {
 	// at is the time since the start.
 	at time.Duration
-	// runs are the runs per level and reserved the reserved chunks.
+	// runs are the runs per level and reserved is the number of reserved
+	// chunks.
 	runs     []int
 	reserved int64
 	// fileBytes is the file's size, which falls when a release truncates it.
@@ -90,13 +93,15 @@ type sample struct {
 
 // commit is one measured commit.
 type commit struct {
-	// at is its end since the start, and dur how long it took.
+	// at is the commit's end since the start, and dur is how long the commit
+	// took.
 	at, dur time.Duration
 }
 
 // progress counts the committed work for the progress lines.
 type progress struct {
-	// keys is the keys committed, and commits the commits.
+	// keys is the number of keys committed, and commits is the number of
+	// commits.
 	keys, commits atomic.Int64
 }
 

@@ -22,7 +22,7 @@ func (c *GraphicsCard) Validate() error {
 	return nil
 }
 
-// Validate validates a card request: its vendor, when set, is a known one.
+// Validate validates a card request: its vendor, when set, is a known vendor.
 // A nil request asks for no cards.
 func (r *GraphicsCardRequest) Validate() error {
 	if !r.GetVendor().Valid() {

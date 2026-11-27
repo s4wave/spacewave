@@ -9,7 +9,7 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// The validation is a cursory check that the values "look correct."
 func (c *Config) Validate() error {
 	if c.GetDomainInfo().GetDomainId() == "" {
 		return errors.New("domain_id cannot be empty")

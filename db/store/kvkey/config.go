@@ -12,7 +12,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Validate performs cursory validation.
+// Validate runs cursory checks.
 func (c *Config) Validate() error {
 	// XXX: no checks here, but are any checks necessary?
 	// note: c == nil is valid

@@ -42,7 +42,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// SetupResourceClient creates pipes, muxed connections, and resource client for testing.
+// SetupResourceClient creates pipes, muxed connections, and a resource client
+// for testing.
 // Returns the resource client and a cleanup function.
 func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Testbed) (*resource_client.Client, func()) {
 	return SetupResourceClientWrapped(ctx, t, tb, nil)
@@ -86,14 +87,14 @@ func SetupResourceClientWithService(
 	// Create pipes for in-memory communication
 	clientPipe, serverPipe := net.Pipe()
 
-	// Create client muxed connection
+	// Create a client muxed connection
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
-	// Create server mux
+	// Create a server mux
 	mux := srpc.NewMux()
 	server := srpc.NewServer(mux)
 
@@ -104,7 +105,7 @@ func SetupResourceClientWithService(
 		t.Fatal(err.Error())
 	}
 
-	// Start server
+	// Start the server
 	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -113,7 +114,7 @@ func SetupResourceClientWithService(
 		_ = server.AcceptMuxedConn(ctx, serverMp)
 	}()
 
-	// Create resource client
+	// Create a resource client
 	resourceServiceClient := resource.NewSRPCResourceServiceClient(srpcClient)
 	if wrap != nil {
 		resourceServiceClient = wrap(resourceServiceClient)
@@ -135,16 +136,17 @@ func SetupResourceClientWithService(
 	return resClient, cleanup
 }
 
-// SetupTestbedWithClient creates a hydra testbed and resource client for testing.
+// SetupTestbedWithClient creates a hydra testbed and a resource client for
+// testing.
 // Returns the testbed, resource client, and a cleanup function.
 func SetupTestbedWithClient(ctx context.Context, t testing.TB) (*world_testbed.Testbed, *resource_client.Client, func()) {
-	// Create hydra world testbed
+	// Create a hydra world testbed
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Setup resource client
+	// Set up the resource client
 	resClient, clientCleanup := SetupResourceClient(ctx, t, tb)
 
 	// Provide cleanup for the client and its World testbed.
@@ -156,7 +158,8 @@ func SetupTestbedWithClient(ctx context.Context, t testing.TB) (*world_testbed.T
 	return tb, resClient, cleanup
 }
 
-// TestbedWithQuickJS wraps a bldr testbed with QuickJS plugin host and resource server setup.
+// TestbedWithQuickJS wraps a bldr testbed with a QuickJS plugin host and
+// resource server setup.
 type TestbedWithQuickJS struct {
 	// Testbed is the underlying bldr testbed.
 	Testbed *testbed.Testbed
@@ -194,12 +197,13 @@ func (t *TestbedWithQuickJS) Release() {
 	t.Testbed.Release()
 }
 
-// SetupTestbedWithQuickJS creates a testbed with QuickJS plugin host and resource server.
-// This is useful for e2e tests that need to run TypeScript code via QuickJS.
+// SetupTestbedWithQuickJS creates a testbed with a QuickJS plugin host and
+// resource server. The testbed is useful for e2e tests that need to run
+// TypeScript code via QuickJS.
 //
 // Returns the configured testbed and an error if setup fails.
 func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWithQuickJS, error) {
-	// Create testbed
+	// Create a testbed
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
 		return nil, err
@@ -209,13 +213,13 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 	b := tb.GetBus()
 	sr := tb.GetStaticResolver()
 
-	// Add QuickJS plugin host factory
+	// Add the QuickJS plugin host factory
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 
-	// Add world engine factory
+	// Add the world engine factory
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
-	// Create testbed resource server
+	// Create the testbed resource server
 	volumeID := tb.GetVolume().GetID()
 	bucketID := "testbed-bucket"
 	testbedResourceServer := NewTestbedResourceServer(
@@ -226,17 +230,19 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		bucketID,
 	)
 
-	// Create root resource mux and register testbed resource server to it
+	// Create a root resource mux and register the testbed resource server
+	// with the mux
 	rootResourceMux := srpc.NewMux()
 	if err := testbedResourceServer.Register(rootResourceMux); err != nil {
 		tb.Release()
 		return nil, err
 	}
 
-	// Register testbed resource service directly on the testbed bus mux.
-	// This allows the QuickJS plugin to call TestbedResourceService via
-	// the bus's RPC fallback invoker, bypassing the plugin host's own
-	// resource server (which has a different root resource).
+	// Register the testbed resource service directly on the testbed bus
+	// mux. The registration lets the QuickJS plugin call
+	// TestbedResourceService via the bus's RPC fallback invoker, bypassing
+	// the plugin host's own resource server (which has a different root
+	// resource).
 	if err := testbedResourceServer.Register(tb.GetMux()); err != nil {
 		tb.Release()
 		return nil, err
@@ -254,7 +260,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		return nil, err
 	}
 
-	// Register ObjectType controller with known types
+	// Register the ObjectType controller with known types
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 		s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
@@ -296,7 +302,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	platformID := t.QuickJSHost.GetPluginHost().GetPlatformId()
 	scriptPath := pluginID + ".js"
 
-	// Create plugin manifest
+	// Create a plugin manifest
 	assetsFS, distFS := memfs.New(), memfs.New()
 	nowTs := timestamppb.Now()
 	err := billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0o644)
@@ -313,8 +319,8 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	}
 
 	// Build a host mux for the plugin with the testbed's resource server.
-	// This ensures the plugin's ResourceService root is the testbed's
-	// TestbedResourceService, not the default pluginHostRoot.
+	// The host mux ensures the plugin's ResourceService root is the
+	// testbed's TestbedResourceService, not the default pluginHostRoot.
 	hostMux := srpc.NewMux(bifrost_rpc.NewInvoker(t.Bus, bldr_plugin.PluginServerID(pluginID, ""), true))
 
 	// Register the testbed's resource server on the plugin's host mux.
@@ -327,7 +333,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 		return nil, err
 	}
 
-	// Register plugin host service for GetPluginInfo etc.
+	// Register the plugin host service for GetPluginInfo etc.
 	manifestSnapshot := &bldr_manifest.ManifestSnapshot{Manifest: manifest, ManifestRef: manifestRef.GetManifestRef()}
 	pluginHostSrv := bldr_plugin_host.NewPluginHostServer(ctx, t.Bus, t.Logger, pluginID, "", manifestSnapshot, nil, "", false)
 	_ = bldr_plugin.SRPCRegisterPluginHost(hostMux, pluginHostSrv)
@@ -347,7 +353,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 		return nil, err
 	}
 
-	// Execute the plugin directly via QuickJS host.
+	// Execute the plugin directly via the QuickJS host.
 	pluginCtx, pluginCancel := context.WithCancel(ctx)
 	doneCh := make(chan error, 1)
 	go func() {
@@ -391,7 +397,8 @@ func (p *pluginRelease) Release() {
 	<-p.doneCh
 }
 
-// RunTypeScriptTest builds a wrapper around a TypeScript test file and runs it in QuickJS.
+// RunTypeScriptTest builds a wrapper around a TypeScript test file and runs
+// the wrapper in QuickJS.
 //
 // The test file should export a default async function with signature:
 //
@@ -401,8 +408,9 @@ func (p *pluginRelease) Release() {
 //	  testbedRoot: TestbedRoot,
 //	)
 //
-// The wrapper automatically sets up the resources client, testbed root, and reports
-// test results via MarkTestResult. This is the recommended way to run TypeScript E2E tests.
+// The wrapper automatically sets up the resources client, testbed root, and
+// reports test results via MarkTestResult. RunTypeScriptTest is the recommended
+// way to run TypeScript E2E tests.
 //
 // Example test file (my-test.ts):
 //
@@ -445,7 +453,7 @@ func RunTypeScriptTest(
 	pluginID string,
 	tsFilePath string,
 ) (success bool, errorMsg string, err error) {
-	// Setup testbed with QuickJS plugin host
+	// Set up a testbed with a QuickJS plugin host
 	tb, err := SetupTestbedWithQuickJS(ctx, le)
 	if err != nil {
 		return false, "", err
@@ -486,8 +494,9 @@ func RunTypeScriptTest(
 	}
 
 	// Determine the repo root for resolving vendor paths.
-	// The test CWD is typically the package directory (e.g. sdk/world/types/).
-	// Walk up until we find vendor/ or go.mod.
+	// The test CWD is typically the package directory
+	// (e.g. sdk/world/types/).
+	// Walk up until the search finds vendor/ or go.mod.
 	repoRoot, err := reporoot.Find()
 	if err != nil {
 		return false, "", fmt.Errorf("failed to find repo root: %w", err)

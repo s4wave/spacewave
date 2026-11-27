@@ -1,4 +1,4 @@
-// dedicated.ts - DedicatedWorker hosting test fixture.
+// dedicated.ts: DedicatedWorker hosting test fixture.
 //
 // Creates a DedicatedWorker using the plugin-host wrapper (simplified shw.mjs),
 // sends init without SAB bus fields, and verifies the plugin script executes
@@ -49,10 +49,10 @@ async function run() {
   const errors: string[] = []
 
   try {
-    // Detect config on main thread (authoritative).
+    // Detect the config on the main thread (authoritative).
     const detect = await detectWorkerCommsConfig()
 
-    // Create DedicatedWorker with the plugin-host wrapper.
+    // Create a DedicatedWorker with the plugin-host wrapper.
     const worker = new Worker(
       new URL('./workers/plugin-host.js', import.meta.url),
       { type: 'module' },
@@ -66,7 +66,7 @@ async function run() {
     const configReceivedP = waitWorkerMsg(worker, 'config-received', 5000)
     const pluginStartedP = waitWorkerMsg(worker, 'plugin-started', 5000)
 
-    // Send init message without startup SAB transport fields.
+    // Send the init message without startup SAB transport fields.
     worker.postMessage({
       scriptUrl: pluginUrl,
       workerCommsDetect: detect,

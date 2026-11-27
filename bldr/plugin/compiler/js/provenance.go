@@ -13,16 +13,16 @@ import (
 // pre-build hook. A hook that declares provenance promises its outputs are a
 // pure function of the declared input files and environment variables, together
 // with the builder controller config the startup cache already digests.
-// Declaring provenance makes the hook eligible for startup cache reuse; a hook
+// Declaring provenance makes the hook eligible for startup cache reuse. A hook
 // registered without a declaration keeps the compiler always-building. The
 // declaration describes inputs only and never runtime behavior.
 type PreBuildHookProvenance struct {
 	// InputFiles are exact input file paths, relative to the builder source
 	// path, that fully determine the hook's outputs. Each is validated by
-	// content identity on startup; a change or removal forces a rebuild.
+	// content identity on startup. A change or removal forces a rebuild.
 	InputFiles []string
 	// EnvVars are the environment variable names the hook's outputs depend on.
-	// Each is validated on startup; a changed value forces a rebuild.
+	// Each is validated on startup. A changed value forces a rebuild.
 	EnvVars []string
 }
 

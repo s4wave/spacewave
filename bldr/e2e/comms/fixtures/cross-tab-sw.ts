@@ -1,4 +1,4 @@
-// cross-tab-sw.ts - Minimal ServiceWorker for cross-tab channel brokering tests.
+// cross-tab-sw.ts: Minimal ServiceWorker for cross-tab channel brokering tests.
 //
 // Imports the actual cross-tab-broker module from the bldr codebase.
 // Handles "hello"/"goodbye" messages and brokers direct MessagePort channels.

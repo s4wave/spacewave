@@ -21,11 +21,11 @@ type ProxyVolumeController struct {
 	// volumeInfo contains the volume information.
 	volumeInfo *volume.VolumeInfo
 
-	// proxyVolumeClient is the client for the ProxyVolume service
+	// proxyVolumeClient is the client for the ProxyVolume service.
 	proxyVolumeClient volume_rpc.SRPCProxyVolumeClient
-	// blockStoreClient is the client for the BlockStore
+	// blockStoreClient is the client for the BlockStore.
 	blockStoreClient rpc_block.SRPCBlockStoreClient
-	// bucketStoreClient is the client for the BucketStore
+	// bucketStoreClient is the client for the BucketStore.
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient
 	// objectStoreClient is the client for the ObjectStore.
 	objectStoreClient rpc_object.SRPCObjectStoreClient

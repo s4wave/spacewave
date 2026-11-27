@@ -32,7 +32,7 @@ type connKeep struct {
 	slots chan *sql.Conn
 	// mtx guards closed.
 	mtx sync.Mutex
-	// closed closes connections put back after close.
+	// closed marks the keep as closed so put closes returned connections.
 	closed bool
 }
 

@@ -13,7 +13,7 @@ type OverlayBlock = block.StoreOverlay
 
 // NewOverlayBlock builds a new block store on top of two other block stores.
 //
-// ctx is used for writeback requests
+// ctx is used for writeback requests.
 func NewOverlayBlock(
 	ctx context.Context,
 	le *logrus.Entry,

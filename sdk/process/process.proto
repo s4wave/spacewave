@@ -14,7 +14,7 @@ message ExecuteRequest {}
 
 // ExecuteStatus is a status update from a running process.
 message ExecuteStatus {
-  // ExecutionState is the current state of the process.
+  // State is the current ExecutionState of the process.
   ExecutionState state = 1;
   // Error is the error message if state is ERROR.
   string error = 2;
@@ -32,6 +32,7 @@ enum ExecutionState {
   ExecutionState_STOPPING = 2;
   // ExecutionState_STOPPED is the state after the process has exited cleanly.
   ExecutionState_STOPPED = 3;
-  // ExecutionState_ERROR is the state when the process has exited with an error.
+  // ExecutionState_ERROR is the state when the process has exited with an
+  // error.
   ExecutionState_ERROR = 4;
 }

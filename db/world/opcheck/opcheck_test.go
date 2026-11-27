@@ -74,8 +74,8 @@ func (f *failRecorder) Fatalf(format string, args ...any) {
 	runtime.Goexit()
 }
 
-// mutantOp creates an object at Key, and with Clock set names it with the
-// time, and with Network set calls the network first.
+// mutantOp creates an object at Key, and with Clock set appends the time to
+// the object key, and with Network set calls the network first.
 type mutantOp struct {
 	// Key is the object key.
 	Key string

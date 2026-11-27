@@ -136,7 +136,7 @@ func (c *Controller) processState(
 		return true, nil
 	}
 
-	// Advance the run atomically; a concurrent writer replays the attempt.
+	// Advance the run atomically. A concurrent writer replays the attempt.
 	var running []string
 	err := world.ExecTransaction(ctx, c.engine, true, func(ctx context.Context, tx world.WorldState) error {
 		var err error

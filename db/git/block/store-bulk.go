@@ -71,7 +71,7 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 	}
 
 	// Write tree nodes to KV. Keep tree in memory (clearTree=false)
-	// so we can extract the root Node with child BlockRefs applied.
+	// to extract the root Node with child BlockRefs applied.
 	_, _, err = tx.Write(r.ctx, false)
 	if err != nil {
 		return nil, err
@@ -158,8 +158,8 @@ func (r *Store) bulkCommit() error {
 		iavlRootCs.SetBlock(objRoot, true)
 	}
 
-	// Ref and mod trees are unchanged — they used the existing IAVL per-insert
-	// path and are already in btx. Nothing to do for them here.
+	// Ref and mod trees are unchanged because both use the existing IAVL
+	// per-insert path and are already in btx. Nothing to do for them here.
 
 	return nil
 }

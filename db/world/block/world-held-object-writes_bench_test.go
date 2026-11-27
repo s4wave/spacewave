@@ -118,7 +118,8 @@ func heldWritesRound(ctx context.Context, tb testing.TB, engine *Engine, rng *ra
 // TestHeldObjectWritesOffByDefault checks that a process started without
 // ObjectWritesEnv applies each object write at once, as before held writes
 // existed: the switch reads off, and an object write leaves nothing held in
-// the write's okra object tree, where the switch turned on holds it.
+// the write's okra object tree. With the switch turned on, the tree holds the
+// write.
 func TestHeldObjectWritesOffByDefault(t *testing.T) {
 	// The switch reads off unless the environment turns it on.
 	if os.Getenv(ObjectWritesEnv) != "on" && objectWritesHeld {
@@ -147,7 +148,7 @@ func TestHeldObjectWritesOffByDefault(t *testing.T) {
 		return tree.Held()
 	}
 
-	// Off applies the write at once; on holds it.
+	// Off applies the write at once. On holds it.
 	if held := heldAfterCreate(false); held != 0 {
 		t.Fatalf("default path holds %d object writes", held)
 	}

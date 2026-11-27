@@ -142,12 +142,12 @@ func (s *cursorStore) BeginReadOperation(context.Context) (block.StoreOps, func(
 //
 // Invariant: a decoded block this read admits is served only to the
 // transaction that read it, and only for the ref whose bytes it decoded. The
-// RPC client checks the served bytes against ref, and a ref names its content,
-// so an entry is never a page of another snapshot nor a page whose block
-// changed. The cursor borrows no decoded-block scope, so a read-only
+// RPC client checks the served bytes against ref, and a ref identifies its
+// content, so an entry is never a page of another snapshot nor a page whose
+// block changed. The cursor borrows no decoded-block scope, so a read-only
 // transaction keeps the block in its own private scope, which no other
 // transaction or cursor reads and which ends with the transaction. This
-// process never sees the serving process remove a block; the private scope
+// process never sees the serving process remove a block. The private scope
 // bounds that to blocks the transaction already read, as its cursor positions
 // already hold them. A writable transaction has no scope here and decodes
 // each read.

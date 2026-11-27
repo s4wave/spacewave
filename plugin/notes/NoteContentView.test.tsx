@@ -275,10 +275,10 @@ describe('NoteContentView', () => {
     )
     expect(editor.getAttribute('data-format')).toBe('markdown')
 
-    // Title should strip .md extension.
+    // The title should omit the .md extension.
     expect(screen.getByText('hello')).toBeDefined()
 
-    // Should show Source button in WYSIWYG mode.
+    // Show the Source button in WYSIWYG mode.
     expect(screen.getByText('Source')).toBeDefined()
   })
 
@@ -419,7 +419,7 @@ describe('NoteContentView', () => {
     const textarea = container.querySelector('textarea')
     expect(textarea?.value).toBe('Editable text')
 
-    // Should show WYSIWYG button in source mode.
+    // Show the WYSIWYG button in source mode.
     expect(screen.getByText('WYSIWYG')).toBeDefined()
   })
 

@@ -63,7 +63,7 @@ func (f *fixtureLauncherController) Close() error { return nil }
 type fixtureLauncher struct {
 	// state holds the selected and accepted launcher snapshots.
 	state *ccontainer.CContainer[*spacewave_launcher.LauncherInfo]
-	// path and statePath contain only controlled fixture files.
+	// path contains only controlled fixture files, as does statePath.
 	path, statePath string
 	// corruptOnce changes the selected bytes after the first acceptance.
 	corruptOnce  bool
@@ -143,7 +143,7 @@ func (f *fixtureLauncher) ApplyUpdate(_ context.Context, req *desktop_update.App
 
 // ReportDaemonUpdateFailure exposes the old daemon's pre-claim failure.
 func (f *fixtureLauncher) ReportDaemonUpdateFailure(_ context.Context, req *spacewave_launcher.ReportDaemonUpdateFailureRequest) (*spacewave_launcher.ReportDaemonUpdateFailureResponse, error) {
-	// Record the update error when it is still applying.
+	// Record the update error while the update is still applying.
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	info := f.state.GetValue().CloneVT()

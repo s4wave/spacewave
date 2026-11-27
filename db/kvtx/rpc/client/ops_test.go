@@ -11,8 +11,8 @@ import (
 // KvtxOps RPC methods, which have no batch KeyData call, so a GetBatch here
 // could not collapse the per-key round trips the batch seam removes. kvtx.GetBatch
 // must therefore fall back to serial Get calls for the remote store. Adding a
-// batch RPC method and implementing GetBatch is a wire-protocol change; update
-// this expectation together with that protocol.
+// batch RPC method and implementing GetBatch is a wire-protocol change, so
+// update this expectation together with that protocol.
 func TestOpsNoBatch(t *testing.T) {
 	var ops kvtx.TxOps = NewOps(nil, nil)
 	if _, ok := ops.(kvtx.BatchTxOps); ok {

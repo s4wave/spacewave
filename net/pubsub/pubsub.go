@@ -14,7 +14,8 @@ import (
 // The PubSub interface declares the requirements for a router.
 // The router is constructed with a private key which is used for communications.
 // Each subscription also has a private key to identify the publisher/subscriber.
-// Publishing is performed by first subscribing and then publishing to the subscription.
+// Publishing requires first subscribing and then publishing to the
+// subscription.
 type PubSub interface {
 	// Execute executes the PubSub routines.
 	Execute(ctx context.Context) error
@@ -29,7 +30,7 @@ type PubSub interface {
 }
 
 // PubSubHandler manages a PubSub and receives event callbacks.
-// This is typically fulfilled by the PubSub controller.
+// The PubSubHandler role is typically fulfilled by the PubSub controller.
 type PubSubHandler any
 
 // PeerLinkTuple is the peer-id link-id tuple.
@@ -62,7 +63,7 @@ type Controller interface {
 	controller.Controller
 
 	// GetPubSub returns the controlled PubSub router.
-	// This may wait for the PubSub to be ready.
+	// The call may wait for the PubSub to be ready.
 	GetPubSub(ctx context.Context) (PubSub, error)
 }
 

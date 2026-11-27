@@ -8,7 +8,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures the controller that runs a placed os/system node: it
  * serves the release the node binds, and the Space's blocks, to the console
- * of the Device it runs on, which stages the release's image into the
+ * of the Device it runs on. The console stages the release's image into the
  * Device's image store and boots it on trial.
  *
  * @generated from message os.system.Config

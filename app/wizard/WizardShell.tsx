@@ -25,38 +25,40 @@ export interface WizardShellProps {
   onUpdateName: (name: string) => void
   onBack: () => void
   canBack?: boolean
-  // Delete wizard in the bar runs onCancel; cancel is its state, busy while
-  // the delete runs and with the reason beneath the bar once it failed.
+  // onCancel handles Delete wizard in the bar. cancel is the deletion state,
+  // busy while the delete runs and with the reason beneath the bar on failure.
   onCancel: () => void
   cancel: WizardCancelState
-  // Content slot rendered between header and buttons.
+  // children contains the content rendered between the header and buttons.
   children?: ReactNode
-  // Name input configuration.
+  // nameLabel configures the name input along with the following fields.
   nameLabel?: string
   namePlaceholder?: string
   nameHelp?: string
   nameError?: string
-  // Which step shows the name input. Defaults to 0.
+  // nameStep selects the step that shows the name input. Defaults to 0.
   nameStep?: number
-  // Selects the existing default name when the name input receives focus.
+  // selectNameOnFocus selects the existing default name on name input focus.
   selectNameOnFocus?: boolean
-  // Primary action button, derived from the Finish control's state: Finish
-  // while idle, busy while finishing or done, Retry once failed, and absent
-  // once unsupported.
+  // finish and the fields below configure the primary action button from the
+  // Finish control's state: Finish while idle, busy while finishing or done,
+  // Retry once failed, and absent once unsupported.
   finish: WizardFinishState
   createLabel?: string
   creatingLabel?: string
   onFinalize: () => void
   canFinalize?: boolean
-  // Optional next button for multi-step wizards where step 0 is config.
+  // onNext and the fields below configure the optional next button for
+  // multi-step wizards where step 0 is config.
   onNext?: () => void
   canNext?: boolean
   nextLabel?: string
   nextBusyLabel?: string
   nextBusy?: boolean
-  // Which step shows the finalize button. Defaults to 0 (single-step).
+  // finalizeStep selects the step that shows the finalize button.
+  // Defaults to 0 (single-step).
   finalizeStep?: number
-  // Long-form steps can opt into the established wide wizard width.
+  // width lets long-form steps opt into the established wide wizard width.
   width?: 'default' | 'wide'
 }
 
@@ -122,8 +124,8 @@ function WizardNameField({
 
 /**
  * WizardFinishNotice says why the last Finish press did not finish. An input
- * the person can fix shows beside Finish; a failure keeps the wizard and the
- * input as they were, and Retry runs the Finish again; a plugin with no build
+ * the person can fix shows beside Finish. A failure keeps the wizard and the
+ * input as they were, and Retry runs the Finish again. A plugin with no build
  * for this device says where the wizard can finish instead.
  */
 function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
@@ -152,9 +154,9 @@ function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
 }
 
 // finalizeButton derives the Finish button from the finish state. busy holds
-// Back and Finish while a Finish runs; Retry runs the whole Finish again on
-// the kept input, so it needs the same valid draft as Finish. finalizeLabel is
-// null when no press on this device can finish.
+// Back and Finish while a Finish runs. Retry runs the whole Finish again on
+// the kept input, so Retry needs the same valid draft as Finish. finalizeLabel
+// is null when no press on this device can finish.
 function finalizeButton(
   finish: WizardFinishState,
   createLabel: string,
@@ -214,8 +216,8 @@ function WizardFooter({
     createLabel,
     creatingLabel,
   )
-  // Finish shows on its step, or on every step when none is named, unless
-  // no press on this device can finish.
+  // Finish shows on its step, or on every step when none is specified, if
+  // a press on this device can finish.
   const showFinalize =
     (finalizeStep === undefined || step === finalizeStep) &&
     finalizeLabel !== null
@@ -282,7 +284,7 @@ export function WizardShell({
   }
 
   // Delete is offered only while this view's own Finish is not removing the
-  // wizard; a Finish in another tab makes the delete refuse as gone.
+  // wizard. A Finish in another tab makes the delete refuse as gone.
   const deleteOffered =
     rest.finish.status !== 'finishing' && rest.finish.status !== 'done'
 

@@ -30,7 +30,7 @@ func (s *hostPluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_pl
 // lookupPluginSchedulerResolver resolves LookupPluginScheduler with the host
 // scheduler while the WatchPluginStatus stream stays open.
 type lookupPluginSchedulerResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
 }
 
@@ -70,7 +70,7 @@ func (r *lookupPluginSchedulerResolver) Resolve(ctx context.Context, handler dir
 			statusCtr:   ccontainer.NewCContainer(status),
 		}
 		var accepted bool
-		// Add the scheduler value; stop when the handler rejects it.
+		// Add the scheduler value and stop when the handler rejects the value.
 		valID, accepted = handler.AddValue(bldr_plugin.LookupPluginSchedulerValue(scheduler))
 		if !accepted {
 			return nil

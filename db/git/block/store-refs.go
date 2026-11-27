@@ -130,7 +130,7 @@ func (r *Store) buildRefKey(refName string) ([]byte, error) {
 	if len(refName) == 0 {
 		return nil, ErrReferenceNameEmpty
 	}
-	// prefix with 0x0
+	// Prefix the reference name with 0x0.
 	return append([]byte{byte(0x0)}, []byte(refName)...), nil
 }
 
@@ -160,7 +160,8 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 
 // _ is a type assertion
 var (
-	// ReferenceStorer stores Store refs (tags, branches, ...)
+	// _ is a ReferenceStorer assertion for Store refs
+	// (tags, branches, ...).
 	_ storer.ReferenceStorer = (*Store)(nil)
 	// TODO _ storer.DeltaObjectStorer = (*Store)(nil)
 )

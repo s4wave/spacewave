@@ -16,18 +16,18 @@ import (
 )
 
 var (
-	// CreateClauses create clauses
+	// CreateClauses contains the create clauses.
 	CreateClauses = []string{"INSERT", "VALUES", "ON CONFLICT"}
-	// QueryClauses query clauses
+	// QueryClauses contains the query clauses.
 	QueryClauses = []string{}
-	// UpdateClauses update clauses
+	// UpdateClauses contains the update clauses.
 	UpdateClauses = []string{"UPDATE", "SET", "WHERE", "ORDER BY", "LIMIT"}
-	// DeleteClauses delete clauses
+	// DeleteClauses contains the delete clauses.
 	DeleteClauses = []string{"DELETE", "FROM", "WHERE", "ORDER BY", "LIMIT"}
 )
 
 // Note: adapted from https://github.com/go-gorm/mysql
-// currently synced w/ version efbd06126e4bf540aebbf8f11cdd2c5486dfa227
+// synced w/ version efbd06126e4bf540aebbf8f11cdd2c5486dfa227
 
 // Dialector implements the Dialector interface from gorm.
 type Dialector struct {

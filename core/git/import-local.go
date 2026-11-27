@@ -124,8 +124,9 @@ func importOpenedLocalRepo(
 		}
 		known := !fresh && slices.Equal(shallow, snapshot.shallow)
 		if known {
-			// Only the prior captured roots promise a complete closure under this
-			// shallow boundary; older retained objects can come from another boundary.
+			// Only the prior captured roots promise a complete
+			// closure under this shallow boundary. Older retained
+			// objects can come from another boundary.
 			prior, err := captureLocalRepo(&git.Repository{Storer: store})
 			if err != nil {
 				return err
@@ -179,14 +180,16 @@ func importOpenedLocalRepo(
 		// Retain source deltas when their bases are also missing. The encoder
 		// expands deltas against indexed bases, keeping the new pack self-contained.
 		if len(missing) != 0 {
-			// Encode only the missing graph; an unchanged import creates no pack.
+			// Encode only the missing graph. An unchanged import
+			// creates no pack.
 			writer, err := store.PackfileWriter()
 			if err != nil {
 				return err
 			}
 			source := &importObjectStore{Storer: repo.Storer, ctx: ctx, afterObject: afterObject}
 			if _, err := packfile.NewEncoder(writer, source, false).Encode(missing, 1); err != nil {
-				// Close ends the writer's stream; the partial pack is discarded.
+				// Close ends the writer's stream and the
+				// partial pack is discarded.
 				_ = writer.Close()
 				return errors.Wrap(err, "encode local repository pack")
 			}
@@ -242,7 +245,8 @@ func importOpenedLocalRepo(
 
 	// Concurrent first imports can finish before either creates the retained
 	// object. AccessWorldObject still returns the completed immutable snapshot
-	// when another importer wins creation; that snapshot is valid for this caller.
+	// when another importer wins creation. That snapshot is valid for this
+	// caller.
 	if err != nil && !errors.Is(err, world.ErrObjectExists) {
 		return nil, "", "", errors.Wrap(err, "import local repository")
 	}
@@ -341,7 +345,8 @@ func verifyImportedRepo(
 	snapshot *localRepoSnapshot,
 	wantedSet map[plumbing.Hash]struct{},
 ) error {
-	// Verify new closures in full; indexed roots retain the prior verification.
+	// Verify new closures in full. Indexed roots retain the prior
+	// verification.
 	if wantedSet != nil {
 		got, err := revlist.Objects(destination, snapshot.wants, nil)
 		if err != nil {
@@ -449,8 +454,8 @@ func (s *importObjectStore) DeltaObject(typ plumbing.ObjectType, hash plumbing.H
 		// Read the stored delta representation when the source supports it.
 		obj, err := delta.DeltaObject(typ, hash)
 
-		// Delta lookup may exclude alternate object databases; the ordinary
-		// lookup still resolves their complete objects.
+		// Delta lookup may exclude alternate object databases, but the
+		// ordinary lookup still resolves their complete objects.
 		if errors.Is(err, plumbing.ErrObjectNotFound) {
 			return s.EncodedObject(typ, hash)
 		}
@@ -464,5 +469,5 @@ func (s *importObjectStore) DeltaObject(typ plumbing.ObjectType, hash plumbing.H
 	return s.EncodedObject(typ, hash)
 }
 
-// Compile-time interface assertion.
+// _ is a type assertion
 var _ storer.DeltaObjectStorer = (*importObjectStore)(nil)

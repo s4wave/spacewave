@@ -7,7 +7,8 @@ func TestConfigInstanceKeyIsolatedFromDist(t *testing.T) {
 	base := NewConfig("", "engine", "plugin-host", "volume", "peer", true, false, false)
 	space := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
 
-	// The Space instance key isolates it from the Dist scheduler.
+	// The Space instance key isolates the Space scheduler from the Dist
+	// scheduler.
 	if base.GetInstanceKey() != "" {
 		t.Fatalf("Dist instance key = %q", base.GetInstanceKey())
 	}

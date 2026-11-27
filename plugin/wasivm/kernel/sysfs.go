@@ -10,15 +10,15 @@ func (k *Kernel) newSysFS() *VNode {
 	system := v.mkDir(v.mkDir(root, "devices"), "system")
 	cpu := v.mkDir(system, "cpu")
 
-	// Each CPU list names CPU zero alone.
+	// Each CPU list contains CPU zero alone.
 	for _, name := range []string{"possible", "present", "online"} {
 		v.mkGenFile(cpu, name, func() []byte { return []byte("0\n") })
 	}
 	v.mkGenFile(cpu, "kernel_max", func() []byte { return []byte("0\n") })
 
 	// CPU zero is the one thread of the one core of the one package: each
-	// topology id is zero, each sibling list names it alone, and each sibling
-	// mask holds its bit.
+	// topology id is zero, each sibling list contains it alone, and each
+	// sibling mask holds its bit.
 	topology := v.mkDir(v.mkDir(cpu, "cpu0"), "topology")
 	files := map[string]string{
 		"core_id": "0", "die_id": "0", "cluster_id": "0", "physical_package_id": "0",

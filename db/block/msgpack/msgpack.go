@@ -9,9 +9,10 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-// BuildMsgpackBlob packs an object into a blob, storing the object into the cursor.
+// BuildMsgpackBlob packs an object into a blob, storing the object into the
+// cursor.
 //
-// opts can be nil
+// opts can be nil.
 func BuildMsgpackBlob(
 	ctx context.Context,
 	bcs *block.Cursor,
@@ -45,7 +46,7 @@ func BuildMsgpackBlob(
 }
 
 // UnmarshalMsgpackBlob loads a msgpack blob at a cursor.
-// may return nil
+// May return nil.
 func UnmarshalMsgpackBlob(ctx context.Context, bcs *block.Cursor) (*MsgpackBlob, error) {
 	return block.UnmarshalBlock[MsgpackBlob](ctx, bcs)
 }
@@ -55,7 +56,7 @@ func (m *MsgpackBlob) IsNil() bool {
 	return m == nil
 }
 
-// Validate performs cursory validation of the msgpack blob.
+// Validate validates the msgpack blob cursorily.
 func (m *MsgpackBlob) Validate() error {
 	if err := m.GetBlob().Validate(); err != nil {
 		return err
@@ -80,7 +81,7 @@ func (m *MsgpackBlob) BuildMsgpackDecoder(ctx context.Context, bcs *block.Cursor
 	}
 
 	// Open the MsgpackBlob data as a streaming block reader.
-	// streaming msgpack decoding from the block graph.
+	// Decode msgpack from the block graph as a stream.
 	br, err := blob.NewReader(ctx, bcs.FollowSubBlock(1))
 	if err != nil {
 		return nil, err

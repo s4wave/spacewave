@@ -12,7 +12,7 @@ func (e *Task) WorldTitle() string {
 	return e.GetName()
 }
 
-// WorldState names the task's state for object browsers, and a complete
+// WorldState returns the task's state for object browsers, and a complete
 // task's outcome.
 func (e *Task) WorldState() string {
 	switch s := e.GetTaskState(); s {

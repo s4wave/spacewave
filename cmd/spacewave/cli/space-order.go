@@ -132,7 +132,7 @@ func (a *spaceOrderArgs) Run(c *cli.Context) error {
 
 // printOrderOperation prints one operation of the order on one line.
 func printOrderOperation(w io.Writer, op *space_world.OrderOperation) {
-	// Name what this build reads of the operation.
+	// Describe what this build reads of the operation.
 	var read string
 	switch r := op.GetRead().(type) {
 	case *space_world.OrderOperation_Body:
@@ -153,7 +153,8 @@ func printOrderOperation(w io.Writer, op *space_world.OrderOperation) {
 		read = "acknowledgment"
 	}
 
-	// Print the position, author, hash and saved outcome beside it.
+	// Print the position, author, hash and saved outcome beside the read
+	// result.
 	line := fmt.Sprintf("%d\t%s\tnonce %d\t%s\t%s", op.GetPosition(), op.GetPeerId(), op.GetNonce(), hex.EncodeToString(op.GetHash()), read)
 	if reason := op.GetSavedReason(); reason != "" {
 		line += "\tsaved: " + reason
@@ -173,7 +174,8 @@ func printOrderInspection(w io.Writer, spaceID string, s *space_world.OrderInspe
 		pairs = append(pairs, [2]string{"  " + orderKindName(k.GetKind()), strconv.FormatUint(uint64(k.GetCount()), 10)})
 	}
 
-	// Count what has no body this build decodes, and the saved cursor.
+	// Count operations with no body this build decodes, and the saved
+	// cursor.
 	pairs = append(pairs,
 		[2]string{"Unreadable", strconv.FormatUint(uint64(s.GetUnreadable()), 10)},
 		[2]string{"Empty", strconv.FormatUint(uint64(s.GetEmpty()), 10)},

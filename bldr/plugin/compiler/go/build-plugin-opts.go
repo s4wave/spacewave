@@ -37,7 +37,8 @@ type BuildPluginOpts struct {
 	GoPkgs []string
 	// WebPkgs is the list of web package references included in the plugin.
 	WebPkgs []*bldr_web_bundler.WebPkgRefConfig
-	// WebPluginID is optional; if set, automatically adds controllers to configure the web plugin.
+	// WebPluginID is optional. If it is set, controllers that configure the web
+	// plugin are added automatically.
 	WebPluginID string
 	// DelveAddr optionally attaches a delve debugger listening on this address.
 	DelveAddr string
@@ -52,13 +53,15 @@ type BuildPluginOpts struct {
 	// HostConfigSet is an additional config set embedded into the plugin host.
 	HostConfigSet map[string]*configset_proto.ControllerConfig
 
-	// EnableCgoOpt enables cgo support on default false.
+	// EnableCgoOpt enables cgo support and defaults to false.
 	EnableCgoOpt enabled.Enabled
 	// GoCompilerOpt selects the go compiler used for the build.
 	GoCompilerOpt GoCompiler
-	// EnableImportedFactoryDiscoveryOpt enables imported factory discovery on default false.
+	// EnableImportedFactoryDiscoveryOpt enables imported factory discovery and
+	// defaults to false.
 	EnableImportedFactoryDiscoveryOpt enabled.Enabled
-	// EnableCompressionOpt enables compression of the plugin binary on default depending on release mode.
+	// EnableCompressionOpt enables compression of the plugin binary and has a
+	// default value that depends on release mode.
 	EnableCompressionOpt enabled.Enabled
 
 	// BaseEsbuildFlags are extra flags passed to esbuild.

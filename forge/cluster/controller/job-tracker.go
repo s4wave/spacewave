@@ -127,7 +127,7 @@ func (jt *jobTracker) processState(
 
 	// Collect the Tasks that still need completion, and the unclaimed ones
 	// among them. A Task can complete before any cluster claims it, as when it
-	// fails resolving its inputs; it needs no peer.
+	// fails resolving its inputs. The Task needs no peer.
 	var pendingTasks, unclaimedTasks []string
 	for i, task := range tasks {
 		if task.GetTaskState() == forge_task.State_TaskState_COMPLETE {

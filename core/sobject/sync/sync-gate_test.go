@@ -53,7 +53,8 @@ func newMemHostRetaining(
 		return ctr, func() {}, nil
 	}
 
-	// mutex serializes imports; historyMtx guards history for readers outside it.
+	// mutex serializes imports. historyMtx guards history for readers
+	// outside mutex.
 	var mutex csync.Mutex
 	var historyMtx sync.RWMutex
 	history := make(map[string]*sobject.SOConfigChange)
@@ -170,11 +171,12 @@ func buildGrant(t *testing.T, soID string, ownerPriv crypto.PrivKey, localPub cr
 	return grant
 }
 
-// runSnapshotExchange drives the authenticated data protocol with a requested candidate.
-// Authentication itself is covered by runStream tests; this helper isolates host rejection.
+// runSnapshotExchange drives the authenticated data protocol with a
+// requested candidate. Authentication itself is covered by runStream tests.
+// This helper isolates host rejection.
 func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap *SOSyncMessage) error {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -196,7 +198,7 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 		t.Fatal(err)
 	}
 
-	// sum256 digest via sha256.
+	// Compute digest with sha256.Sum256.
 	digest := sha256.Sum256(peerSnap.GetSnapshot().GetSoState())
 	head := &SOSyncHead{Revision: 1, StateHash: digest[:], ConfigHash: state.GetConfig().GetConfigChainHash(), ConfigSeqno: state.GetConfig().GetConfigChainSeqno()}
 	if err := remoteSess.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: head}}); err != nil {
@@ -213,7 +215,7 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 		return errors.New("candidate not requested")
 	}
 
-	// getSnapshot snapshot via peerSnap.
+	// Get snapshot from peerSnap.GetSnapshot.
 	snapshot := peerSnap.GetSnapshot().CloneVT()
 	snapshot.Revision = 1
 	snapshot.BaseHash = request.GetHistoryRequest().GetBaseHash()
@@ -235,7 +237,7 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 	return nil
 }
 
-// gateState returns a state whose genesis config, signed by owner, names
+// gateState returns a state whose genesis config, signed by owner, lists
 // owner and local with role, holding the genesis checkpoint.
 func gateState(t *testing.T, soID string, owner crypto.PrivKey, local string, role sobject.SOParticipantRole) *sobject.SOState {
 	t.Helper()
@@ -322,7 +324,7 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// An owner's genesis makes it a reader, held by its host.
+	// An owner's genesis makes the local peer a reader, held by its host.
 	ownerPriv := mustKeyPair(t)
 	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
 	localHost, ctr := newMemHost(soID, held.CloneVT())
@@ -358,7 +360,8 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	}
 	ownerPriv := mustKeyPair(t)
 
-	// The local writer holds a pending write; the peer holds a newer checkpoint.
+	// The local writer holds a pending write. The peer holds a newer
+	// checkpoint.
 	genesis := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER)
 	genesis.KeyEpochs = []*sobject.SOKeyEpoch{{Grants: []*sobject.SOGrant{buildGrant(t, soID, ownerPriv, localPub)}}}
 	localState := genesis.CloneVT()
@@ -384,7 +387,7 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 // trustSnapshotConfig establishes a signed genesis checkpoint already held locally.
 func trustSnapshotConfig(t *testing.T, soID string, state *sobject.SOState, owner crypto.PrivKey) {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	entry, err := sobject.BuildSOConfigChange(soID, state.GetConfig(), state.GetConfig(), sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, owner, nil)
 	if err != nil {

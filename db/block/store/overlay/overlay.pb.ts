@@ -31,13 +31,13 @@ export interface Config {
   overlayMode?: OverlayMode
   /**
    * WritebackTimeoutDur is the timeout for writing back blocks.
-   * If overlay_mode does not enable writeback, this is N/A.
+   * If overlay_mode does not enable writeback, the timeout is N/A.
    * Example: 30s
    */
   writebackTimeoutDur?: string
   /**
    * WritebackPutOpts are the base put options for writing back blocks.
-   * If overlay_mode does not enable writeback, this is N/A.
+   * If overlay_mode does not enable writeback, the put options are N/A.
    */
   writebackPutOpts?: PutOpts
   /**

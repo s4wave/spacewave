@@ -6,7 +6,7 @@ import { FrameObjectBody } from '../frame/FrameObjectBody.js'
 import type { FrameObjectState } from '../frame/frame-object-state.js'
 import type { FrameSource } from '../frame/play-frames.js'
 
-/** CameraViewProps names the Camera's watched state and view-only source. */
+/** CameraViewProps declares the Camera's watched state and view-only source. */
 export interface CameraViewProps {
   view: FrameObjectState
   source?: FrameSource

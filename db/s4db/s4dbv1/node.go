@@ -36,7 +36,7 @@ func readNode(r io.ReaderAt, page uint64) (*node, error) {
 }
 
 // decodeNode checks a page and finds its entries. A leaf entry is a key, a
-// kind byte and a value; an inner entry is a key and a child page, and the
+// kind byte and a value. An inner entry is a key and a child page, and the
 // first inner key is empty.
 func decodeNode(b []byte) (*node, error) {
 	// Check the checksum and the kind.
@@ -142,7 +142,7 @@ type frame struct {
 	i int
 }
 
-// newTreeWalk returns a walk of the tree at root; root zero is empty.
+// newTreeWalk returns a walk of the tree at root. Root zero is empty.
 func newTreeWalk(r io.ReaderAt, root uint64) *treeWalk {
 	w := &treeWalk{r: r}
 	if root != 0 {

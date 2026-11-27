@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface RuntimeCapabilityFlagRequest {
   /**
-   * Capability names the gated feature, such as storage.public-origin.
+   * Capability identifies the gated feature, such as storage.public-origin.
    */
   capability?: string
   enabled?: boolean

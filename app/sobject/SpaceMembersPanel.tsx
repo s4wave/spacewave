@@ -235,7 +235,10 @@ function InvitesSection({
   )
 }
 
-/** PendingRequestsSection lists the pending mailbox requests with accept and reject actions. */
+/**
+ * PendingRequestsSection lists the pending mailbox requests with accept and
+ * reject actions.
+ */
 function PendingRequestsSection({
   entries,
   bordered,
@@ -278,7 +281,7 @@ function PendingRequestsSection({
 
 // SpaceMembersPanelProps configures the members panel.
 export interface SpaceMembersPanelProps {
-  // Tightens the surrounding card padding for a narrow container.
+  // compact tightens the surrounding card padding for a narrow container.
   compact?: boolean
 }
 

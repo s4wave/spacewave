@@ -224,7 +224,8 @@ func TestCacheTornOpenPack(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The reopened cache returns the first two batches and misses the last.
+	// The reopened cache returns the first two batches and misses the last
+	// batch.
 	c = openReady(t, dir, Options{})
 	defer c.Close()
 	for b, batch := range batches {

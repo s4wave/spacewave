@@ -98,7 +98,7 @@ export function DeviceViewer({
     }
   }
 
-  // Open a Camera or Display naming the selected Device capability.
+  // Open a Camera or Display linked to the selected Device capability.
   const handleOpenFrame = async (capability: DeviceCapability) => {
     if (!state) return
     try {
@@ -118,7 +118,7 @@ export function DeviceViewer({
     }
   }
 
-  // Open what an opened capability row serves; other rows only select.
+  // Open what an opened capability row serves. Other rows only become selected.
   const handleOpenCapability = (capability: DeviceCapability) => {
     if (isBrowsableCheckoutRoot(capability)) {
       setCheckout(capability)
@@ -131,7 +131,7 @@ export function DeviceViewer({
     void handleOpenFrame(capability)
   }
 
-  // The device's facts, listed by the side column and the Details popover.
+  // List the device's facts in the side column and the Details popover.
   const platform = [state?.platform?.os, state?.platform?.arch]
     .filter(Boolean)
     .join(', ')
@@ -145,8 +145,8 @@ export function DeviceViewer({
     />
   ) : null
 
-  // Until the device arrives, show what is read or why it failed; a stream
-  // that ends without a device offers to read it again.
+  // Until the device arrives, show what is read or why the read failed. A
+  // stream that ends without a device offers to read the device again.
   const status: ViewerStatusProps | null = state
     ? null
     : (resourceStatus('the device', stateResource) ?? {

@@ -34,7 +34,7 @@ func Fetch(
 	}
 	rw.WriteHeader(resp.StatusCode)
 
-	// Headers are forwarded; the response can no longer be repaired with an
+	// Headers are forwarded, so the response can no longer be repaired with an
 	// error status. A failure below poisons the response body via Abort so
 	// the remote observes an error instead of a truncated body that ends
 	// cleanly with a done packet.
@@ -116,8 +116,8 @@ func HandleFetch(
 }
 
 // serveFetchHTTP runs the handler, recovering panics into an error. Under
-// GoScript a JavaScript throw can surface as a Go panic from the handler;
-// the stream must then close with an error instead of a clean done packet.
+// GoScript a JavaScript throw can surface as a Go panic from the handler,
+// so the stream must then close with an error instead of a clean done packet.
 func serveFetchHTTP(rw http.ResponseWriter, req *http.Request, handler http.HandlerFunc) (err error) {
 	defer func() {
 		if rerr := recover(); rerr != nil {

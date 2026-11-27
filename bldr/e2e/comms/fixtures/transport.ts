@@ -1,4 +1,4 @@
-// transport.ts - Transport factory test fixture.
+// transport.ts: Transport factory test fixture.
 //
 // Detects worker comms config, creates a transport factory with detected
 // config, verifies correct transport availability per browser.

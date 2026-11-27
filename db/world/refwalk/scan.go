@@ -78,8 +78,8 @@ func scanCompare(refs []*block.BlockRef, data []byte) (missed []*block.BlockRef,
 		seen[refKey(hit.Ref)] = struct{}{}
 	}
 
-	// Take each typed ref once, since a block may name one child twice, and
-	// keep those the scan did not find.
+	// Take each typed ref once, since a block may reference one child
+	// twice, and keep those the scan did not find.
 	typed := make(map[string]struct{}, len(refs))
 	for _, ref := range refs {
 		key := refKey(ref)
@@ -92,7 +92,7 @@ func scanCompare(refs []*block.BlockRef, data []byte) (missed []*block.BlockRef,
 		}
 	}
 
-	// Keep the scanned hashes no typed ref names.
+	// Keep the scanned hashes no typed ref references.
 	for _, hit := range scanned {
 		if _, ok := typed[refKey(hit.Ref)]; !ok {
 			extra = append(extra, hit)
@@ -204,7 +204,7 @@ func scanBytes(b []byte) (body, rest []byte, ok bool) {
 
 // scanMessage reads b as the fields of one message and calls found with each
 // hash in it and the path of its field under path, descending at most depth
-// levels. It reports false when b is not well-formed; hashes found before
+// levels. It reports false when b is not well-formed. Hashes found before
 // the malformed field were still passed to found, so a caller reading a
 // nested field buffers them.
 func scanMessage(b []byte, depth int, path []uint64, found func(typ hash.HashType, digest []byte, path []uint64)) bool {

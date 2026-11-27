@@ -13,18 +13,18 @@ import (
 
 // runConnect runs the pipe command in connect/client mode.
 func (a *PipeArgs) runConnect(ctx context.Context) error {
-	// Parse connect address
+	// Parse the connect address.
 	remotePeerID, remoteAddr, err := parseConnectAddr(a.ConnectAddr)
 	if err != nil {
 		return errors.Wrap(err, "parse connect address")
 	}
 
-	// Configure dialer for remote peer
+	// Configure the dialer for the remote peer.
 	dialers := map[string]*dialer.DialerOpts{
 		remotePeerID.String(): {Address: remoteAddr},
 	}
 
-	// Setup daemon with UDP transport (ephemeral port)
+	// Set up the daemon with UDP transport (ephemeral port).
 	d, cleanup, err := a.setupDaemon(ctx, ":0", dialers)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (a *PipeArgs) runConnect(ctx context.Context) error {
 	a.logStatus("Local Peer ID: %s", localPeerID.String())
 	a.logStatus("Connecting to %s at %s", remotePeerID.String(), remoteAddr)
 
-	// Open stream to remote peer
+	// Open a stream to the remote peer.
 	mstrm, rel, err := link.OpenStreamWithPeerEx(
 		ctx,
 		b,
@@ -57,6 +57,6 @@ func (a *PipeArgs) runConnect(ctx context.Context) error {
 	// Report that the remote pipe connection is ready.
 	a.logStatus("Connected!")
 
-	// Pipe stream to stdin/stdout
+	// Pipe the stream to stdin/stdout.
 	return pipeStream(mstrm.GetStream(), os.Stdin, os.Stdout)
 }

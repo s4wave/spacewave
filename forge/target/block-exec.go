@@ -10,7 +10,7 @@ func (e *Exec) IsNil() bool {
 	return e == nil
 }
 
-// Validate performs cursory validation of the Exec.
+// Validate cursorily validates the Exec.
 func (e *Exec) Validate() error {
 	if e.GetDisable() {
 		return nil

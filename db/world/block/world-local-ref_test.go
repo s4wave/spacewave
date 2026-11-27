@@ -36,14 +36,15 @@ func TestBuildWorldStateFromCursorLocalObjectRef(t *testing.T) {
 	defer ws.Discard()
 
 	// Write a root in the World's bucket. An importer holding its external ref
-	// creates objects from refs that name the bucket.
+	// creates objects from refs that reference the bucket.
 	written, err := world_block.BuildMockObject(ctx, ws, "written")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer world.ReleaseObjectState(written)
 
-	// Name the bucket on the written ref and create the imported object.
+	// Reference the bucket on the written ref and create the imported
+	// object.
 	bucketID := ocs.GetRefWithOpArgs().GetBucketId()
 	external, _, err := written.GetRootRef(ctx)
 	if err != nil {
@@ -57,7 +58,7 @@ func TestBuildWorldStateFromCursorLocalObjectRef(t *testing.T) {
 	}
 	defer world.ReleaseObjectState(obj)
 
-	// The stored Object names no bucket and references its root.
+	// The stored Object references no bucket and references its root.
 	root, err := obj.(*world_block.ObjectState).GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +74,7 @@ func TestBuildWorldStateFromCursorLocalObjectRef(t *testing.T) {
 		t.Fatal("stored object root is not a block ref")
 	}
 
-	// The public ref still names the World's bucket.
+	// The public ref still references the World's bucket.
 	ref, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatal(err)

@@ -60,7 +60,7 @@ func (c *BillyFSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, er
 }
 
 // AddChangeCb adds a change callback to detect when the cursor has changed.
-// This will be called only if GetProxyCursor returns nil, nil.
+// AddChangeCb is called only if GetProxyCursor returns nil, nil.
 //
 // cb must not block, and should be called when cursor changes / is released
 // cb will be called immediately (same call tree) if already released.

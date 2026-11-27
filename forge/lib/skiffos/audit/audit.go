@@ -31,7 +31,7 @@ func readRevision(repo *git.Repository, commit plumbing.Hash) (*Revision, error)
 		return nil, errors.Wrapf(err, "commit %s", commit)
 	}
 
-	// The Buildroot gitlink names the pinned commit.
+	// The Buildroot gitlink records the pinned commit.
 	entry, err := tree.FindEntry(buildrootPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "commit %s: %s", commit, buildrootPath)
@@ -112,7 +112,7 @@ func describeAll(repo *git.Repository, prefix string, ds ...*Described) (int, er
 	return count, nil
 }
 
-// peel returns the commit a tag ref names, through any annotated tags.
+// peel returns the commit a tag ref selects, through any annotated tags.
 func peel(repo *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
 	for {
 		tag, err := repo.TagObject(h)

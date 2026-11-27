@@ -46,7 +46,8 @@ func memoryStatus() (memoryStatusEx, error) {
 		return status, nil
 	}
 
-	// A zero result failed; report the call's error when it set one.
+	// A zero result indicates failure. Report the call's error when the call
+	// sets one.
 	if err != nil {
 		return status, err
 	}

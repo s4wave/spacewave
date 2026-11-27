@@ -21,7 +21,7 @@ type LookupSqlStore interface {
 // Multiple results may be pushed to the directive.
 type LookupSqlStoreValue = SqlStore
 
-// lookupSqlStore implements LookupSqlStore
+// lookupSqlStore implements LookupSqlStore.
 type lookupSqlStore struct {
 	dbID string
 }
@@ -32,7 +32,7 @@ func NewLookupSqlStore(dbID string) LookupSqlStore {
 }
 
 // ExLookupSqlStore waits for the sql db to be resolved.
-// if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil,
+// if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil.
 func ExLookupSqlStore(
 	ctx context.Context,
 	b bus.Bus,
@@ -59,7 +59,7 @@ func (d *lookupSqlStore) Validate() error {
 	return nil
 }
 
-// GetValueLookupSqlStoreOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupSqlStore) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur: time.Second,
@@ -98,7 +98,7 @@ func (d *lookupSqlStore) GetName() string {
 	return "LookupSqlStore"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupSqlStore) GetDebugVals() directive.DebugValues {

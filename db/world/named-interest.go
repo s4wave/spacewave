@@ -6,18 +6,20 @@ import (
 )
 
 // ErrGraphPatternNamesNoField is returned for a graph pattern that sets no
-// field: it matches every quad, so no index could name the changes it accepts.
+// field: the pattern matches every quad, so no index could select the changes
+// it accepts.
 var ErrGraphPatternNamesNoField = errors.New("graph pattern names no field")
 
 // NewNamedInterest returns an interest in the changes to any of keys and the
 // changes that set or delete a quad matching any of patterns. An empty field
 // of a pattern matches any value. A change feed indexes the interest by each
-// key and by one field of each pattern, so a change naming none of them never
-// tests it, and a link added from an origin reaches a pattern naming that
-// origin without the interest naming the linked object in advance. With no
-// keys and no patterns, the interest accepts only an unknown change.
+// key and by one field of each pattern, so a change referencing none of them
+// never tests the interest, and a link added from an origin reaches a pattern
+// matching that origin without the interest selecting the linked object in
+// advance. With no keys and no patterns, the interest accepts only an unknown
+// change.
 func NewNamedInterest(keys []string, patterns []GraphQuad) (*ChangeInterest, error) {
-	// Index the patterns by the field the change feed names them by.
+	// Index the patterns by the field the change feed indexes them by.
 	byTerm := make(map[quadTerm][]graphPattern, len(patterns))
 	terms := make([]quadTerm, 0, len(patterns))
 	for _, filter := range patterns {
@@ -32,7 +34,7 @@ func NewNamedInterest(keys []string, patterns []GraphQuad) (*ChangeInterest, err
 		byTerm[term] = append(byTerm[term], p)
 	}
 
-	// Name each key once.
+	// Record each key once.
 	keySet := make(map[string]struct{}, len(keys))
 	named := make([]string, 0, len(keys))
 	for _, key := range keys {
@@ -67,14 +69,14 @@ func NewNamedInterest(keys []string, patterns []GraphQuad) (*ChangeInterest, err
 	return &ChangeInterest{filter: filter, keys: named, terms: terms}, nil
 }
 
-// Names returns object keys and graph patterns that together name every
+// Names returns object keys and graph patterns that together select every
 // change the interest may accept, for a change feed in another process to
 // index it by: NewNamedInterest(keys, patterns) accepts at least what the
 // interest accepts. A pattern sets one field, so it may match changes the
-// interest rejects; the caller still filters with the interest. The names of
+// interest rejects. The caller still filters with the interest. The names of
 // the shared sets and of every set they joined are included. ok is false when
-// the interest may accept a change naming none of them, such as one built by
-// NewChangeInterest or from a set that read a prefix.
+// the interest may accept a change referencing none of them, such as one built
+// by NewChangeInterest or from a set that read a prefix.
 func (c *ChangeInterest) Names() (keys []string, patterns []GraphQuad, ok bool) {
 	// An interest in every change has no names.
 	if c == nil || c.all {
@@ -107,8 +109,8 @@ func (c *ChangeInterest) Names() (keys []string, patterns []GraphQuad, ok bool) 
 	return names.keys, patterns, true
 }
 
-// pattern returns the graph pattern setting only the term's field. It names
-// changes for a change feed; it is not a lookup.
+// pattern returns the graph pattern setting only the term's field. The
+// pattern selects changes for a change feed. The pattern is not a lookup.
 func (t quadTerm) pattern() GraphQuad {
 	var fields [4]string
 	fields[t.field] = t.value

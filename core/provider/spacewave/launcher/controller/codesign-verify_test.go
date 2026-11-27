@@ -9,9 +9,10 @@ import (
 	"testing"
 )
 
-// TestCodesignVerifyGate: on darwin, an unsigned tree must be rejected so it
-// never advertises STAGED. On other platforms the stub is a no-op, which we
-// assert explicitly so nobody silently breaks the non-darwin build.
+// TestCodesignVerifyGate verifies that on darwin, an unsigned tree must be
+// rejected so the tree never advertises STAGED. On other platforms the stub is
+// a no-op, as the test asserts explicitly so nobody silently breaks the
+// non-darwin build.
 func TestCodesignVerifyGate(t *testing.T) {
 	dir := t.TempDir()
 	fake := filepath.Join(dir, "Unsigned.app")

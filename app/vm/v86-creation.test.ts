@@ -80,7 +80,8 @@ describe('runVmCreation', () => {
     t.failOn = 'delete'
     await expect(drain(t)).rejects.toThrow('delete failed')
 
-    // No VM, the index still names the wizard, and the wizard is there.
+    // There is no VM, the index still points to the wizard, and the wizard
+    // is there.
     expect(t.state).toEqual({
       objects: new Set(['wizard/vm-1']),
       indexPath: 'wizard/vm-1',
@@ -127,7 +128,7 @@ describe('runVmCreation', () => {
 
   it('ends done when Retry after a landed commit hits the existing VM', async () => {
     // The commit landed but its caller saw a failure, so Retry runs again:
-    // the World refuses the VM create, and its ending names this VM.
+    // the World refuses the VM create, and its ending records this VM.
     const t = wizardTestWorld(['vm/v86/debian'], 'vm/v86/debian')
     t.state.endings.set('wizard/vm-1', 'vm/v86/debian')
     const failed: VmCreationState = {

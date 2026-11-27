@@ -67,7 +67,7 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 
-	// Construct root cursor on old volume.
+	// Construct the root cursor on the old volume.
 	vol, err := baseVol.GetVolume(ctx)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 
-	// Lookup HEAD ref from object store.
+	// Look up the HEAD ref from the object store.
 	// TODO
 	objStore, relObjStore, err := vol.AccessObjectStore(ctx, "hydra/toys/encrypted-volume/store", nil)
 	if err != nil {
@@ -93,7 +93,8 @@ func NewEncryptedVolume(
 	sfs := transform_all.BuildFactorySet()
 	var headCursor *bucket_lookup.Cursor
 
-	// The READ only happens once, or this would be in a separate util function.
+	// The READ only happens once, or the read would be in a separate util
+	// function.
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
@@ -125,7 +126,7 @@ func NewEncryptedVolume(
 		var transformConf *block_transform.Config
 		var putOpts *block.PutOpts
 
-		// note: don't use this key!
+		// note: don't use the demo key!
 		volPeerID := vol.GetPeerID()
 		var demoKey [32]byte
 		blake3.DeriveKey(
@@ -158,10 +159,10 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 
-	// Construct iavl block tree.
+	// Construct the iavl block tree.
 	avlTree := iavl.NewAVLTree(headCursor)
 
-	// Build kvkey volume on top.
+	// Build the kvkey volume on top of the iavl block tree.
 	return common_kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -178,7 +179,7 @@ func NewEncryptedVolume(
 	)
 }
 
-// iavlStore wraps iavl store to satisfy kvtx.Store
+// iavlStore wraps the iavl store to satisfy kvtx.Store.
 type iavlStore struct {
 	kvtx.Store
 }

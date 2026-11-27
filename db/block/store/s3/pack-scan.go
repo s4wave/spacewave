@@ -13,8 +13,8 @@ import (
 
 // ScanBlocks lists the bucket's packfiles and calls fn with every block they
 // hold, reading each packfile whole. A block packed twice is visited twice.
-// Holds off this store's compaction and reclaim during the scan; another
-// writer merging the same prefix may make it fail with ErrNotFound.
+// Holds off this store's compaction and reclaim during the scan. Another
+// writer merging the same prefix may make the scan fail with ErrNotFound.
 func (s *PackStore) ScanBlocks(ctx context.Context, fn func(ref *block.BlockRef, stored *block.StoredBlock) error) error {
 	// Keep this store's merges from deleting a packfile mid-scan.
 	release, err := s.compactMtx.Lock(ctx)

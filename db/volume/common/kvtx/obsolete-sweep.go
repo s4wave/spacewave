@@ -19,16 +19,17 @@ var legacyGraphKinds = []byte{'a', 'f', 'g', 'h', 'i', 'l', 'm', 'n', 'p', 'r', 
 // obsoleteSweepKeys bounds the keys one obsolete sweep transaction deletes.
 // A transaction of 256 deletes holds the writer about a millisecond on s4db,
 // at about 3 us a key, so a commit that arrives during one waits at most
-// that long; the background turn lets every waiting commit in before the
-// next.
+// that long. The background turn lets every waiting commit in before the
+// next transaction.
 const obsoleteSweepKeys = 256
 
-// runObsoleteSweep deletes the records of each kind the state names obsolete,
-// which a format upgrade left, a bounded batch per transaction, letting a
-// waiting writer in between, and drops each kind from the state once none
-// of its records remain. It deletes only those kinds under the liveness
-// prefix, which no format the Volume runs reads, never a child list, a
-// block or another record. A crash leaves the rest for the next open.
+// runObsoleteSweep deletes the records of each kind the state records as
+// obsolete, left by a format upgrade, a bounded batch per transaction,
+// letting a waiting writer in between, and drops each kind from the state
+// once none of its records remain. It deletes only those kinds under the
+// liveness prefix: no format the Volume runs reads those kinds. It never
+// deletes a child list, a block or another record. A crash leaves the rest for
+// the next open.
 func (v *Volume) runObsoleteSweep(ctx context.Context, kinds []byte) {
 	// Delete each obsolete kind under the liveness prefix, as background
 	// work, then drop it from the state.
@@ -88,8 +89,8 @@ func (v *Volume) sweepObsoletePrefix(ctx context.Context, prefix []byte) error {
 }
 
 // deletePrefixBatch deletes up to limit keys under prefix after the key
-// after, nil for the first, in tx, and returns how many it deleted and the
-// last.
+// after, nil for the first batch, in tx, and returns how many keys it deleted
+// and the last key.
 func deletePrefixBatch(ctx context.Context, tx kvtx.Tx, prefix, after []byte, limit int) (int, []byte, error) {
 	// Collect the next keys.
 	it := tx.Iterate(ctx, prefix, true, false)

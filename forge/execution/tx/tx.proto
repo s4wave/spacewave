@@ -94,8 +94,8 @@ message TxSetWaiting {
 // TxType: TxType_START
 message TxStart {
   // PeerId is the peer identifier to set as the executor.
-  // Must be the same as the sender of the transaction.
-  // Must match peer_id on the Execution if it's not empty.
+  // PeerId must be the same as the sender of the transaction.
+  // PeerId must match peer_id on the Execution if peer_id is not empty.
   string peer_id = 1;
   // ClaimId is the opaque identifier of the claiming controller instance.
   string claim_id = 2;
@@ -148,15 +148,17 @@ message TxReclaim {
   // ExpectedClaimEpoch prevents racing transfers from both succeeding.
   uint64 expected_claim_epoch = 3;
   // ObservedAt is the time the sender observed the claim lease expired. The
-  // transaction applies only when the current lease expires at or before it.
+  // transaction applies only when the current lease expires at or before
+  // ObservedAt.
   google.protobuf.Timestamp observed_at = 4;
   // LeaseExpiresAt is the initial lease expiry of the new claim.
-  // Must be after observed_at.
+  // LeaseExpiresAt must be after observed_at.
   google.protobuf.Timestamp lease_expires_at = 5;
   // ExecutionObjectKey identifies the Execution to reclaim in a World operation.
   string execution_object_key = 6;
-  // Placement selects the reclaiming Worker's custody. Required when replacing
-  // an existing placement; its peer must match PeerId and be linked to the Worker.
+  // Placement selects the reclaiming Worker's custody. Placement is required
+  // when replacing an existing placement. Placement's peer must match PeerId
+  // and be linked to the Worker.
   .forge.worker.Placement placement = 7;
 }
 

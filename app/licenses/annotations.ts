@@ -1,7 +1,7 @@
-// Human-written metadata per dependency for the community page and
-// /licenses page. Keyed by package name (Go module path or npm package name).
-// Only annotated deps get purpose text and category grouping; unannotated
-// deps still appear with a default "uncategorized" category.
+// Human-written metadata describes each dependency for the community page and
+// /licenses page. The metadata is keyed by package name (Go module path or npm
+// package name). Only annotated deps get purpose text and category grouping,
+// but unannotated deps still appear with a default "uncategorized" category.
 
 export interface DependencyAnnotation {
   category: string

@@ -26,7 +26,8 @@ export interface HandleWebViewRequest {
    */
   documentId?: string
   /**
-   * Permanent indicates that this is a "root" webview and cannot be closed.
+   * Permanent indicates that the webview is a "root" webview and cannot be
+   * closed.
    */
   permanent?: boolean
 }
@@ -50,7 +51,7 @@ export const HandleWebViewRequest: MessageType<HandleWebViewRequest> =
 export interface HandleWebViewResponse {
   /**
    * Error contains any error handling the web view.
-   * If empty, returns and does not retry.
+   * If Error is empty, the handler returns and does not retry.
    */
   error?: string
 }

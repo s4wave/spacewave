@@ -14,7 +14,7 @@ function getOrgMemberSecondaryLabel(member: OrgMemberInfo): string {
   return ''
 }
 
-// OrgMemberList renders the list of org members with optional remove action.
+// OrgMemberList renders the list of org members with an optional remove action.
 export function OrgMemberList(props: {
   members: OrgMemberInfo[]
   isOwner: boolean

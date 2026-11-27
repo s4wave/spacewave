@@ -12,7 +12,7 @@ export interface IBarProps {
   right?: React.ReactNode
   // style are additional styles for the bar.
   style?: CSSProperties
-  // className added to the root element, if applicable
+  // className is added to the root element, if applicable.
   className?: string
   // hideTopBorder hides the top border.
   hideTopBorder?: boolean

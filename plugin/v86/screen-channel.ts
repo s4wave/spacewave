@@ -132,7 +132,7 @@ export class ScreenRelay {
     ])
   }
 
-  // set_font_bitmap sends the 64 KiB font plane only when it changed; the
+  // set_font_bitmap sends the 64 KiB font plane only when it changed. The
   // viewer keeps the last plane. The state keeps its own copy for replay.
   set_font_bitmap(
     height: number,
@@ -215,7 +215,7 @@ export class ScreenRelay {
   }
 
   // input applies one viewer request. A fill is answered even before the
-  // emulator attaches, so the viewer never waits on it.
+  // emulator attaches, so the viewer never waits for the emulator to attach.
   private input(op: ScreenInput): void {
     const emulator = this.emulator
     switch (op.kind) {
@@ -304,7 +304,7 @@ export function attachScreenView(
   container: HTMLElement,
   vmObjectKey: string,
 ): ScreenView {
-  // Open the channel and the adapter. The adapter's timer pulls frames; any
+  // Open the channel and the adapter. The adapter's timer pulls frames. Any
   // frame from the runner ends the wait, so a request lost to a stopped
   // runner does not stall a restarted one.
   const channel = new BroadcastChannel(v86ScreenChannelName(vmObjectKey))

@@ -19,7 +19,8 @@ export interface DirectOfferStepProps {
 
 // DirectOfferStep generates a local pairing offer and displays it as a QR
 // code and copyable string. After the user pastes back the answerer's payload,
-// completes the WebRTC connection and transitions to verification.
+// the component completes the WebRTC connection and transitions to
+// verification.
 export function DirectOfferStep({
   session,
   onRemotePeerResolved,

@@ -24,7 +24,7 @@ type State struct {
 	joinRequests []*sobject.SOJoinRequest
 	// participantPresentation labels the participant rows.
 	participantPresentation *ParticipantPresentation
-	// err is the first bridge failure; the watch returns it.
+	// err is the first bridge failure. The watch returns it.
 	err error
 }
 

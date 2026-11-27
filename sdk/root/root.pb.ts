@@ -187,7 +187,7 @@ export interface MountAppRequest {
   worldResourceId?: number
   /**
    * ObjectPrefix separates this installation's named Volumes in the World.
-   * Required with world_resource_id.
+   * ObjectPrefix is required with world_resource_id.
    */
   objectPrefix?: string
   /**
@@ -881,7 +881,7 @@ export interface HashValidateResponse {
    */
   valid?: boolean
   /**
-   * Error contains the validation error message if not valid.
+   * Error contains the validation error message if the hash is not valid.
    */
   error?: string
 }
@@ -903,7 +903,7 @@ export const HashValidateResponse: MessageType<HashValidateResponse> =
 export interface AccessStateAtomRequest {
   /**
    * StoreId is the identifier for the state store.
-   * If empty, uses the default "ui-state" store.
+   * If StoreId is empty, the default "ui-state" store is used.
    */
   storeId?: string
 }
@@ -1330,7 +1330,7 @@ export const GetChangelogRequest: MessageType<GetChangelogRequest> =
  */
 export interface GetChangelogResponse {
   /**
-   * changelog is the application changelog.
+   * Changelog is the application changelog.
    */
   changelog?: Changelog
 }
@@ -1411,9 +1411,9 @@ export const GetDebugDbResponse: MessageType<GetDebugDbResponse> =
  */
 export interface GetCdnRequest {
   /**
-   * CdnId selects the CDN instance. Empty selects the default CDN. Unknown
-   * ids cause GetCdn to fail with an ErrUnknownCdn-wrapped error so callers
-   * can distinguish misconfigured ids from transport errors.
+   * CdnId selects the CDN instance. An empty CdnId selects the default CDN.
+   * Unknown ids cause GetCdn to fail with an ErrUnknownCdn-wrapped error so
+   * callers can distinguish misconfigured ids from transport errors.
    */
   cdnId?: string
 }
@@ -1435,8 +1435,8 @@ export interface GetCdnResponse {
    */
   resourceId?: number
   /**
-   * CdnSpaceId is the CDN Space ULID for the selected instance. Returned in
-   * the same round-trip so callers do not need a follow-up RPC.
+   * CdnSpaceId is the CDN Space ULID for the selected instance. CdnSpaceId is
+   * returned in the same round-trip so callers do not need a follow-up RPC.
    */
   cdnSpaceId?: string
 }
@@ -1457,8 +1457,8 @@ export const GetCdnResponse: MessageType<GetCdnResponse> =
  */
 export interface AccessWebListenerRequest {
   /**
-   * ListenMultiaddr is the requested listener bind address. Empty defaults to
-   * /ip4/127.0.0.1/tcp/0.
+   * ListenMultiaddr is the requested listener bind address. An empty
+   * ListenMultiaddr defaults to /ip4/127.0.0.1/tcp/0.
    */
   listenMultiaddr?: string
   /**
@@ -1468,11 +1468,12 @@ export interface AccessWebListenerRequest {
   /**
    * SpaceId binds the listener to one Space. A bound listener serves a
    * read-only Resource service at /_spacewave/resource limited to this Space
-   * in session session_idx. Empty serves no Resource service.
+   * in session session_idx. An empty SpaceId serves no Resource service.
    */
   spaceId?: string
   /**
-   * SessionIdx is the session holding space_id. Required with space_id.
+   * SessionIdx is the session holding space_id. SessionIdx is required with
+   * space_id.
    */
   sessionIdx?: number
   /**
@@ -1580,7 +1581,7 @@ export interface WebListenerInfo {
    */
   spaceId?: string
   /**
-   * SessionIdx is the session of the bound Space, or zero.
+   * SessionIdx is the session index of the bound Space, or zero.
    */
   sessionIdx?: number
   /**
@@ -1864,8 +1865,8 @@ export const ReclaimRuntimeRequest: MessageType<ReclaimRuntimeRequest> =
  */
 export interface ReclaimRuntimeResponse {
   /**
-   * Reclaimed is true when the reclaim signal was fired. False when
-   * there was no active handoff to reclaim from.
+   * Reclaimed is true when the reclaim signal was fired. Reclaimed is false
+   * when there was no active handoff to reclaim from.
    */
   reclaimed?: boolean
 }
@@ -1901,20 +1902,21 @@ export const WatchListenerStatusRequest: MessageType<WatchListenerStatusRequest>
 export interface WatchListenerStatusResponse {
   /**
    * SocketPath is the effective absolute path of the listener socket.
-   * Populated once the listener controller resolves the configured
-   * path, before the first bind attempt.
+   * SocketPath is populated once the listener controller resolves the
+   * configured path, before the first bind attempt.
    */
   socketPath?: string
   /**
    * Listening is true when the listener currently has an open Unix
-   * socket accepting connections. False during startup before the
+   * socket accepting connections. Listening is false during startup before the
    * first bind, during reclaim-wait when the runtime is handed off,
    * and during teardown.
    */
   listening?: boolean
   /**
    * ConnectedClients is the count of clients currently connected to
-   * the listener socket. Updates on accept and on client disconnect.
+   * the listener socket. ConnectedClients updates on accept and on client
+   * disconnect.
    */
   connectedClients?: number
 }

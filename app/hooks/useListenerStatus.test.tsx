@@ -3,21 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { WatchListenerStatusResponse } from '@s4wave/sdk/root/root.pb.js'
 
-// Shared mock watch function; each test replaces the stream it returns
-// so useWatchStateRpc drives the hook through a fresh emission
-// sequence.
+// streamRef holds the stream returned by the shared mock watch function.
+// Each test replaces the stream so useWatchStateRpc drives the hook through
+// a fresh emission sequence.
 const streamRef: {
   current: null | AsyncIterable<WatchListenerStatusResponse>
 } = vi.hoisted(() => ({ current: null }))
 
-// Fake Root resource handle exposed via useRootResource.
+// rootRef holds the fake Root resource handle exposed via useRootResource.
 const rootRef: { current: unknown } = vi.hoisted(() => ({ current: null }))
 
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
   useRootResource: () => ({ value: rootRef.current }),
 }))
 
-// Passthrough shim for useWatchStateRpc. It drives a simple async
+// Use a passthrough shim for useWatchStateRpc. The shim drives a simple async
 // iteration over the stream handed in via streamRef so component
 // renders see the emitted values.
 vi.mock('@aptre/bldr-react', async () => {

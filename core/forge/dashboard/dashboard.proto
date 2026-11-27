@@ -7,7 +7,8 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 option go_package = "github.com/s4wave/spacewave/core/forge/dashboard;forge_dashboard";
 
 // ForgeDashboard is a unified control panel linking to Forge entities in a
-// Space. Links to Forge entities via dashboard/forge-ref graph edges.
+// Space. The dashboard links to Forge entities via dashboard/forge-ref graph
+// edges.
 message ForgeDashboard {
   option (typeid.id) = "spacewave/forge/dashboard";
 
@@ -40,7 +41,7 @@ message LinkForgeDashboardOp {
 }
 
 // InitForgeQuickstartOp creates a complete Forge environment:
-// ObjectLayout with dashboard tab, cluster, sample job with tasks, and
+// an ObjectLayout with a dashboard tab, a cluster, a sample job with tasks, and
 // optionally a worker linked to the session peer.
 message InitForgeQuickstartOp {
   option (typeid.id) = "spacewave/forge/quickstart/init";
@@ -56,9 +57,9 @@ message InitForgeQuickstartOp {
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 5;
   // WorkerKey is the object key for the session worker.
-  // If empty, no worker is created.
+  // If WorkerKey is empty, no worker is created.
   string worker_key = 6;
   // SessionPeerId is the peer ID of the creating session.
-  // Used to link the worker to the session's keypair.
+  // SessionPeerId is used to link the worker to the session's keypair.
   string session_peer_id = 7;
 }

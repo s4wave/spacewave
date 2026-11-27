@@ -70,7 +70,7 @@ message DexMessage {
   // More marks a response that further responses to the same request follow
   // (response only).
   bool more = 15;
-  // Prune names, in refs, blocks under a subtree request's ref that its
+  // Prune lists, in refs, blocks under a subtree request's ref that its
   // requester holds, so the responder walks none of them (prune only).
   bool prune = 16;
 }

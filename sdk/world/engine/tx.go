@@ -39,13 +39,13 @@ func NewSDKTx(client ResourceClient, ref resource_client.ResourceRef, readOnly b
 	}, nil
 }
 
-// Commit commits the transaction to storage. A ctx that is already done
-// returns its error and writes nothing. The request ignores ctx's cancellation
-// from the call on, so a caller's deadline does not abandon a commit that
-// started; closing the transport still ends the call. A commit rejected
-// because another writer advanced the World returns an error
-// world.IsSuperseded matches, and one whose tree names a block the Volume does
-// not hold returns an error matching block.ErrRootNotHeld.
+// Commit commits the transaction to storage. If ctx is already done, Commit
+// returns ctx's error and writes nothing. The request ignores ctx's
+// cancellation from the call on, so a caller's deadline does not abandon a
+// commit that started. Closing the transport still ends the call. A commit
+// rejected because another writer advanced the World returns an error
+// world.IsSuperseded matches, and one whose tree references a block the Volume
+// does not hold returns an error matching block.ErrRootNotHeld.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	// Refuse a caller that has already stopped waiting, then release the resource.
 	if err := ctx.Err(); err != nil {

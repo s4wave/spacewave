@@ -17,7 +17,7 @@ export interface PluginBuildConfig {
    */
   manifestId?: string
   /**
-   * ConfigPath is relative to the source tree; empty selects bldr.yaml.
+   * ConfigPath is relative to the source tree. An empty path selects bldr.yaml.
    */
   configPath?: string
   /**

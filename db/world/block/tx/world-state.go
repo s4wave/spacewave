@@ -16,27 +16,28 @@ import (
 
 // WorldState implements a WorldState which tracks applied operations as a TxBatch.
 type WorldState struct {
-	// ctx is the world state context
+	// ctx is the world state context.
 	ctx context.Context
 	// world is the temporary write world
 	world RecordableWorld
-	// write indicates if the world state allows writes
+	// write indicates if the world state allows writes.
 	write bool
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// discarded indicates the state is discarded
+	// discarded indicates the state is discarded.
 	discarded bool
-	// txBatch is the batch of applied txs so far
+	// txBatch is the batch of applied txs so far.
 	txBatch *TxBatch
 	// payloads are the payload roots of the payload operations txBatch
-	// records, which its entries carry only inside the encoded operations.
+	// records. The entries carry those roots only inside the encoded
+	// operations.
 	payloads []*block.BlockRef
 }
 
-// RecordableWorld is a World state a recorder can apply operations to: it
-// reports the object roots each operation set, so the recorded entry names
-// them. A World state that cannot report them cannot be recorded.
+// RecordableWorld is a World state a recorder can apply operations to: the
+// state reports the object roots each operation set, so the recorded entry
+// references them. A World state that cannot report them cannot be recorded.
 type RecordableWorld interface {
 	world.WorldState
 
@@ -379,7 +380,8 @@ func (w *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(
 		return tx.ErrDiscarded
 	}
 
-	// note: force write to false, we only allow ApplyObjectOp and ApplyWorldOp here.
+	// note: force write to false, WorldState only allows ApplyObjectOp and
+	// ApplyWorldOp here.
 	return w.world.AccessCayleyGraph(ctx, false, cb)
 }
 
@@ -543,12 +545,12 @@ func (w *WorldState) GetTxBatch() *TxBatch {
 // takeSetRootsLocked returns the roots the underlying World set since the last
 // take. Caller holds mtx.
 //
-// Invariant: every same-bucket object root an applied operation set is named
-// in its batch entry: the root of a create or set in the entry itself, and
-// the roots an operation set in its SetRoots, which ApplyWorldOp and
-// ApplyObjectOp fill by taking the roots before and after the apply. Replay
+// Invariant: every same-bucket object root an applied operation set is
+// referenced in its batch entry: the root of a create or set in the entry
+// itself, and the roots an operation set in its SetRoots, which ApplyWorldOp
+// and ApplyObjectOp fill by taking the roots before and after the apply. Replay
 // holds both while the entry is above the checkpoint (Tx.PayloadRefs), so a
-// durable operation never names an object root its store may drop.
+// durable operation never references an object root its store may drop.
 func (w *WorldState) takeSetRootsLocked() []*block.BlockRef {
 	return w.world.TakeSetRoots()
 }
@@ -563,9 +565,9 @@ func (w *WorldState) recordLocked(entry *Tx, op world.Operation) {
 	}
 }
 
-// PayloadRoots returns every root the recorded batch names as a payload, the
-// roots PayloadRefs of the batch returns, without decoding an operation: the
-// object roots each entry records, including one a later entry replaces or
+// PayloadRoots returns every root the recorded batch references as a payload,
+// the roots PayloadRefs of the batch returns, without decoding an operation:
+// the object roots each entry records, including one a later entry replaces or
 // deletes, and the payload roots of each payload operation. The writer stores
 // each of them with the operation, since the committed World need not reach
 // any of them.

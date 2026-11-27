@@ -13,13 +13,14 @@ import (
 
 type desktopTraySourceSnapshot struct {
 	// listener is the current background listener state, or nil when this
-	// process owns no listener
+	// process owns no listener.
 	listener *resource_listener.ListenerStatus
-	// projection is the current Spacewave semantic tray projection
+	// projection is the current Spacewave semantic tray projection.
 	projection *SessionProjection
-	// waitChs wake the next projector loop after a source changes
+	// waitChs wake the next projector loop after a source changes.
 	waitChs []<-chan struct{}
-	// releases closes resources held by this snapshot after publication waits
+	// releases closes resources held by this snapshot after publication
+	// waits.
 	releases []func()
 }
 

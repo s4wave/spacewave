@@ -29,7 +29,8 @@ type BlockLocator interface {
 type UnpackedProgress struct {
 	// Examined is the number of block keys read from the volume.
 	Examined uint64
-	// Missing is the number of them no pack holds, which the list names.
+	// Missing is the number of block keys no pack holds, which the list
+	// records.
 	Missing uint64
 	// Unparsed is the number of keys that are not a block ref. They are in
 	// the list, so PackList records them as bad.
@@ -65,7 +66,8 @@ func FindUnpacked(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, 
 		}
 		after = batch[len(batch)-1]
 
-		// Locate the keys that parse as block refs; list every other one.
+		// Locate the keys that parse as block refs. List every other
+		// one.
 		var refs []*block.BlockRef
 		var parsed []int
 		listed := make([]bool, len(batch))
@@ -104,8 +106,8 @@ func FindUnpacked(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, 
 	}
 }
 
-// readBlockKeys returns up to n block keys of tx after the key after,
-// relative to prefix, in key order; nil after starts at the first.
+// readBlockKeys returns up to n block keys of tx after the key after, relative
+// to prefix, in key order. A nil after starts at the first key.
 func readBlockKeys(ctx context.Context, tx kvtx.Tx, prefix, after []byte, n int) ([][]byte, error) {
 	// Seek past after.
 	it := tx.Iterate(ctx, prefix, true, false)

@@ -16,7 +16,7 @@ import { ExecutionLog } from '@s4wave/app/forge/ForgeExecutionViewer.js'
 // noop stands in for a Retry press.
 const noop = () => {}
 
-// blocks are a task block in each read state that hides the tabs; the
+// blocks are a task block in each read state that hides the tabs. The
 // viewer's own forgeBlockStatus turns each into what the shell shows.
 const blocks: Record<string, Resource<unknown>> = {
   waiting: { value: null, loading: true, error: null, retry: noop },
@@ -30,7 +30,7 @@ const blocks: Record<string, Resource<unknown>> = {
   empty: { value: null, loading: false, error: null, retry: noop },
 }
 
-// taskStateLabels name the task states the fixture shows.
+// taskStateLabels label the task states the fixture shows.
 const taskStateLabels: Record<number, string> = { 2: 'RUNNING' }
 
 // facts are the task identity Details lists.
@@ -131,7 +131,7 @@ export function ForgeViewerStatesDebug() {
     )
   }
 
-  // A task in a block state, or readable with its tabs.
+  // Show a task in a block state, or readable with its tabs.
   const block = blocks[state]
   const status = block ? forgeBlockStatus('the task', block) : null
   return (

@@ -14,7 +14,7 @@ import (
 type scopedWorldService struct {
 	// engineID is the ID selected by the execution's World input.
 	engineID string
-	// objectKey names the object with an engine-scoped registration.
+	// objectKey selects the object with an engine-scoped registration.
 	objectKey string
 }
 

@@ -18,7 +18,7 @@ type LookupVolume interface {
 	// LookupVolumeID returns a specific volume ID to filter to.
 	// Can be empty.
 	LookupVolumeID() string
-	// LookupVolumePeerIDConstraint returns a specific peer ID we are looking for.
+	// LookupVolumePeerIDConstraint returns the specific peer ID to find.
 	// Can be empty.
 	LookupVolumePeerIDConstraint() peer.ID
 }
@@ -26,14 +26,14 @@ type LookupVolume interface {
 // LookupVolumeValue is the value type for LookupVolume.
 type LookupVolumeValue = Volume
 
-// lookupVolume implements LookupVolume
+// lookupVolume implements LookupVolume.
 type lookupVolume struct {
 	volumeID         string
 	peerIDConstraint peer.ID
 }
 
 // NewLookupVolume constructs a new LookupVolume directive.
-// both parameters can be empty
+// both parameters can be empty.
 func NewLookupVolume(volumeID string, peerID peer.ID) LookupVolume {
 	return &lookupVolume{
 		volumeID:         volumeID,
@@ -42,7 +42,7 @@ func NewLookupVolume(volumeID string, peerID peer.ID) LookupVolume {
 }
 
 // ExLookupVolume executes the LookupVolume directive returning one Volume.
-// both parameters can be empty
+// both parameters can be empty.
 func ExLookupVolume(
 	ctx context.Context,
 	b bus.Bus,
@@ -89,7 +89,7 @@ func (d *lookupVolume) LookupVolumeID() string {
 	return d.volumeID
 }
 
-// LookupVolumePeerIDConstraint returns a specific peer ID node we are looking for.
+// LookupVolumePeerIDConstraint returns the specific peer ID node to find.
 // If empty, any volume is matched.
 func (d *lookupVolume) LookupVolumePeerIDConstraint() peer.ID {
 	return d.peerIDConstraint
@@ -126,14 +126,15 @@ func (d *lookupVolume) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *lookupVolume) GetName() string {
 	return "LookupVolume"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug values are not necessarily unique and are primarily intended
+// for display.
 func (d *lookupVolume) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if nod := d.LookupVolumePeerIDConstraint(); nod != peer.ID("") {

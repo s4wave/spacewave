@@ -69,7 +69,7 @@ func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 
 // GetStoredBlock returns the first hit across the union of packs, with its
 // refs. Returns nil when no pack holds the block. A pack whose copy fails its
-// hash yields to the next pack; the corrupt error returns only when no pack
+// hash yields to the next pack. The corrupt error returns only when no pack
 // holds an intact copy.
 func (m *MirrorUnion) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	var corrupt error
@@ -133,8 +133,8 @@ func (m *MirrorUnion) Sync(_ context.Context) (bool, error) {
 }
 
 // BlockCount returns the sum of index entries across all packs. Blocks that
-// appear in more than one pack are double-counted; this matches "how many
-// kvfile entries back the mirror" rather than "how many unique refs".
+// appear in more than one pack are double-counted. This count matches
+// "how many kvfile entries back the mirror" rather than "how many unique refs".
 func (m *MirrorUnion) BlockCount() uint64 {
 	return m.blocks
 }
@@ -164,7 +164,7 @@ func (m *MirrorUnion) Close() error {
 // Returns (nil, nil) when the per-space subdir, its =packs/= directory, or
 // its set of kvfile packs is absent (fresh-Space case). If a
 // =root.packedmsg= exists in the subdir, its embedded
-// =CdnRootPointer.space_id= MUST equal =spaceID=; mismatch is a fatal error
+// =CdnRootPointer.space_id= MUST equal =spaceID=. A mismatch is a fatal error
 // before any packs are opened.
 //
 // =le= may be nil to disable progress logging.
@@ -186,7 +186,7 @@ func OpenMirrorUnion(
 		return nil, errors.Errorf("mirror space path %q is not a directory", spaceDir)
 	}
 
-	// Refuse a mirror whose root pointer names another Space.
+	// Refuse a mirror whose root pointer references another Space.
 	if err := verifyMirrorRootPointer(spaceDir, spaceID); err != nil {
 		return nil, err
 	}
@@ -297,10 +297,10 @@ func mirrorBlockKey(ref *block.BlockRef) []byte {
 }
 
 // verifyMirrorRootPointer enforces that a =root.packedmsg= present in the
-// mirror subdir names the same space as =spaceID=. A missing file is fine
+// mirror subdir references the same space as =spaceID=. A missing file is fine
 // (fresh mirror or packs-only case).
 func verifyMirrorRootPointer(spaceDir, spaceID string) error {
-	// Read the pointer; a missing one is fine.
+	// Read the pointer. A missing pointer is fine.
 	pmsgPath := filepath.Join(spaceDir, "root.packedmsg")
 	body, err := os.ReadFile(pmsgPath)
 	if err != nil {

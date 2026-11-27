@@ -588,7 +588,7 @@ async function recoverPasskeyForSigner(
 }
 
 // requestSSOCode runs the SSO ceremony for provider and resolves the
-// authorization code. Desktop relays through the session; the browser opens a
+// authorization code. Desktop relays through the session. The browser opens a
 // popup.
 async function requestSSOCode(
   session: Session | null,

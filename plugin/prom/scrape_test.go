@@ -28,8 +28,8 @@ func TestScrapeRunThrough(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
-	// Serve an exporter that can be made to fail; its job label clashes with
-	// the target's.
+	// Serve an exporter that can be made to fail. Its job label clashes
+	// with the target's label.
 	var failing atomic.Bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if failing.Load() {
@@ -272,7 +272,7 @@ func TestScrapeRunThrough(t *testing.T) {
 		t.Fatalf("starter panels = %v, want %v", got, want)
 	}
 
-	// Add, move and remove panels; editing a removed panel fails.
+	// Add, move and remove panels. Editing a removed panel fails.
 	added, err := dashSvc.PutPanel(ctx, &s4wave_prom.PutPanelRequest{Panel: &s4wave_prom.Panel{Title: "Load", Expr: "node_load1"}})
 	if err != nil {
 		t.Fatal(err)

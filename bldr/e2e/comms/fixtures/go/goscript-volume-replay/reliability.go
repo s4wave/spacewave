@@ -396,8 +396,9 @@ func hold(ctx context.Context, st relStorage, rep *reliabilityReport) error {
 	return nil
 }
 
-// contend opens the volume a holder has open, which must fail, announces
-// "contended", then opens it again once the holder announces "released".
+// contend tries to open the volume a holder has open and requires the open to
+// fail, announces "contended", then opens the volume again once the holder
+// announces "released".
 func contend(ctx context.Context, st relStorage, rep *reliabilityReport) error {
 	// The held volume must refuse this open.
 	ch := listen()
@@ -429,9 +430,9 @@ func stepAndSync(ctx context.Context, s volume, i int, rep *reliabilityReport) e
 	return syncSteps(ctx, s, i, rep)
 }
 
-// syncSteps makes the steps through i durable and logs it.
+// syncSteps makes the steps through i durable and logs the synced step.
 func syncSteps(ctx context.Context, s volume, i int, rep *reliabilityReport) error {
-	// Sync and record it.
+	// Sync and record the synced step.
 	if _, err := s.Sync(ctx); err != nil {
 		return errors.Wrapf(err, "sync at step %d", i)
 	}

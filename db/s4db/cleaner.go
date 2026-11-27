@@ -26,8 +26,8 @@ type cleaner struct {
 	// stuck holds the chunks a scan found damaged, with the seq each held
 	// then, so the cleaner passes over them until a commit writes them again.
 	stuck map[uint64]uint64
-	// missed is the victim key of the last table a step found no victim in;
-	// the cleaner is not due again until the key changes, so a due cleaner
+	// missed is the victim key of the last table a step found no victim in.
+	// The cleaner is not due again until the key changes, so a due cleaner
 	// with nothing to take does not walk the table on every wake.
 	missed victimKey
 	// buf is the chunk read buffer, reused by every step and dropped when a
@@ -37,11 +37,11 @@ type cleaner struct {
 	buf []byte
 }
 
-// victimKey names what decides whether a table holds a victim: the manifest
+// victimKey records what decides whether a table holds a victim: the manifest
 // version, the open chunks, the count of value chunks, and for the top victim
 // the file end and the count of free chunks. A victim appears when a chunk
 // closes, a run or manifest changes, a value chunk comes or goes, or a release
-// step frees chunks below the top; a stuck chunk a commit rewrites waits for
+// step frees chunks below the top. A stuck chunk a commit rewrites waits for
 // one of those.
 type victimKey struct {
 	// version is the manifest version.
@@ -195,9 +195,10 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 		return true, err
 	}
 	if len(live) == 0 && e.live != 0 {
-		// The table says live bytes remain but no entry parses as live: the
-		// chunk holds part of a value larger than a chunk, is damaged, or is
-		// still being written; pass over it until a commit writes it again.
+		// The table says live bytes remain but no entry parses as live:
+		// the chunk holds part of a value larger than a chunk, is
+		// damaged, or is still being written. Pass over the chunk until
+		// a commit writes it again.
 		c.remember(victim, e.seq)
 		return true, nil
 	}
@@ -243,7 +244,7 @@ func (c *cleaner) liveEntries(st *state, entries []valueEntry) ([]tentry, error)
 		return nil, err
 	}
 
-	// Keep the live ones, in the victim's order.
+	// Keep the live entries, in the victim's order.
 	var out []tentry
 	for i, e := range entries {
 		if live[i] {

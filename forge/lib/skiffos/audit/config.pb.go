@@ -16,7 +16,7 @@ import (
 // Config audits the SkiffOS source a build consumes against upstream.
 //
 // The audit reads three Repo snapshots and changes none: it compares the
-// build's commit with upstream's head, names the nearest release tag of each
+// build's commit with upstream's head, selects the nearest release tag of each
 // and of each one's Buildroot pin, counts the Buildroot fork's skiff-* tags,
 // and writes the result as one Report. A maintenance Flowgraph refreshes the
 // upstream Repos with forge/lib/git/clone before the audit, apart from the
@@ -34,8 +34,8 @@ import (
 //     gate shows in place.
 type Config struct {
 	unknownFields []byte
-	// UpstreamRef names the upstream Repo's ref holding upstream's head, the ref
-	// a fetch moves, such as refs/remotes/origin/master.
+	// UpstreamRef selects the upstream Repo's ref holding upstream's head, the
+	// ref a fetch moves, such as refs/remotes/origin/master.
 	UpstreamRef string `protobuf:"bytes,1,opt,name=upstream_ref,json=upstreamRef,proto3" json:"upstreamRef,omitempty"`
 }
 
@@ -184,7 +184,7 @@ func (x *Behind) GetCommits() uint32 {
 }
 
 // Diverged reports a build commit that upstream's head does not hold, so an
-// update to upstream's head would drop it; a person decides.
+// update to upstream's head would drop the build commit. A person decides.
 type Diverged struct {
 	unknownFields []byte
 }
@@ -225,13 +225,13 @@ func (x *Revision) GetBuildroot() *Described {
 }
 
 // Described is a commit with its nearest tagged ancestor, as git describe
-// names it.
+// describes the commit.
 type Described struct {
 	unknownFields []byte
 	// Commit is the commit's hash.
 	Commit string `protobuf:"bytes,1,opt,name=commit,proto3" json:"commit,omitempty"`
 	// Tag is the nearest tag on the commit or its ancestors. Tag is empty when
-	// the Repo holds no tagged ancestor, or not the commit.
+	// the Repo holds no tagged ancestor, or does not hold the commit.
 	Tag string `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Distance counts the parent steps from the commit back to the tag.
 	Distance uint32 `protobuf:"varint,3,opt,name=distance,proto3" json:"distance,omitempty"`

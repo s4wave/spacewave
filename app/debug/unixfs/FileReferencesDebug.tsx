@@ -14,7 +14,7 @@ import {
 } from '@s4wave/app/unixfs/text-file.js'
 import type { KeyedSet } from '@s4wave/sdk/world/entity-set.js'
 
-// noop stands in for every press; a fixture holds one state.
+// noop stands in for every press because a fixture has one state.
 const noop = () => {}
 
 const text = Array.from(

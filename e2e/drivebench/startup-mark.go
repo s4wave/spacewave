@@ -23,7 +23,7 @@ type StartupMark struct {
 	Phase string `json:"phase,omitempty"`
 	// Mode is the boot mode the boundary recorded.
 	Mode string `json:"mode,omitempty"`
-	// Source names what emitted the boundary.
+	// Source identifies what emitted the boundary.
 	Source string `json:"source,omitempty"`
 	// Detail is the full detail stored on the mark.
 	Detail map[string]any `json:"detail,omitempty"`
@@ -51,7 +51,7 @@ const StartupMarksScript = `() => {
 }`
 
 // ParseStartupMarks parses the page startup-mark timeline captured with
-// StartupMarksScript. Marks arrive ordered by performance.now start time; the
+// StartupMarksScript. Marks arrive ordered by performance.now start time. The
 // parser preserves that order so the pre-quickstart gap reads as the interval
 // between adjacent marks. Entries without a label are skipped.
 func ParseStartupMarks(raw any) []StartupMark {

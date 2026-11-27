@@ -403,7 +403,8 @@ type WebBundlerOutput struct{}
 	}
 }
 
-// TestAnalyzePackagesReportsLoadFailureContext names the target and patterns in load failures.
+// TestAnalyzePackagesReportsLoadFailureContext reports the target and patterns
+// in load failures.
 func TestAnalyzePackagesReportsLoadFailureContext(t *testing.T) {
 	// Write the module and root package fixture files.
 	ctx := context.Background()

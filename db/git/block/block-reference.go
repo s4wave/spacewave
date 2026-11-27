@@ -66,7 +66,7 @@ func (r *Reference) Validate() error {
 
 	// A clone points HEAD at go-git's and Git's placeholder plumbing.Invalid
 	// until it learns the remote's default branch, so a symbolic target may
-	// name it.
+	// name plumbing.Invalid.
 	if rt == plumbing.SymbolicReference {
 		target := r.GetTargetReferenceName()
 		if err := ValidateRefName(target); err != nil && target != plumbing.Invalid.String() {

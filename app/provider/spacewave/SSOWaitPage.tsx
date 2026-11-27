@@ -44,8 +44,9 @@ type SSOWaitState =
 
 // SSOWaitPage handles the SSO in-progress state.
 // Route: /auth/sso/:provider
-// Desktop: starts the SSO RPC, shows waiting UI, handles result.
-// Web: shows brief redirect message, then redirects to OAuth URL.
+// On desktop, the page starts the SSO RPC, shows the waiting UI, and handles
+// the result. On the web, the page shows a brief redirect message, then
+// redirects to the OAuth URL.
 export function SSOWaitPage() {
   const params = useParams()
   const provider = params?.provider ?? ''

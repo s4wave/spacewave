@@ -125,7 +125,7 @@ func (stdio) Write(p []byte) (int, error) {
 	return os.Stdout.Write(p)
 }
 
-// Close closes stdout, which tells the peer the session ended.
+// Close closes stdout to tell the peer the session ended.
 func (stdio) Close() error {
 	return os.Stdout.Close()
 }

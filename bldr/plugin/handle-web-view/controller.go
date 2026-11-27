@@ -22,11 +22,11 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller handles web views by loading a plugin and calling a RPC service.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 	// webViewIdRe is the parsed regex to filter requests by.
 	// if nil, accepts any

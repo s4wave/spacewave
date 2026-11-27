@@ -36,7 +36,7 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// pluginDir holds the plugin: its migrations, queries and entrypoint.
+// pluginDir is the plugin directory: its migrations, queries and entrypoint.
 const pluginDir = "plugin"
 
 // TestReyloPluginTransactions builds the plugin with Reylo typing its queries
@@ -79,7 +79,7 @@ func TestReyloPluginTransactions(t *testing.T) {
 		{Statements: []string{get}, Outcome: "discarded"},
 	}
 
-	// Reylo's own freshness probes ran inside those same transactions; set
+	// Reylo's own freshness probes ran inside those same transactions. Set
 	// them aside, since its cache decides when they run.
 	got := rec.records()
 	probes := 0
@@ -167,7 +167,8 @@ func runPlugin(t *testing.T, ctx context.Context, bundle, sockPath string) map[s
 		t.Fatalf("plugin: %v\n%s%s", err, out, stderr.String())
 	}
 
-	// Read its report lines; the last one says it finished.
+	// Read the plugin's report lines. The last line says the plugin
+	// finished.
 	statements := make(map[string]string)
 	ok := false
 	var p fastjson.Parser
@@ -201,7 +202,7 @@ func readSchema(t *testing.T) []string {
 // buildPlugin type checks the plugin and bundles it with Reylo, both against
 // a dev database built from the schema, and returns the bundle path.
 func buildPlugin(t *testing.T, ctx context.Context, schema []string) string {
-	// Find the repository's tools; the build needs its installed packages.
+	// Find the repository's tools. The build needs its installed packages.
 	t.Helper()
 	bin, err := filepath.Abs(filepath.Join("..", "..", "node_modules", ".bin"))
 	if err != nil {

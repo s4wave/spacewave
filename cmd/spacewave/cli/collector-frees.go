@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CollectorFrees names the Volumes whose collector frees unreachable blocks,
+// CollectorFrees selects the Volumes whose collector frees unreachable blocks,
 // as serve's --collector-frees flag sets them. Serve parses its flags before
 // it builds the bus, and ConfigureVolume reads the names as each Volume
 // opens. Every other Volume, and every Volume a process other than serve
@@ -34,12 +34,12 @@ type CollectorFrees struct {
 	trustListed bool
 }
 
-// NewCollectorFrees constructs a CollectorFrees naming no Volume.
+// NewCollectorFrees constructs a CollectorFrees selecting no Volume.
 func NewCollectorFrees() *CollectorFrees {
 	return &CollectorFrees{}
 }
 
-// BuildFlags returns the flag naming the Volumes that free.
+// BuildFlags returns the flag selecting the Volumes that free.
 func (f *CollectorFrees) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringSliceFlag{

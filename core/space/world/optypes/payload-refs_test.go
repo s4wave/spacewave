@@ -17,15 +17,15 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// payloadRefsGolden records, for each payload operation type the static table
-// resolves, a fixture operation and the payload roots GetPayloadRefs names for
-// it under PayloadRefsVersion. Each fixture sets every block reference the
-// operation carries to a distinct named root, which the test checks by walking
-// the fixture, and refs lists the names of the
-// roots GetPayloadRefs returns, in order.
+// payloadRefsGolden records a fixture operation and the payload roots
+// GetPayloadRefs returns under PayloadRefsVersion for each payload operation
+// type the static table resolves. Each fixture sets every block reference the
+// operation carries to a distinct named root. The test checks those references
+// by walking the fixture, and refs lists the names of the roots GetPayloadRefs
+// returns, in order.
 //
 // A saved replay cursor reuses an operation's payload roots only under the
-// same version, so when what GetPayloadRefs names changes, bump the version
+// same version, so when what GetPayloadRefs returns changes, bump the version
 // and record the new refs here together.
 var payloadRefsGolden = map[string]struct {
 	op      func(ref func(name string) *block.BlockRef) world.PayloadOperation
@@ -77,8 +77,9 @@ var payloadRefsGolden = map[string]struct {
 }
 
 // TestPayloadRefsGolden checks that every payload operation type in the static
-// table has a golden fixture that sets every block reference it carries, and that what its GetPayloadRefs names changes
-// only together with its PayloadRefsVersion.
+// table has a golden fixture that sets every block reference the operation
+// carries, and that what its GetPayloadRefs returns changes only together with
+// its PayloadRefsVersion.
 func TestPayloadRefsGolden(t *testing.T) {
 	ids := make([]string, 0, len(schema))
 	for id := range schema {

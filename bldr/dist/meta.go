@@ -54,7 +54,7 @@ func NewDistEntrypointMeta(
 }
 
 // UnmarshalDistMetaB58 unmarshals a b58 dist meta.
-// Note: we compress with s2 compression.
+// The dist meta uses s2 compression.
 func UnmarshalDistMetaB58(str string) (*DistMeta, error) {
 	// Decode the base58 string, decompress it, and unmarshal the proto.
 	m := &DistMeta{}
@@ -94,7 +94,7 @@ func (m *DistMeta) Validate() error {
 }
 
 // MarshalB58 marshals the conf to a b58 string.
-// note: we compress with s2 compression.
+// The dist meta uses s2 compression.
 func (m *DistMeta) MarshalB58() string {
 	dat, _ := m.MarshalVT()
 	dat = s2.EncodeBest(nil, dat)

@@ -185,7 +185,7 @@ export interface BuildSpacePluginRequest {
    */
   manifestId?: string
   /**
-   * ConfigPath is relative to the source directory; empty selects bldr.yaml.
+   * ConfigPath is relative to the source directory. Empty selects bldr.yaml.
    * A plugin repository source must leave it empty.
    */
   configPath?: string
@@ -213,8 +213,8 @@ export interface BuildSpacePluginRequest {
   memoryBytes?: bigint
   /**
    * Commit is the reviewed commit of a plugin repository source. The build is
-   * refused unless the repository's worktree still has it checked out and it
-   * passes validation. Required for a plugin repository source.
+   * refused unless the repository's worktree still has the commit checked out
+   * and the commit passes validation. Required for a plugin repository source.
    */
   commit?: string
 }
@@ -1217,7 +1217,7 @@ export interface SpacePluginStatus {
   pluginId?: string
   /**
    * Loaded indicates whether the plugin is currently running. Kept for older
-   * consumers; State is the app-facing lifecycle owner.
+   * consumers. State is the app-facing lifecycle owner.
    */
   loaded?: boolean
   /**
@@ -1238,7 +1238,8 @@ export interface SpacePluginStatus {
   retryCount?: number
   /**
    * ManifestRef is the content ref of the manifest the plugin host selected to
-   * run, which names its build exactly. Empty until a manifest is selected.
+   * run. The content ref identifies the build exactly. Empty until a manifest
+   * is selected.
    */
   manifestRef?: string
   /**
@@ -1247,7 +1248,7 @@ export interface SpacePluginStatus {
    */
   account?: boolean
   /**
-   * ManifestRev is the build rev of the manifest named by ManifestRef.
+   * ManifestRev is the build rev of the manifest referenced by ManifestRef.
    */
   manifestRev?: bigint
   /**
@@ -1257,7 +1258,7 @@ export interface SpacePluginStatus {
    */
   runningManifestRef?: string
   /**
-   * RunningManifestRev is the build rev of the manifest named by
+   * RunningManifestRev is the build rev of the manifest referenced by
    * RunningManifestRef.
    */
   runningManifestRev?: bigint
@@ -1327,7 +1328,7 @@ export const AddSpacePluginResponse: MessageType<AddSpacePluginResponse> =
   )
 
 /**
- * ImportSpacePluginRequest names a plugin to copy from another mounted Space.
+ * ImportSpacePluginRequest selects a plugin to copy from another mounted Space.
  *
  * @generated from message s4wave.space.ImportSpacePluginRequest
  */
@@ -1426,7 +1427,7 @@ export interface SetSpaceSequencerResponse {
   changed?: boolean
   /**
    * AwaitingGroup is true when the viewer agreed to the change under group
-   * control, and it applies once the group decides it.
+   * control, and the change applies once the group decides it.
    */
   awaitingGroup?: boolean
 }
@@ -1448,7 +1449,7 @@ export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
 export interface SetSpaceRosterRequest {
   /**
    * DroppedPeerIds are the writers to drop. Every other writer is on the
-   * roster; an empty list returns every dropped writer to it.
+   * roster. An empty list returns every dropped writer to the roster.
    */
   droppedPeerIds?: string[]
 }
@@ -1471,7 +1472,7 @@ export interface SetSpaceRosterResponse {
   changed?: boolean
   /**
    * AwaitingGroup is true when the viewer agreed to the change under group
-   * control, and it applies once the group decides it.
+   * control, and the change applies once the group decides it.
    */
   awaitingGroup?: boolean
 }
@@ -1567,7 +1568,7 @@ export const ResetFolderRootRequest: MessageType<ResetFolderRootRequest> =
   )
 
 /**
- * ResetFolderRootResponse names the file systems recorded before and now.
+ * ResetFolderRootResponse reports the file systems recorded before and now.
  *
  * @generated from message s4wave.space.ResetFolderRootResponse
  */
@@ -1680,7 +1681,7 @@ export const SetSpaceControlRequest: MessageType<SetSpaceControlRequest> =
 export interface SetSpaceControlResponse {
   /**
    * AwaitingGroup is true when the viewer agreed to the change under group
-   * control, and it applies once the group decides it.
+   * control, and the change applies once the group decides it.
    */
   awaitingGroup?: boolean
 }
@@ -1766,7 +1767,7 @@ export const SetProcessBindingResponse: MessageType<SetProcessBindingResponse> =
   )
 
 /**
- * RestartSpacePluginRequest names the plugin to restart.
+ * RestartSpacePluginRequest selects the plugin to restart.
  *
  * @generated from message s4wave.space.RestartSpacePluginRequest
  */

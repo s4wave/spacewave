@@ -19,10 +19,10 @@ type Transaction interface {
 	// UnmarshalVT unmarshals from binary.
 	UnmarshalVT(data []byte) error
 
-	// GetTxType returns the type of transaction this is.
+	// GetTxType returns the transaction's type.
 	GetTxType() TxType
-	// Validate performs a cursory check of the transaction.
-	// Note: this should not fetch network data.
+	// Validate checks the transaction cursorily.
+	// Note: Validate should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against the task instance.
 	// bcs is located at the task state root.
@@ -37,7 +37,7 @@ type Transaction interface {
 	) error
 }
 
-// Validate performs cursory checks of the transaction.
+// Validate checks the transaction cursorily.
 func (t *Tx) Validate() error {
 	// Validate the object key, tx type, and the located transaction.
 	if len(t.GetTaskObjectKey()) == 0 {
@@ -93,7 +93,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// ByteSliceToTx converts a byte slice block a Tx.
+// ByteSliceToTx converts a byte slice block to a Tx.
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {

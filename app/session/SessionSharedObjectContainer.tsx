@@ -387,7 +387,7 @@ function SharedObjectHealthCard({
 
   const tone = getSharedObjectHealthTone(isLoading, isDegraded)
 
-  // Layer label appears in error/degraded states. The body vs shared object
+  // The layer label appears in error/degraded states. The body vs shared object
   // distinction is internal and never surfaces on the loading screen.
   const layerLabel =
     health.layer === SharedObjectHealthLayer.BODY ? 'Body' : 'Shared Object'
@@ -771,7 +771,7 @@ function useMountedSharedObject(
     )
     navigateSession({ path: '', replace: true })
     // The outer shell router recreates navigate functions as the current
-    // path changes; only a new miss should redirect.
+    // path changes. Only a new miss should redirect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedObjectId, sharedObjectMissing])
 
@@ -782,7 +782,7 @@ function useMountedSharedObject(
 // the published resources list and should redirect to the session root.
 //
 // Quickstart can open this route before WatchResourcesList publishes the new
-// Space. Keep the guard event-driven; background tabs throttle timers, so a
+// Space. Keep the guard event-driven. Background tabs throttle timers, so a
 // timeout would reintroduce the false redirect.
 function useMissingSpaceGuard(
   sharedObjectId: string,

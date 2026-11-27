@@ -8,7 +8,7 @@ import (
 )
 
 // PeerAuthorizer decides whether a remote peer may hold a link. A nil return
-// admits the peer; an error refuses it and the link is closed before any
+// admits the peer. An error refuses it and the link is closed before any
 // stream on it reaches a handler. The error text is sent to the peer when the
 // link can carry it.
 type PeerAuthorizer func(ctx context.Context, remotePeer peer.ID) error

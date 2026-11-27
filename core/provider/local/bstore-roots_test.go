@@ -45,11 +45,12 @@ func TestPinRootUnknownRefs(t *testing.T) {
 
 // TestSetRootsBringsRemoteRootBlock checks on a Volume that frees with a 1ns
 // grace that a root moving onto a block only the read path holds, as a
-// follower's replay base on another device's World does, stores the block
-// with its refs in the same change, so collection keeps it; that a block the
-// read path holds without refs refuses the move; and that a pin on such a
-// block stores it under a stage, which the Volume takes where it refuses an
-// unheld put, so collection keeps it while pinned.
+// follower's replay base on another device's World does, stores the block with
+// its refs in the same change, so collection keeps it. The test also checks
+// that a block the read path holds without refs refuses the move, and that a
+// pin on such a block stores it under a stage, which the Volume takes where
+// the Volume refuses an unheld put, so collection keeps the block while
+// pinned.
 func TestSetRootsBringsRemoteRootBlock(t *testing.T) {
 	// Serve a root block with a child from the read path only.
 	ctx := t.Context()

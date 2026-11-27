@@ -119,7 +119,8 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Import the removal; it reports the revocation without decrypting.
+	// Import the removal. The import reports the revocation without
+	// decrypting.
 	if err := host.ImportPeerSnapshot(ctx, revoked, []*sobject.SOConfigChange{removal}, readerID, func(context.Context, *sobject.SOState) error {
 		t.Error("revocation requested decryption")
 		return denied

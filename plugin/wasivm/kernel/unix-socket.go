@@ -500,8 +500,8 @@ func (p *Process) sysSetsockopt(fd uint32) uint64 {
 
 // msgContext returns the context of a send or receive with the guest's
 // message flags. MSG_DONTWAIT makes it nonblocking. MSG_WAITALL is accepted
-// and a short read returns what arrived; MSG_NOSIGNAL is the caller's, and
-// MSG_CMSG_CLOEXEC is the receiver's. Peeking is unsupported.
+// and a short read returns what arrived. The caller handles MSG_NOSIGNAL, and
+// the receiver handles MSG_CMSG_CLOEXEC. Peeking is unsupported.
 func msgContext(ctx context.Context, flags uint32) (context.Context, uint64) {
 	switch {
 	case flags&^(guestMsgDontwait|guestMsgWaitall|guestMsgNosignal|guestMsgCmsgCloexec) != 0:

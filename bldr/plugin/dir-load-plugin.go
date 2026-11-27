@@ -32,13 +32,14 @@ type LoadPlugin interface {
 	// Empty follows the latest eligible manifest. A missing exact root never falls back.
 	LoadPluginManifestRoot() string
 
-	// LoadPluginManifests selects the installation and its recovery artifacts, newest first.
-	// Replacement uses prepared admission; nil follows normal catalog selection.
+	// LoadPluginManifests selects the installation and its recovery
+	// artifacts, newest first. Replacement uses prepared admission. nil
+	// follows normal catalog selection.
 	LoadPluginManifests() []*manifest.ManifestRef
 
 	// LoadPluginPeerID returns the peer whose approvals decide the roots
-	// LoadPluginManifests names. A host that serves one peer ignores it. A
-	// load naming manifests with no peer runs none of them.
+	// LoadPluginManifests selects. A host that serves one peer ignores the
+	// peer ID. A load selecting manifests with no peer runs none of them.
 	LoadPluginPeerID() string
 
 	// LoadPluginServeAssets reports that the caller serves the plugin's files
@@ -51,7 +52,7 @@ type LoadPlugin interface {
 // Multiple results may be pushed to the directive.
 type LoadPluginValue = RunningPlugin
 
-// loadPlugin implements LoadPlugin
+// loadPlugin implements LoadPlugin.
 type loadPlugin struct {
 	pluginID     string
 	instanceKey  string
@@ -100,7 +101,7 @@ func NewLoadPluginAssetsAtManifest(pluginID, manifestRoot string) LoadPlugin {
 
 // ExLoadPlugin executes the LoadPlugin directive.
 //
-// if returnIfIdle=true and the directive becomes idle, returns nil, nil, nil
+// if returnIfIdle=true and the directive becomes idle, returns nil, nil, nil.
 func ExLoadPlugin(
 	ctx context.Context,
 	b bus.Bus,

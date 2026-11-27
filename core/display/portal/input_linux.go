@@ -47,8 +47,10 @@ func (i *Input) Send(ctx context.Context, event *frametrack.Input) error {
 		return context.Canceled
 	}
 
-	// Place the cursor in the stream's logical monitor before changing buttons.
-	// Finish an admitted event on the portal lifetime so disconnect can release it.
+	// Place the cursor in the stream's logical monitor before changing
+	// buttons.
+	// Finish an admitted event on the portal lifetime so disconnect can
+	// release the event's held presses.
 	if pointer := event.GetPointer(); pointer != nil {
 		x := math.Min(float64(s.width-1), float64(pointer.GetX())*float64(s.width))
 		y := math.Min(float64(s.height-1), float64(pointer.GetY())*float64(s.height))

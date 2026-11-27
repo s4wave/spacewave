@@ -6,7 +6,7 @@ import (
 )
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory to see if the values "look correct."
 func (c *Config) Validate() error {
 	if c.GetChksumType() != ChksumType_ChksumType_CRC32 &&
 		c.GetChksumType() != ChksumType_ChksumType_UNKNOWN {

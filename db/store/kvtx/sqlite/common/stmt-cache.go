@@ -159,7 +159,7 @@ func (c *stmtCacheConn) Close() error {
 	return errors.Join(errs...)
 }
 
-// cachedRows are the open rows of a cached statement; closing them frees the
+// cachedRows are the open rows of a cached statement. Closing them frees the
 // statement for the next query.
 type cachedRows struct {
 	// Rows are the statement's rows.

@@ -24,7 +24,7 @@ func GetDistBucketID(projectID string) string {
 func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
 	// Embedded blocks come from the installed bundle and its local cache.
 	// Missing blocks from a replaced bundle cannot be recovered by waiting
-	// for a network provider; report absence so startup can select a new manifest.
+	// for a network provider. Report absence so startup can select a new manifest.
 	cc, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(
 		2, // rev
 		&lookup_concurrent.Config{

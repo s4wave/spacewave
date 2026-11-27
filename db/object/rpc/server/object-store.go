@@ -13,7 +13,7 @@ import (
 
 // ObjectStore implements the server with a ObjectStore.
 type ObjectStore struct {
-	// store is the underlying ObjectStore
+	// store is the underlying ObjectStore.
 	store object_store.Store
 	// kvtxStores is the set of open object stores.
 	kvtxStores *keyed.KeyedRefCount[string, *kvtxStoreTracker]

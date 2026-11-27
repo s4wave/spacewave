@@ -67,7 +67,8 @@ function useSessionActions(account: Resource<Account>) {
       if (!session) return
       await session.unlinkDevice(peerId)
     } catch {
-      // Watched snapshot convergence is authoritative; errors can be surfaced later.
+      // Watched snapshot convergence is authoritative. Errors can be surfaced
+      // later.
     } finally {
       setPendingPeerId(null)
     }
@@ -288,7 +289,7 @@ interface SessionRowProps {
 function SessionRow({ row, pending, onAction }: SessionRowProps) {
   const isLocalRow = isLocalSession(row)
   // The local provider stamps deviceType "linked", which the Linked badge
-  // already conveys; cloud sessions carry a real platform ("web", "desktop").
+  // already conveys. Cloud sessions carry a real platform ("web", "desktop").
   const platform = row.deviceType === 'linked' ? '' : row.deviceType
   const details = [platform, row.clientName, row.os, row.location]
     .filter(Boolean)
@@ -316,8 +317,8 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
             <p className="text-foreground truncate text-xs font-medium">
               {label}
             </p>
-            {/* The local session's default label is already "This device";
-                skip the badge there so the row shows one, not two. */}
+            {/* The local session's default label is already "This device".
+                Skip the badge there so the row shows one label, not two. */}
             {row.currentSession && label !== 'This device' && (
               <span className="border-success/20 bg-success/10 text-success rounded-full border px-1.5 py-0.5 text-xs font-medium">
                 This device

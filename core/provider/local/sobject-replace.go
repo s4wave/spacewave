@@ -28,9 +28,9 @@ type ReplaceOrigin struct {
 // stateData, then restarts its tracker so every mount reads the new state. It
 // checks the listing in the write transaction: an unlisted id returns
 // ErrSharedObjectNotFound and writes nothing, so a write that races a delete
-// leaves no state that no delete can reach. The write also requires the
-// listed generation and the stored state to equal the ones origin names, else
-// returns ErrStateChanged and writes nothing, and stores a written
+// leaves only state that a delete can reach. The write also requires the
+// listed generation and the stored state to equal the ones origin records,
+// else returns ErrStateChanged and writes nothing, and stores a written
 // SharedObjectOrigin with the new state's hash in the same transaction.
 //
 // Invariants:
@@ -45,7 +45,7 @@ type ReplaceOrigin struct {
 //   - A replace never commits over a state newer than the one its caller
 //     read. A mounted write acknowledged before the replace changed the
 //     stored bytes, so the replace returns ErrStateChanged and writes
-//     nothing; the caller reads again and decides.
+//     nothing. The caller reads again and decides.
 //   - Every mount reads the stored state after the replace returns, even
 //     when the commit returned an error after storing it: such a replace
 //     returns nil, and a failure whose effect storage cannot show restarts
@@ -114,13 +114,13 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		err = (*hook)(id)
 	}
 
-	// Any other failure may have stored the write: a commit error can follow
-	// it. Storage holding this genesis, whose signature no other write
-	// repeats, means the replace committed; none, or the state the replace
-	// compared against, means it did not. A failed read or any other state,
-	// which may follow the replace, leaves the outcome unknown. Unless
-	// storage shows no write, restart the mount so it reads whatever
-	// storage holds.
+	// Any other failure may have stored the write: a commit error can
+	// follow it. Storage holding this genesis, whose signature no other
+	// write repeats, means the replace committed. No stored state, or the
+	// state the replace compared against, means the replace did not commit.
+	// A failed read or any other state, which may follow the replace,
+	// leaves the outcome unknown. Unless storage shows no write, restart
+	// the mount so it reads whatever storage holds.
 	if err != nil {
 		var stored []byte
 		var found bool

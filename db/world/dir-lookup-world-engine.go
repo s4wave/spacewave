@@ -12,7 +12,8 @@ type LookupWorldEngine interface {
 	// Directive indicates LookupWorldEngine is a directive.
 	directive.Directive
 
-	// LookupWorldEngineID returns a specific world engine we are looking for.
+	// LookupWorldEngineID returns the specific world engine the directive
+	// selects.
 	// Can be empty.
 	LookupWorldEngineID() string
 }
@@ -20,7 +21,7 @@ type LookupWorldEngine interface {
 // LookupWorldEngineValue is the value type for LookupWorldEngine.
 type LookupWorldEngineValue = Engine
 
-// lookupWorldEngine implements LookupWorldEngine
+// lookupWorldEngine implements LookupWorldEngine.
 type lookupWorldEngine struct {
 	id string
 }
@@ -32,7 +33,7 @@ func NewLookupWorldEngine(id string) LookupWorldEngine {
 	}
 }
 
-// LookupWorldEngineID returns a specific ID we are looking for.
+// LookupWorldEngineID returns the specific ID the directive selects.
 // If empty, any engine is matched.
 func (d *lookupWorldEngine) LookupWorldEngineID() string {
 	return d.id
@@ -77,7 +78,7 @@ func (d *lookupWorldEngine) GetName() string {
 	return "LookupWorldEngine"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupWorldEngine) GetDebugVals() directive.DebugValues {

@@ -13,11 +13,11 @@ import (
 
 // TestBillyFSCursorMemfsChmod proves chmod succeeds on a memfs-backed billy
 // cursor, the RAM writable-root upper. memfs implements billy.Chmod but not the
-// full billy.Change interface; asserting billy.Change here returned
-// ErrNotSupported, which the v86fs setattr path collapses to EIO and which broke
+// full billy.Change interface. Asserting billy.Change here returns
+// ErrNotSupported, which the v86fs setattr path collapses to EIO, breaking
 // apt on the default --root-mode=ram. The shared e2e TestUnixFS swallows
-// ErrNotSupported, so it could not catch this; this test asserts the chmod
-// actually applies.
+// ErrNotSupported, so TestUnixFS cannot catch the chmod failure. This test
+// asserts the chmod actually applies.
 func TestBillyFSCursorMemfsChmod(t *testing.T) {
 	// Create the in-memory Billy root for the permission check.
 	bfs := memfs.New()

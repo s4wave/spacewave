@@ -25,7 +25,7 @@ import (
 //   - An edge <<child, namer>> is written for each root and for each child of
 //     each list, as tallyHolders counts them. The check counts only the
 //     edges still valid in the view that checks the child: the root still
-//     names it, or the parent still has its list. That count is a lower
+//     references it, or the parent still has its list. That count is a lower
 //     bound on the child's true namers in that view, so holders plus the
 //     logs not netted yet below it is a true undercount (no false positive).
 //     A namer the edges phase passed before it took up the child can hide
@@ -40,19 +40,19 @@ import (
 //     (UpCursor, and the down pages it deletes, which the log sum moves
 //     with), or by a free's paged release (Release, and the block's holders
 //     once the release pages it). An unadopted Volume's Lands write no logs,
-//     and each adoption names a new AdoptionRun, so a cycle through
+//     and each adoption records a new AdoptionRun, so a cycle through
 //     unadopted moves the mark. Whether a parent counts through its old list
 //     turns on the generation, in the state, and on its run entry, which
 //     leaves the run only by the sweep or a rebirth, each of which logs the
 //     downs of the children it releases. The undercount check runs only when
-//     every view read the first view's mark; otherwise the block counts as
+//     every view read the first view's mark. Otherwise the block counts as
 //     Wide and its undercount goes unchecked. The hole test needs no mark:
-//     one valid edge in any view names the block, and the confirm phase
+//     one valid edge in any view references the block, and the confirm phase
 //     rereads every candidate.
 //   - The log entries not netted yet that the check adds to the holders are
 //     exactly logTail's for the slice's blocks in the same view: the walk
 //     copies each log page's entries into scratch once, as it found them,
-//     and a page's keys never change once written; netting takes whole
+//     and a page's keys never change once written. Netting takes whole
 //     pages in sequence order, so a copy is netted exactly once its sequence
 //     falls below its log's first page left, the up cursor or the first
 //     down page, which the check reads in its view and applies to the
@@ -63,10 +63,10 @@ import (
 //     slice's copies in scratch not netted yet, which grow with netting's
 //     lag. A view's work is so bounded whatever a writer's rate or
 //     netting's stall. A view that finds more left only copies, releases the
-//     view and waits walkBehindWait before the next; after walkBehindViews
+//     view and waits walkBehindWait before the next view. After walkBehindViews
 //     such views in a row the walk ends with ErrWalkBehind, keeping its
 //     scratch to resume. A stopped copy nets nothing, so one whose logs not
-//     netted yet name a slice's blocks more than walkBacklogEntries times
+//     netted yet reference a slice's blocks more than walkBacklogEntries times
 //     stays behind.
 //   - A named block with neither bytes, a list nor a hole record is a
 //     candidate, not a hole: a writer may store a parent ahead of its child.
@@ -77,7 +77,7 @@ import (
 //   - A scratch commit carries the progress record only in the last commit of
 //     a slice, and every other scratch write is idempotent, so a restart of
 //     the same run redoes at most one slice and counts it once. Every scratch
-//     commit first checks that the progress record names this run, so a
+//     commit first checks that the progress record identifies this run, so a
 //     second runner on the same store fails instead of mixing its edges in.
 //     A run older than walkRunAge starts over: its edges miss every namer
 //     written since, and its clock for a hole's class is a day old.
@@ -90,18 +90,18 @@ import (
 // one point read each, the root or the parent's list. The lists phase
 // writes walkSliceEdges edges and then the rest of the list it stopped in,
 // which the largest block bounds. Any process that holds the Volume open
-// may run the walk beside its writers, since it only reads; the debug
+// may run the walk beside its writers, since the walk only reads. The debug
 // command walks a stopped copy, because a second process may not open a
 // live Volume.
 
 // Scratch record kinds of the walk. Every key begins with its kind.
 const (
-	// walkEdge keys an edge by the block named, then the namer: walkRootNamer
-	// and the root's key after its kind, or walkListNamer and the parent's
-	// block key. A block key fixes its own length, so the child and the namer
-	// split without a separator. A root edge's value is the root's lease
-	// expiry when the walk read it, big-endian Unix milliseconds, zero for
-	// none; a list edge's is empty.
+	// walkEdge keys an edge by the block named, then the namer:
+	// walkRootNamer and the root's key after its kind, or walkListNamer and
+	// the parent's block key. A block key fixes its own length, so the
+	// child and the namer split without a separator. A root edge's value is
+	// the root's lease expiry when the walk read it, big-endian Unix
+	// milliseconds, zero for none. A list edge's value is empty.
 	walkEdge byte = 'e'
 	// walkCandidate keys a hole candidate by its block key. Its value is when
 	// the check found it, big-endian Unix milliseconds.
@@ -109,8 +109,8 @@ const (
 	// walkProgressKind is the one WalkProgress record.
 	walkProgressKind byte = 'p'
 	// walkTail keys a copy of one entry of an up or down log page by the
-	// block it names, then walkUp or walkDown, the page's sequence and the
-	// entry's index in it, both big-endian uint64. Its value is empty.
+	// block it references, then walkUp or walkDown, the page's sequence and
+	// the entry's index in it, both big-endian uint64. Its value is empty.
 	walkTail byte = 't'
 )
 
@@ -137,9 +137,9 @@ const (
 	// so a commit stays well under the 128 WAL frames past which back to back
 	// commits keep a SQLite log from checkpointing.
 	walkCommitRecords = 48
-	// walkSliceEdges bounds the edges one view of the lists yields; the list
-	// that passes it finishes in the same view. sliceRecords bounds the roots
-	// and lists one view reads.
+	// walkSliceEdges bounds the edges one view of the lists yields. The
+	// list that passes it finishes in the same view. sliceRecords bounds
+	// the roots and lists one view reads.
 	walkSliceEdges = 4096
 	// walkSliceChildren bounds the named blocks one check view checks.
 	walkSliceChildren = 256
@@ -147,8 +147,8 @@ const (
 	walkConfirmSlice = 64
 	// walkClassBound bounds the blocks the class walk of one hole visits.
 	walkClassBound = 4096
-	// walkBacklogEntries bounds the log entries one check view sums past its
-	// copy; a view that finds more is behind and only copies.
+	// walkBacklogEntries bounds the log entries one check view sums past
+	// its copy. A view that finds more is behind and only copies.
 	walkBacklogEntries = 65536
 	// walkBehindViews bounds the views in a row that find the walk behind
 	// before it gives up with ErrWalkBehind.
@@ -156,12 +156,12 @@ const (
 	// walkBehindWait is the wait after a view that found the walk behind,
 	// which leaves the store to its writers before the next copy.
 	walkBehindWait = 100 * time.Millisecond
-	// walkRunAge bounds the age of a run that resumes; an older run starts
+	// walkRunAge bounds the age of a run that resumes. An older run starts
 	// over. Only an open checks it, since only a run that stopped can sit
-	// idle; a run that keeps going ages with its own work. Age loses
-	// detection and never reports falsely: an edge older than a namer misses
-	// it, which lowers the bound, and a lease is held past an older start
-	// longer, so a hole is classed HELD more often, not less.
+	// idle. A run that keeps going ages with its own work. Age loses
+	// detection and never reports falsely: an edge older than a namer
+	// misses it, which lowers the bound, and a lease is held past an older
+	// start longer, so a hole is classed HELD more often, not less.
 	walkRunAge = 24 * time.Hour
 	// walkLogEvery is about how often the walk logs its progress within a
 	// phase.
@@ -193,9 +193,9 @@ type WalkStore interface {
 
 // Walk runs the streaming audit of store, keeping its records in scratch, as
 // the invariants above describe, and returns once the run is done. scratch
-// must be a store of the walk's own, empty or holding this run's progress;
-// the caller removes it after. The walk keeps in memory one slice: at most
-// walkSliceChildren named blocks and their log deltas, walkSliceEdges
+// must be a store of the walk's own, empty or holding this run's progress. The
+// caller removes scratch after the walk. The walk keeps in memory one slice: at
+// most walkSliceChildren named blocks and their log deltas, walkSliceEdges
 // edges, or walkClassBound blocks of one hole's class walk. Each check view
 // reads the logs past the walk's last copy of them, so a long tail slows
 // the walk, never a writer.
@@ -240,8 +240,8 @@ type walkLog struct {
 	le *logrus.Entry
 	// phase is the phase last logged.
 	phase WalkPhase
-	// begun is when this process began the walk; entered when it entered
-	// the phase; logged when it last logged.
+	// begun is when this process began the walk, entered is when it entered
+	// the phase, and logged is when it last logged.
 	begun, entered, logged time.Time
 }
 
@@ -340,8 +340,9 @@ func openWalk(ctx context.Context, store WalkStore, scratch kvtx.Store, opts Wal
 	}
 
 	// Resume the run's progress, unless it is too old. A progress record
-	// this build cannot read, such as one an older build left, names no run
-	// it can resume or refuse, so the walk drops it and starts over.
+	// this build cannot read, such as one an older build left, identifies
+	// no run the walk can resume or refuse, so the walk drops it and starts
+	// over.
 	prog, err := w.readProgress(ctx)
 	if errors.Is(err, errBadWalkRecord) {
 		if err := w.dropProgress(ctx); err != nil {
@@ -440,7 +441,7 @@ func (w *walker) readProgress(ctx context.Context) (*WalkProgress, error) {
 
 // getProgress reads the progress record in tx, nil when none.
 func getProgress(ctx context.Context, tx kvtx.TxOps) (*WalkProgress, error) {
-	// Read and decode the record; one that does not decode is malformed.
+	// Read and decode the record. One that does not decode is malformed.
 	value, found, err := tx.Get(ctx, []byte{walkProgressKind})
 	if err != nil || !found {
 		return nil, err
@@ -469,7 +470,7 @@ func (w *walker) dropProgress(ctx context.Context) error {
 
 // write commits recs to scratch, walkCommitRecords at a time, with the
 // progress in the last commit. Each commit first checks that the progress
-// in scratch names this run.
+// in scratch identifies this run.
 func (w *walker) write(ctx context.Context, recs []walkRecord) error {
 	for {
 		n := min(len(recs), walkCommitRecords)
@@ -485,7 +486,7 @@ func (w *walker) write(ctx context.Context, recs []walkRecord) error {
 				return nil
 			}
 
-			// Write the progress with the last.
+			// Write the progress with the last commit.
 			value, err := w.prog.MarshalVT()
 			if err != nil {
 				return err
@@ -886,8 +887,8 @@ func (w *walker) behindOr(ctx context.Context, t *tally) error {
 type bytesCheck struct {
 	// ref is the block.
 	ref *block.BlockRef
-	// listed is set when the block has a child list; otherwise it has neither
-	// a list nor a hole record.
+	// listed is set when the block has a child list. Otherwise the block
+	// has neither a list nor a hole record.
 	listed bool
 }
 
@@ -943,8 +944,9 @@ type tally struct {
 	logs map[string]int64
 	// pending is what the paged release does to each block's namers.
 	pending map[string]int64
-	// behind reports that the view found more than walkBacklogEntries entries
-	// past its copy; only copied and the next sequences are then read.
+	// behind reports that the view found more than walkBacklogEntries
+	// entries past its copy. Only copied and the next sequences are then
+	// read.
 	behind bool
 }
 
@@ -1041,7 +1043,7 @@ func readMark(ctx context.Context, rec *Records, state *LivenessState, key []byt
 // sequences past them. It sums the entries of the pages past those for the
 // blocks in keep alone, into t.logs, and returns how many entries it read
 // past its copy. Once it has read walkBacklogEntries entries past its copy it
-// stops and reports t behind; t.logs is then partial and unused.
+// stops and reports t behind. t.logs is then partial and unused.
 //
 // A page never changes its keys once written, and the logs net whole pages
 // in sequence order, deleting each, so a copy is not netted yet exactly
@@ -1223,7 +1225,7 @@ func (w *walker) nextChildren(ctx context.Context) (keys [][]byte, namers [][][]
 
 // releasePending counts, for each of keys, in key order, how many times the
 // paged release in progress has not moved it yet, as tallyHolders counts
-// them. The release names its children in block key
+// them. The release lists its children in block key
 // order, since it pages a child list and every list is in that order:
 // EncodeChildren sorts, and mergeList's union merges two sorted lists. So it
 // finds the first not below keys[0] by a binary search from the
@@ -1278,8 +1280,8 @@ func releasePending(ctx context.Context, rec *Records, state *LivenessState, key
 // count of its edges that held, and returns the bytes check the walk makes
 // after the view, and whether it makes one: for a listed block, and for a
 // named block with neither a list nor a hole record. When sound, it counts an
-// undercount; otherwise, where it would compare, it counts the block wide.
-// delta is what the logs not netted yet do to its holders, and pending
+// undercount. Otherwise, where the check would compare, it counts the block
+// wide. delta is what the logs not netted yet do to its holders, and pending
 // what the paged release does to its namers.
 func (w *walker) checkChild(
 	ctx context.Context,
@@ -1373,7 +1375,7 @@ func scanNamers(
 	return seen, read, last, more, err
 }
 
-// edgeHolds reports whether namer still names the block at key in the view
+// edgeHolds reports whether namer still references the block at key in the view
 // rec: the root still holds the block, or the parent is still stored, since
 // a stored block holds its children until its free.
 func edgeHolds(ctx context.Context, rec *Records, state *LivenessState, key, namer []byte) (bool, error) {
@@ -1409,8 +1411,8 @@ func edgeHolds(ctx context.Context, rec *Records, state *LivenessState, key, nam
 
 // confirm rereads the next slice of candidates once the delay has passed
 // since the check found them, and reports each still named and absent as
-// unconfirmed, with its class. A view reads at most walkSliceEdges edges;
-// the candidate it stops in resumes in the next view past its last edge.
+// unconfirmed, with its class. A view reads at most walkSliceEdges edges. The
+// candidate it stops in resumes in the next view past its last edge.
 func (w *walker) confirm(ctx context.Context) error {
 	// Read the slice and wait out its delay.
 	keys, latest, done, err := w.nextCandidates(ctx)
@@ -1592,10 +1594,11 @@ func (w *walker) countUnconfirmed(ref *block.BlockRef, class HoleClass) {
 }
 
 // classify walks up the edges from the block at key and returns which roots
-// reach it: held, if a root without a lease or whose lease ran past the
-// walk's start does; lapsed, if only roots whose lease lapsed do; unrooted,
-// if none does; and unknown, past walkClassBound blocks. It reads the edges
-// as the walk wrote them, not as the Volume holds them now.
+// reach it. The result is held if a root without a lease or whose lease ran
+// past the walk's start reaches the block. The result is lapsed if only roots
+// whose lease lapsed reach the block, unrooted if none reaches the block, and
+// unknown past walkClassBound blocks. It reads the edges as the walk wrote
+// them, not as the Volume holds them now.
 func (w *walker) classify(ctx context.Context, edges *Records, key []byte) (HoleClass, error) {
 	// Walk up from the block through the namers the edges record.
 	started := w.prog.GetStartedUnixMilli()

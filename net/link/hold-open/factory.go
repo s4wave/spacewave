@@ -10,7 +10,7 @@ import (
 
 // Factory constructs a Link Hold-Open controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

@@ -7,7 +7,7 @@ import (
 
 // NewFSObject constructs a new FSObject with defaults.
 func NewFSObject(ts *timestamp.Timestamp, rootNode *FSNode) *FSObject {
-	// set placeholder if nil
+	// Set a placeholder root node if rootNode is nil.
 	if rootNode == nil {
 		rootNode = NewFSNode(0, 0, ts)
 	}

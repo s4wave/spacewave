@@ -13,11 +13,11 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface PubSubMessage {
   /**
-   * WantRefs is a full snapshot of blocks we currently want.
+   * WantRefs is a full snapshot of blocks the sender wants.
    */
   wantRefs?: BlockRef[]
   /**
-   * ClearRefs signals we no longer want these blocks.
+   * ClearRefs signals the sender no longer wants these blocks.
    */
   clearRefs?: BlockRef[]
   /**

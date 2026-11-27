@@ -71,7 +71,8 @@ export function writeShellDocumentState(
   try {
     storage.setItem(SHELL_DOCUMENT_STATE_STORAGE_KEY, JSON.stringify(state))
   } catch {
-    // Document-local continuity is best effort; shared mutations remain fail-closed.
+    // Document-local continuity is best effort, but shared mutations remain
+    // fail-closed.
   }
 }
 

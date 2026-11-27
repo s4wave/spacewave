@@ -10,7 +10,7 @@ import (
 
 // Runner executes fixed benchmark populations and publishes validated artifacts.
 type Runner struct {
-	// publisher atomically exposes complete per-engine results
+	// publisher atomically exposes complete per-engine results.
 	publisher *ArtifactPublisher
 }
 

@@ -27,7 +27,7 @@ type Stats struct {
 
 // Memory is an in-memory Store that simulates power loss. It keeps the durable
 // records as of the last durable commit and the commits made since, so
-// PowerLoss can keep any prefix of them.
+// PowerLoss can keep any prefix of those commits.
 type Memory struct {
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -38,9 +38,9 @@ type Memory struct {
 	// pending holds the commits since the last durable commit, in order.
 	pending [][]Op
 	// crashAfter is the number of further commits that succeed before the
-	// crash; negative never crashes.
+	// crash. A negative value never crashes.
 	crashAfter int
-	// crashed rejects every call until PowerLoss.
+	// crashed indicates that every call is rejected until PowerLoss.
 	crashed bool
 	// stats counts the calls.
 	stats Stats

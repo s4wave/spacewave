@@ -13,7 +13,7 @@ const ControllerID = "bifrost/daemon/api"
 
 // Factory constructs a API.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

@@ -8,7 +8,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * ForgeTaskCreateOp creates a Forge Task and optionally links it to a Job.
- * Wraps CreateTaskWithTarget + graph linking in a single world op.
+ * The operation wraps CreateTaskWithTarget + graph linking in a single
+ * world op.
  *
  * @generated from message s4wave.forge.task.ForgeTaskCreateOp
  */

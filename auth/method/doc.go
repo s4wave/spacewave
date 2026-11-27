@@ -6,7 +6,7 @@
 // and must yield the same key from the same inputs, so the key need never be
 // stored. UnmarshalParameters decodes the parameters a Keypair carries.
 // Execute may run in the background and yield keys it discovers to its
-// Handler; returning nil ends it without a retry. The AuthLookupMethod
+// Handler. Returning nil ends Execute without a retry. The AuthLookupMethod
 // directive finds a Method by ID on the bus.
 //
 // Package password derives an Ed25519 key with scrypt from the password and a

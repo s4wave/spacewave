@@ -13,7 +13,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "bldr/web/view/observer"
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -25,9 +25,9 @@ var controllerDescrip = "resolves LookupWebView"
 type Controller struct {
 	*bus.BusController[*Config]
 
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// webViews is the set of observed web views
+	// webViews is the set of observed web views.
 	webViews map[string]web_view.WebView
 }
 

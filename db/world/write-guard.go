@@ -20,9 +20,9 @@ import (
 // error.
 //
 // A guarded cursor puts blocks freely: a block is content addressed and
-// changes no World object until a guarded write names it, such as SetRootRef
-// or an op. Removing a block, moving a named root and recording a completion
-// proof through a guarded cursor are unscoped writes.
+// changes no World object until a guarded write references the block, such as
+// SetRootRef or an op. Removing a block, moving a named root and recording a
+// completion proof through a guarded cursor are unscoped writes.
 //
 // An op applied through a guarded state is guarded inside the engine: the
 // guarded state checks the op's type, then applies it with the guard on the
@@ -46,10 +46,10 @@ import (
 // A WriteGuard must be comparable, such as a pointer: guarded states compare
 // guards to avoid checking a write twice.
 type WriteGuard interface {
-	// CheckWrite returns nil when w may be made on ws, or the refusal. ws is
-	// the unguarded state the write would change, for the guard's reads. A
-	// refusal is an *OperationRejection; any other error is a failure to
-	// decide, such as a read error, and is not final.
+	// CheckWrite returns nil when w may be made on ws, or the refusal.
+	// ws is the unguarded state the write would change, for the guard's
+	// reads. A refusal is an *OperationRejection. Any other error is a
+	// failure to decide, such as a read error, and is not final.
 	CheckWrite(ctx context.Context, ws WorldState, w *GuardedWrite) error
 }
 
@@ -60,13 +60,14 @@ type GuardedWrite struct {
 	OpTypeID string
 	// ObjectKeys are the objects the write creates, changes or deletes.
 	ObjectKeys []string
-	// Create marks a write that only creates the objects ObjectKeys names.
+	// Create marks a write that only creates the objects ObjectKeys lists.
 	Create bool
 	// Quad is the graph quad the write sets or deletes, or nil.
 	Quad GraphQuad
 	// Unscoped marks a write that can change objects ObjectKeys does not
-	// name: a writable graph handle, a rename of an object's descendants, and
-	// a block removal, root move or completion proof through a guarded cursor.
+	// list: a writable graph handle, a rename of an object's descendants,
+	// and a block removal, root move or completion proof through a guarded
+	// cursor.
 	Unscoped bool
 }
 
@@ -83,7 +84,7 @@ func IsGuardSysErr(err error) bool {
 // so a component that receives only the object can guard writes through it
 // and write beside the object in the same transaction. A handle whose writes
 // commit in a transaction of their own, such as an engine's object, does not
-// implement it.
+// implement WorldStateGetter.
 type WorldStateGetter interface {
 	// GetWorldState returns the WorldState that holds the object, guarded as
 	// the object is.
@@ -112,8 +113,8 @@ type opApplyKey struct{}
 // A layer over a state that is not a guarded layer, such as an engine's state
 // over a guarded engine, does not fold: it creates its own apply, and a
 // guarded layer the state applies the op through creates another, nested in
-// it, which the engine takes. The nested apply checks the outer guards too,
-// but the outer apply is never taken, so the op fails closed with
+// the outer apply. The engine takes the nested apply, which checks the outer
+// guards too, but the outer apply is never taken, so the op fails closed with
 // ErrEngineUnguardedOp, recorded in the op tree so an op that swallows it
 // fails too. GuardWorldState adds no layer where the guard already guards, so
 // a mount's state over its own guarded engine stays one layer.
@@ -235,7 +236,7 @@ func (a *opApply) finish(seqno uint64, sysErr bool, err error, discard func()) (
 // GuardOpWorldState returns the handle an engine gives an op it applies to its
 // state ws under ctx: ws guarded by every guard of the apply ctx carries, or
 // ws when ctx carries none. An engine calls it where it hands its own state to
-// an op; a guarded apply whose engine does not fails.
+// an op. A guarded apply whose engine does not call GuardOpWorldState fails.
 func GuardOpWorldState(ctx context.Context, ws WorldState) WorldState {
 	// Outside a guarded apply, hand the op ws unchanged.
 	apply := getOpApply(ctx)
@@ -286,8 +287,8 @@ func GuardOpObjectState(ctx context.Context, obj ObjectState, ws WorldState) Obj
 
 // GuardWorldState returns ws with every write checked by guard first.
 // A nil guard returns ws, and so does a ws guard already guards: a guarded
-// state, or an engine's state whose engine guard guards, which makes each
-// write in a transaction the guard checks.
+// state, or an engine's state whose engine guard guards. The engine makes
+// each write in a transaction the guard checks.
 func GuardWorldState(ws WorldState, guard WriteGuard) WorldState {
 	if guard == nil || ws == nil || guardedBy(ws) == guard {
 		return ws
@@ -349,7 +350,7 @@ func GuardEngine(e Engine, guard WriteGuard) Engine {
 		}
 	}
 
-	// Guard it, rehearsing when it rehearses.
+	// Guard the engine, rehearsing when the engine rehearses.
 	ge := &guardedEngine{e: e, guard: guard}
 	if re, ok := e.(RehearsalEngine); ok {
 		return &guardedRehearsalEngine{guardedEngine: ge, re: re}
@@ -431,7 +432,7 @@ func (e *guardedEngine) guardTx(t Tx) Tx {
 	return &guardedTx{guardedWorldState: &guardedWorldState{ws: t, guard: e.guard, opFailed: t.Discard}, tx: t}
 }
 
-// Sync fences the wrapped engine's blocks and head; it writes no object.
+// Sync fences the wrapped engine's blocks and head. It writes no object.
 func (e *guardedEngine) Sync(ctx context.Context) (bool, error) {
 	return e.e.Sync(ctx)
 }
@@ -527,7 +528,7 @@ func guardStage(stage WorldStage, err error, check func(context.Context) error) 
 
 // guardedStage is a stage whose cursors are guarded. A stage only builds
 // blocks: what it builds reaches the World only through a guarded write that
-// names it, such as SetRootRef or an op on the guarded state.
+// references those blocks, such as SetRootRef or an op on the guarded state.
 type guardedStage struct {
 	// stage is the wrapped stage.
 	stage WorldStage
@@ -595,7 +596,7 @@ func (s *guardedWorldState) GetReadOnly() bool {
 	return s.ws.GetReadOnly()
 }
 
-// Sync fences the wrapped state's blocks; it writes no object.
+// Sync fences the wrapped state's blocks. It writes no object.
 func (s *guardedWorldState) Sync(ctx context.Context) (bool, error) {
 	return s.ws.Sync(ctx)
 }
@@ -637,7 +638,7 @@ func (s *guardedWorldState) GetObject(ctx context.Context, key string) (ObjectSt
 	return &guardedObjectState{obj: obj, ws: s.ws, guard: s.guard, opFailed: s.opFailed, apply: s.apply}, true, nil
 }
 
-// IterateObjects iterates keys through the wrapped state; it yields no
+// IterateObjects iterates keys through the wrapped state. It yields no
 // object state.
 func (s *guardedWorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator {
 	return s.ws.IterateObjects(ctx, prefix, reversed)
@@ -767,8 +768,9 @@ func (s *guardedWorldState) applyWorldOp(ctx context.Context, op Operation, opSe
 		return inner.applyWorldOp(ctx, op, opSender, parent, guards, discard)
 	}
 
-	// Over the engine's state, apply it with each of its writes checked by
-	// every layer's guard, nested in the op of ctx when no layer is a handle.
+	// Over the engine's state, apply the op with each of its writes checked
+	// by every layer's guard, nested in the op of ctx when no layer is a
+	// handle.
 	apply := newOpApply(nestIn(ctx, parent, guards))
 	seqno, sysErr, err := s.ws.ApplyWorldOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
 	return apply.finish(seqno, sysErr, err, discard)
@@ -904,7 +906,7 @@ func (o *guardedObjectState) applyObjectOp(ctx context.Context, op Operation, op
 		return inner.applyObjectOp(ctx, op, opSender, parent, guards, discard)
 	}
 
-	// Over the engine's object, apply it with every layer's guard.
+	// Over the engine's object, apply the op with every layer's guard.
 	apply := newOpApply(nestIn(ctx, parent, guards))
 	rev, sysErr, err := o.obj.ApplyObjectOp(context.WithValue(ctx, opApplyKey{}, apply), op, opSender)
 	return apply.finish(rev, sysErr, err, discard)

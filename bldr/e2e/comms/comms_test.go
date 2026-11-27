@@ -235,7 +235,7 @@ func browserType(name string) playwright.BrowserType {
 }
 
 // clearHomeACLs removes the ACLs macOS puts on the Library directories of an
-// isolated home, which deny their deletion.
+// isolated home. The ACLs deny deletion of those directories.
 func clearHomeACLs(home string) {
 	_ = exec.Command("/bin/chmod", "-R", "-N", home).Run()
 }
@@ -271,15 +271,16 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 type fixtureRun struct {
 	// query is the page URL's query string, without the leading "?".
 	query string
-	// timeout bounds the wait for "DONE"; zero selects 30 seconds.
+	// timeout bounds the wait for "DONE". Zero selects 30 seconds.
 	timeout time.Duration
 	// allowedBrowserFailures are console errors that do not fail the run.
 	allowedBrowserFailures []string
 	// persistent runs the page in an on-disk profile. Private contexts keep
 	// OPFS and IndexedDB in memory in Chromium and Firefox, so storage
-	// measurements need it; WebKit always uses one.
+	// measurements need an on-disk profile. WebKit always uses an on-disk
+	// profile.
 	persistent bool
-	// onLine, when set, receives the text of every console message.
+	// onLine receives the text of every console message when set.
 	onLine func(string)
 }
 
@@ -321,8 +322,8 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 }
 
 // launchContext launches browserName in a new context that closes with t. A
-// non-empty dir holds an on-disk profile, which WebKit needs for OPFS;
-// otherwise the context is private. "android" connects to the device's
+// non-empty dir holds an on-disk profile, which WebKit needs for OPFS.
+// Otherwise the context is private. "android" connects to the device's
 // Chrome profile instead.
 func launchContext(t *testing.T, browserName, dir string) playwright.BrowserContext {
 	// Connect "android" to the device's Chrome profile and resolve the
@@ -548,7 +549,7 @@ func TestDetect(t *testing.T) {
 
 // TestSabRing verifies SabRingStream point-to-point communication.
 // SAB requires cross-origin isolation, which is not viable on WebKit
-// in this test environment, so we run on Chromium and Firefox only.
+// in this test environment, so TestSabRing runs on Chromium and Firefox only.
 func TestSabRing(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
@@ -936,7 +937,7 @@ func TestCrossTab(t *testing.T) {
 			err = playwright.NewPlaywrightAssertions().Page(pageA).ToHaveTitle("cross-tab", playwright.PageAssertionsToHaveTitleOptions{
 				Timeout: playwright.Float(100),
 			})
-			_ = err // ignore title check, just need a small delay
+			_ = err // ignore title check, only a small delay is needed.
 
 			// Wait for each page to see one brokered peer.
 			waitForPeerCount(t, pageA, "page A", 1)
@@ -1017,7 +1018,7 @@ func TestCrossTabCleanup(t *testing.T) {
 			// Point every page at the cross-tab fixture.
 			url := fmt.Sprintf("%s/cross-tab.html", testServer.url)
 
-			// Helper to create a page with console logging.
+			// newPage creates a page with console logging.
 			newPage := func(label string) playwright.Page {
 				p, err := ctx.NewPage()
 				if err != nil {
@@ -1107,7 +1108,7 @@ func TestCrossTabCleanup(t *testing.T) {
 			msgsB, _ := rB["messagesReceived"].([]any)
 
 			// A and B may have earlier messages from the all-to-all phase,
-			// so just check the latest includes D's message.
+			// so check only that the latest messages include D's message.
 			// Scan both message lists for D's message.
 			foundA := false
 			for _, m := range msgsA {
@@ -1160,7 +1161,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			// Point every page at the cross-tab fixture.
 			url := fmt.Sprintf("%s/cross-tab.html", testServer.url)
 
-			// Helper to create a page with console logging.
+			// newPage creates a page with console logging.
 			newPage := func(label string) playwright.Page {
 				p, err := ctx.NewPage()
 				if err != nil {
@@ -1543,7 +1544,7 @@ func TestOpfsKvtx(t *testing.T) {
 
 // TestOpfsPrimitives verifies OPFS file operations: directory creation,
 // file read/write/delete, listing, and error handling (NotFoundError).
-// OPFS requires a secure context; WebKit may not support it on localhost.
+// OPFS requires a secure context. WebKit may not support OPFS on localhost.
 func TestOpfsPrimitives(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {

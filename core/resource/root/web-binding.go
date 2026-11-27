@@ -41,7 +41,7 @@ type webBinding struct {
 type webBindingCheck func(b *webBinding, msg srpc.Message) bool
 
 // webBindingMethods lists the read-only methods a bound listener serves, keyed
-// by service and method ID. A nil check admits every request; any method
+// by service and method ID. A nil check admits every request. Any method
 // absent from the list is denied.
 var webBindingMethods = map[string]webBindingCheck{
 	webMethod(s4wave_root.SRPCRootResourceServiceServiceID, "MountSessionByIdx"): func(b *webBinding, msg srpc.Message) bool {
@@ -134,13 +134,13 @@ var webBindingMethods = map[string]webBindingCheck{
 	webMethod(s4wave_world.SRPCTypedObjectResourceServiceServiceID, "AccessTypedObject"):     nil,
 	webMethod(s4wave_world.SRPCTypedObjectResourceServiceServiceID, "WatchTypedObject"):      nil,
 
-	// A Device object of the bound Space streams its state; status reports
+	// A Device object of the bound Space streams its state, but status reports
 	// and checkout stay denied.
 	webMethod(s4wave_device.SRPCDeviceResourceServiceServiceID, "WatchDeviceState"):        nil,
 	webMethod(s4wave_device.SRPCDeviceResourceServiceServiceID, "WatchDeviceAvailability"): nil,
 
-	// Prom objects of the bound Space answer queries and stream Dashboards;
-	// their panel and target edits stay denied.
+	// Prom objects of the bound Space answer queries and stream Dashboards,
+	// but their panel and target edits stay denied.
 	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "Query"):              nil,
 	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "LabelNames"):         nil,
 	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "LabelValues"):        nil,
@@ -195,7 +195,7 @@ type webBindingInvoker struct {
 }
 
 // InvokeMethod denies methods outside webBindingMethods, checks the request
-// messages of the methods that need it, and narrows their responses.
+// messages of the methods that need checks, and narrows their responses.
 func (i *webBindingInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	// Deny methods outside the list, then route the call through its check
 	// and response filter.

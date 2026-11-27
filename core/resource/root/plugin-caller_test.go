@@ -64,7 +64,8 @@ import (
 
 // TestPluginCallerFilterNestedSession calls protected session methods through
 // PluginRpc on a session the root mounts beneath it, as a plugin would. A
-// caller outside the host set is refused; a host-set caller reaches the session.
+// caller outside the host set is refused, but a host-set caller reaches the
+// session.
 func TestPluginCallerFilterNestedSession(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -140,8 +141,8 @@ func TestPluginCallerFilterNestedSession(t *testing.T) {
 
 // TestPluginCallerFilterSecretGrant calls a Space's Secret methods through
 // PluginRpc under the Device policy's grant. Only the granted plugin, bound to
-// the granted Space, reaches the read, create and write methods; granting
-// participants and deleting stay refused to it.
+// the granted Space, reaches the read, create and write methods. Granting
+// participants and deleting stay refused to the plugin.
 func TestPluginCallerFilterSecretGrant(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()

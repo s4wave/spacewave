@@ -31,7 +31,7 @@ const ControllerID = "sobject/replica"
 const retryDelay = time.Second
 
 // Controller runs one replica node. It serves its ReplicaState to the other
-// node, watches the other node's, and takes the step NextStep picks.
+// node, watches the other node's state, and takes the step NextStep picks.
 type Controller struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -167,14 +167,14 @@ func (c *Controller) setState(proof *space_world_replica.SignedSOReplicaProof, i
 	})
 }
 
-// HandleDirective resolves no directives; the stream server serves the peer
+// HandleDirective resolves no directives. The stream server serves the peer
 // stream.
 func (c *Controller) HandleDirective(_ context.Context, _ directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil
 }
 
-// Close releases nothing; Execute releases what it holds when its context
-// ends.
+// Close releases nothing because Execute releases what it holds when its
+// context ends.
 func (c *Controller) Close() error {
 	return nil
 }

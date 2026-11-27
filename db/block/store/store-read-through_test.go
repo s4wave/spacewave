@@ -167,7 +167,8 @@ func TestStoreReadThroughByteOnlySourceSkipsFill(t *testing.T) {
 
 // TestStoreReadThroughAbsentLowerIsUnavailable tests that a primary miss while
 // the lower source resolves to nil reports the block unavailable to a read
-// that may not wait for a peer, recording it, and a miss to any other read.
+// that may not wait for a peer, recording the block, and a miss to any other
+// read.
 func TestStoreReadThroughAbsentLowerIsUnavailable(t *testing.T) {
 	// A pipeline whose lower source is down, reading a block the primary
 	// lacks.

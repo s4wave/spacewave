@@ -7,7 +7,7 @@ import (
 // A value chunk holds entries from its start: each is a header,
 // uvarint(len(key)), the key, uvarint(len(value)) and the CRC-32C of the
 // value, followed by the value. A reference points at the value bytes, past
-// the header, so reads never parse headers; the cleaner parses them to learn
+// the header, so reads never parse headers. The cleaner parses them to learn
 // each value's key and checks the checksum, stopping at the first entry that
 // fails, which can only be the torn tail of a chunk open at a crash. A value
 // longer than a chunk takes a run of whole chunks with one entry.

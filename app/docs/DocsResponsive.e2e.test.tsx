@@ -230,7 +230,8 @@ describe('docs viewer responsive layout', () => {
 
     await page.viewport(1280, 900)
     await render(<DocsRouteHarness initialPath="/docs" />)
-    // The desktop rail is visible; the mobile trigger is hidden at wide widths.
+    // The desktop rail is visible, and the mobile trigger is hidden at wide
+    // widths.
     const trigger = document.querySelector(
       'button[aria-label="Open documentation navigation"]',
     )

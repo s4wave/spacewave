@@ -7,7 +7,7 @@ import (
 	volume "github.com/s4wave/spacewave/db/volume"
 )
 
-// ListVolumes lists basic volume information
+// ListVolumes lists basic volume information.
 func (a *API) ListVolumes(
 	ctx context.Context,
 	req *ListVolumesRequest,

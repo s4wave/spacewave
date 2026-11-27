@@ -27,11 +27,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// pluginRepositoryTaskName names the single Task of a repository fetch Job.
+// pluginRepositoryTaskName identifies the single Task of a repository fetch
+// Job.
 const pluginRepositoryTaskName = "fetch"
 
 // pluginRepositoryKeyPrefix prefixes the git repository object of each
-// GitHub repository; its worktree and workdir sit beneath it.
+// GitHub repository. The worktree and workdir sit beneath that object.
 const pluginRepositoryKeyPrefix = "plugin-repos/"
 
 // githubRepositoryPattern matches a GitHub owner and repository name.
@@ -56,10 +57,10 @@ func parseGitHubRepository(repository string) (string, error) {
 
 // FetchPluginRepository queues a Forge Job that clones a GitHub repository at
 // depth one into the Space, or fetches its newest commit when the repository
-// object already exists. The clone handler decides which, so adding and
-// checking for updates are the same call.
+// object already exists. The clone handler decides whether to clone or fetch,
+// so adding and checking for updates are the same call.
 func (r *SpaceResource) FetchPluginRepository(ctx context.Context, req *s4wave_space.FetchPluginRepositoryRequest) (*s4wave_space.FetchPluginRepositoryResponse, error) {
-	// Name the repository objects from the GitHub repository.
+	// Derive the repository object keys from the GitHub repository.
 	name, err := parseGitHubRepository(req.GetRepository())
 	if err != nil {
 		return nil, err
@@ -136,9 +137,9 @@ func (r *SpaceResource) FetchPluginRepository(ctx context.Context, req *s4wave_s
 }
 
 // ValidatePluginRepository validates the commit a fetched plugin repository
-// has checked out. It reads the Space World only; no repository code runs.
+// has checked out. It reads the Space World only. No repository code runs.
 func (r *SpaceResource) ValidatePluginRepository(ctx context.Context, req *s4wave_space.ValidatePluginRepositoryRequest) (*s4wave_space.ValidatePluginRepositoryResponse, error) {
-	// Name the repository objects from the GitHub repository.
+	// Derive the repository object keys from the GitHub repository.
 	name, err := parseGitHubRepository(req.GetRepository())
 	if err != nil {
 		return nil, err

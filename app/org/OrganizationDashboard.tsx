@@ -26,7 +26,8 @@ import { MissingBillingAccountBanner } from './MissingBillingAccountBanner.js'
 import { useOrgContainerState } from './OrgContainer.js'
 
 // OrganizationDashboard renders the main content area for an organization.
-// Mirrors SessionDashboard: command palette with space list and actions.
+// OrganizationDashboard mirrors SessionDashboard: a command palette with a
+// space list and actions.
 export function OrganizationDashboard() {
   const {
     orgId,

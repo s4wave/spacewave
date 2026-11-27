@@ -20,7 +20,7 @@ const (
 
 // ManifestBuilderStatus is the ProjectController manifest build status surface.
 // ManifestBuilderStatus is the user-visible manifest build status consumed
-// by the devtool TUI. Identity and target fields are set at construction;
+// by the devtool TUI. Identity and target fields are set at construction, and
 // cache, rebuild, and watch fields are merged in by lifecycle events.
 type ManifestBuilderStatus struct {
 	// ID is the manifest builder tracker id.
@@ -33,7 +33,7 @@ type ManifestBuilderStatus struct {
 	PlatformID string
 	// TargetPlatformIDs lists the platforms the build produces.
 	TargetPlatformIDs []string
-	// BuildType names the build type.
+	// BuildType is the build type.
 	BuildType string
 	// RemoteID is the publish remote id.
 	RemoteID string
@@ -51,7 +51,7 @@ type ManifestBuilderStatus struct {
 	DependencyRebuildReason string
 	// Summary is a human-readable status line.
 	Summary string
-	// Error carries the last build error, if any.
+	// Error contains the last build error, if any.
 	Error string
 }
 

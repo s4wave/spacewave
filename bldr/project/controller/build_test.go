@@ -110,10 +110,10 @@ func TestApplyBuilderConfigOverride_NoBuilder(t *testing.T) {
 
 // TestBuildTargetsOverrideSelection exercises BuildTargets wiring: a
 // ManifestBuilderConfig is produced with BuilderConfigOverride populated from
-// BuildConfig.ManifestOverrides for the matching manifest id. This proves the
-// starlark -> BuildConfig.ManifestOverrides -> ManifestBuilderConfig.
-// BuilderConfigOverride path (IC-1 + IC-2) without standing up a live
-// controller bus.
+// BuildConfig.ManifestOverrides for the matching manifest id. This test proves
+// the starlark -> BuildConfig.ManifestOverrides ->
+// ManifestBuilderConfig.BuilderConfigOverride path (IC-1 + IC-2) without
+// standing up a live controller bus.
 func TestBuildTargetsOverrideSelection(t *testing.T) {
 	// Prepare one manifest override and the build policy shared by selected manifests.
 	platformIDs := []string{"desktop/darwin/arm64"}

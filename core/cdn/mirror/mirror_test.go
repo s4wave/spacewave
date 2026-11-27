@@ -134,8 +134,8 @@ func (s *countSink) PutBlockBatch(_ context.Context, entries []*block.PutBatchEn
 	return make([]bool, len(entries)), nil
 }
 
-// requireClosed requires that every block of tr r's Space lists has each of
-// its children listed too, so a resume may skip it with its subtree.
+// requireClosed requires that every block of tr listed by r's Space has each
+// of its children listed too, so a resume may skip the block with its subtree.
 func requireClosed(t *testing.T, r *writertest.Rig, tr *tree) {
 	// List every block of the tree with its children.
 	sink := &countSink{}
@@ -146,7 +146,7 @@ func requireClosed(t *testing.T, r *writertest.Rig, tr *tree) {
 		t.Fatal(err)
 	}
 
-	// Ask the Space which it lists.
+	// Ask the Space which blocks it lists.
 	refs := make([]*block.BlockRef, len(sink.entries))
 	index := make(map[string]int, len(sink.entries))
 	for i, e := range sink.entries {
@@ -155,7 +155,7 @@ func requireClosed(t *testing.T, r *writertest.Rig, tr *tree) {
 	}
 	exists := spaceHolds(t, r, r.Writer.Root(writertest.Space).GetPacks(), refs)
 
-	// Require each listed block's children listed.
+	// Require each listed block's children to be listed.
 	for i, e := range sink.entries {
 		if !exists[i] {
 			continue

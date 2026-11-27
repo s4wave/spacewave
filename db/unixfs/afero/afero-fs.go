@@ -20,15 +20,15 @@ const AferoFSName = "hydra/unixfs"
 
 // AferoFS implements the Afero filesystem interface with a FSHandle.
 //
-// NOTE: filename arguments support paths containing separators (/)
+// NOTE: filename arguments support paths containing separators (/).
 type AferoFS struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// h is the filesystem handle
+	// h is the filesystem handle.
 	h *unixfs.FSHandle
-	// t is a constant write timestamp
+	// t is a constant write timestamp.
 	t atomic.Pointer[time.Time]
-	// basePath is the path of any parent chroots
+	// basePath is the path of any parent chroots.
 	basePath string
 }
 
@@ -71,7 +71,7 @@ func (f *AferoFS) Name() string {
 // Create creates a file in the filesystem, returning the file and an
 // error, if any happens.
 func (f *AferoFS) Create(name string) (afero.File, error) {
-	// note: this is the same behavior as os.Create
+	// note: this OpenFile call has the same behavior as os.Create
 	return f.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 }
 
@@ -214,8 +214,8 @@ func (f *AferoFS) Remove(filepath string) error {
 	return f.RemoveAll(filepath)
 }
 
-// RemoveAll removes a directory path and any children it contains. It does not
-// fail if the path does not exist (return nil).
+// RemoveAll removes a directory path and any children it contains. It returns
+// nil if the path does not exist.
 func (f *AferoFS) RemoveAll(filepath string) error {
 	return unixfs_errors.ToFs(unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp()))
 }

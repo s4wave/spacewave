@@ -69,7 +69,8 @@ func (r *NodeTypeResource) ExecController(req *ExecControllerRequest, strm SRPCN
 		return err
 	}
 
-	// Report each status change; a host that stops reading stops the controller.
+	// Report each status change. A host that stops reading stops
+	// the controller.
 	return controller_exec.ExecuteController(ctx, r.b, resolved.GetConfig(), func(status controller_exec.ControllerStatus) {
 		if err := strm.Send(&controller_exec.ExecControllerResponse{Id: encoded.GetId(), Status: status}); err != nil {
 			cancel()

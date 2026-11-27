@@ -123,7 +123,7 @@ func checkQuads(ctx context.Context, ws world.WorldState, results int) (int, err
 	n := 0
 	err := ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		return world.IterateFilteredFullQuads(ctx, h, quad.Quad{}, func(q quad.Quad) error {
-			// Find the result the quad's subject names.
+			// Find the result the quad's subject identifies.
 			n++
 			subject, _ := q.Subject.(quad.IRI)
 			id, err := strconv.Atoi(strings.TrimPrefix(string(subject), resultPrefix))

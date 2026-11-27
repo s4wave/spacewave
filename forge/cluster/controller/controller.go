@@ -27,20 +27,20 @@ const ControllerID = "forge/cluster"
 
 // Controller implements the Cluster controller.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the execution controller bus
+	// bus is the execution controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// objKey is the object key (from the config)
+	// objKey is the object key (from the config).
 	objKey string
-	// peerID is the parsed peer id
+	// peerID is the parsed peer id.
 	peerID peer.ID
-	// peerIDStr is the peer id string
+	// peerIDStr is the peer id string.
 	peerIDStr string
 
-	// objLoop is the object tracking loop
+	// objLoop is the object tracking loop.
 	objLoop *world_control.WatchLoop
 	// jobTrackers manages the list of job tracker routines.
 	jobTrackers *keyed.Keyed[string, *jobTracker]

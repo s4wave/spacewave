@@ -19,8 +19,9 @@ func (c *Controller) addFetchManifestBuildRef(conf *ManifestBuilderConfig) (*Man
 }
 
 // addManifestBuilderRefs registers a complete set before dependency resolution
-// can observe it. Fetches reuse active configurations; explicit builds keep
-// their declared inputs. Returned references retain the normal keyed lifetime.
+// can observe the set. Fetches reuse active configurations. Explicit builds
+// keep their declared inputs. Returned references retain the normal keyed
+// lifetime.
 func (c *Controller) addManifestBuilderRefs(confs []*ManifestBuilderConfig, reuseActive bool) ([]*ManifestBuilderRef, error) {
 	// Validate before acquiring the controller's lifecycle and registry locks.
 	for _, conf := range confs {
@@ -93,8 +94,9 @@ func (c *Controller) addManifestBuilderRefsLocked(confs []*ManifestBuilderConfig
 }
 
 // findActiveManifestBuildConfig selects an unambiguous active dependency build.
-// FetchManifest carries no build-target discriminator, so conflicting executable
-// inputs are errors. TargetPlatformIds is informational and does not affect them.
+// FetchManifest carries no build-target discriminator, so conflicting
+// executable inputs are errors. TargetPlatformIds is informational and does not
+// affect the executable inputs.
 func (c *Controller) findActiveManifestBuildConfig(want *ManifestBuilderConfig) (*ManifestBuilderConfig, error) {
 	var selected *ManifestBuilderConfig
 	for _, builder := range c.getRunningManifestBuilders() {

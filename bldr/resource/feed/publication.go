@@ -19,7 +19,7 @@ const ViewField = 1000
 // publication, so a slow watcher never holds back the feed or another
 // watcher.
 type Publication[T any] struct {
-	// Value is the published view; shared, so read-only. Zero before the
+	// Value is the published view. Shared, so read-only. Zero before the
 	// first view and when err is set.
 	Value T
 	// Revision is a World revision the view reflects every write up to.
@@ -30,7 +30,8 @@ type Publication[T any] struct {
 
 	// published reports a view, false before the first and when err is set.
 	published bool
-	// encode encodes Value, or is nil for a feed that does not.
+	// encode encodes Value, or is nil for a feed that does not encode
+	// views.
 	encode func(T) ([]byte, error)
 
 	// history remembers the feed's recent Views.
@@ -110,9 +111,9 @@ func (p *Publication[T]) Version() string {
 }
 
 // Since returns what a watcher holding version lacks to reach this
-// publication: nothing when it holds this version, the changed and removed
-// records when the feed remembers it, and every record otherwise. A feed
-// without versions always has a reader take everything.
+// publication: nothing when the watcher holds this version, the changed and
+// removed records when the feed remembers version, and every record
+// otherwise. A feed without versions always has a reader take everything.
 func (p *Publication[T]) Since(version string) keyedview.Changes {
 	if p.view == nil {
 		return keyedview.Changes{Full: true}

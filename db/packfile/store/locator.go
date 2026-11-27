@@ -18,7 +18,7 @@ type Locator interface {
 	// Locate returns the id of the pack that holds key, and false when no
 	// indexed pack does. The pack may have left the manifest since, and a
 	// found key may carry an empty id when the locator knows its pack is
-	// gone; either way the store tests every filter. A located pack that
+	// gone. Either way the store tests every filter. A located pack that
 	// lacks the key also sends the store to every filter, so a wrong answer
 	// costs a slow lookup rather than a lost block.
 	Locate(ctx context.Context, key []byte) (packID string, found bool, err error)
@@ -55,12 +55,12 @@ func (p *unindexedPacks) derive(dropped, added []*manifestEntry) *unindexedPacks
 }
 
 // unindexedPacks returns the snapshot's packs the locator has not indexed,
-// computing the split once per snapshot and locator version; concurrent
+// computing the split once per snapshot and locator version. Concurrent
 // lookups wait for the one computing it. A newer version refilters only the
 // packs the last split left open, since an indexed pack stays indexed while it
-// is in the manifest; a snapshot without a split scans the whole catalog. The
-// version is read before the split, so a change during it makes the next
-// lookup recompute.
+// is in the manifest. A snapshot without a split scans the whole catalog. The
+// version is read before computing the split, so a change during computation
+// makes the next lookup recompute.
 func (v *ManifestSnapshot) unindexedPacks(loc Locator) *unindexedPacks {
 	// Reuse the split while the locator answers as it did.
 	version := loc.Version()

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TestChangeIndexCandidates checks which indexed ReadSets a ChangeSet names.
+// TestChangeIndexCandidates checks which indexed ReadSets a ChangeSet selects.
 func TestChangeIndexCandidates(t *testing.T) {
 	// Index a key read, a pattern read, a prefix read and a plain filter.
 	keyed, linked, prefixed := NewReadSet(), NewReadSet(), NewReadSet()
@@ -21,7 +21,7 @@ func TestChangeIndexCandidates(t *testing.T) {
 	}
 	x.Add("filter", NewChangeInterest(func(*ChangeSet) bool { return false }))
 
-	// Each change names its readers and the unindexed watchers.
+	// Each change selects its readers and the unindexed watchers.
 	cases := []struct {
 		changes *ChangeSet
 		want    []string
@@ -45,7 +45,7 @@ func TestChangeIndexCandidates(t *testing.T) {
 	expectEmptyIndex(t, x)
 }
 
-// TestChangeIndexAcceptsKeyed checks that a watcher a changed key names,
+// TestChangeIndexAcceptsKeyed checks that a watcher a changed key selects,
 // directly or through a set it joined, is accepted without a test, and that
 // one named only by a quad field or tested on every change is tested.
 func TestChangeIndexAcceptsKeyed(t *testing.T) {
@@ -66,7 +66,8 @@ func TestChangeIndexAcceptsKeyed(t *testing.T) {
 	x.Add("shared", &ChangeInterest{shared: []*ReadSet{sharedLinked}})
 	x.Add("filter", NewChangeInterest(func(*ChangeSet) bool { return false }))
 
-	// Changed keys accept their readers; a quad field or every change tests.
+	// Changed keys accept their readers. A quad field or every change tests
+	// the remaining candidates.
 	cases := []struct {
 		changes          *ChangeSet
 		accepted, tested []string
@@ -116,7 +117,7 @@ func TestReadSetsInterest(t *testing.T) {
 	}
 }
 
-// TestChangeIndexSharedOnce checks that watchers sharing a read set name it
+// TestChangeIndexSharedOnce checks that watchers sharing a read set index it
 // once, that a change to it reaches each of them, and that the set's names
 // leave the index with its last watcher.
 func TestChangeIndexSharedOnce(t *testing.T) {
@@ -179,7 +180,7 @@ func TestChangeIndexJoinedOnce(t *testing.T) {
 		x.Add(name, &ChangeInterest{shared: []*ReadSet{merged}})
 	}
 
-	// A third holds the part directly.
+	// A third watcher holds the part directly.
 	x.Add("c", &ChangeInterest{shared: []*ReadSet{part}})
 
 	// The part's reads are indexed once, beside each merged set's own.
@@ -210,7 +211,7 @@ func TestChangeIndexJoinedOnce(t *testing.T) {
 	expectEmptyIndex(t, x)
 }
 
-// candidates returns every watcher x names for changes, accepted or tested.
+// candidates returns every watcher x selects for changes, accepted or tested.
 func candidates[T comparable](x *ChangeIndex[T], changes *ChangeSet) []T {
 	accepted, tested := x.Candidates(changes)
 	return slices.Concat(accepted, tested)
@@ -272,8 +273,8 @@ func TestChangeIndexSound(t *testing.T) {
 		index(i)
 	}
 
-	// Each random ChangeSet names every set it touches, and accepts without a
-	// test only sets it touches.
+	// Each random ChangeSet selects every set it touches, and accepts
+	// without a test only sets it touches.
 	check := func() {
 		t.Helper()
 		for range 2000 {
@@ -334,7 +335,7 @@ func randomReadSet(rng *rand.Rand, pick, maybe func() string) *ReadSet {
 	return set
 }
 
-// readSetInterest names the reads of set over a filter that tests them.
+// readSetInterest records the reads of set over a filter that tests them.
 func readSetInterest(set *ReadSet) *ChangeInterest {
 	interest := &ChangeInterest{filter: set.Touched}
 	interest.shared = slices.Clone(set.nameReads(interest))
@@ -410,8 +411,8 @@ func BenchmarkChangeIndexMergedWake(b *testing.B) {
 // BenchmarkChangeIndexMergedDeliver measures handing one revision's changes
 // to the views, as a change feed does, when each of 1000 views holds its own
 // set joining the same 100 parts of 200 keys each and the revision changes 20
-// keys of one part. test-all tests every candidate's filter; accept-keyed
-// accepts the candidates a changed key names and tests the rest.
+// keys of one part. test-all tests every candidate's filter. accept-keyed
+// accepts the candidates a changed key selects and tests the rest.
 func BenchmarkChangeIndexMergedDeliver(b *testing.B) {
 	// Build the parts the views share.
 	parts := make([]*ReadSet, 100)

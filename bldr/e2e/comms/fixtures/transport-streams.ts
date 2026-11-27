@@ -1,8 +1,8 @@
-// transport-streams.ts - Transport factory stream verification fixture.
+// transport-streams.ts: Transport factory stream verification fixture.
 //
 // Creates a transport factory, calls openPairStream() and openCrossTabStream(),
 // sends actual data through the returned streams, verifies receipt.
-// Verifies openPairStream unavailable on WebKit (Config A/F).
+// Verifies openPairStream is unavailable on WebKit (Config A/F).
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { createTransportFactory } from '../../../web/bldr/plugin-transport.js'

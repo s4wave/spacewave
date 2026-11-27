@@ -163,7 +163,7 @@ func (s *Server) handleWalk(ctx context.Context, tag uint16, payload []byte) ([]
 		uid:    fid.uid,
 	}
 
-	// if newfid == fid, replace
+	// if newfid == fid, replace the fid
 	if newFidID == fidID {
 		old, _ := s.fids.Remove(fidID)
 		if old != nil {
@@ -304,7 +304,7 @@ func (s *Server) handleRead(ctx context.Context, tag uint16, payload []byte) ([]
 	data := make([]byte, count)
 	n, readErr := fid.handle.ReadAt(ctx, int64(offset), data) //nolint:gosec
 	if readErr != nil && n == 0 {
-		// EOF at offset is normal in 9p — return empty read.
+		// EOF at offset is normal in 9p, so return an empty read.
 		if isEOF(readErr) {
 			n = 0
 		} else {
@@ -431,7 +431,7 @@ func (s *Server) handleGetattr(ctx context.Context, tag uint16, payload []byte) 
 		size = 0
 	}
 
-	// Read permissions with the directory default on failure.
+	// Read permissions with the default directory permissions on failure.
 	perms, err := fid.handle.GetPermissions(ctx)
 	if err != nil {
 		perms = 0o755
@@ -864,7 +864,7 @@ func (s *Server) handleLink(tag uint16, _ []byte) ([]byte, error) {
 
 // handleFsync processes TFSYNC: commit the buffered writes of the fid's tree.
 func (s *Server) handleFsync(ctx context.Context, tag uint16, payload []byte) ([]byte, error) {
-	// Parse the fid; datasync commits the same writes.
+	// Parse the fid. datasync commits the same writes.
 	buf := NewReadBuffer(payload)
 	fidID := buf.ReadU32()
 	_ = buf.ReadU32() // datasync

@@ -7,8 +7,8 @@ import type { WasiVmHandle } from '@s4wave/sdk/vm/wasivm.js'
 import { WasiVmDownloads } from '@s4wave/sdk/vm/wasivm.pb.js'
 
 // useWasiVmDownloads watches what the VM's run has downloaded for its root
-// filesystem, starting again for each run. It is undefined until the run's
-// first report and after the run ends.
+// filesystem, starting again for each run. The result is undefined until the
+// run's first report and after the run ends.
 export function useWasiVmDownloads(
   handleResource: Resource<WasiVmHandle>,
   runGeneration: bigint,

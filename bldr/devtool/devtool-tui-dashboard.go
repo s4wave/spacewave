@@ -23,7 +23,7 @@ const (
 
 // renderDevtoolTUIDashboard renders the full devtool status screen for the
 // given terminal width. servingURL is the address the devtool serves, or empty.
-// color enables ANSI styling; tests render with color disabled.
+// color enables ANSI styling. Tests render with color disabled.
 func renderDevtoolTUIDashboard(
 	snapshot *devtool_status.BldrDevtoolStatus,
 	servingURL string,
@@ -286,7 +286,7 @@ func collectTargets(snapshot *devtool_status.BldrDevtoolStatus) []tuiTarget {
 	}
 
 	// Fetch rows not backed by a local build are standalone remote/cache
-	// artifacts; surface them so the target list is complete.
+	// artifacts, so surface them to complete the target list.
 	for _, row := range snapshot.GetManifestFetchRows() {
 		if row.LocalBuildIDs != "" {
 			continue
@@ -377,7 +377,7 @@ func targetLine(th tuiTheme, target tuiTarget, nameWidth, width int) string {
 }
 
 // runtimeSection collapses plugin and controller detail into a scannable count
-// summary; individual failures already appear in the failures section.
+// summary. Individual failures already appear in the failures section.
 func runtimeSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, width int) []string {
 	// Summarize the plugin and controller row counts under one section title.
 	plugins := snapshot.GetPluginRows()

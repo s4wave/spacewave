@@ -100,7 +100,7 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 // updateBucketConfig overrides the bucket config in the current handle.
 //
 // A nil configuration clears the handle and restarts resolution.
-// An existing handle receives the configuration; otherwise resolution restarts.
+// An existing handle receives the configuration. Otherwise resolution restarts.
 func (b *bucketHandleTracker) updateBucketConfig(conf *bucket.Config) *bucketHandle {
 	// Restart resolution when the caller invalidates the configuration.
 	if conf == nil {
@@ -264,8 +264,8 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 }
 
 // putReleasing stores the batch's blocks on a volume that keeps liveness, and
-// releases the stage roots its tombstones name. It reports a tombstone as not
-// stored before.
+// releases the stage roots its tombstones reference. It reports a tombstone as
+// not stored before.
 func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Split the tombstones from the puts.
 	puts := entries
@@ -354,7 +354,7 @@ func isTombstone(entry *block.PutBatchEntry) bool {
 
 // GetHashType returns the preferred hash type for the store.
 // This should return as fast as possible (called frequently).
-// If 0 is returned, uses a default defined by Hydra.
+// If 0 is returned, a default hash type defined by Hydra is used.
 func (b *bucketHandle) GetHashType() hash.HashType {
 	if b != nil && b.readOps != nil {
 		return b.readOps.GetHashType()
@@ -462,8 +462,9 @@ func (b *bucketHandle) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 }
 
 // RmBlock releases the bucket's hold on the block through the batch mutation
-// path. On a volume that keeps liveness that releases a stage's root and
-// otherwise nothing, since a put holds nothing; only the collector frees.
+// path. On a volume that keeps liveness, the batch mutation releases a stage's
+// root and otherwise nothing, since a put holds nothing. Only the collector
+// frees blocks.
 // Removing an absent block succeeds.
 func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if b.bucketConf == nil {

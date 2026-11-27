@@ -15,8 +15,8 @@ import {
 interface SpaceMountingScreenProps {
   // stage is the current phase of the mount used to drive the stepper.
   stage: SpaceMountStage
-  // detail is the live status line shown under the title. Updates as the
-  // backing watch advances through stages.
+  // detail is the live status line shown under the title. The line updates as
+  // the backing watch advances through stages.
   detail: string
   // title overrides the default "Opening your space" status.
   title?: string

@@ -54,7 +54,7 @@ func (p *flatPage) followValue(cursor block.ReadCursor, index int) block.ReadCur
 	return followFlatRef(cursor, entryValueRefID(index), p, p.entries[index].value)
 }
 
-// followFlatRef returns a reader at the block r names in page p. An empty
+// followFlatRef returns a reader at the block r references in page p. An empty
 // reference follows nil, as a decoded page's nil reference does.
 func followFlatRef(cursor block.ReadCursor, id uint32, p *flatPage, r flatRef) block.ReadCursor {
 	if r.empty() {

@@ -271,7 +271,7 @@ func TestDeleteSecretPayloadOffKeepsOldBehavior(t *testing.T) {
 }
 
 // TestDeleteSecretRefusesNonSecretPayload writes a Secret, as any World writer
-// can, whose ref names a SharedObject of another body type held in the
+// can, whose ref references a SharedObject of another body type held in the
 // creator's account, and checks that the delete refuses, removes nothing, and
 // leaves that SharedObject listed and the Secret named.
 func TestDeleteSecretRefusesNonSecretPayload(t *testing.T) {
@@ -310,9 +310,9 @@ func TestDeleteSecretRefusesNonSecretPayload(t *testing.T) {
 }
 
 // TestDeleteSecretRefusesRefMismatch writes a Secret whose
-// nested_shared_object_id names one real Secret payload and whose ref names
-// another, as a migration that remapped only one of them left it, and checks
-// that the delete refuses and both payloads stay readable.
+// nested_shared_object_id references one real Secret payload and whose ref
+// references another, as a migration that remapped only one of them left it,
+// and checks that the delete refuses and both payloads stay readable.
 func TestDeleteSecretRefusesRefMismatch(t *testing.T) {
 	// Store two Secrets and a third name mixing their ids.
 	ctx := t.Context()
@@ -387,13 +387,13 @@ func TestDeleteSecretKeepsPayloadAcrossSpaces(t *testing.T) {
 	expectReadable(ctx, t, tb, soProvider, "secrets/test/y", y, "fake-value-y")
 }
 
-// TestDeleteSecretKeepsUnownedPayload stores a Secret whose payload names no
+// TestDeleteSecretKeepsUnownedPayload stores a Secret whose payload records no
 // owner, as payloads written before owners were recorded do, has a writer of
 // the payload try to bind it to the Secret's Space, and checks that
 // the fold rejects the bind and the delete removes the name but keeps the
 // payload, which still reads with no owner.
 func TestDeleteSecretKeepsUnownedPayload(t *testing.T) {
-	// Store a Secret whose payload names no owner.
+	// Store a Secret whose payload records no owner.
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
@@ -430,7 +430,7 @@ func TestDeleteSecretKeepsUnownedPayload(t *testing.T) {
 }
 
 // TestDeleteSecretRebindKeepsOwnedPayload has a writer of a payload rebind it
-// to another Space, writes a Secret there whose ref names it, and
+// to another Space, writes a Secret there whose ref references it, and
 // deletes that Secret. The fold rejects the rebind, so the delete keeps the
 // payload, which still reads with its first owner. The writer here is the
 // creator: every member folds with the same rule, whatever its role.
@@ -466,7 +466,7 @@ func TestDeleteSecretRebindKeepsOwnedPayload(t *testing.T) {
 
 // TestSecretPayloadRewriteKeepsOwner rewrites a Secret's value as a granted
 // writer and checks that the new value reads with the first owner, so the
-// owner rule leaves ordinary writes alone. A write that names no owner, as a
+// owner rule leaves ordinary writes alone. A write that records no owner, as a
 // writer on a build before owners sends, is accepted and keeps the owner.
 func TestSecretPayloadRewriteKeepsOwner(t *testing.T) {
 	// Store a Secret and rewrite its value as its writer.
@@ -496,7 +496,7 @@ func TestSecretPayloadRewriteKeepsOwner(t *testing.T) {
 	expectPayload(ctx, t, tb, y, "fake-value-y3", testSpaceID)
 }
 
-// expectPayload checks that secret's payload reads back as value and names
+// expectPayload checks that secret's payload reads back as value and records
 // spaceID as its owner.
 func expectPayload(ctx context.Context, t *testing.T, tb *testbed.Testbed, secret *s4wave_secret.Secret, value, spaceID string) {
 	t.Helper()
@@ -514,9 +514,9 @@ func expectPayload(ctx context.Context, t *testing.T, tb *testbed.Testbed, secre
 
 // TestDeleteSecretKeepsPayloadOfRenamedSecret renames a Secret, plants a
 // copy of its body at the old key, as any Space writer can, and deletes the
-// planted name. The renamed Secret still names the payload, so every copy is
-// kept and the renamed Secret still reads. Deleting the renamed Secret once
-// the plant is gone then removes the payload.
+// planted name. The renamed Secret still references the payload, so every
+// copy is kept and the renamed Secret still reads. Deleting the renamed
+// Secret once the plant is gone then removes the payload.
 func TestDeleteSecretKeepsPayloadOfRenamedSecret(t *testing.T) {
 	// Rename a Secret and plant a copy of its body at the old key.
 	ctx := t.Context()
@@ -526,7 +526,7 @@ func TestDeleteSecretKeepsPayloadOfRenamedSecret(t *testing.T) {
 	renameObject(ctx, t, tb.Engine, "secrets/test/k1", "secrets/test/k2")
 	writeSecret(ctx, t, tb.Engine, "secrets/test/k1", y.CloneVT())
 
-	// Deleting the plant keeps the payload the renamed Secret names.
+	// Deleting the plant keeps the payload the renamed Secret references.
 	res, err := s4wave_secret.DeleteSecret(ctx, tb.Bus, tb.Engine, testSpaceID, "secrets/test/k1", heldOf(y))
 	if err != nil || !res.Found || len(res.Removed) != 0 || !res.OthersMayExist {
 		t.Fatalf("delete of the planted name = %+v, %v; want found, none removed, others may exist", res, err)
@@ -614,7 +614,8 @@ func writeSecret(ctx context.Context, t *testing.T, engine world.Engine, objectK
 	}
 }
 
-// heldOf returns the held account list naming the account that created secret.
+// heldOf returns the held account list referencing the account that created
+// secret.
 func heldOf(secret *s4wave_secret.Secret) []*provider.ProviderResourceRef {
 	return []*provider.ProviderResourceRef{secret.GetRef().GetProviderResourceRef()}
 }
@@ -682,8 +683,8 @@ func createFakeSecret(
 	return secret
 }
 
-// expectReadable checks that objectKey names secret, its payload SharedObject
-// is listed, and its payload reads back as value.
+// expectReadable checks that objectKey references secret, its payload
+// SharedObject is listed, and its payload reads back as value.
 func expectReadable(
 	ctx context.Context,
 	t *testing.T,

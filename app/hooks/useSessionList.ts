@@ -60,9 +60,9 @@ export function sortSessionsNewestFirst(
     if (aTime !== 0 && bTime !== 0) {
       return bTime - aTime
     }
-    // Both zero or one zero: fall back to session_index descending.
+    // Both times or one time is zero: fall back to session_index descending.
     if (aTime !== bTime) {
-      // Non-zero sorts before zero (newer).
+      // A non-zero time sorts before a zero time (newer).
       return aTime === 0 ? 1 : -1
     }
     return (b.entry.sessionIndex ?? 0) - (a.entry.sessionIndex ?? 0)

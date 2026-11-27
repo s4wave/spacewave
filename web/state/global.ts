@@ -6,7 +6,7 @@ import {
 } from './persist.js'
 
 // localStateAtom is the root atom for tab-local state (not synced across windows).
-// This is the default for most UI state.
+// This is the default atom for most UI state.
 export const localStateAtom: Atom<StateType> = atom<StateType>({})
 
 // persistentStateAtom is the root atom for persistent state (synced across windows via localStorage).

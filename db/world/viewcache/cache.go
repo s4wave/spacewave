@@ -29,7 +29,7 @@ type Cache struct {
 	// (follow), or 0 while no watch feeds the cache and head asks the World.
 	watched atomic.Uint64
 	// target is the newest revision a background catch-up was asked to
-	// reach; the one running catch-up reads it again after each advance.
+	// reach. The one running catch-up reads it again after each advance.
 	target atomic.Uint64
 	// catchingUp is set while the one background catch-up runs.
 	catchingUp atomic.Bool
@@ -50,7 +50,7 @@ type Cache struct {
 	keys map[keyIndexID]*KeyIndex
 	// index holds the finished values kept in entries by every read set
 	// checking them consults, so a catch-up checks only the values its
-	// changes name.
+	// changes select.
 	index *world.ChangeIndex[*revisionEntry]
 	// faceted holds the indexed values that read a part by facet, whose
 	// parts a catch-up may replace.

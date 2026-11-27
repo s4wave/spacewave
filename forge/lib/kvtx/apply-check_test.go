@@ -50,7 +50,7 @@ func TestApplyOpCheckExistsErrors(t *testing.T) {
 		timestamp.Now(),
 	)
 
-	// Set one key so it exists; an empty block ref is sufficient.
+	// Set one key so it exists. An empty block ref is sufficient.
 	if err := btx.SetCursorAtKey(ctx, []byte("present"), nil, false); err != nil {
 		t.Fatal(err.Error())
 	}

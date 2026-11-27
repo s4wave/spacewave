@@ -453,7 +453,7 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 	defer diRef.Release()
 	objStore := objStoreHandle.GetObjectStore()
 
-	// Read PIN lock files.
+	// Read the PIN lock files.
 	encPriv, encSymKey, config, err := session_lock.ReadPINLockFiles(ctx, objStore, sessionID)
 	if err != nil {
 		return errors.Wrap(err, "read PIN lock files")
@@ -546,7 +546,8 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 	return nil
 }
 
-// MountSession attempts to mount a Session returning the session and a release function.
+// MountSession tries to mount a Session returning the session and a release
+// function.
 func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.SessionRef, released func()) (session.Session, func(), error) {
 	// Validate the provider reference before acquiring its tracker.
 	if err := ref.Validate(); err != nil {

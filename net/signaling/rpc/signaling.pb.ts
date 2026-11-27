@@ -53,8 +53,8 @@ export const ListenResponse: MessageType<ListenResponse> =
 export interface SessionRequest {
   /**
    * SessionSeqno is the session sequence number.
-   * If this doesn't match the current session no, this pkt will be dropped.
-   * This should be zero for the init packet.
+   * If SessionSeqno doesn't match the current session no, the packet is
+   * dropped. SessionSeqno should be zero for the init packet.
    */
   sessionSeqno?: bigint
   /**
@@ -89,7 +89,7 @@ export const SessionRequest: MessageType<SessionRequest> =
  */
 export interface SessionInit {
   /**
-   * PeerId is the remote peer id we want to contact.
+   * PeerId is the remote peer id the client wants to contact.
    */
   peerId?: string
 }

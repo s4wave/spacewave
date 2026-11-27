@@ -12,7 +12,7 @@ import (
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 )
 
-// VolumeID names the single entrypoint state volume beneath a state root.
+// VolumeID identifies the single entrypoint state volume beneath a state root.
 const VolumeID = "state"
 
 // Filename is the native state volume filename used by Session file selectors.
@@ -31,7 +31,7 @@ func NewVolumeConfig(storageID string) *storage_volume.Config {
 	}
 }
 
-// EngineID names the application World of a project, the one World every
+// EngineID identifies the application World of a project, the one World every
 // renderer of the project opens.
 func EngineID(projectID string) string {
 	return "entrypoint/" + projectID

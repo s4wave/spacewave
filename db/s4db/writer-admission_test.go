@@ -102,7 +102,8 @@ func startAdmissionCall(t *testing.T, ctx context.Context, db *DB, order chan<- 
 
 // waitAdmissionCall joins a completed call and checks its expected result.
 func waitAdmissionCall(t *testing.T, ctx context.Context, call *admissionCall, want error) {
-	// The deadline only bounds a failed test; done is the completion signal.
+	// The deadline only bounds a failed test. done is the completion
+	// signal.
 	t.Helper()
 	select {
 	case <-call.done:
@@ -128,10 +129,12 @@ func waitAdmissionGrant(t *testing.T, ctx context.Context, order <-chan string, 
 	}
 }
 
-// waitAdmissionQueue observes registration under the coordinator's actual mutex.
-// The timer yields between observations; elapsed time never proves registration.
+// waitAdmissionQueue observes registration under the coordinator's actual
+// mutex. The timer yields between observations. Elapsed time never proves
+// registration.
 func waitAdmissionQueue(t *testing.T, ctx context.Context, a *writerAdmission, foreground, background int) {
-	// Count only test queues; production enqueue, grant and cancellation never scan.
+	// Count only test queues. Production enqueue, grant and cancellation
+	// never scan.
 	t.Helper()
 	count := func(q writerRequests) int {
 		n := 0
@@ -379,7 +382,8 @@ func TestWriterAdmissionSaveReads(t *testing.T) {
 	w := startAdmissionCall(t, ctx, db, order, "W", "slice")
 	waitAdmissionGrant(t, ctx, order, "W")
 
-	// SaveReads adds its own background marker; the test supplies a plain context.
+	// SaveReads adds its own background marker. The test supplies a plain
+	// context.
 	saveCtx, cancel := context.WithCancel(ctx)
 	saved := make(chan struct{})
 	var saveErr error

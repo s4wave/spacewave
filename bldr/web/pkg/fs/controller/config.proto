@@ -9,7 +9,7 @@ message Config {
   // The fs should be provided with the AccessUnixFS controller.
   string unixfs_id = 1;
   // UnixfsPrefix is a path prefix to apply to paths in the FS.
-  // This applies a chroot to the UnixFS.
+  // This prefix applies a chroot to the UnixFS.
   string unixfs_prefix = 2;
   // NotFoundIfIdle returns 404 not found if the FS lookup becomes idle.
   // Lookup becomes idle if no FS is available for the URL.

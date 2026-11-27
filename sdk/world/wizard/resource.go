@@ -13,7 +13,7 @@ import (
 
 // WizardRegistryResource implements ObjectWizardRegistryResourceService.
 // Plugins register object wizards through their prepared registration
-// generation; listings select the wizards visible to one installation.
+// generation. Listings select the wizards visible to one installation.
 type WizardRegistryResource struct {
 	mux srpc.Mux
 

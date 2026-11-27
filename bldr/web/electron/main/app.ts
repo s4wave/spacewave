@@ -93,13 +93,14 @@ const e2eControlPortEnv = "BLDR_ELECTRON_E2E_CONTROL_PORT";
 const desktopDaemonSocketEnv = "SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH";
 const runtimeDownloadPathPattern =
   /^\/p\/[^/]+\/(?:export|export-batch|fs)(?:\/|$)/;
-// BLDR_ELECTRON_WINDOW_TITLE overrides the OS window title for this instance
-// so external tooling driving multiple concurrent app windows can tell them
-// apart. The override also pins the title against renderer document.title
-// updates.
+// windowTitleOverride uses BLDR_ELECTRON_WINDOW_TITLE to override the OS
+// window title for this instance so external tooling driving multiple
+// concurrent app windows can tell them apart. The override also pins the title
+// against renderer document.title updates.
 const windowTitleOverride = process.env.BLDR_ELECTRON_WINDOW_TITLE || "";
-// BLDR_ELECTRON_WINDOW_SIZE ("1600x1000") overrides the initial window size,
-// e.g. for QA tooling that needs app width left over after docked devtools.
+// windowSizeOverride uses BLDR_ELECTRON_WINDOW_SIZE ("1600x1000") to override
+// the initial window size, e.g. for QA tooling that needs app width left over
+// after docked devtools.
 const windowSizeOverride = (() => {
   const match = /^(\d{3,5})x(\d{3,5})$/.exec(
     process.env.BLDR_ELECTRON_WINDOW_SIZE || "",
@@ -111,22 +112,24 @@ const windowSizeOverride = (() => {
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
-  // app contains the reference to the bldr electron app
+  // app contains the reference to the bldr electron app.
   public readonly app: Electron.App;
   // webRuntime is the web runtime instance.
   public readonly webRuntime: WebRuntime;
   // webRuntimeHostOpenStreamCtr contains the OpenStreamFn for the WebRuntimeHost.
-  // this is the Go runtime that is managing the Bldr Electron instance.
+  // WebRuntimeHost is the Go runtime that is managing the Bldr Electron
+  // instance.
   public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr;
   // webRuntimeHostClient contacts the Go WebRuntimeHost via the runtime socket.
   public readonly webRuntimeHostClient: SRPCClient;
   // webRuntimeHostServiceClient is the RPC wrapper for webRuntimeHostClient.
   public readonly webRuntimeHostServiceClient: WebRuntimeHostClient;
-  // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime
+  // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime.
   public readonly serviceWorkerHostClient: SRPCClient;
-  // serviceWorkerHostClient is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
+  // serviceWorkerHostServiceClient is the ServiceWorkerHost RPC wrapper for
+  // serviceWorkerHostClient.
   public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient;
-  // electronInit contains initialization config from Go runtime.
+  // electronInit contains initialization config from the Go runtime.
   private readonly electronInit: ElectronInit;
   // desktopRuntimeResource exposes Electron main desktop-shell lifecycle.
   public readonly desktopRuntimeResource: DesktopRuntimeResource;
@@ -211,7 +214,7 @@ export class BldrElectronApp {
     void this.desktopRuntimeResource.desktopCLIInstallResource.recheck();
   }
 
-  // init initializes the app
+  // init initializes the app.
   public init() {
     const app = this.app;
     const init = this.electronInit;
@@ -244,7 +247,7 @@ export class BldrElectronApp {
     app.on("window-all-closed", this.onWindowAllClosed.bind(this));
   }
 
-  // serviceWorkerFetch performs a request as if it was sent from the ServiceWorker.
+  // serviceWorkerFetch sends a request as if sent from the ServiceWorker.
   public serviceWorkerFetch(
     req: GlobalRequest,
     clientId?: string,
@@ -295,15 +298,16 @@ export class BldrElectronApp {
     this.setupWebRuntimeHostSocket();
     // setup the web runtime client port
     this.setupWebRuntimeClientPort();
-    // setup native filesystem picker ipc
+    // Set up the native filesystem picker ipc.
     this.setupNativeDirectoryPicker();
     // setup native downloads before renderer windows can navigate to export URLs
     this.setupDesktopDownloads();
-    // setup renderer desktop runtime lifecycle ipc
+    // Set up the renderer desktop runtime lifecycle ipc.
     this.setupDesktopRuntimeIpc();
     // setup installed-app replacement under this Electron process's custody
     this.setupAppUpdateIpc();
-    // setup test-only control surface for windowless Electron e2e assertions
+    // Set up the test-only control surface for windowless Electron e2e
+    // assertions.
     this.setupE2EControlServer();
 
     if (this.hasTrayBackgroundPresence()) {
@@ -523,7 +527,7 @@ export class BldrElectronApp {
 
   // setupWebRuntimeHostSocket sets up the socket to the WebRuntimeHost.
   private setupWebRuntimeHostSocket() {
-    // workdir is the directory we will look for the socket
+    // workdir is the directory where the app looks for the socket.
     const runtimeUuid = this.webRuntime.webRuntimeId;
     let workdir = this.distPath;
     if (path.extname(workdir) === ".asar") {
@@ -547,14 +551,14 @@ export class BldrElectronApp {
 
     // Handle socket end (process exit)
     sock.on("end", () => {
-      // assume we are exiting
+      // Assume the app is exiting.
       process.exit(0);
     });
 
     // Handle socket errors (process exit with error)
     sock.on("error", (err) => {
       console.error(err);
-      // ...but also exit if this happens.
+      // Exit on a socket error as well.
       process.exit(1);
     });
   }
@@ -581,9 +585,10 @@ export class BldrElectronApp {
         contextIsolation: true,
         preload,
 
-        // Background throttling was re-enabled after fixing timeout-based lifecycle issues.
-        // WebDocument uses visibility-aware reconnect with exponential backoff.
-        // However, this could be set to false to prevent background throttling altogether.
+        // Background throttling is enabled because timeout-based lifecycle
+        // issues are fixed. WebDocument uses visibility-aware reconnect with
+        // exponential backoff. However, backgroundThrottling could be set to
+        // false to prevent background throttling altogether.
         backgroundThrottling: true,
       },
     });
@@ -617,7 +622,7 @@ export class BldrElectronApp {
       }
     });
 
-    // Build URL with optional hash
+    // Build the URL with an optional hash.
     nwindow.loadURL(this.buildWindowUrl(webDocumentId, hash));
     if (webDocumentId) {
       this.attachWebDocumentWindowLifecycle(webDocumentId, nwindow);
@@ -626,7 +631,8 @@ export class BldrElectronApp {
     // Handle navigation to external URLs (clicked links)
     nwindow.webContents.on("will-navigate", (event, targetUrl) => {
       // Prevent navigation to the same URL (spurious reload).
-      // This can happen during initial load when ServiceWorker isn't yet controlling.
+      // A spurious reload can happen during initial load when ServiceWorker
+      // isn't yet controlling.
       const currentUrl = nwindow.webContents.getURL();
       if (targetUrl === currentUrl) {
         event.preventDefault();
@@ -656,12 +662,13 @@ export class BldrElectronApp {
           nwindow.loadURL(this.buildWindowUrl(webDocumentId));
         }
       } catch {
-        // Invalid URL, block navigation
+        // Block navigation to an invalid URL.
         event.preventDefault();
       }
     });
 
-    // Handle window.open() calls - only allow same-origin with different hash
+    // Handle window.open() calls: only allow the same origin with a different
+    // hash.
     nwindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
       if (this.isRuntimeDownloadUrl(targetUrl)) {
         nwindow.webContents.downloadURL(targetUrl);
@@ -678,18 +685,18 @@ export class BldrElectronApp {
       try {
         const parsed = new URL(targetUrl);
 
-        // Extract hash (remove leading #)
+        // Extract the hash (remove the leading #).
         const hash = parsed.hash ? parsed.hash.slice(1) : "";
 
-        // Create popout window with preserved hash
+        // Create a popout window with the preserved hash.
         const popoutDocId = `popout-${Date.now()}`;
         const popoutWindow = this.createWindow(popoutDocId, hash);
         this.browserWindows[popoutDocId] = popoutWindow;
       } catch {
-        // Invalid URL, deny
+        // Deny the request for an invalid URL.
       }
 
-      // Deny the default behavior, we handle it ourselves
+      // Deny the default behavior because the app handles window.open() calls.
       return { action: "deny" };
     });
 
@@ -889,8 +896,8 @@ export class BldrElectronApp {
       return { removed: false };
     }
     this.abortWebDocumentFetches(req.id);
-    // NOTE: the close() might not work if !closable or interrupted
-    // this behaves the same as if the user clicked the X
+    // NOTE: the close() call might not work if !closable or interrupted.
+    // The close() call behaves the same as if the user clicked the X.
     doc.close();
     return { removed: true };
   }

@@ -28,31 +28,31 @@ type Constructor func(
 // handles PubSub event callbacks and PubSub related directives, yielding PubSub
 // client handles and managing active topics.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor Constructor
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// protocolID is the protocol id
+	// protocolID is the protocol id.
 	protocolID protocol.ID
-	// peerID is the peer ID to use
+	// peerID is the peer ID to use.
 	peerID peer.ID
 
-	// pubSubCtr holds the PubSub
+	// pubSubCtr holds the PubSub.
 	pubSubCtr *ccontainer.CContainer[*pubsub.PubSub]
-	// peerCtr holds the peer
+	// peerCtr holds the peer.
 	peerCtr *ccontainer.CContainer[*peer.Peer]
 
-	// bcast guards below fields
+	// bcast guards below fields.
 	bcast broadcast.Broadcast
-	// cleanupRefs are the refs to cleanup
+	// cleanupRefs are the refs to cleanup.
 	cleanupRefs []directive.Reference
-	// incLinks are links that need to be established
+	// incLinks are links that need to be established.
 	incLinks []link.MountedLink
-	// links are tracked links
+	// links are tracked links.
 	links map[pubsub.PeerLinkTuple]*trackedLink
 }
 

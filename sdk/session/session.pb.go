@@ -66,7 +66,7 @@ func (x SyncStatusState) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// SyncUploadHold names the account limit that holds cloud uploads.
+// SyncUploadHold identifies the account limit that holds cloud uploads.
 type SyncUploadHold int32
 
 const (
@@ -511,7 +511,7 @@ type GetSessionInfoResponse struct {
 	// CryptoInfo contains the session's cryptographic identity info.
 	CryptoInfo *SessionCryptoInfo `protobuf:"bytes,3,opt,name=crypto_info,json=cryptoInfo,proto3" json:"cryptoInfo,omitempty"`
 	// Username is the verified Spacewave Cloud username of the session's account.
-	// Empty for sessions of other providers.
+	// Username is empty for sessions of other providers.
 	Username string `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
 	// SigningPeerId is the peer that signs the session's Space operations and
 	// messages. It equals peer_id except for a local account, whose volume peer
@@ -666,7 +666,7 @@ type CreateSpaceRequest struct {
 	// OwnerId is the owner principal id (account id or organization id).
 	OwnerId string `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"ownerId,omitempty"`
 	// StorageBackendId places the Space's blocks on a storage backend.
-	// Empty uses the account's default storage backend.
+	// An empty StorageBackendId uses the account's default storage backend.
 	StorageBackendId string `protobuf:"bytes,4,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
 	// AccountStorage places the Space's blocks on the account's own storage,
 	// overriding the default storage backend.
@@ -808,9 +808,10 @@ type LeaveSpaceRequest struct {
 	unknownFields []byte
 	// SharedObjectId identifies the external shared object whose native grants are relinquished.
 	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
-	// SuccessorPeerId names the participant promoted to owner when the leaving
-	// account hosts the Space and others remain. Empty selects the remaining
-	// participant with the highest role, then the earliest admitted.
+	// SuccessorPeerId selects the participant promoted to owner when the leaving
+	// account hosts the Space and others remain. An empty SuccessorPeerId
+	// selects the remaining participant with the highest role, then the earliest
+	// admitted.
 	SuccessorPeerId string `protobuf:"bytes,2,opt,name=successor_peer_id,json=successorPeerId,proto3" json:"successorPeerId,omitempty"`
 }
 
@@ -908,14 +909,15 @@ func (x *MountSharedObjectRequest) GetSharedObjectId() string {
 // MountSharedObjectResponse is the response type for MountSharedObject.
 type MountSharedObjectResponse struct {
 	unknownFields []byte
-	// Health explains a failed mount; no resource is allocated when set.
+	// Health explains a failed mount. No resource is allocated when Health is
+	// set.
 	Health *sobject.SharedObjectHealth `protobuf:"bytes,8,opt,name=health,proto3" json:"health,omitempty"`
 	// ResourceId is the ID of the mounted shared object resource.
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// SharedObjectMeta is the metadata for the SharedObject.
-	// Contains the body type and body metadata.
+	// SharedObjectMeta contains the body type and body metadata.
 	SharedObjectMeta *sobject.SharedObjectMeta `protobuf:"bytes,2,opt,name=shared_object_meta,json=sharedObjectMeta,proto3" json:"sharedObjectMeta,omitempty"`
-	// PeerId is the peer id of our local participant for the shared object.
+	// PeerId is the peer id of the local participant for the shared object.
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// SharedObjectId is the id of the shared object.
 	SharedObjectId string `protobuf:"bytes,4,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
@@ -1293,20 +1295,20 @@ type WatchSyncStatusResponse struct {
 	DirectP2PDisabled bool `protobuf:"varint,55,opt,name=direct_p2p_disabled,json=directP2pDisabled,proto3" json:"directP2pDisabled,omitempty"`
 	// BlockStores contains owner-observed mechanics keyed by mounted block store.
 	BlockStores []*SyncBlockStoreStatus `protobuf:"bytes,56,rep,name=block_stores,json=blockStores,proto3" json:"blockStores,omitempty"`
-	// local_account selects account-replica status instead of cloud queues.
+	// LocalAccount selects account-replica status instead of cloud queues.
 	LocalAccount bool `protobuf:"varint,57,opt,name=local_account,json=localAccount,proto3" json:"localAccount,omitempty"`
-	// local_copies reports durable availability for each accepted Space head.
+	// LocalCopies reports durable availability for each accepted Space head.
 	LocalCopies []*SyncLocalCopyStatus `protobuf:"bytes,58,rep,name=local_copies,json=localCopies,proto3" json:"localCopies,omitempty"`
-	// peer_upload_bytes and peer_download_bytes count actual block payload traffic.
+	// PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
 	PeerUploadBytes   uint64 `protobuf:"varint,59,opt,name=peer_upload_bytes,json=peerUploadBytes,proto3" json:"peerUploadBytes,omitempty"`
 	PeerDownloadBytes uint64 `protobuf:"varint,60,opt,name=peer_download_bytes,json=peerDownloadBytes,proto3" json:"peerDownloadBytes,omitempty"`
-	// peers breaks the payload totals down by authenticated Session peer.
+	// Peers breaks the payload totals down by authenticated Session peer.
 	Peers []*SyncPeerTransferStatus `protobuf:"bytes,61,rep,name=peers,proto3" json:"peers,omitempty"`
 	// UploadError is the latest upload failure of a store whose uploads are
 	// still pending, empty while pending uploads succeed. Unlike LastError, it
 	// ignores download and transport errors.
 	UploadError string `protobuf:"bytes,62,opt,name=upload_error,json=uploadError,proto3" json:"uploadError,omitempty"`
-	// UploadHold names the account limit that refused the latest upload of a
+	// UploadHold identifies the account limit that refused the latest upload of a
 	// store whose uploads are still pending. Those uploads wait, without
 	// retrying, until the account state changes, as when the limit is raised.
 	UploadHold SyncUploadHold `protobuf:"varint,63,opt,name=upload_hold,json=uploadHold,proto3" json:"uploadHold,omitempty"`
@@ -2011,10 +2013,11 @@ type SetBackgroundPluginRequest struct {
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// PluginId is the manifest ID of the plugin.
 	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// Enabled confirms the plugin to run in the background, or withdraws it.
+	// Enabled confirms the plugin to run in the background, or withdraws the
+	// confirmation.
 	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Suspended keeps an enabled confirmation while the plugin does not run in
-	// the background. Clearing it resumes the plugin.
+	// the background. Clearing Suspended resumes the plugin.
 	Suspended bool `protobuf:"varint,4,opt,name=suspended,proto3" json:"suspended,omitempty"`
 }
 
@@ -2404,7 +2407,7 @@ func (*DeleteAccountResponse) ProtoMessage() {}
 type AccessSessionStateAtomRequest struct {
 	unknownFields []byte
 	// StoreId is the identifier for the state store.
-	// If empty, uses the default "ui-state" store.
+	// An empty StoreId uses the default "ui-state" store.
 	StoreId string `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"storeId,omitempty"`
 }
 
@@ -2821,7 +2824,7 @@ type WatchPairingStatusResponse struct {
 	RemoteLabel string `protobuf:"bytes,10,opt,name=remote_label,json=remoteLabel,proto3" json:"remoteLabel,omitempty"`
 	// SessionPeerId is the base58 peer ID of the receiving Session the approval
 	// enrolls (set during verification). It differs from RemotePeerId, which
-	// names the pairing link.
+	// references the pairing link.
 	SessionPeerId string `protobuf:"bytes,11,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
 }
 
@@ -2915,14 +2918,14 @@ type CreateSpaceInviteRequest struct {
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// Role is the participant role granted on acceptance.
 	Role sobject.SOParticipantRole `protobuf:"varint,2,opt,name=role,proto3" json:"role,omitempty"`
-	// TargetPeerId is the optional peer ID of the intended invitee (b58).
-	// Empty means open invite (anyone with the token can join).
+	// TargetPeerId is the optional peer ID of the intended invitee (b58). An
+	// empty TargetPeerId means an open invite (anyone with the token can join).
 	TargetPeerId string `protobuf:"bytes,3,opt,name=target_peer_id,json=targetPeerId,proto3" json:"targetPeerId,omitempty"`
 	// MaxUses is the maximum number of times the invite can be used.
 	// 0 means unlimited.
 	MaxUses uint32 `protobuf:"varint,4,opt,name=max_uses,json=maxUses,proto3" json:"maxUses,omitempty"`
 	// ExpiresAt is the time after which the invite is invalid.
-	// Unset means no expiry.
+	// An unset ExpiresAt means no expiry.
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
 	// ApprovalRequired queues redemptions the invite does not otherwise admit
 	// as join requests.
@@ -2990,10 +2993,10 @@ func (x *CreateSpaceInviteRequest) GetParticipantOf() *sobject.SOInviteParticipa
 type CreateSpaceInviteResponse struct {
 	unknownFields []byte
 	// InviteMessage is the signed invite message for out-of-band distribution.
-	// Contains the raw token (not stored on-chain).
+	// InviteMessage contains the raw token (not stored on-chain).
 	InviteMessage *sobject.SOInviteMessage `protobuf:"bytes,1,opt,name=invite_message,json=inviteMessage,proto3" json:"inviteMessage,omitempty"`
 	// ShortCode is an optional short code registered with the cloud.
-	// Present for spacewave sessions, empty for local sessions.
+	// ShortCode is present for spacewave sessions, empty for local sessions.
 	ShortCode string `protobuf:"bytes,2,opt,name=short_code,json=shortCode,proto3" json:"shortCode,omitempty"`
 }
 
@@ -3105,11 +3108,12 @@ type RemoveSpaceParticipantsRequest struct {
 	// PeerIds are the participant peer IDs to remove in one configuration change.
 	PeerIds []string `protobuf:"bytes,2,rep,name=peer_ids,json=peerIds,proto3" json:"peerIds,omitempty"`
 	// AdmitThrough maps a peer ID to the last of its operations every member
-	// still applies; replay rejects the peer's later operations. A peer it does
-	// not name keeps every operation the Space holds. It recovers a Space whose
-	// removed author signed operations whose payloads no member holds.
+	// still applies. Replay rejects the peer's later operations. A peer absent
+	// from AdmitThrough keeps every operation the Space holds. AdmitThrough
+	// recovers a Space whose removed author signed operations whose payloads no
+	// member holds.
 	AdmitThrough map[string]uint64 `protobuf:"bytes,3,rep,name=admit_through,json=admitThrough,proto3" json:"admitThrough,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	// DryRun reports the cut for each peer AdmitThrough names without signing
+	// DryRun reports the cut for each peer AdmitThrough lists without signing
 	// the removal.
 	DryRun bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun,proto3" json:"dryRun,omitempty"`
 }
@@ -3154,9 +3158,9 @@ type RemoveSpaceParticipantsResponse struct {
 	// RemovedPeerIds are the participant peer IDs that were present and removed.
 	RemovedPeerIds []string `protobuf:"bytes,1,rep,name=removed_peer_ids,json=removedPeerIds,proto3" json:"removedPeerIds,omitempty"`
 	// AwaitingGroup is true when the viewer agreed to the removal under group
-	// control, and it applies once the group decides it.
+	// control, and the removal applies once the group decides the removal.
 	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
-	// Cuts reports each peer AdmitThrough named, in peer ID order.
+	// Cuts reports each peer AdmitThrough listed, in peer ID order.
 	Cuts []*SpaceParticipantCut `protobuf:"bytes,3,rep,name=cuts,proto3" json:"cuts,omitempty"`
 }
 
@@ -3292,8 +3296,8 @@ type ResolveSpaceJoinRequestRequest struct {
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// PeerId is the requesting peer (b58).
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
-	// Grant admits the requester at the role of the invite it redeemed; false
-	// refuses the request.
+	// Grant admits the requester at the role of the invite the requester
+	// redeemed. A false Grant refuses the request.
 	Grant bool `protobuf:"varint,3,opt,name=grant,proto3" json:"grant,omitempty"`
 }
 
@@ -3413,7 +3417,8 @@ type JoinSpaceViaInviteResponse struct {
 	unknownFields []byte
 	// SharedObjectId is the invited space ID when known.
 	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
-	// Result describes whether the join completed immediately or only submitted.
+	// Result describes whether the join completed immediately or the join
+	// request was only submitted.
 	Result JoinSpaceViaInviteResult `protobuf:"varint,2,opt,name=result,proto3" json:"result,omitempty"`
 }
 
@@ -3487,9 +3492,10 @@ func (x *GetTransferStatusResponse) GetState() *transfer.TransferState {
 }
 
 // LocalPairingOffer is the SDP offer for no-cloud device pairing.
-// Serialized as proto binary, compressed with DEFLATE, then base58 encoded for
-// display as QR code or copyable string. The public key is extracted from the
-// peer ID (which embeds the multihash of the public key).
+// LocalPairingOffer is serialized as proto binary, compressed with DEFLATE,
+// then base58 encoded for display as a QR code or copyable string. The public
+// key is extracted from the peer ID (which embeds the multihash of the public
+// key).
 type LocalPairingOffer struct {
 	unknownFields []byte
 	// Sdp is the complete SDP offer string (with ICE candidates gathered).
@@ -3519,7 +3525,8 @@ func (x *LocalPairingOffer) GetPeerId() string {
 }
 
 // LocalPairingAnswer is the SDP answer for no-cloud device pairing.
-// Same encoding: proto binary -> DEFLATE compress -> base58.
+// LocalPairingAnswer uses the same encoding: proto binary -> DEFLATE compress
+// -> base58.
 type LocalPairingAnswer struct {
 	unknownFields []byte
 	// Sdp is the complete SDP answer string (with ICE candidates gathered).
@@ -3867,7 +3874,7 @@ type WatchStorageBackendsResponse struct {
 	// StorageBackends lists each backend with the Spaces placed on it.
 	StorageBackends []*StorageBackendInfo `protobuf:"bytes,1,rep,name=storage_backends,json=storageBackends,proto3" json:"storageBackends,omitempty"`
 	// DefaultStorageBackendId identifies the backend new Spaces use.
-	// Empty means the account's own storage.
+	// An empty DefaultStorageBackendId means the account's own storage.
 	DefaultStorageBackendId string `protobuf:"bytes,2,opt,name=default_storage_backend_id,json=defaultStorageBackendId,proto3" json:"defaultStorageBackendId,omitempty"`
 }
 
@@ -3920,7 +3927,7 @@ func (x *StorageBackendInfo) GetPlacedSpaces() []*PlacedSpace {
 	return nil
 }
 
-// PlacedSpace names a Space placed on a storage backend.
+// PlacedSpace references a Space placed on a storage backend.
 type PlacedSpace struct {
 	unknownFields []byte
 	// SpaceId is the Space's SharedObject id.
@@ -4058,7 +4065,7 @@ func (x *AddStorageBackendRequest) GetSetDefault() bool {
 type AddStorageBackendResponse struct {
 	unknownFields []byte
 	// StorageBackendId identifies the saved backend.
-	// Empty when the check failed and nothing was saved.
+	// StorageBackendId is empty when the check failed and nothing was saved.
 	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
 	// Check is the connectivity check that ran before saving.
 	Check *s3.CheckResult `protobuf:"bytes,2,opt,name=check,proto3" json:"check,omitempty"`
@@ -4118,8 +4125,8 @@ func (*RemoveStorageBackendResponse) ProtoMessage() {}
 // SetDefaultStorageBackendRequest is the request for SetDefaultStorageBackend.
 type SetDefaultStorageBackendRequest struct {
 	unknownFields []byte
-	// StorageBackendId identifies the new default.
-	// Empty returns new Spaces to the account's own storage.
+	// StorageBackendId identifies the new default storage backend.
+	// An empty StorageBackendId returns new Spaces to the account's own storage.
 	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
 }
 
@@ -4153,7 +4160,7 @@ type SetStorageBackendPricingRequest struct {
 	// StorageBackendId identifies the backend.
 	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
 	// Pricing is the new price list.
-	// Empty returns to the published prices of the endpoint's service.
+	// Empty Pricing returns to the published prices of the endpoint's service.
 	Pricing *s3.Pricing `protobuf:"bytes,2,opt,name=pricing,proto3" json:"pricing,omitempty"`
 }
 
@@ -4272,7 +4279,7 @@ type MoveSpaceStorageRequest struct {
 	// SharedObjectId is the Space's SharedObject id.
 	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
 	// StorageBackendId identifies the destination backend.
-	// Empty moves the blocks to the account's own storage.
+	// An empty StorageBackendId moves the blocks to the account's own storage.
 	StorageBackendId string `protobuf:"bytes,2,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
 }
 

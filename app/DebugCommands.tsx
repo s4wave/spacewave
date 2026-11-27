@@ -14,7 +14,8 @@ function triggerDownload(path: string, filename: string) {
 }
 
 // DebugCommands registers debug/profiling commands with the command palette.
-// Only rendered in debug builds (gated by BLDR_DEBUG in EditorShell).
+// DebugCommands renders only in debug builds (gated by BLDR_DEBUG in
+// EditorShell).
 export function DebugCommands() {
   useCommand({
     commandId: 'spacewave.debug.trace',

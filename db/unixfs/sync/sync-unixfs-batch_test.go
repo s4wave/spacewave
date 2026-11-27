@@ -545,7 +545,7 @@ func TestSyncToUnixfsBatch_RootfsShape(t *testing.T) {
 
 // TestSyncToUnixfsBatch_NestedDirs covers Phase 2 iter 2: subdirectories
 // encountered in the walk are declared via AddDir before any child entries
-// are written, so the BatchFSWriter missing-parent guard stays quiet.
+// are written, so the BatchFSWriter missing-parent guard is not triggered.
 func TestSyncToUnixfsBatch_NestedDirs(t *testing.T) {
 	// Create the destination World for the nested directory import.
 	ctx, dstRef, wtb, objKey := buildDstBatchTestbed(t)

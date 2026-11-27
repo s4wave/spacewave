@@ -49,7 +49,7 @@ func FetchSourcePackToTempFile(
 		return "", errors.New("source pack exceeds declared size budget")
 	}
 
-	// The caller owns the completed file; partial files are removed here.
+	// The caller owns the completed file. Partial files are removed here.
 	tmp, err := opts.tempFileFactory()("spacewave-cdn-pack-*.kvf")
 	if err != nil {
 		return "", errors.Wrap(err, "create temp pack file")

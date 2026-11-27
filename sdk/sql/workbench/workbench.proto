@@ -46,7 +46,7 @@ message WorkbenchTab {
 
 // WorkbenchLayout stores layout preferences for the workbench viewer.
 message WorkbenchLayout {
-  // Mode names the viewer layout mode.
+  // Mode selects the viewer layout mode.
   string mode = 1;
   // SidebarWidth stores the preferred database tree width in pixels.
   uint32 sidebar_width = 2;

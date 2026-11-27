@@ -40,7 +40,7 @@ type RunConfig struct {
 	// Console receives the guest's serial console: the program's stdout and
 	// stderr, and the kernel's messages. Nil discards it.
 	Console io.Writer
-	// MemorySize is the guest memory in bytes, or 0 for the default.
+	// MemorySize is the guest memory in bytes, or 0 for the default size.
 	MemorySize uint32
 }
 

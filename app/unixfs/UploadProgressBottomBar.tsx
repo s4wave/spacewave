@@ -18,9 +18,10 @@ import type {
   UploadItem,
 } from './useUploadManager.js'
 
-// Auto-dismiss windows for the anchored feedback popover. Completion lingers
-// slightly longer so the "added" confirmation reads before it fades; both are
-// capped by the indicator itself unmounting once the manager clears its items.
+// STARTED_DISMISS_MS and COMPLETED_DISMISS_MS are the auto-dismiss windows for
+// the anchored feedback popover. Completion lingers slightly longer so the
+// "added" confirmation reads before the popover fades. Both windows are capped
+// by the indicator itself unmounting once the manager clears its items.
 const STARTED_DISMISS_MS = 3500
 const COMPLETED_DISMISS_MS = 5000
 
@@ -180,7 +181,7 @@ function SummaryCell({ label, value }: { label: string; value: string }) {
 
 /**
  * uploadStatusLabel returns the status text of an upload item. A folder being
- * sent is being created, and what was dropped inside it waits on that.
+ * sent is being created, and the folder's dropped contents wait for creation.
  */
 function uploadStatusLabel(item: UploadItem): string {
   switch (item.status) {

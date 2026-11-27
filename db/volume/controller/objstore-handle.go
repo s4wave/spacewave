@@ -18,7 +18,7 @@ type objectStoreHandle struct {
 	objStore object.ObjectStore
 }
 
-// newObjectStoreHandle builds a new object store handle
+// newObjectStoreHandle builds a new object store handle.
 func newObjectStoreHandle(
 	c *Controller,
 	v volume.Volume,

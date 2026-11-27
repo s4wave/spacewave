@@ -9,9 +9,9 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 message Tx {
   option (typeid.id) = "forge/task/tx";
 
-  // TxType is the kind of transaction this is.
+  // TxType is the kind of transaction.
   TxType tx_type = 1;
-  // TaskObjectKey is the Task object ID this is associated with.
+  // TaskObjectKey is the Task object ID associated with the transaction.
   // The Task object must already exist.
   string task_object_key = 2;
 
@@ -21,7 +21,7 @@ message Tx {
   // TxStart contains the start transaction tx.
   // TxType_START
   TxStart tx_start = 4;
-  // TxUpdatePassState contains the update pass state tx.
+  // TxUpdateWithPassState contains the update pass state tx.
   // TxType_UPDATE_WITH_PASS_STATE
   TxUpdateWithPassState tx_update_with_pass_state = 5;
   // TxComplete contains the complete tx.
@@ -47,7 +47,8 @@ enum TxType {
   // Transitions PENDING to RUNNING and creates the next Pass.
   TxType_START = 2;
   // TxType_UPDATE_WITH_PASS_STATE updates the Task from the current Pass.
-  // Canceled completion transitions to PENDING; other completion to CHECKING.
+  // Canceled completion transitions to PENDING. Other completion transitions
+  // to CHECKING.
   // A nonterminal Pass leaves the Task state unchanged.
   TxType_UPDATE_WITH_PASS_STATE = 3;
   // TxType_COMPLETE sets the result of the Task.
@@ -110,7 +111,8 @@ message TxStart {
 }
 
 // TxUpdateWithPassState updates the Task from the current Pass.
-// Canceled completion transitions to PENDING; other completion to CHECKING.
+// Canceled completion transitions to PENDING. Other completion transitions
+// to CHECKING.
 // A nonterminal Pass leaves the Task state unchanged.
 // TxType: TxType_UPDATE_WITH_PASS_STATE
 message TxUpdateWithPassState {

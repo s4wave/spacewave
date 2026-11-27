@@ -14,7 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// pendingTree builds blocks bottom up for a PendingStore test, each naming
+// pendingTree builds blocks bottom up for a PendingStore test, each referencing
 // the children given.
 type pendingTree map[string]*block.PutBatchEntry
 
@@ -42,15 +42,15 @@ func (tr pendingTree) ref(name string) *block.BlockRef {
 }
 
 // TestPendingStoreRunThrough checks on a Volume that frees with a 1ns grace
-// that a PendingStore stores only the trees a root moves onto or a stage
-// puts: a replaced unstaged tree never reaches the Volume, a root move stores
-// its tree in the move, a pin holds the tree it pins, a sweep forgets what no
-// live root reaches, a stage stores its tree at once and the move naming it
+// that a PendingStore stores only the trees a root moves onto or a stage puts:
+// a replaced unstaged tree never reaches the Volume, a root move stores its
+// tree in the move, a pin holds the tree it pins, a sweep forgets what no live
+// root reaches, a stage stores its tree at once and the move referencing it
 // stores nothing again, a tree that outgrows the bound is held under its
 // writer's stage until its root lands, and a flush holds the tree it stores
-// until the move that names it, after which a move stores a tree whose flush
-// ended again. Collection between every step frees no block a root, stage or
-// pin reaches.
+// until the move that references it, after which a move stores a tree whose
+// flush ended again. Collection between every step frees no block a root, stage
+// or pin reaches.
 func TestPendingStoreRunThrough(t *testing.T) {
 	f := newVolumeFixture(t)
 	ctx := t.Context()
@@ -87,8 +87,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 		t.Fatalf("a kept block read %v %v", found, err)
 	}
 
-	// A root on the second stores its tree in the move; the replaced first
-	// never reaches the Volume, and collection keeps the held tree.
+	// A root on the second World stores its tree in the move. The replaced
+	// first World never reaches the Volume, and collection keeps the held
+	// tree.
 	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-test", Ref: tr.ref("R2")}}); err != nil {
 		t.Fatal(err)
 	}
@@ -132,9 +133,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	kept(false, "C3", "R3")
 	stored(true, "E")
 
-	// With SetKeepStaged on, a writer's pages kept through its stage survive
-	// a sweep that took its mark and gathered its live roots before the
-	// writer admitted the root naming them and ended its stage.
+	// With SetKeepStaged on, a writer's pages kept through its stage
+	// survive a sweep that took its mark and gathered its live roots before
+	// the writer admitted the root referencing them and ended its stage.
 	ps.SetKeepStaged(true)
 	tr.add(t, "D")
 	tr.add(t, "RD", "D")
@@ -153,8 +154,8 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	f.collect(t)
 	stored(true, "D", "RD")
 
-	// A root on a new entry naming kept trees, as a block naming several
-	// payload roots is, stores the trees with the entry.
+	// A root on a new entry referencing kept trees, as a block referencing
+	// several payload roots is, stores the trees with the entry.
 	tr.add(t, "P1")
 	tr.add(t, "P2", "E")
 	held := tr.add(t, "H", "P1", "P2")
@@ -202,11 +203,12 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	ps.SetKeepStaged(false)
 
 	// A stage stores each put at once, with the kept blocks below it, and
-	// keeps none of it, so the move that later names the staged root stores
-	// nothing: a staged build adopted under a writer's turn costs that turn
-	// no write. A sweep that forgets the kept page the build names, and a
-	// collection, while the stage is open free nothing it stored but a block
-	// the stage released, and the root holds the tree after the stage ends.
+	// keeps none of it, so the move that later references the staged root
+	// stores nothing: a staged build adopted under a writer's turn costs
+	// that turn no write. A sweep that forgets the kept page the build
+	// references, and a collection, while the stage is open free nothing it
+	// stored but a block the stage released, and the root holds the tree
+	// after the stage ends.
 	leased, ok := f.store.(leasedStore)
 	if !ok {
 		t.Fatal("the Volume bucket holds no leased roots")
@@ -315,9 +317,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	stored(true, "K1", "RK")
 
 	// A flush that left out another flush's tree keeps that flush's stage
-	// until its own release: the first flush's move landing, its release, its
-	// root moving off and a collection free none of the tree before the
-	// second flush's move names it.
+	// until its own release: the first flush's move landing, its release,
+	// its root moving off and a collection free none of the tree before the
+	// second flush's move references it.
 	tr.add(t, "S1")
 	tr.add(t, "RS", "S1")
 	put(ps, "S1", "RS")
@@ -345,9 +347,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	stored(true, "S1", "RS")
 
 	// A tree past the bound puts the kept blocks under its overflowing
-	// parent with it, under the writer's stage, and keeps them in memory for
-	// the kept Worlds that name them; the stage holds them across a
-	// collection until the root lands, and the root holds them after the
+	// parent with it, under the writer's stage, and keeps them in memory
+	// for the kept Worlds that reference them. The stage holds them across
+	// a collection until the root lands, and the root holds them after the
 	// stage ends.
 	small := block.NewPendingStore(f.store, len(tr.add(t, "X").Data))
 	small.SetKeepStaged(true)

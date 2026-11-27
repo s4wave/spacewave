@@ -16,7 +16,7 @@ type resolveBuildChannelSub struct {
 	d   pubsub.BuildChannelSubscription
 }
 
-// emittedSubscription is a wrapped subscription with proxied calls
+// emittedSubscription is a wrapped subscription with proxied calls.
 type emittedSubscription struct {
 	pubsub.Subscription
 	relFunc func()

@@ -52,7 +52,8 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	cloneURL := "../../"
 	if runtime.GOOS == "js" {
 		// clone from the proxy (see ./proxy)
-		// we could clone from GitHub, but they don't set cross-origin headers.
+		// The demo could clone from GitHub, but GitHub doesn't set
+		// cross-origin headers.
 		cloneURL = "http://localhost:5000/.git/"
 	}
 	if err := common.RunDemoGit(ctx, le, b, volCtr, cloneURL); err != nil {

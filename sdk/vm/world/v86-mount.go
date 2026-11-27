@@ -61,7 +61,7 @@ func newV86MountResolver(
 // Resolution order for each asset:
 //  1. per-VM override edge on the VmV86 (v86/{asset}-override)
 //  2. v86image/{asset} edge on the V86Image linked via v86/image
-//  3. v86image/{asset} edge on the image named by the V86Image cdn_source
+//  3. v86image/{asset} edge on the image referenced by the V86Image cdn_source
 //
 // Supported mount names: ""/rootfs (rootfs), "kernel", "seabios", "vgabios",
 // "wasm". The per-VM bios override (if present) covers both seabios and
@@ -113,7 +113,8 @@ func v86AssetPreds(name string) (overridePred, imagePred quad.IRI, ok bool) {
 }
 
 // openImageAsset opens the imagePred asset of the V86Image imageKey: the
-// image's own edge, else the edge on the published image its cdn_source names.
+// image's own edge, else the edge on the published image its cdn_source
+// references.
 func (r *v86MountResolver) openImageAsset(ctx context.Context, imageKey string, imagePred quad.IRI) (*unixfs.FSHandle, error) {
 	// Prefer the asset linked to the image itself.
 	assetKey, ok, err := world.LookupGraphObjectKey(ctx, r.ws, imageKey, string(imagePred))

@@ -938,7 +938,7 @@ func archiveName(goos, platform string) string {
 }
 
 // cliArchiveName returns the per-platform CLI archive filename. macOS and
-// Windows targets get zip archives; Linux targets get tar.gz. macOS uses the
+// Windows targets get zip archives. Linux targets get tar.gz. macOS uses the
 // user-facing "macos" label rather than the Go GOOS "darwin" so the filename
 // matches the URLs declared in app/download/manifest.ts and the existing
 // installer naming (spacewave-macos-*.dmg).
@@ -952,7 +952,7 @@ func cliArchiveName(goos, platform string) string {
 
 // userFacingPlatformLabel returns the human-facing platform label for a
 // given goos/platform tuple. macOS gets "macos" everywhere it appears
-// in user-visible filenames; other platforms keep their Go GOOS name.
+// in user-visible filenames. Other platforms keep their Go GOOS name.
 func userFacingPlatformLabel(goos, platform string) string {
 	if goos != "darwin" {
 		return platform
@@ -1473,7 +1473,7 @@ const (
 
 // archiveDir streams srcDir into destPath in the requested format and
 // returns the hex-encoded sha256 of the archive bytes. Both tar.gz and
-// zip share the same walk + per-entry contract; only the writer
+// zip share the same walk + per-entry contract, but only the writer
 // construction and entry-header layout differ.
 func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
 	// Create the output archive file.

@@ -67,8 +67,8 @@ func (db *DB) Stats(ctx context.Context) (Stats, error) {
 		CollectBytes:      4*db.budget + runTarget*(1+levelRatio) + 4*chunkSize,
 	}
 
-	// Count the chunks from the table's tally; the header chunk, chunk 0, is
-	// a log chunk the counts leave out.
+	// Count the chunks from the table's tally. The header chunk, chunk 0,
+	// is a log chunk the counts leave out.
 	t := st.m.table
 	s.Chunks = ChunkCounts{
 		Free:     t.count(chunkFree),

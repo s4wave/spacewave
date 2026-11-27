@@ -59,8 +59,8 @@ export const Segment: MessageType<Segment> =
  * FolderVersion is the Drive version of one file of a two-way linked folder
  * that the folder's node last published from the folder or applied to it, with
  * the stat of the file on disk that held it then. A Drive file whose node
- * differs from it changed in the Drive, and a folder file whose stat differs
- * from it changed on disk.
+ * differs from the recorded node changed in the Drive, and a folder file whose
+ * stat differs from the recorded stat changed on disk.
  *
  * @generated from message block.store.filesegment.FolderVersion
  */

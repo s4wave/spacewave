@@ -13,7 +13,7 @@ import (
 
 // TestPeerBlockWithoutRefsKeptOnDecode checks that a block a peer serves
 // without its refs is kept, with an upload marker, once a cursor decodes it,
-// with the refs the decoded block holds; and that a raw read, which decodes
+// with the refs the decoded block holds, and that a raw read, which decodes
 // nothing, keeps nothing.
 func TestPeerBlockWithoutRefsKeptOnDecode(t *testing.T) {
 	// Rebuild the reads with a peer that serves no refs, and peer fills that

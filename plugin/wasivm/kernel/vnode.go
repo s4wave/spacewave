@@ -4,7 +4,7 @@ import "time"
 
 // VNode is a file, directory, symlink or device in the VFS. A host-backed
 // node mirrors the file at hostPath in the root filesystem, which holds its
-// content; a host-backed directory loads its entries on demand.
+// content. A host-backed directory loads its entries on demand.
 type VNode struct {
 	// ino is the inode number.
 	ino uint64

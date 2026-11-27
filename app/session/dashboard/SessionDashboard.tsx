@@ -83,7 +83,8 @@ export interface SessionDashboardProps {
   orgs?: DashboardOrg[]
   onSpaceClick?: (space: DashboardSpace) => void
   // onQuickstartClick starts a quickstart. storage is a storage backend id,
-  // or 'account' for the account's own storage; undefined uses the default.
+  // or 'account' for the account's own storage. undefined uses the default
+  // storage backend.
   onQuickstartClick?: (quickstartId: string, storage?: string) => void
   readOnly?: boolean
   isCloud?: boolean
@@ -94,11 +95,12 @@ export interface SessionDashboardProps {
 }
 
 // SessionDashboard displays the main session dashboard page.
-// When the session has no spaces (empty state), shows a welcome state with
-// quickstart CTAs and a "Secure Your Account" section. Cloud subscribers
-// additionally see a congrats heading and a create organization section.
-// Local sessions show quickstart CTAs and secure account but no congrats
-// or organization section.
+// When the session has no spaces (empty state), the dashboard shows a welcome
+// state with quickstart CTAs and a "Secure Your Account" section. Cloud
+// subscribers additionally see a congrats heading and a create organization
+// section.
+// Local sessions show quickstart CTAs and the secure account section but no
+// congrats heading or organization section.
 export function SessionDashboard({
   spaces,
   orgs,
@@ -256,7 +258,7 @@ function WelcomeHeading() {
   )
 }
 
-// LockState bundles the coupled lock-mode UI inputs that transition together
+// LockState contains the coupled lock-mode UI inputs that transition together
 // under each user action in the lock setup flow.
 interface LockState {
   mode: 'auto' | 'pin'
@@ -577,7 +579,7 @@ function InlineSecureAccountSection(props: {
 }
 
 // CreateOrgSection renders a prompt to create an organization.
-// Only shown for cloud subscribers in the welcome state.
+// The section is only shown for cloud subscribers in the welcome state.
 function CreateOrgSection() {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
@@ -961,7 +963,7 @@ function DashboardCommandPalette({
       opt.id !== primaryQuickstart?.id && opt.id !== blankSpaceQuickstart?.id,
   )
 
-  // Render every space so search can match all of them; the CommandList
+  // Render every space so search can match all of them. The CommandList
   // scrolls past the fixed palette height instead of truncating the list.
   const recentSpaces = useMemo(() => spaces ?? [], [spaces])
 

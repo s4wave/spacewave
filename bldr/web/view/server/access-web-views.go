@@ -80,7 +80,7 @@ func (h *AccessWebViewsViaBus) GetWebViewInvoker(
 }
 
 // WebViewRpc accesses the WebView service for a view by ID.
-// Id: web view id
+// Id: web view id.
 func (h *AccessWebViewsViaBus) WebViewRpc(strm web_view.SRPCAccessWebViews_WebViewRpcStream) error {
 	return rpcstream.HandleRpcStream(strm, h.GetWebViewInvoker)
 }

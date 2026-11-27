@@ -16,12 +16,12 @@ import (
 	resource_proxy "github.com/s4wave/spacewave/bldr/resource/proxy"
 )
 
-// viewService names the service whose Watch method streams a versioned
+// viewService identifies the service whose Watch method streams a versioned
 // view: field 1 holds the view's body and field 1000 its ViewVersion.
 const viewService = "test.Views"
 
 // viewFrame encodes a versioned view message: body, then the ViewVersion
-// naming version, marked unchanged when body is empty.
+// holding version, marked unchanged when body is empty.
 func viewFrame(body, version string) []byte {
 	var view []byte
 	view = protowire.AppendTag(view, 1, protowire.BytesType)
@@ -160,8 +160,9 @@ func TestProxyResumesVersionedWatch(t *testing.T) {
 	}
 	second.waitCalls(t, ctx, "Watch v1")
 
-	// After another the request holds v2, which the third backend does not
-	// know: it answers v1 whole, which the client receives as the change.
+	// After another restart the request holds v2, which the third backend
+	// does not know: the backend answers v1 whole, which the client
+	// receives as the change.
 	third := newBackend(3)
 	second.kill()
 	current.Store(third)

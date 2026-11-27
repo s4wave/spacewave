@@ -28,10 +28,10 @@ import (
 
 // DefaultReads is the number of block reads a copy keeps in flight when the
 // options set none. A source's own connection limit decides how many run at
-// once; the rest wait there.
+// once, and the rest wait there.
 const DefaultReads = 32
 
-// Reasons a block is a hole, as the holes list names them.
+// Reasons a block is a hole, as the holes list records them.
 const (
 	// ReasonMissing is a block no source holds.
 	ReasonMissing = "missing"
@@ -91,7 +91,7 @@ type Result struct {
 // a source that holds the block finishes the copy.
 //
 // An error stops the walk where it stands. What was read is still written and
-// proven, so the next run resumes from there. It returns only after every
+// proven, so the next run resumes from there. Copy returns only after every
 // reader has returned and the last pack is durable.
 func Copy(ctx context.Context, opts *Options) (*Result, error) {
 	c := &copier{
@@ -114,7 +114,7 @@ func Copy(ctx context.Context, opts *Options) (*Result, error) {
 }
 
 // copier holds the state of one Copy call. Only the calling goroutine touches
-// nodes, queue, batch and proofs; readers report through results and the
+// nodes, queue, batch and proofs. Readers report through results and the
 // flusher works through flushes.
 type copier struct {
 	// opts configures the copy.
@@ -278,8 +278,8 @@ func (c *copier) walk(ctx context.Context) error {
 			return stop
 		}
 
-		// Handle one result; a read in flight when the walk stopped still
-		// counts when it succeeded.
+		// Handle one result. A read in flight when the walk stopped
+		// still counts when it succeeded.
 		res := <-results
 		inFlight--
 		if err := c.handle(ctx, res); err != nil && stop == nil {
@@ -563,7 +563,7 @@ func (c *copier) proven(ctx context.Context, refs []*block.BlockRef) ([]bool, er
 }
 
 // finish completes a walked block, then each parent it released. A block with
-// no hole under it is proven and leaves the walk; one with a hole stays, so a
+// no hole under it is proven and leaves the walk. One with a hole stays, so a
 // parent that reaches it later inherits the hole.
 func (c *copier) finish(n *node) {
 	stack := []*node{n}
@@ -603,12 +603,12 @@ func (c *copier) prove(n *node) {
 
 // runFlusher uploads up to c.uploads packs at once and commits their proofs in
 // order, each only after its own pack and every earlier one are durable. A
-// proof names blocks in earlier packs too, so a later pack finishing first
+// proof records blocks in earlier packs too, so a later pack finishing first
 // must not commit its proofs. A failure stops the walk and drains the rest:
-// their proofs stay uncommitted, which costs only a repeated walk.
+// their proofs stay uncommitted, and the only cost is a repeated walk.
 func (c *copier) runFlusher(ctx context.Context, stop context.CancelCauseFunc) error {
 	// Commit in order. The queue holds the uploads behind the one the
-	// committer waits on, which bounds how many run.
+	// committer waits on, so the queue bounds how many uploads run.
 	queue := make(chan *flush, c.uploads-1)
 	committed := make(chan error, 1)
 	go func() {

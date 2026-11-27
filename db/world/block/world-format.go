@@ -13,22 +13,23 @@ import (
 )
 
 // NewestWorldFormat is the format new Worlds are created with when their
-// creator asks for the newest.
+// creator asks for the newest format.
 //
 // A World's format is stored in the root's format field and in the
-// implementation tags of both of its trees, and they must agree:
+// implementation tags of both of its trees. The format field and both tags
+// must agree:
 //
 //   - A node graph World's object tree is tagged KV_IMPL_TYPE_IAVL_NODE_GRAPH,
 //     or KV_IMPL_TYPE_OKRA_NODE_GRAPH when it is in the Okra layout, as an
-//     imported World's is; its graph tree is tagged
+//     imported World's is. Its graph tree is tagged
 //     KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH. NewWorld tags both from creation,
 //     and regeneration retags the object tree in place. A build that predates
 //     the node graph ignores the format field, which proto3 allows, but opens
 //     the object tree as it loads the root and rejects its unknown tag there,
-//     so it refuses the World before any read or write. Tagging the graph tree alone would not
-//     do: such a build opens the graph only on a graph call, so an object-only
-//     write would commit a root whose unknown graph tag hides the graph
-//     tree's blocks from that build's reference walk.
+//     so it refuses the World before any read or write. Tagging the graph tree
+//     alone would not do: such a build opens the graph only on a graph call,
+//     so an object-only write would commit a root whose unknown graph tag
+//     hides the graph tree's blocks from that build's reference walk.
 //   - A kv World's trees carry neither tag.
 //   - checkTreeImpls refuses a root where the field and tags disagree, at
 //     load, before any read or write.
@@ -36,11 +37,11 @@ import (
 // Within the node graph tree a quad is two keys, its out key under the subject
 // and its in key under the object. The store writes both in the same
 // transaction and a World commits its graph tree as one root, so a committed
-// tree holds both or neither; nothing repairs a tree holding one.
+// tree holds both or neither. Nothing repairs a tree holding one.
 const NewestWorldFormat = WorldFormat_WORLD_FORMAT_NODE_GRAPH
 
 // newObjectTree returns the root of a new object tree of the format. A kv
-// World's stays untagged, as every kv World's object tree has been.
+// World's object tree stays untagged, as every kv World's object tree has been.
 func (f WorldFormat) newObjectTree() *kvtx_block.KeyValueStore {
 	if f == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
 		return kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH)
@@ -103,14 +104,14 @@ func (f WorldFormat) graphImpl() kvtx_block.KVImplType {
 
 // checkTreeImpls checks that a World root's trees carry its format's tags:
 // both of a node graph World's trees are tagged as such, and neither of a kv
-// World's is.
+// World's trees is.
 func (w *World) checkTreeImpls() error {
 	// Read whether each tree carries a node graph tag, in either layout.
 	objImpl := w.GetObjectKeyValue().GetImplType()
 	objTagged := objImpl == kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH || objImpl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH
 	graphTagged := w.GetGraphKeyValue().GetImplType() == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH
 
-	// Require the tags the format names.
+	// Require the tags the format declares.
 	switch w.GetFormat() {
 	case WorldFormat_WORLD_FORMAT_CAYLEY_KV:
 		if objTagged || graphTagged {
@@ -165,8 +166,9 @@ func openGraph(ctx context.Context, format WorldFormat, settings *GraphSettings,
 // batchCollector returns the store's own collector for a lookup of n filters,
 // or nil when a cached handle shared across the filters serves them better.
 // The node graph's collector resolves each value once for the whole batch and
-// seeks each filter's narrowed range; the kv collector resolves each filter
-// alone, so a kv batch of more than one shares the cached handle instead.
+// seeks each filter's narrowed range. The kv collector resolves each filter
+// alone, so a kv batch of more than one filter shares the cached handle
+// instead.
 func (f WorldFormat) batchCollector(qs graph.QuadStore, n int) graphQuadBatchCollector {
 	collector, _ := qs.(graphQuadBatchCollector)
 	if f == WorldFormat_WORLD_FORMAT_CAYLEY_KV && n != 1 {

@@ -46,8 +46,8 @@ func (t *TxApplyObjectOp) GetEmpty() bool {
 	return t.GetObjectKey() == "" || t.GetOperationTypeId() == ""
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxApplyObjectOp) Validate() error {
 	if len(t.GetOperationTypeId()) == 0 {
 		return world.ErrEmptyOp

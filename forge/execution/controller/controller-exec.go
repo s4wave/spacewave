@@ -170,7 +170,7 @@ func (c *Controller) completeExecution(ctx context.Context, execConf *ExecConfig
 
 // processExec processes the exec portion of the Target config.
 //
-// Transport interruptions are retried by executeClaimed; handler errors become
+// Transport interruptions are retried by executeClaimed. Handler errors become
 // the execution result.
 func (c *Controller) processExec(
 	ctx context.Context,

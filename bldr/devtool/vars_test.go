@@ -8,7 +8,7 @@ import (
 )
 
 // TestParseVars splits at the first equals sign, keeps an empty value, and
-// takes the last of a repeated name.
+// takes the last value of a repeated name.
 func TestParseVars(t *testing.T) {
 	got, err := parseVars([]string{"deployment=staging", "empty=", "url=a=b", "deployment=production"})
 	if err != nil {
@@ -20,7 +20,7 @@ func TestParseVars(t *testing.T) {
 	}
 }
 
-// TestParseVarsRejectsMalformed names the flag value that has no name or no
+// TestParseVarsRejectsMalformed reports the flag value that has no name or no
 // equals sign.
 func TestParseVarsRejectsMalformed(t *testing.T) {
 	for _, spec := range []string{"deployment", "=staging", ""} {

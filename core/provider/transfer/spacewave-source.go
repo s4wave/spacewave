@@ -40,7 +40,7 @@ func NewSpacewaveTransferSource(
 	}
 }
 
-// GetOrigin returns the origin naming the source account.
+// GetOrigin returns the origin identifying the source account.
 func (s *SpacewaveTransferSource) GetOrigin() *TransferOrigin {
 	return &TransferOrigin{SourceProviderId: s.providerID, SourceAccountId: s.accountID}
 }

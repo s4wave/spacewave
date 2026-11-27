@@ -25,8 +25,9 @@ export type TableStep = 0 | 16 | 22 | 28 | 40
 // tableSteps are the steps a column can show from, narrowest first.
 export const tableSteps: readonly TableStep[] = [16, 22, 28, 40]
 
-// The class that shows a column's header and cells from its step, and the one
-// that hides what stands in for it there. Literal, so Tailwind emits them.
+// The visibility classes showFrom and hideFrom show a column's header and cells
+// from its step and hide the column's shed facts there. The classes are literal
+// so Tailwind emits them.
 const showFrom: Record<TableStep, string> = {
   0: 'flex',
   16: 'hidden @table-16:flex',
@@ -44,9 +45,9 @@ const hideFrom: Record<TableStep, string> = {
 
 // TableColumn is one column of a Table over records of type T.
 export interface TableColumn<T> {
-  // key names the column in the sort state; unique in the table.
+  // key identifies the column in the sort state. It is unique in the table.
   key: string
-  // label heads the column and names its value among the shed facts.
+  // label heads the column and labels its value among the shed facts.
   label: string
   // text is the record's value as text: the cell, its title, the fact the
   // column leaves when it sheds, and the sort unless compare is given.
@@ -54,13 +55,14 @@ export interface TableColumn<T> {
   // cell draws the value when plain text is not enough, such as a glyph.
   cell?: (row: T) => ReactNode
   // kind says how the value gives way: an id (a hash, key, path or URL)
-  // shortens in its middle; text ends in an ellipsis. Defaults to text.
+  // shortens in its middle. Text ends in an ellipsis. Defaults to text.
   kind?: 'id' | 'text'
   // minWidth is the column's width in rem. It is not used for the first
   // column, which takes the rest of the row and keeps viewer-name.
   minWidth?: number
   // priority orders the columns by when they appear as the table widens,
-  // lowest first; defaults to the column's place. Not used for the first.
+  // lowest first. Defaults to the column's place. Not used for the first
+  // column.
   priority?: number
   // end aligns the value to the row's end, as for a number.
   end?: boolean
@@ -68,15 +70,16 @@ export interface TableColumn<T> {
   compare?: (a: T, b: T) => number
 }
 
-// Widths in rem the step of each column is reckoned from: the row's inline
-// padding, the list's, and the classic scrollbar's 6px, the identifying
-// column's floor (viewer-name), and the gap before each further column.
+// The layout widths rowPadRem, nameRem and gapRem are in rem and determine each
+// column's step: the row's inline padding, the list's padding, and the classic
+// scrollbar's 6px, the identifying column's floor (viewer-name), and the gap
+// before each further column.
 const rowPadRem = 1.5 + 0.25 + 0.375
 const nameRem = 7.5
 const gapRem = 0.75
 
 // columnSteps gives each column the step it shows from: the first column
-// always; then, in priority order, the first step that holds the column with
+// always, then, in priority order, the first step that holds the column with
 // every column before it. A column no step holds gets null and shows only as
 // a fact of the selected row.
 export function columnSteps<T>(
@@ -100,9 +103,9 @@ export function columnSteps<T>(
   return steps
 }
 
-// sortedColumn is the index of the column a sort key names. A key no column
-// has, such as one a stored state kept after its column left, sorts by the
-// first column, so the header and the order agree.
+// sortedColumn is the index of the column a sort key references. A key no
+// column has, such as one a stored state kept after its column left, sorts by
+// the first column, so the header and the order agree.
 export function sortedColumn<T>(
   columns: readonly TableColumn<T>[],
   sortKey: string | undefined,
@@ -132,7 +135,7 @@ function compareBy<T>(column: TableColumn<T>) {
 export interface TableProps<T> {
   // rows are the records, each with an id that is stable across changes.
   rows: ListItem<T>[]
-  // columns are the table's columns in their order; the first identifies a
+  // columns are the table's columns in their order. The first identifies a
   // row and never sheds. The array must keep its identity across renders, as
   // a module constant or a memo: a new array remounts every row and drops
   // focus.
@@ -164,7 +167,7 @@ export function Table<T>({
   label,
   className,
 }: TableProps<T>) {
-  // Each column's step, and the widest, from which no fact is left.
+  // Each column's step, and the widest step, from which no fact is left.
   const steps = useMemo(() => columnSteps(columns), [columns])
   const widest = steps.includes(null)
     ? null
@@ -232,7 +235,7 @@ export function Table<T>({
   )
 }
 
-// TableHeader is the row of column headers; each sorts by its column.
+// TableHeader is the row of column headers. Each header sorts by its column.
 function TableHeader<T>({
   columns,
   steps,
@@ -248,7 +251,8 @@ function TableHeader<T>({
   const sortedIndex = sortedColumn(columns, state.sortKey)
   const sortedStep = sortedIndex > 0 ? steps[sortedIndex] : 0
 
-  // Sort by a column; the List flips direction when it is already sorted.
+  // Sort by a column. The List flips direction when the column is already
+  // sorted.
   const sortBy = (key: string) => dispatch({ type: 'SET_SORT', sortKey: key })
 
   return (

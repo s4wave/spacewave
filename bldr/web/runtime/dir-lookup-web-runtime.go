@@ -21,7 +21,7 @@ type LookupWebRuntime interface {
 // LookupWebRuntimeValue is the result of LookupWebRuntime.
 type LookupWebRuntimeValue = WebRuntime
 
-// lookupWebRuntime implements LookupWebRuntime
+// lookupWebRuntime implements LookupWebRuntime.
 type lookupWebRuntime struct {
 	webRuntimeID string
 }
@@ -92,7 +92,7 @@ func (d *lookupWebRuntime) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *lookupWebRuntime) GetName() string {
 	return "LookupWebRuntime"
 }

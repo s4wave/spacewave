@@ -9,20 +9,21 @@ import (
 // StoreOps can read/write blocks.
 type StoreOps interface {
 	// GetHashType returns the preferred hash type for the store.
-	// This should return as fast as possible (called frequently).
-	// If 0 is returned, uses a default defined by Hydra.
+	// GetHashType should return as fast as possible (called frequently).
+	// If 0 is returned, the caller uses a default hash type defined by Hydra.
 	GetHashType() hash.HashType
 	// GetSupportedFeatures returns the native feature bitmask for the store.
-	// This should return as fast as possible (called frequently) and remain
-	// static for the lifetime of the store.
+	// GetSupportedFeatures should return as fast as possible (called
+	// frequently) and remain static for the lifetime of the store.
 	GetSupportedFeatures() StoreFeature
 	// BeginReadOperation opens a read scope for a bounded logical operation.
 	// The returned store must be released after use. Implementations without
 	// native read-operation state may return themselves with a no-op release.
 	BeginReadOperation(ctx context.Context) (StoreOps, func(), error)
-	// PutBlock puts a block into the store. By default this may enqueue a
+	// PutBlock puts a block into the store. By default PutBlock may enqueue a
 	// buffered, read-through write without waiting for durability. Set
-	// PutOpts.Sync to fence this write and all prior buffered writes before return.
+	// PutOpts.Sync to fence this write and all prior buffered writes before
+	// return.
 	// The ref should not be modified after return.
 	// The second return value can optionally indicate if the block already existed.
 	// If the hash type is unset, use the type from GetHashType().
@@ -41,7 +42,7 @@ type StoreOps interface {
 	GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error)
 	// GetStoredBlock gets a block and its outgoing block references in one
 	// read. RefsKnown is unset when the store holds the bytes without their
-	// references; with RefsKnown set, empty Refs means the block is a leaf.
+	// references. With RefsKnown set, empty Refs means the block is a leaf.
 	// Returns nil, nil if not found.
 	GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error)
 	// GetBlockExists checks if a block exists with a cid reference.
@@ -63,7 +64,7 @@ type StoreOps interface {
 	// sync(2). The boolean reports whether a fence was applied: true when the
 	// barrier completed or the store is always-durable, false when the store
 	// provides no durability fence. A nil error with false means "no fence
-	// available", not a failure; a non-nil error means a real sync failure.
+	// available", not a failure. A non-nil error means a real sync failure.
 	Sync(ctx context.Context) (bool, error)
 	// RootOps holds the named roots that decide which blocks are live.
 	RootOps

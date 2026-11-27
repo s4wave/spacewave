@@ -22,15 +22,15 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the mount controller.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// mountedCtr is set when the fs has been mounted
+	// mountedCtr is set when the fs has been mounted.
 	mountedCtr *ccontainer.CContainer[bool]
-	// handle is the fs handle
+	// handle is the fs handle.
 	handle *unixfs.FSHandle
 }
 
@@ -116,7 +116,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	if c.handle != nil {
 		c.handle.Release()

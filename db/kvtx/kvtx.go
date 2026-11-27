@@ -9,7 +9,7 @@ import (
 // Store is a transactional key/value store.
 type Store interface {
 	// NewTransaction returns a new transaction against the store.
-	// Always call Discard() after you are done with the transaction.
+	// Always call Discard() after finishing with the transaction.
 	// The transaction will be read-only unless write is set.
 	NewTransaction(ctx context.Context, write bool) (Tx, error)
 }
@@ -45,10 +45,10 @@ type TxOps interface {
 	// Exists checks if a key exists.
 	Exists(ctx context.Context, key []byte) (bool, error)
 	// Set sets the value of a key.
-	// This will not be committed until Commit is called.
+	// The write will not be committed until Commit is called.
 	Set(ctx context.Context, key, value []byte) error
 	// Delete deletes a key.
-	// This will not be committed until Commit is called.
+	// The write will not be committed until Commit is called.
 	// Not found should not return an error.
 	Delete(ctx context.Context, key []byte) error
 	// ScanPrefix iterates over keys with a prefix.
@@ -85,14 +85,15 @@ type Iterator interface {
 	Valid() bool
 	// Key returns the current entry key, or nil if not valid.
 	//
-	// NOTE: even if prefix is set this does not trim the prefix.
+	// NOTE: even if prefix is set Key does not trim the prefix.
 	Key() []byte
 	// Value returns the current entry value, or nil if not valid.
 	//
 	// May cache the value between calls, copy if modifying.
 	Value() ([]byte, error)
 	// ValueCopy copies the value to the given byte slice and returns it.
-	// If the slice is not big enough (cap), it must create a new one and return it.
+	// If the slice is not big enough (cap), ValueCopy must create a new
+	// slice and return it.
 	// May use the value cached from Value() call as the source of the data.
 	// May return nil if !Valid().
 	ValueCopy([]byte) ([]byte, error)
@@ -100,11 +101,12 @@ type Iterator interface {
 	Next() bool
 	// Seek moves the iterator to the first key >= k, or <= k in reverse mode.
 	//
-	// Pass nil to seek to the beginning, or the end if reversed. Seek positions
-	// the iterator, so Next is not needed after it. If prefix is set, k should
-	// have the prefix or be nil; Seek does not prepend it. Seek fails in one of
-	// three ways: it returns an error without modifying the iterator, it sets
-	// the iterator Err and returns nil, or it sets Err and returns the error.
+	// Pass nil to seek to the beginning, or the end if reversed. Seek
+	// positions the iterator, so Next is not needed after it. If prefix is
+	// set, k should have the prefix or be nil. Seek does not prepend it.
+	// Seek fails in one of three ways: it returns an error without
+	// modifying the iterator, it sets the iterator Err and returns nil, or
+	// it sets Err and returns the error.
 	Seek(k []byte) error
 	// Close closes the iterator.
 	// Note: it is not necessary to close all iterators before Discard().
@@ -175,7 +177,8 @@ type OrderedCommitStore interface {
 // and the write it guards land together. Wrappers that
 // defer Commit across calls, and stores that split blocks into another domain,
 // must not advertise this capability. In-memory stores can implement it for
-// transactional tests; this does not make their data process-persistent.
+// transactional tests. Implementing the capability does not make their data
+// process-persistent.
 type AtomicCommitStore interface {
 	Store
 	// SupportsAtomicCommit reports whether the store provides the fence.
@@ -185,7 +188,7 @@ type AtomicCommitStore interface {
 // WriterQueueStore reports queued writer demand to a transaction doing
 // deferrable work, so it can commit early and release its writer hold.
 // The store's admission policy decides the next turn: native s4db uses finite
-// foreground cohorts and one shared background slice; Bolt and SQLite serve
+// foreground cohorts and one shared background slice. Bolt and SQLite serve
 // queued foreground writes before writes marked by block.WithBackground.
 type WriterQueueStore interface {
 	Store

@@ -21,26 +21,26 @@ import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
 
-/** sessionMountName names the Session entry for sessionIdx under the Root. */
+/** sessionMountName selects the Session entry for sessionIdx under the Root. */
 export function sessionMountName(sessionIdx: number): string {
   return `session/${sessionIdx}`
 }
 
-/** sharedObjectMountName names the SharedObject entry under its Session. */
+/** sharedObjectMountName selects the SharedObject entry under its Session. */
 export function sharedObjectMountName(sharedObjectId: string): string {
   return `so/${sharedObjectId}`
 }
 
-/** bodyMountName names the SharedObjectBody entry under its SharedObject. */
+/** bodyMountName selects the SharedObjectBody entry under its SharedObject. */
 export const bodyMountName = 'body'
 
-/** spaceMountName names the Space entry under its SharedObjectBody. */
+/** spaceMountName selects the Space entry under its SharedObjectBody. */
 export const spaceMountName = 'space'
 
-/** spaceWorldMountName names the world state entry under its Space. */
+/** spaceWorldMountName selects the world state entry under its Space. */
 export const spaceWorldMountName = 'world'
 
-/** spaceContentsMountName names the SpaceContents entry under its Space. */
+/** spaceContentsMountName selects the SpaceContents entry under its Space. */
 export const spaceContentsMountName = 'contents'
 
 // markMount records a startup boundary for a mount step and, when quickstart
@@ -69,7 +69,7 @@ export function useSessionMount(
     root,
     sessionIdx ? sessionMountName(sessionIdx) : null,
     async (root, signal, cleanup) => {
-      // Mount the Session; a missing index resolves to null.
+      // Mount the Session. A missing index resolves to null.
       if (!sessionIdx) return null
       markMount('quickstart.session-mount-start', { sessionIdx })
       const result = await root.mountSessionByIdx({ sessionIdx }, signal)

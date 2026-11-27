@@ -32,7 +32,8 @@ export interface Config {
    */
   projectId?: string
   /**
-   * DistPeerIds are the peer IDs we accept for distribution signatures.
+   * DistPeerIds are the peer IDs the launcher accepts for distribution
+   * signatures.
    */
   distPeerIds?: string[]
   /**

@@ -12,7 +12,7 @@ import (
 
 // Factory constructs the s3 block store.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

@@ -22,7 +22,7 @@ const (
 
 // ArtifactPublisher atomically exposes complete per-engine artifact directories.
 type ArtifactPublisher struct {
-	// root is the absolute artifact root
+	// root is the absolute artifact root.
 	root string
 }
 

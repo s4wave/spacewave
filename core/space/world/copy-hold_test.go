@@ -18,15 +18,15 @@ import (
 )
 
 // TestCopyHoldsWhatItSkips walks the fence and backfill copy through a Volume
-// that frees once a record is grace old. Each case names blocks stored with no
-// holder whose downs are past grace, which the next collection nets to zero
+// that frees once a record is grace old. Each case selects blocks stored with
+// no holder whose downs are past grace, which the next collection nets to zero
 // and frees unless the copy holds them: a cache fill the copy is asked for as
 // a root, a proved block a collection runs beside between the copy's check and
 // the Land of its parent, and a stored parent with no proof over a proved
 // child. A collection right after the copy, and another once the copy's own
 // records aged, keep every block the copy holds. No run-through reaches these:
-// they need a grace that ages the downs before the copy, and blocks nothing
-// holds under a copied root.
+// the cases need a grace that ages the downs before the copy, and blocks
+// nothing holds under a copied root.
 func TestCopyHoldsWhatItSkips(t *testing.T) {
 	// Build an adapter over a Volume with a grace long enough to step through.
 	ctx := t.Context()
@@ -34,7 +34,7 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 	a, collect := newVolumeAdapter(t, 1<<20, grace)
 	store := a.pages.StoreOps
 
-	// build returns the entry of a block naming children.
+	// build returns the entry of a block referencing children.
 	build := func(name string, children ...*block.BlockRef) *block.PutBatchEntry {
 		t.Helper()
 		data := []byte(name)
@@ -77,15 +77,16 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 	}
 
 	// copyCase stores a case's blocks with no holder and lets their downs
-	// age past grace, so the next collection nets them to zero and frees them
-	// in the same pass, and copies its root under its own fence root while
-	// such a collection may run. A collection right after the copy keeps
-	// every block the copy holds, since the stage the copy held them under
-	// stops every free; one after the copy's records aged frees a loose block
-	// nothing names and keeps them, since the fence root holds them.
+	// age past grace, so the next collection nets them to zero and frees
+	// them in the same pass, and copies its root under its own fence root
+	// while such a collection may run. A collection right after the copy
+	// keeps every block the copy holds, since the stage the copy held them
+	// under stops every free. One after the copy's records aged frees a
+	// loose block nothing references and keeps the held blocks, since the
+	// fence root holds them.
 	copyCase := func(name string, build func() (root *block.BlockRef, held []*block.BlockRef, visited func(*block.BlockRef, []byte))) {
 		t.Helper()
-		// Store the blocks, and a loose block nothing names.
+		// Store the blocks, and a loose block nothing references.
 		root, held, visited := build()
 		loose := put(name + " loose")
 
@@ -124,8 +125,9 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 		return fill, []*block.BlockRef{fill}, nil
 	})
 
-	// A proved block a kept page names beside a kept leaf, with a collection
-	// between the copy's check of the page's children and the page's Land.
+	// A proved block a kept page references beside a kept leaf, with a
+	// collection between the copy's check of the page's children and the
+	// page's Land.
 	copyCase("page", func() (*block.BlockRef, []*block.BlockRef, func(*block.BlockRef, []byte)) {
 		proved := put("proved")
 		if err := block.MarkRootsComplete(ctx, store, []*block.BlockRef{proved}); err != nil {
@@ -153,14 +155,14 @@ func TestCopyHoldsWhatItSkips(t *testing.T) {
 
 // TestCopyCountsLinkedFiles runs the fence copy over a Volume whose copy path
 // reads a linked folder after the Volume, as the local provider's does, and
-// tries to make it lose a block or serve wrong bytes. A parent names a chunk
-// the Volume and a linked file both hold, and a chunk only a linked file
-// holds. The copy stores the first under the fence root, stores nothing for
-// the second, and proves the parent. Then both files change under a restored
-// mtime, so only the hash check notices: collections past grace keep the
-// Volume's chunk with its bytes, the file-only chunk reads as missing and
+// tries to make it lose a block or serve wrong bytes. A parent references
+// a chunk the Volume and a linked file both hold, and a chunk only a linked
+// file holds. The copy stores the first under the fence root, stores nothing
+// for the second, and proves the parent. Then both files change under a
+// restored mtime, so only the hash check notices: collections past grace keep
+// the Volume's chunk with its bytes, the file-only chunk reads as missing and
 // never as the file's new bytes, and a copy that reads every block again fails
-// on it instead of storing wrong bytes.
+// on the file-only chunk instead of storing wrong bytes.
 func TestCopyCountsLinkedFiles(t *testing.T) {
 	// Build an adapter whose kept pages read the Volume, then the files.
 	ctx := t.Context()
@@ -312,9 +314,10 @@ func (s *linkedBucket) GetCopySource() block.StoreOps {
 
 // TestAdmitRepeatRewritesTree holds an admitted payload P -> L whose blocks
 // a collection freed, as after the stage that stored them was released,
-// through the adapter's payload hold with frees on. The hold is refused, and a repeat that keeps the tree in the pages again, as a
-// transaction written again does, lands it in the hold's own batch and
-// commits; collections past grace keep every block.
+// through the adapter's payload hold with frees on. The hold is refused, and
+// a repeat that keeps the tree in the pages again, as a transaction written
+// again does, lands the tree in the hold's own batch and commits. Collections
+// past grace keep every block.
 func TestAdmitRepeatRewritesTree(t *testing.T) {
 	ctx := t.Context()
 	const grace = 300 * time.Millisecond
@@ -394,7 +397,8 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 		grace = 300 * time.Millisecond
 	)
 
-	// page returns the entry of a block of at least size bytes naming children.
+	// page returns the entry of a block of at least size bytes referencing
+	// children.
 	page := func(t *testing.T, name string, size int, children ...*block.BlockRef) *block.PutBatchEntry {
 		t.Helper()
 		data := []byte(name)
@@ -504,11 +508,12 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 
 	t.Run("overflow stage opened under a cancelled context", func(t *testing.T) {
 		// The put past the bound opens the lazy stage under a context
-		// already cancelled, and the store's open honours it, so the open
-		// fails. The admission fails with it
-		// and stores nothing the stage would have held: a block the Volume
-		// stored unheld would free before any root named it. A repeat under
-		// a live context admits the World, and collections keep it.
+		// already cancelled, and the store's open honours the context,
+		// so the open fails. The admission fails with the open and
+		// stores nothing the stage would have held: a block the Volume
+		// stored unheld would free before any root referenced it. A
+		// repeat under a live context admits the World, and collections
+		// keep it.
 		a, collect := newVolumeAdapter(t, bound, grace)
 		inner := a.pages.StoreOps
 		a.pages = block.NewPendingStore(&cancelStageStore{

@@ -21,7 +21,7 @@ message Example {
   string msg = 1;
 }
 
-// Pair is a page naming two Example pages.
+// Pair is a page referencing two Example pages.
 message Pair {
   // Left is the first child.
   .block.BlockRef left = 1;

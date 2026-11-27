@@ -1,6 +1,6 @@
 package unixfs_iofs
 
-// FSOption is a option passed to NewFS
+// FSOption is an option passed to NewFS.
 type FSOption func(fs *FS)
 
 // WithIgnorePath ignores the path passed to Open.

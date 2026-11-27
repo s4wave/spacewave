@@ -16,11 +16,11 @@ message ReplicaSpec {
   string shared_object_id = 1;
   // DesiredOwnerPeerId is the peer ID of the Device that should own the
   // SharedObject. The node type resolves it from the graph-local node ID the
-  // Flowgraph names.
+  // Flowgraph selects.
   string desired_owner_peer_id = 2;
 }
 
-// Config runs one replica node on the Device it is placed on.
+// Config configures one replica node on the Device the node is placed on.
 message Config {
   // Spec is the node's ReplicaSpec.
   ReplicaSpec spec = 1;
@@ -50,7 +50,8 @@ message SOReplicaProof {
   .google.protobuf.Timestamp checked_at = 5;
 }
 
-// SignedSOReplicaProof is an SOReplicaProof signed by the Device it names.
+// SignedSOReplicaProof is an SOReplicaProof signed by the Device the proof
+// identifies.
 message SignedSOReplicaProof {
   // Proof is the encoded SOReplicaProof.
   bytes proof = 1;

@@ -10,7 +10,7 @@ func BlockKey(h *hash.Hash) []byte {
 	return h.MarshalDigest()
 }
 
-// ParseBlockKey parses a pack index key into the block hash it names.
+// ParseBlockKey parses a pack index key into the block hash the key encodes.
 func ParseBlockKey(key []byte) (*hash.Hash, error) {
 	h := &hash.Hash{}
 	if err := h.UnmarshalVT(key); err != nil {

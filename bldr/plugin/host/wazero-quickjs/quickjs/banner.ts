@@ -1,4 +1,4 @@
-// banner.ts - This file is compiled into an IIFE banner that runs before any
+// banner.ts: This file is compiled into an IIFE banner that runs before any
 // bundled module code. It sets up polyfills that must exist before ES module
 // imports are evaluated (e.g., for `class Foo extends Event` to work).
 

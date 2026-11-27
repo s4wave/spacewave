@@ -16,7 +16,7 @@ import (
 type overlayBatchTestStore struct {
 	block.StoreOps
 
-	// leaves serves stored blocks as leaves from GetStoredBlock.
+	// leaves indicates whether GetStoredBlock serves stored blocks as leaves.
 	leaves bool
 
 	mu               sync.Mutex

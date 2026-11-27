@@ -19,16 +19,18 @@ type SharedObjectProvider interface {
 
 	// CreateSharedObject creates a new shared object with the given details.
 	// The ID may not necessarily be used for the shared object ID.
-	// ownerType is "account" or "organization"; ownerID is the principal id
+	// ownerType is "account" or "organization". ownerID is the principal id
 	// (account id for account-owned, org id for org-owned).
 	CreateSharedObject(ctx context.Context, id string, meta *SharedObjectMeta, ownerType, ownerID string) (*SharedObjectRef, error)
 
-	// MountSharedObject attempts to mount a SharedObject returning the object handle and a release function.
+	// MountSharedObject tries to mount a SharedObject, returning the object
+	// handle and a release function.
 	//
-	// This also mounts the block store associated with the shared object.
+	// MountSharedObject also mounts the block store associated with the
+	// shared object.
 	//
-	// note: use the MountSharedObject directive to call this.
-	// usually called by the provider controller
+	// note: use the MountSharedObject directive to call MountSharedObject.
+	// Usually called by the provider controller.
 	MountSharedObject(ctx context.Context, ref *SharedObjectRef, released func()) (SharedObject, func(), error)
 
 	// DeleteSharedObject deletes the shared object with the given ID.

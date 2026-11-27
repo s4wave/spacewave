@@ -602,9 +602,10 @@ func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
 var _ session.Session = (*testSyncStatusSession)(nil)
 
 // TestSyncStatusShowsHeldStore checks that a held store's typed held state
-// reaches the RPC from the telemetry its flush records, marks a count from a
-// flush that stopped early as partial, stays while a later pull error
-// replaces LastError, and clears when the store holds nothing.
+// reaches the RPC from the telemetry the store's flush records. The test checks
+// that a count from a flush that stopped early is marked as partial and that
+// the held state stays while a later pull error replaces LastError. The held
+// state clears when the store holds nothing.
 func TestSyncStatusShowsHeldStore(t *testing.T) {
 	// A flush that stopped early on a failed push found one block: held,
 	// with the count a lower bound.
@@ -633,7 +634,7 @@ func TestSyncStatusShowsHeldStore(t *testing.T) {
 	telemetry.SetCorruptDirty("store", 2, since, false)
 	wantHeld("held", project(), 2, false)
 
-	// A later pull error takes LastError but leaves the held state.
+	// A later pull error replaces LastError but leaves the held state.
 	telemetry.StartPull("store")
 	telemetry.FinishPull("store", errors.New("pull failed"))
 	resp := project()

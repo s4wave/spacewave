@@ -14,7 +14,7 @@ import (
 type PragmaConnector struct {
 	// connector opens the driver's connections.
 	connector driver.Connector
-	// pragmas run on every new connection, in order.
+	// pragmas contains the pragmas run on every new connection, in order.
 	pragmas []string
 	// file is the Store's hold on its database file, nil for one in memory.
 	// Each connection takes a hold of its own from it for its life.
@@ -84,7 +84,7 @@ func execConn(ctx context.Context, conn driver.Conn, query string) error {
 type dsnConnector struct {
 	// driver opens the connections.
 	driver driver.Driver
-	// dsn names the database.
+	// dsn selects the database.
 	dsn string
 }
 

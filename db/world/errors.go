@@ -70,8 +70,8 @@ var (
 	// an endpoint without a predicate to page.
 	ErrGraphEdgeBucketAfter = errors.New("graph edge bucket after requires a predicate")
 	// ErrGraphEdgeBucketAfterGone is returned if a grouped edge query resumes
-	// after an endpoint that no graph quad names any longer, so its place in
-	// the order is lost. The reader restarts from the first page.
+	// after an endpoint that no graph quad references any longer, so its
+	// place in the order is lost. The reader restarts from the first page.
 	ErrGraphEdgeBucketAfterGone = errors.New("graph edge bucket after endpoint is gone")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.

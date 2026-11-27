@@ -11,7 +11,8 @@ import (
 // does, once the pack's own index shows the report is true.
 type Adopter interface {
 	// AdoptPack makes the pack's blocks readable through the local index. An
-	// error has the node report the pack again, so it must be safe to repeat.
+	// error has the node report the pack again, so adoption must be safe to
+	// repeat.
 	AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error
 }
 

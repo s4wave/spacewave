@@ -15,15 +15,16 @@ import (
 )
 
 // PredObjectRetired records that a Task or one of its attempts needs no further
-// worker demand once complete. The self edge preserves this intent across restarts.
+// worker demand once complete. The self edge preserves the retirement intent
+// across restarts.
 const PredObjectRetired = quad.IRI("forge/retired")
 
 // RetireTask ends worker demand for a one-shot Task and all its Passes and
-// Executions. Complete objects lose their keypair links immediately; unfinished
+// Executions. Complete objects lose their keypair links immediately. Unfinished
 // objects retain demand until their worker observes completion. Bodies, results,
 // peer authorization and history edges remain intact. The caller owns the write
 // transaction. A nonempty sender must be the Task's assigned peer, as in cluster
-// assignment; an empty sender uses the caller's trusted World write authority.
+// assignment. An empty sender uses the caller's trusted World write authority.
 func RetireTask(ctx context.Context, ws world.WorldState, taskKey string, sender peer.ID) error {
 	// Require retirement to come from the Task's assigned peer.
 	task, err := LookupTaskBody(ctx, ws, taskKey)
@@ -60,8 +61,9 @@ func RetireTask(ctx context.Context, ws world.WorldState, taskKey string, sender
 
 // ReconcileRetiredObject removes keypair demand for a retired, complete Task,
 // Pass or Execution. It returns true once demand can end. The caller owns the
-// write transaction; workers call it on object revisions so final result writes
-// and cancellation drain finish before their controllers are released.
+// write transaction. Workers call ReconcileRetiredObject on object revisions
+// so final result writes and cancellation drain finish before their
+// controllers are released.
 func ReconcileRetiredObject(ctx context.Context, ws world.WorldState, objectKey string) (bool, error) {
 	// Leave ordinary reactive objects and unfinished retirement requests alone.
 	requested, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objectKey, PredObjectRetired.String(), objectKey, ""), 1)
@@ -139,8 +141,9 @@ func ReactivateTask(ctx context.Context, ws world.WorldState, taskKey string, as
 }
 
 // InheritRetirement carries a parent's one-shot retirement intent into an
-// attempt created while its final outcome is still draining. The caller owns
-// the creation transaction; ordinary reactive parents leave no retirement edge.
+// attempt created while the parent's final outcome is still draining. The
+// caller owns the creation transaction. Ordinary reactive parents leave no
+// retirement edge.
 func InheritRetirement(ctx context.Context, ws world.WorldState, parentKey, childKey string) error {
 	// Read retirement intent from the same transaction that creates the attempt.
 	requested, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(parentKey, PredObjectRetired.String(), parentKey, ""), 1)

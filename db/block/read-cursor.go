@@ -8,8 +8,8 @@ import (
 )
 
 // ReadCursor follows immutable stored references without building a mutable
-// parent graph. It borrows its source transaction's store, transform and cache;
-// the caller must keep that transaction and its root retention alive. Values
+// parent graph. It borrows its source transaction's store, transform and cache.
+// The caller must keep that transaction and its root retention alive. Values
 // returned by UnmarshalReadBlock are shared and must not be mutated.
 //
 // Child links retain evictable slots, not decoded blocks. Every read checks
@@ -30,12 +30,12 @@ type ReadCursor struct {
 // nil for a missing reference, and for a writable transaction whose source
 // cursor is dirty: that subtree's pages live on the mutable cursor tree, and a
 // read of it sees the uncommitted pages and retains them on the tree. A clean
-// source has a clean subtree, so its reference names stored blocks no later
-// write changes, and the reader is a snapshot of the subtree as of its open,
-// on a writable transaction as on a read-only one. The reader takes the
-// context's scope, else the transaction's enabled borrowed scope, else its
-// private scope in the process-wide pool, so a scopeless reader still decodes
-// a page once rather than on every follow.
+// source has a clean subtree, so its reference points to stored blocks no later
+// write changes, and the reader is a snapshot of the subtree as of its open, on
+// a writable transaction as on a read-only one. The reader takes the context's
+// scope, else the transaction's enabled borrowed scope, else its private scope
+// in the process-wide pool, so a scopeless reader still decodes a page once
+// rather than on every follow.
 func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCursor {
 	// Require a stored reference beneath an immutable or clean source.
 	if source == nil || source.t == nil || ref.GetEmpty() {
@@ -58,8 +58,8 @@ func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCurs
 }
 
 // FollowRef returns a reader at ref. An edge of the loaded immutable parent
-// shares its memoized reference, and a typed edge its slot; an unknown edge
-// clones ref.
+// shares its memoized reference, and a typed edge shares its slot. An unknown
+// edge clones ref.
 func (r ReadCursor) FollowRef(id uint32, ref *BlockRef) ReadCursor {
 	// Borrow only a link whose stored reference matches this exact parent edge.
 	link := r.edge(id)
@@ -194,9 +194,9 @@ func UnmarshalReadBlock[T any, PT Ptr[T]](ctx context.Context, reader ReadCursor
 		return nil, err
 	}
 
-	// A writer's own reads skip its private scope; a reader on it reads through
-	// the transaction's current reader scope, so a later scope change still
-	// bypasses what the old scope retained.
+	// A writer's own reads skip its private scope. A reader on the writer reads
+	// through the transaction's current reader scope, so a later scope change
+	// still bypasses what the old scope retained.
 	if !reader.source.t.readOnly.Load() && decodedBlockCacheFromContext(ctx) == nil {
 		ctx = WithDecodedBlockCache(ctx, reader.source.t.readerCache())
 	}

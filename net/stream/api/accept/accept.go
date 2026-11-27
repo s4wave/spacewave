@@ -17,21 +17,21 @@ import (
 // Controller accepts HandleMountedStream via waiting RPC calls and streams data
 // over the request and response streams.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 
-	// localPeerID is the local peer id
+	// localPeerID is the local peer id.
 	localPeerID peer.ID
-	// remotePeerIDs are the acceptable remote peer id
+	// remotePeerIDs are the acceptable remote peer id.
 	remotePeerIDs []peer.ID
-	// protocolID is the protocol ID to use
+	// protocolID is the protocol ID to use.
 	protocolID protocol.ID
 
-	// rpcCh is the rpc channel
+	// rpcCh is the rpc channel.
 	rpcCh chan *queuedRPC
 }
 
@@ -91,7 +91,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, the handler returns a resolver.
+// Otherwise, the handler returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -104,7 +105,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	return nil, nil
 }
 
-// queuedRPC is a queued RPC
+// queuedRPC is a queued RPC.
 type queuedRPC struct {
 	rpc    stream_api_rpc.RPC
 	doneCb func(err error)
@@ -142,7 +143,8 @@ func (c *Controller) AttachRPC(rpc stream_api_rpc.RPC) error {
 	}
 }
 
-// resolveHandleMountedStream resolves a HandleMountedStream directive by dialing a target.
+// resolveHandleMountedStream resolves a HandleMountedStream directive by
+// dialing a target.
 func (c *Controller) resolveHandleMountedStream(
 	ctx context.Context,
 	di directive.Instance,

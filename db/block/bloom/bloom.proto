@@ -4,8 +4,8 @@ package bloom;
 import "github.com/s4wave/spacewave/db/block/bitset/bitset.proto";
 
 // BloomFilter contains a bloom filter in a Block.
-// uses FNV64 hash function
-// m factor is determined by len(bit_set)*64
+// BloomFilter uses the FNV64 hash function.
+// The m factor is determined by len(bit_set)*64.
 message BloomFilter {
   // K is the number of hash functions.
   // Max: 10.

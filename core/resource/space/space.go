@@ -192,8 +192,8 @@ func (r *SpaceResource) WatchSpaceState(
 		}
 
 		// Wait for the settings object or the SharedObject state to change.
-		// Every Space commit changes the SharedObject state, so only a
-		// change to the settings object rereads the World.
+		// Every Space commit changes the SharedObject state, so reread the
+		// World only when the settings object changes.
 		readSettings, err = waitSpaceStateChange(ctx, ws, seen, soStateCtr, soState)
 		if err != nil {
 			return err
@@ -236,12 +236,12 @@ func waitSpaceStateChange(
 
 // WatchSpaceSharingState watches the sharing snapshot for the space.
 //
-// All change sources (SO state, mailbox metadata, join requests) are folded into one local
-// broadcast so the watch loop reads every input snapshot under the same
-// HoldLock that obtains the wait channel. This eliminates the missed-wakeup
-// race that the previous dual-channel select had to defend against with
-// per-source buffered signals, and coalesces near-simultaneous source
-// changes into a single emission instead of one emission per source.
+// All change sources (SO state, mailbox metadata, join requests) are folded
+// into one local broadcast so the watch loop reads every input snapshot under
+// the same HoldLock that obtains the wait channel. The shared broadcast
+// prevents the missed-wakeup race that a dual-channel select must prevent with
+// per-source buffered signals, and coalesces near-simultaneous source changes
+// into a single emission instead of one emission per source.
 func (r *SpaceResource) WatchSpaceSharingState(
 	req *s4wave_space.WatchSpaceSharingStateRequest,
 	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceSharingStateStream,
@@ -261,7 +261,8 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	}
 	defer relSoStateCtr()
 
-	// A peer whose leave the head ownership transfer carries has left in its own view.
+	// A peer has left in its own view when the head ownership transfer
+	// carries that peer's leave.
 	readDeparting := func(ctx context.Context, state *sobject.SOState) ([]string, error) {
 		return sobject.ReadSODepartingPeers(ctx, soHost, state.GetConfig().GetConfigChainHash())
 	}
@@ -436,7 +437,7 @@ func (r *SpaceResource) accessBackfill(
 }
 
 // SetSpaceControl chooses who controls the Space. An owner hands control to
-// the group at once; under group control the viewer agrees to the change and
+// the group at once. Under group control the viewer agrees to the change and
 // the group decides it.
 func (r *SpaceResource) SetSpaceControl(
 	ctx context.Context,
@@ -679,9 +680,10 @@ func (r *SpaceResource) MountSpaceContents(
 // AcquireContentsRuntime acquires the shared plugin runtime of the Space.
 //
 // Every holder acquiring it through a SpaceResource with the same settings
-// shares one runtime, which stops after the last reference is released. It
-// returns before the runtime's startup completes, because startup may need
-// document-owned plugin-host locks while applying forwarded block-store config.
+// shares one runtime, which stops after the last reference is released.
+// AcquireContentsRuntime returns before the runtime's startup completes,
+// because startup may need document-owned plugin-host locks while applying
+// forwarded block-store config.
 func (r *SpaceResource) AcquireContentsRuntime(ctx context.Context) (
 	*plugin_space.Config,
 	*plugin_space_runtime.Controller,
@@ -734,9 +736,10 @@ func (h *runtimeHold) Release() {
 // contentsRuntimeConfig builds the plugin/space config shared by every contents
 // mount of the Space.
 func (r *SpaceResource) contentsRuntimeConfig(ctx context.Context) *plugin_space.Config {
-	// The Space resource runs inside a plugin host; cloud block store forwarding
-	// registers under that host's plugin service prefix. Without a host plugin
-	// ID, skip forwarding rather than registering under a guessed prefix.
+	// The Space resource runs inside a plugin host. Cloud block store
+	// forwarding registers under that host's plugin service prefix. Without a
+	// host plugin ID, skip forwarding rather than registering under a guessed
+	// prefix.
 	hostPluginID := r.resolveHostPluginID(ctx)
 	worldBucketID := r.space.GetWorldEngineBucketID()
 	if hostPluginID == "" {
@@ -799,7 +802,8 @@ func sharingStateToProto(
 		return nil
 	}
 
-	// Under group control a voter asks for changes; otherwise an owner makes them.
+	// Under group control a voter asks for changes. Otherwise an owner
+	// makes them.
 	group := state.Control == sobject.SOControl_SO_CONTROL_GROUP
 	canVote := state.ViewerWeight != 0
 	control := s4wave_space.SpaceControl_SpaceControl_OWNER

@@ -4,7 +4,7 @@ package pubsub.relay;
 // Config is the pubsub relay configuration.
 // The relay controller subscribes to a pubsub topic to ensure the peer relays messages.
 message Config {
-  // PeerId is the peer ID to look up and use private key for.
+  // PeerId is the peer ID to look up and use the private key for.
   string peer_id = 1;
   // TopicIds are the list of topic IDs to subscribe to.
   repeated string topic_ids = 2;

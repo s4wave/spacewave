@@ -36,11 +36,11 @@ message WatchWizardStateResponse {
 
 // UpdateWizardStateRequest updates the wizard block state.
 message UpdateWizardStateRequest {
-  // Step is the new step value. Set to -1 to leave unchanged.
+  // Step is the new step value. Set to -1 to leave the step unchanged.
   int32 step = 1;
-  // Name is the new name. Empty string leaves unchanged.
+  // Name is the new name. An empty string leaves the name unchanged.
   string name = 2;
-  // ConfigData is the new config data. Nil leaves unchanged.
+  // ConfigData is the new config data. Nil leaves the config data unchanged.
   bytes config_data = 3;
   // HasConfigData indicates config_data is being set (allows clearing to empty bytes).
   bool has_config_data = 4;
@@ -124,7 +124,7 @@ enum GitCloneFailure {
 // ListWizardsRequest is the request for ListWizards.
 message ListWizardsRequest {
   // InstanceKey selects the wizards visible to one plugin installation, such
-  // as a Space world engine id. Empty selects only global wizards.
+  // as a Space world engine id. An empty key selects only global wizards.
   string instance_key = 1;
 }
 
@@ -149,7 +149,7 @@ message ListWizardsResponse {
 // WatchWizardsRequest is the request for WatchWizards.
 message WatchWizardsRequest {
   // InstanceKey selects the wizards visible to one plugin installation, such
-  // as a Space world engine id. Empty selects only global wizards.
+  // as a Space world engine id. An empty key selects only global wizards.
   string instance_key = 1;
 }
 
@@ -257,7 +257,7 @@ message IntroWizardConfig {
 message IntroWizardCallout {
   // Region is the frame region this callout points at.
   IntroWizardRegion region = 1;
-  // Title names the UI part.
+  // Title labels the UI part.
   string title = 2;
   // Detail explains what the part is for.
   string detail = 3;

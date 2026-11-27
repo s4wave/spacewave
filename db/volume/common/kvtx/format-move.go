@@ -33,10 +33,10 @@ func movePrefix(ctx context.Context, store kvtx.Store, from, to []byte) error {
 }
 
 // rekeyPrefix moves every record under prefix at or after start to the key
-// rekey names for it, which must sort outside the records not yet moved. Each
-// batch of up to migrateBatchBytes writes its records and deletes the
-// originals in one commit, so a rerun resumes with the records not yet moved,
-// and the next batch seeks past the records earlier batches moved.
+// rekey returns for the record. The key must sort outside the records not yet
+// moved. Each batch of up to migrateBatchBytes writes its records and deletes
+// the originals in one commit, so a rerun resumes with the records not yet
+// moved, and the next batch seeks past the records earlier batches moved.
 func rekeyPrefix(ctx context.Context, store kvtx.Store, prefix, start []byte, rekey func(key []byte) ([]byte, error)) error {
 	for start != nil {
 		var err error

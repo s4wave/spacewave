@@ -31,10 +31,11 @@ import (
 // after the peer-to-peer ICE data path fails while signaling stays alive.
 //
 // pion/ice runs over a vnet whose chunk filter can drop all traffic on demand,
-// while the signaling RPC continues over the in-process transport. This mirrors
-// the browser e2e where the relay signaling survives but ICE consent fails under
-// CPU starvation: the connection enters "failed", the session restarts, and the
-// renegotiation must re-establish the link once the path returns.
+// while the signaling RPC continues over the in-process transport. This setup
+// mirrors the browser e2e where the relay signaling survives but ICE consent
+// fails under CPU starvation: the connection enters "failed", the session
+// restarts, and the renegotiation must re-establish the link once the path
+// returns.
 func TestTransportReconnect(t *testing.T) {
 	// Use the test lifetime for the simulated peer network.
 	ctx := t.Context()
@@ -164,7 +165,7 @@ func TestTransportReconnect(t *testing.T) {
 
 	// connectivityProbeTimeout bounds one TestConnectivity probe. A probe over a
 	// not-yet-reestablished link blocks in ExecWaitValue on the establish
-	// directive until its context is done; without a per-probe bound the probe
+	// directive until its context is done. Without a per-probe bound the probe
 	// inherits the whole-test context and blocks for the entire test timeout, so
 	// the retry loop never re-probes to catch the moment recovery completes.
 	const connectivityProbeTimeout = 5 * time.Second
@@ -196,7 +197,7 @@ func TestTransportReconnect(t *testing.T) {
 	// 1. Initial connectivity over the vnet ICE path.
 	waitConnectivity("initial", 30*time.Second)
 
-	// 2. Sever the ICE data path; signaling via p1 stays up.
+	// 2. Sever the ICE data path. Signaling via p1 stays up.
 	le.Info("severing ICE data path")
 	severed.Store(true)
 
@@ -216,7 +217,7 @@ func TestTransportReconnect(t *testing.T) {
 
 // TestTransportReleasesClosedSessions verifies that a session's PeerConnection
 // becomes garbage once its link closes. Two held peers whose link the local
-// peer keeps closing start a new session for each close; a closed session that
+// peer keeps closing start a new session for each close. A closed session that
 // stays reachable keeps its ICE agent, candidate pairs and QUIC connection, so
 // memory grows with every reconnect.
 func TestTransportReleasesClosedSessions(t *testing.T) {

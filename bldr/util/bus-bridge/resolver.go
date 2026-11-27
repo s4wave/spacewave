@@ -9,9 +9,9 @@ import (
 
 // BusBridgeResolver resolves by forwarding the directive to a target bus.
 type BusBridgeResolver struct {
-	// target is the target bus
+	// target is the target bus.
 	target bus.Bus
-	// dir is the directive
+	// dir is the directive.
 	dir directive.Directive
 }
 

@@ -79,10 +79,11 @@ export class Engine extends Resource {
     return this.service.WatchWorldRootSnapshots({}, abortSignal)
   }
 
-  // NewTransaction creates a new transaction against the world state.
+  // newTransaction creates a new transaction against the world state.
   // Set write=true if the transaction will perform write operations.
   // Always call discard() when done with the transaction.
-  // Read transactions retain one revision; EngineWorldState supplies live reads.
+  // Read transactions retain one revision. EngineWorldState supplies live
+  // reads.
   // Note: Engine might return a read-only transaction even if write=true.
   public async newTransaction(
     write: boolean,
@@ -105,7 +106,10 @@ export class Engine extends Resource {
     })
   }
 
-  /** executeWorldOp accepts a complete operation through World's stale-base retry owner. */
+  /**
+   * executeWorldOp accepts a complete operation through World's stale-base
+   * retry owner.
+   */
   public async executeWorldOp(
     opTypeId: string,
     opData: Uint8Array,
@@ -120,8 +124,9 @@ export class Engine extends Resource {
   /**
    * executeWorldBatch applies the mutations in order in one write
    * transaction, held only inside the call, and commits it. A refused
-   * mutation writes nothing; the response names it with failedIndex and its
-   * code, and throwBatchError turns it into an error.
+   * mutation writes nothing. The response identifies the refused mutation with
+   * failedIndex and its code, and throwBatchError turns the refusal into an
+   * error.
    */
   public async executeWorldBatch(
     mutations: WorldMutation[],
@@ -133,15 +138,16 @@ export class Engine extends Resource {
     )
   }
 
-  // GetSeqno returns the current sequence number of the world state.
+  // getSeqno returns the current sequence number of the world state.
   // This is also the sequence number of the most recent change.
-  // Initializes at 0 for initial world state.
+  // The sequence number initializes at 0 for the initial world state.
   public async getSeqno(abortSignal?: AbortSignal) {
     return await this.service.GetSeqno({}, abortSignal)
   }
 
-  // WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
-  // Returns the seqno when the condition is reached.
+  // waitSeqno waits for the world state sequence number to reach or exceed the
+  // specified value.
+  // waitSeqno returns the seqno when the condition is reached.
   // If seqno == 0, this might return immediately unconditionally.
   public async waitSeqno(seqno: bigint, abortSignal?: AbortSignal) {
     return await this.service.WaitSeqno({ seqno }, abortSignal)
@@ -170,7 +176,7 @@ export class Engine extends Resource {
     )
   }
 
-  // BuildStorageCursor builds a cursor to the world storage with an empty ref.
+  // buildStorageCursor builds a cursor to the world storage with an empty ref.
   // The cursor should be released independently of the Engine.
   // Be sure to call Release on the cursor when done.
   public async buildStorageCursor(
@@ -183,8 +189,9 @@ export class Engine extends Resource {
     )
   }
 
-  // AccessWorldState builds a bucket lookup cursor with an optional ref.
-  // If the ref is empty, returns a cursor pointing to the root world state.
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
+  // If the ref is empty, accessWorldState returns a cursor pointing to the
+  // root world state.
   // The lookup cursor will be released after cb returns.
   public async accessWorldState(
     ref?: ObjectRef,
@@ -248,10 +255,10 @@ export class Engine extends Resource {
     }
   }
 
-  // watchChanges follows the changes naming names after afterSeqno, over the
-  // one change stream this Engine shares among its subscribers. The stream
-  // sends only the changes naming a subscriber's names, so a commit naming
-  // none of them costs this client nothing.
+  // watchChanges follows the changes referencing names after afterSeqno, over
+  // the one change stream this Engine shares among its subscribers. The stream
+  // sends only the changes referencing a subscriber's names, so a commit
+  // referencing none of them costs this client nothing.
   public watchChanges(
     afterSeqno: bigint,
     names: ChangeNames,

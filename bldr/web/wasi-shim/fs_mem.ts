@@ -15,9 +15,9 @@ export class OpenFile extends Fd {
 
   fd_allocate(offset: bigint, len: bigint): number {
     if (this.file.size > offset + len) {
-      // already big enough
+      // The file is already big enough.
     } else {
-      // extend
+      // Extend the file.
       const new_data = new Uint8Array(Number(offset + len))
       new_data.set(this.file.data, 0)
       this.file.data = new_data
@@ -31,12 +31,12 @@ export class OpenFile extends Fd {
 
   fd_filestat_set_size(size: bigint): number {
     if (this.file.size > size) {
-      // truncate
+      // Truncate the file.
       this.file.data = new Uint8Array(
         this.file.data.buffer.slice(0, Number(size)),
       )
     } else {
-      // extend
+      // Extend the file.
       const new_data = new Uint8Array(Number(size))
       new_data.set(this.file.data, 0)
       this.file.data = new_data
@@ -242,7 +242,7 @@ export class OpenDirectory extends Fd {
         return { ret: lookupRet, fd_obj: null }
       }
       if ((oflags & wasi.OFLAGS_CREAT) == wasi.OFLAGS_CREAT) {
-        // doesn't exist, but shall be created
+        // The entry does not exist, but shall be created.
         const { ret: createRet, entry: newEntry } =
           this.dir.create_entry_for_path(
             path_str,
@@ -253,18 +253,18 @@ export class OpenDirectory extends Fd {
         }
         entry = newEntry
       } else {
-        // doesn't exist, no such file
+        // The entry does not exist, so there is no such file.
         return { ret: wasi.ERRNO_NOENT, fd_obj: null }
       }
     } else if ((oflags & wasi.OFLAGS_EXCL) == wasi.OFLAGS_EXCL) {
-      // was supposed to be created exclusively, but exists already
+      // The entry must be created exclusively, but exists already.
       return { ret: wasi.ERRNO_EXIST, fd_obj: null }
     }
     if (
       (oflags & wasi.OFLAGS_DIRECTORY) == wasi.OFLAGS_DIRECTORY &&
       entry.stat().filetype !== wasi.FILETYPE_DIRECTORY
     ) {
-      // expected a directory but the file is not a directory
+      // The caller expects a directory but the file is not a directory.
       return { ret: wasi.ERRNO_NOTDIR, fd_obj: null }
     }
     return entry.path_open(oflags, fs_rights_base, fd_flags)
@@ -480,7 +480,7 @@ export class File extends Inode {
       (fs_rights_base & BigInt(wasi.RIGHTS_FD_WRITE)) ==
         BigInt(wasi.RIGHTS_FD_WRITE)
     ) {
-      // no write permission to file
+      // The file has no write permission.
       return { ret: wasi.ERRNO_PERM, fd_obj: null }
     }
 
@@ -769,24 +769,24 @@ export class PollableStdin extends Fd {
     this.ino = Inode.issue_ino()
   }
 
-  /** Push data to be read from stdin */
+  /** push adds data to be read from stdin. */
   push(data: Uint8Array) {
     if (this.closed) return
     this.buffer.push(data)
     this.bufferSize += data.byteLength
   }
 
-  /** Close stdin (future reads will return EOF) */
+  /** close closes stdin (future reads will return EOF). */
   close() {
     this.closed = true
   }
 
-  /** Check if data is available */
+  /** hasData checks if data is available. */
   hasData(): boolean {
     return this.bufferSize > 0
   }
 
-  /** Check if closed */
+  /** isClosed checks if stdin is closed. */
   isClosed(): boolean {
     return this.closed
   }
@@ -808,7 +808,7 @@ export class PollableStdin extends Fd {
 
   fd_read(size: number): { ret: number; data: Uint8Array } {
     if (this.bufferSize === 0) {
-      // No data available - return empty (non-blocking behavior)
+      // No data is available, so return empty data (non-blocking behavior).
       // The runtime will re-poll via poll_oneoff
       return { ret: 0, data: new Uint8Array(0) }
     }
@@ -838,7 +838,7 @@ export class PollableStdin extends Fd {
   }
 
   /**
-   * Poll for read readiness.
+   * fd_poll polls for read readiness.
    * Returns ready=true if data is available or if the stream is closed.
    */
   fd_poll(eventtype: number): PollResult {
@@ -890,7 +890,7 @@ export class DevOut extends Fd {
   }
 
   /**
-   * Poll for write readiness.
+   * fd_poll polls for write readiness.
    * Always ready for writing.
    */
   fd_poll(eventtype: number): PollResult {

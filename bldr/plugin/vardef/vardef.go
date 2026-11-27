@@ -34,7 +34,8 @@ func (v *PluginVar) GetVariablePath() string {
 	return v.GetPkgImportPath() + "." + v.GetPkgVar()
 }
 
-// GetWebBundlerOutputValue returns the dereferenced value of WebBundlerOutput or empty if unset.
+// GetWebBundlerOutputValue returns the dereferenced value of WebBundlerOutput
+// or an empty WebBundlerOutput if unset.
 func (v *PluginVar) GetWebBundlerOutputValue() bldr_web_bundler.WebBundlerOutput {
 	val := v.GetWebBundlerOutput()
 	if val == nil {

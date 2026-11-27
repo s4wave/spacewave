@@ -57,7 +57,7 @@ type Control struct {
 
 // controlDecision is the in-memory progress of the open decision.
 type controlDecision struct {
-	// height and configHash name the decision.
+	// height identifies the decision together with configHash.
 	height     uint64
 	configHash []byte
 	// round is the round the voter is in.
@@ -69,7 +69,7 @@ type controlDecision struct {
 }
 
 // NewControl builds the driver of privKey's votes on host's shared object.
-// It votes on control records; a BodyHost has it judge checkpoints too.
+// It votes on control records, and a BodyHost has it judge checkpoints too.
 func NewControl(le *logrus.Entry, host *SOHost, privKey crypto.PrivKey) (*Control, error) {
 	return newControl(le, host, privKey, nil)
 }
@@ -244,7 +244,7 @@ func (c *Control) reset() {
 // send signs msg for the decision and adds it to the state, unless the state
 // moved on or already holds the voter's message of that step.
 func (c *Control) send(ctx context.Context, height uint64, configHash []byte, msg *SOControlMessageInner) error {
-	// Name the decision and sign.
+	// Record the decision and sign.
 	inner := msg.CloneVT()
 	inner.SharedObjectId = c.host.GetSharedObjectID()
 	inner.Height = height
@@ -342,7 +342,7 @@ type controlJudgment struct {
 	err error
 }
 
-// controlValueKey names a value by its kind and encoding.
+// controlValueKey identifies a value by its kind and encoding.
 type controlValueKey struct {
 	kind  SODecisionKind
 	value string

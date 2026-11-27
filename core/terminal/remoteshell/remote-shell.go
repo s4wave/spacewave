@@ -83,7 +83,7 @@ func (c *deviceRemoteShellController) GetControllerInfo() *controller.Info {
 	)
 }
 
-// Execute returns immediately; the controller only resolves directives.
+// Execute returns immediately because the controller only resolves directives.
 func (c *deviceRemoteShellController) Execute(ctx context.Context) error {
 	return nil
 }
@@ -104,7 +104,7 @@ func (c *deviceRemoteShellController) HandleDirective(ctx context.Context, di di
 	}})), nil
 }
 
-// Close releases nothing; the controller holds no resources.
+// Close releases nothing because the controller holds no resources.
 func (c *deviceRemoteShellController) Close() error {
 	return nil
 }
@@ -199,7 +199,8 @@ func runRemoteShellSession(
 	go waitRemoteShellProcess(session, proc, errCh)
 	go receiveRemoteShellInput(ctx, session, proc, errCh)
 
-	// End the shell session on process completion, stream failure, or cancellation.
+	// End the shell session on process completion, stream failure, or
+	// cancellation.
 	select {
 	case err = <-errCh:
 	case <-ctx.Done():
@@ -213,7 +214,8 @@ func runRemoteShellSession(
 	return nil
 }
 
-// receiveRemoteShellOpenFrame receives the first frame or returns when ctx ends.
+// receiveRemoteShellOpenFrame receives the first frame or returns when ctx
+// ends.
 func receiveRemoteShellOpenFrame(
 	ctx context.Context,
 	session *stream_packet.Session,

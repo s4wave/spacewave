@@ -650,7 +650,7 @@ func TestServeIndexSendsShellFirst(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// Read the shell while the map is still unresolved; an unflushed shell
+	// Read the shell while the map is still unresolved. An unflushed shell
 	// arrives only with the map, after the release below.
 	timer := time.AfterFunc(5*time.Second, releaseMap)
 	defer timer.Stop()

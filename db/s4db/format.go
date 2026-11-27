@@ -12,7 +12,7 @@ const pageSize = 4096
 // allocation is whole chunks, so free space never fragments.
 const chunkSize = 1 << 20
 
-// firstChunk is the first chunk the allocator manages; chunk 0 holds the
+// firstChunk is the first chunk the allocator manages. Chunk 0 holds the
 // header area.
 const firstChunk = 1
 
@@ -32,7 +32,7 @@ const (
 	// lockWriter is held for the duration of each write transaction and for
 	// each background step's record.
 	lockWriter = 1 << 40
-	// lockSlot is the first reader slot lock; slot i locks lockSlot+i.
+	// lockSlot is the first reader slot lock. Slot i locks lockSlot+i.
 	lockSlot = lockWriter + 1
 	// lockWriterOwner is held from writable open through descriptor close.
 	// Keep this lifetime exclusion away from data and all existing control bytes:
@@ -50,14 +50,15 @@ const slotSize = 32
 // slots is the number of processes that may open the file at once.
 const slots = pageSize / slotSize
 
-// inlineMax is the largest value stored in the log record and the run entry;
-// a longer value goes to a value chunk.
+// inlineMax is the largest value stored in the log record and the run entry.
+// A longer value goes to a value chunk.
 const inlineMax = 512
 
 // blockSize is a run's data block.
 const blockSize = 16 << 10
 
-// restartInterval is the entries between restart points in a data block.
+// restartInterval is the number of entries between restart points in a data
+// block.
 const restartInterval = 16
 
 // filterBitsPerKey sizes a run's Bloom filter.
@@ -81,7 +82,7 @@ const level0Stall = 12
 var magic = [8]byte{'S', '4', 'W', 'A', 'V', 'E', 'D', 'B'}
 
 // Algorithm identifiers recorded in the header. A reader refuses a file whose
-// identifiers it does not implement; master's engine wrote indexLogTree (1)
+// identifiers it does not implement. master's engine wrote indexLogTree (1)
 // and valuesPacked (1), which the Volume converts.
 const (
 	// checksumCRC32C is CRC-32C (Castagnoli), hardware accelerated on amd64

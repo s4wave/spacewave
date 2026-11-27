@@ -67,8 +67,9 @@ async function putRootBlock(
 
 // fileReferences opens a design file stored as its own World object, as
 // GLaDOS stores files, with nothing yet referring to it. Its debug context
-// carries addObservation, which writes an Observation naming the file, so a
-// check can watch the references strip take it in while the file is open.
+// has addObservation, which writes an Observation referring to the file,
+// so a check can watch the references strip include the Observation while the
+// file is open.
 export async function fileReferences(
   context: AppSetupContext,
 ): Promise<AppSetupResult> {

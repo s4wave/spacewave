@@ -13,9 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// flakyPeers fails its first fails reads with err, or with a failed
-// exchange when err is nil, then answers from blk, which nil makes a miss. With stall set every read instead waits for its context and
-// fails as the DEX fanout does, with ErrUnavailable around the context's error.
+// flakyPeers fails its first fails reads with err, or with a failed exchange
+// when err is nil, then answers from blk. A nil blk makes a miss. With stall
+// set every read instead waits for its context and fails as the DEX fanout
+// does, with ErrUnavailable around the context's error.
 type flakyPeers struct {
 	block.StoreOps
 	fails int32
@@ -90,7 +91,7 @@ func TestPeerReadMissIsFinal(t *testing.T) {
 }
 
 // TestPeerReadFailsUnavailable checks that a peer read failing past the bound
-// fails with block.ErrUnavailable naming the block, not a miss.
+// fails with block.ErrUnavailable identifying the block, not a miss.
 func TestPeerReadFailsUnavailable(t *testing.T) {
 	SetPeerReadWait(300 * time.Millisecond)
 	defer SetPeerReadWait(0)
@@ -111,8 +112,8 @@ func TestPeerReadFailsUnavailable(t *testing.T) {
 }
 
 // TestPeerReadBoundIsNotCallerDeadline checks that a peer read whose bound
-// ends inside the peer store fails naming the block, and does not read as the
-// caller's own deadline.
+// ends inside the peer store fails identifying the block, and does not read
+// as the caller's own deadline.
 func TestPeerReadBoundIsNotCallerDeadline(t *testing.T) {
 	SetPeerReadWait(200 * time.Millisecond)
 	defer SetPeerReadWait(0)

@@ -17,9 +17,9 @@ export interface DormantOverlayProps {
 }
 
 // DormantOverlay renders a full-page gate for cloud sessions whose account has
-// entered the DORMANT state (subscription inactive or RBAC denied). Offers
-// resubscribe as the primary action and returning to the session list as the
-// secondary action.
+// entered the DORMANT state (subscription inactive or RBAC denied). The gate
+// offers resubscribe as the primary action and returning to the session list
+// as the secondary action.
 export function DormantOverlay({ metadata }: DormantOverlayProps) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)

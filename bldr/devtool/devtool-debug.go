@@ -37,7 +37,7 @@ func serveDevtoolDebug(ctx context.Context, le *logrus.Entry, stateRoot string) 
 		return
 	}
 
-	// Serve pprof, plus an endpoint that names this process.
+	// Serve pprof, plus an endpoint that identifies this process.
 	identity := "pid=" + strconv.Itoa(os.Getpid()) + "\nstate-root=" + stateRoot + "\n"
 	mux := prof.NewProfMux()
 	mux.HandleFunc("/debug/devtool", func(w http.ResponseWriter, _ *http.Request) {

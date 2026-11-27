@@ -18,9 +18,9 @@ func (c *Controller) resolveLookupWebView(
 
 // lookupWebViewResolver resolves LookupWebView with the controller.
 type lookupWebViewResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// d is the directive
+	// d is the directive.
 	d web_view.LookupWebView
 }
 

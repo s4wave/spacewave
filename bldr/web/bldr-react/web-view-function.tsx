@@ -11,7 +11,7 @@ export interface IFunctionComponentContainerProps {
   scriptPath: string
   // componentProps is an optional props message to the component.
   componentProps?: Uint8Array
-  // onReady is called when the component is ready
+  // onReady is called when the component is ready.
   onReady?: () => void
 }
 
@@ -34,8 +34,8 @@ export class FunctionComponentContainer extends BldrComponent<
   private functionComponent?: FunctionComponent
   // functionComponentRelease releases the instantiated function component.
   private functionComponentRelease?: () => void
-  // updateTimeout asynchronously applies the update() changes
-  // fixes a React error when unmounting during a ref callback
+  // updateTimeout asynchronously applies the update() changes.
+  // The timeout fixes a React error when unmounting during a ref callback.
   private updateTimeout?: NodeJS.Timeout
 
   constructor(props: IFunctionComponentContainerProps) {
@@ -130,7 +130,7 @@ export class FunctionComponentContainer extends BldrComponent<
   // update updates the function component and/or div-ref field.
   private update(functionComponent?: FunctionComponent, ref?: HTMLDivElement) {
     if (this.functionComponent === functionComponent && this.divRef === ref) {
-      // no changes
+      // The function component and div-ref field are unchanged.
       return
     }
     if (this.updateTimeout !== undefined) {

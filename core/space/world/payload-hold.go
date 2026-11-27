@@ -11,52 +11,52 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
 
-// The replay payloads root holds the payloads the Space's operations name, so
-// a device replays them without the device that wrote them, such as the
-// target of a migration, which has no peer to fetch them from.
+// The replay payloads root holds the payloads the Space's operations
+// reference, so a device replays them without the device that wrote them,
+// such as the target of a migration, which has no peer to fetch them from.
 //
 // Invariants, which the Volume's collector relies on to free no payload a
 // replay may still read:
 //
-//  1. Hold appends every payload root it reads of an operation before it
+//   1. Hold appends every payload root it reads of an operation before it
 //     records the order, so every resolved operation of stateHold has all its
 //     payloads held, and an unresolved one the roots read without its type.
-//  2. An operation is unresolved when its type does not resolve yet, such as
+//   2. An operation is unresolved when its type does not resolve yet, such as
 //     a plugin's before the plugin registers, or it does not prepare, such as
-//     before its key arrives. Hold leaves it out of stateHold.ops, so the next
-//     Hold reads it again, and marks stateHold unresolved. While stateHold is
-//     unresolved or nil, resetPayloads drops nothing: a payload held before a
-//     restart may belong to an operation whose type is not known yet. So the
-//     payloads root does not shrink while any operation is unresolved, and
-//     Hold logs when one stays unresolved.
-//  3. The payloads root also holds the payloads of every position above the
+//     before its key arrives. Hold leaves it out of stateHold.ops, so the
+//     next     Hold reads it again, and marks stateHold unresolved. While
+//     stateHold is     unresolved or nil, resetPayloads drops nothing: a
+//     payload held before a     restart may belong to an operation whose type
+//     is not known yet. So the     payloads root does not shrink while any
+//     operation is unresolved, and     Hold logs when one stays unresolved.
+//   3. The payloads root also holds the payloads of every position above the
 //     installed checkpoint and of every pending admission: Apply and the
 //     writers append them, and resetPayloads keeps them. It reads the pending
 //     admissions again under rootMtx at its move, since an admission between
 //     its plan and the move appends no root the set already holds, and keeps
-//     every held root they name.
-//  4. Only resetPayloads drops a payload, and only one no operation of
-//     stateHold, no position and no pending admission names, once every
+//     every held root they reference.
+//   4. Only resetPayloads drops a payload, and only one no operation of
+//     stateHold, no position and no pending admission references, once every
 //     operation of stateHold resolved and the World of its checkpoint is
 //     held: the base root holds it, or Install just kept the positions up to
-//     it, whose Worlds the histories hold until the trim moves the base onto
-//     it. An operation leaves the state only when a checkpoint covers it, so
-//     that World holds its effect.
-//  5. Only resetPayloads, on the driver goroutine, removes a root from the
+//     it,     whose Worlds the histories hold until the trim moves the base
+//     onto it.     An operation leaves the state only when a checkpoint
+//     covers it, so that     World holds its effect.
+//   5. Only resetPayloads, on the driver goroutine, removes a root from the
 //     payload set, and every other change appends. So the roots the set held
 //     when resetPayloads read them stay its first roots until it moves it.
-//  6. After any mount, the payload hold contains every root the currently
-//     registered handlers name for every operation above the checkpoint.
-//     Saved roots are reused only when that is proven: each saved outcome
-//     records the PayloadRefsVersion of the transaction rules and of the
-//     handler of every operation type of its transaction (PayloadHandlers),
-//     and loadCursor keeps its roots as known only when the first equals
+//   6. After any mount, the payload hold contains every root the registered
+//     handlers report for every operation above the checkpoint. Saved roots
+//     are reused only when that is proven: each saved outcome records the
+//     PayloadRefsVersion of the transaction rules and of the handler of every
+//     operation type of its transaction (PayloadHandlers), and loadCursor
+//     keeps its roots as known only when the first equals
 //     world_block_tx.PayloadRefsVersion and every other the version
-//     OpTypes.Lookup reports now. Only Lookup's types may name payload roots (LookupOn rejects a
-//     payload operation from the bus), so every other type's version is zero
-//     and needs no bus lookup. When unsure, Hold resolves the operation again,
-//     and replay adopts its saved position only with the payloads Hold
-//     resolved, so the next cursor records them too.
+//     OpTypes.Lookup reports. Only Lookup's types may reference payload roots
+//     (LookupOn rejects a payload operation from the bus), so every other
+//     type's version is zero and needs no bus lookup. When unsure, Hold
+//     resolves the operation again, and replay adopts its saved position only
+//     with the payloads Hold resolved, so the next cursor records them too.
 //
 // Cost: Hold decodes each operation once, when an order first holds it, and
 // appends only the payloads it has not held, as one delta block of the root's
@@ -73,8 +73,8 @@ type payloadState struct {
 	world *block.BlockRef
 	// ops are the payloads of each resolved operation of the order, by hash.
 	ops map[string]opHold
-	// keys counts, for each payload key, the resolved operations that name
-	// it.
+	// keys counts, for each payload key, the resolved operations that
+	// reference it.
 	keys map[string]int
 	// unresolved is set when an operation of the order did not resolve.
 	unresolved bool
@@ -89,18 +89,18 @@ type payloadState struct {
 // logs that the payloads root cannot shrink, and how often it logs again.
 const unresolvedLogAfter = 10 * time.Minute
 
-// opHold is the payloads one operation names.
+// opHold is the payloads one operation references.
 type opHold struct {
 	// refs are the payload roots.
 	refs []*block.BlockRef
-	// keys are the key of each of refs.
+	// keys holds the key of each root in refs.
 	keys []string
-	// handlers identifies the handlers that named refs.
+	// handlers identifies the handlers that reported refs.
 	handlers *PayloadHandlers
 }
 
-// newOpHold returns the hold of refs, which handlers named, encoding each key
-// once.
+// newOpHold returns the hold of refs, which handlers reported, encoding each
+// key once.
 func newOpHold(refs []*block.BlockRef, handlers *PayloadHandlers) opHold {
 	keys := make([]string, len(refs))
 	for i, ref := range refs {
@@ -115,7 +115,7 @@ func newOpHold(refs []*block.BlockRef, handlers *PayloadHandlers) opHold {
 // resolve or prepare is left unresolved for the next Hold, so apply reaches
 // the operations before it and reports its failure there.
 func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
-	// Wait for the claim; a transient replay holds nothing.
+	// Wait for the claim. A transient replay holds nothing.
 	if err := a.waitOpened(ctx); err != nil {
 		return err
 	}
@@ -133,10 +133,10 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 		ops:   make(map[string]opHold, len(ev.Order)),
 	}
 
-	// Read the payloads of the operations the last order did not hold. The
-	// first Hold of a run takes them from the saved cursor where their
-	// handlers name the same roots (invariant 6), so a remount resolves only
-	// what the cursor lacks.
+	// Read the payloads of the operations the last order did not hold.
+	// The first Hold of a run takes them from the saved cursor where
+	// their handlers report the same roots (invariant 6), so a remount
+	// resolves only what the cursor lacks.
 	prev := a.stateHold
 	var saved map[string]opHold
 	if prev == nil {
@@ -169,12 +169,13 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 		added = append(added, key)
 	}
 
-	// Hold them, then record the order, counting the keys of the operations
-	// it added and dropped. The hold does not require its blocks held: the
-	// payloads are the order's, mostly written by other devices, so no
-	// repeat here could store their trees, and a refusal would stop replay
-	// on this replica alone, which replay never does. It is one of the
-	// non-strict holds invariant 2 of block_gc's requireTree names.
+	// Hold them, then record the order, counting the keys of the
+	// operations it added and dropped. The hold does not require its
+	// blocks held: the payloads are the order's, mostly written by other
+	// devices, so no repeat here could store their trees, and a refusal
+	// would stop replay on this replica alone, which replay never does.
+	// It is one of the non-strict holds invariant 2 of block_gc's
+	// requireTree describes.
 	if len(extra) != 0 {
 		if err := a.addPayloads(ctx, extra, false); err != nil {
 			return err
@@ -204,13 +205,13 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 }
 
 // resolveOpHold reads the payloads of operation h of set from snap, as
-// opPayloads does, with the handlers that name them. known is false when the
-// operation's type, or its handler's version, does not resolve yet, and the
-// hold then has only the roots read without them; and at a body this build
-// cannot read, which may name payloads, so the Space keeps every payload it
-// holds. err is a failure to read snap.
+// opPayloads does, with the handlers that report them. known is false when
+// the operation's type, or its handler's version, does not resolve yet, and
+// the hold then has only the roots read without them. known is also false at
+// a body this build cannot read, which may reference payloads, so the Space
+// keeps every payload it holds. err is a failure to read snap.
 func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (opHold, bool, error) {
-	// An operation that runs no transaction names no payloads.
+	// An operation that runs no transaction references no payloads.
 	tx, _, err := replayedTx(ctx, snap, set, h)
 	if errors.Is(err, ErrUnreadableOp) {
 		return opHold{}, false, nil
@@ -219,7 +220,8 @@ func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectSt
 		return opHold{handlers: newPayloadHandlers(nil)}, err == nil, err
 	}
 
-	// Read the roots the transaction names and the handlers that name them.
+	// Read the roots the transaction references and the handlers that
+	// report them.
 	refs, err := tx.PayloadRefs(ctx, a.lookupOp)
 	if err != nil {
 		return opHold{refs: refs}, false, nil
@@ -232,8 +234,8 @@ func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectSt
 }
 
 // txPayloads returns the payload roots of tx, the transaction of the
-// operation h, and the handlers that named them: those Hold read for h, or,
-// for an operation Hold did not resolve or a transient replay, those read
+// operation h, and the handlers that reported them: those Hold read for h,
+// or, for an operation Hold did not resolve or a transient replay, those read
 // from tx. Hold reads every operation of the order before the driver applies
 // it, so a replay resolves each operation's type once to run it and not again
 // for its payloads. The driver goroutine calls it.
@@ -258,8 +260,8 @@ func (a *Adapter) txPayloads(ctx context.Context, h []byte, tx *world_block_tx.T
 }
 
 // payloadHandlers returns the handlers of the operation types of tx, each
-// once and sorted by type, with the version each names payload roots under
-// now (payloadVersion).
+// once and sorted by type, with the version under which each reports payload
+// roots (payloadVersion).
 func (a *Adapter) payloadHandlers(ctx context.Context, tx *world_block_tx.Tx) (*PayloadHandlers, error) {
 	// Collect the operation types.
 	var types []string
@@ -281,16 +283,16 @@ func (a *Adapter) payloadHandlers(ctx context.Context, tx *world_block_tx.Tx) (*
 	return newPayloadHandlers(handlers), nil
 }
 
-// newPayloadHandlers returns the handlers that name an operation's payload
-// roots now: the operation type handlers given, sorted by type, and the
+// newPayloadHandlers returns the handlers that report an operation's payload
+// roots: the operation type handlers given, sorted by type, and the
 // transaction rules under their current version.
 func newPayloadHandlers(handlers []*PayloadHandler) *PayloadHandlers {
 	return &PayloadHandlers{Handlers: handlers, TxVersion: world_block_tx.PayloadRefsVersion}
 }
 
 // handlersCurrent reports whether the transaction rules and every handler h
-// records name payload roots under the version they have now, so the payloads
-// h covers are what the operation names now. An h without the transaction
+// records report payload roots under their current versions, so the payloads
+// h covers are what the operation references. An h without the transaction
 // version, such as one a cursor saved before it was recorded, is unknown and
 // reports false.
 func (a *Adapter) handlersCurrent(ctx context.Context, h *PayloadHandlers) bool {
@@ -346,7 +348,7 @@ func txOpTypes(tx *world_block_tx.Tx, fn func(opTypeID string)) {
 
 // noteUnresolved marks next unresolved, with n operations unresolved, and
 // logs once the run that began in prev has lasted unresolvedLogAfter, then at
-// most once each unresolvedLogAfter. The line names no operation, key or
+// most once each unresolvedLogAfter. The line references no operation, key or
 // config.
 func (a *Adapter) noteUnresolved(prev, next *payloadState, n int) {
 	// Carry the run's start and last line from prev.
@@ -370,9 +372,9 @@ func (a *Adapter) noteUnresolved(prev, next *payloadState, n int) {
 // saw, of the positions above the checkpoint and of the pending admissions,
 // dropping the others once every operation of that order resolved and its
 // checkpoint World is held: the base root holds it, or kept reports that
-// Install just kept the positions up to the replay base and it is that World.
-// Without a drop it appends what it does not hold yet. The driver goroutine
-// calls it.
+// Install just kept the positions up to the replay base and the replay base
+// is that World. Without a drop it appends what it does not hold yet. The
+// driver goroutine calls it.
 func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 	// Read the base and the held payloads, then key the positions' payloads,
 	// outside the lock.
@@ -414,8 +416,9 @@ func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 	}
 	missing = append(missing, slices.DeleteFunc(slices.Clone(pending), h.holds)...)
 
-	// Append them, or move onto the planned set with them and every held root
-	// a pending admission names, read again under the lock (invariant 3).
+	// Append them, or move onto the planned set with them and every held
+	// root a pending admission references, read again under the lock
+	// (invariant 3).
 	if drop == nil {
 		return a.appendRoots(ctx, h, missing, false)
 	}
@@ -442,13 +445,14 @@ type payloadDrop struct {
 	roots []*block.BlockRef
 	// keys are the keys of roots.
 	keys map[string]struct{}
-	// entry is the HeldRoots block naming roots, nil when it keeps none.
+	// entry is the HeldRoots block referencing roots, nil when it keeps
+	// none.
 	entry *block.PutBatchEntry
 }
 
-// planPayloadDrop returns the roots of held that keys or posKeys name, with
-// the block that holds them, or nil when it keeps every root. It runs outside
-// rootMtx.
+// planPayloadDrop returns the roots of held that keys or posKeys contain,
+// with the block that holds them, or nil when it keeps every root. It runs
+// outside rootMtx.
 func planPayloadDrop(held []*block.BlockRef, keys map[string]int, posKeys []string) (*payloadDrop, error) {
 	// Key the positions' payloads beside the order's.
 	pos := make(map[string]struct{}, len(posKeys))
@@ -456,7 +460,7 @@ func planPayloadDrop(held []*block.BlockRef, keys map[string]int, posKeys []stri
 		pos[k] = struct{}{}
 	}
 
-	// Keep the held roots either names.
+	// Keep the held roots either key set contains.
 	d := &payloadDrop{keys: make(map[string]struct{}, len(keys)+len(pos))}
 	for _, ref := range held {
 		k := ref.MarshalString()
@@ -501,7 +505,8 @@ func (a *Adapter) movePayloadDrop(ctx context.Context, d *payloadDrop, n int, mi
 		return false
 	})
 
-	// Name the kept block, then the appended roots with it as their Prev.
+	// Record the kept block, then the appended roots with the block as
+	// their Prev.
 	var entries []*block.PutBatchEntry
 	var top *block.BlockRef
 	links := 0

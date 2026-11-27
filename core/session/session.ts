@@ -1,8 +1,8 @@
 import { SessionRef } from './session.pb.js'
 
 // buildSessionComponentID builds the component ID for a session.
-// returns null if there is missing information or sessionRef is empty.
-// corresponds to BuildSessionComponentID in Go.
+// The function returns null if there is missing information or sessionRef is
+// empty. The function corresponds to BuildSessionComponentID in Go.
 export function buildSessionComponentID(
   sessionRef?: SessionRef,
 ): string | null {

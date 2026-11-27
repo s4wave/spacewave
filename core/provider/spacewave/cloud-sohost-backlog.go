@@ -15,8 +15,8 @@ const soStateBacklogMaxBytes = 4 << 20
 type soStateBatch struct {
 	// nonce is the highest block store nonce the received messages carried.
 	nonce uint64
-	// resync, when set, names why the batch pulls a fresh state in place of
-	// its messages.
+	// resync records, when set, why the batch pulls a fresh state in place
+	// of its messages.
 	resync SeedReason
 	// snapshot is the newest snapshot message, or nil.
 	snapshot *api.SOStateMessage
@@ -52,7 +52,7 @@ func (b *soStateBacklog) push(msg *api.SOStateMessage, nonce uint64) {
 		return
 	}
 
-	// A snapshot replaces everything held; a delta extends the run.
+	// A snapshot replaces everything held. A delta extends the run.
 	switch {
 	case msg.GetSnapshot() != nil:
 		b.held.snapshot, b.held.run, b.runBytes = msg, nil, 0
@@ -83,8 +83,8 @@ func (b *soStateBacklog) pushDeltaLocked(msg *api.SOStateMessage) {
 		return
 	}
 
-	// Append the entries past the held end, which must continue it, starting
-	// the run at the held snapshot when only a snapshot is held.
+	// Append the entries past the held end, which the entries must continue,
+	// starting the run at the held snapshot when only a snapshot is held.
 	var added []*api.SOStateDeltaEntry
 	for _, entry := range delta.GetEntries() {
 		if entry.GetSeqno() <= end {

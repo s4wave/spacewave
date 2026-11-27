@@ -99,7 +99,7 @@ describe('Changelog', () => {
   })
 
   it('scrolls to a dotted version without an invalid-selector error', () => {
-    // jsdom does not implement scrollIntoView; stub it to observe the call.
+    // jsdom does not implement scrollIntoView. Stub it to observe the call.
     const scrollIntoView = vi.fn()
     Element.prototype.scrollIntoView = scrollIntoView
     mockUseResource.mockReturnValue({

@@ -7,9 +7,9 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
-// maxKeyringGrants bounds the grants a keyring holds. A shared object holds
-// one local grant per key epoch, so the bound is reached only by a long epoch
-// history; the keyring then starts over.
+// maxKeyringGrants bounds the grants a keyring holds. A shared object holds one
+// local grant per key epoch, so the bound is reached only by a long epoch
+// history. The keyring then starts over.
 const maxKeyringGrants = 64
 
 // SOGrantKeyring decrypts the local peer's grants for the states of one shared
@@ -83,8 +83,8 @@ func (k *SOGrantKeyring) Inner(grant *SOGrant, privKey crypto.PrivKey) (*SOGrant
 // decode, reusing the body of the last checkpoint with the same encoded body.
 // decode may call Inner. The caller must not modify the result.
 //
-// Cost: on a reuse, one comparison of the encoded body; otherwise one decode
-// of the body and its state data.
+// Cost: one comparison of the encoded body on a reuse, or one decode of the
+// body and its state data otherwise.
 func (k *SOGrantKeyring) Checkpoint(checkpoint *SOCheckpoint, decode func(*SOCheckpointInner) (*SOCheckpointInner, error)) (*SOCheckpointInner, error) {
 	// Reuse the body of a checkpoint with the same bytes.
 	data := checkpoint.GetInner()
@@ -95,8 +95,8 @@ func (k *SOGrantKeyring) Checkpoint(checkpoint *SOCheckpoint, decode func(*SOChe
 		return held.inner, nil
 	}
 
-	// Decode it outside the lock, which decode takes through Inner, and
-	// remember it.
+	// Decode the checkpoint body outside the lock, which decode takes
+	// through Inner, and remember the decoded body.
 	inner, err := checkpoint.UnmarshalInner()
 	if err != nil {
 		return nil, err

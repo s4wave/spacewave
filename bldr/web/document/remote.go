@@ -24,7 +24,7 @@ var RemoteVersion = controller.MustParseVersion("0.0.1")
 
 // Remote is a remote instance of a WebDocument.
 //
-// Communicates with the frontend using bldr/web-document.ts
+// Communicates with the frontend using bldr/web-document.ts.
 type Remote struct {
 	documentID string
 	ctx        context.Context
@@ -41,11 +41,11 @@ type Remote struct {
 
 	// snapshotCtr contains a snapshot of below state for observers.
 	// it is not a source of truth and is only for GetWebDocumentStatus
-	// contains nil until the remote is ready or closed
+	// contains nil until the remote is ready or closed.
 	snapshotCtr *ccontainer.CContainer[*WebDocumentStatus]
 
-	// cstate is the controller state
-	// contains a mutex which guards below fields
+	// cstate is the controller state.
+	// contains a mutex which guards below fields.
 	cstate *cstate.CState[*Remote]
 	// ready indicates the initial snapshot has been received.
 	ready bool
@@ -57,11 +57,11 @@ type Remote struct {
 	pluginWorkersBlocked bool
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
-	// do not retain this slice without holding mtx
+	// do not retain this slice without holding mtx.
 	remoteWebViews []*remoteWebView
 	// remoteWebWorkers is the current snapshot of web workers.
 	// sorted by ID
-	// do not retain this slice without holding mtx
+	// do not retain this slice without holding mtx.
 	remoteWebWorkers []*remoteWebWorker
 	// remoteWebWorkerDeleted contains worker removal events that should be
 	// exposed once through the status container.
@@ -102,7 +102,8 @@ func NewRemote(
 		r.updateStatusSnapshot()
 	})
 
-	// The document owns frontend updates; other application RPC uses WebViews.
+	// The document owns frontend updates. Other application RPC uses
+	// WebViews.
 	frontendInvoker := srpc.NewClientInvoker(bifrost_rpc.NewBusClient(b))
 	r.rpcMux = srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
 		if serviceID != "devtool/"+frontend.SRPCFrontendServiceID {
@@ -296,8 +297,10 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return false, nil
 		}
 
-		// If the worker already exists, remove it so we can recreate with the new path.
-		// The browser-side web-document.ts already closes and replaces workers on same-ID calls.
+		// If the worker already exists, remove it so the runtime can
+		// recreate the worker with the new path. The browser-side
+		// web-document.ts already closes and replaces workers on
+		// same-ID calls.
 		if rwv := r.removeRemoteWebWorker(webWorkerID); rwv != nil {
 			r.le.WithField("worker-id", webWorkerID).Debug("CreateWebWorker: recreating existing worker")
 		}
@@ -484,8 +487,8 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 }
 
 // handleWebStatus handles an incoming web status message.
-// expects mtx to be locked
-// returns dirty, err
+// expects mtx to be locked.
+// returns dirty, err.
 func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bool, error) {
 
 	// Check the condition before continuing.
@@ -529,7 +532,8 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 		return dirty1 || dirty2 || dirty, err
 	}
 
-	// we got a snapshot or initial list of statuses: mark as ready
+	// Mark the remote as ready after a snapshot or initial list of
+	// statuses.
 	if !r.ready {
 		r.ready = true
 		return true, nil
@@ -539,7 +543,7 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 }
 
 // updateStatusSnapshot generates the status snapshot and sets it in the container.
-// expects mtx to be locked
+// expects mtx to be locked.
 func (r *Remote) updateStatusSnapshot() {
 	if !r.ready && !r.closed {
 		return
@@ -579,8 +583,8 @@ func (r *Remote) updateStatusSnapshot() {
 // handleWebViewStatuses handles a list of web view statuses.
 // snapshot: if set, removes any views that don't appear in the list.
 // note: ctx is used as the context for the new remote web view.
-// returns dirty, err
-// expects mtx to be locked
+// returns dirty, err.
+// expects mtx to be locked.
 func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statuses []*WebViewStatus) (bool, error) {
 
 	// Check the condition before continuing.
@@ -623,7 +627,8 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 		}
 	}
 
-	// if this is a snapshot, delete any views we didn't see.
+	// if the status list is a snapshot, delete any views absent from the
+	// list.
 	if snapshot {
 		for webViewID := range notSeenViews {
 			if r.removeRemoteWebView(webViewID) != nil {
@@ -638,8 +643,8 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 // handleWebWorkerStatuses handles a list of web worker statuses.
 // snapshot: if set, removes any views that don't appear in the list.
 // note: ctx is used as the context for the new remote web worker.
-// returns dirty, err
-// expects mtx to be locked
+// returns dirty, err.
+// expects mtx to be locked.
 func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerStatus) (bool, error) {
 
 	// Check the condition before continuing.
@@ -685,7 +690,8 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 		}
 	}
 
-	// if this is a snapshot, delete any workers we didn't see.
+	// if the status list is a snapshot, delete workers absent from the
+	// list.
 	if snapshot {
 		for webWorkerID := range notSeenWorkers {
 			if r.removeRemoteWebWorker(webWorkerID) != nil {
@@ -698,7 +704,7 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 }
 
 // insertRemoteWebView adds a new remote web view to the set.
-// expects mtx to be locked
+// expects mtx to be locked.
 func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
 
 	// append.
@@ -727,9 +733,10 @@ func (r *Remote) buildRemoteWebViewsMap() map[string]web_view.WebView {
 	return out
 }
 
-// removeRemoteWebView removes a remote web view and returns its final status, if found.
-// returns val, error, returns nil, nil if not found
-// expects mtx to be locked
+// removeRemoteWebView removes a remote web view and returns its final status,
+// if found.
+// returns val, error, returns nil, nil if not found.
+// expects mtx to be locked.
 func (r *Remote) removeRemoteWebView(id string) *remoteWebView {
 
 	// lookupRemoteWebView idx,rwv.
@@ -757,8 +764,8 @@ func (r *Remote) clearRemoteWebViews() []*remoteWebView {
 }
 
 // lookupRemoteWebView searches the remoteWebViews field for a web view.
-// returns insertion index if not found
-// expects mtx to be locked
+// returns insertion index if not found.
+// expects mtx to be locked.
 func (r *Remote) lookupRemoteWebView(id string) (i int, rwv *remoteWebView) {
 	i = sort.Search(len(r.remoteWebViews), func(i int) bool {
 		return r.remoteWebViews[i].proxy.GetId() >= id
@@ -817,7 +824,7 @@ func (r *Remote) upsertRemoteWebWorker(status *WebWorkerStatus) (*remoteWebWorke
 }
 
 // insertRemoteWebWorker adds a new remote web worker to the set.
-// expects mtx to be locked
+// expects mtx to be locked.
 func (r *Remote) insertRemoteWebWorker(insertIdx int, rwv *remoteWebWorker) {
 	r.remoteWebWorkers = append(r.remoteWebWorkers, nil)
 	copy(r.remoteWebWorkers[insertIdx+1:], r.remoteWebWorkers[insertIdx:])
@@ -842,9 +849,10 @@ func (r *Remote) buildRemoteWebWorkersMap() map[string]web_worker.WebWorker {
 	return out
 }
 
-// removeRemoteWebWorker removes a remote web worker and returns its final status, if found.
-// returns val, error, returns nil, nil if not found
-// expects mtx to be locked
+// removeRemoteWebWorker removes a remote web worker and returns its final
+// status, if found.
+// returns val, error, returns nil, nil if not found.
+// expects mtx to be locked.
 func (r *Remote) removeRemoteWebWorker(id string) *remoteWebWorker {
 
 	// lookupRemoteWebWorker idx,rwv.
@@ -870,8 +878,8 @@ func (r *Remote) clearRemoteWebWorkers() []*remoteWebWorker {
 }
 
 // lookupRemoteWebWorker searches the remoteWebWorkers field for a web worker.
-// returns insertion index if not found
-// expects mtx to be locked
+// returns insertion index if not found.
+// expects mtx to be locked.
 func (r *Remote) lookupRemoteWebWorker(id string) (i int, rwv *remoteWebWorker) {
 	i = sort.Search(len(r.remoteWebWorkers), func(i int) bool {
 		return r.remoteWebWorkers[i].id >= id

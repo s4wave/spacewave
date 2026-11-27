@@ -11,7 +11,7 @@ import (
 // maxRawSamples is the threshold below which raw samples are kept.
 const maxRawSamples = 1000
 
-// yieldInterval is how many operations between Gosched yields.
+// yieldInterval is the number of operations between Gosched yields.
 const yieldInterval = 100
 
 // MetricCollector collects per-operation timing samples for a single metric.

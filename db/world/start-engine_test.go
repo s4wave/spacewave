@@ -98,7 +98,7 @@ func TestBusEngineFollowsReplacedEngine(t *testing.T) {
 	eng := NewBusEngine(ctx, b, "test-engine")
 	var seen []string
 	err = AccessEngine(ctx, eng, func(ctx context.Context, eng Engine) error {
-		// Record the engine; the successor ends the access.
+		// Record the engine. The successor ends the access.
 		name := eng.(*namedEngine).name
 		seen = append(seen, name)
 		if name != "first" {

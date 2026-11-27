@@ -53,9 +53,9 @@ func (t *texture) add(r image.Rectangle) {
 		return
 	}
 
-	// Grow it over each marked area whose box with it sends no more than
-	// both, such as a line redrawn a few pixels over, then drop the areas it
-	// covers.
+	// Grow r over each marked area whose box with r sends no more than
+	// both areas, such as a line redrawn a few pixels over, then drop the areas
+	// r covers.
 	for {
 		i := slices.IndexFunc(t.damage, func(d image.Rectangle) bool { return waste(d, r) <= areaOf(d.Intersect(r)) })
 		if i < 0 {
@@ -67,7 +67,7 @@ func (t *texture) add(r image.Rectangle) {
 	t.damage = slices.DeleteFunc(t.damage, func(d image.Rectangle) bool { return d.In(r) })
 	t.damage = append(t.damage, r)
 
-	// Shorten a long list by merging the closest two areas, which keeps
+	// Shorten a long list by merging the closest two areas. Merging keeps
 	// thin edges thin rather than sending all of the image.
 	for len(t.damage) > maxDamage {
 		i, j := closest(t.damage)

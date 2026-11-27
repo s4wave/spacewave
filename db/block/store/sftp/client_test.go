@@ -28,8 +28,9 @@ type testServer struct {
 	mu   sync.Mutex
 	// conns are the open connections, which kill drops.
 	conns []net.Conn
-	// limit, when not zero, is the most SFTP sessions served at once; the
-	// server refuses the subsystem past it, as a storage account does.
+	// limit is the most SFTP sessions served at once when nonzero. The
+	// server refuses the subsystem past the limit, as a storage account
+	// does.
 	limit, sessions int
 }
 

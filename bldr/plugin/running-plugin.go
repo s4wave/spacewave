@@ -21,7 +21,7 @@ type RunningPluginRef interface {
 	GetPluginLoadStateCtr() ccontainer.Watchable[PluginLoadState]
 }
 
-// runningPlugin contains a static srpc client
+// runningPlugin contains a static srpc client.
 type runningPlugin struct {
 	rpcClient srpc.Client
 }

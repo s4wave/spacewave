@@ -8,5 +8,5 @@ export const title = 'Bounded release batches retain their continuation'
 export const state = (v: ReleaseState) =>
   `${v.remaining} batches, ${v.queued ? 'queued' : 'idle'}, ${v.waiting ? 'writer waiting' : 'writer free'}`
 
-// step names the scheduling operation.
+// step identifies the scheduling operation.
 export const step = (action: string) => action

@@ -30,7 +30,7 @@ export function GitCloneFact({ address }: { address: string }) {
 
 // GitRepoFactsProps configures GitRepoFacts.
 interface GitRepoFactsProps {
-  // info is the repository's info, or null while it loads.
+  // info is the repository's info, or null while the info loads.
   info: GetRepoInfoResponse | null | undefined
   // cloneAddress is the address from gitCloneAddress, or null.
   cloneAddress: string | null
@@ -41,7 +41,7 @@ interface GitRepoFactsProps {
  * Head, the commit HEAD resolves to with its subject under it, and Clone.
  */
 export function GitRepoFacts({ info, cloneAddress }: GitRepoFactsProps) {
-  // Take the subject from the last commit when it is the one HEAD names.
+  // Take the subject from the last commit when HEAD resolves to that commit.
   const head = info?.headCommitHash
   const last = info?.lastCommit
   const subject =

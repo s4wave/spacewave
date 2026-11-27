@@ -21,8 +21,8 @@ type blockStore struct {
 	tx *Tx
 }
 
-// GetHashType returns the hash type of new block references; zero selects
-// the default.
+// GetHashType returns the hash type of new block references. Zero selects
+// the default hash type.
 func (b *blockStore) GetHashType() hash.HashType {
 	return b.s.hashType
 }
@@ -243,7 +243,7 @@ func (b *blockStore) locate(ctx context.Context, refs []*block.BlockRef) ([]*loc
 
 // GetBlock reads a block's payload and verifies it against ref. A read that
 // fails or does not verify while maintenance moves the block retries at its
-// new location; at an unchanged location a mismatch is ErrBlockCorrupt, and
+// new location. At an unchanged location a mismatch is ErrBlockCorrupt, and
 // the payload stays in its segment.
 func (b *blockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	refs := []*block.BlockRef{ref}
@@ -325,7 +325,7 @@ func (b *blockStore) Sync(ctx context.Context) (bool, error) {
 
 // sync publishes every pending block write and remove in one index commit,
 // which also makes the earlier ordered commits durable. With nothing pending
-// it syncs the index instead, which costs nothing when nothing is dirty.
+// it syncs the index instead. Syncing costs nothing when nothing is dirty.
 func (s *Store) sync(ctx context.Context) error {
 	// Sync the index when nothing is pending.
 	s.mtx.Lock()

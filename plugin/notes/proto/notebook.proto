@@ -28,7 +28,7 @@ message InitNotebookOp {
   string unixfs_object_key = 2;
   // Timestamp is the creation timestamp.
   google.protobuf.Timestamp timestamp = 3;
-  // Name is the notebook's display name; empty names it Notes.
+  // Name is the notebook's display name. An empty name selects Notes.
   string name = 4;
 }
 
@@ -52,7 +52,7 @@ message NotebookEditOp {
 
 // NotebookAddSource appends a source to a Notebook.
 message NotebookAddSource {
-  // Source is the source to append; its ref is required.
+  // Source is the source to append. Its ref is required.
   NotebookSource source = 1;
 }
 

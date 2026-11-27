@@ -6,7 +6,7 @@ type graphPattern struct {
 }
 
 // newGraphPattern builds the pattern of a lookup filter. Each field is spelled
-// as the graph stores it, so a filter naming a predicate as a bare string
+// as the graph stores it, so a filter selecting a predicate as a bare string
 // matches the quoted string a changed quad reports.
 func newGraphPattern(filter GraphQuad) graphPattern {
 	return graphPattern{
@@ -19,7 +19,7 @@ func newGraphPattern(filter GraphQuad) graphPattern {
 
 // MatchGraphQuad checks whether q, spelled as the graph stores it, matches
 // every non-empty field of filter. The filter is spelled as for
-// LookupGraphQuads, so it may name a predicate as a bare string.
+// LookupGraphQuads, so the filter may select a predicate as a bare string.
 func MatchGraphQuad(filter, q GraphQuad) bool {
 	return newGraphPattern(filter).matches(q)
 }
@@ -44,7 +44,8 @@ func matchesField(pattern, value string) bool {
 }
 
 // term returns the field an index keys the pattern by, preferring the
-// fields that name objects. It returns false for a pattern matching every quad.
+// fields that reference objects. It returns false for a pattern matching every
+// quad.
 func (p graphPattern) term() (quadTerm, bool) {
 	switch {
 	case p.subject != "":

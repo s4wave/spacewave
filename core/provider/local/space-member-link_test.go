@@ -15,7 +15,7 @@ import (
 
 // TestSpaceMemberLinkAdmission checks the account's UDP listener against the
 // members of its Spaces: a reader of a listed Space links without gaining
-// account authority, a peer no Space names is refused, and a member whose
+// account authority, a peer no Space lists is refused, and a member whose
 // participation is removed loses its link.
 func TestSpaceMemberLinkAdmission(t *testing.T) {
 	// Bound the test and start the owner, a member and a stranger.
@@ -30,7 +30,7 @@ func TestSpaceMemberLinkAdmission(t *testing.T) {
 	memberID := memberSess.GetPeerId()
 	strangerID := strangerSess.GetPeerId()
 
-	// Create a Space whose config names the member as a reader.
+	// Create a Space whose config declares the member as a reader.
 	spaceRef, err := owner.CreateSharedObject(ctx, "member-link-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +82,8 @@ func TestSpaceMemberLinkAdmission(t *testing.T) {
 		defer elRef.Release()
 	}
 
-	// The member links; the stranger does not, and no rule admits it.
+	// The member links. The stranger does not, and no rule admits the
+	// stranger.
 	ids := []peer.ID{strangerID, memberID}
 	waitLinked(ctx, t, listener, ids, func(linked map[peer.ID]struct{}) bool {
 		_, ok := linked[memberID]

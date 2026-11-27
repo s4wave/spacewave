@@ -383,7 +383,7 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 		t.Fatalf("busy Quit = %v, want other work %q", resp, want)
 	}
 
-	// Close the shell; the other client keeps the daemon running.
+	// Close the shell while the other client keeps the daemon running.
 	desktop.closeShell("")
 	recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
@@ -652,7 +652,7 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			status := desktopStatusWatch(t, launcher)
 			watch := desktopWatch(t, resources)
 
-			// Fail before or after confirmation; neither outcome proves a shell exit.
+			// Fail before or after confirmation. Neither outcome proves a shell exit.
 			_, err := desktop_control.NewSRPCDesktopControlServiceClient(launcher).OpenOrFocusDesktop(t.Context(), &desktop_control.OpenOrFocusDesktopRequest{})
 			if failure == "active-stream" {
 				if err != nil {

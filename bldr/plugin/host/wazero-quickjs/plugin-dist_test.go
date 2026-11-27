@@ -24,8 +24,9 @@ import (
 
 // TestPluginDist loads a built js plugin dist directory under QuickJS.
 //
-// BLDR_QUICKJS_PLUGIN_DIST names the dist directory and
-// BLDR_QUICKJS_PLUGIN_ID the plugin ID, whose <id>.mjs is the entrypoint.
+// BLDR_QUICKJS_PLUGIN_DIST selects the dist directory and
+// BLDR_QUICKJS_PLUGIN_ID selects the plugin ID, whose <id>.mjs is the
+// entrypoint.
 func TestPluginDist(t *testing.T) {
 	// Skip unless a dist directory and plugin ID are given.
 	distDir := os.Getenv("BLDR_QUICKJS_PLUGIN_DIST")
@@ -43,7 +44,7 @@ func TestPluginDist(t *testing.T) {
 	// Copy the dist directory into the manifest filesystem.
 	distFS := memfs.New()
 	err := filepath.WalkDir(distDir, func(path string, d fs.DirEntry, err error) error {
-		// Skip directories; WriteFile creates them.
+		// Skip directories. WriteFile creates them.
 		if err != nil || d.IsDir() {
 			return err
 		}

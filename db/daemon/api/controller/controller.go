@@ -20,13 +20,13 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller implements the API controller. The controller looks up the Node,
 // acquires its identity, listens and responds to incoming API calls.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// listenAddr is the listen address
+	// listenAddr is the listen address.
 	listenAddr string
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 
@@ -101,7 +101,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns a resolver.
+// Otherwise, HandleDirective returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -109,7 +110,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	// nil references to help GC along
 	c.le = nil

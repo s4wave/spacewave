@@ -71,7 +71,7 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 		return o.GetValue().Validate(true)
 	}
 
-	// checkOutput checks the output field
+	// checkOutput checks the output field.
 	checkOutput := func(allowEmpty bool) error {
 		outputEmpty := len(o.GetOutput()) == 0
 		if !allowEmpty && outputEmpty {

@@ -98,7 +98,8 @@ func TestTptAddr(t *testing.T) {
 	}
 	defer relTptAddrCtrl()
 
-	// attempt to dial tb2, which should create a LookupTptAddr and a DialTptAddr directive.
+	// attempt to dial tb2. The dial attempt should create a
+	// LookupTptAddr and a DialTptAddr directive.
 	lnk, lnkRel, err := link.EstablishLinkWithPeerEx(ctx, tb1.Bus, tb1.PeerID, tb2.PeerID, false)
 	if err != nil {
 		t.Fatal(err.Error())

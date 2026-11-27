@@ -101,8 +101,8 @@ func TestAccountReplicaCopyFollowsParticipantGrants(t *testing.T) {
 // hole again and complete the copy of the same head.
 func TestAccountReplicaCopyRereadsHolesOnSessionStart(t *testing.T) {
 	// Seed the owner's graph and evict its leaf from both peers' Volumes,
-	// keeping the bytes; the owner goes first so the replica cannot fetch it
-	// back. A bucket's RmBlock only releases its hold.
+	// keeping the bytes. The owner goes first so the replica cannot fetch
+	// the leaf back. A bucket's RmBlock only releases its hold.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	peers := newDEXRolePeers(t, ctx)
@@ -361,7 +361,8 @@ func mountEmptyReplicaDestination(ctx context.Context, t *testing.T) (sobject.Sh
 // TestAccountReplicaCopyWaitsOnUnknownRefs copies from a source that holds
 // every block without its refs. Retrying the same head cannot succeed, so the
 // copy makes one attempt and waits: a newer head does not end the wait, and a
-// reset, as on a config change, returns it for the caller to copy the newest.
+// reset, as on a config change, returns control for the caller to copy the
+// newest head.
 func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 	// Mount a seeded source Space.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -404,10 +405,10 @@ func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
 }
 
 // TestAccountReplicaCopyKeepsProofsAroundHoles copies from a source missing one
-// block, or whose peers all refuse it. The walk finishes and names the block,
+// block, or whose peers all refuse it. The walk finishes and records the block,
 // and the next walk of the same head reads only the path to it. The block is
-// then known absent: the next walk names it without reading it, until a reset,
-// as on a peer session start, after which the probe reads it once.
+// then known absent: the next walk records it without reading it, until a
+// reset, as on a peer session start, after which the probe reads it once.
 func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 	for name, holeErr := range map[string]error{
 		"missing": block.ErrNotFound,
@@ -424,7 +425,7 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 				store: block_store.NewStore("destination", dstSO.GetBlockStore()), copyStore: source,
 			}}
 
-			// Each walk finishes and names the leaf.
+			// Each walk finishes and records the leaf.
 			absent := &knownAbsent{}
 			walk := func() int32 {
 				// Copy the head, counting the source reads.
@@ -449,8 +450,9 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 				t.Fatalf("two walks read the hole %d times, want once", got)
 			}
 
-			// A peer session start resets the set; the probe reads the hole
-			// once and the walk after it not at all.
+			// A peer session start resets the set. The probe reads
+			// the hole once and the walk after the probe does not
+			// read the hole at all.
 			absent.reset()
 			holes := &worldHolesError{refs: []*block.BlockRef{leaf}}
 			if arrived, err := holes.probe(ctx, source, absent, absent.generation()); err != nil || arrived {
@@ -505,8 +507,8 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 	}
 	defer releaseLocal()
 
-	// newer publishes a head whose root, its span block, names the blocked World
-	// and a new leaf.
+	// newer publishes a head whose root, its span block, references the
+	// blocked World and a new leaf.
 	var heads int
 	newer := func() *replicaHead {
 		t.Helper()

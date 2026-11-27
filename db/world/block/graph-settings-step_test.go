@@ -114,7 +114,7 @@ type stepTestWriter struct {
 	mtx sync.Mutex
 	// quads are the live quads, formatted as quadStrings does.
 	quads map[string]bool
-	// next is the index of the next change; one goroutine writes at a time.
+	// next is the index of the next change. One goroutine writes at a time.
 	next int
 }
 

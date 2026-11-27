@@ -104,7 +104,8 @@ func TestCompileTCPPortToLocalPort(t *testing.T) {
 		compiled[node.NodeID] = entries
 	}
 
-	// Check that the two ends agree on the protocol and name each other.
+	// Check that the two ends agree on the protocol and
+	// reference each other.
 	forwarding := compiled["tcp"]["forward"].(*stream_forwarding.Config)
 	listening := compiled["local"]["forward"].(*stream_listening.Config)
 	if forwarding.GetTargetMultiaddr() != "/ip4/127.0.0.1/tcp/8080" || listening.GetListenMultiaddr() != "/ip4/127.0.0.1/tcp/8080" {

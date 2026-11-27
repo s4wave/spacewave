@@ -15,8 +15,8 @@ import (
 // HealthSizesFn measures a volume's storage and chooses its disk reserve.
 type HealthSizesFn func(ctx context.Context) (HealthSizes, error)
 
-// healthPoll is how often the size measurement retries a failed measurement
-// and checks the age of the last.
+// healthPoll is how often the size measurement retries a failed measurement and
+// checks the age of the last measurement.
 const healthPoll = time.Second
 
 // healthMaxAge is the age past which measured sizes are measured again,
@@ -61,10 +61,10 @@ type healthState struct {
 // corruptRefsMax bounds the corrupt refs the health snapshot lists.
 const corruptRefsMax = 16
 
-// SetHealthSizes starts measuring the storage with fn, which the health
-// snapshot reports. It measures once at once, then when the volume's written
-// bytes pass a fraction of the free disk above the reserve, when a
-// collection may have freed space, and at least every 30 seconds. Each
+// SetHealthSizes starts measuring the storage with fn and reports the
+// measurements in the health snapshot. It measures once at once, then when the
+// volume's written bytes pass a fraction of the free disk above the reserve,
+// when a collection may have freed space, and at least every 30 seconds. Each
 // measurement moves the write state, which the new-data entry points read. It
 // is called once, before the volume is shared, and Close stops it.
 func (v *Volume) SetHealthSizes(fn HealthSizesFn) {
@@ -80,7 +80,7 @@ func (v *Volume) SetHealthSizes(fn HealthSizesFn) {
 // GetHealthSnapshotWithWait returns the volume's health and a channel that
 // closes when its collection phase or measured sizes change. The publication
 // occupancy and the counts of blocks observed not held are read with the
-// snapshot; their changes alone do not close the channel, so a write wakes no
+// snapshot. Their changes alone do not close the channel, so a write wakes no
 // watcher.
 func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{}) {
 	// Copy the state and subscribe to its next change.
@@ -116,10 +116,11 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 	return h, waitCh
 }
 
-// noteCorrupt names this volume in a read's corrupt error and counts the read
-// in the health snapshot, returning err. The stored bytes are left as they are.
+// noteCorrupt identifies this volume in a read's corrupt error and counts the
+// read in the health snapshot, returning err. The stored bytes are left as they
+// are.
 func (v *Volume) noteCorrupt(err error) error {
-	// Name the volume in the error.
+	// Identify the volume in the error.
 	var corrupt *block.CorruptError
 	if !errors.As(err, &corrupt) {
 		return err
@@ -256,7 +257,7 @@ func inReserve(sizes HealthSizes, was bool) bool {
 
 // checkReserve refuses a new write of size bytes with volume.ErrReserve while
 // the volume is in the reserve state, unless volume.WithReserveExempt marked
-// ctx. It counts the bytes it admits toward the next size measurement; a
+// ctx. It counts the bytes it admits toward the next size measurement. A
 // publication passes zero, since the publication writer counts its commits.
 func (v *Volume) checkReserve(ctx context.Context, size int) error {
 	if v.reserved.Load() && !volume.ReserveExempt(ctx) {

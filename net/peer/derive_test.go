@@ -46,7 +46,7 @@ func TestDerive(t *testing.T) {
 func TestDeriveEmptyContext(t *testing.T) {
 	keys := BuildMockKeys(t)
 
-	// Derive with an empty context; expect ErrEmptyContext.
+	// Derive with an empty context. Expect ErrEmptyContext.
 	var secret [32]byte
 	err := DeriveKey("", nil, keys[0], secret[:])
 	if !errors.Is(err, ErrEmptyContext) {

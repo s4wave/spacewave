@@ -33,7 +33,7 @@ func NewCreateSshHostOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate cursorily checks the op.
 func (o *CreateSshHostOp) Validate() error {
 	// Require an object key and label for the SSH Host creation.
 	if len(o.GetObjectKey()) == 0 {

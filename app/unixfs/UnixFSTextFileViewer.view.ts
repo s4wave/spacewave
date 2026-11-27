@@ -25,8 +25,9 @@ export const state = (v: TextFile) => {
     return 'Shown, Edit offered'
   }
 
-  // With a draft, a running save, then a refusal not yet read, then a failed
-  // read, then another writer's version, then a failed save decide it.
+  // With a draft, the drawn state is decided by a running save, then a
+  // refusal not yet read, then a failed read, then another writer's version,
+  // then a failed save.
   if (v.mode === 'saving') return 'Saving'
   if (v.refused && v.seen === v.base) {
     return v.read === 'failed'
@@ -47,7 +48,7 @@ export const step = (action: string, from: TextFile, to: TextFile) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // Each action names the edge it draws.
+  // Each action labels the edge it draws.
   const names: Record<string, string> = {
     Arrive: 'read lands',
     Fail: 'read fails',

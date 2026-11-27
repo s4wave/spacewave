@@ -13,7 +13,7 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
-// LookupFsType attempts to lookup the FS type of the world object.
+// LookupFsType tries to look up the FS type of the world object.
 // If unset, defaults to FS_NODE.
 // Checks that the type ID is recognized.
 func LookupFsType(ctx context.Context, ws world.WorldState, objKey string) (FSType, bool, error) {
@@ -82,7 +82,7 @@ func ValidateOrCreateFs(
 	return fsRef, nrootTypeID, nil
 }
 
-// AccessUnixfsObject attempts to access a unixfs world object with multiple
+// AccessUnixfsObject tries to access a unixfs world object with multiple
 // callbacks for each of the possible types of UnixFS objects.
 //
 // Returns an error if the given type was not handled.

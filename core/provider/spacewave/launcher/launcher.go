@@ -27,7 +27,7 @@ func (c *DistConfig) ResolvedChannelKey() string {
 	return ChannelStable
 }
 
-// Validate performs basic validation of the config.
+// Validate checks the config for basic validity.
 func (c *DistConfig) Validate() error {
 	if len(c.GetProjectId()) == 0 {
 		return errors.New("project id cannot be empty")

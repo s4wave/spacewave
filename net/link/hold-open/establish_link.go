@@ -10,24 +10,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// establishLinkHandler handles EstablishLink values
+// establishLinkHandler handles EstablishLink values.
 type establishLinkHandler struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// ref is the reference
+	// ref is the reference.
 	ref directive.Reference
-	// peerID is the peer id in the directive
+	// peerID is the peer id in the directive.
 	peerID peer.ID
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
-	// ctx is the handler context the hold-open reference is asked from
+	// ctx is the handler context the hold-open reference is asked from.
 	ctx context.Context
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// valCount is the number of added values
+	// valCount is the number of added values.
 	valCount int
 	// holding is set while the handler wants a non-weak reference.
 	holding bool
@@ -35,7 +35,7 @@ type establishLinkHandler struct {
 	rigidRef directive.Reference
 }
 
-// newEstablishLinkHandler constructs a new establishLinkHandler
+// newEstablishLinkHandler constructs a new establishLinkHandler.
 func newEstablishLinkHandler(
 	ctx context.Context,
 	c *Controller,
@@ -71,13 +71,15 @@ func (e *establishLinkHandler) HandleValueAdded(inst directive.Instance, val dir
 	}
 
 	// Add the non-weak reference outside the directive callback. A removal
-	// or disposal that clears holding before it is stored releases it.
+	// or disposal that clears holding before the reference is stored
+	// releases the reference.
 	e.le.
 		WithField("link-uuid", vl.GetLinkUUID()).
 		WithField("local-peer", vl.GetLocalPeer().String()).
 		Debug("starting peer hold-open tracking")
 	go func() {
-		// Store the reference unless the hold ended or another one won.
+		// Store the reference unless the hold ended or another reference
+		// won.
 		ref := e.di.AddReference(e.ctx, nil, false)
 		e.mtx.Lock()
 		keep := e.holding && e.rigidRef == nil

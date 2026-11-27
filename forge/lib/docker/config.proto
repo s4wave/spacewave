@@ -4,11 +4,11 @@ package forge.lib.docker;
 import "github.com/s4wave/spacewave/sdk/device/device.proto";
 
 // Config configures the docker CLI exec controller.
-// Creates one container, starts it, waits for completion, and stops it on
-// execution cancellation.
+// The controller creates one container, starts it, waits for completion, and
+// stops it on execution cancellation.
 message Config {
   // DockerPath is the docker CLI executable path.
-  // Defaults to "docker" when empty.
+  // DockerPath defaults to "docker" when empty.
   string docker_path = 1;
   // DockerEnv is the explicit environment for the docker CLI subprocess.
   // No host environment is inherited unless configured here.
@@ -36,7 +36,7 @@ message Config {
   // file becomes a blob and a directory a UnixFS tree, whose symbolic links are
   // skipped. A container that writes outputs runs as the Worker's user and
   // group, with each device's group added, so the Worker owns every output.
-  // Required when outputs is set.
+  // OutputDir is required when outputs is set.
   string output_dir = 11;
   // Outputs lists the output names the command may write to output_dir.
   // An entry absent after exit leaves its output unset.
@@ -44,19 +44,22 @@ message Config {
   // Entrypoint replaces the image's entrypoint when set: its first entry is
   // the executable and the rest are placed before command.
   repeated string entrypoint = 13;
-  // NetworkMode selects Docker's network, such as host for a local VM attachment.
-  // Empty retains Docker's default network.
+  // NetworkMode selects Docker's network, such as host for a local VM
+  // attachment.
+  // An empty NetworkMode retains Docker's default network.
   string network_mode = 14;
-  // Devices maps explicit host devices using Docker's host:container:permissions
-  // syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
+  // Devices maps explicit host devices using Docker's
+  // host:container:permissions syntax, such as /dev/kvm:/dev/kvm:rw. Empty
+  // Devices grants no additional devices.
   repeated string devices = 15;
   // InputMounts maps an input name to the container path where it is mounted
   // read-only. Each input, a UnixFS directory, is checked out to a private
-  // host directory before the container is created and removed after it exits.
+  // host directory before the container is created. The host directory is
+  // removed after the container exits.
   map<string, string> input_mounts = 16;
   // Cards asks for whole graphics cards. Admission reserves them with the CPU
   // and memory request, and the container gets only the reserved cards' device
-  // nodes; a card's nodes are never listed in devices.
+  // nodes. A card's nodes are never listed in devices.
   .s4wave.device.GraphicsCardRequest cards = 17;
 }
 

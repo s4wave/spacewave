@@ -228,7 +228,7 @@ func (ws *SDKWorldState) IterateObjects(ctx context.Context, prefix string, reve
 // ListObjects returns one page of at most limit entries whose keys start with
 // prefix, in key order, beginning after startAfter. A non-empty delimiter
 // groups keys below the next path segment into prefixes. more reports that
-// further entries match; pass the greater of the last object key and the last
+// further entries match. Pass the greater of the last object key and the last
 // prefix as startAfter to read them.
 func (ws *SDKWorldState) ListObjects(
 	ctx context.Context,
@@ -643,7 +643,8 @@ func (ws *SDKWorldState) HasObject(ctx context.Context, key string) (bool, error
 }
 
 // sdkWorldObjectState is an object handle that ws returned. Its writes share
-// ws's transaction, so it names ws as the World that holds it.
+// ws's transaction, so GetWorldState returns ws as the World that holds the
+// handle.
 type sdkWorldObjectState struct {
 	*SDKObjectState
 	// ws is the World state the handle came from.
@@ -655,7 +656,7 @@ func (o *sdkWorldObjectState) GetWorldState() world.WorldState {
 	return o.ws
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ world.WorldState       = (*SDKWorldState)(nil)
 	_ world.ObjectState      = (*sdkWorldObjectState)(nil)

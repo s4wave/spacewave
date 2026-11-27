@@ -13,7 +13,7 @@ func BuildEsbuildOutputMetas(metaFile *bldr_esbuild_build.EsbuildMetafile, entry
 	metas := make([]*EsbuildOutputMeta, 0, len(metaFile.Outputs))
 	files := make([]string, 0, 2)
 	for outputPath, outputFile := range metaFile.Outputs {
-		// reset files to just [outputPath]
+		// reset files to [outputPath]
 		files = files[:1]
 		files[0] = outputPath
 

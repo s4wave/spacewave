@@ -6,7 +6,8 @@
 // of an ObjectStore scope is the database's commit sequence, which every
 // process sharing the file observes. Root and key prefix events of the
 // processes sharing the coordinator's in-memory inner coordinator ride along
-// with it; other processes learn of a change from the commit that wrote it.
+// with the inner coordinator. Other processes learn of a change from the
+// commit that wrote it.
 package s4db
 
 import (

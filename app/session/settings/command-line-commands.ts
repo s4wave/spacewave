@@ -22,10 +22,11 @@ const UNIX_SHARED_DEFAULT_SOCKET_PATH =
 export const DEFAULT_SESSION_INDEX = 1
 
 // buildSpacewaveCommand renders a spacewave invocation bound to the
-// active session. Omits --session-index when the CLI's default already
-// matches; omits --socket-path when the live listener path is empty or
-// matches the shared default the CLI resolves with no flags. Explicit
-// socket paths are single-quoted for POSIX shell copy-paste safety.
+// active session. The command omits --session-index when the CLI's default
+// session index already matches the active session and omits --socket-path
+// when the live listener path is empty or matches the shared default the CLI
+// resolves with no flags. Explicit socket paths are single-quoted for POSIX
+// shell copy-paste safety.
 //
 // Examples:
 //   buildSpacewaveCommand('status', {sessionIndex: 1, socketPath: ''})
@@ -60,7 +61,7 @@ export function isSharedDefaultSocketPath(path: string): boolean {
 }
 
 // quotePosixShellArg returns a single shell token safe for POSIX shells.
-// The CLI setup page presents copy-paste terminal commands for macOS/Linux;
+// The CLI setup page presents copy-paste terminal commands for macOS/Linux.
 // Windows users can still run the quoted form from Git Bash or WSL.
 export function quotePosixShellArg(value: string): string {
   return `'${value.replaceAll("'", "'\"'\"'")}'`

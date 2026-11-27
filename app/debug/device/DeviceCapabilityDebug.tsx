@@ -6,8 +6,8 @@ import { useParams } from '@s4wave/web/router/router.js'
 
 import { DeviceCapabilityTable } from '@s4wave/app/device/DeviceCapabilityTable.js'
 
-// declared are a workstation's capabilities in each state the table names,
-// with details long enough to shed.
+// declared are a workstation's capabilities in each state the table lists,
+// with details long enough to truncate.
 const declared: DeviceCapability[] = [
   {
     id: 'terminal',

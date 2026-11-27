@@ -4,10 +4,12 @@
 // - s: script path (the worker script to load)
 // - p: plugin mode ('1' = plugin worker, absent = custom worker)
 //
-// Plugin workers (p=1): creates PluginWorker wrapper which manages
-// WebDocumentTracker, BackendApiImpl, and calls the script's main(api, signal).
+// Plugin workers (p=1): the entry point creates a PluginWorker wrapper that
+// manages WebDocumentTracker and BackendApiImpl, and calls the script's
+// main(api, signal).
 //
-// Custom workers (no p): imports the script directly and lets it self-manage.
+// Custom workers (no p): the entry point imports the script directly and lets
+// the script self-manage.
 // The script provides its own message listeners and WebDocumentTracker.
 
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
@@ -71,7 +73,7 @@ if (isPlugin) {
     const { scriptPath } = parseUrlParams()
 
     // Use the detection result from the WebDocument init message (authoritative).
-    // Falls back to local detection for standalone test fixtures.
+    // Fall back to local detection for standalone test fixtures.
     const detect = opts.workerCommsDetect ?? (await detectWorkerCommsConfig())
     const transport = createTransportFactory(detect, {
       openStream: pluginWorker.webRuntimeClient.openStream.bind(

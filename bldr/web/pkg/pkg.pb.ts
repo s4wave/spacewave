@@ -49,7 +49,7 @@ export interface WebPkgRef {
   imports?: string[]
   /**
    * CrossRefs is the list of other web pkgs that this pkg imports.
-   * NOTE: this is not filled unless ResolveWebPkgRefsEsbuild is called.
+   * NOTE: CrossRefs is filled only when ResolveWebPkgRefsEsbuild is called.
    */
   crossRefs?: string[]
 }

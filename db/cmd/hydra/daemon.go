@@ -97,7 +97,7 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Load or create private key.
+	// Load or create the private key.
 	peerPriv, err := keyfile.OpenOrWritePrivKey(le, a.PeerPrivPath)
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 	}
 	defer csRef.Release()
 
-	// Daemon API
+	// Start the daemon API.
 	if a.APIListen != "" {
 		apiRef, err := d.ServeAPI(ctx, a.APIListen)
 		if err != nil {
@@ -127,13 +127,13 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 		defer apiRef.Release()
 	}
 
-	// Construct config set.
+	// Construct the config set.
 	confSet := configset.ConfigSet{}
 
-	// Load floodsub controller
+	// Load the floodsub controller.
 	confSet["pubsub"] = configset.NewControllerConfig(1, &floodsub_controller.Config{})
 
-	// Load config file
+	// Load the config file.
 	configLe := le.WithField("config", a.ConfigPath)
 	if confPath := a.ConfigPath; confPath != "" {
 		confDat, err := os.ReadFile(confPath)

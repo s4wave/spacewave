@@ -78,7 +78,7 @@ type Server struct {
 type pendingReport struct {
 	id    string
 	tries int
-	// notBefore is when it may be sent again.
+	// notBefore is when the report may be sent again.
 	notBefore time.Time
 }
 
@@ -92,7 +92,7 @@ func NewServer(holder Holder, dir string) (*Server, error) {
 	s := &Server{holder: holder, dir: dir, wait: reportWait, retryBase: reportWait, wake: make(chan struct{}, 1), readSlots: make(chan struct{}, maxReadsInFlight)}
 
 	// An empty report was applied. The sizes come from the directory walk, so
-	// this reads no report.
+	// the walk reads no report.
 	names, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			// a hung disk must not hold them. A read with no slot answers a
 			// miss at once, and the local store reads the remote. A hung read
 			// stays out of running too, so it can't hold this connection's
-			// end; the server's slots bound how many there are, across
+			// end. The server's slots bound the number of hung reads across
 			// connections.
 			select {
 			case s.readSlots <- struct{}{}:

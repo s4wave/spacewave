@@ -8,13 +8,13 @@ import "github.com/aperturerobotics/util/backoff/backoff.proto";
 // Config is the manifest builder controller configuration.
 message Config {
   // BuilderConfig contains common config for the manifest builder.
-  // Overridden by the project controller.
+  // The project controller overrides BuilderConfig.
   .bldr.manifest.builder.BuilderConfig builder_config = 1;
   // ControllerConfig is the config to use for the manifest builder controller.
   // The ControllerConfig must be a manifest build controller Config.
   .configset.proto.ControllerConfig controller_config = 2;
   // BuildBackoff is the backoff config for building manifests.
-  // If unset, defaults to reasonable defaults.
+  // If unset, BuildBackoff uses the default backoff configuration.
   .backoff.Backoff build_backoff = 3;
   // Watch enables watching for changes.
   bool watch = 4;

@@ -49,7 +49,7 @@ type ObjectState interface {
 	// Returns revision just after the change was applied.
 	IncrementRev(ctx context.Context) (uint64, error)
 
-	// WaitRev waits until the object rev is >= the specified.
+	// WaitRev waits until the object rev is >= the specified rev.
 	// Returns ErrObjectNotFound if the object is deleted.
 	// If ignoreNotFound is set, waits for the object to exist.
 	// Returns the new rev.
@@ -61,7 +61,7 @@ type ObjectState interface {
 }
 
 // ObjectModSeqnoReader reports the World seqno after the last commit that
-// changed an object. Rev counts the object's own changes; ModSeqno orders them
+// changed an object. Rev counts the object's own changes. ModSeqno orders them
 // with every other change in the World, so a reader can watch for changes
 // after it.
 type ObjectModSeqnoReader interface {

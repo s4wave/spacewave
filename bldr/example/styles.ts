@@ -1,2 +1,2 @@
-// import .css file
+// Import the .css file.
 import './example.css'

@@ -21,8 +21,9 @@ const sqlFetchBlocks = 256
 // SQLRows reads one block store's rows of a SQL block store, such as
 // block_store_sql.Store.
 type SQLRows interface {
-	// ListHashes returns up to limit row keys after the key after and before
-	// end, nil for no end, in key order. A row key is the marshaled hash of the block.
+	// ListHashes returns up to limit row keys after the key after and
+	// before end, nil for no end, in key order. A row key is the marshaled
+	// hash of the block.
 	ListHashes(ctx context.Context, after, end []byte, limit int) ([][]byte, error)
 	// GetStoredBlockBatch calls fn with each block and its refs, with neither
 	// a block nor an error for a block the store does not hold, and with a
@@ -80,8 +81,8 @@ func (r *sqlBatchReader) next(ctx context.Context) (*packBatch, error) {
 				return nil, err
 			}
 			if batch.bytes >= uint64(r.packBytes) || len(batch.puts) >= int(writer.DefaultMaxBlocksPerPack) { //nolint:gosec // the policy is positive.
-				// Resume after the last block read; the volume check of
-				// the rest repeats.
+				// Resume after the last block read. The volume
+				// check of the rest repeats.
 				r.after = chunk[len(chunk)-1].rowKey
 				break
 			}

@@ -180,10 +180,10 @@ func TestYieldRequiresYieldPolicy(t *testing.T) {
 }
 
 // TestShutdownFiresWhenClientClosesBeforeCloseSend asserts the handler
-// still runs its shutdown callback when the post-ack CloseSend fails,
-// which happens when the client closes the control connection the
+// still runs its shutdown callback when the post-ack CloseSend fails.
+// CloseSend fails when the client closes the control connection the
 // instant it reads the ack (TakeoverSocket defers conn.Close). Gating
-// shutdown on CloseSend stranded the old daemon whenever the client won
+// shutdown on CloseSend strands the old daemon whenever the client wins
 // that race.
 func TestShutdownFiresWhenClientClosesBeforeCloseSend(t *testing.T) {
 	// Create a daemon handler that records its shutdown callback.

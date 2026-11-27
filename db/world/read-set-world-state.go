@@ -16,13 +16,14 @@ type readSetWorldState struct {
 }
 
 // BuildStorageCursor records nothing. The cursor starts at an empty ref, so it
-// reads only blocks named by refs the caller holds, and blocks never change.
+// reads only blocks identified by refs the caller holds, and blocks never
+// change.
 func (s *readSetWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	return s.WorldState.BuildStorageCursor(ctx)
 }
 
 // AccessWorldState records a read of the whole World when ref is empty, since
-// the cursor then points at the root World state. A ref names blocks that
+// the cursor then points at the root World state. A ref identifies blocks that
 // never change, so following it records nothing.
 func (s *readSetWorldState) AccessWorldState(
 	ctx context.Context,
@@ -152,7 +153,7 @@ func (s *readSetWorldState) ListGraphEdgeBuckets(ctx context.Context, query *Gra
 
 // QueryGraphPath records the filters of a one-step query, which reads only
 // its start keys' relationships, and a graph read for a longer query, whose
-// later frontiers the result does not name.
+// later frontiers the result does not record.
 func (s *readSetWorldState) QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error) {
 	if query != nil && len(query.Steps) == 1 {
 		var filters []GraphQuad

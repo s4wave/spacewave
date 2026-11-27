@@ -245,8 +245,8 @@ func ReadSSHCredentialPayload(ctx context.Context, b bus.Bus, secret *Secret, ex
 
 // AddSecretParticipant grants nested SharedObject access to a peer. A peer
 // that already participates at a lower role is raised to role, and one at role
-// or above is left unchanged. It returns the outcome and the role the peer
-// holds after the call.
+// or above is left unchanged. AddSecretParticipant returns the outcome and
+// the role the peer holds after the call.
 func AddSecretParticipant(
 	ctx context.Context,
 	b bus.Bus,
@@ -373,15 +373,15 @@ func buildSecretStateFromSnapshot(
 
 // replaceSecretPayload folds payload replacements: each operation carries the
 // whole next payload. The first state fixes the payload's owner for good. An
-// operation that names another owner is rejected, including one that gives an
+// operation that records another owner is rejected, including one that gives an
 // unowned payload an owner, so no writer of the payload can bind it to a
-// Space whose Secret delete would then remove it. An operation that names no
+// Space whose Secret delete would then remove it. An operation that records no
 // owner keeps the current one, as a writer on a build that predates owners
 // writes it. Every member folds with this function, so every device keeps
 // the first owner.
 //
 // An empty state is the only sign that no payload was written yet, so an
-// operation whose payload encodes to nothing is rejected too; otherwise a
+// operation whose payload encodes to nothing is rejected too. Otherwise a
 // writer could empty the state and then set any owner. Undecodable operation
 // data is rejected rather than stopping the fold, so one writer cannot make
 // the payload unreadable to every member.
@@ -430,7 +430,7 @@ func checkSecretPayloadOp(stateData, opData []byte) ([]byte, string, error) {
 		return nil, "the secret payload could not be decoded", nil
 	}
 
-	// The first state sets the owner; every later one keeps it.
+	// The first state sets the owner. Every later state keeps the owner.
 	if len(stateData) == 0 {
 		return bytes.Clone(opData), "", nil
 	}

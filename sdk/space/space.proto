@@ -61,7 +61,7 @@ service SpaceResourceService {
   // FetchPluginRepository queues a Forge Job on a registered device that clones
   // a public GitHub repository at depth one into this Space, or fetches its
   // newest commit when the repository is already stored. The worktree stays on
-  // the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+  // the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
   rpc FetchPluginRepository(FetchPluginRepositoryRequest) returns (FetchPluginRepositoryResponse) {}
 
   // ValidatePluginRepository checks the commit a fetched plugin repository
@@ -70,7 +70,8 @@ service SpaceResourceService {
   rpc ValidatePluginRepository(ValidatePluginRepositoryRequest) returns (ValidatePluginRepositoryResponse) {}
 
   // OpenPluginFrontend retains a source-backed compiler on the selected device.
-  // The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+  // The returned Resource serves bldr.frontend.Frontend. Release cancels the
+  // job.
   rpc OpenPluginFrontend(BuildSpacePluginRequest) returns (OpenPluginFrontendResponse) {}
 
   // SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
@@ -102,7 +103,7 @@ service SpaceResourceService {
   rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
 
   // LinkFolder links a folder on this device to a UnixFS directory of the
-  // Space: each file's Blob names chunks whose bytes stay in the file, and
+  // Space: each file's Blob references chunks whose bytes stay in the file, and
   // this device serves them from the file. It streams progress after each
   // batch of files publishes.
   rpc LinkFolder(LinkFolderRequest) returns (stream LinkFolderProgress) {}
@@ -122,7 +123,7 @@ message BuildSpacePluginRequest {
   string device_key = 2;
   // ManifestId selects the plugin manifest in the project.
   string manifest_id = 3;
-  // ConfigPath is relative to the source directory; empty selects bldr.yaml.
+  // ConfigPath is relative to the source directory. Empty selects bldr.yaml.
   // A plugin repository source must leave it empty.
   string config_path = 4;
   // ClusterKey is the Forge Cluster that receives the build Job. It must
@@ -140,8 +141,8 @@ message BuildSpacePluginRequest {
   // Ignored by OpenPluginFrontend.
   uint64 memory_bytes = 8;
   // Commit is the reviewed commit of a plugin repository source. The build is
-  // refused unless the repository's worktree still has it checked out and it
-  // passes validation. Required for a plugin repository source.
+  // refused unless the repository's worktree still has the commit checked out
+  // and the commit passes validation. Required for a plugin repository source.
   string commit = 9;
 }
 
@@ -552,7 +553,7 @@ message SpacePluginStatus {
   string plugin_id = 1;
   reserved 2;
   // Loaded indicates whether the plugin is currently running. Kept for older
-  // consumers; State is the app-facing lifecycle owner.
+  // consumers. State is the app-facing lifecycle owner.
   bool loaded = 3;
   // Description is a short description from the plugin manifest metadata.
   string description = 4;
@@ -563,18 +564,19 @@ message SpacePluginStatus {
   // RetryCount is reserved for future scheduler retry projection.
   uint32 retry_count = 7;
   // ManifestRef is the content ref of the manifest the plugin host selected to
-  // run, which names its build exactly. Empty until a manifest is selected.
+  // run. The content ref identifies the build exactly. Empty until a manifest
+  // is selected.
   string manifest_ref = 8;
   // Account reports that the plugin comes from the account plugin list rather
   // than the Space settings, so the Space cannot remove it.
   bool account = 9;
-  // ManifestRev is the build rev of the manifest named by ManifestRef.
+  // ManifestRev is the build rev of the manifest referenced by ManifestRef.
   uint64 manifest_rev = 10;
   // RunningManifestRef is the content ref of the manifest the admitted
   // execution runs. It differs from ManifestRef until the selected manifest
   // is live. Empty while no execution is admitted.
   string running_manifest_ref = 11;
-  // RunningManifestRev is the build rev of the manifest named by
+  // RunningManifestRev is the build rev of the manifest referenced by
   // RunningManifestRef.
   uint64 running_manifest_rev = 12;
   // Swap is the scheduler's state for the move from the running manifest to
@@ -594,7 +596,7 @@ message AddSpacePluginRequest {
 // AddSpacePluginResponse is the response for AddSpacePlugin.
 message AddSpacePluginResponse {}
 
-// ImportSpacePluginRequest names a plugin to copy from another mounted Space.
+// ImportSpacePluginRequest selects a plugin to copy from another mounted Space.
 message ImportSpacePluginRequest {
   // SourceSpaceResourceId is the caller's resource ID of the mounted source Space.
   uint32 source_space_resource_id = 1;
@@ -626,14 +628,14 @@ message SetSpaceSequencerResponse {
   // Changed is false when the chosen sequencer already ordered the edits.
   bool changed = 1;
   // AwaitingGroup is true when the viewer agreed to the change under group
-  // control, and it applies once the group decides it.
+  // control, and the change applies once the group decides it.
   bool awaiting_group = 2;
 }
 
 // SetSpaceRosterRequest lists the writers to drop from the trimming roster.
 message SetSpaceRosterRequest {
   // DroppedPeerIds are the writers to drop. Every other writer is on the
-  // roster; an empty list returns every dropped writer to it.
+  // roster. An empty list returns every dropped writer to the roster.
   repeated string dropped_peer_ids = 1;
 }
 
@@ -642,7 +644,7 @@ message SetSpaceRosterResponse {
   // Changed is false when the roster already dropped exactly those writers.
   bool changed = 1;
   // AwaitingGroup is true when the viewer agreed to the change under group
-  // control, and it applies once the group decides it.
+  // control, and the change applies once the group decides it.
   bool awaiting_group = 2;
 }
 
@@ -675,7 +677,7 @@ message ResetFolderRootRequest {
   string folder = 1;
 }
 
-// ResetFolderRootResponse names the file systems recorded before and now.
+// ResetFolderRootResponse reports the file systems recorded before and now.
 message ResetFolderRootResponse {
   // Previous is the identity of the file system recorded before, 0 when none
   // was.
@@ -711,7 +713,7 @@ message SetSpaceControlRequest {
 // SetSpaceControlResponse reports how the change proceeds.
 message SetSpaceControlResponse {
   // AwaitingGroup is true when the viewer agreed to the change under group
-  // control, and it applies once the group decides it.
+  // control, and the change applies once the group decides it.
   bool awaiting_group = 1;
 }
 
@@ -737,7 +739,7 @@ message SetProcessBindingRequest {
 // SetProcessBindingResponse is the response for SetProcessBinding.
 message SetProcessBindingResponse {}
 
-// RestartSpacePluginRequest names the plugin to restart.
+// RestartSpacePluginRequest selects the plugin to restart.
 message RestartSpacePluginRequest {
   // PluginId is the plugin manifest ID.
   string plugin_id = 1;

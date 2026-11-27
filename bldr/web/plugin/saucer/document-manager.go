@@ -43,7 +43,7 @@ type documentSessionOwner struct {
 	snapshotCtr *ccontainer.CContainer[*web_runtime.WebRuntimeStatus]
 
 	// muxWriteWaitHook is test-only synchronization for pre-GET POST ordering.
-	// Production leaves it nil; if set, it must be nonblocking.
+	// Production leaves it nil. If set, it must be nonblocking.
 	muxWriteWaitHook func(docID string)
 }
 
@@ -399,7 +399,8 @@ type muxConn struct {
 	// flushCh receives data from yamux to be written to the JS response.
 	flushCh chan []byte
 
-	// pending holds leftover data from a previous writeCh read.
+	// pendingMu guards pending, which holds leftover data from a previous
+	// writeCh read.
 	pendingMu sync.Mutex
 	pending   []byte
 }
@@ -456,7 +457,8 @@ func (mc *muxConn) Close() error {
 }
 
 // handleMuxRead handles GET /b/saucer/{docId}/mux.
-// This is a long-lived streaming response that carries yamux frames from Go to JS.
+// The GET response is a long-lived stream that carries yamux frames
+// from Go to JS.
 func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Request, docID string) {
 	// Replace the document session and close its previous mux.
 	generation, oldMux := dm.sessions.beginMuxReconnect(docID)
@@ -473,7 +475,7 @@ func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Reque
 		flushCh: make(chan []byte, 64),
 	}
 
-	// JS is inbound (connects to us), we are outbound (open streams to JS).
+	// JS is inbound (connects to Go), Go is outbound (opens streams to JS).
 	// In yamux terms: JS=client, Go=server. So Go side is outbound=false.
 	yamuxConn, err := srpc.NewMuxedConnWithRwc(muxCtx, mc, false, nil)
 	if err != nil {
@@ -484,7 +486,7 @@ func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	// Register the mux and mark connected.
+	// Register the mux and mark the document connected.
 	if !dm.sessions.connectMux(docID, generation, yamuxConn, mc) {
 		muxCancel()
 		_ = yamuxConn.Close()

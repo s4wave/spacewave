@@ -48,7 +48,7 @@ function compileReactor(
 // Run runs module's default export on the protobuf JSON input in a fresh
 // instance of the reactor wasm, under the memory limit in bytes and the
 // interrupt check limit. result is the output in protobuf JSON form or the
-// thrown message, as outcome says; the error is a failure of the runner.
+// thrown message, as outcome says. The error is a failure of the runner.
 export async function Run(
   _ctx: context.Context | null,
   reactor: $.Slice<number>,

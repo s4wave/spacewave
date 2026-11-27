@@ -4,7 +4,7 @@ package stream.listening;
 // Config configures the listening controller.
 message Config {
   // LocalPeerId is the peer ID to forward incoming connections with.
-  // Can be empty.
+  // LocalPeerId can be empty.
   string local_peer_id = 1;
   // RemotePeerId is the peer ID to forward incoming connections to.
   string remote_peer_id = 2;
@@ -13,6 +13,6 @@ message Config {
   // ListenMultiaddr is the listening multiaddress.
   string listen_multiaddr = 4;
   // TransportId sets a transport ID constraint.
-  // Can be empty.
+  // TransportId can be empty.
   uint64 transport_id = 5;
 }

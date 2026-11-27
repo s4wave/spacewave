@@ -8,7 +8,7 @@ export interface FileViewerProps {
   path: string
   stat: StatResult
   rootHandle: Resource<FSHandle>
-  // objectKey names the Git object and tree holding the file.
+  // objectKey identifies the Git object and tree holding the file.
   objectKey: string
   inlineFileURL?: string
   // readOnly says why the file cannot be written, such as a commit's files.
@@ -17,7 +17,7 @@ export interface FileViewerProps {
   line?: number
 }
 
-// commitReadOnly is why a file in a commit offers no Edit.
+// commitReadOnly is why a file in a commit offers no Edit action.
 export const commitReadOnly = 'Read-only: a file in a commit'
 
 // FileViewer delegates to UnixFSFileViewer for rendering file content.

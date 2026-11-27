@@ -5,7 +5,8 @@ import "context"
 // changed returns a channel closed once anything recent would answer changes:
 // the cache passes a newer revision, or a finished value replaces one a
 // catch-up dropped. A value first computed at a revision the cache already
-// stands at answers what a snapshot there reads, so it does not close it.
+// stands at answers what a snapshot there reads, so the value does not close
+// the channel.
 func (c *Cache) changed() <-chan struct{} {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()

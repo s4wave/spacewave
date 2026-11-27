@@ -15,13 +15,13 @@ message Config {
 message Packet {
   // Subscriptions contains any new subscription changes.
 	repeated SubscriptionOpts subscriptions = 1;
-  // Publish contains messages we are publishing.
+  // Publish contains messages the router is publishing.
 	repeated .peer.SignedMsg publish = 2;
 }
 
 // SubscriptionOpts are subscription options.
 message SubscriptionOpts {
-  // Subscribe indicates if we are subscribing to this channel ID.
+  // Subscribe indicates if the peer is subscribing to this channel ID.
   bool subscribe = 1;
   // ChannelId is the channel to subscribe to.
   string channel_id = 2;

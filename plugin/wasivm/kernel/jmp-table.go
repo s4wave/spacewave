@@ -29,7 +29,7 @@ type jmpBufEntry struct {
 //
 // The C stack grows down, so a setjmp at stack pointer sp finds every frame
 // below sp returned: their entries can no longer be jumped to. A setjmp into
-// the same buffer from the same frame replaces its last one. A frame that
+// the same buffer from the same frame replaces its last entry. A frame that
 // copies a jmp_buf holds it in its own stack frame, so the nested setjmp
 // runs at a lower sp and the copied entry survives.
 type jmpTable struct {
@@ -40,7 +40,7 @@ type jmpTable struct {
 
 // record stores e and returns its id, dropping the entries it supersedes.
 func (t *jmpTable) record(e jmpBufEntry) uint32 {
-	// Drop the entries of returned frames and the one this replaces.
+	// Drop the entries of returned frames and the entry e replaces.
 	for id, old := range t.entries {
 		if old.sp < e.sp || (old.sp == e.sp && old.buf == e.buf) {
 			delete(t.entries, id)

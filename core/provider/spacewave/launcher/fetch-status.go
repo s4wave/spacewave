@@ -9,7 +9,7 @@ import (
 // WatchLauncherFetchStatus is a directive that emits FetchStatus snapshots
 // for a launcher controller matching ProjectID. The resolver pushes a new
 // value on every state transition and removes the prior value. Values are
-// immutable; the launcher replaces the message on each transition.
+// immutable. The launcher replaces the message on each transition.
 type WatchLauncherFetchStatus interface {
 	// Directive indicates WatchLauncherFetchStatus is a directive.
 	directive.Directive

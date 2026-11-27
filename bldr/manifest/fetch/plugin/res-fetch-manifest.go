@@ -24,9 +24,9 @@ func (c *Controller) resolveFetchManifest(
 
 // fetchManifestResolver resolves FetchManifest with the controller.
 type fetchManifestResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// dir is the directive
+	// dir is the directive.
 	dir manifest.FetchManifest
 }
 

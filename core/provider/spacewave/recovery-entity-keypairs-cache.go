@@ -42,16 +42,17 @@ func (c *recoveryKeypairCache) set(soID string, resp *api.ListSORecoveryEntityKe
 // readable entities of a shared object config.
 //
 // The Cloud lists keypairs for exactly the readable entities of its current
-// config, so a cached listing answers while it names the same entities. A
+// config, so a cached listing answers while it lists the same entities. A
 // config change that adds or removes a readable entity fetches again. A keypair
-// an entity adds without such a change is seen after the next one, or after a
-// restart. A client without an account cache always fetches.
+// an entity adds without such a change is seen after the next config change
+// that adds or removes a readable entity, or after a restart. A client without
+// an account cache always fetches.
 func (c *SessionClient) recoveryEntityKeypairs(
 	ctx context.Context,
 	soID string,
 	entityIDs []string,
 ) (*api.ListSORecoveryEntityKeypairsResponse, error) {
-	// Answer from the cached listing when it names the same entities.
+	// Answer from the cached listing when it lists the same entities.
 	cache := c.recoveryKeypairs
 	if cache != nil {
 		cached := cache.get(soID)
@@ -66,8 +67,8 @@ func (c *SessionClient) recoveryEntityKeypairs(
 		return nil, err
 	}
 
-	// Cache it unless an entity has no keypairs yet, which a later listing
-	// may fill.
+	// Cache the listing unless an entity has no keypairs yet.
+	// A later listing may fill the missing keypairs.
 	complete := !slices.ContainsFunc(resp.GetEntities(), func(entity *api.SORecoveryEntityKeypairs) bool {
 		return len(entity.GetKeypairs()) == 0
 	})
@@ -77,7 +78,7 @@ func (c *SessionClient) recoveryEntityKeypairs(
 	return resp, nil
 }
 
-// listedEntityIDs returns the sorted entity IDs a keypair listing names.
+// listedEntityIDs returns the sorted entity IDs a keypair listing lists.
 func listedEntityIDs(resp *api.ListSORecoveryEntityKeypairsResponse) []string {
 	ids := make([]string, 0, len(resp.GetEntities()))
 	for _, entity := range resp.GetEntities() {

@@ -102,7 +102,7 @@ func TestLocalCDNCanvasReopen(t *testing.T) {
 		}
 	}
 
-	// Reuse the runtime trace collector; its timestamps span setup and all samples.
+	// Reuse the runtime trace collector. Its timestamps span setup and all samples.
 	if releaseStartupTraceEnabled() {
 		data, err := captureReleaseStartupTrace(t.Context(), testHarness.browser)
 		if err != nil {

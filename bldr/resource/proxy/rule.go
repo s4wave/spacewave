@@ -5,7 +5,7 @@ type Rule uint8
 
 const (
 	// End ends the call with a retryable error, so the client opens it
-	// again. It is the rule of every method Rules does not name, so an
+	// again. It is the rule of every method Rules does not list, so an
 	// unclassified call behaves as it would without the proxy.
 	End Rule = iota
 	// Reopen keeps a server stream open to the client and opens it again
@@ -25,15 +25,15 @@ const (
 	Once
 	// Open creates a child resource, whose ID the response carries in field
 	// 1. The proxy hands the client an ID of its own for the child and, on
-	// each new upstream, sends the call again after its parent's, before any
-	// other call reaches the child. A refused replay releases the client's
-	// handle. Until the call is answered it is held like Retry, so a method
-	// gets Open only when a second open leaves nothing behind the first did
-	// not.
+	// each new upstream, sends the call again after its parent's Open call,
+	// before any other call reaches the child. A refused replay releases
+	// the client's handle. Until the call is answered it is held like
+	// Retry, so a method gets Open only when a second open leaves behind
+	// only what the first does.
 	Open
 	// Resume is Reopen for a versioned watch, whose messages carry a
 	// ViewVersion as field 1000 and whose request takes the version its
-	// client holds as field 1000. The reopened request names the version of
+	// client holds as field 1000. The reopened request holds the version of
 	// the last message forwarded, so an unchanged view answers with the
 	// version alone, and the first upstream message is dropped when it is
 	// that version.

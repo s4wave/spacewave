@@ -9,7 +9,7 @@ import (
 
 // setExecutePluginState keeps guarded plugins running until they relinquish
 // their work. Initial starts and unguarded replacements apply immediately. A
-// nil state cancels the candidate but leaves the admitted worker; see
+// nil state cancels the candidate but leaves the admitted worker. See
 // releaseCatalogExecution.
 func (t *pluginInstance) setExecutePluginState(args *executePluginArgs) bool {
 	t.pluginUpdateMtx.Lock()
@@ -60,11 +60,12 @@ func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bo
 // a binding pinned to a manifest root, none at that root, whatever else the
 // plugin has. It clears the candidate and releases the worker the catalog
 // admitted, running or serving files. A catalog worker is released exactly
-// then, never on a host change, which keeps it as an installation's worker is
-// kept; while an installation is selected the catalog releases nothing. One
-// binding never releases: with the store disabled and no root, the direct
-// fetch selects, and its empty result cannot tell a gap from a removal. It
-// reports whether the selection or the admitted worker changed.
+// then, never on a host change. This release policy keeps the catalog worker
+// as an installation's worker is kept. While an installation is selected the
+// catalog releases nothing. One binding never releases: with the store
+// disabled and no root, the direct fetch selects, and its empty result cannot
+// tell a gap from a removal. releaseCatalogExecution reports whether the
+// selection or the admitted worker changed.
 func (t *pluginInstance) releaseCatalogExecution() bool {
 	// Clear the catalog candidate and take the catalog's worker, if admitted.
 	t.pluginUpdateMtx.Lock()

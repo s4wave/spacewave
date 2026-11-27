@@ -46,7 +46,7 @@ func entryIndexFromValueRefID(id uint32) (int, bool) {
 	return int(id - entryValueRefIDBase), true
 }
 
-// Validate performs cursory checks of the packed page object.
+// Validate checks basic properties of the packed page object.
 func (p *Page) Validate() error {
 	// Require page entries and a hash of the configured Okra size.
 	entries := p.GetEntries()
@@ -290,7 +290,7 @@ func (p *Page) ApplySubBlock(id uint32, next block.SubBlock) error {
 	return block.ApplySubBlock(&p.Entries[index].ValueBlob, next)
 }
 
-// Verify the Page block contracts.
+// _ is a type assertion that verifies the Page block contracts.
 var (
 	_ block.Block                 = (*Page)(nil)
 	_ block.BlockWithRefs         = (*Page)(nil)

@@ -30,7 +30,7 @@ export function adaptDevelopmentClient(
     )
   }
 
-  // Each compiler uses its own attachment; Vite retains its update algorithm.
+  // Each compiler uses its own attachment. Vite retains its update algorithm.
   const frontend = `globalThis.__bldrFrontends?.get(${JSON.stringify(sessionID)})`
   const replacement = `normalizeModuleRunnerTransport({
     connect(handlers) {

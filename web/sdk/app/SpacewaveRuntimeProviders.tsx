@@ -44,16 +44,16 @@ export interface SpacewaveRuntimeProvidersProps {
   staticViewers: ObjectViewerComponent[]
   staticConfigTypes: StaticConfigTypeRegistration[]
   /**
-   * ResourceClient for an explicit runtime connection. Present (including
-   * null while pending) bypasses the Bldr WebView transport entirely; the
-   * caller owns the client lifetime. Omitted keeps the default Bldr context
-   * transport.
+   * resourceClient is the ResourceClient for an explicit runtime connection.
+   * When present (including null while pending), resourceClient bypasses the
+   * Bldr WebView transport entirely. The caller owns the client lifetime.
+   * Omitting resourceClient keeps the default Bldr context transport.
    */
   resourceClient?: ResourceClient | null
   /**
    * rootAtom scopes legacy local UI state. Explicit connections default to
-   * a fresh atom so nested state never reaches the outer app's global atom;
-   * the default connection omits it and inherits from the outer tree.
+   * a fresh atom so nested state never reaches the outer app's global atom.
+   * The default connection omits it and inherits from the outer tree.
    */
   rootAtom?: Atom<StateType>
   /** resourceService is the service name for the default Bldr transport. */
@@ -64,7 +64,7 @@ export interface SpacewaveRuntimeProvidersProps {
 export function SpacewaveRuntimeProviders(
   props: SpacewaveRuntimeProvidersProps,
 ) {
-  // Presence of resourceClient selects the explicit runtime connection; see
+  // Presence of resourceClient selects the explicit runtime connection. See
   // SpacewaveRuntimeProvidersProps.resourceClient.
   if ('resourceClient' in props) {
     return <ExplicitSpacewaveRuntime {...props} />

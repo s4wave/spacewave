@@ -9,8 +9,9 @@ import (
 )
 
 // borrowedNativeVolume leaves physical Close with Data. Embedding the concrete
-// native Volume preserves atomic publication, preparation, retention and stages;
-// embedding volume.Volume would silently erase those optional capabilities.
+// native Volume preserves atomic publication, preparation, retention and
+// stages. Embedding volume.Volume would silently erase those optional
+// capabilities.
 type borrowedNativeVolume struct {
 	// Volume supplies the complete native storage and coordination domain.
 	*volume_s4db.Volume

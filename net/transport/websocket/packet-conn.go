@@ -89,7 +89,7 @@ func (c *PacketConn) WriteMessage(msg []byte) error {
 
 // WriteTo writes a packet with payload p to addr.
 // WriteTo can be made to time out and return an Error after a
-// fixed time limit; see SetDeadline and SetWriteDeadline.
+// fixed time limit. See SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	// Verify that packet writes target the bound remote address.
@@ -120,10 +120,10 @@ func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 //
 // If the deadline is exceeded a call to Read or Write or to other
 // I/O methods will return an error that wraps os.ErrDeadlineExceeded.
-// This can be tested using errors.Is(err, os.ErrDeadlineExceeded).
-// The error's Timeout method will return true, but note that there
-// are other possible errors for which the Timeout method will
-// return true even if the deadline has not been exceeded.
+// The wrapping can be tested using errors.Is(err, os.ErrDeadlineExceeded).
+// The error's Timeout method will return true, but there are other possible
+// errors for which the Timeout method will return true even if the deadline
+// has not been exceeded.
 //
 // An idle timeout can be implemented by repeatedly extending
 // the deadline after successful ReadFrom or WriteTo calls.

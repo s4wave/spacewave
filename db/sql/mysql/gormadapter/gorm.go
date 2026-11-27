@@ -2,7 +2,8 @@
 
 // Package gormadapter bridges a Mysql transaction to a gorm instance. It lives
 // in its own package so importing db/sql/mysql does not drag gorm.io/gorm into
-// the dependency closure; only callers that actually need gorm import this.
+// the dependency closure. Only callers that actually need gorm import this
+// package.
 package gormadapter
 
 import (

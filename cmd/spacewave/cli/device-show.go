@@ -195,7 +195,8 @@ func writeDeviceShow(
 	}
 	writeTable(w, "  ", rows)
 
-	// Show the Worker's graphics cards and which a reservation holds.
+	// Show the Worker's graphics cards and whether a reservation holds each
+	// card.
 	if cards := deviceShowCards(capacity); len(cards) != 0 {
 		io.WriteString(w, "\nGRAPHICS CARDS:\n")
 		rows := [][]string{{"ID", "VENDOR", "MEMORY", "STATE"}}
@@ -261,7 +262,8 @@ func formatDeviceClaimExpiry(expiry time.Time) string {
 	return expiry.UTC().Format(time.RFC3339Nano)
 }
 
-// formatDeviceOwnerState names the stored claim state independently of expiry.
+// formatDeviceOwnerState formats the stored claim state independently of
+// expiry.
 func formatDeviceOwnerState(state forge_runtime.CapacityOwnerState) string {
 	if state == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_UNKNOWN || !state.Valid() {
 		return "UNSPECIFIED"

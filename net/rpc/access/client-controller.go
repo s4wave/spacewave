@@ -59,7 +59,7 @@ func NewAccessClientFunc(svc SRPCAccessRpcServiceClient) AccessClientFunc {
 // The regex fields can both be nil to accept any.
 //
 // if waitAck is set, waits for ack from the remote before starting the proxied rpc.
-// note: usually you do not need waitAck set to true.
+// note: usually the caller does not need waitAck set to true.
 //
 // if backoff is nil, uses a default backoff for retrying the rpc call.
 func NewClientController(
@@ -129,7 +129,8 @@ func (c *ClientController) HandleDirective(ctx context.Context, di directive.Ins
 		}
 
 		// only returns an error if the RPC call failed.
-		// if the service doesn't exist on the remote, it does not return an error.
+		// if the service doesn't exist on the remote, the resolver
+		// returns no error.
 		res := directive.NewRetryResolver(c.le, NewLookupRpcServiceResolver(
 			dir,
 			c.AccessClient,

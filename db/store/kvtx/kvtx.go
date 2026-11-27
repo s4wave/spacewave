@@ -15,7 +15,7 @@ type KVTx struct {
 	kvkey *store_kvkey.KVKey
 	blk   block.StoreOps
 	conf  *Config
-	// store may also be a store_kvtx.Store
+	// store may also be a store_kvtx.Store.
 	store kvtx.Store
 }
 

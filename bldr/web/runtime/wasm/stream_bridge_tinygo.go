@@ -607,7 +607,8 @@ func dropTinyGoPluginStreamEvents(
 	}
 }
 
-// Exported TinyGo plugin callbacks are synchronous JavaScript completion hooks.
+// tinyGoPluginStreamOpenResolve is a synchronous JavaScript completion hook,
+// as are the other exported TinyGo plugin callbacks.
 // Use direct //export callbacks so TinyGo asyncify does not allocate a fresh
 // goroutine stack before each callback body.
 //

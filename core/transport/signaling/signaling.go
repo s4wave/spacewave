@@ -28,7 +28,7 @@ const ticketLifetime = 30 * time.Second
 // maxMessage bounds one signaling message.
 const maxMessage = 1 << 20
 
-// peerKey names the ticket holder on its socket's RPC context.
+// peerKey identifies the ticket holder on its socket's RPC context.
 type peerKey struct{}
 
 // Admitted reports whether a peer holds a connection that admits it to
@@ -68,8 +68,8 @@ type Signaling struct {
 // for the peers holding a peer socket on it. signingEnv must match the
 // transport client's request signing environment.
 func New(le *logrus.Entry, admitted Admitted, signingEnv string) *Signaling {
-	// Name each socket's caller by the peer its ticket was issued to. A fresh
-	// mux refuses no registration.
+	// Identify each socket's caller by the peer its ticket was issued to.
+	// A fresh mux refuses no registration.
 	server := signaling_server.NewServerWithIdentify(le, func(ctx context.Context) (peer.ID, error) {
 		return ctx.Value(peerKey{}).(peer.ID), nil
 	})
@@ -162,8 +162,8 @@ func (s *Signaling) ServeSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServePeer admits the peer that signed r to signaling until its socket
-// closes. The caller has checked the request's sign-in, which ties the key to
-// an account.
+// closes. The caller has checked the request's sign-in. The sign-in ties the
+// key to an account.
 func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 	// Accept only a socket the peer's key signed.
 	pid, err := VerifyRequest(r, time.Now(), s.signingEnv)
@@ -195,7 +195,7 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 
 // refuseSigned answers a signed request that failed verification. A request
 // signed at a time out of range says so, since its signer's clock is wrong
-// rather than its key; its Date header gives the signer the server's time.
+// rather than its key. The Date header gives the signer the server's time.
 func refuseSigned(w http.ResponseWriter, err error) {
 	if errors.Is(err, reqsig.ErrTimeOutOfRange) {
 		http.Error(w, "Request time is out of range", http.StatusForbidden)

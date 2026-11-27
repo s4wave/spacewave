@@ -48,7 +48,7 @@ if (
 
 // BLDR_BROWSER_ICE_SERVERS_ENDPOINT is the optional trusted same-origin
 // endpoint that returns short-lived ICE credentials. Injected from the trusted
-// dist configuration; never from worker code.
+// dist configuration and never from worker code.
 declare const BLDR_BROWSER_ICE_SERVERS_ENDPOINT: string | undefined
 if (
   typeof BLDR_BROWSER_ICE_SERVERS_ENDPOINT === 'string' &&
@@ -64,15 +64,15 @@ if (webDocumentId) {
   webDocumentOpts.webDocumentId = webDocumentId
 }
 
-// BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js
+// BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js.
 declare const BLDR_RUNTIME_JS: string | undefined
 if (typeof BLDR_RUNTIME_JS === 'string') {
   webDocumentOpts.runtimeWorkerPath = BLDR_RUNTIME_JS
 }
 
-// BLDR_SW_JS is an injected variable with the path to the sw.mjs
+// BLDR_SW_JS is an injected variable with the path to the sw.mjs.
 declare const BLDR_SW_JS: string | undefined
-// BLDR_SHW_JS is an injected variable with the path to the shw.mjs
+// BLDR_SHW_JS is an injected variable with the path to the shw.mjs.
 // This worker wraps plugin modules with Bldr runtime lifecycle params.
 declare const BLDR_SHW_JS: string | undefined
 if (typeof BLDR_SW_JS === 'string') {

@@ -5,7 +5,7 @@ package control
 import "strings"
 
 // DenyError indicates that the peer explicitly denied the takeover.
-// CLI callers use errors.As to distinguish this from generic RPC
+// CLI callers use errors.As to distinguish DenyError from generic RPC
 // transport errors and print a clearer message.
 type DenyError struct {
 	// Reason is the peer-supplied denial reason.

@@ -1,6 +1,7 @@
 // The frontmatter content mapper lets `tsrs --runExternalCode` type check the
-// frontmatter of Markdown files. tsconfig.json names it for `.md` files and
-// lists schemas, each a directory and the TypeScript type its pages satisfy.
+// frontmatter of Markdown files. tsconfig.json selects the mapper for `.md`
+// files and lists schemas, each a directory and the TypeScript type its pages
+// satisfy.
 // A file under a schema directory becomes a `satisfies` expression over its
 // fields, so a missing, unknown or mistyped field fails the type check on its
 // own line. Any other `.md` file becomes an empty module.

@@ -123,7 +123,7 @@ func TestProcessResolversOnlyOnChange(t *testing.T) {
 		t.Fatalf("searches after an unrelated change = %d, want 1", got)
 	}
 
-	// A new resolver searches once, and the first still does not.
+	// A new resolver searches once, and the first resolver still does not.
 	second := addResolver()
 	space.processResolvers(ctx, tb.WorldState)
 	if got := searches(); got != 2 {
@@ -133,7 +133,7 @@ func TestProcessResolversOnlyOnChange(t *testing.T) {
 		t.Fatalf("values of the new resolver = %d, want 1", len(second.values))
 	}
 
-	// A stored manifest searches for both resolvers.
+	// Storing a manifest triggers searches for both resolvers.
 	storeManifest("test/manifests/second")
 	space.processResolvers(ctx, tb.WorldState)
 	if got := searches(); got != 4 {

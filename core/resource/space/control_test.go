@@ -12,7 +12,8 @@ import (
 // TestSharingGroupControl checks how the sharing state describes group
 // control and a change the group has not decided.
 func TestSharingGroupControl(t *testing.T) {
-	// Three voters share a Space; the viewer and one other agree to remove the third.
+	// Three voters share a Space. The viewer and one other agree to remove
+	// the third.
 	participants := []*sobject.SOParticipantConfig{
 		{PeerId: "viewer", VotingWeight: 1},
 		{PeerId: "member", VotingWeight: 1},

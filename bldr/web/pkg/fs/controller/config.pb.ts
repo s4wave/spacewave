@@ -20,7 +20,7 @@ export interface Config {
   unixfsId?: string
   /**
    * UnixfsPrefix is a path prefix to apply to paths in the FS.
-   * This applies a chroot to the UnixFS.
+   * This prefix applies a chroot to the UnixFS.
    */
   unixfsPrefix?: string
   /**

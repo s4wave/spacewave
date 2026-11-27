@@ -20,8 +20,8 @@ const (
 	ParamFolder = "folder"
 	// ParamPath is the path in the Drive the folder links to.
 	ParamPath = "path"
-	// ParamTwoWay set to "true" applies others' changes to the Drive to the
-	// folder too; any other value links the folder one way.
+	// ParamTwoWay applies others' changes to the Drive to the folder too when
+	// set to "true". Any other value links the folder one way.
 	ParamTwoWay = "two-way"
 )
 
@@ -34,7 +34,7 @@ func (NodeType) GetDisplayName() string {
 	return "Linked Folder"
 }
 
-// GetPorts returns no ports, since the node names its folder in parameters
+// GetPorts returns no ports, since the node specifies its folder in parameters
 // and binds its Drive as its object.
 func (NodeType) GetPorts() []*s4wave_flowgraph.FlowgraphPort {
 	return nil

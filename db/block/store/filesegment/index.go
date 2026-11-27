@@ -1,6 +1,6 @@
 // Package block_store_filesegment serves blocks from byte ranges of files on
 // this Device. A range is a block when encoding its bytes with the Space's
-// transform hashes to the block's ref; the store checks that on every read.
+// transform hashes to the block's ref. The store checks that on every read.
 package block_store_filesegment
 
 import (
@@ -50,10 +50,10 @@ type Index struct {
 
 // RefsHook runs inside the write transaction of a SetPath that changes the
 // refs of a path. gained holds the refs the path holds after the write and did
-// not hold before, in path order; lost holds the refs the path held before
+// not hold before, in path order. lost holds the refs the path held before
 // that no path holds after the write. It may write to tx keys outside the
 // Index's prefixes, which commit with the path. It returns a func to run after
-// the commit, or nil; when the hook fails, the SetPath fails and writes
+// the commit, or nil. When the hook fails, the SetPath fails and writes
 // nothing.
 type RefsHook func(ctx context.Context, tx kvtx.Tx, gained, lost []*block.BlockRef) (func(), error)
 

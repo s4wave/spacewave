@@ -21,16 +21,17 @@ const (
 	kindFree = 6
 	// kindSealed marks a value chunk the cleaner emptied, pending the pins.
 	kindSealed = 7
-	// kindTruncate ends the table at a chunk; the file is truncated to it.
+	// kindTruncate ends the table at a chunk. The file is truncated to that
+	// chunk.
 	kindTruncate = 8
 )
 
 // recordHeader is the length, checksum, sequence, kind, writer identity,
-// predecessor identity, durable mark and standby pointer of a record. The checksum covers
-// everything after itself and continues from the previous record's. A reader
-// accepts a record only when its predecessor identity is the previous
-// record's writer, so a writer that continues a log cut by recovery never
-// joins the stale records behind the cut.
+// predecessor identity, durable mark and standby pointer of a record. The
+// checksum covers everything after itself and continues from the previous
+// record's checksum. A reader accepts a record only when its predecessor
+// identity is the previous record's writer, so a writer that continues a
+// log cut by recovery never joins the stale records behind the cut.
 const recordHeader = 4 + 4 + 8 + 1 + 8 + 8 + 8 + 8
 
 // linkSize is the length of a link record, which every log chunk keeps room
@@ -42,12 +43,12 @@ const linkSize = recordHeader + 2*10
 // The writer and replay keep these invariants:
 //   - The writer sets a record's kind and body before it places the record
 //     (newCommit and the commit methods, or a literal). Placement fills only
-//     the header (follow) and may raise a truncate target (keepLog); nothing
+//     the header (follow) and may raise a truncate target (keepLog). Nothing
 //     changes the record after it is encoded.
 //   - The record the writer applies is the one it encoded, and replay applies
 //     the record decoded from those bytes, so every handle derives the same
 //     state from the same log.
-//   - A commit's ops and frees are fixed once it is appended; replay reads
+//   - A commit's ops and frees are fixed once it is appended. Replay reads
 //     them, and only own changes where their bytes live.
 //   - A decoded record's keys and inline values point into the log reader's
 //     window until own copies them.
@@ -77,7 +78,7 @@ type record struct {
 	// next is the first chunk a link record continues in, and span how many
 	// consecutive chunks the log takes there.
 	next, span uint64
-	// chunks are the chunks a reserve, free or sealed record names, or a
+	// chunks are the chunks a reserve, free or sealed record lists, or a
 	// flush or merge record's output chunks follow their runs.
 	chunks []uint64
 	// slot is the reserving process's slot in a reserve record.
@@ -151,7 +152,7 @@ func (r *record) remove(key []byte) {
 	r.ops = append(r.ops, op{key: key, val: value{kind: valueDeleted}})
 }
 
-// set records that the commit sets key to v; added says key held no value.
+// set records that the commit sets key to v. added says key held no value.
 func (r *record) set(key []byte, v value, added bool) {
 	if added {
 		r.delta++

@@ -353,7 +353,7 @@ func stopSharedDaemonFixture(t *testing.T, statePath string, watcher *fsnotify.W
 	}
 
 	// Request shutdown. The daemon releases its listener before acknowledging,
-	// so the acknowledgement can be lost; as in spacewave stop, only a denial
+	// so the acknowledgement can be lost. As in spacewave stop, only a denial
 	// fails the request outright.
 	shutdownErr := requestDaemonShutdown(ctx, conn)
 	_ = conn.Close()

@@ -142,7 +142,7 @@ func DeriveSASEmoji(
 	h.Write([]byte(peerIDs[1]))
 	digest := h.Sum(nil)
 
-	// Map first 6 bytes to emoji.
+	// Map the first 6 bytes to emoji.
 	emoji := make([]string, 6)
 	for i := range 6 {
 		emoji[i] = sasEmojiTable[digest[i]%64]

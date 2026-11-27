@@ -195,7 +195,8 @@ func (s *SOStateParticipantHandle) WithGrantKeyring(keyring *SOGrantKeyring) *SO
 	return s
 }
 
-// GetParticipantConfig returns the participant record for our participant.
+// GetParticipantConfig returns the participant record for the local
+// participant.
 // uses the peer identity from the SharedObject.
 // returns ErrNotParticipant if the local peer is not a participant.
 func (s *SOStateParticipantHandle) GetParticipantConfig(ctx context.Context) (*SOParticipantConfig, error) {
@@ -218,7 +219,7 @@ func (s *SOStateParticipantHandle) GetConfig(context.Context) (*SharedObjectConf
 }
 
 // GetOwnership returns the ownership of the accepted config, reading the head
-// change from the config history; without history it reads settled.
+// change from the config history. Without history ownership reads settled.
 func (s *SOStateParticipantHandle) GetOwnership(ctx context.Context) (*SOOwnership, error) {
 	return ReadSOOwnership(ctx, s.state.GetConfig(), s.configEntry)
 }

@@ -68,8 +68,8 @@ func (s *SharedObject) GetBackingVolume() volume.Volume {
 	return s.tkr.a.vol
 }
 
-// AccessLocalStateStore accesses a kvtx ops for a local state store with the
-// given ID.
+// AccessLocalStateStore accesses kvtx operations for a local state store with
+// the given ID.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
 	// Scope the account store to this SharedObject and store ID.
 	if s.tkr.a.objStore == nil {
@@ -225,7 +225,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	providerAccountID := provRef.GetProviderAccountId()
 	sharedObjectID := provRef.GetId()
 
-	// Mount block store.
+	// Mount the block store.
 	blkStore, blkStoreRef, err := bstore.ExMountBlockStore(
 		ctx,
 		t.a.p.b,
@@ -269,7 +269,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		}
 	}()
 
-	// Load the verified cache; a failed read starts the host cold.
+	// Load the verified cache. A failed read starts the host cold.
 	verifiedCache, written, err := t.a.loadVerifiedSOStateCacheFrom(hostCtx, sharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to load verified SO state cache")
@@ -848,7 +848,7 @@ func mergeSharedObjectListSnapshot(
 
 // SobjectBlockStoreID returns the block store ID for a shared object.
 // Block stores backing a shared object share the shared object's ULID
-// verbatim; no prefix is added.
+// verbatim. No prefix is added.
 func SobjectBlockStoreID(soID string) string {
 	return soID
 }
@@ -856,8 +856,8 @@ func SobjectBlockStoreID(soID string) string {
 // AddParticipant adds a participant to the shared object, raising a lower role
 // and never lowering one. It returns the grant it made, nil when the peer
 // already held one, the outcome and the role the peer holds after the call.
-// username is the provider username of entityID; it fills a missing username
-// on an existing participant.
+// username is the provider username of entityID. The username fills a missing
+// username on an existing participant.
 func (s *SharedObject) AddParticipant(
 	ctx context.Context,
 	targetPeerIDStr string,
@@ -1494,7 +1494,7 @@ func (s *SharedObject) RemoveParticipantsWithRevocation(
 
 // retryConfigConflicts runs a configuration write against the latest cloud
 // state, retrying when another writer advances the configuration first. The
-// cloud reports a conflict with 409; a local head advanced between reading
+// cloud reports a conflict with 409. A local head advanced between reading
 // the config and locking it fails verification with a head mismatch.
 func (s *SharedObject) retryConfigConflicts(ctx context.Context, write func() error) error {
 	for attempt := range maxWriteRetries {

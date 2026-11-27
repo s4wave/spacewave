@@ -2,8 +2,9 @@
  * SharedStreams multicasts snapshot streams by key. The subscribers of one key
  * share one source stream, which opens with the first subscriber and is
  * aborted after the last subscriber leaves and its optional linger expires.
- * Each subscriber receives the latest snapshot, then each later one it is ready for: a slow subscriber skips to
- * the newest. Share only streams whose every message is a full snapshot.
+ * Each subscriber receives the latest snapshot, then each later one it is
+ * ready for: a slow subscriber skips to the newest snapshot. Share only streams
+ * whose every message is a full snapshot.
  */
 export class SharedStreams {
   private readonly streams = new Map<string, SharedStream<unknown>>()
@@ -163,7 +164,10 @@ class SharedStream<T> {
   }
 }
 
-/** watchKey names one method's snapshot stream and its request, including bigint values. */
+/**
+ * watchKey identifies one method's snapshot stream and its request, including
+ * bigint values.
+ */
 export function watchKey(method: string, ...request: unknown[]): string {
   return JSON.stringify([method, ...request], (_key, value: unknown) =>
     typeof value === 'bigint' ? `${value}n` : value,

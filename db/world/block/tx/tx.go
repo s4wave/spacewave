@@ -21,8 +21,8 @@ type Transaction interface {
 	GetTxType() TxType
 	// GetEmpty checks if the tx is empty.
 	GetEmpty() bool
-	// Validate performs a cursory check of the transaction.
-	// Note: this should not fetch network data.
+	// Validate cursorily checks the transaction.
+	// Note: Validate should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against a world instance.
 	ExecuteTx(
@@ -62,7 +62,7 @@ func (t *Tx) Clone() *Tx {
 	return t.CloneVT()
 }
 
-// Validate performs cursory validation of the Tx.
+// Validate cursorily validates the Tx.
 func (t *Tx) Validate() error {
 	if err := t.GetTxType().Validate(); err != nil {
 		return err
@@ -115,13 +115,13 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// PayloadRefsVersion versions the rules by which PayloadRefs names the roots
+// PayloadRefsVersion versions the rules by which PayloadRefs returns the roots
 // of the transaction itself: the object root a create or set writes, the
 // SetRoots an applied operation records, the roots of each batched
 // transaction, and none for every other type. An operation's own roots are
 // versioned by its PayloadOperation.PayloadRefsVersion. A saved replay cursor
 // reuses the roots it recorded only under the same version, so bump it, and
-// record the new names in the golden test, whenever these rules name a
+// record the new names in the golden test, whenever these rules select a
 // different set of roots.
 const PayloadRefsVersion uint32 = 1
 
@@ -131,9 +131,10 @@ const PayloadRefsVersion uint32 = 1
 // and the roots of a world.PayloadOperation. Replay applies the transaction
 // again and reads each of them, and a World stored before the transaction
 // does not reach them. When an operation does not decode, such as one whose
-// type lookupOp does not resolve yet, it returns the error with every root it
-// read without decoding: the object roots of each transaction, so a hold of
-// those keeps them until the type resolves and names the rest.
+// type lookupOp does not resolve yet, PayloadRefs returns the error with every
+// root PayloadRefs read without decoding: the object roots of each transaction,
+// so a hold of those keeps them until the type resolves and PayloadRefs
+// returns the rest.
 func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
 	// Decode the operation, or collect the roots of each batched transaction.
 	var op world.Operation
@@ -174,7 +175,7 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 // objectRoots returns the object roots the transaction records, without
 // decoding an applied operation: the root a create or set writes and the roots
 // an applied operation set, through every batched transaction. PayloadRefs
-// names each of them even when a later transaction in the batch replaces or
+// returns each of them even when a later transaction in the batch replaces or
 // deletes it.
 func (t *Tx) objectRoots() []*block.BlockRef {
 	switch t.GetTxType() {
@@ -299,11 +300,12 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 }
 
 // nameMissingBlock wraps an operation's failure on a block that is not
-// available with a label naming the operation, so a stalled replay names the
-// write whose block is gone. The label never includes the decoded body: an op
-// body can hold an ObjectRef whose transform carries the Space's block key, and
-// this error reaches logs. Other errors pass through unchanged: their messages
-// become rejection reasons every member must agree on.
+// available with a label identifying the operation, so a stalled replay
+// identifies the write whose block is gone. The label never includes the
+// decoded body: an op body can hold an ObjectRef whose transform carries the
+// Space's block key, and this error reaches logs. Other errors pass through
+// unchanged: their messages become rejection reasons every member must agree
+// on.
 func nameMissingBlock(err error, label string) error {
 	if !block.IsNotAvailable(err) {
 		return err

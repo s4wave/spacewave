@@ -81,8 +81,8 @@ function SavePlugin({
     failedExport.current = null
   }, [savedContent])
 
-  // Declared after the savedContent effect so the baseline on mount is the
-  // export of the loaded note, not its source text.
+  // The effect is declared after the savedContent effect so the baseline on
+  // mount is the export of the loaded note, not its source text.
   useEffect(() => {
     markLoaded()
   }, [editor])

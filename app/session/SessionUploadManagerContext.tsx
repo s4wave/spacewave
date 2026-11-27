@@ -14,15 +14,15 @@ import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
 // SessionUploadManagerContext holds the one upload manager for a session UI
 // tree. It is null outside a provider so presentation-only surfaces (display,
-// debug harnesses) that mount a UnixFS browser without a session simply have no
+// debug harnesses) that mount a UnixFS browser without a session have no
 // upload manager rather than crashing.
 const SessionUploadManagerContext = createContext<UploadManager | null>(null)
 
 // SessionUploadManagerProvider holds the UploadManager for a session, above the
-// object viewers that start uploads, and asks its conflicts there. Uploads and their feedback survive
-// navigating between objects or finishing a wizard because this provider
-// outlives any single viewer; in-flight uploads are aborted only on session
-// teardown, when this provider unmounts.
+// object viewers that start uploads, and prompts for its upload conflicts there.
+// Uploads and their feedback survive navigating between objects or finishing a
+// wizard because this provider outlives any single viewer. In-flight uploads are
+// aborted only on session teardown, when this provider unmounts.
 export function SessionUploadManagerProvider({
   children,
 }: {
@@ -31,8 +31,8 @@ export function SessionUploadManagerProvider({
   const manager = useUploadManager()
 
   // Abort every in-flight upload on session teardown (provider unmount). Viewer
-  // unmount never reaches here, which is the whole point: navigating away must
-  // not kill an upload.
+  // unmount never runs this cleanup, because navigating away must not kill an
+  // upload.
   const { cancelAll } = manager
   useEffect(() => cancelAll, [cancelAll])
 

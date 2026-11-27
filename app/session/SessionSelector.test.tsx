@@ -264,7 +264,7 @@ describe('SessionSelector', () => {
     expect(screen.getByText(/^Local account, created /)).toBeTruthy()
     expect(screen.getByText('Local · Session 3 · 123456')).toBeTruthy()
 
-    // Name opens the field in the row; Save mounts the session for the write.
+    // Name opens the field in the row. Save mounts the session for the write.
     fireEvent.click(screen.getByText('Name'))
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: '  Work  laptop ' },

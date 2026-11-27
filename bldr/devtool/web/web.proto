@@ -17,13 +17,15 @@ message DevtoolInitBrowser {
   repeated string start_plugins = 4;
   // ForceDedicatedWorkers overrides the default SharedWorker mode to use
   // dedicated Workers for plugins. Useful for testing with Playwright
-  // which can capture console output from dedicated workers but not shared.
+  // which can capture console output from dedicated workers but not shared
+  // workers.
   bool force_dedicated_workers = 5;
   // PlatformSelectionPolicies bind project-owned startup plugins to the
   // platform selected by the active development compiler.
   repeated .plugin.host.scheduler.PlatformSelectionPolicy platform_selection_policies = 6;
-  // AdmissionPluginId names the plugin that owns this device's plugin
+  // AdmissionPluginId identifies the plugin that owns this device's plugin
   // approvals. The host builds its root admission controller asking that
-  // plugin in code at startup; empty leaves admission to the trusted roots.
+  // plugin in code at startup. An empty AdmissionPluginId leaves admission to
+  // the trusted roots.
   string admission_plugin_id = 7;
 }

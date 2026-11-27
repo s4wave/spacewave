@@ -28,7 +28,7 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 		return nil, err
 	}
 
-	// Check cache.
+	// Check the module cache.
 	if entry, ok := e.moduleCache[resolved]; ok {
 		return entry.globals, entry.err
 	}

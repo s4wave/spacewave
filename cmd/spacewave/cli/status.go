@@ -14,7 +14,8 @@ import (
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
-// statusMountSessionTimeoutEnvVar names the override for the status session mount bound.
+// statusMountSessionTimeoutEnvVar selects the override for the status session
+// mount bound.
 const statusMountSessionTimeoutEnvVar = "SPACEWAVE_STATUS_MOUNT_TIMEOUT"
 
 // defaultStatusMountSessionTimeout bounds status mounting when no override is set.

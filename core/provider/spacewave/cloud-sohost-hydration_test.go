@@ -12,7 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestCloudHostHydrationRefreshesState catches up a durable snapshot after startup.
+// TestCloudHostHydrationRefreshesState catches up a durable snapshot after
+// startup.
 func TestCloudHostHydrationRefreshesState(t *testing.T) {
 	// Serve the cloud snapshot and signal the background state request.
 	initial, key := newTestGenesisState(t)
@@ -55,7 +56,8 @@ func TestCloudHostHydrationRefreshesState(t *testing.T) {
 		t.Fatal("verified checkpoint was not hydrated")
 	}
 
-	// Execute must refresh the durable snapshot even though initial state is ready.
+	// Execute must refresh the durable snapshot even though initial state is
+	// ready.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 	done := make(chan error, 1)

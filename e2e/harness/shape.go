@@ -4,7 +4,7 @@ package harness
 
 import "context"
 
-// Shape supplies content identity, validated publication lookup, and artifact building.
+// Shape identifies content, looks up validated publications, and builds artifacts.
 type Shape[A any] interface {
 	// ContentKey returns the immutable content key to resolve.
 	ContentKey(context.Context) (string, error)

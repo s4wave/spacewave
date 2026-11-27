@@ -37,7 +37,8 @@ func TestPrepareDirectInviteUsesSessionTransport(t *testing.T) {
 	}
 	cancelRequest()
 
-	// The invitation names the session transport and leaves sync running.
+	// The invitation references the session transport and leaves sync
+	// running.
 	endpoint, err := invite.VerifyTransportPeer()
 	if err != nil {
 		t.Fatal(err)

@@ -36,7 +36,8 @@ func FetchManifestViaRpc(
 	)
 }
 
-// FetchManifestViaRpc resolves FetchManifest calling an RPC service by looking up a client set.
+// FetchManifestViaRpcLookupClientSet resolves FetchManifest by looking up a
+// client set and calling an RPC service.
 func FetchManifestViaRpcLookupClientSet(
 	rctx context.Context,
 	b bus.Bus,

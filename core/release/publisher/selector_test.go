@@ -75,7 +75,7 @@ func startLauncher(t *testing.T, ctx context.Context, signer peer.ID, initDistCo
 	}
 	t.Cleanup(rel)
 
-	// A plugin reaches the launcher plugin through the plugin host; route
+	// A plugin reaches the launcher plugin through the plugin host. Route
 	// those calls to the launcher on this bus as the host does.
 	invokers, _, ref, err := bifrost_rpc.ExLookupRpcService(ctx, tb.Bus, spacewave_launcher.SRPCLauncherServiceID, "", true, nil)
 	if err != nil || len(invokers) == 0 {

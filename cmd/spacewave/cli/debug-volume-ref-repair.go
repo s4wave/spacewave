@@ -42,8 +42,8 @@ type debugRefRepairArgs struct {
 	// histogram reads every walked block's bytes and reports the blocks and
 	// bytes by type and by size.
 	histogram bool
-	// frontRoots also names the root that reaches each block the walk left
-	// on the front.
+	// frontRoots also reports the root that reaches each block the walk
+	// left on the front.
 	frontRoots bool
 	// frontOut names the file for the front listing, empty to omit it.
 	frontOut string
@@ -137,7 +137,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// opts reads the peer and synthetic stand-ins the flags name, with what more
+// opts reads the peer and synthetic stand-ins the flags select, with what more
 // the run measures.
 func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 	// Require the scan before it can verify lists.
@@ -145,7 +145,7 @@ func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 		return refRepairOpts{}, errors.New("--scan-verify requires --scan-untyped")
 	}
 
-	// Read the peer store and the synthetic list the flags name.
+	// Read the peer store and the synthetic list the flags select.
 	opts := refRepairOpts{frontRoots: a.frontRoots, frontOut: a.frontOut, scanUntyped: a.scanUntyped, scanVerify: a.scanVerify}
 	if a.peerBlocks != "" {
 		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
@@ -185,8 +185,8 @@ type refRepairOpts struct {
 	// peer reads the blocks the volume lacks, as the serve reads them from
 	// the Space's peers. Nil reads the volume alone.
 	peer block.StoreOps
-	// synthetic names blocks to list with no children when no read decodes
-	// them, as refRepair.synthetic describes.
+	// synthetic selects blocks to list with no children when no read
+	// decodes them, as refRepair.synthetic describes.
 	synthetic map[string]bool
 	// histogram counts the walked blocks by type and size when set. The walk
 	// then reads every block's bytes, leaves included. The root blocks the
@@ -266,7 +266,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Listless sample", blk.ref.MarshalString() + " (" + strconv.FormatUint(blk.size, 10) + " bytes)"})
 	}
 
-	// Name the reached blocks the walk still owes, which keep the old
+	// List the reached blocks the walk still owes, which keep the old
 	// generation Open, and the refused reports.
 	for _, ref := range res.rebuild.FrontSample {
 		fields = append(fields, [2]string{"Owed sample", ref.MarshalString()})
@@ -284,7 +284,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
 
-	// Name the marked lists found wanting and the payload roots that are
+	// List the marked lists found wanting and the payload roots that are
 	// not blobs.
 	fields = append(fields, markedFields(res.rebuild)...)
 	for _, ref := range res.notBlobSample {
@@ -466,8 +466,8 @@ func openFrontOut(volumePath, outputPath string) (*os.File, error) {
 	return os.CreateTemp(filepath.Dir(outputPath), filepath.Base(outputPath)+".*.tmp")
 }
 
-// histogramFields formats a histogram in the command's field table: the
-// total, each size class, and each type with its blocks in each size class.
+// histogramFields formats a histogram in the command's field table: the total
+// counts, each size class, and each type with its blocks in each size class.
 func histogramFields(h *refwalk.Histogram) [][2]string {
 	// Print the total and the blocks and bytes in each size class.
 	total := h.Total()

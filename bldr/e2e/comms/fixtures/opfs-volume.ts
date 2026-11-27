@@ -1,4 +1,4 @@
-// opfs-volume.ts - OPFS volume lifecycle integration fixture.
+// opfs-volume.ts: OPFS volume lifecycle integration fixture.
 //
 // Exercises the full volume lifecycle: create directory tree, write/read
 // entries with sharding, verify persistence across "reopen" (clear JS
@@ -87,7 +87,7 @@ async function run() {
       },
     ]
 
-    // Write under exclusive WebLock (simulating write transaction).
+    // Write under an exclusive WebLock (simulating a write transaction).
     await navigator.locks.request(
       `${volId}|kvtx`,
       { mode: 'exclusive' },
@@ -136,7 +136,7 @@ async function run() {
     // --- Integration 1: Persistence across "reopen" ---
 
     // Clear all JS references and re-navigate the OPFS tree.
-    // This simulates a volume reopen (new Go runtime, same OPFS data).
+    // This sequence simulates a volume reopen (new Go runtime, same OPFS data).
     const volDir2 = await opfsRoot.getDirectoryHandle(volId, { create: false })
 
     let persistOk = true
@@ -165,7 +165,8 @@ async function run() {
 
     // --- Integration 2: WebLock isolation ---
 
-    // Verify shared locks don't block each other but exclusive blocks shared.
+    // Verify shared locks don't block each other but an exclusive lock blocks
+    // shared locks.
     let lockOk = true
 
     // Two shared locks should both acquire.
@@ -194,7 +195,7 @@ async function run() {
       lockOk = false
     }
 
-    // Exclusive lock blocks shared.
+    // An exclusive lock blocks shared locks.
     let exclusiveHeld = false
     let sharedAfterExclusive = false
     const exclusiveDone = navigator.locks.request(
@@ -210,7 +211,7 @@ async function run() {
     // Give the exclusive lock a moment to acquire.
     await new Promise((r) => setTimeout(r, 20))
 
-    // This shared lock should wait until exclusive releases.
+    // This shared lock should wait until the exclusive lock releases.
     await Promise.all([
       exclusiveDone,
       navigator.locks.request(
@@ -231,7 +232,7 @@ async function run() {
 
     await opfsRoot.removeEntry(volId, { recursive: true })
 
-    // Verify deletion
+    // Verify the volume deletion.
     let deleteOk = false
     try {
       await opfsRoot.getDirectoryHandle(volId, { create: false })

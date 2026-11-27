@@ -76,7 +76,7 @@ func decodeRecord(b []byte, seq uint64, prev uint32) (*record, bool) {
 // decodeCommit reads a commit's body: the released pin, the durable mark,
 // the key count delta, the key changes and the freed extents.
 func (r *record) decodeCommit(d *decoder) {
-	// Skip the released pin; keep the mark; skip the delta.
+	// Skip the released pin, keep the mark and skip the delta.
 	d.uvarint()
 	d.uvarint()
 	r.durable = d.uvarint()

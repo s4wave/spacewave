@@ -85,7 +85,8 @@ export function useAppMutation<
     [active],
   )
 
-  // Only a user action creates an intent; resource retries preserve its bytes and ID.
+  // Only a user action creates an intent. Resource retries preserve its bytes
+  // and ID.
   const submit = (input: Args) => {
     if (!source) throw new SyncError('UNAVAILABLE', 'Application is not ready')
     if (

@@ -20,14 +20,14 @@ const ControllerID = "bifrost/link/establish"
 // Controller is the static Link establish controller.
 // It adds a EstablishLink for each configured peer.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// peers is the list of peers
+	// peers is the list of peers.
 	peers []peer.ID
 
-	// srcPeerID is the src peer id
+	// srcPeerID is the src peer id.
 	// can be empty
 	srcPeerID peer.ID
 }

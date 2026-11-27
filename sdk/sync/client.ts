@@ -29,8 +29,9 @@ import {
 import { checkFailure, wireVersion } from './wire.js'
 
 // ConnectionState is the Database's link to its Gateway. Calls made while
-// reconnecting wait for the root Resource to return; a closed Database rejects
-// them and carries the failure when it closed on an error rather than close().
+// reconnecting wait for the root Resource to return. A closed Database rejects
+// them and carries the failure when the Database closed on an error rather than
+// close().
 export type ConnectionState =
   | { readonly status: 'ready' }
   | { readonly status: 'reconnecting' }
@@ -428,7 +429,7 @@ class SyncClient<S extends Schema> implements Database<S> {
             )
           )
         }
-        // Resource generations retire old handles; retry retains the same request.
+        // Resource generations retire old handles. Retry retains the same request.
         await waitFor(this.readiness.promise, signal).catch(() => {})
       }
     }
@@ -524,7 +525,8 @@ class SyncClient<S extends Schema> implements Database<S> {
   }
 }
 
-// Transport owns one authenticated socket at a time; Resource owns retry generations.
+// Transport owns one authenticated socket at a time. Resource owns retry
+// generations.
 class Transport<S extends Schema> {
   private pending?: Promise<WebSocketConn>
   private connection?: WebSocketConn
@@ -618,7 +620,8 @@ class Transport<S extends Schema> {
         }),
         handshake,
       )
-      // The adapter uses the shared WHATWG methods; its dependency types name ws.
+      // The adapter uses the shared WHATWG methods. Its dependency types reference
+      // ws.
       const connection = new WebSocketConn(
         socket as unknown as ConstructorParameters<typeof WebSocketConn>[0],
         'outbound',

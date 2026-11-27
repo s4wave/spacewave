@@ -127,8 +127,8 @@ func openUnadoptedVolume(t *testing.T, store kvtx.Store) (*Volume, *testClock) {
 // testTree is a set of blocks a test builds bottom up, each named.
 type testTree map[string]*block.PutBatchEntry
 
-// add builds the block name naming the blocks children name, which add
-// built before, and returns its ref.
+// add builds the block name referencing the blocks selected by children, which
+// add built before, and returns its ref.
 func (tr testTree) add(t *testing.T, name string, children ...string) *block.BlockRef {
 	t.Helper()
 	refs := make([]*block.BlockRef, 0, len(children))
@@ -169,7 +169,7 @@ func (tr testTree) addBinary(t *testing.T, depth int) []string {
 	return names
 }
 
-// entries returns the blocks names name.
+// entries returns the blocks selected by names.
 func (tr testTree) entries(names ...string) []*block.PutBatchEntry {
 	out := make([]*block.PutBatchEntry, len(names))
 	for i, name := range names {
@@ -245,8 +245,8 @@ func requireStored(t *testing.T, v *Volume, tr testTree, want bool, names ...str
 	}
 }
 
-// requireAudit checks that an audit finds no live block queued and leaked
-// blocks.
+// requireAudit checks that an audit finds no live block queued and the expected
+// number of leaked blocks.
 func requireAudit(t *testing.T, v *Volume, leaked uint64) {
 	t.Helper()
 	res, err := v.Audit(t.Context())
@@ -260,7 +260,8 @@ func requireAudit(t *testing.T, v *Volume, leaked uint64) {
 }
 
 // requireListsStored checks that no stored block of tr lists a child that is
-// not stored: no child is freed while a stored parent lists it, the model's NoLiveListsFreed.
+// not stored: no child is freed while a stored parent lists it, the model's
+// NoLiveListsFreed.
 func requireListsStored(t *testing.T, v *Volume, tr testTree) {
 	t.Helper()
 	stored := func(ref *block.BlockRef) bool {
@@ -296,7 +297,8 @@ func requireReads(t *testing.T, v *Volume, tr testTree, names ...string) {
 // TestLivenessRunThrough stores a tree, swaps the root to a second tree that
 // shares a subtree, collects, and checks that the grace period keeps the old
 // tree, that afterwards only what the live root reaches is stored, and that a
-// hole under a dead page frees nothing below it while the audit reports it.
+// hole under a dead page frees nothing below the page while the audit reports
+// the hole.
 func TestLivenessRunThrough(t *testing.T) {
 	// Two stages opening together on a fresh Volume both find no process
 	// lease, and the process starts exactly one: a second would leave the
@@ -331,7 +333,8 @@ func TestLivenessRunThrough(t *testing.T) {
 	}
 	requireStored(t, v, tr, true, "R1", "C", "E", "F", "G", "R2", "C2")
 
-	// After it, the old tree's own blocks go and the shared subtree stays.
+	// After the grace period, the old tree's own blocks go and the shared
+	// subtree stays.
 	clk.Add(block_gc.DefaultGrace + time.Second)
 	if res := collectAll(t, v); res.Freed != 3 || res.Underflows != 0 {
 		t.Fatalf("freed %d with %d underflows, want 3 and none", res.Freed, res.Underflows)
@@ -349,8 +352,8 @@ func TestLivenessRunThrough(t *testing.T) {
 	}
 	punchHole(t, v, tr["D"].Ref)
 
-	// Releasing side frees R3, and the release of its children stops at the hole: H stays,
-	// and the audit reports it leaked.
+	// Releasing side frees R3, and the release of its children stops at the
+	// hole: H stays, and the audit reports it leaked.
 	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "side", Previous: r3}}); err != nil {
 		t.Fatal(err)
 	}
@@ -479,10 +482,10 @@ func TestLivenessRunThrough(t *testing.T) {
 	}
 
 	// A page replaced by one sharing its children holds them until its
-	// free, so nothing cancels: each shared child costs exactly one write in
-	// the net, for the new page's up, and one in the free, for the old
-	// page's down. Each reads the children's counts in one batch, so its
-	// reads do not grow with them.
+	// free, so nothing cancels: each shared child costs exactly one write
+	// in the net, for the new page's up, and one in the free, for the old
+	// page's down. Each step reads the children's counts in one batch, so
+	// the step's reads do not grow with the number of children.
 	const perChild = 1
 	net31, free31 := measureReplacedPage(t, 31)
 	for _, shared := range []int{63, 127} {
@@ -520,14 +523,14 @@ type livenessCosts struct {
 	times map[string]time.Duration
 }
 
-// measureLivenessPaths opens a Volume that frees at once over a counting
-// store holding n stored blocks under roots, and returns what each entry point
-// the Phase 1 path walk names cost on it: a commit of a small tree with its
+// measureLivenessPaths opens a Volume that frees at once over a counting store
+// holding n stored blocks under roots, and returns what each entry point the
+// Phase 1 path walk describes cost on it: a commit of a small tree with its
 // root move while proofs of n/100 roots were marked, a mark of three proofs, a
-// read of a block and its child list, a reader pin, a staged put, a cache
-// fill, a collector pass over 2n young log entries and the pass after it,
-// which collects the commit's tree, a put through a stage that holds n tops,
-// and a commit beside 10n pins and 10n open stages.
+// read of a block and its child list, a reader pin, a staged put, a cache fill,
+// a collector pass over 2n young log entries and the pass after it, which
+// collects the commit's tree, a put through a stage that holds n tops, and a
+// commit beside 10n pins and 10n open stages.
 func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	// Open the Volume over a counting store.
 	t.Helper()
@@ -653,7 +656,8 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 		collectAll(t, v)
 		return nil
 	})
-	// The collect pass comes once the fill's lease lapsed, so it releases F.
+	// The collect pass comes once the fill's lease lapsed, so the pass
+	// releases F.
 	clk.Add(fillLapse - block_gc.DefaultGrace/2)
 	move(4)
 	measure("collect", func() error {
@@ -761,11 +765,11 @@ type stopMidRelease struct {
 	block_gc.Store
 	// v is the Volume, whose state it reads after each transaction.
 	v *Volume
-	// pages, when its end is set, selects the up pages from its start up to
-	// its end partly netted instead.
+	// pages selects the up pages from its start up to its end partly netted
+	// instead, when its end is set.
 	pages [2]uint64
-	// until, when set, selects the first transaction after which it reports
-	// true of the state instead.
+	// until selects the first transaction after which until reports true of
+	// the state instead, when set.
 	until func(state *block_gc.LivenessState) bool
 	// stopped records that a transaction left one in progress.
 	stopped bool
@@ -908,7 +912,7 @@ func collectThrough(t *testing.T, probe *paceProbe, opts block_gc.CollectorOptio
 	}
 }
 
-// measureWideFree stores a block naming children leaves under a root,
+// measureWideFree stores a block referencing children leaves under a root,
 // releases it, and returns the most operations one transaction of the
 // collection that frees it made, and the longest that transaction held the
 // store's writer, by a collector that finds a writer waiting when waiting is
@@ -964,10 +968,10 @@ func measureWideFree(t *testing.T, children int, waiting bool) (uint64, time.Dur
 	return cs.Counts().MaxWriteOps, store.longest
 }
 
-// measureReplacedPage stores a page naming shared leaves and one leaf of its
-// own under a root, nets it, then moves the root onto a new page naming the
-// same shared leaves and another leaf of its own, and returns what netting
-// that commit and then freeing the old page cost the store.
+// measureReplacedPage stores a page referencing shared leaves and one leaf of
+// its own under a root, nets it, then moves the root onto a new page
+// referencing the same shared leaves and another leaf of its own, and returns
+// what netting that commit and then freeing the old page cost the store.
 func measureReplacedPage(t *testing.T, shared int) (net, free kvtx_kvtest.Counts) {
 	// Store the page under main and net it.
 	t.Helper()
@@ -1041,7 +1045,7 @@ func (s *timedStore) Update(ctx context.Context, fn func(rec *block_gc.Records, 
 // of children children each touches, again and again, and returns the
 // second longest of twenty changing commits made meanwhile.
 func measureStageLookupWait(t *testing.T, children int) time.Duration {
-	// Name a batch the stage would put.
+	// Build a batch the stage would put.
 	t.Helper()
 	v, _ := newLivenessVolume(t, false)
 	ctx := t.Context()
@@ -1229,8 +1233,8 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Swap main away; the pin, renewed by its live holder, keeps the old
-		// tree past the grace period.
+		// Swap main away. The pin, renewed by its live holder, keeps
+		// the old tree past the grace period.
 		r2 := tr.add(t, "R2")
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
 			t.Fatal(err)
@@ -1299,8 +1303,8 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("lapsed lease", func(t *testing.T) {
-		// A pin whose process died lapses; the collector releases it, and
-		// frees the old tree only a grace period later.
+		// A pin whose process died lapses. The collector releases it,
+		// and frees the old tree only a grace period later.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1348,7 +1352,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		requireStored(t, v, tr, false, "R3")
 
-		// The winner's root survives collection; the old root goes.
+		// The winner's root survives collection. The old root goes.
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "R2")
@@ -1415,10 +1419,10 @@ func TestLivenessAdversarial(t *testing.T) {
 	}
 
 	t.Run("release and birth in different intervals", func(t *testing.T) {
-		// R1 -> C -> F loses main; just inside its grace period a new R2
-		// names F under another root. The pass once the release ages nets
-		// the birth's up first, so freeing R1 and C leaves F its new
-		// holder.
+		// R1 -> C -> F loses main. Just inside its grace period a new
+		// R2 references F under another root. The pass once the release
+		// ages nets the birth's up first, so freeing R1 and C leaves F
+		// its new holder.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1477,7 +1481,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, false, "R")
 		requireStored(t, v, tr, true, "X")
 
-		// The writer's parent names X under main, and X stays.
+		// The writer's parent references X under main, and X stays.
 		p := tr.add(t, "P", "X")
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
 			t.Fatal(err)
@@ -1490,11 +1494,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("put again after the release netted", func(t *testing.T) {
-		// X loses main and nets with frees off, so it is at zero on the free
-		// queue. A writer then puts X again and, just inside the grace
-		// period, a parent naming it under main. The put again takes X off
-		// the free queue in its own Land, and its up lifts X off zero once
-		// it nets, so no pass frees X before the parent's up nets.
+		// X loses main and nets with frees off, so it is at zero on the
+		// free queue. A writer then puts X again and, just inside the
+		// grace period, a parent referencing it under main. The put
+		// again takes X off the free queue in its own Land, and its up
+		// lifts X off zero once it nets, so no pass frees X before the
+		// parent's up nets.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1575,10 +1580,11 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal("released R lost its proof before its free")
 		}
 
-		// A pending proof of R counts for nothing, nor holds it under a stage,
-		// and carrying it writes none; the recorded proof it rides over
-		// stays. The stage opens first, since its first opening starts the
-		// process lease in a transaction that would carry the proof.
+		// A pending proof of R counts for nothing, nor holds R under a
+		// stage, and carrying the proof writes no proof. The recorded
+		// proof the pending proof rides over stays. The stage opens
+		// first, since its first opening starts the process lease in a
+		// transaction that would carry the proof.
 		stage, release, err := v.OpenStage(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -1636,8 +1642,8 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// The move dequeued R, so no pass frees it; once the move nets, R
-		// and E are held again.
+		// The move dequeued R, so no pass frees it. Once the move nets,
+		// R and E are held again.
 		if res := collectAll(t, v); res.Freed != 0 {
 			t.Fatalf("freed %d of a chain a root moved onto", res.Freed)
 		}
@@ -1664,7 +1670,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Releasing main frees R and B; A and X stay under side.
+		// Releasing main frees R and B. A and X stay under side.
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
 			t.Fatal(err)
 		}
@@ -1684,9 +1690,9 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("stage", func(t *testing.T) {
-		// A stage builds C, then P -> C; main adopts P, and the stage's
-		// release leaves P's tree to main. A second build the stage releases
-		// unadopted goes after the grace period.
+		// A stage builds C, then P -> C. main adopts P, and the stage's
+		// release leaves P's tree to main. A second build the stage
+		// releases unadopted goes after the grace period.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		stage, release, err := v.OpenStage(ctx)
@@ -1706,8 +1712,8 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Inside the stage's life nothing is freed; after its release and
-		// the grace period only the unadopted build goes.
+		// Inside the stage's life nothing is freed. After its release
+		// and the grace period only the unadopted build goes.
 		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "C", "P", "Q")
@@ -1777,10 +1783,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("read fills a tree main holds", func(t *testing.T) {
-		// D is stored under old. A read fills B, which names C, which names
-		// D; main moves onto B without putting its tree; a later read fills
-		// C; old is released. D keeps the holder C's fill gave it, and the
-		// fills are garbage only once nothing holds them.
+		// D is stored under old. A read fills B, which references C,
+		// which references D. main moves onto B without putting its
+		// tree. A later read fills C. old is released. D keeps the
+		// holder C's fill gave it, and the fills are garbage only once
+		// nothing holds them.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1823,10 +1830,10 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("unheld fill", func(t *testing.T) {
-		// A read fills E, which nothing else holds. Landed with no root it is
-		// refused; the fill's leased root holds it for the grace period, and
-		// once the root lapses it goes after the grace period, as an unheld
-		// put does.
+		// A read fills E, which nothing else holds. Landed with no root
+		// it is refused. The fill's leased root holds it for the grace
+		// period, and once the root lapses it goes after the grace
+		// period, as an unheld put does.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1882,7 +1889,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "T")
 
-		// The parent names T under main, the stage lets it go, and T stays.
+		// The parent references T under main, the stage lets it go, and
+		// T stays.
 		p := tr.add(t, "P", "T")
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
 			t.Fatal(err)
@@ -1896,14 +1904,15 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("process lease released partway through a stall", func(t *testing.T) {
 		// Two stages hold Y and W under the one process lease, and the
-		// process stalls past it. A collector slice marks the lease released
-		// and releases Y's root; W's root is still indexed under the lease.
-		// No writer may hold a root onto the released lease, nor renew it.
-		// The next renewal starts a new lease, moves W's root onto it, and
-		// holds Y again, whose release has not netted. The collector then
-		// ends the old lease without releasing a root again, never releases
-		// a root of the live one, and past the grace period both stay. The
-		// stage stalled past the grace period, below, loses its block.
+		// process stalls past it. A collector slice marks the lease
+		// released and releases Y's root. W's root is still indexed
+		// under the lease. No writer may hold a root onto the released
+		// lease, nor renew it. The next renewal starts a new lease,
+		// moves W's root onto it, and holds Y again, whose release has
+		// not netted. The collector then ends the old lease without
+		// releasing a root again, never releases a root of the live
+		// one, and past the grace period both stay. The stage stalled
+		// past the grace period, below, loses its block.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -1941,7 +1950,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		old := v.processLeaseID()
 		y, w := stageRoot(rescued), stageRoot(kept)
 
-		// Stall past the lease; a collector slice releases it and Y's root.
+		// Stall past the lease. A collector slice releases it and Y's
+		// root.
 		clk.Add(rootLease + time.Second)
 		err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
 			if err := p.rec.ReleaseLease(ctx, old); err != nil {
@@ -2011,11 +2021,12 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for _, renew := range []bool{false, true} {
 		t.Run("stage stalled past the grace period renew="+strconv.FormatBool(renew), func(t *testing.T) {
-			// A stage holds T, and its process stalls past the lease and
-			// the grace period: a collector that does not renew releases
-			// the stage's root and frees T. The stage's next put names T,
-			// and it is refused, as is any put after a renewal that finds T
-			// gone, rather than landing S over a freed block.
+			// A stage holds T, and its process stalls past the
+			// lease and the grace period: a collector that does not
+			// renew releases the stage's root and frees T. The
+			// stage's next put references T, and it is refused, as
+			// is any put after a renewal that finds T gone, rather
+			// than landing S over a freed block.
 			v, clk := newLivenessVolume(t, true)
 			ctx := t.Context()
 			stage, release, err := v.OpenStage(ctx)
@@ -2120,10 +2131,11 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for name, lapsed := range map[string]bool{"live": false, "lapsed": true} {
 		t.Run("stage parent ahead of its child "+name, func(t *testing.T) {
-			// A stage stores P, which names C, while C waits in the writer's
-			// memory, and its process dies before C lands. The audit records
-			// C as a hole either way. Only once the stage's lease lapsed does
-			// it count C as a hole no live holder names.
+			// A stage stores P, which references C, while C waits
+			// in the writer's memory, and its process dies before C
+			// lands. The audit records C as a hole either way. Only
+			// once the stage's lease lapsed does the audit count C
+			// as a hole no live holder references.
 			v, clk := newLivenessVolume(t, false)
 			ctx := t.Context()
 			tr := testTree{}
@@ -2169,17 +2181,19 @@ func TestLivenessAdversarial(t *testing.T) {
 		{"audited and named again", true, true},
 	} {
 		t.Run("stage dies holding a parent before its child "+tc.name, func(t *testing.T) {
-			// An adopted format 6 store, its generation Open, holds the old
-			// root A. A live stage holds L. A second stage puts P, which
-			// names C, before C, as a buffered store's drain may order
-			// them, and its process dies with both unput C and P's lapsing
-			// root. An audit while the root lives records C as a hole.
-			// Past the lease the collector releases the dead stage's root
-			// and keeps L. Unaudited, P frees once the generation settles.
-			// Audited, the hole record outlives every block that named C
-			// and holds the flip: the generation stays Open, P stays
-			// parked, and no pass reports why. A commit that names P again
-			// after the lapse, and later puts C, refills the hole, keeps
+			// An adopted format 6 store, its generation Open, holds
+			// the old root A. A live stage holds L. A second stage
+			// puts P, which references C, before C, as a buffered
+			// store's drain may order them, and its process dies
+			// with both unput C and P's lapsing root. An audit
+			// while the root lives records C as a hole. Past the
+			// lease the collector releases the dead stage's root
+			// and keeps L. Unaudited, P frees once the generation
+			// settles. Audited, the hole record outlives every
+			// block that referenced C and holds the flip: the
+			// generation stays Open, P stays parked, and no pass
+			// reports why. A commit that references P again after
+			// the lapse, and later puts C, refills the hole, keeps
 			// both, and lets the generation settle.
 			store := newGuardedStore(t)
 			tr := testTree{}
@@ -2270,12 +2284,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	}
 
 	t.Run("cache fill during an adoption", func(t *testing.T) {
-		// main holds C on an unadopted Volume. While an adoption settles its
-		// counts, after it counted the child lists, a cache fill stores F
-		// naming C, logging an up for C and a down that takes F's implied
-		// holder back. The adoption treats F as born and leaves it to the
-		// logs. A root r then moves onto F: F stays while r holds it, and
-		// once r is released F goes and C stays under main.
+		// main holds C on an unadopted Volume. While an adoption
+		// settles its counts, after it counted the child lists, a cache
+		// fill stores F referencing C, logging an up for C and a down
+		// that takes F's implied holder back. The adoption treats F as
+		// born and leaves it to the logs. A root r then moves onto F: F
+		// stays while r holds it, and once r is released F goes and C
+		// stays under main.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
@@ -2315,11 +2330,11 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
-	// main holds P naming B, which the Volume lacks, on an unadopted Volume,
-	// and a read fills B at a point of an adoption: while it counts the
-	// child lists, or between its clear and its mark. Either way B keeps
-	// P's holder after the grace period. The hooks also check the probe's
-	// positions against the adoption state.
+	// main holds P referencing B, which the Volume lacks, on an unadopted
+	// Volume, and a read fills B at a point of an adoption: while it counts
+	// the child lists, or between its clear and its mark. Either way B
+	// keeps P's holder after the grace period. The hooks also check the
+	// probe's positions against the adoption state.
 	for _, at := range []struct {
 		name  string
 		pos   int
@@ -2329,7 +2344,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		{"between the clear and the mark", adoptMark, block_gc.Adoption_ADOPTION_UNADOPTED},
 	} {
 		t.Run("cache fill "+at.name, func(t *testing.T) {
-			// Store P naming the missing B under main.
+			// Store P referencing the missing B under main.
 			store := newGuardedStore(t)
 			setUnadopted(t, store)
 			v, clk := openUnadoptedVolume(t, store)
@@ -2407,10 +2422,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("cache fill of a held block during an adoption", func(t *testing.T) {
-		// main holds P on an unadopted Volume, and P names B, which the
-		// Volume lacks. While an adoption runs, before it settles, a read
-		// fills B. The adoption counts P's holder of B and leaves B to the
-		// fill's logs, so after the grace period B keeps P's holder.
+		// main holds P on an unadopted Volume, and P references B,
+		// which the Volume lacks. While an adoption runs, before it
+		// settles, a read fills B. The adoption counts P's holder of B
+		// and leaves B to the fill's logs, so after the grace period B
+		// keeps P's holder.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
@@ -2442,10 +2458,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("record larger than a slice", func(t *testing.T) {
-		// A under root a names 5000 leaves. B, born under root b, names the
-		// same stored leaves, so its one record carries more up pairs than a
-		// net slice applies and splits across slices. Releasing a frees only
-		// A; releasing b frees B and every leaf.
+		// A under root a references 5000 leaves. B, born under root b,
+		// references the same stored leaves, so its one record carries
+		// more up pairs than a net slice applies and splits across
+		// slices. Releasing a frees only A. Releasing b frees B and
+		// every leaf.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -2477,12 +2494,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("record larger than a slice", func(t *testing.T) {
-		// 20,000 leaves stay held under mids of 1000, each under its root.
-		// One commit stores a parent naming each mid's leaves, so its record
-		// carries an up pair for every leaf, more than a net slice holds.
-		// The commit writes it in pages and the collector nets it across
-		// slices once it ages, so no collector transaction does as much work
-		// as the record has pairs or reads half of its bytes.
+		// 20,000 leaves stay held under mids of 1000, each under its
+		// root. One commit stores a parent referencing each mid's
+		// leaves, so its record carries an up pair for every leaf, more
+		// than a net slice holds. The commit writes it in pages and the
+		// collector nets it across slices once it ages, so no collector
+		// transaction does as much work as the record has pairs or
+		// reads half of its bytes.
 		ctx := t.Context()
 		cs := kvtx_kvtest.NewCountingStore(newGuardedStore(t))
 		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
@@ -2534,12 +2552,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("commit slower than a slice", func(t *testing.T) {
-		// W names 2,000 leaves under root w, released past the grace period.
-		// Each transaction's commit costs 3 ms the collector's own work does
-		// not, on the wall clock and on the Volume's, more than a slice aims
-		// to hold the writer. The pace counts only the collector's work, so
-		// the collection frees W and its leaves in a bounded number of
-		// transactions rather than shrinking every slice to its smallest.
+		// W references 2,000 leaves under root w, released past the
+		// grace period. Each transaction's commit costs 3 ms the
+		// collector's own work does not, on the wall clock and on the
+		// Volume's, more than a slice aims to hold the writer. The pace
+		// counts only the collector's work, so the collection frees W
+		// and its leaves in a bounded number of transactions rather
+		// than shrinking every slice to its smallest.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -2567,13 +2586,14 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("writer always waiting", func(t *testing.T) {
-		// G names 100 leaves under root g, released past the grace period,
-		// and H names 64 others under root h. A writer waits on every
-		// collector transaction and after each commits a new root on a parent
-		// of H's leaves, an up for each. A waiting writer does not shrink the
-		// netting slices, so they reach the up log's end, and the writer's
-		// ups delay no free: G and its leaves are freed in a bounded number
-		// of transactions while the writer's blocks stay.
+		// G references 100 leaves under root g, released past the grace
+		// period, and H references 64 others under root h. A writer
+		// waits on every collector transaction and after each commits a
+		// new root on a parent of H's leaves, an up for each. A waiting
+		// writer does not shrink the netting slices, so they reach the
+		// up log's end, and the writer's ups delay no free: G and its
+		// leaves are freed in a bounded number of transactions while
+		// the writer's blocks stay.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -2647,7 +2667,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		netAll(t, v)
 
-		// Revive R2 with no put; R1 goes, and R2's tree reads.
+		// Revive R2 with no put. R1 goes, and R2's tree reads.
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
 			t.Fatal(err)
 		}
@@ -2723,13 +2743,14 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("deep tree under steady writes", func(t *testing.T) {
-		// A tree five levels deep, each block naming two, loses its root,
-		// and a writer commits a new root naming A, which root a holds,
-		// after every collector transaction, an up pair for each. The
-		// writer's ups net with the tree's release, and each free's child
-		// downs queue at the up log's end, so the whole tree of 31 blocks
-		// goes in the first pass past the grace period, with exact counts,
-		// and the writer's blocks stay.
+		// A tree five levels deep, each block referencing two children,
+		// loses its root, and a writer commits a new root referencing
+		// A, which root a holds, after every collector transaction, an
+		// up pair for each. The writer's ups net with the tree's
+		// release, and each free's child downs queue at the up log's
+		// end, so the whole tree of 31 blocks goes in the first pass
+		// past the grace period, with exact counts, and the writer's
+		// blocks stay.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3229,10 +3250,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("refill names a child the free step is about to take", func(t *testing.T) {
-		// The same loss and audit, then aux releases C and its down nets, so
-		// C waits ripe on the queue at zero. A put refills X between that
-		// net and the free step: the refill names C, so it takes C off the
-		// queue with the up it logs, and the free leaves C to X.
+		// The same loss and audit, then aux releases C and its down
+		// nets, so C waits ripe on the queue at zero. A put refills X
+		// between that net and the free step: the refill references C,
+		// so it takes C off the queue with the up it logs, and the free
+		// leaves C to X.
 		store := newGuardedStore(t)
 		off, _ := openLivenessVolume(t, store, false)
 		ctx := t.Context()
@@ -3332,13 +3354,14 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("turning frees on recounts what an older build wrote", func(t *testing.T) {
-		// A Volume adopted with frees on names main -> R -> P -> C. A build
-		// that predates the switch then lands R2 -> P, releases main and
-		// leaves P one holder short, a count only a recount corrects. It
-		// keeps the switch and its mark as unknown fields, so the mark goes
-		// stale. Opened again with frees on, the Volume recounts before any
-		// free: R2, P and C read after collections past the grace, and R,
-		// which nothing names, frees.
+		// A Volume adopted with frees on references main -> R -> P -> C. A
+		// build that predates the switch then lands R2 -> P, releases
+		// main and leaves P one holder short, a count only a recount
+		// corrects. It keeps the switch and its mark as unknown fields,
+		// so the mark goes stale. Opened again with frees on, the
+		// Volume recounts before any free: R2, P and C read after
+		// collections past the grace, and R, which nothing references,
+		// frees.
 		store := newGuardedStore(t)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3411,17 +3434,19 @@ func TestLivenessAdversarial(t *testing.T) {
 			title += " across a collector restart"
 		}
 		t.Run(title, func(t *testing.T) {
-			// F names three leaves, few enough to free inline, and root g
-			// holds G. Root f releases F, and the collector stops once F is
-			// freed with its leaves still stored. A writer then puts F again,
-			// born since its bytes and list are gone, or a new parent P,
-			// naming the leaves: right after the free, so its record is the
-			// first after it; behind a younger root move onto G that nets
-			// first; or after that move netted, so the leaves are ripe. The
-			// same collector then runs on, its tail index extended from the
-			// free, or with restart a new one, whose index is read whole from
-			// the cursor. Every leaf the parent lists must still read once
-			// the collector is quiet.
+			// F references three leaves, few enough to free inline,
+			// and root g holds G. Root f releases F, and the
+			// collector stops once F is freed with its leaves still
+			// stored. A writer then puts F again, born since its
+			// bytes and list are gone, or a new parent P,
+			// referencing the leaves: right after the free, so its
+			// record is the first after the free, or behind a
+			// younger root move onto G that nets first, or after
+			// that move netted, so the leaves are ripe. The same
+			// collector then runs on, its tail index extended from
+			// the free, or with restart a new one, whose index is
+			// read whole from the cursor. Every leaf the parent
+			// lists must still read once the collector is quiet.
 			v, clk := newLivenessVolume(t, true)
 			ctx := t.Context()
 			tr := testTree{}
@@ -3526,11 +3551,12 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the releasing block put again", "a crash mid put again", "the releasing block lost"} {
 		t.Run("release interrupted by "+mid, func(t *testing.T) {
-			// F names 6,000 leaves, more than one slice moves, and G names
-			// the first and the last of them in F's list. Root f releases
-			// F, and the collector stops once a transaction left F's paged
-			// release in progress, with the first leaves released and the
-			// last not, and F Dying, stored until its release ends.
+			// F references 6,000 leaves, more than one slice moves,
+			// and G references the first and the last of them in
+			// F's list. Root f releases F, and the collector stops
+			// once a transaction left F's paged release in
+			// progress, with the first leaves released and the last
+			// not, and F Dying, stored until its release ends.
 			v, clk := newLivenessVolume(t, true)
 			ctx := t.Context()
 			tr := testTree{}
@@ -3588,9 +3614,10 @@ func TestLivenessAdversarial(t *testing.T) {
 			case "the releasing block lost":
 				punchHole(t, v, f)
 			}
-			// The free already deleted F, so the put again is born, and its
-			// up pages, which give the leaves back their holder, net across
-			// slices; stop with them partly netted.
+			// The free already deleted F, so the put again is born,
+			// and its up pages, which give the leaves back their
+			// holder, net across slices. Stop with them partly
+			// netted.
 			if mid == "a crash mid put again" {
 				probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, pages: pages}
 				c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
@@ -3618,13 +3645,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	}
 
 	t.Run("hole under a release in progress", func(t *testing.T) {
-		// F names 6,000 leaves, and P1 and P2 name its last, H. Root f
-		// releases F, and the collector stops with F's paged release not yet
-		// at H. The audit then counts the release among H's holders and
-		// leaks none of the leaves it has not reached. The store loses
-		// H, and the audit records the hole with F's holder in its count, so
-		// once the release reaches H, H is put again and P1 is freed, P2
-		// still holds H.
+		// F references 6,000 leaves, and P1 and P2 reference its last
+		// leaf, H. Root f releases F, and the collector stops with F's
+		// paged release not yet at H. The audit then counts the release
+		// among H's holders and leaks none of the leaves it has not
+		// reached. The store loses H, and the audit records the hole
+		// with F's holder in its count, so once the release reaches H,
+		// H is put again and P1 is freed, P2 still holds H.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3653,8 +3680,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
 			t.Fatalf("collect = %v, want it stopped mid-release", err)
 		}
-		// The free already deleted F; its release pages
-		// carry its downs.
+		// The free already deleted F. Its release pages carry its
+		// downs.
 		requireStored(t, v, tr, false, "F")
 		requireStored(t, v, tr, true, h)
 		requireAudit(t, v, 0)
@@ -3683,12 +3710,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("hole under a deferred release", func(t *testing.T) {
-		// D1 names E1 and D2 names 4,000 leaves, and roots d1 and d2 let
-		// them go in commits one slice nets. D1's free moves E1 first, so
-		// D2's list no longer fits the slice and its free waits for the
-		// next. The store then loses D2 with its list, so D2 is never
-		// freed, its leaves keeping its holder as leaked garbage, and the
-		// frees go on: G, let go after, is freed.
+		// D1 references E1 and D2 references 4,000 leaves, and roots d1
+		// and d2 let them go in commits one slice nets. D1's free moves
+		// E1 first, so D2's list no longer fits the slice and its free
+		// waits for the next. The store then loses D2 with its list, so
+		// D2 is never freed, its leaves keeping its holder as leaked
+		// garbage, and the frees go on: G, let go after, is freed.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3740,13 +3767,14 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("format 9 upgrade over a stale queue and a crash mid carry", func(t *testing.T) {
-		// The format 9 store of format9Owed, whose upgrade crashed after
-		// carrying one count record, opens with frees on. Before the
-		// adoption a writer stores N -> C under a new root and releases
-		// main, so A and B die while C keeps N. The stale queue entries name
-		// the live S and C, the owed releases would move C down twice, and
-		// the rerun carry meets a record already carried: none may free a
-		// block a root reaches or leave a dead one with an invented holder.
+		// The format 9 store of format9Owed, whose upgrade crashed
+		// after carrying one count record, opens with frees on. Before
+		// the adoption a writer stores N -> C under a new root and
+		// releases main, so A and B die while C keeps N. The stale
+		// queue entries reference the live S and C, the owed releases
+		// would move C down twice, and the rerun carry meets a record
+		// already carried: none may free a block a root reaches or
+		// leave a dead one with an invented holder.
 		store := newGuardedStore(t)
 		keys := store_kvkey.NewDefaultKVKey()
 		tr := format9Owed(t)
@@ -3824,9 +3852,10 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("two born parents name one stored child", func(t *testing.T) {
-		// Root c holds C. One Land stores P1 and P2, each naming C, under
-		// roots p1 and p2, which gives C two ups, one for each edge. Once
-		// root c and root p1 let go and P1 is freed, P2 still holds C.
+		// Root c holds C. One Land stores P1 and P2, each referencing
+		// C, under roots p1 and p2, which gives C two ups, one for each
+		// edge. Once root c and root p1 let go and P1 is freed, P2
+		// still holds C.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3854,9 +3883,10 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("fill lands between the netting and the free", func(t *testing.T) {
-		// Root c lets C go. Once a pass nets that, and before it frees, a
-		// read fills P, which names C. The free waits for the fill's up,
-		// so a root that moves onto P after the grace period finds C.
+		// Root c lets C go. Once a pass nets that, and before it frees,
+		// a read fills P, which references C. The free waits for the
+		// fill's up, so a root that moves onto P after the grace period
+		// finds C.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3898,15 +3928,16 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for _, landed := range []bool{true, false} {
 		t.Run("holder landed after an audit's snapshot landed="+strconv.FormatBool(landed), func(t *testing.T) {
-			// P1 and P2 name H under roots p1 and p2, and the store loses H.
-			// An audit tallies P1 and P2 in its snapshot. With landed set, the
-			// counts hold both, and before the audit records the hole a
-			// writer lands P3 naming H, which the collector nets. Otherwise
-			// the up pair of H's second holder is still in the up log at the
-			// snapshot and nothing lands. Either way the audit records H with
-			// its true holders: once H is put again and P1 and P2 are freed,
-			// P3 or nothing holds H, and H stays while P3 does and is freed
-			// with it.
+			// P1 and P2 reference H under roots p1 and p2, and the
+			// store loses H. An audit tallies P1 and P2 in its
+			// snapshot. With landed set, the counts hold both, and
+			// before the audit records the hole a writer lands P3
+			// referencing H, which the collector nets. Otherwise
+			// the up pair of H's second holder is still in the up
+			// log at the snapshot and nothing lands. Either way the
+			// audit records H with its true holders: once H is put
+			// again and P1 and P2 are freed, P3 or nothing holds H,
+			// and H stays while P3 does and is freed with it.
 			v, clk := newLivenessVolume(t, true)
 			ctx := t.Context()
 			tr := testTree{}
@@ -3967,8 +3998,9 @@ func TestLivenessAdversarial(t *testing.T) {
 	}
 
 	t.Run("child named twice", func(t *testing.T) {
-		// P names the stored C twice and an empty ref. Its list keeps C once,
-		// so releasing P frees both, and the audit finds nothing.
+		// P references the stored C twice and an empty ref. Its list
+		// keeps C once, so releasing P frees both, and the audit finds
+		// nothing.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3991,8 +4023,8 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("bytes without a list", func(t *testing.T) {
-		// Bytes stored below the Volume's liveness, without a child list,
-		// are garbage nothing frees; the audit reports them.
+		// Bytes stored below the Volume's liveness, without a child
+		// list, are garbage nothing frees. The audit reports them.
 		v, _ := newLivenessVolume(t, true)
 		ctx := t.Context()
 		if _, _, err := v.Store.PutBlock(ctx, []byte("stored without a list"), &block.PutOpts{RefsKnown: true}); err != nil {
@@ -4004,10 +4036,10 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("abandoned write", func(t *testing.T) {
-		// A writer puts P -> C in two batches, child first, and never lands
-		// a root on them. A Volume with frees on refuses the first batch
-		// and stores nothing; one that lets the puts in finds both garbage
-		// once the grace period passes.
+		// A writer puts P -> C in two batches, child first, and never
+		// lands a root on them. A Volume with frees on refuses the
+		// first batch and stores nothing. One that lets the puts in
+		// finds both garbage once the grace period passes.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -4060,9 +4092,9 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("child put again with its stored parent", func(t *testing.T) {
-		// A staged copy puts P under main before its child C, then puts C in
-		// a batch with P again. P's list holds C, so a Volume with frees on
-		// lets the batch in; C alone it refuses.
+		// A staged copy puts P under main before its child C, then puts
+		// C in a batch with P again. P's list holds C, so a Volume with
+		// frees on lets the batch in. C alone it refuses.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -4084,10 +4116,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("parent collected before its child is stored", func(t *testing.T) {
-		// A session puts R2 under main before its child C2, logging an up
-		// for C2. Main lets R2 go and the collector frees it; the free
-		// takes C2's holder although C2 has no list yet. C2 then lands alone
-		// and nothing holds it, so it goes after the grace period.
+		// A session puts R2 under main before its child C2, logging an
+		// up for C2. Main lets R2 go and the collector frees it. The
+		// free takes C2's holder although C2 has no list yet. C2 then
+		// lands alone and nothing holds it, so it goes after the grace
+		// period.
 		v, clk := newLivenessVolume(t, true)
 		observePuts(v)
 		ctx := t.Context()
@@ -4114,11 +4147,13 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for _, pinned := range []bool{true, false} {
 		t.Run("long staged session over an abandoned base pinned="+strconv.FormatBool(pinned), func(t *testing.T) {
-			// main holds B -> X. A staged session observes B, pinning it as
-			// the World engine's StageWorldState does. Main abandons B, and
-			// the session outlasts the grace period before it puts S naming
-			// X without putting X again and lands S under main. With the pin
-			// X stays; without it X is freed before S names it.
+			// main holds B -> X. A staged session observes B,
+			// pinning it as the World engine's StageWorldState
+			// does. Main abandons B, and the session outlasts the
+			// grace period before it puts S referencing X without
+			// putting X again and lands S under main. With the pin
+			// X stays. Without it X is freed before S references
+			// it.
 			v, clk := newLivenessVolume(t, true)
 			ctx := t.Context()
 			tr := testTree{}
@@ -4157,7 +4192,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	// The admit subtests hold a payload tree P -> L that a stage built
 	// earlier, as a World's admit does: payloads moves from Q onto a new H
-	// naming P and Q, requiring its blocks held.
+	// referencing P and Q, requiring its blocks held.
 	t.Run("admit after the tree was freed", func(t *testing.T) {
 		// The stage's release nets and frees P and L: refused.
 		v, clk, tr, admit := newAdmitVolume(t, true)
@@ -4168,16 +4203,16 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("admit over a Dead parent", func(t *testing.T) {
 		// P is stored and Dead, and still holds L, but the admit's root
-		// names H over P, which nothing holds: refused.
+		// references H over P, which nothing holds: refused.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
 		requireNotHeld(t, v, tr, admit())
 	})
 
 	t.Run("admit after the collector freed a Dead parent and its child", func(t *testing.T) {
-		// A collector that frees takes Dead P, and L with it. The admit over H naming P, and the
-		// admit storing P again over L, are both refused, and no root
-		// names a freed block.
+		// A collector that frees takes Dead P, and L with it. The admit
+		// over H referencing P, and the admit storing P again over L,
+		// are both refused, and no root references a freed block.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
 		for range 3 {
@@ -4241,8 +4276,8 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("admit giving birth to a payload root over its freed child", func(t *testing.T) {
-		// (k) The tree was freed whole; the admit's batch stores P anew but
-		// not L: refused.
+		// (k) The tree was freed whole. The admit's batch stores P anew
+		// but not L: refused.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		buildAndRelease(t, v, clk, tr)
 		requireStored(t, v, tr, false, "P", "L")
@@ -4266,11 +4301,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("admit repeated with the tree in its batch", func(t *testing.T) {
-		// As (j), then the writer repeats the admit storing the whole tree in
-		// its batch, as ErrRootNotHeld promises: commits. The repeat moves
-		// onto a new H naming P and M over L, a diamond three deep. The
-		// first admit lands, since Dead P holds L, and the repeat moves on
-		// from it.
+		// As (j), then the writer repeats the admit storing the whole
+		// tree in its batch, as ErrRootNotHeld promises: commits. The
+		// repeat moves onto a new H referencing P and M over L, a
+		// diamond three deep. The first admit lands, since Dead P holds
+		// L, and the repeat moves on from it.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		freeUnderDeadParent(t, v, clk, tr)
 		if err := admit("P"); err != nil {
@@ -4293,11 +4328,12 @@ func TestLivenessAdversarial(t *testing.T) {
 			name += " after a count"
 		}
 		t.Run(name, func(t *testing.T) {
-			// The check's stage read fails on P, Dead over its child
-			// L. Enforcing returns the error; observing counts nothing and
-			// lands the move as with the check off. With counted, the first
-			// stage read answers false, so P is counted as H's child, and a
-			// second strict root on P then fails its read: the count made
+			// The check's stage read fails on P, Dead over its
+			// child L. Enforcing returns the error. Observing
+			// counts nothing and lands the move as with the check
+			// off. With counted, the first stage read answers
+			// false, so P is counted as H's child, and a second
+			// strict root on P then fails its read: the count made
 			// before the failure is dropped too.
 			v, clk, tr, _ := newAdmitVolume(t, true)
 			freeUnderDeadParent(t, v, clk, tr)
@@ -4415,7 +4451,7 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("admit after a flush cut after its first slice", func(t *testing.T) {
-		// The open stage stored L only; P is missing: refused.
+		// The open stage stored L only. P is missing: refused.
 		v, _, tr, admit := newAdmitVolume(t, true)
 		stage, release, err := v.OpenStage(t.Context())
 		if err != nil {
@@ -4460,11 +4496,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("admit after the stage was released", func(t *testing.T) {
-		// The stage's release nets P and L to zero with frees off, so both
-		// are stored but nothing holds them: refused. The release nets first
-		// because until it does, P still reads one holder and the admit
-		// commits; that is safe, since the admit's up pair and the release's
-		// down pair net together and leave P held.
+		// The stage's release nets P and L to zero with frees off, so
+		// both are stored but nothing holds them: refused. The release
+		// nets first because until it does, P still reads one holder
+		// and the admit commits. That commit is safe, since the admit's
+		// up pair and the release's down pair net together and leave P
+		// held.
 		v, clk, tr, admit := newAdmitVolume(t, false)
 		buildAndRelease(t, v, clk, tr)
 		requireStored(t, v, tr, true, "P", "L")
@@ -4473,10 +4510,11 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("admit before the stage's release nets", func(t *testing.T) {
 		// The admit commits while the release is in the logs and not
-		// netted, so P still reads its implied holder. The release then nets
-		// alone, older than Grace while the admit's record is not, which
-		// brings P and L to zero; their ripe sequence lies past the admit's
-		// record, so no free runs until the admit nets and holds them again.
+		// netted, so P still reads its implied holder. The release then
+		// nets alone, older than Grace while the admit's record is not,
+		// so the release brings P and L to zero. Their ripe sequence
+		// lies past the admit's record, so no free runs until the admit
+		// nets and holds them again.
 		v, clk, tr, admit := newAdmitVolume(t, true)
 		ctx := t.Context()
 		stage, release, err := v.OpenStage(ctx)
@@ -4566,7 +4604,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Pk under root pk names K, which no put has stored yet.
+		// Pk under root pk references K, which no put has stored yet.
 		k := tr.add(t, "K")
 		pk := tr.add(t, "Pk", "K")
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("Pk"), []block.NamedRoot{{Name: "pk", Ref: pk}}); err != nil {
@@ -4578,9 +4616,10 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		requireStored(t, v, tr, true, "R1", "E", "R2", "Pk")
 
-		// An adoption interrupted while it settles the counts, with main
-		// moving onto a new R3 naming E while it counts, leaves the Volume
-		// adopting at its cursor, and a reset returns it to unadopted.
+		// An adoption interrupted while it settles the counts, with
+		// main moving onto a new R3 referencing E while it counts,
+		// leaves the Volume adopting at its cursor, and a reset returns
+		// it to unadopted.
 		r3 := tr.add(t, "R3", "E")
 		probe := &adoptProbe{Store: collectorStore{v: v}}
 		probeCtx, cancel := context.WithCancel(ctx)
@@ -4606,12 +4645,13 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("reset left %v at %v, want unadopted without a cursor", state.GetAdoption(), state.GetAdoptCursor())
 		}
 
-		// A rerun counts every holder once while main moves onto a new R4
-		// naming E before it counts the roots; a root aux moves onto R1 and
-		// a put stores K under a root k before it counts the child lists; and
-		// a put stores Y under a root late before it settles. The next pass
-		// frees R2 and R3, and keeps Y, born after the rerun began, and K,
-		// which Pk named before it began.
+		// A rerun counts every holder once while main moves onto a new
+		// R4 referencing E before the rerun counts the roots, a root
+		// aux moves onto R1 and a put stores K under a root k before
+		// the rerun counts the child lists, and a put stores Y under a
+		// root late before it settles. The next pass frees R2 and R3,
+		// and keeps Y, born after the rerun began, and K, which Pk
+		// referenced before it began.
 		r4 := tr.add(t, "R4", "E")
 		y := tr.add(t, "Y")
 		probe = &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
@@ -4675,17 +4715,18 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("incomplete format 6 list", func(t *testing.T) {
-		// A format 6 store holds R -> P, X, Y and P -> Z under a named root,
-		// but R's child list lacks X and Y, as a crash between two slices of
-		// the old graph's edge batch left it. The adoption counts no holder
-		// of X or Y and queues both, so the generation alone keeps them
-		// under the root: while it is Open the free parks every block it
-		// takes, the young N included. The walk then runs on the adopted
-		// Volume: it refuses a decoded list that drops P's child, and
-		// rewrites R's list, which records that the counts are short of R's
-		// holders of X and Y. The flip finds that record and returns the
-		// Volume to unadopted; the recount deletes the parked and queued
-		// records, and the settle frees only N.
+		// A format 6 store holds R -> P, X, Y and P -> Z under a named
+		// root, but R's child list lacks X and Y, as a crash between
+		// two slices of the old graph's edge batch left it. The
+		// adoption counts no holder of X or Y and queues both, so the
+		// generation alone keeps them under the root: while it is Open
+		// the free parks every block it takes, the young N included.
+		// The walk then runs on the adopted Volume: it refuses a
+		// decoded list that drops P's child, and rewrites R's list,
+		// which records that the counts are short of R's holders of X
+		// and Y. The flip finds that record and returns the Volume to
+		// unadopted. The recount deletes the parked and queued records,
+		// and the settle frees only N.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -4770,9 +4811,9 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("rewrite on an adopted Volume left %d recount records, want 1", n)
 		}
 
-		// The flip unadopts rather than flip; the recount counts R's holders
-		// of X and Y and deletes every record from before, and the settle
-		// then frees N alone.
+		// The flip unadopts rather than flip. The recount counts R's
+		// holders of X and Y and deletes every record from before, and
+		// the settle then frees N alone.
 		total := settleAll(t, v, clk, store, tr)
 		if !total.Unadopted {
 			t.Fatalf("settle = %+v, want the rewrite to unadopt the Volume", total)
@@ -4796,11 +4837,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("leaf first, then decoded", func(t *testing.T) {
-		// X's stored list is empty and unverified though its bytes name C.
-		// The walker verifies X twice in one run, as it does a block it
-		// reaches under two types: first as a leaf, with no refs, which
-		// marks the empty list, then with its decoded refs, which must
-		// still add C, or C has no holder and the settle frees it.
+		// X's stored list is empty and unverified though its bytes
+		// reference C. The walker verifies X twice in one run, as it
+		// does a block it reaches under two types: first as a leaf,
+		// with no refs, which marks the empty list, then with its
+		// decoded refs, which must still add C, or C has no holder and
+		// the settle frees it.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -4849,13 +4891,14 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("reput of an older block stored without a list", func(t *testing.T) {
-		// A format 6 store holds Q under main, naming P, but a crash left Q's
-		// list without P and P stored without a list of its own, so the
-		// adoption passes and counts nothing for P. A put of P again under
-		// the new N writes P's list, and Land keeps one holder more for P,
-		// since its bytes were stored. P's bytes predate the put, so P is
-		// older: once a later adoption recounts the lists and finds P at
-		// zero, the free parks it, and Q still reaches it.
+		// A format 6 store holds Q under main, referencing P, but a
+		// crash left Q's list without P and P stored without a list of
+		// its own, so the adoption passes and counts nothing for P. A
+		// put of P again under the new N writes P's list, and Land
+		// keeps one holder more for P, since its bytes were stored. P's
+		// bytes predate the put, so P is older: once a later adoption
+		// recounts the lists and finds P at zero, the free parks it,
+		// and Q still reaches it.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -4893,7 +4936,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		requireStored(t, v, tr, true, "Q", "P", "N")
 
-		// A recount finds N at zero, and the free parks it; P keeps N's
+		// A recount finds N at zero, and the free parks it. P keeps N's
 		// holder.
 		markUnadopted(t, v)
 		if res, err := v.Adopt(ctx); err != nil || res.Queued != 1 {
@@ -4917,12 +4960,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("parked block requeued once the generation flips", func(t *testing.T) {
-		// A format 6 store holds R -> X under main and an unreached old block
-		// G that also names X. Adopted with the generation Open, the free
-		// parks G. Once the walk verifies R and X the generation flips, and
-		// the parked G comes back as unmarked. The requeued free leaves it
-		// to the sweep, which releases G's holder on X once, so R's holder
-		// keeps X.
+		// A format 6 store holds R -> X under main and an unreached old
+		// block G that also references X. Adopted with the generation
+		// Open, the free parks G. Once the walk verifies R and X the
+		// generation flips, and the parked G comes back as unmarked.
+		// The requeued free leaves it to the sweep, which releases G's
+		// holder on X once, so R's holder keeps X.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -4961,12 +5004,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("parked block a commit names before the flip", func(t *testing.T) {
-		// A format 6 store holds the root A and an unreached block C -> F
-		// whose list lacks F. The adoption counts no holder of C or F, and
-		// the free parks both. A commit naming F from a new block C2 is
-		// refused until it puts F again, and the walk verifies A and F with
-		// C's list still cut, since no root reaches C. The settle deletes C
-		// alone.
+		// A format 6 store holds the root A and an unreached block C ->
+		// F whose list lacks F. The adoption counts no holder of C or
+		// F, and the free parks both. A commit referencing F from a new
+		// block C2 is refused until it puts F again, and the walk
+		// verifies A and F with C's list still cut, since no root
+		// reaches C. The settle deletes C alone.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -4997,8 +5040,8 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect while Open = %+v, want C and F parked", res)
 		}
 
-		// C2 -> F alone is refused while F is parked at zero; with F, the
-		// put gives birth to F again under C2.
+		// C2 -> F alone is refused while F is parked at zero. With F,
+		// the put gives birth to F again under C2.
 		c2 := tr.add(t, "C2", "F")
 		c2root := []block.NamedRoot{{Name: "c2", Ref: c2}}
 		var parked *block_gc.AbsentError
@@ -5030,15 +5073,17 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	for _, verified := range []bool{true, false} {
 		t.Run("refilled hole names a parked child verified="+strconv.FormatBool(verified), func(t *testing.T) {
-			// A format 6 store holds the root H -> P -> C and has lost P
-			// with its list, so nothing holds C. The audit records P as a
-			// hole, the walk verifies H, and C too when verified is set,
-			// and the free parks C. A put of P lands between a pass's
-			// netting and its settle. P alone is refused: its up nets only
-			// in the next pass, and this one would flip with the hole gone,
-			// leaving a marked C in the run and popping an unverified C off
-			// the front on its parked key. With C, the put gives birth to C
-			// again under P, and the sweep deletes nothing.
+			// A format 6 store holds the root H -> P -> C and has
+			// lost P with its list, so nothing holds C. The audit
+			// records P as a hole, the walk verifies H, and C too
+			// when verified is set, and the free parks C. A put of
+			// P lands between a pass's netting and its settle. P
+			// alone is refused: its up nets only in the next pass,
+			// and this pass would flip with the hole gone, leaving
+			// a marked C in the run and popping an unverified C off
+			// the front on its parked key. With C, the put gives
+			// birth to C again under P, and the sweep deletes
+			// nothing.
 			ctx := t.Context()
 			store := newGuardedStore(t)
 			tr := testTree{}
@@ -5111,13 +5156,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	}
 
 	t.Run("old list a put rewrites", func(t *testing.T) {
-		// A format 6 store holds the root A and unreached blocks C -> F,
-		// whose list lacks F, G and H. The walk verifies A and F. A put of
-		// G, whose list is whole, writes nothing that calls for a recount. A
-		// put of C under a root rewrites C's list to name F and records the
-		// recount; the flip then returns the Volume to unadopted, and once
-		// the recount runs, the settle deletes H, which no put revived, and
-		// keeps F under C.
+		// A format 6 store holds the root A and unreached blocks C ->
+		// F, whose list lacks F, G and H. The walk verifies A and F. A
+		// put of G, whose list is whole, writes nothing that calls for
+		// a recount. A put of C under a root rewrites C's list to
+		// reference F and records the recount. The flip then returns
+		// the Volume to unadopted, and once the recount runs, the
+		// settle deletes H, which no put revived, and keeps F under C.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -5191,12 +5236,13 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("rewriting put supersedes an overlapping adoption", func(t *testing.T) {
 		// The store of "old list a put rewrites", unadopted after the
-		// format 7 upgrade, with a walk that verified A and F. Adoption A
-		// marks the Volume adopting, then B claims it and counts the lists,
-		// C's still lacking F. Before B settles, a put of C rewrites C's
-		// list, and since B counted it, logs F's new holder. A is superseded
-		// by B's claim; B settles owing no recount, the settle takes G,
-		// which nothing names, and F keeps its holder.
+		// format 7 upgrade, with a walk that verified A and F. Adoption
+		// A marks the Volume adopting, then B claims it and counts the
+		// lists, C's still lacking F. Before B settles, a put of C
+		// rewrites C's list, and since B counted it, logs F's new
+		// holder. A is superseded by B's claim. B settles owing no
+		// recount, the settle takes G, which nothing references, and F
+		// keeps its holder.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := newGuardedStore(t)
@@ -5219,8 +5265,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		v, clk := openUnadoptedVolume(t, store)
 
-		// B runs inside A, after A's mark, and takes A's run over; the put of
-		// C lands inside B, after B counted the lists.
+		// B runs inside A, after A's mark, and takes A's run over. The
+		// put of C lands inside B, after B counted the lists.
 		var errB error
 		probeB := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			resumeSettle: func() {
@@ -5265,11 +5311,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("adoption claimed by another", func(t *testing.T) {
-		// main -> R -> X on an unadopted Volume. Adoption A clears, then B,
-		// another process, starts while the Volume is still unadopted. A
-		// marks the Volume adopting and counts the roots; B clears A's
-		// counts and dies before it marks. A must not settle the cleared
-		// counts: B's claim superseded it, and nothing main reaches is freed.
+		// main -> R -> X on an unadopted Volume. Adoption A clears,
+		// then B, another process, starts while the Volume is still
+		// unadopted. A marks the Volume adopting and counts the roots.
+		// B clears A's counts and dies before it marks. A must not
+		// settle the cleared counts: B's claim superseded it, and
+		// nothing main reaches is freed.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
@@ -5360,12 +5407,13 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("adoption resumed across reopens", func(t *testing.T) {
-		// An unadopted Volume holds about twenty slices of records across the
-		// passes. Adoptions are cancelled at random slices three times, each
-		// taking over the cursor the one before left, with the Volume
-		// reopening and Land moving, adding and releasing roots in each gap;
-		// a reopen's background adoption then finishes the run. Its counts,
-		// queue and front equal those a clean adoption reaches on a copy.
+		// An unadopted Volume holds about twenty slices of records
+		// across the passes. Adoptions are cancelled at random slices
+		// three times, each taking over the cursor the one before left,
+		// with the Volume reopening and Land moving, adding and
+		// releasing roots in each gap. A reopen's background adoption
+		// then finishes the run. Its counts, queue and front equal
+		// those a clean adoption reaches on a copy.
 		seed := uint64(time.Now().UnixNano())
 		rng := rand.New(rand.NewPCG(seed, 0))
 		t.Logf("seed %d", seed)
@@ -5375,8 +5423,9 @@ func TestLivenessAdversarial(t *testing.T) {
 		waitAdopted(t, v)
 		ctx := t.Context()
 
-		// Fifty roots each hold a parent of forty leaves of its own and two
-		// of twenty shared ones, beside a hundred blocks no holder names.
+		// Fifty roots each hold a parent of forty leaves of its own and
+		// two of twenty shared ones, beside a hundred blocks no holder
+		// references.
 		tr := testTree{}
 		var names []string
 		leaf := func(name string) string {
@@ -5449,8 +5498,9 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatalf("round %d: cancel left %v at %v, want adopting at a cursor", round, state.GetAdoption(), state.GetAdoptCursor())
 			}
 
-			// Move a root onto a new parent of a new leaf and two stored
-			// leaves, name an unheld block, and release another root.
+			// Move a root onto a new parent of a new leaf and two
+			// stored leaves, reference an unheld block, and release
+			// another root.
 			r := strconv.Itoa(round)
 			tr.add(t, "N"+r)
 			m := tr.add(t, "M"+r, "N"+r, "L"+r+".0", "S"+r)
@@ -5463,7 +5513,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Reopen; the next round takes the run over.
+			// Reopen. The next round takes the run over.
 			if err := v.Close(); err != nil {
 				t.Fatal(err)
 			}
@@ -5552,11 +5602,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("adoption refuses a cursor another run left", func(t *testing.T) {
-		// A run cancelled at the settle leaves its cursor; a build without
-		// the cursor then claims the Volume and marks its own run adopting,
-		// keeping the field it does not know and clearing the counts. An
-		// Adopt finding that cursor under a run it does not name starts over
-		// from a claim instead of settling the empty counts.
+		// A run cancelled at the settle leaves its cursor. A build
+		// without the cursor then claims the Volume and marks its own
+		// run adopting, keeping the field it does not know and clearing
+		// the counts. An Adopt finding that cursor under a run it does
+		// not identify starts over from a claim instead of settling the
+		// empty counts.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, _ := openUnadoptedVolume(t, store)
@@ -5621,11 +5672,11 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("adoption cleanup spares a newer run's marks", func(t *testing.T) {
 		// An Adopt that finds the Volume adopted deletes the marks a
-		// finished run left. Before its cleanup runs, the Volume returns to
-		// unadopted and a newer run passes its roots, and a Land gives birth
-		// to X under a new root, marking X born. The stale cleanup must
-		// leave that mark, or the newer run's settle counts X as an old
-		// block no list names and queues it.
+		// finished run left. Before its cleanup runs, the Volume
+		// returns to unadopted and a newer run passes its roots, and a
+		// Land gives birth to X under a new root, marking X born. The
+		// stale cleanup must leave that mark, or the newer run's settle
+		// counts X as an old block no list references and queues it.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, _ := openUnadoptedVolume(t, store)
@@ -5678,11 +5729,12 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("adoption counts a hole refilled behind its scan", func(t *testing.T) {
-		// P names X, which names C, and a root holds C too. The store loses
-		// X and an audit records the hole. An adoption counts the child
-		// lists while X has none, and a put refills X before the settle:
-		// X's list gives C a holder the scan never counted, so the refill
-		// logs it, and the adoption agrees with a clean recount.
+		// P references X, which references C, and a root holds C too.
+		// The store loses X and an audit records the hole. An adoption
+		// counts the child lists while X has none, and a put refills X
+		// before the settle: X's list gives C a holder the scan never
+		// counted, so the refill logs it, and the adoption agrees with
+		// a clean recount.
 		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, vclk := openUnadoptedVolume(t, store)
@@ -5795,7 +5847,8 @@ type adoptProbe struct {
 	n int
 }
 
-// Update calls the func at the transaction's position, then runs it.
+// Update calls the func at the transaction's position, then runs the
+// transaction.
 func (p *adoptProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
 	p.n++
 	if f := p.at[p.n]; f != nil {
@@ -5824,12 +5877,12 @@ func waitAdopted(t *testing.T, v *Volume) *block_gc.LivenessState {
 }
 
 // TestLivenessSettle walks the sequences in which a block a holder reaches
-// names a child whose list a format 6 store cut short, so no holder counts
+// references a child whose list a format 6 store cut short, so no holder counts
 // the block below that list: a put again and a fill while the unmarked run
 // builds, fills top down and under a held block, and a refilled hole. In each
-// the settle keeps the block below while a root reaches it. It then checks
-// each barrier a Land keeps and each clause the flip waits on, and that the
-// sweep deletes exactly the old blocks nothing reaches.
+// the settle keeps the block below while a root reaches it. It then checks each
+// barrier a Land keeps and each clause the flip waits on, and that the sweep
+// deletes exactly the old blocks nothing reaches.
 func TestLivenessSettle(t *testing.T) {
 	// adoptOldStore writes a format 6 store into store holding the root A
 	// and, for each name in cut, the block's bytes with an empty child list,
@@ -5951,8 +6004,9 @@ func TestLivenessSettle(t *testing.T) {
 	}
 	flipped := func(res block_gc.CollectResult) bool { return res.Flipped }
 	settled := func(res block_gc.CollectResult) bool { return res.Settled }
-	// pairs builds, for each i < n, D<i>, C<i> naming D<i> and B<i> naming
-	// C<i>, and returns the names to list and the C names to cut.
+	// pairs builds, for each i < n, D<i>, C<i> referencing D<i> and B<i>
+	// referencing C<i>, and returns the names to list and the C names to
+	// cut.
 	pairs := func(t *testing.T, tr testTree, n int) (listed, cut []string) {
 		t.Helper()
 		tr.add(t, "A")
@@ -6122,12 +6176,12 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("frees off and on while the generation is open", func(t *testing.T) {
-		// B -> C -> D, with C's list cut, none reached, and one frees-on
-		// pass partway through the settle. Frees go off, and a writer roots
-		// main onto a new N naming one C. Frees come back on, which recounts.
-		// Land keeps the settle's barriers by the stored generation, not by
-		// the frees switch, so the walk still finds D below C, and the
-		// settle keeps N, C and D.
+		// B -> C -> D, with C's list cut, none reached, and one
+		// frees-on pass partway through the settle. Frees go off, and a
+		// writer roots main onto a new N referencing one C. Frees come
+		// back on, which recounts. Land keeps the settle's barriers by
+		// the stored generation, not by the frees switch, so the walk
+		// still finds D below C, and the settle keeps N, C and D.
 		tr := testTree{}
 		listed, cut := pairs(t, tr, 150)
 		store := newGuardedStore(t)
@@ -6167,13 +6221,13 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("reader sight across an adoption while the generation is open", func(t *testing.T) {
-		// R1 -> E in an old store, its generation Open, R1 its world root.
-		// A reader sees R1, the root moves to R2, and the Volume adopts
-		// again before the reader pins R1: the adoption drops the record of
-		// the move, so no seed of the settle walk reaches R1. Passes within
-		// the grace period walk, and the flip, which would unmark R1 for
-		// the sweep, waits for the adoption's marker; the reader pins R1
-		// and the settle keeps it.
+		// R1 -> E in an old store, its generation Open, R1 its world
+		// root. A reader sees R1, the root moves to R2, and the Volume
+		// adopts again before the reader pins R1: the adoption drops
+		// the record of the move, so no seed of the settle walk reaches
+		// R1. Passes within the grace period walk, and the flip, which
+		// would unmark R1 for the sweep, waits for the adoption's
+		// marker. The reader pins R1 and the settle keeps it.
 		tr := testTree{}
 		tr.add(t, "E")
 		tr.add(t, "R1", "E")
@@ -6250,9 +6304,10 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("fill while the run builds", func(t *testing.T) {
-		// Between two slices of the run's build, a read fills X naming a C
-		// the build has not entered, with X's key behind the build's
-		// position, and main moves onto X. The fill pushes C onto the front.
+		// Between two slices of the run's build, a read fills X
+		// referencing a C the build has not entered, with X's key
+		// behind the build's position, and main moves onto X. The fill
+		// pushes C onto the front.
 		tr := testTree{}
 		listed, cut := pairs(t, tr, 150)
 		v, clk, store := oldStore(t, tr, "A", listed, cut...)
@@ -6313,8 +6368,8 @@ func TestLivenessSettle(t *testing.T) {
 	}
 
 	t.Run("fill top down", func(t *testing.T) {
-		// A read fills P while its child X is absent, then fills X, which
-		// names the old C. Main then moves onto P.
+		// A read fills P while its child X is absent, then fills X,
+		// which references the old C. Main then moves onto P.
 		v, clk, store, tr := cutC(t)
 		tr.add(t, "X", "C")
 		tr.add(t, "P", "X")
@@ -6327,8 +6382,8 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("fill under a held block", func(t *testing.T) {
-		// Main holds B, whose child X is absent; a read then fills X, which
-		// names the old C.
+		// Main holds B, whose child X is absent. A read then fills X,
+		// which references the old C.
 		v, clk, store, tr := cutC(t)
 		tr.add(t, "X", "C")
 		tr.add(t, "B", "X")
@@ -6386,11 +6441,11 @@ func TestLivenessSettle(t *testing.T) {
 	}
 
 	t.Run("root onto an unverified block while Open", func(t *testing.T) {
-		// A root moves onto the unreached U without a put. The hold pushes U
-		// onto the front, which holds the flip; the walk decodes U, and K
-		// stays. Before the hold nets, U's count is zero at a ripe sequence
-		// the cursor passed, so only its dequeue by the Land keeps the free
-		// proof from popping U.
+		// A root moves onto the unreached U without a put. The hold
+		// pushes U onto the front, which holds the flip. The walk
+		// decodes U, and K stays. Before the hold nets, U's count is
+		// zero at a ripe sequence the cursor passed, so only its
+		// dequeue by the Land keeps the free proof from popping U.
 		v, clk, store, tr := oldU(t, false)
 		if err := rootOnto(t, v, tr, "U"); err != nil {
 			t.Fatal(err)
@@ -6645,9 +6700,9 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("put of an unmarked block while Sweeping", func(t *testing.T) {
-		// U's list lacks K. After the flip a put of U under main alone is
-		// refused, since it holds the unmarked K; a put of both gives birth
-		// to each again, and the sweep keeps them.
+		// U's list lacks K. After the flip a put of U under main alone
+		// is refused, since it holds the unmarked K. A put of both
+		// gives birth to each again, and the sweep keeps them.
 		v, clk, store, tr := oldU(t, true)
 		collectUntil(t, v, clk, flipped)
 		if err := rootOnto(t, v, tr, "U", "U"); !errors.Is(err, block.ErrRefsUnknown) {
@@ -6671,10 +6726,11 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
-	// slotted builds the root A naming C and a hub of 300 leaves, then the
-	// block name naming C, unreached, whose content places its list at rank
-	// among the lists, and returns the tree, the listed names and the
-	// first slice's last list key, at which a readoption's cursor stops.
+	// slotted builds the root A referencing C and a hub of 300 leaves, then
+	// the block name referencing C, unreached, whose content places its
+	// list at rank among the lists, and returns the tree, the listed names
+	// and the first slice's last list key, at which a readoption's cursor
+	// stops.
 	slotted := func(t *testing.T, name string, rank int) (testTree, []string, []byte) {
 		t.Helper()
 		tr := testTree{}
@@ -6760,11 +6816,12 @@ func TestLivenessSettle(t *testing.T) {
 	}{{"at its list", 255}, {"below its list", 256}}
 
 	t.Run("rebirth while a readoption counts the lists", func(t *testing.T) {
-		// The root A names C, and the unreached U names C too, so after the
-		// flip U is in the run and C outside it. A readoption counts the
-		// lists, and a put of U under its own root gives birth to U again.
-		// The rebirth releases U's old hold of C only where the count gave
-		// it, so the adoption agrees with a clean recount.
+		// The root A references C, and the unreached U references C
+		// too, so after the flip U is in the run and C outside it. A
+		// readoption counts the lists, and a put of U under its own
+		// root gives birth to U again. The rebirth releases U's old
+		// hold of C only where the count gave it, so the adoption
+		// agrees with a clean recount.
 		for _, tc := range cursorCases {
 			t.Run(tc.name, func(t *testing.T) {
 				tr, listed, stop := slotted(t, "U", tc.rank)
@@ -6782,12 +6839,13 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("put again of a short list while a readoption counts the lists", func(t *testing.T) {
-		// The root A names C, and the unreached P names C too, but a crash
-		// cut P's list. While Open, a readoption counts the lists, and a
-		// put of P under its own root adds C to P's list. Where the count
-		// passed P's list the put logs C's holder, and where it has not the
-		// count reads the new list, so the adoption agrees with a clean
-		// recount and owes no second one.
+		// The root A references C, and the unreached P references C
+		// too, but a crash cut P's list. While Open, a readoption
+		// counts the lists, and a put of P under its own root adds C to
+		// P's list. Where the count passed P's list the put logs C's
+		// holder, and where it has not the count reads the new list, so
+		// the adoption agrees with a clean recount and owes no second
+		// one.
 		for _, tc := range cursorCases {
 			t.Run(tc.name, func(t *testing.T) {
 				tr, listed, stop := slotted(t, "P", tc.rank)
@@ -6809,12 +6867,13 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("hole while a readoption settles the lists", func(t *testing.T) {
-		// The root A names C, a hub of 300 leaves and X, and the store loses
-		// X with its list; an audit records the hole. A readoption counts
-		// A's holder of X, and the settle writes X's tally as its holders
-		// though X has no list. A put of X under its own root refills it,
-		// either behind the settle's cursor or once the Volume is adopted,
-		// and X's count agrees with a clean recount.
+		// The root A references C, a hub of 300 leaves and X, and the
+		// store loses X with its list. An audit records the hole. A
+		// readoption counts A's holder of X, and the settle writes X's
+		// tally as its holders though X has no list. A put of X under
+		// its own root refills it, either behind the settle's cursor or
+		// once the Volume is adopted, and X's count agrees with a clean
+		// recount.
 		ctx := t.Context()
 		for _, refilled := range []string{"behind the settle cursor", "once adopted"} {
 			t.Run(refilled, func(t *testing.T) {
@@ -6829,9 +6888,10 @@ func TestLivenessSettle(t *testing.T) {
 				names := append([]string{"C", "H"}, leaves...)
 				var stop []byte
 				for i := 0; stop == nil; i++ {
-					// Choose X, then A naming it, so that X's key sorts
-					// below the end of the settle's first slice, which
-					// holds the hole as well as the lists.
+					// Choose X, then A referencing it, so
+					// that X's key sorts below the end of
+					// the settle's first slice, which holds
+					// the hole as well as the lists.
 					try := "X" + strconv.Itoa(i)
 					x := block_gc.BlockKey(tr.add(t, try, "C"))
 					tr["X"] = tr[try]
@@ -6877,12 +6937,13 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("listless holder while a readoption counts the lists", func(t *testing.T) {
-		// The root A names C, a hub of 300 leaves and P, and the store loses
-		// P's list, keeping its bytes or losing them too. A's list sits in
-		// the count's first slice, and a Land writes between the slices. P
-		// stored without its list refuses the adoption, which leaves the
-		// Volume unadopted with no adoption record; P lost with its bytes is
-		// a missing block, which does not.
+		// The root A references C, a hub of 300 leaves and P, and the
+		// store loses P's list, keeping its bytes or losing them too.
+		// A's list sits in the count's first slice, and a Land writes
+		// between the slices. P stored without its list refuses the
+		// adoption, which leaves the Volume unadopted with no adoption
+		// record. P lost with its bytes is a missing block, which does
+		// not.
 		ctx := t.Context()
 		for _, stored := range []bool{true, false} {
 			t.Run("stored "+strconv.FormatBool(stored), func(t *testing.T) {
@@ -6980,12 +7041,12 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("put meets the records of an earlier life", func(t *testing.T) {
-		// U names K. An earlier life leaves U's records in one state: queued
-		// while Settled, fill-born with its logs not netted, parked while
-		// Open, or unmarked while Sweeping. Then a writer puts U and K
-		// again, by a Land or by a fill and a root. Whatever records U's
-		// earlier life left, the put must leave U reading, and the
-		// collector must keep it.
+		// U references K. An earlier life leaves U's records in one
+		// state: queued while Settled, fill-born with its logs not
+		// netted, parked while Open, or unmarked while Sweeping. Then a
+		// writer puts U and K again, by a Land or by a fill and a root.
+		// Whatever records U's earlier life left, the put must leave U
+		// reading, and the collector must keep it.
 		fresh := func(t *testing.T) (*Volume, *testClock, kvtx.Store, testTree) {
 			t.Helper()
 			tr := testTree{}
@@ -7123,13 +7184,14 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("read-only open beside a writer that flips", func(t *testing.T) {
-		// A writer with frees on flips the generation to Sweeping with the
-		// old U unmarked, so U reads absent to a writer checking before it
-		// puts. A read-only Volume on the same store, as the debug commands
-		// open one, opened before the flip or after it, answers the same: a
-		// copy that trusted it would skip U's put and name a block the sweep
-		// then deletes. A Settled Volume never opens a generation again, so
-		// a reader that opened Settled has nothing to hide.
+		// A writer with frees on flips the generation to Sweeping with
+		// the old U unmarked, so U reads absent to a writer checking
+		// before it puts. A read-only Volume on the same store, as the
+		// debug commands open one, opened before the flip or after it,
+		// answers the same: a copy that trusted it would skip U's put
+		// and reference a block the sweep then deletes. A Settled
+		// Volume never opens a generation again, so a reader that
+		// opened Settled has nothing to hide.
 		for _, before := range []bool{false, true} {
 			t.Run("before="+strconv.FormatBool(before), func(t *testing.T) {
 				v, clk, store, tr := oldU(t, false)
@@ -7165,8 +7227,9 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("unwalked root seeds the flip", func(t *testing.T) {
-		// The carried root names A, which no walk decoded. The flip pushes
-		// A onto the front rather than flip, and the walk then decodes A.
+		// The carried root references A, which no walk decoded. The
+		// flip pushes A onto the front rather than flip, and the walk
+		// then decodes A.
 		tr := testTree{}
 		tr.add(t, "K")
 		tr.add(t, "A", "K")
@@ -7180,11 +7243,11 @@ func TestLivenessSettle(t *testing.T) {
 
 	t.Run("release just before the flip seeds it", func(t *testing.T) {
 		// A is verified, and the carried root holds it. Just before the
-		// flip's transaction, a session moves the carried root off A, so no
-		// named root names A but a down pair past the cursor does, as a
-		// reader that held A may still read it. The flip pushes A rather
-		// than flip; once the release nets and ages, the free proof pops A,
-		// and the sweep deletes it.
+		// flip's transaction, a session moves the carried root off A,
+		// so no named root references A but a down pair past the cursor
+		// does, as a reader that held A may still read it. The flip
+		// pushes A rather than flip. Once the release nets and ages,
+		// the free proof pops A, and the sweep deletes it.
 		tr := testTree{}
 		tr.add(t, "K")
 		tr.add(t, "U", "K")
@@ -7314,9 +7377,9 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("fill up onto a dead unmarked block", func(t *testing.T) {
-		// After the flip a read fills B naming the unmarked U, whose fill up
-		// raises U before the sweep deletes it. The sweep releases the old
-		// list's holder of D, and main still holds D.
+		// After the flip a read fills B referencing the unmarked U,
+		// whose fill up raises U before the sweep deletes it. The sweep
+		// releases the old list's holder of D, and main still holds D.
 		v, clk, _, tr := deadU(t)
 		tr.add(t, "B", "U")
 		fill(t, v, tr, "B")
@@ -7337,13 +7400,14 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("root onto a dead verified parent after the flip", func(t *testing.T) {
-		// The walk verified the unreached P, which names the old C -> E. P
-		// dies while Open and parks, which puts it in the run, and its list
-		// still holds C, so the proof cannot pop C and the walk verifies C
-		// and E; the flip unmarks P alone, and the pass that flips may sweep
-		// it too. A root onto P after the flip is refused, as unmarked or as
-		// missing, the sweep deletes P and releases C, and the frees take C
-		// and E, which nothing names.
+		// The walk verified the unreached P, which references the old C
+		// -> E. P dies while Open and parks, which puts it in the run,
+		// and its list still holds C, so the proof cannot pop C and the
+		// walk verifies C and E. The flip unmarks P alone, and the pass
+		// that flips may sweep it too. A root onto P after the flip is
+		// refused, as unmarked or as missing, the sweep deletes P and
+		// releases C, and the frees take C and E, which nothing
+		// references.
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "E")
@@ -7417,10 +7481,11 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("rebirth of a block a fill up raised", func(t *testing.T) {
-		// U -> K, unreached, dies while Open. After the flip a read fills B
-		// naming U. Once B's fill up raises U, and before the sweep reaches
-		// U, a put gives birth to U and K again under another root. When B's
-		// fill ages out and B dies, the root still holds U.
+		// U -> K, unreached, dies while Open. After the flip a read
+		// fills B referencing U. Once B's fill up raises U, and before
+		// the sweep reaches U, a put gives birth to U and K again under
+		// another root. When B's fill ages out and B dies, the root
+		// still holds U.
 		v, clk, store, tr := oldU(t, false)
 		collectUntil(t, v, clk, flipped)
 		tr.add(t, "B", "U")
@@ -7457,14 +7522,15 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("fill naming an unmarked block", func(t *testing.T) {
-		// After the flip a read fills B, which names the unmarked C. C is
-		// absent to every step from the flip on, so B names an absent child,
-		// as any fill of part of a tree does: B's up goes to C's count, which
-		// the sweep keeps when it deletes C's bytes. A rooted parent naming an
-		// absent block has no claim on that block's children either, so the
-		// outcome is the same whether the sweep ran before or after B arrived.
-		// Once a later fill stores C again, C has B's holder alone, and goes
-		// when B does.
+		// After the flip a read fills B, which references the unmarked
+		// C. C is absent to every step from the flip on, so B
+		// references an absent child, as any fill of part of a tree
+		// does: B's up goes to C's count, which the sweep keeps when it
+		// deletes C's bytes. A rooted parent referencing an absent
+		// block has no claim on that block's children either, so the
+		// outcome is the same whether the sweep ran before or after B
+		// arrived. Once a later fill stores C again, C has B's holder
+		// alone, and goes when B does.
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "C")
@@ -7539,14 +7605,15 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("readoption after a pop with a writer ahead of the cursor", func(t *testing.T) {
-		// The free proof pops U while the unverified seed A holds the flip,
-		// and a readoption then recounts, which gives U and K new ripe
-		// sequences, and the free parks both. Root d holds the old D through
-		// the recount; its release nets with frees off, so D is Dead on the
-		// free queue and not parked. Root e then moves onto the Dead D, whose
-		// Land takes D off the free queue until that move nets, so the free
-		// cannot park D. The walk verifies A, and the flip must not wait for
-		// D: D died after the recount, so it names no popped child.
+		// The free proof pops U while the unverified seed A holds the
+		// flip, and a readoption then recounts, which gives U and K new
+		// ripe sequences, and the free parks both. Root d holds the old
+		// D through the recount. Its release nets with frees off, so D
+		// is Dead on the free queue and not parked. Root e then moves
+		// onto the Dead D, whose Land takes D off the free queue until
+		// that move nets, so the free cannot park D. The walk verifies
+		// A, and the flip must not wait for D: D died after the
+		// recount, so it references no popped child.
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "K")
@@ -7602,7 +7669,8 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		verify(t, v, tr, "A", "D")
 
-		// Root e's move nets, and D, off the queue, stays; the flip comes.
+		// Root e's move nets, and D, off the queue, stays. The flip
+		// comes.
 		if res := collectAll(t, v); !res.Flipped {
 			t.Fatalf("collect with D held by root e = %+v, want the flip", res)
 		}
@@ -7872,13 +7940,14 @@ func TestLivenessSettle(t *testing.T) {
 	})
 
 	t.Run("renewal of a lapsed pin on an unmarked block", func(t *testing.T) {
-		// A pin holds the old U, and its process stalls past the lease, so
-		// the collector releases the pin's root. The process stays stalled
-		// while the release nets a grace period later, since a renewal
-		// before then holds U again, as U still counts the pin. U dies, the
-		// free proof pops it, and the flip unmarks it. The process then pins the young W and
-		// renews: the renewal must drop U's pin, since nothing holds U, and
-		// renew W's, rather than fail the renewal on U.
+		// A pin holds the old U, and its process stalls past the lease,
+		// so the collector releases the pin's root. The process stays
+		// stalled while the release nets a grace period later, since a
+		// renewal before then holds U again, as U still counts the pin.
+		// U dies, the free proof pops it, and the flip unmarks it. The
+		// process then pins the young W and renews: the renewal must
+		// drop U's pin, since nothing holds U, and renew W's, rather
+		// than fail the renewal on U.
 		v, clk, store, tr := oldU(t, false)
 		ctx := t.Context()
 		if _, err := v.PinBucketRoot(ctx, tr["U"].Ref); err != nil {
@@ -7959,9 +8028,10 @@ func TestLivenessSettle(t *testing.T) {
 			s := strconv.Itoa(b)
 			return []string{"B" + s, "C" + s, "D" + s}
 		}
-		// setRoot roots name onto B<b>, putting B, C and D again: a chain
-		// let go before the flip is unmarked, and a put of B alone would
-		// name a C the sweep deletes, as a put naming a child never stored.
+		// setRoot roots name onto B<b>, putting B, C and D again: a
+		// chain let go before the flip is unmarked, and a put of B
+		// alone would reference a C the sweep deletes, as a put
+		// referencing a child never stored.
 		setRoot := func(name string, b int) error {
 			names := reached(b)
 			return v.SetBucketRoots(ctx, "b", tr.entries(names...), []block.NamedRoot{{Name: name, Ref: tr[names[0]].Ref}})
@@ -8053,7 +8123,7 @@ func TestLivenessSettle(t *testing.T) {
 			t.Fatal("no writer rooted an unmarked block while Sweeping")
 		}
 
-		// Every held root's blocks stay; nothing rooted past 100 does.
+		// Every held root's blocks stay. Nothing rooted past 100 does.
 		var held []string
 		for k := range 50 {
 			held = append(held, reached(k+50)...)
@@ -8073,7 +8143,8 @@ func TestLivenessSettle(t *testing.T) {
 		}
 
 		// The paced writer's last releases follow the collector's last
-		// transaction; net them, with the writers stopped, before the audit.
+		// transaction. Net them, with the writers stopped, before the
+		// audit.
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireAudit(t, v, 0)
@@ -8635,8 +8706,8 @@ func TestLivenessSettle(t *testing.T) {
 	})
 }
 
-// requireFront fails t when, while v's old generation is Open, a block a
-// young or verified list names is unverified, held and off the front, as
+// requireFront fails t when, while v's old generation is Open, a block a young
+// or verified list references is unverified, held and off the front, as
 // block_gc.AuditFront checks.
 func requireFront(t *testing.T, v *Volume) {
 	t.Helper()
@@ -8793,10 +8864,9 @@ func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 	return adoption
 }
 
-// markUnadopted returns an adopted Volume to unadopted, as one that predates
-// readOnlyStore is an in-memory store that reports itself read-only, as an
-// s4db opened for reading does, so a Volume over it starts no writer. It
-// keeps the store's atomic commits, which a Volume needs for liveness.
+// readOnlyStore is an in-memory store that reports itself read-only, as an s4db
+// opened for reading does, so a Volume over it starts no writer. It keeps the
+// store's atomic commits, which a Volume needs for liveness.
 type readOnlyStore struct {
 	*seekGuard
 }
@@ -8806,6 +8876,7 @@ func (readOnlyStore) ReadOnly() bool {
 	return true
 }
 
+// markUnadopted returns an adopted Volume to unadopted, as one that predates
 // adoption, keeping its records.
 func markUnadopted(t *testing.T, v *Volume) {
 	t.Helper()
@@ -9048,10 +9119,9 @@ func newAdmitVolume(t *testing.T, frees bool) (*Volume, *testClock, testTree, fu
 	return v, clk, tr, admit
 }
 
-// admitTree sets root payloads of v onto Q and builds the payload tree
-// P -> L and H naming P and Q, none of them stored. admit moves payloads
-// from Q onto H, storing H and the extra blocks and requiring its blocks
-// held.
+// admitTree sets root payloads of v onto Q and builds the payload tree P -> L
+// and H referencing P and Q, none of them stored. admit moves payloads from Q
+// onto H, storing H and the extra blocks and requiring its blocks held.
 func admitTree(t *testing.T, v *Volume) (testTree, func(extra ...string) error) {
 	t.Helper()
 	tr := testTree{}
@@ -9204,14 +9274,8 @@ func setUnadopted(t *testing.T, store kvtx.Store) {
 	}
 }
 
-// TestFormatUpgradeCarriesLiveness opens a store of format 6 and checks that
-// format 7 keeps its child lists in place, carries its named roots into the
-// root table, leaves it unadopted, sweeps the rest of the old graph, and that
-// an adoption then counts its holders. A second store whose root names a block
-// stored without a child list refuses adoption.
-// TestObsoleteKindsSpareLiveKinds fails when a kind a format upgrade
-// deletes is one format 10 writes, since the upgrade would delete its live
-// records.
+// TestObsoleteKindsSpareLiveKinds fails when a kind a format upgrade deletes is
+// one format 10 writes, since the upgrade would delete its live records.
 func TestObsoleteKindsSpareLiveKinds(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -9228,6 +9292,11 @@ func TestObsoleteKindsSpareLiveKinds(t *testing.T) {
 	}
 }
 
+// TestFormatUpgradeCarriesLiveness opens a store of format 6 and checks that
+// format 7 keeps its child lists in place, carries its named roots into the
+// root table, leaves it unadopted, sweeps the rest of the old graph, and that
+// an adoption then counts its holders. A second store whose root references a
+// block stored without a child list refuses adoption.
 func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// Write a format 6 store: R1 -> C, its child lists, a root owner edge
 	// holding R1, and old graph records.
@@ -9291,8 +9360,8 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	}
 	requireAudit(t, v, 0)
 
-	// A store whose root names a block stored without a child list refuses
-	// adoption and stays unadopted.
+	// A store whose root references a block stored without a child list
+	// refuses adoption and stays unadopted.
 	store2 := newGuardedStore(t)
 	writeLegacyStore(t, store2, keys, tr, "R1", false)
 	v2, _ := openUnadoptedVolume(t, store2)
@@ -9312,8 +9381,9 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	waitAdopted(t, v4)
 
 	// An adopted format 7 store where main holds B, which a fill stored
-	// naming C with a fill mark and no holder for C, opens unadopted, its
-	// adoption counts C under B, and the obsolete sweep deletes the mark.
+	// referencing C with a fill mark and no holder for C, opens unadopted,
+	// its adoption counts C under B, and the obsolete sweep deletes the
+	// mark.
 	store3 := newGuardedStore(t)
 	tr3 := testTree{}
 	tr3.add(t, "C")
@@ -9393,7 +9463,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// release dropped, its old kinds obsolete and its pop mark moved. The
 	// adoption recounts from the lists, so neither owed release moves C
 	// again, and the collection frees the dead P, G and H2 and keeps every
-	// block a root reaches, whatever the stale queue entries name.
+	// block a root reaches, whatever the stale queue entries reference.
 	t.Run("format 9 with owed releases", func(t *testing.T) {
 		store := newGuardedStore(t)
 		tr := format9Owed(t)
@@ -9426,10 +9496,10 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 }
 
 // format9Owed builds the blocks of a format 9 store that owes releases: main
-// holds A -> B -> C and s holds S; P -> {C, G} reached zero and owes its
-// children their release through a cascade record; R2 -> {C, H2} was freed
-// and its paged release moved C but owes H2. It returns the tree; R2's bytes
-// and list are gone.
+// holds A -> B -> C and s holds S. P -> {C, G} reached zero and owes its
+// children their release through a cascade record. R2 -> {C, H2} was freed and
+// its paged release moved C but owes H2. format9Owed returns the tree. R2's
+// bytes and list are gone.
 func format9Owed(t *testing.T) testTree {
 	t.Helper()
 	tr := testTree{}
@@ -9445,10 +9515,10 @@ func format9Owed(t *testing.T) testTree {
 }
 
 // writeFormat9Owed writes the adopted format 9 store of format9Owed's tr: the
-// blocks but R2, their lists, the roots main on A and s on S, format 9's
-// counts with P's zero record in its uvarint encoding, P's cascade record
-// owing its release, the paged release of R2 at its second child, stale queue
-// entries naming the live S and C, a journal record and the pop mark.
+// blocks but R2, their lists, the roots main on A and s on S, format 9's counts
+// with P's zero record in its uvarint encoding, P's cascade record owing its
+// release, the paged release of R2 at its second child, stale queue entries
+// referencing the live S and C, a journal record and the pop mark.
 func writeFormat9Owed(t *testing.T, store kvtx.Store, keys *store_kvkey.KVKey, tr testTree) {
 	t.Helper()
 	ctx := t.Context()
@@ -9671,15 +9741,15 @@ func openAuditScratch(t *testing.T, name string) (store_kvtx_sqlite.Store, error
 }
 
 // testAuditWalk runs the streaming audit while a writer moves roots onto new
-// trees and collects with frees on. main -> R -> H, and the store loses H
-// with its list: a hole a held root reaches. main2 -> R2 -> H2, whose hole a
-// stage refilled before any audit recorded it, so H2 is undercounted. A stage
-// stores P ahead of its child C, which lands while the walk waits out its
-// confirm delay. X is named by more roots than one view of a walk reads.
-// The walk reports H as unconfirmed and held, H2 as the one undercount, and
-// C as settled, and then refuses its scratch store to a second run. A walk
-// of the quiet Volume sums X's namers across its views, finds H2 alone
-// undercounted, and counts no block wide.
+// trees and collects with frees on. main -> R -> H, and the store loses H with
+// its list: a hole a held root reaches. main2 -> R2 -> H2, whose hole a stage
+// refilled before any audit recorded it, so H2 is undercounted. A stage stores
+// P ahead of its child C, which lands while the walk waits out its confirm
+// delay. X is referenced by more roots than one view of a walk reads. The walk
+// reports H as unconfirmed and held, H2 as the one undercount, and C as
+// settled, and then refuses its scratch store to a second run. A walk of the
+// quiet Volume sums X's namers across its views, finds H2 alone undercounted,
+// and counts no block wide.
 func testAuditWalk(t *testing.T) {
 	// Build the hole, the undercount and the parent ahead of its child.
 	v, clk := newLivenessVolume(t, true)
@@ -9780,13 +9850,13 @@ func testAuditWalk(t *testing.T) {
 		t.Fatalf("quiet walk found %d undercounts, sample %v, and %d wide, want H2 alone and none", c.GetUndercount(), res.UndercountSample, c.GetWide())
 	}
 
-	// Between X's two views, a recount moves one root off X and another onto
-	// it with no log entry. Its first view counts the edges of wide0
+	// Between X's two views, a recount moves one root off X and another
+	// onto it with no log entry. X's first view counts the edges of wide0
 	// to wide995 in name order, the second those of wide996 to wide999.
-	// wide999 leaves X before the first view; while the Volume is unadopted,
-	// wide0 leaves and wide999 returns; the recount writes X's holders as
-	// the first view read them. The mark must move, so X is wide and not
-	// undercounted.
+	// wide999 leaves X before the first view. While the Volume is
+	// unadopted, wide0 leaves and wide999 returns. The recount writes X's
+	// holders as the first view read them. The mark must move, so X is wide
+	// and not undercounted.
 	tr.add(t, "Y")
 	cycled := &walkHookStore{collectorStore: collectorStore{v: v}}
 	cycled.hook = func(prog *block_gc.WalkProgress) error {
@@ -9842,11 +9912,11 @@ func testAuditWalk(t *testing.T) {
 	}
 }
 
-// testAuditWalkStalled names one block S from about 76,000 parents while
+// testAuditWalkStalled references one block S from about 76,000 parents while
 // netting stalls, so the up log past the cursor holds more entries of S than
 // one check view may read. The walk copies them all into scratch, and every
-// view of S then finds more copies than its budget: the walk must stay
-// behind rather than read them all in one view.
+// view of S then finds more copies than its budget: the walk must stay behind
+// rather than read them all in one view.
 func testAuditWalkStalled(t *testing.T) {
 	// Land S, then batches of 2,000 parents of S under one root each. Every
 	// batch after the first logs an up of S per parent.
@@ -10001,10 +10071,9 @@ func auditWalkWriter(ctx context.Context, v *Volume, stop, started chan struct{}
 }
 
 // BenchmarkLandCommit times one World-shaped commit on s4db: a new parent
-// naming fanout stored leaves, put with the move of its root, so its Land
-// checks fanout outside children, as a commit that rewrites a tree page
-// does. It reports the store reads each commit makes, a batched read
-// counting once.
+// referencing fanout stored leaves, put with the move of its root, so its Land
+// checks fanout outside children, as a commit that rewrites a tree page does.
+// It reports the store reads each commit makes, a batched read counting once.
 func BenchmarkLandCommit(b *testing.B) {
 	const fanout = 250
 
@@ -10116,10 +10185,10 @@ const (
 // slices of three, so the parent lands two transactions after its first
 // children, and between slices runs a collector pass past the grace period,
 // cancels the batch or releases the stage. No block of a landed slice may go
-// while the stage holds it; a retry lands the rest and finds the earlier
-// slices stored; a release refuses the next slice and, like a cancellation
-// without a retry, leaves the landed blocks to the collector. A batch ordered
-// parent first, or under StageOneTransaction, lands in one transaction.
+// while the stage holds it. A retry lands the rest and finds the earlier slices
+// stored. A release refuses the next slice and, like a cancellation without a
+// retry, leaves the landed blocks to the collector. A batch ordered parent
+// first, or under StageOneTransaction, lands in one transaction.
 func testStageSlices(t *testing.T, mode sliceMode) {
 	store := &sliceStore{seekGuard: newGuardedStore(t)}
 	v, clk := openConfVolume(t, store, &store_kvtx.Config{

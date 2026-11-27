@@ -6,17 +6,17 @@ import "github.com/pkg/errors"
 
 // ProjectedImageConfig identifies the source and engine for one workload run.
 type ProjectedImageConfig struct {
-	// runID groups this result with other engine processes
+	// RunID groups this result with other engine processes.
 	RunID string
-	// engine names the selected Playwright browser
+	// Engine identifies the selected Playwright browser.
 	Engine string
-	// spacewaveRevision identifies the Spacewave source tree
+	// SpacewaveRevision identifies the Spacewave source tree.
 	SpacewaveRevision string
-	// goScriptRevision identifies the GoScript source tree
+	// GoScriptRevision identifies the GoScript source tree.
 	GoScriptRevision string
-	// unavailableFields names optional timing fields omitted by the engine
+	// UnavailableFields lists optional timing fields omitted by the engine.
 	UnavailableFields []string
-	// browserCPUProfile enables optional same-window Chromium profiling
+	// BrowserCPUProfile enables optional same-window Chromium profiling.
 	BrowserCPUProfile bool
 }
 

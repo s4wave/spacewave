@@ -17,8 +17,8 @@ type AttachedRpcServiceController struct {
 	*bifrost_rpc.RpcServiceController
 	// ready closes after RpcServiceController.Execute sets its context.
 	ready chan struct{}
-	// readyClosed records that ready was closed; Execute may run more than once
-	// if ControllerBus restarts the controller after an error.
+	// readyClosed records that ready was closed. Execute may run more than
+	// once if ControllerBus restarts the controller after an error.
 	readyClosed atomic.Bool
 }
 

@@ -21,7 +21,7 @@ func (r SessionRequirement) Valid() bool {
 	return r == SessionAny || r == SessionFresh || r == SessionFreshInstall
 }
 
-// Event names a readiness transition owned by the runtime under test.
+// Event identifies a readiness transition owned by the runtime under test.
 type Event string
 
 const (
@@ -67,7 +67,7 @@ type Runtime interface {
 	UploadFile(target string, file File) error
 	// MoveContent moves one visible content row into another.
 	MoveContent(source string, target string) error
-	// DeleteSpace deletes the currently open Space and waits for completion.
+	// DeleteSpace deletes the open Space and waits for completion.
 	DeleteSpace() error
 
 	// ExpectVisible waits until visible content appears.

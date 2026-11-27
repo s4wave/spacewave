@@ -23,7 +23,7 @@ func NewFSHostVolumeBlock() block.Block {
 }
 
 // UnmarshalFSHostVolume unmarshals a filesystem node from a cursor.
-// If empty, returns nil, nil
+// If the cursor is empty, returns nil, nil.
 func UnmarshalFSHostVolume(ctx context.Context, bcs *block.Cursor) (*FSHostVolume, error) {
 	return block.UnmarshalBlock[FSHostVolume](ctx, bcs)
 }

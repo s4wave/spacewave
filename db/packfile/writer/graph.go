@@ -23,7 +23,7 @@ import (
 // are ignored.
 //
 // Invariants: the pack holds every block iter yields exactly once, as
-// PackBlocks does; a duplicate block key fails the pack, as kvfile does for
+// PackBlocks does. A duplicate block key fails the pack, as kvfile does for
 // PackBlocks. Every reach lies within the pack's values. PackGraph holds the
 // blocks iter yields until the pack is written, as a pack is built in memory.
 func PackGraph(w io.Writer, iter BlockIterator) (*PackResult, error) {

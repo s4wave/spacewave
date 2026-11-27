@@ -7,7 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * RefOption declares that a string or repeated string field holds the object
- * keys of other World objects, and names the graph edge each key forms from
+ * keys of other World objects, and declares the graph edge each key forms from
  * the record's own object.
  *
  * The aptre Go generator reads it by field number and emits RangeWorldRefs on
@@ -18,7 +18,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface RefOption {
   /**
    * Predicate is the graph predicate of the edge as a bare IRI, such as
-   * glados/llm-session/parent; the quad holds <glados/llm-session/parent>.
+   * glados/llm-session/parent. The quad holds <glados/llm-session/parent>.
    */
   predicate?: string
   /**
@@ -46,11 +46,11 @@ export const RefOption: MessageType<RefOption> =
  */
 export interface SpanOption {
   /**
-   * Start names the field holding when the record's span begins.
+   * Start selects the field holding when the record's span begins.
    */
   start?: string
   /**
-   * End names the field holding when the record's span ends. Empty when the
+   * End selects the field holding when the record's span ends. Empty when the
    * record declares no end.
    */
   end?: string

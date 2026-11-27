@@ -18,9 +18,9 @@ type TransformInfo struct {
 type SharedObjectStateSnapshot interface {
 	// GetParticipantConfigForPeer returns a participant in the accepted config.
 	GetParticipantConfigForPeer(ctx context.Context, peerID string) (*SOParticipantConfig, error)
-	// GetParticipantConfig returns the participant record for our participant.
-	// uses the peer identity from the SharedObject.
-	// returns ErrNotParticipant if the local peer is not a participant.
+	// GetParticipantConfig returns the participant record for the local
+	// participant. uses the peer identity from the SharedObject. returns
+	// ErrNotParticipant if the local peer is not a participant.
 	GetParticipantConfig(ctx context.Context) (*SOParticipantConfig, error)
 	// GetConfig returns the accepted config.
 	GetConfig(ctx context.Context) (*SharedObjectConfig, error)
@@ -48,9 +48,9 @@ type SharedObjectStateSnapshot interface {
 	// Callers must not modify the returned set.
 	GetOperationSet(ctx context.Context) (*SOOperationSet, error)
 
-	// DecodeOperation returns the operation data decoded with the key of the
-	// epoch the operation names. Returns ErrKeyEpochUnavailable when the local
-	// peer holds no grant for that epoch.
+	// DecodeOperation returns the operation data decoded with the key of
+	// the epoch the operation specifies. Returns ErrKeyEpochUnavailable
+	// when the local peer holds no grant for that epoch.
 	DecodeOperation(ctx context.Context, inner *SOOperationInner) ([]byte, error)
 }
 

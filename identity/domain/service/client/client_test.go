@@ -57,7 +57,7 @@ func TestDomainClient(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// generate entity and add to tb2
+	// generate an entity and add the entity to tb2
 	entityUUID := uuid.NewV4()
 	entityID, domainID := "test-entity", "test-domain"
 	ent, err := identity.EntityWithPrivKey(
@@ -156,7 +156,7 @@ func TestDomainClient(t *testing.T) {
 		_ = tb2.Bus.ExecuteController(ctx, tp2)
 	}()
 
-	// connect them
+	// connect the in-process transports
 	tpt2, _ := tp2.GetTransport(ctx)
 	tpt1, _ := tp1.GetTransport(ctx)
 	tpt1.(*inproc.Inproc).ConnectToInproc(ctx, tpt2.(*inproc.Inproc))

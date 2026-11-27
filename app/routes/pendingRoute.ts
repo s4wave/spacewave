@@ -15,7 +15,7 @@ export function inviteRoute(code: string): string {
 }
 
 // storePendingRoute saves a session route to open once a session exists, so
-// it survives sign-in and account creation.
+// the route survives sign-in and account creation.
 export function storePendingRoute(route: string, storage = sessionStorage) {
   storage.setItem(PENDING_ROUTE_KEY, route)
 }

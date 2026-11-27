@@ -40,7 +40,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The Device disconnects; custody goes uncertain with the debit held.
+	// The Device disconnects. Custody goes uncertain with the debit held.
 	if _, err := admission.MarkUncertain(ctx, res.ObjectKey()); err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 		t.Fatal("expected repeated unreachable stop failure to surface")
 	}
 
-	// The runtime becomes reachable; reconciliation confirms the stop once.
+	// The runtime becomes reachable. Reconciliation confirms the stop once.
 	stopper.failFor = ""
 	done, err := admission.ReconcilePendingStops(ctx, selfRef)
 	if err != nil || len(done) != 1 || !done[0].Complete() {
@@ -121,7 +121,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 
 // TestStaleRefStopAndReleaseRejectedWithoutStopper proves the pre-stop fence:
 // a deposed instance holding the old owner epoch cannot stop runtimes or
-// credit capacity; the stopper must not fire.
+// credit capacity. The stopper must not fire.
 func TestStaleRefStopAndReleaseRejectedWithoutStopper(t *testing.T) {
 	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)

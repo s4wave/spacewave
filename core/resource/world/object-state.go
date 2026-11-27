@@ -117,7 +117,7 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 	return resp, nil
 }
 
-// applyObjectOp resolves and applies the operation req names to the object.
+// applyObjectOp resolves and applies the operation req selects to the object.
 func (r *ObjectStateResource) applyObjectOp(ctx context.Context, req *s4wave_world.ApplyObjectOpRequest) (*s4wave_world.ApplyObjectOpResponse, error) {
 	// Reject the operation when no lookup op is configured.
 	if r.lookupOp == nil {
@@ -176,7 +176,7 @@ func (r *ObjectStateResource) applyObjectOp(ctx context.Context, req *s4wave_wor
 
 // IncrementRev increments the revision of the object.
 func (r *ObjectStateResource) IncrementRev(ctx context.Context, req *s4wave_world.IncrementRevRequest) (*s4wave_world.IncrementRevResponse, error) {
-	// Increment the revision; a replay wait answers as its code.
+	// Increment the revision and report a replay wait as its code.
 	rev, err := r.obj.IncrementRev(ctx)
 	code, err := writeErrorCode(req.GetKnownErrorCode(), err)
 	if err != nil {

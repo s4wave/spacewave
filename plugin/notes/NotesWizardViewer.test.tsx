@@ -150,8 +150,8 @@ describe('NotesWizardViewer', () => {
       timestamp: expect.any(Date),
     })
     // The create, the index move and the wizard delete commit together. The
-    // test World does not make the plugin's notebook, so it records no
-    // ending for it.
+    // test World does not make the plugin's notebook, so the test World
+    // records no ending for the notebook.
     expect(h.t.state).toEqual({
       objects: new Set(),
       indexPath: 'notebook-1',

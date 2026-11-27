@@ -46,7 +46,8 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, err
 	}
 
-	// Read the payload roots it names and the handlers that name them.
+	// Read the transaction's payload roots and the handlers that identify
+	// them.
 	payloads, err := tx.PayloadRefs(ctx, a.lookupOp)
 	if err != nil {
 		return nil, err
@@ -63,13 +64,13 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, err
 	}
 
-	// Keep its blocks and hold what the queued operation needs durably before
-	// queueing it: its payloads, which name every object root its apply set
-	// (Tx.PayloadRefs). The hold stores each kept page a root reaches, nested
-	// refs included, in one transaction with the root's move, so an appended
-	// operation never names a block the store may drop. A crash after the
-	// hold and before the append leaves only the hold, which the next
-	// resetPayloads drops.
+	// Keep its blocks and hold what the queued operation needs durably
+	// before queueing it: its payloads, which include every object root its
+	// apply set (Tx.PayloadRefs). The hold stores each kept page a root
+	// reaches, nested refs included, in one transaction with the root's
+	// move, so an appended operation never references a block the store may
+	// drop. A crash after the hold and before the append leaves only the
+	// hold, which the next resetPayloads drops.
 	if err := a.keepAdmitted(ctx, adm); err != nil {
 		a.fail(adm, err)
 		return nil, err

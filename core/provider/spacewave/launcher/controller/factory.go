@@ -14,7 +14,7 @@ import (
 
 // Factory constructs a launcher controller factory.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

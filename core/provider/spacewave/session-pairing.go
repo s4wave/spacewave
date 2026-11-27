@@ -48,7 +48,7 @@ func (s *Session) clearPairingEngine() {
 }
 
 // GetPairingTransport uses this Session's ordinary transport composition.
-// Starting pairing explicitly enables the connection policy it requires.
+// Starting pairing explicitly enables the connection policy pairing requires.
 func (s *Session) GetPairingTransport(ctx context.Context, relay pairing.Relay) (*transport.SessionTransport, error) {
 	// Enable the Session transport before waiting for its pairing connection.
 	if !s.GetDirectP2PEnabled() {

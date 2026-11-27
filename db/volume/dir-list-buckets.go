@@ -63,7 +63,7 @@ func (d *ListBucketsRequest) Validate() error {
 	return nil
 }
 
-// GetValueListBucketsOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *ListBucketsRequest) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -139,12 +139,12 @@ func (d *ListBucketsRequest) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *ListBucketsRequest) GetName() string {
 	return "ListBuckets"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *ListBucketsRequest) GetDebugVals() directive.DebugValues {
 	// Describe the bucket and volume constraints for directive diagnostics.
 	vals := directive.DebugValues{}

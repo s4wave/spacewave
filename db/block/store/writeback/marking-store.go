@@ -30,7 +30,7 @@ var errUnmarkedWrite = errors.New("store did not mark the written blocks")
 // fails to mark returns the error with the block stored, and repeating the
 // write repairs the marker. A store below that holds roots can still be unable
 // to mark in its transactions, such as an RPC proxy whose transactions run in
-// another process; NewTxMarkingStore then marks its writes after them.
+// another process. NewTxMarkingStore then marks its writes after them.
 type MarkingStore struct {
 	// store owns the block writes.
 	store block.StoreOps
@@ -117,7 +117,7 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Store a diverted batch unmarked. PutBatchEntry carries no cache fill
-	// flag, so every fill comes by PutBlock; a block batched anyway diverts
+	// flag, so every fill comes by PutBlock. A block batched anyway diverts
 	// and uploads in its pack.
 	if m.fillsOnly {
 		existed, err := m.store.PutBlockBatch(ctx, entries)
@@ -142,8 +142,8 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		return existed, nil
 	}
 
-	// Store the batch, then mark it. A failed marker returns an error;
-	// repeating the batch repairs the markers.
+	// Store the batch, then mark it. A failed marker returns an error.
+	// Repeating the batch repairs the markers.
 	existed, err := m.store.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err

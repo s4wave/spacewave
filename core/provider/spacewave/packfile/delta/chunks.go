@@ -21,7 +21,7 @@ import (
 const DefaultMaxChunkBytes int64 = writer.DefaultMaxPackBytes
 
 // ChunkEmitter receives complete KVFiles in emission order. Returning an error
-// stops emission immediately; previously emitted chunks remain the caller's
+// stops emission immediately. Previously emitted chunks remain the caller's
 // responsibility.
 type ChunkEmitter func(ctx context.Context, idx int, entry *packfile.PackfileEntry, data []byte) error
 
@@ -53,8 +53,9 @@ func EmitDeltaChunks(
 	var emitted []*packfile.PackfileEntry
 	chunkIdx := 0
 
-	// pendingBlock carries one lookahead block from one chunk to the next so
-	// the byte-ceiling check can decide to close before packing it.
+	// pendingHash and pendingBlock carry one lookahead block from one chunk
+	// to the next so the byte-ceiling check can decide to close before
+	// packing it.
 	var pendingHash *hash.Hash
 	var pendingBlock *block.StoredBlock
 
@@ -89,7 +90,8 @@ func EmitDeltaChunks(
 				}
 			}
 
-			// Include the generated entry, its size varint, and its fixed-width
+			// Include the generated entry, its size varint, and its
+			// fixed-width overhead.
 			// Measure the encoded entry and its index overhead.
 			valueSize := (&block.BlockObject{Data: blk.GetData(), Refs: blk.GetRefs()}).SizeVT()
 			entry := kvfile.IndexEntry{

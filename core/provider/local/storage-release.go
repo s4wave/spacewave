@@ -8,7 +8,7 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 )
 
-// storageRelease names a block store whose objects remain on a storage
+// storageRelease references a block store whose objects remain on a storage
 // backend it left.
 type storageRelease struct {
 	blockStoreID string
@@ -50,7 +50,7 @@ func pendingStorageReleases(settings *account_settings.AccountSettings) []storag
 // The settings cancel a release when the store returns to the backend, and
 // the routine stops when its release leaves the settings. A device that
 // returns the store while another device deletes can still lose the objects
-// it uploads meanwhile; its local copy remains.
+// it uploads meanwhile. Its local copy remains.
 func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storageRelease) error {
 	// Read the account settings and stop when the backend is already gone.
 	settings, err := a.readAccountSettings(ctx)

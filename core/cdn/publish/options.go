@@ -44,7 +44,7 @@ type SessionClient interface {
 // TempFileFactory creates a temporary file for a staged pack.
 type TempFileFactory func(pattern string) (*os.File, error)
 
-// Options carries dependencies and endpoints for CDN Space publication.
+// Options contains dependencies and endpoints for CDN Space publication.
 type Options struct {
 	// Client authenticates every service request.
 	Client SessionClient

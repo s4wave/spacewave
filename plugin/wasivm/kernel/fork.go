@@ -313,7 +313,7 @@ func (p *Process) sysWait4(ctx context.Context, pid int32, statusPtr, options, r
 const rusageSize = 72
 
 // posixExecvp runs a program found by name in the PATH directories, or at
-// file when it names a path.
+// file when file contains a path.
 func (p *Process) posixExecvp(ctx context.Context, file string, args []string) uint64 {
 	path := p.lookPath(file)
 	if path == "" {
@@ -322,9 +322,9 @@ func (p *Process) posixExecvp(ctx context.Context, file string, args []string) u
 	return p.exec(ctx, path, args, nil)
 }
 
-// lookPath returns file when it names a path, and otherwise the first PATH
-// directory entry named file, or "" when there is none. An empty PATH entry
-// means the working directory.
+// lookPath returns file when file contains a path, and otherwise the first
+// PATH directory entry named file, or "" when there is none. An empty PATH
+// entry means the working directory.
 func (p *Process) lookPath(file string) string {
 	if strings.Contains(file, "/") {
 		return file

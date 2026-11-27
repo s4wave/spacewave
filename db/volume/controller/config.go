@@ -27,7 +27,8 @@ func (c *Config) ParseGCIntervalDur() (time.Duration, error) {
 		return 0, nil
 	}
 
-	// Parse the collection interval and apply the default when omitted.
+	// Parse the collection interval and apply the default interval when
+	// omitted.
 	dur, err := confparse.ParseDuration(raw)
 	if err != nil {
 		return 0, err

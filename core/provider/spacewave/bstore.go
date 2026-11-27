@@ -39,7 +39,7 @@ const (
 	forceSyncTimeout          = 30 * time.Second
 )
 
-// blockStoreBucketConfigRev 2 keeps the account-owned cache local-only.
+// blockStoreBucketConfigRev is 2 to keep the account-owned cache local-only.
 // SessionTransport child buses provide the optional direct lookup layer.
 const blockStoreBucketConfigRev = 2
 
@@ -162,9 +162,9 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		}
 	}
 
-	// Tombstone publication and the decoded cache are separate lower stores;
-	// invalidate on both sides so in-flight decoded stores cannot cross the
-	// mutation boundary.
+	// Tombstone publication and the decoded cache are separate lower
+	// stores. Invalidate on both sides so in-flight decoded stores cannot
+	// cross the mutation boundary.
 	b.invalidateBatchTombstones(ctx, entries)
 	existed, err := b.store.PutBlockBatch(ctx, entries)
 	if err != nil {
@@ -203,8 +203,8 @@ func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	}
 	defer release()
 
-	// Delete publication and the decoded cache are separate lower stores;
-	// invalidate on both sides so in-flight decoded stores cannot cross the
+	// Delete publication and the decoded cache are separate lower stores.
+	// Invalidate on both sides so in-flight decoded stores cannot cross the
 	// mutation boundary.
 	b.InvalidateDecodedBlockRef(ctx, ref)
 	if err := b.store.RmBlock(ctx, ref); err != nil {
@@ -236,7 +236,7 @@ func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
 // ForceSync flushes any pending dirty blocks to the cloud immediately.
 //
 // A caller told that a sync is complete may rely on every reached block being
-// on the remote; a sync that held a block back never reports complete, and
+// on the remote. A sync that held a block back never reports complete, and
 // returns an error matching block.ErrBlockCorrupt.
 func (b *BlockStore) ForceSync(ctx context.Context) error {
 	if b.forceSync == nil {
@@ -301,7 +301,7 @@ func (a *ProviderAccount) buildBlockStoreTracker(bstoreID string) (keyed.Routine
 
 // executeBlockStoreTracker executes the bstoreTracker for the bstore.
 func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
-	// Scope the mount to this run and name the volume it lives on.
+	// Scope the mount to this run and identify its volume.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 	le := t.a.le.WithField("bstore-id", t.id)
@@ -378,8 +378,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// blocks already live in the cloud and must not be re-pushed by sync.
 	lower.SetWriteback(ctx, upper, 0)
 
-	// The upper wrapper distinguishes existing cache hits from blocks supplied
-	// by demand-driven DEX; the lower wrapper observes the single Cloud fallback.
+	// The upper wrapper distinguishes existing cache hits from blocks
+	// supplied by demand-driven DEX. The lower wrapper observes the single
+	// Cloud fallback.
 	sourceUpper := &sourceTrackingStore{
 		StoreOps:   upper,
 		telemetry:  &t.a.syncTelemetry,
@@ -756,7 +757,7 @@ func (t *bstoreTracker) buildLowerStore(
 }
 
 // publicBaseURL returns the base URL of the block store's published files
-// when it belongs to a public Space, or empty.
+// when the block store belongs to a public Space, or an empty string.
 func (t *bstoreTracker) publicBaseURL(ctx context.Context) string {
 	metadata, err := t.a.GetSharedObjectMetadata(ctx, t.id)
 	if err != nil || !metadata.GetPublicRead() || metadata.GetObjectType() != space.SpaceBodyType {
@@ -855,7 +856,8 @@ func (a *ProviderAccount) CreateBlockStore(ctx context.Context, id string) (*bst
 	return a.createBlockStore(ctx, id)
 }
 
-// MountBlockStore attempts to mount a BlockStore returning the bstore and a release function.
+// MountBlockStore tries to mount a BlockStore returning the bstore and a
+// release function.
 func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.BlockStoreRef, released func()) (bstore.BlockStore, func(), error) {
 	// Reject an invalid ref before referencing a tracker.
 	if err := ref.Validate(); err != nil {

@@ -3,7 +3,7 @@ export const pathSeparator = '/' as const
 
 // splitPath splits a path string.
 // absolute paths are ignored (converted to relative paths starting at ./).
-// returns if the path was absolute or relative.
+// splitPath returns whether the path was absolute or relative.
 export function splitPath(tpath: string): {
   pathParts: string[]
   isAbsolute: boolean
@@ -48,7 +48,8 @@ export function navigateUpPath(depth: number) {
 // Based on the Go path.Clean function (BSD-3 license):
 // https://github.com/golang/go/blob/go1.21.5/src/path/path.go#L72
 //
-// It applies the following rules iteratively until no further processing can be done:
+// It applies the following rules iteratively until no further processing
+// can be done:
 //
 //  1. Replace multiple slashes with a single slash.
 //  2. Eliminate each . path name element (the current directory).

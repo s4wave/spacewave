@@ -37,7 +37,7 @@ func TestClaimCreateRenewAndReclaimPreserveDraining(t *testing.T) {
 		t.Fatalf("same-ref claim must renew in place: %+v err=%v", capacity, err)
 	}
 
-	// Drain, then let the lease lapse; reclaim must keep DRAINING so a
+	// Drain, then let the lease lapse. Reclaim must keep DRAINING so a
 	// drained worker never silently re-enters scheduling.
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err != nil {
 		t.Fatal(err)
@@ -153,7 +153,7 @@ func TestEpochFencesObserveDrainAndComplete(t *testing.T) {
 	}
 	stale := capacity.OwnerEpoch
 
-	// A new claim id on the same Device reclaims and bumps the epoch; every
+	// A new claim id on the same Device reclaims and bumps the epoch. Every
 	// stale-epoch mutation from the replaced instance rejects without
 	// touching the record.
 	newRef := WorkerClaimRef{DeviceObjectKey: selfRef.DeviceObjectKey, ClaimID: "claim-2"}
@@ -315,8 +315,8 @@ func TestStaleRefSweepsSkipWithoutInvokingStopper(t *testing.T) {
 	// Choose the time used to evaluate the Worker or reservation lease.
 	now := time.Now().UTC()
 
-	// A foreign ref must not expire or stop work it does not own; the
-	// stopper must never fire for it.
+	// A foreign ref must not expire or stop work it does not own. The
+	// stopper must never fire for the foreign ref.
 	if _, err := admission.ExpireLeases(ctx, otherRef, now.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
@@ -517,7 +517,7 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 }
 
 // TestEmptyBackendsObserveRejected pins that observations cannot clear the
-// backend list; only BeginDrainCapacity drains with empty backends.
+// backend list. Only BeginDrainCapacity drains with empty backends.
 func TestEmptyBackendsObserveRejected(t *testing.T) {
 	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
@@ -610,7 +610,7 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	stoppedBefore := stopper.count("container-stale")
 
 	// The deposed instance's reconcile must neither stop the runtime nor
-	// touch state; the stopper count proves the pre-stop fence.
+	// touch state. The stopper count proves the pre-stop fence.
 	done, err := admission.ReconcilePendingStops(ctx, staleRef)
 	if err != nil {
 		t.Fatal(err)
@@ -622,7 +622,7 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 		t.Fatal("stale-ref reconcile invoked the stopper")
 	}
 
-	// The runtime recovers; the current owner reconciles and stops once.
+	// The runtime recovers. The current owner reconciles and stops once.
 	stopper.failFor = ""
 	done, err = admission.ReconcilePendingStops(ctx, newRef)
 	if err != nil || len(done) != 1 || !done[0].Complete() {

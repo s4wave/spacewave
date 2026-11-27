@@ -5,10 +5,11 @@ import type { BrowserStartupPhaseView } from './status/browser-startup-model.js'
 import { BootLoadingCriticalStyle } from './boot-loading-critical.js'
 
 // BrowserStartupPhaseRail renders the five boot phases as a connected rail. The
-// filled track reaches the current dot so the rail reads as one journey; the
-// current phase shows a spinner, completed phases a filled dot, pending phases a
-// muted ring, and an errored phase a destructive marker. Shared with the
-// quickstart loading page, so it inlines the boot critical style itself.
+// filled track reaches the current dot so the rail reads as one journey. The
+// current phase shows a spinner, completed phases show a filled dot, pending
+// phases show a muted ring, and an errored phase shows a destructive marker.
+// The quickstart loading page shares the rail, so the rail inlines the boot
+// critical style itself.
 export function BrowserStartupPhaseRail({
   phases,
 }: {

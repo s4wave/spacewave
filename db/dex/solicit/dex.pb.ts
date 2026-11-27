@@ -108,7 +108,7 @@ export interface DexMessage {
    */
   more?: boolean
   /**
-   * Prune names, in refs, blocks under a subtree request's ref that its
+   * Prune lists, in refs, blocks under a subtree request's ref that its
    * requester holds, so the responder walks none of them (prune only).
    */
   prune?: boolean

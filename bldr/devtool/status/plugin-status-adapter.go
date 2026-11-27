@@ -136,8 +136,8 @@ func pluginStatusRowSummary(state BldrDevtoolPluginState) string {
 
 // pluginSwapSummary describes a swap that is not settled: the candidate rev
 // being prepared, waiting on the running execution, having its approval on
-// this device checked, awaiting that approval, or failed with its retry. It returns empty for a settled or missing
-// swap.
+// this device checked, awaiting that approval, or failed with its retry. It
+// returns an empty string for a settled or missing swap.
 func pluginSwapSummary(swap *bldr_plugin.PluginSwap) string {
 	// Describe the candidate in the words of its swap state.
 	switch st := swap.GetState().(type) {

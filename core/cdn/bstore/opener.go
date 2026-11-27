@@ -9,7 +9,7 @@ import (
 )
 
 // readAheadSize permits the pack reader's sparse cold window. Hash-ordered
-// packs do not imply locality between consecutive file-content blocks; the
+// packs do not imply locality between consecutive file-content blocks, so the
 // reader grows its window only after observing nearby requests.
 const readAheadSize = 128 * 1024
 
@@ -24,7 +24,7 @@ func packURL(cdnBaseURL, spaceID, packID string) string {
 
 // NewAnonymousOpener returns a packfile_store.Opener that builds shared pack
 // readers for anonymous HTTP Range requests against the public CDN. The opener
-// does not sign requests and does not issue HEAD requests; the pack size must
+// does not sign requests and does not issue HEAD requests. The pack size must
 // be passed in from the manifest entry.
 func NewAnonymousOpener(httpCli *http.Client, cdnBaseURL, spaceID string) packfile_store.Opener {
 	// Retain the caller's transport or use the shared default client.

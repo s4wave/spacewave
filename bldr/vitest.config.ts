@@ -12,8 +12,10 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
 
-// Plugin to enable cross-origin isolation for SharedArrayBuffer support.
-// Must use enforce: "pre" to run before vitest:browser plugin steals html requests.
+// crossOriginIsolationPlugin enables cross-origin isolation for
+// SharedArrayBuffer support.
+// The plugin must use enforce: "pre" to run before the vitest:browser plugin
+// intercepts html requests.
 // See: https://github.com/vitest-dev/vitest/issues/3743
 function crossOriginIsolationPlugin(): Plugin {
   return {
@@ -53,8 +55,8 @@ const bldrAliases = [
     replacement: resolve(__dirname, 'web/$1'),
   },
   {
-    // The GoScript runtime, which the compiled Go programs and their hosts
-    // share, from the vendored GoScript module.
+    // The GoScript runtime comes from the vendored GoScript module and is
+    // shared by the compiled Go programs and their hosts.
     find: /^@goscript\/(.*)\.js$/,
     replacement: resolve(
       repoRoot,
@@ -94,7 +96,7 @@ export default defineConfig({
         },
       },
       {
-        // Browser project needs its own plugins config
+        // The browser project needs its own plugins config.
         plugins: commonPlugins,
         resolve: {
           alias: bldrAliases,

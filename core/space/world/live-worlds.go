@@ -14,19 +14,19 @@ type worldReaders interface {
 // them, gathered once for a sweep or a history trim so that the two agree on
 // what is live.
 type liveWorlds struct {
-	// memory are the Worlds whose pages may be kept in memory: the positions'
-	// above the floor, the installed head, the writer head, the Worlds a
-	// checkpoint is storing and the Worlds the served engine's readers may
-	// still read. A trim holds them under the replay cursor root, and a sweep
-	// keeps their pages.
+	// memory holds the Worlds whose pages may be kept in memory: the
+	// Worlds of the positions above the floor, the installed head, the
+	// writer head, the Worlds a checkpoint is storing and the Worlds the
+	// served engine's readers may still read. A trim holds them under the
+	// replay cursor root, and a sweep keeps their pages.
 	memory []*block.BlockRef
 	// candidates are the pending candidates' Worlds. A trim holds them under
 	// the pending root, and a sweep keeps their pages.
 	candidates []*block.BlockRef
-	// stored are the Worlds whose pages left memory: the positions' below the
-	// floor and the restored positions', which replay computes again or
-	// adopts. A trim keeps them where a history holds them but holds none
-	// anew, and a sweep drops their pages.
+	// stored holds the Worlds whose pages left memory: the Worlds of the
+	// positions below the floor and of the restored positions, which
+	// replay computes again or adopts. A trim keeps them where a history
+	// holds them but holds none anew, and a sweep drops their pages.
 	stored []*block.BlockRef
 	// payloads are the payload roots of the positions above the floor and of
 	// the candidates.

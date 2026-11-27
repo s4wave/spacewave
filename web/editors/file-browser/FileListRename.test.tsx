@@ -410,7 +410,7 @@ describe('FileList inline rename', () => {
     const input = getRenameInput()
     await user.type(input, 'abc')
 
-    // Keystrokes should not bubble to parent
+    // Keystrokes should not bubble to the parent.
     expect(onKeyDown).not.toHaveBeenCalled()
   })
 })

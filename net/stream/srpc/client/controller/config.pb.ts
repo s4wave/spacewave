@@ -19,16 +19,18 @@ export interface Config {
   client?: Config$1
   /**
    * ProtocolId is the protocol ID to use to contact the remote RPC service.
-   * Must be set.
+   * ProtocolId must be set.
    */
   protocolId?: string
   /**
    * ServiceIdPrefixes are the service ID prefixes to match.
-   * The prefix will be stripped from the service id before being passed to the client.
+   * The prefix will be stripped from the service id before the service id is
+   * passed to the client.
    * This is used like: LookupRpcClient<remote/my/service> -> my/service.
    *
-   * If empty slice or empty string: matches all LookupRpcClient calls ignoring service ID.
-   * Optional.
+   * If ServiceIdPrefixes is an empty slice or contains an empty string, all
+   * LookupRpcClient calls match regardless of service ID.
+   * ServiceIdPrefixes is optional.
    */
   serviceIdPrefixes?: string[]
 }

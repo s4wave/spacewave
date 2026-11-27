@@ -6,7 +6,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * Entrypoint names one source file to bundle.
+ * Entrypoint selects one source file to bundle.
  *
  * @generated from message bldr.web.bundler.rolldown.Entrypoint
  */
@@ -39,7 +39,7 @@ export interface GoScriptPolicy {
   outputRoot?: string
   sharedExternalImports?: boolean
   /**
-   * SharedImportURLPrefix is prepended to shared external import URLs.
+   * SharedImportUrlPrefix is prepended to shared external import URLs.
    */
   sharedImportUrlPrefix?: string
 }
@@ -127,11 +127,11 @@ export interface BuildRequest {
    */
   prefixAliases?: { [key: string]: string }
   /**
-   * GlobalName names the object that receives exports from an IIFE build.
+   * GlobalName identifies the object that receives exports from an IIFE build.
    */
   globalName?: string
   /**
-   * RouteCssImports reports CSS-bearing graphs without attempting to bundle CSS.
+   * RouteCssImports reports CSS-bearing graphs without trying to bundle CSS.
    */
   routeCssImports?: boolean
 }

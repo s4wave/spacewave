@@ -163,7 +163,7 @@ describe('LayoutDebug UI Variants', () => {
       'Console',
     ]
 
-    // Check first variant — all variants use the same model
+    // Check the first variant. All variants use the same model
     await expect
       .poll(() => {
         const v = getVariant('frosted-glass')
@@ -189,7 +189,7 @@ describe('LayoutDebug UI Variants', () => {
       </TestWrapper>,
     )
 
-    // Default selection is 'frosted-glass'
+    // The default selection is 'frosted-glass'
     await expect
       .poll(() => {
         const card = document.querySelector(
@@ -199,7 +199,7 @@ describe('LayoutDebug UI Variants', () => {
       })
       .toBe(true)
 
-    // Click Wire Outline variant
+    // Click the Wire Outline variant
     const cardWire = document.querySelector(
       '[data-testid="variant-card-wire-outline"]',
     ) as HTMLElement
@@ -245,7 +245,7 @@ describe('LayoutDebug UI Variants', () => {
       }),
     )
 
-    // Collect computed border-radius of a tab_button from each variant
+    // Collect the computed border-radius of a tab_button from each variant
     const radii: Record<string, string> = {}
     for (const id of VARIANT_IDS) {
       const v = getVariant(id)!

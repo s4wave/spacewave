@@ -10,7 +10,7 @@ type FactList = {
 
 export const title = 'Fact row: the value by width, and copy'
 
-// value names how the value cell draws at the list's width.
+// value describes how the value cell draws at the list's width.
 const value = (v: FactList) => {
   const fits = v.len === 'short' || v.width === 'roomy'
   const shape = fits

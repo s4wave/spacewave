@@ -173,7 +173,7 @@ func (a *devicePolicyLaunchArgs) resolveSpace(c *cli.Context, client *sdkClient)
 }
 
 // uniqueFlagValues trims values and keeps each once in argument order,
-// refusing a blank value, which what names.
+// refusing a blank value of the kind described by what.
 func uniqueFlagValues(values []string, what string) ([]string, error) {
 	var out []string
 	seen := make(map[string]struct{}, len(values))

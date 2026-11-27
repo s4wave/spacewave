@@ -20,9 +20,9 @@ const registerUpdateListener = vi.fn(
   },
 )
 
-// Simulates a keystroke: every editor state change reaches the plugin through
-// registerUpdateListener with distinct editor state objects. A selection-only
-// update, such as focusing the editor, marks no node dirty.
+// fireEditorUpdate simulates a keystroke: every editor state change reaches the
+// plugin through registerUpdateListener with distinct editor state objects. A
+// selection-only update, such as focusing the editor, marks no node dirty.
 function fireEditorUpdate({ selectionOnly = false } = {}) {
   const update = {
     editorState: {},

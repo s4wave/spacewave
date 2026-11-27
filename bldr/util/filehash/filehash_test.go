@@ -69,7 +69,8 @@ func TestHashFileWithBlake3(t *testing.T) {
 		t.Fatalf("HashFileWithBlake3() error = %v", err)
 	}
 
-	// Verify hash is not empty and has the expected format (8 lowercase base32 chars)
+	// Verify the hash is not empty and has the expected format
+	// (8 lowercase base32 chars).
 	if len(hash) != 8 {
 		t.Errorf("HashFileWithBlake3() returned hash of length %d, want 8", len(hash))
 	}
@@ -85,7 +86,7 @@ func TestHashFileWithBlake3(t *testing.T) {
 		t.Error("HashFileWithBlake3() expected error for non-existent file, got nil")
 	}
 
-	// Test consistency - same file should produce same hash
+	// Test consistency: the same file should produce the same hash.
 	hash2, err := HashFileWithBlake3(tempFile)
 	if err != nil {
 		t.Fatalf("HashFileWithBlake3() second call error = %v", err)

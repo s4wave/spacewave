@@ -20,7 +20,7 @@ export interface RefInfo {
    */
   commitHash?: string
   /**
-   * IsHead is true if this is the HEAD ref.
+   * IsHead is true if the reference is the HEAD ref.
    */
   isHead?: boolean
 }
@@ -138,11 +138,11 @@ export const ResolveRefRequest: MessageType<ResolveRefRequest> =
 /**
  * ResolveRefResponse is the response for ResolveRef.
  *
- * A full ref name (HEAD or refs/...) the repository does not hold sets
- * not_found and leaves the hashes empty. Every other failure, including a
- * failed storage read, is an RPC error, so a caller can retry it. An
- * abbreviated revision reports a missing name as an RPC error too, because
- * revision parsing cannot tell a missing name from a failed read.
+ * When a full ref name (HEAD or refs/...) is absent from the repository, the
+ * response sets not_found and leaves the hashes empty. Every other failure,
+ * including a failed storage read, is an RPC error, so a caller can retry the
+ * RPC. An abbreviated revision reports a missing name as an RPC error too,
+ * because revision parsing cannot tell a missing name from a failed read.
  *
  * @generated from message s4wave.git.ResolveRefResponse
  */
@@ -312,7 +312,7 @@ export interface LogRequest {
    */
   offset?: number
   /**
-   * Limit is the maximum number of commits to return. Default 50.
+   * Limit is the maximum number of commits to return. The default limit is 50.
    */
   limit?: number
   /**
@@ -401,7 +401,7 @@ export interface GetDiffStatRequest {
    */
   refA?: string
   /**
-   * RefB is the second ref. If empty, diffs against ref_a's parent.
+   * RefB is the second ref. If empty, the diff is against ref_a's parent.
    */
   refB?: string
 }
@@ -456,7 +456,7 @@ export interface GetDiffPatchRequest {
    */
   refA?: string
   /**
-   * RefB is the second ref. If empty, diffs against ref_a's parent.
+   * RefB is the second ref. If empty, the diff is against ref_a's parent.
    */
   refB?: string
 }

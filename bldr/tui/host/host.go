@@ -150,7 +150,8 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 	defer readyRead.Close()
 
 	// Configure Bun with the proxy endpoint and readiness pipe before starting it.
-	// #nosec G204: BunPath selects the configured runtime; its arguments are fixed.
+	// #nosec G204: BunPath selects the configured runtime.
+	// Its arguments are fixed.
 	cmd := exec.Command(h.config.BunPath, "run", loader)
 	cmd.Stdin = h.config.Stdin
 	cmd.Stdout = h.config.Stdout

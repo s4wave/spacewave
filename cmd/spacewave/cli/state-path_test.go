@@ -24,10 +24,10 @@ func TestResolveStatePathFromContextUsesGlobalFlag(t *testing.T) {
 
 // TestResolveStatePathFromContextWithClientFlags asserts that subcommands
 // registering --state-path through clientFlags still receive the global
-// --state-path value when only the global flag is set. This guards against
-// the regression where commands called resolveStatePath(statePath) directly
-// and silently used the local flag's default (defaultStatePath), ignoring
-// the global flag passed before the subcommand name.
+// --state-path value when only the global flag is set. The test prevents
+// commands from calling resolveStatePath(statePath) directly and silently
+// using the local flag's default (defaultStatePath), ignoring the global flag
+// passed before the subcommand name.
 func TestResolveStatePathFromContextWithClientFlags(t *testing.T) {
 	// Clear the state-path environment.
 	clearStatePathEnv(t)

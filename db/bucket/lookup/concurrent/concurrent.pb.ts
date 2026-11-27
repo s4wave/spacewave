@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export enum NotFoundBehavior {
   /**
-   * NotFoundBehavior_NONE does nothing when we don't find a block.
+   * NotFoundBehavior_NONE does nothing when the lookup finds no block.
    */
   NotFoundBehavior_NONE = 0,
 

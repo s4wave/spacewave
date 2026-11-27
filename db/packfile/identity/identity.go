@@ -62,8 +62,9 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 }
 
 // NewPackID returns a random v1 packfile identifier. A store that deletes
-// packfiles names each one it writes this way, so writing the same blocks again
-// never reuses the identifier of a packfile being deleted.
+// packfiles assigns each packfile it writes an identifier this way, so writing
+// the same blocks again never reuses the identifier of a packfile being
+// deleted.
 func NewPackID() string {
 	var suffix [packIDDigestLen]byte
 	_, _ = rand.Read(suffix[:])

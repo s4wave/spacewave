@@ -16,7 +16,7 @@ type FilterKeysFunc func(key []byte) (bool, error)
 // KvfileFromStore builds a kvfile from a kvtx store.
 //
 // Note: does not support BlockIterator.
-// filterKeys can be nil
+// filterKeys can be nil.
 func KvfileFromStore(ctx context.Context, writer io.Writer, store kvtx.Store, filterKeys FilterKeysFunc) error {
 	// Retry classification: external to RunTransaction. KvfileFromTx writes
 	// transaction data to caller-owned output while the transaction is open.
@@ -32,7 +32,7 @@ func KvfileFromStore(ctx context.Context, writer io.Writer, store kvtx.Store, fi
 // KvfileFromTx builds a kvfile from a kvtx transaction.
 //
 // Note: does not support BlockIterator.
-// filterKeys can be nil
+// filterKeys can be nil.
 func KvfileFromTx(ctx context.Context, writer io.Writer, tx kvtx.Tx, filterKeys FilterKeysFunc) error {
 	it := tx.Iterate(ctx, nil, false, false)
 	defer it.Close()
@@ -50,7 +50,8 @@ func KvfileFromIterator(ctx context.Context, writer io.Writer, it kvtx.Iterator,
 	return kvfile.WriteIterator(
 		writer,
 		func() ([]byte, error) {
-			// iterate until we have a non-skipped key or the stream ends
+			// iterate until the iterator has a non-skipped key
+			// or the stream ends
 			for {
 				if err := ctx.Err(); err != nil {
 					return nil, context.Canceled

@@ -11,8 +11,8 @@ interface PrimaryDownloadButtonProps {
 }
 
 // PrimaryDownloadButton renders the hero download CTA for the detected
-// platform. Falls back to a "Pick a build below." headline when detection
-// missed or the detected tuple is absent from the manifest.
+// platform. The component falls back to a "Pick a build below." headline when
+// detection missed or the detected tuple is absent from the manifest.
 export function PrimaryDownloadButton({
   entry,
   releaseLabel,

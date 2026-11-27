@@ -20,7 +20,8 @@ import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/
 export interface NodeType {
   /**
    * TypeId is the node type's stable identifier.
-   * It is a slash-separated path such as "flowgraph/stream-echo"; core node type IDs are bare.
+   * It is a slash-separated path such as "flowgraph/stream-echo". Core node
+   * type IDs are bare.
    */
   typeId?: string
   /**
@@ -38,15 +39,16 @@ export interface NodeType {
   /**
    * PluginConfigIds lists the config_ids whose factories exist only in the
    * plugin. While the registration lives, the host builds these configs as
-   * controllers that run inside the plugin through ExecController; the host
+   * controllers that run inside the plugin through ExecController. The host
    * builds the other config_ids itself. A config ID belongs to one
    * registration at a time.
    */
   pluginConfigIds?: string[]
   /**
    * PluginServiceIds lists the RPC services implemented on the plugin bus.
-   * A compiled lookup server uses the port protocol as its server_id; the host
-   * binds it to this registration before applying it on the Device.
+   * A compiled lookup server uses the port protocol as its server_id. The host
+   * binds the server to this registration before applying the server on the
+   * Device.
    */
   pluginServiceIds?: string[]
 }

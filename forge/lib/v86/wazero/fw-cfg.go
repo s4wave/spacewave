@@ -19,6 +19,7 @@ const (
 )
 
 // registerFWCfgPorts wires the QEMU fw_cfg DMA-less selector/data ports at
+// 0x510/0x511.
 func (h *HostRuntime) registerFWCfgPorts() {
 	h.RegisterIORead(0x511, 8, func(context.Context, uint16) uint32 {
 		if h.fwPointer >= len(h.fwValue) {
@@ -53,7 +54,8 @@ func (h *HostRuntime) registerFWCfgPorts() {
 	})
 }
 
-// fwCfgFileDir renders the fw_cfg file-directory entry describing the
+// fwCfgFileDir renders the fw_cfg file-directory entry describing the option
+// ROMs.
 func (h *HostRuntime) fwCfgFileDir() []byte {
 	out := make([]byte, 4+64*len(h.optionROMs))
 	binary.BigEndian.PutUint32(out[0:], uint32(len(h.optionROMs))) //nolint:gosec // fw_cfg file counts use a uint32 directory field.

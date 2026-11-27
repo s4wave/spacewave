@@ -1,13 +1,14 @@
 // Package block stores content-addressed blocks and edits graphs of them.
 //
 // A Block is a decoded value. Its BlockRef is the hash of the bytes a store
-// holds, taken after the Transformer encodes them, so a ref names exactly the
-// stored bytes and a reader checks what it fetched with BlockRef.VerifyData.
-// An empty block is never stored; a nil BlockRef stands for it. Stored blocks
+// holds, taken after the Transformer encodes them, so a ref identifies exactly
+// the stored bytes and a reader checks what it fetched with
+// BlockRef.VerifyData.
+// An empty block is never stored. A nil BlockRef stands for it. Stored blocks
 // are immutable, so any number of graphs share one.
 //
 // StoreOps is the storage contract. PutBlock may return before its write is
-// durable; Sync is the only durability barrier and covers every write issued
+// durable. Sync is the only durability barrier and covers every write issued
 // before it. Each put carries the block's outgoing refs, and the store keeps
 // them with the bytes, because a block is live only while a held named root
 // reaches it through those refs (RootOps). A writer never reports a block
@@ -18,7 +19,7 @@
 // A Transaction edits a graph from one root. A Cursor follows a ref
 // (FollowRef) or a field (FollowSubBlock) and fetches a block only when the
 // caller reads it, so an untouched subtree costs no read. A change marks the
-// block and its ancestors dirty; Transaction.Write encodes the dirty blocks
+// block and its ancestors dirty. Transaction.Write encodes the dirty blocks
 // from the leaves to the root, puts each under the ref it computed
 // (PutOpts.ForceBlockRef), and returns the new root, while unchanged subtrees
 // keep their refs. Until a root moves onto the result, the old root still
@@ -59,7 +60,7 @@ type Ctor func() Block
 // Block defines an in-memory decoded block structure. A block should contain a
 // minimal amount of data with some pointers to other blocks.
 //
-// Every protobuf-go-lite message is a Block; other encodings implement the
+// Every protobuf-go-lite message is a Block. Other encodings implement the
 // same two methods.
 type Block interface {
 	// MarshalVT marshals the block to binary.
@@ -133,7 +134,7 @@ type ComparableSubBlock interface {
 
 // NamedSubBlock is a sub-block with a name attached.
 type NamedSubBlock interface {
-	// SubBlock indicates this is a sub-block.
+	// SubBlock indicates the object is a sub-block.
 	SubBlock
 	// GetName returns the name of the block.
 	GetName() string
@@ -211,7 +212,7 @@ func CollectSubBlocks(r BlockWithSubBlockRange) map[uint32]SubBlock {
 }
 
 // BlockWithPreWriteHook is a block with a function called when writing.
-// This can also be applied to a sub-block.
+// The hook can also be applied to a sub-block.
 type BlockWithPreWriteHook interface {
 	// BlockPreWriteHook is called when writing the block.
 	BlockPreWriteHook() error

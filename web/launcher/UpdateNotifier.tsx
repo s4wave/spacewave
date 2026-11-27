@@ -71,7 +71,7 @@ function UpdateNotifierInner() {
     { errorCb: handleWatchError },
   )
 
-  // The installed app version suppresses a staged release it already runs.
+  // The installed app version suppresses a staged release the app already runs.
   // An empty version means the installed app is unknown.
   const [installedVersion, setInstalledVersion] = useState<string | null>(null)
   useEffect(() => {
@@ -191,7 +191,7 @@ function UpdateNotifierInner() {
 // daemonWaitList joins the names of the work a daemon update waits for.
 const daemonWaitList = new Intl.ListFormat('en', { type: 'conjunction' })
 
-// describeDaemonWait names the other work an accepted daemon update waits for,
+// describeDaemonWait lists the other work an accepted daemon update waits for,
 // or returns an empty string when nothing else holds the daemon.
 function describeDaemonWait(wait: DaemonUpdateWait | undefined): string {
   return daemonWaitList.format(wait?.otherWork ?? [])

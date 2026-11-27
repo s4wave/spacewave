@@ -75,38 +75,38 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // WebRTC implements a WebRTC transport.
 type WebRTC struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// conf is the webrtc-signal-rpc config
+	// conf is the webrtc-signal-rpc config.
 	conf *Config
-	// tptType is the transport type
+	// tptType is the transport type.
 	tptType string
-	// peerID is the local peer id
+	// peerID is the local peer id.
 	peerID peer.ID
-	// privKey is the local private key
+	// privKey is the local private key.
 	privKey crypto.PrivKey
-	// uuid is the unique id
+	// uuid is the unique id.
 	uuid uint64
-	// laddr is the local address
+	// laddr is the local address.
 	laddr net.Addr
-	// handler is the transport handler
+	// handler is the transport handler.
 	handler transport.TransportHandler
-	// opts are extra options
+	// opts are extra options.
 	opts *transport_quic.Opts
-	// identity is the p2ptls identity
+	// identity is the p2ptls identity.
 	identity *p2ptls.Identity
-	// webrtcConf is the webrtc configuration
+	// webrtcConf is the webrtc configuration.
 	webrtcConf *webrtc.Configuration
-	// webrtcApi is the webrtc api
+	// webrtcApi is the webrtc api.
 	webrtcApi *webrtc.API
-	// sessionTrackers contains a mapping from peer id to ongoing session
-	// peer id is encoded as string
+	// sessionTrackers contains a mapping from peer id to ongoing session.
+	// The peer id is encoded as a string.
 	sessionTrackers *keyed.KeyedRefCount[string, *sessionTracker]
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// relSignalHandler releases the signal handler controller
+	// relSignalHandler releases the signal handler controller.
 	relSignalHandler func()
 }
 
@@ -212,7 +212,8 @@ func (w *WebRTC) GetVerbose() bool {
 }
 
 // MatchTransportType checks if the given transport type ID matches this transport.
-// If returns true, the transport controller will call DialPeer with that tptaddr.
+// If MatchTransportType returns true, the transport controller will call
+// DialPeer with that tptaddr.
 // For example: "udp-quic" or "ws".
 func (w *WebRTC) MatchTransportType(transportType string) bool {
 	return transportType == w.tptType
@@ -233,8 +234,8 @@ func (w *WebRTC) GetPeerDialer(ctx context.Context, peerID peer.ID) (*dialer.Dia
 		return peerDialer, nil
 	}
 	if w.conf.GetAllPeers() {
-		// Either peer may initiate. The session tracker selects one SDP offerer;
-		// the other peer requests its offer through signaling.
+		// Either peer may initiate. The session tracker selects one SDP offerer.
+		// The other peer requests its offer through signaling.
 		return &dialer.DialerOpts{
 			Address: "webrtc",
 			Backoff: w.conf.GetBackoff(),

@@ -87,7 +87,7 @@ export interface Config {
   /**
    * ObjectStoreId is the object store an older engine kept the head in, and
    * whose Volume coordinates the World's writers. The head is the
-   * world:<engine_id> root of the bucket; an open adopts the head the object
+   * world:<engine_id> root of the bucket. An open adopts the head the object
    * store kept once and deletes its record.
    * If unset with an init_head_ref root, the World is read-only at that root.
    */
@@ -110,13 +110,13 @@ export interface Config {
   initHeadRef?: ObjectRef
   /**
    * StateTransformConf is the transform of the older engine's head record.
-   * NOTE: this does not transform the entire world state.
+   * NOTE: StateTransformConf does not transform the entire world state.
    * To transform the world state, add the transform config to InitHeadRef.
    */
   stateTransformConf?: Config$1
   /**
    * DisableChangelog disables the changelog in the world structure.
-   * Note: has no effect unless we initialize the world from empty.
+   * Note: has no effect unless the world is initialized from empty.
    */
   disableChangelog?: boolean
   /**
@@ -124,7 +124,7 @@ export interface Config {
    * A new World starts with these settings. An existing writable World moves
    * to them in the background, one step at a time alongside writers.
    * Empty leaves an existing World's settings unchanged and starts a new World
-   * with the default settings; list the default indexes to return to them.
+   * with the default settings. List the default indexes to return to them.
    */
   graphSettings?: GraphSettings
   /**
@@ -148,7 +148,7 @@ export interface Config {
    */
   disableApplyWorldOp?: boolean
   /**
-   * DisableApplyObjectOp directive.
+   * DisableApplyObjectOp disables calling the ApplyObjectOp directive.
    */
   disableApplyObjectOp?: boolean
   /**
@@ -215,7 +215,7 @@ export interface RegenConfig {
   budgetBytes?: bigint
   /**
    * SwapChanges is the most changed records the swap applies inside the writer
-   * turn, which bounds the wait a commit can take behind it.
+   * turn, bounding the wait a commit can take behind the swap.
    * Defaults to 4096.
    */
   swapChanges?: number

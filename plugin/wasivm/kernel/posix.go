@@ -522,7 +522,7 @@ func posixFunctions() map[string]hostFunc {
 			return p.posixResult(ctx, p.sysSetUTSName(&p.kernel.domainname, uint32(a[0]), uint32(a[1])))
 		}},
 
-		// Sockets. Only Unix stream sockets exist; wasi-libc implements
+		// Sockets. Only Unix stream sockets exist. wasi-libc implements
 		// accept, send, recv and shutdown over the WASI calls.
 		"socket": {"iiii", func(ctx context.Context, p *Process, a []uint64) uint64 {
 			return p.posixResult(ctx, p.sysSocket(uint32(a[0]), uint32(a[1]), uint32(a[2])))

@@ -48,15 +48,15 @@ type toplevel struct {
 
 	// title and appID name the window.
 	title, appID string
-	// windowID names the window to viewers while it is mapped; it is unique
-	// across the compositor's life.
+	// windowID identifies the window to viewers while the window is mapped.
+	// windowID is unique across the compositor's life.
 	windowID uint32
 	// own is the window's space while it is popped out of the desktop.
 	own *space
 	// home is the window's desktop rectangle while it is popped out.
 	home image.Rectangle
 
-	// minSize and maxSize bound the window's size; zero leaves a side
+	// minSize and maxSize bound the window's size. Zero leaves a side
 	// unbounded.
 	minSize, maxSize image.Point
 	// pos is the screen position of the window geometry's corner.

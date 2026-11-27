@@ -40,7 +40,8 @@ func (a *ProviderAccount) PrepareDirectInvite(
 		}
 	}
 
-	// The storage owner signs the route; it does not impersonate the session peer.
+	// The storage owner signs the route. It does not impersonate the
+	// session peer.
 	invite.TransportPeerId = transport.GetPeerID().String()
 	return invite.Sign(ownerKey)
 }

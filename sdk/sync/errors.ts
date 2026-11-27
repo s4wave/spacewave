@@ -12,7 +12,8 @@ export type SyncErrorCode =
   | 'CLOSED'
   | 'EXECUTABLE_MISSING'
 
-// SyncError carries a stable code and the recovery identity of an uncertain write.
+// errorBrand identifies SyncError, which carries a stable code and the
+// recovery identity of an uncertain write.
 const errorBrand = Symbol.for('spacewave.SyncError')
 
 export class SyncError extends Error {

@@ -78,7 +78,7 @@ func cleanupAuthSession(
 ) {
 	delCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
-	// Auth-session cleanup is best-effort; this package has no logger.
+	// Auth-session cleanup is best-effort. This package has no logger.
 	deleteAuthSession(delCtx, httpCli, apiEndpoint, nonce, wsTicket)
 }
 

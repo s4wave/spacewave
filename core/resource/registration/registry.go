@@ -78,7 +78,7 @@ func (r *Registry) GenerationLocked(member any) *Generation {
 
 // InstanceKeyLocked returns the plugin instance that serves a registration,
 // empty for a global registration. A scoped registration's plugin runs in its
-// installation, so loads of its handler carry this key. The caller holds
+// installation, so loading its handler uses this key. The caller holds
 // Broadcast.
 func (r *Registry) InstanceKeyLocked(member any) string {
 	if generation := r.members[member]; generation != nil {
@@ -109,7 +109,7 @@ func (r *Registry) priorityLocked(member any, instanceKey string) int {
 }
 
 // SelectLocked selects visible registrations by semantic name for one logical
-// installation. Scoped definitions override global defaults; the latest ID wins
+// installation. Scoped definitions override global defaults. The latest ID wins
 // within one priority. Callers hold Broadcast and clone mutable wire results.
 func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T, instanceKey string, name func(T) K) []T {
 	// Select the highest-priority visible registration for each semantic name.
@@ -185,8 +185,9 @@ func (s *registrationService) Prepare(ctx context.Context, req *sdk_registration
 		return nil, err
 	}
 
-	// Releasing the scope hides its complete generation; member Resources remain
-	// independently owned by the same client and release their registry records.
+	// Releasing the scope hides its complete generation. Member Resources
+	// remain independently owned by the same client and release their
+	// registry records.
 	generation := &Generation{
 		registry:     s.registry,
 		binding:      binding{pluginID: req.GetPluginId(), instanceKey: req.GetInstanceKey()},
@@ -204,13 +205,13 @@ func (s *registrationService) Prepare(ctx context.Context, req *sdk_registration
 	return &sdk_registration.PrepareResponse{ResourceId: id}, nil
 }
 
-// checkPrepareCaller refuses a Prepare from a plugin that names a binding other
-// than its own. The host stamps each plugin's calls with the plugin ID and
-// binding key it bound when it started the plugin, and the registration SDK
+// checkPrepareCaller refuses a Prepare from a plugin that requests a binding
+// other than its own. The host stamps each plugin's calls with the plugin ID
+// and binding key it bound when it started the plugin, and the registration SDK
 // sends exactly those, so a mismatch is a forged or broken request. Refusing
-// it, rather than registering under the stamped binding, keeps a plugin from
-// silently publishing into a scope it did not ask for. A call with no stamp
-// comes from the host itself, which may name any binding.
+// the request, rather than registering under the stamped binding, keeps a
+// plugin from silently publishing into a scope it did not ask for. A call with
+// no stamp comes from the host itself, which may select any binding.
 func checkPrepareCaller(ctx context.Context, req *sdk_registration.PrepareRequest) error {
 	caller := bldr_plugin.PluginCallerFromContext(ctx)
 	if caller == nil {

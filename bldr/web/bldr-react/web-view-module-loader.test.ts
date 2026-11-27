@@ -51,7 +51,7 @@ describe('WebView boot deadlines', () => {
       loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App.mjs', {
         fetchRootAsset,
         importModule,
-        // The probe shares what remains of the import deadline; a long import
+        // The probe shares what remains of the import deadline. A long import
         // deadline keeps the probe's own 10ms bound in effect on slow hosts.
         fetchDeadlineMillis: 10,
         importDeadlineMillis: 60_000,

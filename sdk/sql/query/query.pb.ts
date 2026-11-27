@@ -210,7 +210,7 @@ export const SetParametersResponse: MessageType<SetParametersResponse> =
  */
 export interface RunQueryRequest {
   /**
-   * MaxRows limits rows persisted in the result. Zero uses the default.
+   * MaxRows limits rows persisted in the result. Zero uses the default limit.
    */
   maxRows?: number
 }

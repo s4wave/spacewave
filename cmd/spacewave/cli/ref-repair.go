@@ -47,7 +47,7 @@ const (
 	// names children the opaque bytes cannot account for.
 	frontOpaqueListed = "not a message, with a stored list that names children"
 	// frontUntyped prefixes the front cause of a ref whose type the walk
-	// cannot name, followed by the walker's reason.
+	// cannot identify, followed by the walker's reason.
 	frontUntyped = "untyped, "
 	// frontRest is the front cause of every other block after a repair,
 	// which marked each block it decoded.
@@ -90,7 +90,7 @@ type refRepairResult struct {
 	// peer read resolved, whose lists the rebuild writes without bytes.
 	peerRead uint64
 	// synthetic is the number of blocks listed with no children because the
-	// synthetic set names them, as refRepair.synthetic describes.
+	// synthetic set contains them, as refRepair.synthetic describes.
 	synthetic uint64
 	// payloadBlobs is the number of payload roots read as blobs, which the
 	// walker typed by a guess it could confirm.
@@ -105,7 +105,7 @@ type refRepairResult struct {
 	undecodable uint64
 	// lacking is the number of walked blocks stored without a child list.
 	lacking uint64
-	// edges is the number of children those lists name.
+	// edges is the number of children those lists reference.
 	edges uint64
 	// rebuild is what the list rebuild verified and wrote, or on a dry run
 	// would write, empty on a volume whose old generation had left Open.
@@ -124,9 +124,10 @@ type refRepairResult struct {
 	// verified reports that the volume's old generation had left Open before
 	// the run, so it rebuilt nothing.
 	verified bool
-	// untyped counts the refs whose type the walk cannot name, by reason, with
-	// a sample of each. Their edges are recorded; the blocks below them are
-	// not walked, so their lists stay unverified until their type is known.
+	// untyped counts the refs whose type the walk cannot identify, by reason,
+	// with a sample of each. Their edges are recorded, but the blocks below
+	// them are not walked, so their lists stay unverified until their type is
+	// known.
 	untyped map[string]refwalk.Untyped
 	// pluginStores counts object-store keys by plugin-volume/<instance>/<plugin>/ prefix.
 	// The prefix groups stores whose boundaries are not encoded in their keys.
@@ -160,15 +161,15 @@ type refRepair struct {
 	// peer reads the blocks the volume lacks, nil to read the volume alone.
 	// The walk never fills the volume from it.
 	peer block.StoreOps
-	// synthetic names the blocks a rehearsal lists with no children when no
+	// synthetic records the blocks a rehearsal lists with no children when no
 	// read decodes them, by their keys, and records whether the walk did.
-	// It proves nothing about them: it lets a rehearsal reach the flip on a
-	// copy whose unresolved blocks hold it.
+	// The set proves nothing about those blocks: the set lets a rehearsal
+	// reach the flip on a copy whose unresolved blocks hold the flip.
 	synthetic map[string]bool
 	// rebuild verifies the decoded blocks' lists, or on a dry run compares
-	// them; nil on a volume whose old generation had left Open.
+	// them. Nil on a volume whose old generation had left Open.
 	rebuild *block_gc.ListRebuild
-	// unread names why the walk verified nothing for a block it reached,
+	// unread records why the walk verified nothing for a block it reached,
 	// by the ref's string: frontAbsent, frontNotBlob or frontUndecodable.
 	unread map[string]string
 	// histogram counts the walked blocks by type and size, nil when the run
@@ -202,9 +203,9 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 
 // measureFront counts the blocks the rebuild's front holds by why the walk
 // verified nothing for them: no read resolves the block, it is not what its
-// type says, or the walk stopped at it for a type it cannot name. A repair
+// type says, or the walk stopped at it for a type it cannot identify. A repair
 // marked every other block it reached, so the rest were not reached or had
-// their decoded list refused; a dry run marked nothing, so its rest also
+// their decoded list refused. A dry run marked nothing, so its rest also
 // holds the blocks a repair would verify. With roots set it also walks the
 // stored lists from every named root, as block_gc.ListRebuild.WalkRoots
 // describes, and splits the rest by the first root that reaches each block:
@@ -213,7 +214,7 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 // When listing is set, stream each entry in front order with its report cause
 // and scan fate. Call it after the walk and the rebuild's Finish.
 func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listing *bufio.Writer) error {
-	// Name the rest by what this run's walk did with the blocks it reached.
+	// Classify the rest by what this run's walk did with the blocks it reached.
 	rest := frontRest
 	if dryRun {
 		rest = frontRestDry
@@ -221,7 +222,7 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listin
 	r.res.front = make(map[string]refRepairFront)
 	fields := strings.NewReplacer("\t", " ", "\n", " ", "\r", " ")
 	count := func(ref *block.BlockRef, root *block_gc.FrontRoot) error {
-		// Name the cause the walk recorded for the block, and for the rest
+		// Select the cause the walk recorded for the block, and for the rest
 		// the root that reaches it.
 		key := ref.MarshalString()
 		cause := rest
@@ -272,8 +273,9 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listin
 	})
 }
 
-// measurePluginStores counts object-store keys under each plugin's volume prefix.
-// It reads only keys; the values are root pointers whose trees are not measured.
+// measurePluginStores counts object-store keys under each plugin's volume
+// prefix. It reads only keys. The values are root pointers whose trees are not
+// measured.
 func (r *refRepair) measurePluginStores(ctx context.Context, vol *volume_s4db.Volume) error {
 	// Group logical plugin-volume keys by escaped instance and plugin.
 	r.res.pluginStores = make(map[string]uint64)
@@ -321,7 +323,7 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 // by name, the base and head Worlds of the cursor with their retained roots,
 // the World and payloads of each outcome, and the published graph the account
 // World root holds. It walks every World before any payload, so a payload the
-// Worlds name as an object root is walked under its object's type, as
+// Worlds reference as an object root is walked under its object's type, as
 // refwalk.Walker.PayloadNode describes.
 func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Find the bucket that owns the Space's blocks.
@@ -395,14 +397,14 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	return nil
 }
 
-// legacyReplaySpanRootName names the root a Space engine before the adapter
+// legacyReplaySpanRootName is the name a Space engine before the adapter
 // held its replay span under.
 const legacyReplaySpanRootName = "replay-span"
 
 // bucketRoots reads every root a Space's bucket holds by name, as
 // space_world's roots.go lists them, and the legacy replay span. It verifies
 // the list of each block that holds roots, and returns the Worlds and
-// payload roots those blocks name.
+// payload roots those blocks reference.
 func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld *bucket.ObjectRef) ([]refwalk.Node, []*block.BlockRef, error) {
 	// Each named root adds its Worlds or payload roots.
 	var worlds []refwalk.Node
@@ -461,14 +463,14 @@ func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld
 
 // publishedRoots reads the root a Space's bucket holds for the account World
 // copy, which is the root space_world.PublishedGraph gives: the World of the
-// published checkpoint, one operation's payload root, or a block naming that
-// World and every payload root. It verifies that block's list and returns
+// published checkpoint, one operation's payload root, or a block referencing
+// that World and every payload root. It verifies that block's list and returns
 // the roots the walk has not reached under a type, to walk as payloads.
 //
-// Call it after walking the Space's Worlds, since nothing here says which
-// root is the World: a World that no other root holds is then read as a
-// payload, which is not certainly a blob, so the walk verifies nothing for
-// it and it stays on the front for the flip to name.
+// Call publishedRoots after walking the Space's Worlds, since nothing here
+// says which root is the World: a World that no other root holds is then read
+// as a payload, which is not certainly a blob, so the walk verifies nothing
+// for that World and that World stays on the front for the flip to report.
 func (r *refRepair) publishedRoots(ctx context.Context, bucketID string) ([]*block.BlockRef, error) {
 	// A root the walk reached under a type is a World it has walked.
 	ref, err := r.vol.GetBucketRoot(ctx, bucketID, provider_local.AccountWorldRoot)
@@ -479,8 +481,8 @@ func (r *refRepair) publishedRoots(ctx context.Context, bucketID string) ([]*blo
 		return nil, nil
 	}
 
-	// Any other root that is not exactly the block naming several is the
-	// graph's one root.
+	// Any other root that is not exactly the block referencing several roots is
+	// the graph's one root.
 	data, found, err := r.readRootBlock(ctx, ref)
 	if err != nil || !found {
 		return nil, err
@@ -506,8 +508,8 @@ func (r *refRepair) publishedRoots(ctx context.Context, bucketID string) ([]*blo
 
 // spaceRootNames are the names a Space's bucket holds roots under. The
 // payloads root holds operation payloads, the replay base a World, the
-// retained root a RetainedRootSet and the legacy span a ReplaySpan chain;
-// every other root holds a HeldRoots chain of Worlds.
+// retained root a RetainedRootSet and the legacy span a ReplaySpan chain.
+// Every other root holds a HeldRoots chain of Worlds.
 var spaceRootNames = []string{
 	space_world.RootReplayBase,
 	space_world.RootCheckpoint,
@@ -660,7 +662,7 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			continue
 		}
 		// Verify nothing for a payload root that is not certainly a blob,
-		// which stays on the front if held, so the flip names it.
+		// which stays on the front if held, so the flip reports the root.
 		if rd.Unsure {
 			r.res.notBlob++
 			r.unread[rd.Node.Ref.MarshalString()] = frontNotBlob
@@ -708,7 +710,7 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	return nil
 }
 
-// listSynthetic reports whether the synthetic set names ref, and records
+// listSynthetic reports whether the synthetic set contains ref, and records
 // that the walk listed it.
 func (r *refRepair) listSynthetic(ref *block.BlockRef) bool {
 	// Mark the named ref listed and count it.
@@ -785,7 +787,7 @@ func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*blo
 	return r.rebuild.VerifyAs(ctx, ref, refs, typ)
 }
 
-// nodeType names the type the walker decodes n as, empty when it has none.
+// nodeType returns the type the walker decodes n as, empty when n has none.
 func nodeType(n refwalk.Node) string {
 	if n.Ctor == nil {
 		return ""
@@ -793,7 +795,7 @@ func nodeType(n refwalk.Node) string {
 	return typeName(n.Ctor())
 }
 
-// typeName names the Go type of a decoded block, for the rebuild's samples.
+// typeName returns the Go type of a decoded block, for the rebuild's samples.
 func typeName(blk any) string {
 	return reflect.TypeOf(blk).String()
 }

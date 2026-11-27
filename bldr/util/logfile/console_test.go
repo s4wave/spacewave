@@ -97,13 +97,14 @@ func TestEnsureLoggerLevelRaises(t *testing.T) {
 	}
 
 	// Console output should go through the hook, not Logger.Out directly.
-	// Fire an Info entry -- should appear in buf via ConsoleHook.
+	// Fire an Info entry: the entry should appear in buf via ConsoleHook.
 	log.Info("info message")
 	if !strings.Contains(buf.String(), "info message") {
 		t.Errorf("expected console hook to write info message, got %q", buf.String())
 	}
 
-	// Fire a Debug entry -- should NOT appear in buf (console hook filters at Info).
+	// Fire a Debug entry: the entry should NOT appear in buf
+	// (console hook filters at Info).
 	buf.mu.Lock()
 	buf.buf.Reset()
 	buf.mu.Unlock()

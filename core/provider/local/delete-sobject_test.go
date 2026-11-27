@@ -66,7 +66,7 @@ func TestDeleteSharedObjectRemovesOnlyItsState(t *testing.T) {
 	}
 
 	// Neither the watchable nor the local store taken before the delete
-	// serves the deleted state once it returns.
+	// serves the deleted state once the delete returns.
 	if snap := stateCtr.GetValue(); snap != nil {
 		t.Fatal("a state watchable taken before the delete still holds its snapshot")
 	}
@@ -200,7 +200,7 @@ func TestDeleteSharedObjectRacingHandleWriteFails(t *testing.T) {
 
 // TestReplaceSharedObjectRacingHandleWrite races a mounted handle's state
 // writes against a replace from both sides. A write acknowledged after the
-// caller read the state makes the replace refuse, so the write is not lost; a
+// caller read the state makes the replace refuse, so the write is not lost. A
 // write between the replace's commit and its restart of the mount fails, so
 // the replaced lineage does not come back.
 func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
@@ -404,7 +404,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	// another writer stores a successor built on it before the settle read:
 	// the outcome is unknown, and the reloaded state holds the operation
 	// once. The successor is the committed bytes with an unknown field
-	// appended, which decodes to the same state.
+	// appended. The successor decodes to the same state.
 	before = testAuthorNonce(ctx, t, reloaded, author)
 	commitOnce = sync.Once{}
 	testHookStateCommitted.Store(new(func(string) error {
@@ -453,7 +453,7 @@ func testAuthorNonce(ctx context.Context, t *testing.T, so *SharedObject, author
 
 // TestMountReloadsAfterStoreChange changes the stored state behind a mount
 // and checks that the next write fails with ErrStateChanged once and reloads
-// the mount in one new run, which then takes writes.
+// the mount in one new run. The reloaded mount then takes writes.
 func TestMountReloadsAfterStoreChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -510,8 +510,8 @@ func TestMountReloadsAfterStoreChange(t *testing.T) {
 // commit once the new run starts. The new run's load waits for the write, so
 // the new mount shows it without any further write.
 //
-// The hooks order the write's check, the restart and the new run's start;
-// whether the new run's load has begun when the write is let go is not
+// The hooks order the write's check, the restart and the new run's start.
+// Whether the new run's load has begun when the write is let go is not
 // observable, so the test cannot force the load ahead of the commit.
 func TestRestartLoadWaitsForOldWriter(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -579,7 +579,7 @@ func TestRestartLoadWaitsForOldWriter(t *testing.T) {
 // TestRefusedMountRevivesOnCreate holds a mount between reading that its
 // object has no state and publishing the refusal, creates the object there,
 // and checks that the tracker restarts and mounts the new object while the
-// first reference still holds it.
+// first reference still holds the tracker.
 func TestRefusedMountRevivesOnCreate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -771,7 +771,8 @@ type mountCapturePromise struct {
 	promise.PromiseLike[*SharedObject]
 	// captured tells the test that the caller took the old promise.
 	captured chan struct{}
-	// resume lets it select the old completion before returning to the tracker.
+	// resume lets the caller select the old completion before returning to
+	// the tracker.
 	resume chan struct{}
 }
 
@@ -832,7 +833,7 @@ func TestRetiredLocalWriteCannotCrossRecreate(t *testing.T) {
 	old, releaseOld := mountTestSharedObject(ctx, t, a, createTestSharedObject(ctx, t, a, id))
 	defer releaseOld()
 
-	// Wrap only this write's copy of the mount store; leave the real mount
+	// Wrap only this write's copy of the mount store. Leave the real mount
 	// and every other user of the account store alone.
 	store := old.objStore.(mountStore)
 	gate := &mountOpenGate{ObjectStore: store.ObjectStore, write: true, entered: make(chan struct{}), resume: make(chan struct{})}
@@ -1363,7 +1364,8 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 		t.Fatal("a retired run published its health")
 	}
 
-	// The newest run publishes, and the retired run cannot change or clear it.
+	// The newest run publishes, and the retired run cannot change the
+	// newest run's health or clear the newest run's result.
 	run, err := res.start(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -1511,7 +1513,7 @@ func TestDeleteStateOffKeepsOldBehavior(t *testing.T) {
 // TestCreateSharedObjectStaleKeys checks what a create clears under an
 // unlisted id: state no enrollment is writing, left by an old delete, an off
 // mode delete or an abandoned enrollment, goes, and the new lifetime reads
-// only its genesis; state an enrollment is writing stays and fails the
+// only its genesis. State an enrollment is writing stays and fails the
 // create.
 func TestCreateSharedObjectStaleKeys(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -1577,8 +1579,8 @@ func TestCreateSharedObjectStaleKeys(t *testing.T) {
 	}
 
 	t.Run("abandoned-placeholder", func(t *testing.T) {
-		// An enrollment that returned without listing the id left it and
-		// its hold, which the create releases.
+		// An enrollment that returned without listing the id left the
+		// placeholder and its hold, which the create releases.
 		leaveEnrolled(t, "abandoned")
 		expectFresh(t, "abandoned")
 		requireRehearsalRoot(ctx, t, a, "abandoned", false)
@@ -1649,7 +1651,8 @@ func TestCreateSharedObjectStaleKeys(t *testing.T) {
 
 	t.Run("keys-reappear", func(t *testing.T) {
 		// Keys that appear between the clear and the write are cleared and
-		// the write retried once; keys that keep appearing fail it.
+		// the write retried once. Keys that keep appearing fail the
+		// write.
 		for _, always := range []bool{false, true} {
 			var calls int
 			err := a.withClearedSOKeys(ctx, "reappear", a.clearStaleSOKeys, func() error {
@@ -1780,7 +1783,8 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 
 	// An enrollment with an id that is not a DNS label fails before writing.
 	// Its ref check is the only one before the placeholder write: the genesis
-	// builder does not validate the id, so without it keys land under so/a/.
+	// builder does not validate the id, so without the ref check keys land
+	// under so/a/.
 	_, err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, &sobject.SOState{}, nil, nil)
 	if err == nil {
 		t.Fatal("an enrollment with an invalid id succeeded")
@@ -2260,8 +2264,8 @@ func TestArrivingObjectMountsOnceWritten(t *testing.T) {
 		t.Fatalf("a mount of an arriving object returned %v", err)
 	}
 
-	// A write expecting another state writes nothing; the write expecting the
-	// arriving state lets it mount with the written state.
+	// A write expecting another state writes nothing. The write expecting
+	// the arriving state lets it mount with the written state.
 	stored, err := a.ReadStoredSharedObject(ctx, "arriving")
 	if err != nil || !stored.Origin.GetArriving() {
 		t.Fatalf("read arriving object: %v %v", stored, err)
@@ -2336,7 +2340,7 @@ func waitDeleteResume(ctx context.Context, t *testing.T, a *ProviderAccount, not
 }
 
 // putRehearsalTree stores a two-block tree under the named root root of the
-// object's block store: a parent naming id over a leaf naming id and a
+// object's block store: a parent recording id over a leaf recording id and a
 // leaf every object shares. It returns the blocks only this object reaches,
 // and the shared leaf.
 func putRehearsalTree(ctx context.Context, t *testing.T, so *SharedObject, id, root string) ([]*block.BlockRef, *block.BlockRef) {

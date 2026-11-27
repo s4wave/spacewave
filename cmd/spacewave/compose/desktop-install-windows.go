@@ -58,7 +58,7 @@ func installDesktop(ctx context.Context, le *logrus.Entry) (window *launcher_hel
 		}
 	}
 
-	// Publish the launcher last; its presence marks a complete install.
+	// Publish the launcher last. Its presence marks a complete install.
 	start := time.Now()
 	if err := installer.InstallLauncher(executable); err != nil {
 		le.WithError(err).Warn("install Spacewave")
@@ -69,7 +69,7 @@ func installDesktop(ctx context.Context, le *logrus.Entry) (window *launcher_hel
 }
 
 // installedApp returns the installed launcher, the destination for desktop app
-// updates, or empty when Spacewave is not installed.
+// updates, or an empty string when Spacewave is not installed.
 func installedApp() string {
 	installer, err := launcher_install.NewInstaller()
 	if err != nil || !installer.Installed() {

@@ -15,8 +15,8 @@ interface UnixFSPathViewInput {
 // toUnixFSPathView combines the four sequential Resource handles used by
 // UnixFSBrowser (root, lookup, stat, readdir) into a single staged
 // LoadingView. The returned detail line reflects the lowest-numbered stage
-// that is still in-flight; when all four resolve the view switches to
-// 'synced' (primitive unmounts). Errors on any stage surface as 'error'
+// that is still in-flight. When all four resolve the view switches to
+// 'synced' (the primitive unmounts). Errors on any stage surface as 'error'
 // with the stage name in the detail line.
 export function toUnixFSPathView(input: UnixFSPathViewInput): LoadingView {
   const { root, lookup, stat, entries, path, onRetry, onCancel } = input

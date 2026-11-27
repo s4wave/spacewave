@@ -17,7 +17,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the Worker object to attach to.
-   * If not exists, waits for it to exist.
+   * If the Worker object does not exist, the controller waits for the object.
    */
   objectKey?: string
   /**
@@ -29,7 +29,7 @@ export interface Config {
   peerId?: string
   /**
    * AssignSelf sets the AssignSelf option on the task controller.
-   * indicates we want to run executions on this worker.
+   * Indicates that executions should run on the Worker.
    */
   assignSelf?: boolean
 }

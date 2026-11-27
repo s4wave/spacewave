@@ -70,7 +70,7 @@ func (s *mysqlSession) parserOptions() sqlparser.ParserOptions {
 
 // open starts storage work and records the current session's replay prelude.
 func (s *mysqlSession) open(ctx context.Context, write bool) error {
-	// Reuse the explicit transaction; idle connections hold no storage locks.
+	// Reuse the explicit transaction. Idle connections hold no storage locks.
 	if s.tx != nil {
 		return nil
 	}
@@ -165,7 +165,8 @@ func (s *mysqlSession) query(ctx context.Context, query string, args []driver.Na
 		return callback(&sqltypes.Result{}, false)
 	}
 
-	// Session-only commands use short read handles; explicit transactions retain writes.
+	// Session-only commands use short read handles. Explicit transactions retain
+	// writes.
 	own := s.tx == nil
 	auto := s.conn.StatusFlags&mysql.ServerStatusAutocommit != 0
 	read, sessionOnly := false, false

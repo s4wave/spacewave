@@ -7,7 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * ConfigTypeRegistration is a registered config type editor.
- * Dynamic registrations carry metadata only; the editor component loaded via
+ * Dynamic registrations carry metadata only. The editor component loaded via
  * script_path handles its own proto serialization (receives raw bytes as
  * value). Static (compiled-in) registrations provide a MessageType for
  * automatic typed conversion on the TypeScript side.
@@ -37,7 +37,8 @@ export interface ConfigTypeRegistration {
   category?: string
   /**
    * ScriptPath is the React module path for dynamic plugin editors.
-   * Used with React.lazy for dynamic loading. Empty for static editors.
+   * ScriptPath is used with React.lazy for dynamic loading.
+   * ScriptPath is empty for static editors.
    */
   scriptPath?: string
 }

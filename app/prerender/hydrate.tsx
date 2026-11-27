@@ -1,7 +1,7 @@
 // Lightweight hydration entry for prerendered static pages.
 // Imports React and the page components, calls hydrateRoot() to attach
 // event handlers (accordions, scroll, navigation). Does NOT load the
-// bldr runtime, SharedWorker, or WASM - those load later via the
+// bldr runtime, SharedWorker, or WASM. Those load later via the
 // deferred entrypoint boot (__swDeferBoot / __swBoot).
 
 import { hydrateRoot, type Root } from 'react-dom/client'
@@ -61,7 +61,7 @@ function handleNavigate(to: To) {
     return
   }
 
-  // App route: mark as interacted, then boot via __swBoot or import.
+  // App route: mark the page as interacted, then boot via __swBoot or import.
   markInteracted()
 
   if (globalThis.__swBoot) {
@@ -69,7 +69,8 @@ function handleNavigate(to: To) {
     return
   }
 
-  // __swBoot not yet available: show loading, await __swReady, then boot.
+  // When __swBoot is not yet available, show the loading screen, await
+  // __swReady, then boot.
   const landing = document.getElementById('sw-landing')
   const loading = document.getElementById('sw-loading')
   if (landing) landing.style.display = 'none'
@@ -77,7 +78,7 @@ function handleNavigate(to: To) {
 
   awaitBoot(path)
   if (!globalThis.__swReady) {
-    // Fallback: import entrypoint directly (no deferred boot).
+    // Fallback: import the entrypoint directly (no deferred boot).
     const entry = globalThis.__swEntry
     if (entry) {
       window.location.hash = path
@@ -121,7 +122,7 @@ function readBlogData(): Record<string, unknown> | null {
 
 const pathname = window.location.pathname
 
-// Auto-boot for return visitors on root path.
+// Auto-boot for return visitors on the root path.
 // If hasSession is set, the bootstrap script already showed the loading
 // screen. hydrate.tsx awaits __swReady and calls __swBoot to render the app.
 if (pathname === '/' && window.location.hash.length > 1) {
@@ -133,7 +134,7 @@ if (pathname === '/' && window.location.hash.length > 1) {
   const container = document.getElementById('sw-landing')
   if (container) hydrateStaticPage(container, '/', <Landing />)
 } else if (pathname.startsWith('/blog')) {
-  // Blog pages: read serialized data from blog-data script tag.
+  // Blog pages: read serialized data from the blog-data script tag.
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const data = readBlogData()
@@ -177,12 +178,12 @@ if (pathname === '/' && window.location.hash.length > 1) {
 } else if (pathname.startsWith('/quickstart/')) {
   // Quickstart loading pages are transient boot surfaces. The boot script may
   // update their status text before this module loads, so do not hydrate the
-  // already-mutated DOM; auto-boot and let the deferred entrypoint replace it.
+  // already-mutated DOM. Auto-boot and let the deferred entrypoint replace it.
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const Component = getStaticPageComponent(pathname)
     if (Component) {
-      // Auto-transition to app quickstart when entrypoint is ready.
+      // Auto-transition to the app quickstart when the entrypoint is ready.
       markBrowserStartupBoundary('quickstart.static-handoff-requested', {
         source: 'browser',
         path: pathname,
@@ -195,7 +196,8 @@ if (pathname === '/' && window.location.hash.length > 1) {
   // browser boot can consume #otp while the app still reads location.search.
   awaitBoot(pathname + window.location.search)
 } else {
-  // Other static pages: the server renders the component directly inside bldr-root.
+  // Other static pages: the server renders the component directly inside
+  // bldr-root.
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const Component = getStaticPageComponent(pathname)

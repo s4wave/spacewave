@@ -42,7 +42,7 @@ func (h *Handler) ServeBldrHTTP(rw http.ResponseWriter, req *http.Request) bool 
 	rpath := req.URL.Path
 
 	// /b/fe/ routes to a frontend service. Modules use an existing compiler
-	// grant; expired attachments settle instead of waiting for a service that
+	// grant. Expired attachments settle instead of waiting for a service that
 	// will never be recreated.
 	if strings.HasPrefix(rpath, "/b/fe/") {
 		h.serveFrontend(rw, req)
@@ -77,7 +77,8 @@ func (h *Handler) serveFrontend(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Fetch the module through the service; RPC routes do not wait for it.
+	// Fetch the module through the service. RPC routes do not wait for the
+	// service.
 	wait := !strings.HasPrefix(req.URL.Path, "/b/fe/rpc/")
 	client := frontend.NewSRPCFrontendClientWithServiceID(bifrost_rpc.NewBusClientWithWait(h.b, wait), serviceID)
 	err = fetch.Fetch(req.Context(), func(ctx context.Context) (fetch.SRPCFetchService_FetchClient, error) {
@@ -89,7 +90,7 @@ func (h *Handler) serveFrontend(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// servePluginFs serves a file from the plugin UnixFS that fsID names.
+// servePluginFs serves a file from the plugin UnixFS that fsID selects.
 func (h *Handler) servePluginFs(
 	rw http.ResponseWriter,
 	req *http.Request,
@@ -120,8 +121,8 @@ func cutRoute(path, prefix string) (string, bool) {
 	return rest, ok && rest != ""
 }
 
-// setNoCacheHeaders keeps handler headers non-load-bearing for plugin asset
-// freshness; a generation-scoped ServiceWorker cache handles warm reads.
+// setNoCacheHeaders prevents handler headers from determining plugin asset
+// freshness. A generation-scoped ServiceWorker cache handles warm reads.
 func setNoCacheHeaders(h http.Header) {
 	h.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	h.Set("Pragma", "no-cache")

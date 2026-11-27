@@ -71,7 +71,7 @@ func NewFsWriteAtOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsWriteAtOp) Validate() error {
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
@@ -154,7 +154,7 @@ func (o *FsWriteAtOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetBlobRef()}
 }
 
-// PayloadRefsVersion identifies what GetPayloadRefs names.
+// PayloadRefsVersion identifies what GetPayloadRefs returns.
 func (o *FsWriteAtOp) PayloadRefsVersion() uint32 {
 	return 1
 }

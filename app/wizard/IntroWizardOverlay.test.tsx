@@ -95,7 +95,7 @@ describe('IntroWizardOverlay', () => {
     renderOverlay()
 
     // A single full-inset scrim would dim the indicator the BOTTOM_RIGHT callout
-    // points at; the cutout tiles two panels around a lit corner window instead.
+    // points at. The cutout tiles two panels around a lit corner window instead.
     const scrims = screen.getAllByTestId('intro-scrim')
     expect(scrims).toHaveLength(2)
     for (const scrim of scrims) {

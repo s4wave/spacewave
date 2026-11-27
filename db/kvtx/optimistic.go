@@ -10,9 +10,10 @@ import (
 // optimistically before it opens one that holds the writer lock throughout.
 const optimisticAttempts = 2
 
-// OptimisticEnv names the environment variable that turns optimistic write
-// transactions off: while it is "off", RunOptimisticTransaction opens every
-// attempt holding the writer lock throughout, as RunTransactionWithRetry does.
+// OptimisticEnv holds the name of the environment variable that turns
+// optimistic write transactions off: while it is "off",
+// RunOptimisticTransaction opens every attempt holding the writer lock
+// throughout, as RunTransactionWithRetry does.
 const OptimisticEnv = "SPACEWAVE_OPTIMISTIC_TX"
 
 // optimisticContextKey marks the context a write transaction is opened with
@@ -34,7 +35,7 @@ func IsOptimisticContext(ctx context.Context) bool {
 // RunOptimisticTransaction runs body in a write transaction that a store
 // with an optimistic mode opens without its writer lock, so the body's reads,
 // cold or not, delay no other writer. Commit takes the lock and validates the
-// reads; on ErrConflict the body runs again on a fresh transaction, and after
+// reads. On ErrConflict the body runs again on a fresh transaction, and after
 // optimisticAttempts conflicts it runs holding the lock throughout, so it
 // always finishes. Other failures retry as RunTransactionWithRetry does with
 // retry.

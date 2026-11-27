@@ -28,13 +28,13 @@ export interface SeedObject {
 // primary, before writing anything:
 //
 //   - primary present with its type: the seed ran before, so every companion
-//     must be present with its type, and all are kept as they are;
+//     must be present with its type, and all are kept as they are.
 //   - primary absent: every companion key must be free, so a new primary never
 //     adopts an object left by an earlier one, such as the files of a deleted
-//     notebook; a keepFound companion whose key is taken is kept instead;
+//     notebook. A keepFound companion whose key is taken is kept instead.
 //   - primary present with another type, or with none: rejection.
 //
-// A rejection names the key and the next step, and the World discards the
+// A rejection reports the key and the next step, and the World discards the
 // op, so the seed never reports an object it did not make. The primary and
 // its companions are written in one World op, after every check, so a primary
 // with its type is the whole result of an earlier seed.
@@ -152,7 +152,7 @@ function keyTaken(message: string): WorldOperationRejection {
   return new WorldOperationRejection(SEED_KEY_TAKEN_CODE, message)
 }
 
-// runSeedStep runs one seed step, naming the step in its error and keeping
+// runSeedStep runs one seed step, reporting the step in its error and keeping
 // the original error as the cause.
 async function runSeedStep(
   label: string,

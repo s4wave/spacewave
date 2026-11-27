@@ -220,8 +220,8 @@ func (c *Client) PresignPutHeader(bucket, key string, size int64, sum []byte, ex
 
 // DeleteObject removes every version of an object, so a bucket with
 // versioning, such as Backblaze B2, keeps no hidden copy. A missing object is
-// already deleted. Where the service does not list versions, or the key may
-// not, it deletes the current version alone.
+// already deleted. Where the service does not list versions, or the key lacks
+// permission to list versions, DeleteObject deletes the current version alone.
 func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
 	// List the versions, or delete the current version alone where they are
 	// not listed.
@@ -397,7 +397,7 @@ func visitElements(doc, name string, fn func(content string) error) error {
 // retryDelays bound the waits before each retry of a request that failed in
 // transit or with a transient fault other than a throttle. Each wait is drawn
 // uniformly from zero to its bound, so requests that failed together come
-// back spread out rather than in step; the mean waits are 250 ms, 1 s and
+// back spread out rather than in step. The mean waits are 250 ms, 1 s and
 // 3 s. After the last retry the request returns its failure. Every request
 // the client sends is idempotent: object writes are content addressed.
 var retryDelays = []time.Duration{
@@ -468,7 +468,7 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 			delay += retryAfter(resp.Header.Get("Retry-After"), time.Now())
 			httpclient.DrainAndCloseResponseBody(resp)
 		}
-		// The wait backs off a faulty service; it polls no state.
+		// The wait backs off a faulty service and polls no state.
 		//gostyle:timer deadline
 		timer := time.NewTimer(delay)
 		select {

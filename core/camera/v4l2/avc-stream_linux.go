@@ -135,7 +135,7 @@ func (s *avcStream) startPicture(nal []byte, idr bool) ([]byte, bool) {
 		return nil, s.ready && s.activePPS == ppsID
 	}
 
-	// The referred PPS names the SPS to put in the decoder configuration.
+	// The referred PPS selects the SPS to put in the decoder configuration.
 	pps := s.pps[ppsID]
 	if len(pps) < 2 {
 		return nil, false

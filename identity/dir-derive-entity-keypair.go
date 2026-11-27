@@ -28,8 +28,8 @@ type DeriveEntityKeypairValue = peer.Peer
 
 // ExDeriveEntityKeypair executes the derive entity keypair directive.
 //
-// if waitOne is set, we wait for a value before returning.
-// otherwise if the directive becomes idle, returns no values.
+// If waitOne is set, the function waits for a value before returning.
+// Otherwise, if the directive becomes idle, the function returns no values.
 func ExDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
@@ -41,8 +41,8 @@ func ExDeriveEntityKeypair(
 
 // ExDeriveKeypair executes the derive entity keypair directive w/o entity info.
 //
-// if waitOne is set, we wait for a value before returning.
-// otherwise if the directive becomes idle, returns no values.
+// If waitOne is set, the function waits for a value before returning.
+// Otherwise, if the directive becomes idle, the function returns no values.
 func ExDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,
@@ -56,9 +56,9 @@ func ExDeriveKeypair(
 	return ExDeriveEntityKeypair(ctx, b, ekps, waitOne)
 }
 
-// deriveKeypair implements DeriveEntityKeypair
+// deriveKeypair implements DeriveEntityKeypair.
 type deriveKeypair struct {
-	// kps are the keypairs
+	// kps are the keypairs.
 	kps []*EntityKeypair
 }
 
@@ -80,7 +80,7 @@ func (s *deriveKeypair) Validate() error {
 		return errors.New("at least one keypair is required")
 	}
 	for kpi, ekp := range s.kps {
-		// we allow domain id + entity id to be empty here
+		// Validate allows domain id + entity id to be empty here.
 		var err error
 		if ekp.GetDomainId() == "" && ekp.GetEntityId() == "" {
 			err = ekp.GetKeypair().Validate()
@@ -94,7 +94,7 @@ func (s *deriveKeypair) Validate() error {
 	return nil
 }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *deriveKeypair) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		MaxValueCount:   1,
@@ -144,7 +144,7 @@ func (s *deriveKeypair) GetName() string {
 	return "DeriveEntityKeypair"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (s *deriveKeypair) GetDebugVals() directive.DebugValues {

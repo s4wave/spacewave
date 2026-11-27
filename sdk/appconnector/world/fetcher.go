@@ -97,7 +97,7 @@ type readResult struct {
 // Execute implements SRPCPersistentExecutionServiceServer.
 // Sends RUNNING status, then fetches every read of the connector each poll
 // interval and records the results in its AppSnapshot until the stream is
-// canceled, which happens when the ProcessBinding is revoked.
+// canceled. The stream is canceled when the ProcessBinding is revoked.
 func (r *connectorResource) Execute(
 	req *s4wave_process.ExecuteRequest,
 	stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream,
@@ -111,7 +111,7 @@ func (r *connectorResource) Execute(
 		return err
 	}
 
-	// Refresh the snapshot, then wait out the interval the connector currently sets.
+	// Refresh the snapshot, then wait out the interval the connector sets.
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	for {
@@ -133,7 +133,8 @@ func (r *connectorResource) Execute(
 // A failed read is recorded in the snapshot, not returned: only a connector
 // that cannot be loaded or a snapshot that cannot be written fails the process.
 func (r *connectorResource) refresh(ctx context.Context) (*s4wave_appconnector.AppConnector, error) {
-	// Load the connector, which fails the process when it cannot be loaded.
+	// Load the connector, failing the process if the connector cannot be
+	// loaded.
 	conn, token, tokenErr := r.loadInputs(ctx)
 	if conn == nil {
 		return nil, tokenErr

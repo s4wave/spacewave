@@ -13,10 +13,10 @@ import (
 // domain ID and its domain-unique ID.
 //
 // The entity record contains the list of keypairs which may contain information
-// on how to derive the key, given a secret or local hardware private key. Note
-// that it would not be possible to derive the private key without the secret
-// for each auth method, for username this would be the password (scrypt key
-// generation with proof of work).
+// on how to derive the key, given a secret or local hardware private key.
+// Deriving the private key requires the secret for each auth method. For
+// username authentication, the secret is the password (scrypt key generation
+// with proof of work).
 type IdentityLookupEntity interface {
 	// Directive indicates IdentityLookupEntity is a directive.
 	directive.Directive
@@ -39,7 +39,7 @@ type IdentityLookupEntityValue interface {
 	GetEntity() *Entity
 }
 
-// lookupEntityValue implements IdentityLookupEntityValue
+// lookupEntityValue implements IdentityLookupEntityValue.
 type lookupEntityValue struct {
 	err      error
 	notFound bool
@@ -180,5 +180,5 @@ func (d *lookupEntity) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ IdentityLookupEntity = (*lookupEntity)(nil)

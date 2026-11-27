@@ -29,10 +29,10 @@ const (
 // request's time, or, on a service that bills egress, its price, whichever is
 // less. Amazon S3's prices make the second about 4.8 kB.
 func batchGap(p *Pricing) int64 {
-	// Time spans up to the bytes one request's latency would carry.
+	// Bound the gap by the bytes one request's latency would carry.
 	gap := int64(readBatchLatency.Seconds() * readBatchBandwidth)
 
-	// Price spans up to the bytes whose egress costs one class B request.
+	// Bound the gap by the bytes whose egress costs one class B request.
 	if egress := p.GetEgressGb(); egress > 0 {
 		gap = min(gap, int64(p.GetClassBPerMillion()/1e6/egress*gib))
 	}
@@ -128,7 +128,7 @@ func (s *PackStore) GetStoredBlockBatch(ctx context.Context, refs []*block.Block
 		return err
 	}
 
-	// Read the rest alone.
+	// Read the remaining blocks alone.
 	var rest []*block.BlockRef
 	var restIdx []int
 	for i, ref := range refs {
@@ -152,7 +152,8 @@ func (s *PackStore) GetStoredBlockBatch(ctx context.Context, refs []*block.Block
 // read does. A failed range read or an error from fn ends the batch with that
 // error.
 func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error {
-	// Locate the extents, once the pack table that names their packs loads.
+	// Locate the extents, once the pack table that identifies their packs
+	// loads.
 	if s.index == nil || !extentReadsOn.Load() {
 		return nil
 	}
@@ -217,7 +218,8 @@ func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads
 		return err
 	}
 
-	// Wait for the joined reads; one its batch abandoned answers nothing.
+	// Wait for the joined reads. A read its batch abandoned answers
+	// nothing.
 	for _, e := range joined {
 		stored, err := c.wait(ctx, e.claim)
 		if errors.Is(err, errFetchAbandoned) {
@@ -313,7 +315,8 @@ func (s *PackStore) readRun(ctx context.Context, run batchRun) ([]*block.StoredB
 		}
 	}
 
-	// Read the span; a missing pack means its rows named the wrong one.
+	// Read the span. A missing pack means its rows identified the wrong
+	// one.
 	data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+run.id, run.off, size)
 	if errors.Is(err, ErrNotFound) {
 		return make([]*block.StoredBlock, len(run.extents)), nil
@@ -395,9 +398,9 @@ func batchRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool)
 // reachRuns yields the runs of a subtree walk's extents: each extent whose row
 // records a reach reads to it, the spans of one pack merging as batchRuns
 // merges extents and cut into pieces of at most readBatchRun bytes, which the
-// span buffer keeps. An extent a piece holds whole is answered from it; the
-// rest, such as leaves and blocks of packs written in key order, read in runs
-// as batchRuns yields them.
+// span buffer keeps. An extent a piece holds whole is answered from the piece.
+// The rest, such as leaves and blocks of packs written in key order, read in
+// runs as batchRuns yields them.
 func reachRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool) {
 	return func(yield func(batchRun) bool) {
 		// Sort the extents by pack and offset, so the spans to their reaches
@@ -463,7 +466,7 @@ func comparePlace(id string, off int64, e batchExtent) int {
 }
 
 // locateExtents returns the extent of each ref whose h row holds one and
-// names a pack the table holds, reading every row in one snapshot. As with
+// identifies a pack the table holds, reading every row in one snapshot. As with
 // locateExtent, a pack sharing its number with another may be the wrong one,
 // and the caller checks the bytes against the block's hash.
 func (x *packIndex) locateExtents(ctx context.Context, refs []*block.BlockRef) ([]batchExtent, error) {

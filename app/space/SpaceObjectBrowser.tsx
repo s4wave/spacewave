@@ -343,9 +343,9 @@ function useSpaceObjectBrowserController() {
   }
 }
 
-// objectTreePlaceholder is what an object tree with no nodes shows: it claims
-// no objects only once the tree read settled. A failed read shows its notice
-// in place of the tree instead.
+// objectTreePlaceholder is what an object tree with no nodes shows: the
+// placeholder claims no objects only once the tree read settled. A failed read
+// shows its notice in place of the tree instead.
 function objectTreePlaceholder(tree: ObjectTree): string {
   if (tree.loading) return 'Loading objects'
   return 'No objects'

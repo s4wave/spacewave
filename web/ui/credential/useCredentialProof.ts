@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { EntityCredential } from '@s4wave/core/session/session.pb.js'
 
 // useCredentialProof manages password/PEM state for EntityCredential input.
-// Returns state, handlers, and the constructed credential.
+// The hook returns state, handlers, and the constructed credential.
 export function useCredentialProof() {
   const [password, setPassword] = useState('')
   const [pemData, setPemData] = useState<Uint8Array | null>(null)

@@ -28,8 +28,8 @@ func crosscheckFile(t *testing.T, path string) ccResult {
 	return res
 }
 
-// TestCrosscheckClean: every page of a clean file is reached once or free,
-// and nothing conflicts.
+// TestCrosscheckClean checks that every page of a clean file is reached
+// once or free, and nothing conflicts.
 func TestCrosscheckClean(t *testing.T) {
 	// A clean fixture has no conflicting or unreadable pages.
 	path := makeWorld(t, 4096, 3000)
@@ -100,8 +100,8 @@ func TestCrosscheckCatches(t *testing.T) {
 	}
 }
 
-// TestCrosscheckExplained: a conflict whose page has left the freelist by
-// the recheck is explained, not unexplained.
+// TestCrosscheckExplained checks that a conflict whose page has left the
+// freelist by the recheck is explained, not unexplained.
 func TestCrosscheckExplained(t *testing.T) {
 	path := makeWorld(t, 4096, 3000)
 	target := crosscheckFile(t, path).firstOfKind[kindTable]
@@ -149,8 +149,8 @@ func dropLastLeaf(t *testing.T, path string) uint32 {
 	return w.leaves[n-1]
 }
 
-// TestCrosscheckUnaccounted: a page neither reached nor free is
-// unexplained, unless the final freelist has it (freed during the walk).
+// TestCrosscheckUnaccounted checks that a page neither reached nor free is
+// unexplained, unless the final freelist has the page (freed during the walk).
 func TestCrosscheckUnaccounted(t *testing.T) {
 	// The shortened freelist leaves a page without an owner.
 	path := makeWorld(t, 4096, 3000)
@@ -195,7 +195,7 @@ func TestCrosscheckUnaccounted(t *testing.T) {
 
 // TestCrosscheckLateWalk cuts an interior page out of table t's root and
 // lists one of its leaves on the freelist. The main walk cannot see the
-// conflict; the late walk from the unaccounted interior page must.
+// conflict, but the late walk from the unaccounted interior page must.
 func TestCrosscheckLateWalk(t *testing.T) {
 	// Locate the table root and the child whose subtree will be detached.
 	path := makeWorld(t, 4096, 3000)
@@ -255,11 +255,11 @@ func TestCrosscheckLateWalk(t *testing.T) {
 	}
 }
 
-// TestCrosscheckSchemaRoots: a schema record whose rootpage cannot be read
-// from the page, because long names push it onto an overflow page, or that
-// gives a table root 0, is a bad page and fails the run rather than leave
-// that tree's pages unreached. Views, triggers and virtual tables own no
-// tree and pass.
+// TestCrosscheckSchemaRoots checks that a schema record is a bad page and
+// fails the run if its rootpage cannot be read from the page because long
+// names push the rootpage onto an overflow page, or if the record gives a
+// table root 0, rather than leaving that tree's pages unreached. Views,
+// triggers and virtual tables own no tree and pass.
 func TestCrosscheckSchemaRoots(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -348,8 +348,9 @@ func TestCrosscheckCorruptLengths(t *testing.T) {
 		}
 	}
 
-	// A schema record whose type column is st, then an empty name, a table
-	// name and a one-byte rootpage of 0, and sql of serial type sql.
+	// record builds a schema record whose type column is st, then an empty
+	// name, a table name and a one-byte rootpage of 0, and sql of serial
+	// type sql.
 	record := func(st, sql uint64) []byte {
 		var hdr []byte
 		for _, v := range []uint64{st, 13, 13, 1, sql} {

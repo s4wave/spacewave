@@ -54,7 +54,7 @@ func localCDNProject(repoRoot, baseURL string, signer crypto.PrivKey) (*project.
 		return nil, "", err
 	}
 
-	// Route it to the local CDN origin.
+	// Route the Release World to the local CDN origin.
 	var worldConf cdn_world.Config
 	if err := worldConf.UnmarshalJSON(distConf.HostConfigSet["release-world"].Config); err != nil {
 		return nil, "", err
@@ -95,7 +95,8 @@ func localCDNProject(repoRoot, baseURL string, signer crypto.PrivKey) (*project.
 		return nil, "", errors.Wrap(err, "distribution fixture")
 	}
 
-	// Re-sign it with the harness signer and pin only that signer.
+	// Re-sign the fixture distribution with the harness signer and pin only
+	// that signer.
 	signed, err := spacewave_launcher.EncodeSignedDistConfig(signer, fixture)
 	if err != nil {
 		return nil, "", err

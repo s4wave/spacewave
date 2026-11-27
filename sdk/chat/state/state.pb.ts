@@ -13,7 +13,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
  */
 export interface ChatReadPosition {
   /**
-   * NextIndex is the first unread message index; zero means nothing has been read.
+   * NextIndex is the first unread message index. Zero means nothing has been
+   * read.
    */
   nextIndex?: bigint
   /**

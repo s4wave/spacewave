@@ -448,7 +448,7 @@ func TestMknodWithContent_LargeFile(t *testing.T) {
 	}
 	defer fsHandle.Release()
 
-	// create a large file (2MB -- above the raw blob high water mark)
+	// create a large file (2MB, above the raw blob high water mark)
 	content := []byte(strings.Repeat("abcdefghij", 200000))
 	err = fsHandle.MknodWithContent(
 		ctx,

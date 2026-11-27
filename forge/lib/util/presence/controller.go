@@ -56,7 +56,8 @@ func (c *Controller) InitForgeExecController(
 
 // Execute checks the path and publishes exactly one output holding it.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Choose the output from the path's presence; other errors fail the Pass.
+	// Choose the output from the path's presence. Other errors fail the
+	// Pass.
 	path := c.conf.GetPath()
 	name := c.conf.GetPresentOutput()
 	if _, err := os.Stat(path); os.IsNotExist(err) {

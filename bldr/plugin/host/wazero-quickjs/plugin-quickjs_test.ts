@@ -3,7 +3,8 @@ import { AsyncDisposableStack } from '../../../sdk/defer.js'
 import * as mock from 'starpc/mock'
 
 export default async function main(backendAPI: BackendAPI) {
-  // test that we can use the new AsyncDisposableStack w/ the Symbol polyfills
+  // Test that the plugin can use the new AsyncDisposableStack
+  // w/ the Symbol polyfills.
   await using __defer = new AsyncDisposableStack()
   __defer.defer(() => console.log('deferred function run'))
 

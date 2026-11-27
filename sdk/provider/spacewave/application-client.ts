@@ -39,7 +39,8 @@ export class CloudError extends Error {
   }
 }
 
-// SigningFn signs the exact binary payload; key custody remains with the caller.
+// SigningFn signs the exact binary payload. Key custody remains with the
+// caller.
 export type SigningFn = (
   payload: Uint8Array,
   signal?: AbortSignal,
@@ -53,7 +54,8 @@ export interface ApplicationOperatorClientOptions {
   signingEnvPrefix: string
   // sessionPeerId is the base58 peer ID of the operator session, sent as X-Peer-ID.
   sessionPeerId: string
-  // sign signs the serialized SigningPayload; keys are never handed to this client.
+  // sign signs the serialized SigningPayload. Keys are never handed to this
+  // client.
   sign: SigningFn
   // fetch overrides the global fetch implementation (for tests).
   fetch?: typeof globalThis.fetch
@@ -158,7 +160,7 @@ function validateOrigin(value: string): string {
 // application operators over the shared proto-binary HTTP contract.
 //
 // The signed payload is the deterministic proto binary of
-// provider.spacewave.api.SigningPayload; keys are held by the caller-supplied
+// provider.spacewave.api.SigningPayload. Keys are held by the caller-supplied
 // sign callback, never by this client.
 export class ApplicationOperatorClient {
   private readonly apiOrigin: string
@@ -173,7 +175,7 @@ export class ApplicationOperatorClient {
     this.sessionPeerId = options.sessionPeerId
     this.sign = options.sign
 
-    // fetchImpl binds the default fetch to globalThis; the Worker fetch
+    // fetchImpl binds the default fetch to globalThis. The Worker fetch
     // requires globalThis as its receiver.
     this.fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis)
   }

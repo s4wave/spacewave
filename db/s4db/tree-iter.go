@@ -36,7 +36,7 @@ func (l *treeIter[T]) entry() ientry {
 }
 
 // seek positions at the first key at or after k, or the last at or before
-// it when reverse; nil selects the first or last key.
+// k when reverse. nil selects the first or last key.
 func (l *treeIter[T]) seek(k []byte, reverse bool) {
 	switch {
 	case k == nil && reverse:

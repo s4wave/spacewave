@@ -86,7 +86,8 @@ func NewScanner(ctx context.Context, source *Source, scratch string, opts Option
 		}
 	}
 
-	// Bind the manifest to the physical capture identity without walking it at open.
+	// Bind the manifest to the physical capture identity without walking
+	// the capture at open.
 	info, err := os.Stat(source.GetPath())
 	if err != nil {
 		return nil, err
@@ -247,7 +248,8 @@ func (s *Scanner) Run(ctx context.Context) (*Result, error) {
 	return s.Result(), nil
 }
 
-// Close releases source readers and scratch; it never runs source maintenance.
+// Close releases source readers and scratch.
+// Close never runs source maintenance.
 func (s *Scanner) Close() error {
 	// Close the bounded source pools independently of scratch durability.
 	var err error
@@ -284,7 +286,7 @@ func (s *Scanner) save(tx *scratchTx) error {
 	return nil
 }
 
-// resumeUnit is the phase, table and pack a step works in; a change of unit
+// resumeUnit is the phase, table and pack a step works in. A change of unit
 // ends a batch.
 type resumeUnit struct {
 	// phase is the durable phase.
@@ -293,7 +295,7 @@ type resumeUnit struct {
 	table uint32
 	// packDir indexes the declared pack directory inventory reads.
 	packDir uint32
-	// packAfter names the last pack read in packDir.
+	// packAfter records the name of the last pack read in packDir.
 	packAfter string
 }
 
@@ -390,8 +392,9 @@ func nextRow(db *scratchIndex, bucket string, after []byte) ([]byte, []byte, err
 	// Copy at most one row before any dependent read or write scope opens.
 	var key, value []byte
 	err := db.View(func(tx *scratchTx) error {
-		// Read the one row after the cursor, or the first row when there is
-		// none, in a single keyset query; the cursor already returns copies.
+		// Read the one row after the cursor, or the first row when
+		// there is no cursor, in a single keyset query. The cursor
+		// already returns copies.
 		key, value = tx.Bucket([]byte(bucket)).Cursor().seek(after, len(after) != 0)
 		return nil
 	})

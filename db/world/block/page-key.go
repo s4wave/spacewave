@@ -1,6 +1,6 @@
 package world_block
 
-// PageKey names a count of pages: their tree and level.
+// PageKey identifies a count of pages: their tree and level.
 type PageKey struct {
 	// Tree is the part of the World the pages belong to.
 	Tree PageTree

@@ -17,7 +17,7 @@ import {
   playFrames,
 } from './play-frames.js'
 
-// FrameTrack is the frame track's state as FrameViewer.tla names it, for a
+// FrameTrack is the frame track's state as defined by FrameViewer.tla, for a
 // mounted FrameView: the viewer mounts one only on an open handle and an
 // online Device, so the spec's none is an unmounted FrameView.
 type FrameTrack =
@@ -34,7 +34,7 @@ interface FrameViewState {
 }
 
 // frameViewReducer applies FrameViewer.tla's TrackStep and RetryTrack. An
-// event a state does not take leaves it unchanged.
+// unhandled event leaves the state unchanged.
 function frameViewReducer(
   state: FrameViewState,
   event: FramePlayEvent | { kind: 'retry' },
@@ -88,7 +88,7 @@ function trackView(track: FrameTrack, retry: () => void): LoadingView | null {
 export interface FrameViewProps {
   // source opens the frame track. Without one the track stays connecting.
   source?: FrameSource
-  // label names the picture for assistive technology.
+  // label identifies the picture for assistive technology.
   label: string
 }
 

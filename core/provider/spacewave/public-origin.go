@@ -21,7 +21,7 @@ func (c *SessionClient) LinkPublicOrigin(
 		return nil, err
 	}
 
-	// Post it; the cloud proves the origin before storing it.
+	// Post the link. The cloud proves the origin before storing the link.
 	data, err := c.doPostBinary(ctx, publicOriginPath(spaceID), body, nil, SeedReasonMutation)
 	if err != nil {
 		return nil, err

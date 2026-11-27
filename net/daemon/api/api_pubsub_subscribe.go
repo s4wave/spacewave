@@ -12,7 +12,7 @@ import (
 	pubsub_api "github.com/s4wave/spacewave/net/pubsub/api"
 )
 
-// acquirePeerTimeout is the timeout for acquiring private key
+// acquirePeerTimeout is the timeout for acquiring a private key.
 var acquirePeerTimeout = time.Second * 10
 
 // Subscribe subscribes to a pubsub channel.

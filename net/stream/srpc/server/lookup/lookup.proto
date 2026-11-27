@@ -9,7 +9,7 @@ message Config {
   // ProtocolIds is the list of protocol ids to listen on.
   // If empty, no incoming streams will be accepted.
   repeated string protocol_ids = 2;
-  // ServerID is the server identifier passed to LookupRpcService.
+  // ServerId is the server identifier passed to LookupRpcService.
   // Can be empty.
   string server_id = 3;
 }

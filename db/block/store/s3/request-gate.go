@@ -66,8 +66,9 @@ var gateBackoffMax = 8 * time.Second
 // While paused, the throttled requests queue again in their class behind the
 // pause, so the account sees a quiet period and then a reduced rate. The one
 // exception is a probe: once the last throttle's Retry-After has passed, or
-// gateProbeEvery after it when it gave none, one urgent request may go, and a clean answer to it ends the pause early at the
-// current limit, while a throttle extends the pause as any other does.
+// gateProbeEvery after the last throttle when the service gave no Retry-After,
+// one urgent request may go. A clean answer to the probe ends the pause early
+// at the current limit, while a throttle extends the pause as any other does.
 //
 // Lock order: bcast, then the pool's lock, which is a leaf.
 type RequestGate struct {

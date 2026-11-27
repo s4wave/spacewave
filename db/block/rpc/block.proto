@@ -120,7 +120,7 @@ message GetBlockRequest {
 message GetBlockResponse {
   // Exists indicates if the block exists or not.
   bool exists = 1;
-  // Data is the data, if exists.
+  // Data is the data, if the block exists.
   bytes data = 2;
   // Error is any error getting the block from the store.
   string error = 3;
@@ -136,8 +136,8 @@ message GetBlockResponse {
 
 // GetBlockFailure classifies a failed block read.
 enum GetBlockFailure {
-  // GET_BLOCK_FAILURE_ERROR is any failure without a class below; error
-  // carries its text.
+  // GET_BLOCK_FAILURE_ERROR is any failure without a class below. The error
+  // field carries the failure text.
   GET_BLOCK_FAILURE_ERROR = 0;
   // GET_BLOCK_FAILURE_CORRUPT means the serving store read bytes that do not
   // hash to the ref: block.ErrBlockCorrupt.

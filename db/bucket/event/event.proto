@@ -31,19 +31,19 @@ message Event {
 // BlockCommon are common block properties.
 message BlockCommon {
   // BucketId is the bucket id.
-  // May be unset.
-  // Used for: PutBlock, RmBlock
+  // BucketId may be unset.
+  // BucketId is used for PutBlock and RmBlock.
   string bucket_id = 1;
   // VolumeId is the volume id.
-  // May be unset.
-  // Used for: PutBlock, RmBlock
+  // VolumeId may be unset.
+  // VolumeId is used for PutBlock and RmBlock.
   string volume_id = 2;
   // BucketConfRev is the bucket config rev.
-  // May be unset.
-  // Used for: PutBlock, RmBlock
+  // BucketConfRev may be unset.
+  // BucketConfRev is used for PutBlock and RmBlock.
   uint32 bucket_conf_rev = 3;
   // BlockRef is the block reference.
-  // Used for: PutBlock, RmBlock
+  // BlockRef is used for PutBlock and RmBlock.
   block.BlockRef block_ref = 4;
 }
 

@@ -33,7 +33,8 @@ const (
 // second's connections unlocked while they still read. Another process must
 // still be refused the write lock that conflicts with the second's SHARED
 // lock, and still once the second Store closes under a read it has open,
-// whose connection stays open; it is granted the lock once that read ends.
+// whose connection stays open. The other process is granted the lock once
+// that read ends.
 // OFD locks belong to the descriptor that took them and survive any other
 // close, so under a driver that takes them the test proves nothing.
 func TestSharedFileLocks(t *testing.T) {

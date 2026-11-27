@@ -14,26 +14,27 @@ import React, {
 import { useLatestRef } from '@aptre/bldr-react'
 
 /**
- * Type definition for the Router context.
+ * RouterContextType defines the Router context.
  */
 export interface RouterContextType {
-  /** The current path */
+  /** path is the current path. */
   path: string
-  /** The current route parameters */
+  /** params contains the current route parameters. */
   params: Record<string, string>
-  /** Function to navigate to a new path */
+  /** navigate is a function to navigate to a new path. */
   navigate: (to: To) => void
-  /** Array of parent paths in the routing hierarchy */
+  /** parentPaths is an array of parent paths in the routing hierarchy. */
   parentPaths: string[]
   /**
-   * Raw (percent-encoded) remainder matched by the enclosing wildcard route.
+   * wildcardPath is the raw (percent-encoded) remainder matched by the
+   * enclosing wildcard route.
    * Nested Routes match against it so params are decoded exactly once.
    */
   wildcardPath?: string
 }
 
 /**
- * Create the Router context.
+ * RouterContext provides the Router context.
  */
 export const RouterContext = createContext<RouterContextType | null>(null)
 
@@ -45,18 +46,20 @@ export const RouterContext = createContext<RouterContextType | null>(null)
  * @returns The resolved absolute path.
  */
 /**
- * Type definition for navigation destination
+ * To defines a navigation destination.
  */
 export interface To {
-  /** The path to navigate to */
+  /** path is the path to navigate to. */
   path: string
-  /** Whether to replace the current history entry */
+  /** replace indicates whether to replace the current history entry. */
   replace?: boolean
-  /** Named hash parameters retained independently of route matching */
+  /** params contains named hash parameters retained independently of
+   * route matching. */
   params?: Record<string, string>
 }
 /**
- * Resolves a relative path to an absolute path based on the current path.
+ * resolvePath resolves a relative path to an absolute path based on the
+ * current path.
  */
 export const resolvePath = (current: string, to: To): string => {
   const toPath = to.path
@@ -84,11 +87,13 @@ function decodeRoutePart(part: string): string {
 }
 
 /**
- * Matches a route pattern against a path and extracts parameters.
+ * matchRoute matches a route pattern against a path and extracts parameters.
  *
- * @param pattern - The route pattern, which may include parameters starting with ':' and wildcard '*'.
+ * @param pattern - The route pattern, which may include parameters starting
+ * with ':' and wildcard '*'.
  * @param path - The current path to match against.
- * @returns The extracted parameters if the pattern matches, or null if it doesn't.
+ * @returns The extracted parameters if the pattern matches, or null if the
+ * pattern doesn't match.
  */
 const matchRoute = (
   pattern: string,
@@ -118,7 +123,7 @@ const matchRoute = (
     }
 
     if (patternPart.startsWith(':')) {
-      // Parameter segment; extract the value.
+      // Extract the parameter segment value.
       params[patternPart.slice(1)] = decodeRoutePart(pathPart)
     } else if (patternPart !== pathPart) {
       // Static segments do not match.
@@ -135,7 +140,7 @@ const matchRoute = (
 }
 
 /**
- * RouterProvider component that provides the routing context to its children.
+ * RouterProvider provides the routing context to its children.
  *
  * @param children - The child components.
  * @param path - The current path.
@@ -171,7 +176,7 @@ export const RouterProvider: FC<{
 }
 
 /**
- * Router component that initializes the router context.
+ * Router initializes the router context.
  * This is a convenience wrapper around RouterProvider.
  */
 export const Router: FC<{
@@ -187,12 +192,12 @@ export const Router: FC<{
 }
 
 /**
- * Type definition for Route properties.
+ * RouteProps defines Route properties.
  */
 interface RouteProps {
-  /** The path pattern for this route */
+  /** path defines the path pattern for this route. */
   path: string
-  /** The children to render when this route matches */
+  /** children contains the children to render when this route matches. */
   children: ReactNode
 }
 
@@ -217,7 +222,7 @@ function collectRoutes(children: ReactNode): ReactElement<RouteProps>[] {
 }
 
 /**
- * Routes component that renders the first child Route that matches the current path.
+ * Routes renders the first child Route that matches the current path.
  *
  * @param children - An array of Route components.
  */
@@ -256,7 +261,7 @@ export const Routes: FC<{
     }
   }
 
-  return null // No route matched; render nothing or a 'Not Found' component.
+  return null // No route matched. Render nothing or a 'Not Found' component.
 }
 
 // RouteScope provides the router context of one matched route to its children.
@@ -292,7 +297,7 @@ function RouteScope({
 }
 
 /**
- * Route component that defines a route pattern and the children to render.
+ * Route defines a route pattern and the children to render.
  * This component is not rendered directly.
  *
  * @param path - The route pattern.
@@ -304,7 +309,7 @@ export const Route: FC<RouteProps> = () => {
 }
 
 /**
- * Hook to access the routing context.
+ * useRouter is a hook to access the routing context.
  *
  * @returns The RouterContextType object containing path, params, and navigate.
  */
@@ -317,7 +322,7 @@ export const useRouter = (): RouterContextType => {
 }
 
 /**
- * Hook to access the route parameters.
+ * useParams is a hook to access the route parameters.
  *
  * @returns An object containing the route parameters.
  */
@@ -326,7 +331,7 @@ export const useParams = (): Record<string, string> => {
 }
 
 /**
- * Hook to access the current path.
+ * usePath is a hook to access the current path.
  *
  * @returns The current path as a string.
  */
@@ -335,7 +340,7 @@ export const usePath = (): string => {
 }
 
 /**
- * Hook to navigate to a new path.
+ * useNavigate is a hook to navigate to a new path.
  *
  * @returns A function that accepts a path to navigate to.
  */
@@ -344,7 +349,7 @@ export const useNavigate = (): ((to: To) => void) => {
 }
 
 /**
- * Hook to access the parent paths.
+ * useParentPaths is a hook to access the parent paths.
  *
  * @returns Array of parent paths in the routing hierarchy.
  */

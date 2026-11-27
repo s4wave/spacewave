@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-// childEnv names the file a child process writes to.
+// childEnv selects the file a child process writes to.
 const childEnv = "S4DB_TEST_CHILD"
 
-// churnEnv names the file a child process churns for the race test.
+// churnEnv selects the file a child process churns for the race test.
 const churnEnv = "S4DB_TEST_CHURN"
 
 // childKeys is the number of keys each process writes.
@@ -26,8 +26,8 @@ const childKeys = 400
 // spareKeys bounds the metadata transaction used to force a one-chunk rollover.
 const spareKeys = 400
 
-// processSpareKey has the maximum legal length, so three bounded transactions
-// fill a log extent without allocating large user values.
+// processSpareKey returns a key with the maximum legal length, so three bounded
+// transactions fill a log extent without allocating large user values.
 func processSpareKey(i int) []byte {
 	key := bytes.Repeat([]byte("s"), MaxKeySize)
 	copy(key, fmt.Appendf(nil, "standby/%06d/", i))
@@ -36,7 +36,7 @@ func processSpareKey(i int) []byte {
 
 // TestMain runs the child the environment selects in place of the tests.
 func TestMain(m *testing.M) {
-	// Run the child, if this is one.
+	// Run the child, if the environment selects a child process.
 	if path := os.Getenv(childEnv); path != "" {
 		if err := runChild(path); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -193,7 +193,7 @@ func TestTwoProcesses(t *testing.T) {
 	}
 	db = openTest(t, path, Options{ReadOnly: true, memtable: opts.memtable})
 
-	// Start the child writing to it.
+	// Start the child writing to the file.
 	cmd := exec.Command(os.Args[0], "-test.run=^$")
 	cmd.Env = append(os.Environ(), childEnv+"="+path)
 	var out bytes.Buffer
@@ -317,7 +317,7 @@ func TestReadOnly(t *testing.T) {
 	db = openTest(t, path, Options{ReadOnly: true})
 	defer db.Close()
 
-	// The key reads; a write is refused.
+	// The key reads. A write is refused.
 	model{"k": []byte("v")}.check(t, db)
 	if _, err := db.NewTransaction(ctx, true); !errors.Is(err, ErrReadOnly) {
 		t.Fatalf("write on read-only handle returned %v", err)

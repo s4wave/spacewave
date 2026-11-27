@@ -33,7 +33,7 @@ import (
 
 // newEngineTestbed starts a storage testbed with the World engine factory. It
 // returns a function that starts the test World engine, which keeps a
-// changelog when enableChangelog is set; each edit then adjusts its config.
+// changelog when enableChangelog is set. Each edit then adjusts its config.
 func newEngineTestbed(
 	t *testing.T,
 ) (context.Context, *logrus.Entry, *testbed.Testbed, func(enableChangelog bool, edits ...func(*world_block_engine.Config)) (*world.BusEngine, func())) {
@@ -203,7 +203,7 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	waitWriteAcquired(t, blockedTx, blockedErr, "external lease release").Discard()
 
 	// A commit against a root another writer swapped underneath the
-	// transaction is superseded; then restore the original head.
+	// transaction is superseded. Then restore the original head.
 	baseHead := blockEngine(ctx, t, writerEngine).GetRootRef()
 	staleTx := createObjectTx(ctx, t, writerEngine, "coordinator-stale-head-object")
 	writeRawRoot(ctx, t, tb, rootName, nil)
@@ -486,7 +486,7 @@ func waitRootPublished(ctx context.Context, t *testing.T, watch coord.Watch, roo
 }
 
 // readObjectsFound reads the engine's seqno and reports whether every key
-// names an existing object, in one read transaction.
+// references an existing object, in one read transaction.
 func readObjectsFound(ctx context.Context, t *testing.T, eng world.Engine, keys ...string) (uint64, bool) {
 	// Open the read transaction and read its seqno.
 	t.Helper()
@@ -621,7 +621,9 @@ func TestWorldEngineWatchReload(t *testing.T) {
 
 	// Start a new routine which watches the world seqno.
 	//
-	// We expect the seqno to increase, first when we write to the world, second when we restart the controller with a different head ref.
+	// The seqno is expected to increase, first when the test writes to the
+	// world, second when the test restarts the controller with a different
+	// head ref.
 	currSeqno := ccontainer.NewCContainer(uint64(0))
 	errCh := make(chan error, 1)
 	go func() {
@@ -692,10 +694,11 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Now we will modify the world state without telling the controller,
-	// Then apply a configset with a higher revision for that controller ID.
-	// This will shut down the world engine controller and start a new one.
-	// Hopefully the BusEngine above will retrieve this new engine handle.
+	// Now modify the world state without telling the controller,
+	// then apply a configset with a higher revision for that controller ID.
+	// The configset will shut down the world engine controller and start a
+	// new one. Hopefully the BusEngine above will retrieve the new engine
+	// handle.
 
 	// Retrieve the current object ref from the world engine.
 	var worldObjRefFirstWrite *bucket.ObjectRef
@@ -722,7 +725,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	rootRefFirstWrite := objRef.CloneVT()
 	le.Infof("got world root ref after first write: %v", rootRefFirstWrite.MarshalB58())
 
-	// Access
+	// Access the World state.
 	var rootRefSecondWrite *block.BlockRef
 	if err := func() error {
 		// Open the raw bucket transaction and decode its World block.

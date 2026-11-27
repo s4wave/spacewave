@@ -16,7 +16,7 @@ import (
 )
 
 // AttachEngine mounts a granted engine as a Resource service for a private host.
-// Its caller owns the RPC context; cancel and join that context before release.
+// Its caller owns the RPC context. Cancel and join that context before release.
 // Releasing the mount leaves the caller's engine usable.
 func AttachEngine(le *logrus.Entry, b bus.Bus, engine world.Engine) (srpc.Invoker, func(), error) {
 	root := resource_world.NewEngineResource(le, b, engine, lookupOp, &sdk_world.EngineInfo{})

@@ -6,7 +6,7 @@ import "time"
 type PackInfo struct {
 	// Seq orders the pack among the Log's packs, oldest first.
 	Seq uint64
-	// ID names the pack.
+	// ID identifies the pack.
 	ID string
 	// Path is the pack's file.
 	Path string

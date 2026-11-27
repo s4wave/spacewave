@@ -28,7 +28,7 @@ type AssetHrefArgs struct {
 // BuildFlagSet builds the set of flags for the args.
 func (a *AssetHrefArgs) BuildFlagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet(AssetHrefTag, flag.ContinueOnError)
-	// NOTE: currently we do not add any extra flags
+	// NOTE: The flag set has no extra flags.
 	return fs
 }
 
@@ -40,7 +40,7 @@ func TrimAssetHrefArgs(value string) (string, bool) {
 
 // ParseAssetHrefComments parses the bldr:asset:ref comments for a variable.
 //
-// If no bldr:asset:href prefix is found, returns nil, false, nil
+// If no bldr:asset:href prefix is found, returns nil, false, nil.
 func ParseAssetHrefComments(values []string, spec *ast.ValueSpec) (*AssetHrefArgs, bool, error) {
 	// Parse the asset URL directive arguments from the variable comments.
 	args, found, err := CombineShellComments(AssetHrefTag, values)
@@ -80,8 +80,9 @@ func (a *Analysis) FindAssetHrefVariables(codeFiles map[string][]*ast.File) (map
 }
 
 // BuildDefAssetHrefs builds the list of go variable defs for the given code files.
-// This processes variables marked with bldr:asset:href comments to generate URLs to assets.
-// Unlike BuildDefAssets, this doesn't copy files but just creates references to existing assets.
+// This processes variables marked with bldr:asset:href comments to generate
+// URLs to assets. Unlike BuildDefAssets, this doesn't copy files but creates
+// references to existing assets.
 func BuildDefAssetHrefs(
 	le *logrus.Entry,
 	codeFiles map[string][]*ast.File,

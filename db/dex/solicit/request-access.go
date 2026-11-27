@@ -13,7 +13,7 @@ import (
 type RequestAuthorizer func(context.Context, *Config, peer.ID) (RequestAccess, error)
 
 // RequestAccess retains the source of authority for one incoming request.
-// Check and WaitRevoked may run concurrently; both finish before Release.
+// Check and WaitRevoked may run concurrently, but both finish before Release.
 type RequestAccess interface {
 	// Check rejects a request when its peer no longer has read authority.
 	Check() error

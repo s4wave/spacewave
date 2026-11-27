@@ -72,7 +72,7 @@ func openNamedStage(ctx context.Context, journal *uploadJournal, dir *os.Root, d
 	}
 	recorded = true
 
-	// Claim the payload exclusively before marking it as ours.
+	// Claim the payload exclusively before marking it as the publisher's.
 	file, err := dir.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return nil, err

@@ -14,7 +14,7 @@ declare global {
   var __swStaticHandoffLinks: boolean | undefined
 }
 
-// Wraps a component the same way hydrate.tsx does for static pages.
+// StaticTree wraps a component the same way hydrate.tsx does for static pages.
 function StaticTree({
   path,
   children,

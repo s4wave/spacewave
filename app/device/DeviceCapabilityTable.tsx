@@ -36,7 +36,7 @@ const capabilityColumns: TableColumn<DeviceCapability>[] = [
 // section row with their count, as a table that stops at 30rem so a row
 // reads from its name to its state across a wide pane. Opening rows calls
 // onOpenCapability with the first opened capability, and the caller opens
-// what that capability's kind serves; rows it cannot open only select.
+// what that capability's kind serves. Rows the caller cannot open only select.
 export function DeviceCapabilityTable({
   capabilities,
   onOpenCapability,
@@ -46,7 +46,7 @@ export function DeviceCapabilityTable({
   onOpenCapability?: (capability: DeviceCapability) => void
   onBrowse?: (capability: DeviceCapability) => void
 }) {
-  // The table's selection and sort, kept with the viewer.
+  // Keep the table's selection and sort with the viewer.
   const state = useListState(null, 'deviceCapabilities', {
     sortKey: 'capability',
     sortDirection: 'asc',
@@ -137,7 +137,7 @@ function browseColumns(
   ]
 }
 
-// formatCapabilityState names a capability state as the table shows it.
+// formatCapabilityState formats a capability state as the table shows it.
 function formatCapabilityState(state?: DeviceCapabilityState): string {
   switch (state) {
     case DeviceCapabilityState.DECLARED:

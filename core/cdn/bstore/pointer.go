@@ -79,10 +79,10 @@ type RootPointerFetcher struct {
 
 	// mtx guards etag and pointer.
 	mtx sync.Mutex
-	// etag is the validator of the response that produced pointer; empty when
-	// the origin sent none or nothing has been fetched.
+	// etag is the validator of the response that produced pointer. Empty
+	// when the origin sent none or nothing has been fetched.
 	etag string
-	// pointer is the last decoded pointer; callers receive clones of it.
+	// pointer is the last decoded pointer. Callers receive clones of it.
 	pointer *cdn.CdnRootPointer
 }
 

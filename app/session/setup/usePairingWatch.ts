@@ -11,8 +11,8 @@ type PairingOutcome =
   | { kind: 'failure'; message: string }
 
 // awaitPairingOutcome reads the pairing status stream until a peer connects.
-// With reportFailures it also ends on a signaling or pairing failure. It
-// returns null when the stream ends first.
+// With reportFailures the function also ends on a signaling or pairing failure.
+// The function returns null when the stream ends first.
 async function awaitPairingOutcome(
   session: Session,
   signal: AbortSignal,

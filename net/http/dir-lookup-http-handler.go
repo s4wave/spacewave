@@ -32,7 +32,7 @@ type LookupHTTPHandler interface {
 // Multiple results may be pushed to the directive.
 type LookupHTTPHandlerValue = http.Handler
 
-// lookupHTTPHandler implements LookupHTTPHandler
+// lookupHTTPHandler implements LookupHTTPHandler.
 type lookupHTTPHandler struct {
 	handlerMethod string
 	handlerURL    *url.URL
@@ -105,7 +105,7 @@ func (d *lookupHTTPHandler) Validate() error {
 	return nil
 }
 
-// GetValueLookupHTTPHandlerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupHTTPHandler) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Millisecond * 250,

@@ -48,7 +48,7 @@ func (readStubWorldState) AccessWorldState(_ context.Context, _ *bucket.ObjectRe
 
 // countingBodyBatcher counts native object body batch reads.
 type countingBodyBatcher struct {
-	// WorldState is unused; the batch method supplies the bodies.
+	// WorldState is unused. The batch method supplies the bodies.
 	WorldState
 	// calls counts native batch reads.
 	calls int
@@ -168,7 +168,7 @@ func TestReadSetGraphPath(t *testing.T) {
 }
 
 // TestReadSetStorageReads checks that only a read of the root World state
-// touches every change. Blocks named by a ref never change.
+// touches every change. Blocks identified by a ref never change.
 func TestReadSetStorageReads(t *testing.T) {
 	// Prepare an unrelated change and an empty cursor callback.
 	ctx := t.Context()
@@ -238,7 +238,7 @@ func TestReadSetKeepsObjectBodyBatch(t *testing.T) {
 		}
 	}
 
-	// A change to a read key touches the set; an unread key does not.
+	// A change to a read key touches the set. An unread key does not.
 	if !reads.Touched(&ChangeSet{Keys: []string{"read/b"}}) {
 		t.Error("a change to a read key did not touch the ReadSet")
 	}
@@ -250,7 +250,7 @@ func TestReadSetKeepsObjectBodyBatch(t *testing.T) {
 // TestReadSetTouchedMemo checks that a cached answer for a ChangeSet does not
 // outlive a later recorded read.
 func TestReadSetTouchedMemo(t *testing.T) {
-	// Test the same ChangeSet twice against an empty set; the second answer
+	// Test the same ChangeSet twice against an empty set. The second answer
 	// comes from the memo.
 	set := NewReadSet()
 	changes := &ChangeSet{Keys: []string{"a"}}
@@ -293,8 +293,8 @@ func TestReadSetJoin(t *testing.T) {
 		t.Error("change to an unread key touched the outer set")
 	}
 
-	// A change index holding the outer set names every joined read, without
-	// the outer set copying them.
+	// A change index holding the outer set indexes every joined read,
+	// without the outer set copying them.
 	x := NewChangeIndex[string]()
 	x.Add("outer", &ChangeInterest{shared: []*ReadSet{outer}})
 	for _, key := range []string{"inner", "middle"} {

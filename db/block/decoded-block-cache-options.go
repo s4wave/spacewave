@@ -19,7 +19,7 @@ func DefaultDecodedBlockCacheOptions() DecodedBlockCacheOptions {
 	return DecodedBlockCacheOptions{MaxCost: DefaultDecodedBlockCacheMaxCost}
 }
 
-// normalize fills zero fields with the defaults.
+// normalize fills zero fields with the default values.
 func (o DecodedBlockCacheOptions) normalize() DecodedBlockCacheOptions {
 	if o.MaxCost == 0 {
 		o.MaxCost = DefaultDecodedBlockCacheMaxCost

@@ -84,7 +84,7 @@ func (t *pluginInstance) serveAssets(ctx context.Context, args *executePluginArg
 		worker = next
 	}
 
-	// The files serve no capability registration to wait for: they are ready
+	// The files have no capability registration to wait for: they are ready
 	// once admitted.
 	t.stopStartupWaitBudget()
 	t.settleAdmitted(ctx, worker)

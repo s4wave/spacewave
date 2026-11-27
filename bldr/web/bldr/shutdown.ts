@@ -7,8 +7,8 @@ export type DisposeCallback = () => void
 // window is the global scope.
 declare let window: Window
 
-// addShutdownCallback attempts to add a callback when the context closes.
-// returns a function to remove the callback.
+// addShutdownCallback tries to add a callback when the context closes.
+// addShutdownCallback returns a function to remove the callback.
 export function addShutdownCallback(
   cb: ShutdownCallback,
 ): DisposeCallback | null {
@@ -23,6 +23,6 @@ export function addShutdownCallback(
     }
   }
 
-  // no way to add a shutdown callback, return nothing.
+  // Return nothing when the context cannot register a shutdown callback.
   return null
 }

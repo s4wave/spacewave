@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// scaleKeys is the smaller file's key count; the larger holds ten times as
+// scaleKeys is the smaller file's key count. The larger holds ten times as
 // many.
 const scaleKeys = 20_000
 
@@ -25,8 +25,8 @@ const scaleRunBytes = 16 << 10
 // scaleCalls is the calls of an entry point one measurement times.
 const scaleCalls = 400
 
-// scaleTrials is the measurements taken of each entry point; the fastest
-// counts, since other work on the host only slows a trial.
+// scaleTrials is the measurements taken of each entry point. The fastest
+// measurement counts, since other work on the host only slows a trial.
 const scaleTrials = 7
 
 // readCounter counts the reads a database makes of its file.

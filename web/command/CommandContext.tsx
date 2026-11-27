@@ -258,7 +258,7 @@ const emptyCommandContext: CommandContextValue = {
 }
 
 // useCommandContext returns the command context value, or a no-op
-// default if no CommandProvider is present in the tree.
+// default context value if no CommandProvider is present in the tree.
 export function useCommandContext(): CommandContextValue {
   return use(CommandContext) ?? emptyCommandContext
 }

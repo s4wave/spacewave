@@ -13,7 +13,7 @@ message Config {
   // Folder is the absolute path of the folder on the Device.
   string folder = 3;
   // Path is the path in the Drive the folder links to, with its parts
-  // separated by slashes; empty links the folder at the Drive's root.
+  // separated by slashes. An empty Path links the folder at the Drive's root.
   string path = 4;
   // TwoWay also applies the changes others make to the Drive to the folder:
   // a member's write reaches the file, a write that meets an edit on disk

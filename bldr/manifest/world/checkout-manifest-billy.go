@@ -17,7 +17,7 @@ import (
 // CheckoutManifestToBilly checks out the manifest to a billy filesystem.
 //
 // If either of the filesystems are nil, they will be skipped.
-// If manifestRef is nil, will use the reference defaulted to by accessFunc.
+// If manifestRef is nil, the function uses accessFunc's default reference.
 func CheckoutManifestToBilly(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -13,10 +13,10 @@ import (
 //
 // An operation applied to it reads the blocks its locked apply will read, so
 // the locked apply finds them in the store's cache. Its writes stay in the
-// fork's buffer until the buffer fills; a rehearsal too large for it drains
-// early under a stage the fork holds until Discard, as a write transaction
-// does. Commit folds the writes into the World tree, reading the pages the
-// locked commit reads, then discards the fork and returns
+// fork's buffer until the buffer fills. A rehearsal too large for the buffer
+// drains early under a stage the fork holds until Discard, as a write
+// transaction does. Commit folds the writes into the World tree, reading the
+// pages the locked commit reads, then discards the fork and returns
 // world.ErrRehearsalCommit. The fork's result is advisory: the locked write
 // applies the operation again on the head its turn starts from.
 func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
@@ -52,7 +52,7 @@ func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) 
 	}
 
 	// Open the stage an early drain writes under, and buffer every write
-	// over it, recording them so Discard releases them.
+	// over the stage, recording the writes so Discard releases them.
 	staged, releaseStage, err := block.OpenStage(ctx, e.writeBlockStore)
 	if err != nil {
 		if private != nil {

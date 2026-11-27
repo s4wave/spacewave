@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import { useLatestRef } from '@aptre/bldr-react'
 import { RouterProvider, type To } from './router.js'
 
-// Maximum number of history entries to keep
+// MAX_HISTORY_SIZE limits the number of history entries to keep.
 const MAX_HISTORY_SIZE = 50
 
 // HistoryState holds the navigation history stack and current position.
@@ -98,12 +98,12 @@ export function HistoryRouter({
   path,
   onNavigate,
 }: HistoryRouterProps) {
-  // Use ref to track history state to avoid re-renders on history changes
+  // Use a ref to track history state to avoid re-renders on history changes.
   const historyRef = useRef<HistoryState>({ stack: [path], index: 0 })
   const flowEntriesRef = useRef(new Map<string, string>())
-  // Track the last path we saw to detect external navigation
+  // Track the last observed path to detect external navigation.
   const lastPathRef = useRef(path)
-  // Flag to skip pushing when doing history navigation
+  // Use a flag to skip pushing history entries during history navigation.
   const isHistoryNavRef = useRef(false)
   const onNavigateRef = useLatestRef(onNavigate)
 

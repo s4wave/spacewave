@@ -11,8 +11,8 @@ import (
 // LeaveSharedObject removes this account from a cloud shared object. The
 // calling session must be an owner: it removes the account's other sessions,
 // then transfers ownership to successor, or to the default successor when
-// empty, in a change carrying its own leave consent. It returns once the
-// transfer commits; the successor's session commits the departure.
+// successor is empty, in a change carrying its own leave consent. It returns
+// once the transfer commits. The successor's session commits the departure.
 //
 // The successor must belong to another account. With no other account the
 // object would stay billed to an account that can no longer open it, so the

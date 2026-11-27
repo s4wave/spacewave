@@ -15,7 +15,7 @@ type Platform interface {
 	// There should be exactly one representation of the platform ID possible.
 	GetPlatformID() string
 	// GetBasePlatformID returns the base platform identifier w/o arch specifics.
-	// Values: PlatformID_DESKTOP and PlatformID_JS
+	// Values: PlatformID_DESKTOP and PlatformID_JS.
 	GetBasePlatformID() string
 	// GetExecutableExt returns the extension used for executables. May be empty.
 	GetExecutableExt() string

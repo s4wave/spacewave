@@ -7,7 +7,7 @@ const viteConfig = 'vite.config.ts'
 /**
  * serveFixture serves one fixture module through the website's own Vite
  * configuration, so the page gets the production stylesheet, fonts and
- * module resolution. The page is at the returned url; close the server when
+ * module resolution. The page is at the returned url. Close the server when
  * done.
  */
 export async function serveFixture(entry: string) {

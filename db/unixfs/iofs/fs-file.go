@@ -21,9 +21,9 @@ type IoFSFile interface {
 
 // FSFile implements the fs.File interface.
 type FSFile struct {
-	// ctx is the context for ops
+	// ctx is the context for ops.
 	ctx context.Context
-	// handle is the fs handle
+	// handle is the fs handle.
 	handle *unixfs.FSHandle
 	// idx is the current file index
 	// note: concurrent read() calls have undefined behavior.
@@ -32,7 +32,7 @@ type FSFile struct {
 	idx atomic.Int64
 }
 
-// NewFS constructs a new fs.FS from a FSHandle.
+// NewFSFile constructs a new fs.FS from a FSHandle.
 //
 // Returns nil if handle == nil.
 func NewFSFile(ctx context.Context, handle *unixfs.FSHandle) *FSFile {

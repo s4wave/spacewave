@@ -68,7 +68,8 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 	}
 	cancel()
 
-	// Removal alone cannot stop that execution; the derived context must end first.
+	// Removal alone cannot stop that execution. The derived context must
+	// end first.
 
 	// Assert the runtime execution stopped with cancellation.
 	select {

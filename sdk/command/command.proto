@@ -40,7 +40,7 @@ message KeyCombo {
 
 // KeySequence stores ordered key steps.
 message KeySequence {
-  // Steps are canonical key step strings; "Leader" is the virtual leader step.
+  // Steps are canonical key step strings. "Leader" is the virtual leader step.
   repeated string steps = 1;
 }
 

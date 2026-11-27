@@ -57,7 +57,7 @@ message LauncherInfo {
 // DaemonUpdateWait reports the work keeping an accepted daemon update from
 // its handoff. The desktop shell is not counted: the handoff reopens it.
 message DaemonUpdateWait {
-  // OtherWork names the clients and services besides the desktop, sorted,
+  // OtherWork lists the clients and services besides the desktop, sorted,
   // with a count suffix on a repeated name.
   repeated string other_work = 1;
   // RestartNow asks the daemon to hand off without waiting for other work.
@@ -70,7 +70,7 @@ message FetchStatus {
   // Fetching is true while an endpoint fetch is in flight.
   bool fetching = 1;
   // HasConfig is true once the launcher selected a non-empty DistConfig from
-  // storage, the package, the built-in default, or an endpoint.
+  // storage, the package, the built-in default config, or an endpoint.
   bool has_config = 2;
   // SelectedConfigRev is the revision of the selected DistConfig.
   uint64 selected_config_rev = 3;
@@ -134,7 +134,7 @@ enum DistConfigSource {
   // DIST_CONFIG_SOURCE_PACKAGE means the config came from the app package.
   DIST_CONFIG_SOURCE_PACKAGE = 3;
   // DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT means the config came from the
-  // default built into the launcher.
+  // default config built into the launcher.
   DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT = 4;
   // DIST_CONFIG_SOURCE_ENDPOINT means the config came from a dist endpoint.
   DIST_CONFIG_SOURCE_ENDPOINT = 5;
@@ -230,7 +230,7 @@ service Launcher {
 message ReportDaemonUpdateWaitRequest {
   // Selection is the APPLYING state observed by the serving daemon.
   UpdateState selection = 1;
-  // OtherWork names the clients and services besides the desktop, sorted,
+  // OtherWork lists the clients and services besides the desktop, sorted,
   // with a count suffix on a repeated name.
   repeated string other_work = 2;
 }
@@ -288,7 +288,7 @@ message WatchLauncherInfoRequest {
 // PushDistConfigRequest is the request to push an app dist config signed message.
 message PushDistConfigRequest {
   // Body is the block of text containing the packedmsg.
-  // We will scan the body of message for a valid signed packedmsg.
+  // The message body is scanned for a valid signed packedmsg.
   string body = 1;
 }
 

@@ -3,7 +3,7 @@ import type { ITheme } from '@xterm/xterm'
 // Terminal visuals derive from the Spacewave design tokens so the console reads
 // as part of the warm app canvas rather than a stock zinc-cold xterm. xterm
 // cannot parse the oklch() token strings, so the surface colors are resolved to
-// the browser-computed rgb() form at mount from the live document; the literal
+// the browser-computed rgb() form at mount from the live document. The literal
 // fallbacks keep a coherent warm palette when the tokens are absent (jsdom or
 // happy-dom unit runs that do not load app.css).
 
@@ -16,13 +16,14 @@ const FALLBACK_BACKGROUND = '#0c0b0b'
 const FALLBACK_FOREGROUND = '#e1dddd'
 const FALLBACK_BRAND = '#ff9ea5'
 
-// ANSI 16-color palette tuned for the warm near-black canvas. Hue semantics stay
-// conventional (red is red, green is green) but lightness and saturation are
-// pulled toward the app's warm red-pink and violet accents: reds sit on the
-// brand/error hue, magenta borrows the app violet, blue and cyan are cooled only
-// enough to stay legible, and the normal set holds mid lightness so it reads on
-// #0c0b0b while the bright set lifts lightness for emphasis. These are not design
-// tokens, so they live as literals rather than resolved custom properties.
+// ANSI_PALETTE is a 16-color ANSI palette tuned for the warm near-black canvas.
+// Hue semantics stay conventional (red is red, green is green) but lightness
+// and saturation are pulled toward the app's warm red-pink and violet accents:
+// reds sit on the brand/error hue, magenta borrows the app violet, blue and
+// cyan are cooled only enough to stay legible, and the normal set has mid
+// lightness so it reads on #0c0b0b while the bright set lifts lightness for
+// emphasis. The palette colors are not design tokens, so they live as literals
+// rather than resolved custom properties.
 const ANSI_PALETTE = {
   black: '#3b3536',
   red: '#ff8f8f',
@@ -45,8 +46,8 @@ const ANSI_PALETTE = {
 // normalizeColor resolves any CSS color (including an oklch() token) to the
 // concrete rgb() form xterm accepts, by rasterizing one pixel and reading it
 // back. getComputedStyle and canvas fillStyle both keep oklch() tokens in oklch
-// form, and xterm cannot parse those, so this pixel readback is the load-bearing
-// conversion (it is also how xterm normalizes its own theme colors).
+// form, and xterm cannot parse those, so the pixel readback converts the colors
+// (xterm also uses pixel readback to normalize its own theme colors).
 function normalizeColor(input: string): string {
   if (typeof document === 'undefined') return input
   const canvas = document.createElement('canvas')

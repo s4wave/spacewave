@@ -163,7 +163,7 @@ class RemoteResourceClient {
   released = false
   resources = new Map<number, TrackedResource>()
   attachedResources = new Map<number, AttachedResource>()
-  // Tombstones retain every released ID until this immutable generation ends
+  // tombstones retains every released ID until this immutable generation ends
   // so a late Adopt cannot revive or miss the matching release notification.
   readonly tombstones = new Set<number>()
   private retainedRootResourceID: number | undefined

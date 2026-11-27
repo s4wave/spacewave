@@ -85,7 +85,8 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 		t.Fatalf("desktop Sessions = %v, want CLI entry %v", entries, entry)
 	}
 
-	// Persist a desktop change, then reopen it through a fresh native CLI bus.
+	// Persist a desktop change, then reopen the catalog through a fresh
+	// native CLI bus.
 	if err := distSessions.UpdateSessionMetadata(ctx, ref, &session.SessionMetadata{DisplayName: "Desktop Session"}); err != nil {
 		t.Fatal(err)
 	}

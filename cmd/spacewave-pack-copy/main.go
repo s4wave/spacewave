@@ -16,7 +16,7 @@ import (
 	"github.com/aperturerobotics/cli"
 )
 
-// main runs the command the arguments name.
+// main runs the command the arguments select.
 func main() {
 	// Describe the commands.
 	args, sample := &Args{}, &sampleArgs{}
@@ -38,7 +38,7 @@ func main() {
 		},
 	}
 
-	// Run the one named.
+	// Run the selected command.
 	if err := app.Run(os.Args); err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)

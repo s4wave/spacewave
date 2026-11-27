@@ -40,7 +40,7 @@ func (c *SessionClient) GetFriendDM(
 
 // CreateFriendDMWithState publishes complete signed initial state through the
 // reserved friend-DM route. The route re-authorizes the friendship and
-// derives the canonical SharedObject ID; callers must handle a 409 by
+// derives the canonical SharedObject ID. Callers must handle a 409 by
 // reloading GetFriendDM.
 func (c *SessionClient) CreateFriendDMWithState(
 	ctx context.Context,

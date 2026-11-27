@@ -58,7 +58,7 @@ export function useStateAtomResource<T>(
     (update: T | ((prev: T) => T)) => {
       if (!stateAtom) return
 
-      // Get the new value - for updater functions, we need current value
+      // Get the new value. Updater functions need the current value.
       const newValue =
         typeof update === 'function'
           ? (update as (prev: T) => T)(currentValue)

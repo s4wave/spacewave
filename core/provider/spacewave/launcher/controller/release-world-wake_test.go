@@ -61,7 +61,7 @@ func TestReleaseMetadataRoutineWakesMountOnEmptySpace(t *testing.T) {
 	}
 	defer relMount()
 
-	// Start the launcher's routine; it asks the empty mount to fetch.
+	// Start the launcher's routine. It asks the empty mount to fetch.
 	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
 	defer ctrl.releaseMetadataRoutine.ClearContext()

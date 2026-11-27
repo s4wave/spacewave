@@ -69,8 +69,8 @@ const fixtures: Record<string, FactRowProps[]> = {
     { label: 'Path', value: 'src/some-very-long-file-name.tsx' },
     { label: 'Peer ID', value: peerId },
   ],
-  // tight holds the same rows in a 6rem list, below that least, where an id
-  // is starved but still marks its cut with an ellipsis.
+  // tight holds the same rows in a 6rem list, below that minimum width, where
+  // an id is starved but still marks its cut with an ellipsis.
   tight: [
     { label: 'Short', value: 'abcdefghij' },
     { label: 'Type ID', value: 'git/repo-with-a-long-name' },
@@ -81,7 +81,8 @@ const fixtures: Record<string, FactRowProps[]> = {
 
 // FactListDebug renders FactRows in one fixture state inside a viewer pane,
 // with the viewport as the pane, for the viewer sweep. The route's state
-// segment picks the fixture; an unknown or missing one shows the ids.
+// segment picks the fixture. An unknown or missing state segment shows the
+// ids fixture.
 export function FactListDebug() {
   const { state: name } = useParams()
   const rows = fixtures[name ?? ''] ?? fixtures.ids

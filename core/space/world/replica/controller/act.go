@@ -12,8 +12,9 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
-// act takes step. It keeps this node's invite only while it invites and its
-// proof only while it serves one, so the other node never acts on a stale one.
+// act takes step. It keeps this node's invite only while the node invites and
+// its proof only while the node serves one, so the other node never acts on a
+// stale invite or proof.
 func (r *reconciler) act(ctx context.Context, step space_world_replica.ReplicaStep, obs *space_world_replica.Observation) error {
 	// Drop what the step no longer serves.
 	state := r.c.getState()

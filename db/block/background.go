@@ -112,7 +112,7 @@ func ReadClassOf(ctx context.Context) ReadClass {
 	return demand.class
 }
 
-// isClosed reports whether ch is closed; a nil channel is not.
+// isClosed reports whether ch is closed. A nil channel is not.
 func isClosed(ch <-chan struct{}) bool {
 	if ch == nil {
 		return false
@@ -148,15 +148,15 @@ func Raised(ctx context.Context) <-chan struct{} {
 
 // WithBackground marks reads and writes as background work.
 // Use it for fills and bookkeeping whose result a later pass can redo.
-// Keep each writer hold bounded; the marker cannot bound caller bodies or I/O.
+// Keep each writer hold bounded: the marker cannot bound caller bodies or I/O.
 //
 // Native s4db admits a finite cohort of queued foreground writers, then one
 // shared background slice, including marked optimistic commits and internal
 // slices. A foreground head encounters at most one background slice total,
 // including a slice already running. Background progresses under continuing
-// foreground arrivals. This gives no finite wall-clock bound on caller bodies,
-// storage, scheduling or existing memtable backpressure.
-// Bolt and SQLite instead serve every queued foreground writer first;
+// foreground arrivals. This scheduling gives no finite wall-clock bound on
+// caller bodies, storage, scheduling or existing memtable backpressure.
+// Bolt and SQLite instead serve every queued foreground writer first, so
 // their background writes may wait indefinitely under steady foreground load.
 // Stores without background scheduling ignore the mark.
 //

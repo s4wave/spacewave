@@ -103,8 +103,8 @@ function updateProgressLabel(
   )
 }
 
-// PHASE_DOT_COLOR and PHASE_LABEL_COLOR map each boot phase state to the
-// static shell's dot background and label color.
+// PHASE_DOT_COLOR maps each boot phase state to the static shell's dot
+// background, and PHASE_LABEL_COLOR maps each state to the label color.
 const PHASE_DOT_COLOR: Record<BrowserStartupPhaseState, string> = {
   error: 'var(--color-destructive,#ef4444)',
   pending: 'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)',

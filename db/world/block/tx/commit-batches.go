@@ -13,13 +13,13 @@ import (
 //
 // Each round runs apply on a fresh write transaction wrapped in a
 // BudgetWorldState. When apply returns ErrBatchFull the round is committed and
-// apply runs again on the next transaction; when it returns nil the final round
-// is committed. Any other error discards the current round and returns, leaving
-// the earlier rounds committed.
+// apply runs again on the next transaction. When apply returns nil the final
+// round is committed. Any other error discards the current round and returns,
+// leaving the earlier rounds committed.
 //
 // apply must be resumable: it sees the earlier rounds and does only the work
-// they did not finish, as a directory sync does. Each round applies at least one
-// operation, so a resumable apply makes progress.
+// they did not finish, as a directory sync does. Each round applies at least
+// one operation, so a resumable apply makes progress.
 func CommitBatches(
 	ctx context.Context,
 	eng world.Engine,
@@ -49,7 +49,8 @@ func commitBatch(
 	}
 	defer tx.Discard()
 
-	// Apply until done or full; only a full batch continues in the next round.
+	// Apply until done or full. Only a full batch continues in the next
+	// round.
 	err = apply(ctx, NewBudgetWorldState(tx, budget))
 	batchFull := errors.Is(err, ErrBatchFull)
 	if err != nil && !batchFull {

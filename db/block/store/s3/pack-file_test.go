@@ -35,11 +35,11 @@ func (r *countingRemote) PutPackFile(ctx context.Context, id string, data []byte
 
 // TestPackStoreDrain drains packs a packahead Log finalized into an indexed
 // store. An upload that fails evicts nothing and the values stay readable
-// from the Log; a drain uploads each pack as it is, a second upload changes
-// nothing, and past its budget it evicts the uploaded packs, whose blocks a
-// store that only lists the bucket reads back with their refs; UploadedBefore
-// holds only once the values written before its time are uploaded; and a
-// drain of a Log whose packs the store holds uploads none again.
+// from the Log. A drain uploads each pack as it is. A second upload changes
+// nothing. Past its budget, the drain evicts the uploaded packs. A store that
+// only lists the bucket reads those blocks back with their refs.
+// UploadedBefore holds only once the values written before its time are
+// uploaded. A drain of a Log whose packs the store holds uploads none again.
 func TestPackStoreDrain(t *testing.T) {
 	// Keep the same directory when reopening the Log.
 	ctx := t.Context()
@@ -144,7 +144,7 @@ func TestPackStoreDrain(t *testing.T) {
 		}
 	}
 
-	// A second pack drains; past the budget both are evicted.
+	// A second pack drains. Past the budget both are evicted.
 	appendChain(log, 20)
 	later := time.Now()
 	infos = waitPacks(log, 2)

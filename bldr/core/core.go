@@ -42,7 +42,8 @@ func NewCoreBus(
 
 // AddFactories adds factories to an existing static resolver.
 //
-// NOTE: We only add the essential factories here to keep binary sizes low.
+// NOTE: AddFactories only adds the essential factories here to keep binary
+// sizes low.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// Register the core node and bucket lookup factories.
 	sr.AddFactory(node_controller.NewFactory(b))

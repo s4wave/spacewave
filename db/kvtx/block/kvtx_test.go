@@ -79,7 +79,8 @@ func TestSimple(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// buildTx builds a transaction which buffers changes in memory
+		// buildStore builds a transaction which buffers changes in
+		// memory.
 		/*
 			// buffer operations in memory before commit to block graph
 			kvtx_txcache.NewTxWithCbs(ktx, write, nil, func() (kvtx.Tx, error) {

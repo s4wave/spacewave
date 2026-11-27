@@ -117,9 +117,9 @@ func getNodeMode(ctx context.Context, h *unixfs.FSHandle) (uint32, error) {
 		return 0, err
 	}
 
-	// The S_IF* type comes from GetNodeType; mask the FSHandle FileMode to its
-	// permission bits so Go's high type flags (fs.ModeDir = 1<<31, ModeSymlink,
-	// ...) never leak into the wire mode. A polluted root mode wedges the guest
-	// v86fs mount before it issues the first LOOKUP.
+	// The S_IF* type comes from GetNodeType. Mask the FSHandle FileMode to
+	// its permission bits so Go's high type flags (fs.ModeDir = 1<<31,
+	// ModeSymlink, ...) never leak into the wire mode. A polluted root mode
+	// wedges the guest v86fs mount before it issues the first LOOKUP.
 	return mode | uint32(perm.Perm()), nil
 }

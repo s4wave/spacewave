@@ -109,8 +109,8 @@ export function SshHostViewer({
   )
   const pins = state?.hostKeyPins ?? []
 
-  // Until the host arrives, show what is read or why it failed; a stream
-  // that ends without a host offers to read it again.
+  // Until the host arrives, show what is read or why the read failed. A
+  // stream that ends without a host offers to read the host again.
   const readStatus: ViewerStatusProps | null = state
     ? null
     : (resourceStatus('the SSH Host', stateResource) ?? {

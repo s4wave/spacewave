@@ -122,8 +122,9 @@ func (i *Iterator) Value() ([]byte, error) {
 	return i.val, nil
 }
 
-// ValueCopy copies the value to the given byte slice and returns it.
-// If the slice is not big enough (cap), it must create a new one and return it.
+// ValueCopy copies the value to the given byte slice and returns the slice.
+// If the slice is not big enough (cap), ValueCopy must create a new slice and
+// return the new slice.
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
@@ -245,7 +246,8 @@ func (i *Iterator) Seek(k []byte) error {
 		return err
 	}
 
-	// Reset to the root, reusing capacity or allocating after a prefix stop cleared it.
+	// Reset to the root, reusing stack capacity or allocating after a
+	// prefix stop cleared the stack.
 	i.positioned = true
 	i.resetState()
 	i.stack = append(i.stack[:0], stackEntry{node: i.t.root, cursor: i.t.bcs})
@@ -275,7 +277,8 @@ func (i *Iterator) Seek(k []byte) error {
 
 	// Descend toward k, skipping subtrees that cannot hold the target.
 	for len(i.stack) > 0 {
-		// Inspect the next traversal frame before comparing it with the seek target.
+		// Inspect the next traversal frame before comparing the node
+		// key with the seek target.
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
 

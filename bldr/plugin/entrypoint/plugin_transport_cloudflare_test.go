@@ -61,7 +61,7 @@ func TestCloudflarePluginIoOpenStreamRejectsMissingGlobal(t *testing.T) {
 		func(data []byte) error { return nil },
 		func(closeErr error) { closeErrCh <- closeErr },
 	)
-	// NewPushableOpenStream defers the JS invocation to a goroutine; the
+	// NewPushableOpenStream defers the JS invocation to a goroutine, so the
 	// error surfaces asynchronously through the close handler.
 	select {
 	case err := <-closeErrCh:

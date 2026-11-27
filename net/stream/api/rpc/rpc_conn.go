@@ -34,7 +34,7 @@ func NewNetConn(localPeerID, remotePeerID peer.ID, rpc RPC) *NetConn {
 
 // Read reads data from the connection.
 // Read can be made to time out and return an Error with Timeout() == true
-// after a fixed time limit; see SetDeadline and SetReadDeadline.
+// after a fixed time limit. See SetDeadline and SetReadDeadline.
 func (n *NetConn) Read(b []byte) (int, error) {
 	// Complete empty reads without consuming an RPC packet.
 	if len(b) == 0 {
@@ -76,7 +76,7 @@ func (n *NetConn) Read(b []byte) (int, error) {
 
 // Write writes data to the connection.
 // Write can be made to time out and return an Error with Timeout() == true
-// after a fixed time limit; see SetDeadline and SetWriteDeadline.
+// after a fixed time limit. See SetDeadline and SetWriteDeadline.
 func (n *NetConn) Write(b []byte) (nw int, err error) {
 	nw = len(b)
 	err = n.rpc.Send(&Data{

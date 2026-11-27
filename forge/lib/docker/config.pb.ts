@@ -8,15 +8,15 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures the docker CLI exec controller.
- * Creates one container, starts it, waits for completion, and stops it on
- * execution cancellation.
+ * The controller creates one container, starts it, waits for completion, and
+ * stops it on execution cancellation.
  *
  * @generated from message forge.lib.docker.Config
  */
 export interface Config {
   /**
    * DockerPath is the docker CLI executable path.
-   * Defaults to "docker" when empty.
+   * DockerPath defaults to "docker" when empty.
    */
   dockerPath?: string
   /**
@@ -64,7 +64,7 @@ export interface Config {
    * file becomes a blob and a directory a UnixFS tree, whose symbolic links are
    * skipped. A container that writes outputs runs as the Worker's user and
    * group, with each device's group added, so the Worker owns every output.
-   * Required when outputs is set.
+   * OutputDir is required when outputs is set.
    */
   outputDir?: string
   /**
@@ -78,25 +78,28 @@ export interface Config {
    */
   entrypoint?: string[]
   /**
-   * NetworkMode selects Docker's network, such as host for a local VM attachment.
-   * Empty retains Docker's default network.
+   * NetworkMode selects Docker's network, such as host for a local VM
+   * attachment.
+   * An empty NetworkMode retains Docker's default network.
    */
   networkMode?: string
   /**
-   * Devices maps explicit host devices using Docker's host:container:permissions
-   * syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
+   * Devices maps explicit host devices using Docker's
+   * host:container:permissions syntax, such as /dev/kvm:/dev/kvm:rw. Empty
+   * Devices grants no additional devices.
    */
   devices?: string[]
   /**
    * InputMounts maps an input name to the container path where it is mounted
    * read-only. Each input, a UnixFS directory, is checked out to a private
-   * host directory before the container is created and removed after it exits.
+   * host directory before the container is created. The host directory is
+   * removed after the container exits.
    */
   inputMounts?: { [key: string]: string }
   /**
    * Cards asks for whole graphics cards. Admission reserves them with the CPU
    * and memory request, and the container gets only the reserved cards' device
-   * nodes; a card's nodes are never listed in devices.
+   * nodes. A card's nodes are never listed in devices.
    */
   cards?: GraphicsCardRequest
 }

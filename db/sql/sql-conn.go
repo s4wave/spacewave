@@ -27,8 +27,8 @@ type SqlConn interface {
 // transaction and/or when executing the first statement, the Conn will call
 // SqlStore.NewSqlTransaction to build a SqlTransaction handle.
 //
-// When rolling back a sql transaction and/or resetting the conn, if non-nil,
-// SqlTransaction.Discard is called to discard the transaction.
+// When rolling back a sql transaction and/or resetting the conn, if the
+// transaction is non-nil, SqlTransaction.Discard is called to discard it.
 //
 // Because there can be multiple underlying sql Conn instances as transactions
 // are built and discarded, the database name (USE) must be remembered by Conn.
@@ -110,12 +110,12 @@ func (c *Conn) ResetSession(ctx context.Context) error {
 // If the context is canceled by the user the sql package will
 // call Tx.Rollback before discarding and closing the connection.
 //
-// This must check opts.Isolation to determine if there is a set
+// BeginTx must check opts.Isolation to determine if there is a set
 // isolation level. If the driver does not support a non-default
 // level and one is set or if there is a non-default isolation level
 // that is not supported, an error must be returned.
 //
-// This must also check opts.ReadOnly to determine if the read-only
+// BeginTx must also check opts.ReadOnly to determine if the read-only
 // value is true to either set the read-only transaction property if supported
 // or return an error if it is not supported.
 func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
@@ -196,9 +196,9 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	return res, nil
 }
 
-// checkSwitchDatabaseLocked checks if we ran a USE statement and if so,
-// remembers the database that we switched to most recently. We will need to
-// re-run the USE statement when building new transactions.
+// checkSwitchDatabaseLocked checks if the query ran a USE statement and if so,
+// remembers the database that the connection switched to most recently. The
+// connection needs to re-run the USE statement when building new transactions.
 //
 // TODO: support SELECT DATABASE(); ?
 func (c *Conn) checkSwitchDatabaseLocked(query string) {

@@ -46,7 +46,7 @@ func BuildVolumeControllerConfig(
 			return volConf, true, nil
 		},
 	)
-	// we can release the LookupStorage once we match it.
+	// Release the LookupStorage once the lookup matches the storage.
 	if ref != nil {
 		ref.Release()
 	}

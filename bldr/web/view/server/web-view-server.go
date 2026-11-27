@@ -8,7 +8,7 @@ import (
 
 // WebViewServer provides the WebView SRPC service with a WebView.
 type WebViewServer struct {
-	// view is the WebView
+	// view is the WebView.
 	view web_view.WebView
 }
 

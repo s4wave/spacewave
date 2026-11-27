@@ -100,8 +100,8 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 		t.Fatalf("cached reads touched the pack store %d times and the disk %d times", n, local)
 	}
 
-	// A block only the fallback holds fills the disk with its marker, and the
-	// cache stays out of it.
+	// A block only the fallback holds fills the disk with its marker, and
+	// the cache stays out of the fill.
 	sqlData := []byte("sql block")
 	sqlRef := f.putSQL(sqlData)
 	f.read(sqlRef, sqlData)

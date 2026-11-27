@@ -58,14 +58,17 @@ type WorldState interface {
 	GetReadOnly() bool
 
 	// Sync fences the block writes made through this state durable.
-	// Returns true if a durability fence was applied, false if the underlying
-	// store is always-durable. Advancing the durable head is the Engine's
-	// responsibility (see Engine.Sync); a bare WorldState only fences blocks.
+	// Returns true if a durability fence was applied, false if the
+	// underlying store is always-durable. Advancing the durable head is the
+	// Engine's responsibility (see Engine.Sync). A bare WorldState only
+	// fences blocks.
 	Sync(ctx context.Context) (bool, error)
 
 	// ListObjectsWithType returns distinct typed keys in graph-index order,
-	// strictly after startAfter. Limit must be non-zero; more marks another page.
-	// The World must remain unchanged for exactly-once traversal across pages.
+	// strictly after startAfter. Limit must be non-zero. more marks another
+	// page.
+	// The World must remain unchanged for exactly-once traversal across
+	// pages.
 	ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error)
 
 	// ListTypeCounts returns the number of objects of each type that has any,
@@ -153,18 +156,18 @@ type WorldStateObject interface {
 	// Returns false, nil if not found.
 	DeleteObject(ctx context.Context, key string) (bool, error)
 
-	// HasObject reports whether an object exists at key. Implementations may
-	// answer from transaction-local knowledge without a storage read; on a miss
-	// they fall back to the underlying object lookup.
+	// HasObject reports whether an object exists at key. Implementations
+	// may answer from transaction-local knowledge without a storage read.
+	// On a miss they fall back to the underlying object lookup.
 	HasObject(ctx context.Context, key string) (bool, error)
 
-	// GetObjectBodiesBatchPage reads one page of root bodies for a prefix of
-	// keys, in key order, with the World seqno the page was read at. A page
-	// holds entries until the next would pass byteBudget encoded bytes and
-	// always holds at least one; an entry that alone exceeds the budget is
-	// withheld (see ObjectBody.WithheldSize). Consumed is the number of keys
-	// the page answers, or zero when it answers all. A store without a batch
-	// read implements it with LookupObjectBodiesPage.
+	// GetObjectBodiesBatchPage reads one page of root bodies for a prefix
+	// of keys, in key order, with the World seqno the page was read at. A
+	// page holds entries until the next would pass byteBudget encoded bytes
+	// and always holds at least one. An entry that alone exceeds the budget
+	// is withheld (see ObjectBody.WithheldSize). Consumed is the number of
+	// keys the page answers, or zero when it answers all. A store without a
+	// batch read implements it with LookupObjectBodiesPage.
 	GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) (bodies []*ObjectBody, consumed uint32, seqno uint64, err error)
 }
 
@@ -204,8 +207,9 @@ type WorldStateGraph interface {
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
-	// Remote WorldState implementations may reject this local-only Cayley handle
-	// access; use QueryGraphPath or exact graph lookup for remote traversal.
+	// Remote WorldState implementations may reject this local-only Cayley
+	// handle access. Use QueryGraphPath or exact graph lookup for remote
+	// traversal.
 	AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h CayleyHandle) error) error
 
 	// LookupGraphQuads searches for graph quads in the store.
@@ -232,12 +236,14 @@ type WorldStateGraph interface {
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-key>
 	// Predicate: a predicate string, e.x. IRI: <ref>
-	// Object: an object IRI: <object-key>, whose object may be written later
+	// Object: an object IRI: <object-key>, whose object may be written
+	// later
 	// If already exists, returns nil.
-	// The subject holds the relationship, so it must exist; the target may be
-	// created later in the transaction or after it, so a record can name an
-	// object not yet written. DeleteObject removes the key's quads in both
-	// directions, including those written before its object existed.
+	// The subject holds the relationship, so it must exist. The target may
+	// be created later in the transaction or after it, so a record can
+	// reference an object not yet written. DeleteObject removes the key's
+	// quads in both directions, including those written before its object
+	// existed.
 	SetGraphQuad(ctx context.Context, q GraphQuad) error
 
 	// DeleteGraphQuad deletes a quad from the graph store.
@@ -429,10 +435,11 @@ func CreateWorldObject(
 	return objs, objRef, err
 }
 
-// AccessWorldObject attempts to look up an object in the world state.
-// If the object did not exist, bcs will be empty; with updateWorld the object
+// AccessWorldObject tries to look up an object in the world state.
+// If the object did not exist, bcs will be empty. With updateWorld the object
 // will be created, otherwise the build is discarded.
-// If updateWorld=true, and the result is different, will SetRootRef with change.
+// If updateWorld=true, and the result is different, will SetRootRef with
+// change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
 // Returns the modified object ref, if it was dirty, and any error.
 func AccessWorldObject(
@@ -494,7 +501,7 @@ func AccessObjectState(
 // engine object builds each attempt off the writer through build instead of a
 // stage of its own. The caller holds build's writes until the call returns, so
 // blocks it wrote before the call, and every attempt's build, stay held across
-// the attempts; puts through one volume stage that name blocks it holds
+// the attempts. Puts through one volume stage that reference blocks it holds
 // release those roots. Other objects build as AccessObjectState does.
 func AccessObjectStateThrough(
 	ctx context.Context,

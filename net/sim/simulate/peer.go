@@ -28,19 +28,19 @@ import (
 type Peer struct {
 	// graphPeer is the underlying graph peer.
 	graphPeer *graph.Peer
-	// le is the root log entry
+	// le is the root log entry.
 	le *logrus.Entry
-	// ctx is the context for the peer
+	// ctx is the context for the peer.
 	ctx context.Context
-	// rels are functions to call to release this peer
+	// rels are functions to call to release this peer.
 	rels []func()
 	// testbed is the peer's testbed.
 	testbed *testbed.Testbed
 	// inproc is the in-process transport instance.
 	inproc *inproc.Inproc
-	// transportController is the transport controller
+	// transportController is the transport controller.
 	transportController *transport_controller.Controller
-	// staticPeerMap is the static peer map
+	// staticPeerMap is the static peer map.
 	staticPeerMap map[string]*dialer.DialerOpts
 }
 
@@ -250,7 +250,7 @@ func (p *Peer) TestConnectivity(ctx context.Context, other *Peer) error {
 		return err
 	}
 
-	// expect remote to echo back exactly len(data) bytes
+	// Expect the remote peer to echo back exactly len(data) bytes.
 	outData := make([]byte, len(data)*2)
 	on, oe := ms1.GetStream().Read(outData)
 	if oe != nil {

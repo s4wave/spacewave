@@ -256,7 +256,7 @@ describe('SpaceCommands', () => {
     // tree renders the commands as SpaceContainer does: the Space's create
     // owner above a guard that unmounts SpaceCommands while the world is
     // null (loading). setWorld models the world mount going to loading and
-    // a new world arriving; switchSpace models the Space id changing.
+    // a new world arriving. switchSpace models the Space id changing.
     const withApply = (w: IWorldState, apply = h.applyWorldOp) =>
       ({ ...w, applyWorldOp: apply }) as IWorldState
     let current: IWorldState | null = withApply(world)
@@ -634,7 +634,8 @@ describe('SpaceCommands', () => {
     await waitFor(() => {
       expect(h.toast.error).toHaveBeenCalledTimes(1)
     })
-    // Closing the failure frees its key, so the next press plans it again.
+    // Closing the failure frees its key, so the next press plans the create
+    // again.
     failedCreateToast()[1].onDismiss?.()
     getCreateObjectCommandHandlers().handler({
       subItemId: 'alpha/object-layout',
@@ -763,7 +764,7 @@ describe('SpaceCommands', () => {
     expect(h.navigateToObjects).not.toHaveBeenCalled()
   })
 
-  // inFlight makes the next send hang until settle runs, which may record
+  // inFlight makes the next send hang until settle runs. settle may record
   // the object as landed before the send rejects as a lost reply.
   function inFlight() {
     let settle: () => void = () => undefined
@@ -777,7 +778,7 @@ describe('SpaceCommands', () => {
   }
 
   // startInFlight starts a layout create whose send hangs, and waits until
-  // it is sent.
+  // the create is sent.
   async function startInFlight() {
     const settle = inFlight()
     const view = renderCommands()

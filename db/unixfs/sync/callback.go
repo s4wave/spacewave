@@ -13,7 +13,7 @@ import (
 // FilterCb is a callback that can be passed to Sync.
 // If it returns false for cntu, skips the node & children.
 // If it returns an error, Sync is canceled and returns the error.
-// The path will be formatted like "directory/file.txt"
+// The path will be formatted like "directory/file.txt".
 type FilterCb func(ctx context.Context, path string, nodeType unixfs.FSCursorNodeType) (cntu bool, err error)
 
 // CombineFilterCbs combines multiple FilterCb into a single FilterCb.
@@ -64,7 +64,8 @@ func NewSkipPathPrefixes(skipPathPrefixes []string) FilterCb {
 // Directories are never skipped.
 //
 // NOTE: the path list MUST be sorted in ascending order if isSorted=true!
-// NOTE: the path list MUST be formatted like "directory/file.txt" with no leading ./
+// NOTE: the path list MUST be formatted like "directory/file.txt"
+// with no leading "./".
 func NewFilterFileList(pathList []string, isSorted bool) FilterCb {
 	return func(ctx context.Context, path string, nt unixfs.FSCursorNodeType) (cntu bool, err error) {
 		// careful here to skip symlinks

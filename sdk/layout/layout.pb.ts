@@ -142,7 +142,7 @@ export interface AddTabRequest {
    */
   afterTabId?: string
   /**
-   * Select indicates whether to select the new tab after adding.
+   * Select indicates whether to select the new tab after adding the tab.
    */
   select?: boolean
 }
@@ -224,7 +224,8 @@ export const LayoutModel: MessageType<LayoutModel> =
 
 /**
  * LayoutSnapshot contains a complete layout state including local UI state.
- * Used for URL encoding of grid layouts to preserve selection state.
+ * LayoutSnapshot is used to encode grid layouts in URLs to preserve selection
+ * state.
  *
  * @generated from message s4wave.layout.LayoutSnapshot
  */
@@ -294,7 +295,8 @@ export interface BorderDef {
    */
   children?: TabDef[]
   /**
-   * Selected is the index of selected/visible tab in border; -1 means no tab selected
+   * Selected is the index of the selected/visible tab in the border.
+   * -1 means no tab is selected.
    */
   selected?: number
   /**

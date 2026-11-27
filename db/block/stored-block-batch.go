@@ -42,7 +42,7 @@ type StoredBlockFunc func(i int, stored *StoredBlock, err error) error
 type StoredBlockBatcher interface {
 	// GetStoredBlockBatch calls fn once for each index of refs, as
 	// StoredBlockFunc describes. Calls of fn never overlap and follow no
-	// promised order. A failed block read reaches fn as its err; an error fn
+	// promised order. A failed block read reaches fn as its err. An error fn
 	// returns, or a failure of the whole batch, ends it.
 	GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error
 }
@@ -62,9 +62,10 @@ func GetStoredBlockBatch(ctx context.Context, store StoreOps, refs []*BlockRef, 
 // BatchBlockContext returns the context for a read of ref that a batch read
 // on ctx makes alone, so what the read records about where its bytes came
 // from, such as staged content, marks that block of the batch alone. A store
-// that answers a batch with reads of single blocks passes each this context.
+// that answers a batch with reads of single blocks passes each read this
+// context.
 func BatchBlockContext(ctx context.Context, ref *BlockRef) context.Context {
-	// Narrow a batch's marks to the one of ref.
+	// Narrow a batch's marks to the mark of ref.
 	mark := blockReadMarkFromContext(ctx)
 	if mark == nil || mark.batch == nil {
 		return ctx
@@ -77,7 +78,7 @@ func BatchBlockContext(ctx context.Context, ref *BlockRef) context.Context {
 // and calls fn once for each index of
 // refs. It is the batch read of a store without native batching. Calls of fn
 // never overlap and follow no promised order. A failed block read reaches fn
-// as its err and does not end the batch; an error fn returns, or the end of
+// as its err and does not end the batch. An error fn returns, or the end of
 // ctx, ends it, and the reads in flight are waited for.
 func GetStoredBlockEach(ctx context.Context, store StoreOps, refs []*BlockRef, fn StoredBlockFunc) error {
 	// Read each ref in turn, stopping early once the batch ends.

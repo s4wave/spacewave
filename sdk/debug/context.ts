@@ -1,5 +1,6 @@
 // DebugContext is the cross-bundle state shared between the app and eval scripts.
-// The app calls setDebugContext() at startup; eval scripts call getDebugContext().
+// The app calls setDebugContext() at startup.
+// Eval scripts call getDebugContext().
 export interface DebugContext {
   [key: string]: unknown
 }
@@ -34,7 +35,7 @@ export function clearDebugContext(ctx?: DebugContext, appId = ''): void {
 }
 
 // getDebugContext retrieves the debug context set by the app.
-// Throws if the context has not been initialized.
+// getDebugContext throws if the context has not been initialized.
 export function getDebugContext<T = DebugContext>(appId = ''): T {
   const ctx = appId ? appContexts().get(appId) : debugContextStore[GLOBAL_KEY]
   if (!ctx) {

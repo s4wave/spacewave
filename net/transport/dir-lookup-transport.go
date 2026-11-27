@@ -13,15 +13,16 @@ type LookupTransport interface {
 	// Directive indicates LookupTransport is a directive.
 	directive.Directive
 
-	// LookupTransportPeerIDConstraint returns a specific node ID we are looking for.
+	// LookupTransportPeerIDConstraint returns the node ID the caller seeks.
 	// Can be empty.
 	LookupTransportPeerIDConstraint() peer.ID
-	// LookupTransportIDConstraint returns a specific transport ID we are looking for.
+	// LookupTransportIDConstraint returns the transport ID the caller
+	// seeks.
 	// Can be empty.
 	LookupTransportIDConstraint() uint64
 }
 
-// lookupTransport implements LookupTransport
+// lookupTransport implements LookupTransport.
 type lookupTransport struct {
 	peerIDConstraint      peer.ID
 	transportIDConstraint uint64
@@ -35,13 +36,14 @@ func NewLookupTransport(peerID peer.ID, transportID uint64) LookupTransport {
 	}
 }
 
-// LookupTransportPeerIDConstraint returns a specific peer ID node we are looking for.
+// LookupTransportPeerIDConstraint returns the peer ID of the node the caller
+// seeks.
 // If empty, any node is matched.
 func (d *lookupTransport) LookupTransportPeerIDConstraint() peer.ID {
 	return d.peerIDConstraint
 }
 
-// LookupTransportIDConstraint returns a specific transport ID we are looking for.
+// LookupTransportIDConstraint returns the transport ID sought by the caller.
 // If empty, any transport id is matched.
 func (d *lookupTransport) LookupTransportIDConstraint() uint64 {
 	return d.transportIDConstraint

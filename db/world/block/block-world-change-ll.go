@@ -21,14 +21,14 @@ func NewWorldChangeLLBlock() block.Block {
 // prevBcs and nextBcs can be the same block cursor, if both are sub-block
 // all world changes must have the same change type
 // if prevBcs is set, it will be checked to ensure same WorldChange type
-// returns the new world change ll node
+// returns the new world change ll node.
 func AppendWorldChangeLL(
 	ctx context.Context,
 	nextBcs *block.Cursor,
 	prevBcs *block.Cursor,
 	worldChangesBcs []*block.Cursor,
 ) (*WorldChangeLL, error) {
-	// handling of previous entry
+	// Handle the previous entry.
 	var err error
 	var prevWorldChangeLL *WorldChangeLL
 	if prevBcs != nil {
@@ -59,7 +59,7 @@ func AppendWorldChangeLL(
 		}
 	}
 
-	// perform some initial checks
+	// Check some initial constraints.
 	if err := w.Validate(); err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func AppendWorldChangeLL(
 }
 
 // UnmarshalWorldChangeLL unmarshals a world change ll from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalWorldChangeLL(ctx context.Context, bcs *block.Cursor) (*WorldChangeLL, error) {
 	return block.UnmarshalBlock[WorldChangeLL](ctx, bcs)
 }
@@ -82,7 +82,7 @@ func (w *WorldChangeLL) IsNil() bool {
 	return w == nil
 }
 
-// Validate performs checks on the world change ll block.
+// Validate checks the world change ll block.
 func (w *WorldChangeLL) Validate() error {
 	// Require at least one change and a total size that covers them.
 	changes := w.GetChanges()
@@ -121,7 +121,7 @@ func (w *WorldChangeLL) IsEmpty() bool {
 // AppendWorldChange appends a world change to the batch entry.
 // bcs should be located at WorldChangeLL
 // returns cursor containing ch within the linked-list node
-// returns nil if bcs was nil
+// returns nil if bcs was nil.
 func (w *WorldChangeLL) AppendWorldChange(ch *WorldChange, bcs *block.Cursor) *block.Cursor {
 	// Append the change and return its cursor.
 	if bcs != nil {
@@ -146,7 +146,7 @@ func (w *WorldChangeLL) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Pending references (in a cursor) are not included.
 func (w *WorldChangeLL) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef, 4)
 	m[2] = w.GetPrevRef()

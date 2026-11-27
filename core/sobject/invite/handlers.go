@@ -15,10 +15,12 @@ type InviteLookupFn func(ctx context.Context, tokenHash []byte) (*InviteLookupRe
 // EnrollFn enrolls a participant after invite verification, raising a lower
 // role to the invite's and never lowering one. Called with the resolved invite
 // context and the invitee's identity. Returns the SOGrant it made, nil when the
-// invitee already held one, the outcome and the role the invitee holds after.
+// invitee already held one, the outcome and the role the invitee holds after
+// enrollment.
 type EnrollFn func(ctx context.Context, result *InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error)
 
-// LeaveFn commits voluntary departure while retaining the selected native host through acknowledgment.
+// LeaveFn commits voluntary departure while retaining the selected native host
+// through acknowledgment.
 type LeaveFn func(context.Context, *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error)
 
 // QueueFn holds a redemption as a join request for an owner to grant or refuse.
@@ -42,10 +44,12 @@ type Handlers struct {
 	Enroll EnrollFn
 	// Leave commits authenticated voluntary departure.
 	Leave LeaveFn
-	// Queue holds join requests; nil refuses redemptions that need approval.
+	// Queue holds join requests. A nil Queue refuses redemptions that need
+	// approval.
 	Queue QueueFn
-	// Withdraw removes join requests; nil holds none to remove.
+	// Withdraw removes join requests. A nil Withdraw holds none to remove.
 	Withdraw WithdrawFn
-	// HeldConfig reads the Spaces a participant_of invite names; nil holds none.
+	// HeldConfig reads the Spaces a participant_of invite selects. A nil
+	// HeldConfig holds none.
 	HeldConfig HeldConfigFn
 }

@@ -23,8 +23,8 @@ const manualSignalDataChannelID = "bifrost-quic"
 
 // ManualSignalTransport manages a WebRTC peer connection for manual SDP
 // exchange. Unlike the bifrost WebRTC transport which uses trickle ICE via a
-// signaling channel, this gathers all ICE candidates before producing the
-// SDP, suitable for QR code or paste-based exchange.
+// signaling channel, this transport gathers all ICE candidates before
+// producing the SDP, suitable for QR code or paste-based exchange.
 type ManualSignalTransport struct {
 	pc        *webrtc.PeerConnection
 	dc        *webrtc.DataChannel

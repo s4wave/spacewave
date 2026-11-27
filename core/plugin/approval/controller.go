@@ -68,7 +68,7 @@ func (c *Controller) resolveAdmit(ctx context.Context, handler directive.Resolve
 	root := dir.AdmitPluginRootManifestRoot()
 
 	// Reread the record after each committed write, holding a value only
-	// while it admits.
+	// while the record allows the root.
 	var valID uint32
 	for {
 		// Take the wait channel before reading, so no write is missed.

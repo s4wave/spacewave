@@ -29,7 +29,7 @@ const legacyGraphPrefix = "\x02"
 // Volume is the browser volume.
 type Volume = volume_kvtx.Volume
 
-// openedDevice is a device the volume owns until it closes it.
+// openedDevice is a device the volume owns until the volume closes the device.
 type openedDevice interface {
 	device.Device
 
@@ -38,15 +38,15 @@ type openedDevice interface {
 }
 
 // deviceOpener opens the device holding the volume name. While another
-// opener holds it, it fails with device.ErrHeld.
+// opener holds the device, deviceOpener fails with device.ErrHeld.
 type deviceOpener func(ctx context.Context, name string) (openedDevice, error)
 
 // openVolume opens the volume named by conf on the device openDev opens,
-// creating it when absent; deleteFn deletes its data. The open owns the
-// device until the Volume does, so every failed open, by an error, a
-// cancelled context or a panic, closes it and releases its lock, and the next
-// open can take the device. The failure path closes the index and the device
-// only, and writes, truncates or deletes nothing.
+// creating the volume when absent. deleteFn deletes the volume's data.
+// The open owns the device until the Volume does, so every failed open, by an
+// error, a cancelled context or a panic, closes the device and releases its
+// lock, and the next open can take the device. The failure path closes the
+// index and the device only, and writes, truncates or deletes nothing.
 func openVolume(ctx context.Context, conf *Config, openDev deviceOpener, deleteFn func() error) (_ *Volume, err error) {
 	// Open the device and hold it until the Volume owns it.
 	keys, err := store_kvkey.NewKVKey(conf.GetKvKeyOpts())
@@ -79,7 +79,8 @@ func openVolume(ctx context.Context, conf *Config, openDev deviceOpener, deleteF
 	}
 	op.Hold(closeStore)
 
-	// Move the reference graph the engine kept beside the Volume into it.
+	// Move the reference graph the engine kept beside the Volume into the
+	// Volume.
 	err = volume_kvtx.MoveSideGraph(ctx, s.Domain(nil), []byte(volumePrefix), []byte(legacyGraphPrefix), []byte(graphPrefix))
 	if err != nil {
 		return nil, err

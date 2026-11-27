@@ -14,10 +14,10 @@ import (
 // NewFSNode constructs a new FSNode.
 //
 // any non-permissions bits in permissions will be ignored.
-// if permissions is empty, will be filled with defaults
-// if timestamp is empty, will be filled with a placeholder
+// if permissions is empty, permissions will be filled with defaults.
+// if timestamp is empty, timestamp will be filled with a placeholder.
 func NewFSNode(nt NodeType, permissions fs.FileMode, now *timestamp.Timestamp) *FSNode {
-	// set placeholder if nil
+	// Set a placeholder timestamp if the timestamp is nil.
 	now = FillPlaceholderTimestamp(now)
 	if nt == 0 {
 		nt = NodeType_NodeType_DIRECTORY
@@ -50,7 +50,7 @@ func NewFSNodeSubBlockCtor(r **FSNode) block.SubBlockCtor {
 }
 
 // FetchCheckFSNode unmarshals a filesystem node and checks its type.
-// returns nil, nil if empty or nodeType is 0
+// returns nil, nil if empty or nodeType is 0.
 func FetchCheckFSNode(ctx context.Context, bcs *block.Cursor, nt NodeType) (*FSNode, error) {
 	// Load the inode and validate its expected type and contents.
 	fn, err := UnmarshalFSNode(ctx, bcs)
@@ -74,7 +74,7 @@ func FetchCheckFSNode(ctx context.Context, bcs *block.Cursor, nt NodeType) (*FSN
 }
 
 // UnmarshalFSNode unmarshals a filesystem node from a cursor.
-// If empty, returns nil, nil
+// If the cursor is empty, returns nil, nil.
 func UnmarshalFSNode(ctx context.Context, bcs *block.Cursor) (*FSNode, error) {
 	return block.UnmarshalBlock[FSNode](ctx, bcs)
 }
@@ -84,7 +84,7 @@ func (n *FSNode) IsNil() bool {
 	return n == nil
 }
 
-// Validate performs cursory checks of the FS node.
+// Validate checks the FS node cursorily.
 func (n *FSNode) Validate(allowUnknownNodeType bool) error {
 	// Validate the inode permissions, type, timestamp, and file metadata.
 	if n.GetPermissions() == 0 {

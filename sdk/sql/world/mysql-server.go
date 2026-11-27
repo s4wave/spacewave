@@ -48,7 +48,7 @@ func (s *WorldBackedSql) ServeMySQL(ctx context.Context, listener net.Listener, 
 	}
 	l.ServerVersion = "8.0.33-Spacewave"
 
-	// Closing admission wakes Accept; closing sockets wakes idle client readers.
+	// Closing admission wakes Accept. Closing sockets wakes idle client readers.
 	stopped := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
 		// Stop admission and snapshot only the currently accepted sockets.

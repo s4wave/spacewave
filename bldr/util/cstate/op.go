@@ -17,14 +17,14 @@ func (w *CStateWriter[T]) SetObj(obj T) {
 
 // queuedOp is an operation queued for Execute to process.
 type queuedOp[T any] struct {
-	// ctx is the operation context
+	// ctx is the operation context.
 	ctx context.Context
 	// resCh is written to when the operation completes.
 	// if ctx is canceled, it will not be written to.
 	resCh chan error
 	// resOnce ensures resCh is written to only once.
 	resOnce sync.Once
-	// op is the operation to apply
+	// op is the operation to apply.
 	op func(ctx context.Context, obj *CStateWriter[T]) (dirty bool, err error)
 	// dirty indicates if the state is dirty after calling the op.
 	// written before resCh is resolved.
@@ -48,7 +48,7 @@ func newQueuedOp[T any](
 }
 
 // finish marks the operation as complete.
-// called by Execute
+// called by Execute.
 func (r *queuedOp[T]) finish(err error, dirty bool) {
 	r.resOnce.Do(func() {
 		r.dirty = dirty

@@ -28,8 +28,9 @@ func killProcessGroup(pid int) error {
 	}
 
 	// Distinguish an exiting group from a real permission failure.
-	// This is one snapshot after the failed signal, never exit polling. The
-	// retained leader prevents this group identity from being recycled.
+	// The inspection takes one snapshot after the failed signal, never polling
+	// for exit. The retained leader prevents this group identity from being
+	// recycled.
 	group, inspectErr := unix.SysctlKinfoProcSlice("kern.proc.pgrp", pid)
 	if inspectErr != nil {
 		return stderrors.Join(err, inspectErr)

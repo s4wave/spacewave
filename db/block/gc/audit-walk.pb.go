@@ -80,8 +80,8 @@ const (
 	// HOLE_CLASS_LAPSED is a hole that only roots whose lease lapsed reach,
 	// such as the stage of a process that died.
 	HoleClass_HOLE_CLASS_LAPSED HoleClass = 2
-	// HOLE_CLASS_UNROOTED is a hole that a list holding its children names but
-	// no root reaches.
+	// HOLE_CLASS_UNROOTED is a hole that a list holding its children references
+	// but no root reaches.
 	HoleClass_HOLE_CLASS_UNROOTED HoleClass = 3
 )
 
@@ -153,7 +153,8 @@ type WalkCounts struct {
 	// HOLE_CLASS_UNROOTED.
 	UnconfirmedUnrooted uint64 `protobuf:"varint,12,opt,name=unconfirmed_unrooted,json=unconfirmedUnrooted,proto3" json:"unconfirmedUnrooted,omitempty"`
 	// TailPairs counts the log entries the walk copied into its scratch
-	// store, so each check view reads only the log pages written since the last.
+	// store, so each check view reads only the log pages written since the last
+	// check view.
 	TailPairs uint64 `protobuf:"varint,13,opt,name=tail_pairs,json=tailPairs,proto3" json:"tailPairs,omitempty"`
 	// Wide counts the named blocks with more edges than one view reads whose
 	// undercount went unchecked: something that could change a namer moved
@@ -293,7 +294,7 @@ func (x *WalkCounts) GetListedAbsent() uint64 {
 // its scratch store, so a restart of the same run resumes where it stopped.
 type WalkProgress struct {
 	unknownFields []byte
-	// Run names the walk that owns the scratch store. A walk under another
+	// Run identifies the walk that owns the scratch store. A walk under another
 	// name refuses the store.
 	Run string `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
 	// Phase is the step the walk has reached.

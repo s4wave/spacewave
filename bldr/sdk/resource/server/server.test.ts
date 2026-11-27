@@ -885,7 +885,7 @@ describe('ResourceAttach handler', () => {
       stream.end()
       // Drain remaining output so the generator completes.
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
       clientController.abort()
@@ -918,7 +918,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
       clientController.abort()
@@ -1055,7 +1055,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1088,7 +1088,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1122,7 +1122,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1155,7 +1155,7 @@ describe('ResourceAttach handler', () => {
       // End the incoming stream to trigger cleanup.
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
       expect(client.attachedResources.has(resourceId)).toBe(false)
@@ -1188,7 +1188,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       expect(release).toHaveBeenCalledOnce()
     })
@@ -1260,7 +1260,7 @@ describe('ResourceAttach handler', () => {
       attachController.abort()
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
       expect(release).toHaveBeenCalledOnce()
@@ -1298,7 +1298,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1402,7 +1402,7 @@ describe('ResourceAttach handler', () => {
       // End the stream to trigger cleanup, which aborts the controller.
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
       // The ref checks signal.aborted, so after cleanup it is released.
@@ -1452,7 +1452,7 @@ describe('ResourceAttach handler', () => {
       // so catch any remaining iteration errors.
       try {
         for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-          // consume
+          // Consume the remaining output.
         }
       } catch {
         // Expected: yamux conn may error on teardown.
@@ -1512,7 +1512,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1558,7 +1558,7 @@ describe('ResourceAttach handler', () => {
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
       clientController.abort()
       await clientIter.next()
@@ -1601,10 +1601,10 @@ describe('ResourceAttach handler', () => {
       // End the attach stream to trigger session-level cleanup.
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
+        // Consume the remaining output.
       }
 
-      // Session cleanup aborts the attachController, which propagates
+      // Session cleanup aborts the attachController, and the abort propagates
       // to all per-resource controllers.
       expect(attached1.signal.aborted).toBe(true)
       expect(attached2.signal.aborted).toBe(true)

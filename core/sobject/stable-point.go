@@ -67,13 +67,13 @@ func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 	return order[:n:n]
 }
 
-// stableLen returns the length of the longest prefix of order whose
-// operations every member of roster has built on: each is an ancestor of, or
-// is, every latest placed operation of each member, as builtOn defines them.
-// It walks order once from the end, giving each operation the set of latest
-// operations that descend from it, as bits: an operation's bits are its own and
-// those of every placed operation linking to it, and order places every link
-// before the operation that names it. A member with no placed operation has
+// stableLen returns the length of the longest prefix of order whose operations
+// every member of roster has built on: each is an ancestor of, or is, every
+// latest placed operation of each member, as builtOn defines them. It walks
+// order once from the end, giving each operation the set of latest operations
+// that descend from it, as bits: an operation's bits are its own and those of
+// every placed operation linking to it, and order places every link before the
+// operation that references the link. A member with no placed operation has
 // built on nothing.
 func (s *SOOperationSet) stableLen(order [][]byte, roster []string) int {
 	// Find each member's placed operations and the ones a later one of the
@@ -145,14 +145,16 @@ func (s *SOOperationSet) stableLen(order [][]byte, roster []string) int {
 }
 
 // NeedsAcknowledgment reports whether the writer peerID should write an
-// acknowledgment. A sequencer makes operations stable without them. Otherwise
-// every head must be placed, so the acknowledgment it would write is placed
-// too. It then acknowledges when at least lag placed edits are not below its
-// own latest operations, or when it has not built on an acknowledgment of
-// checkpointer, which asks every member to answer at once. Other
-// acknowledgments ask nothing, so members never answer each other's answers.
+// acknowledgment. A sequencer makes operations stable without acknowledgments.
+// Otherwise every head must be placed, so the acknowledgment peerID would write
+// is placed too. The writer then acknowledges when at least lag placed edits
+// are not below its own latest operations, or when it has not built on an
+// acknowledgment of checkpointer. That acknowledgment asks every member to
+// answer at once. Other acknowledgments ask nothing, so members never answer
+// each other's answers.
 func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag int) bool {
-	// An acknowledgment naming an unplaced head would itself wait unplaced.
+	// An acknowledgment referencing an unplaced head would itself wait
+	// unplaced.
 	if s.sequence.sequencer != "" || len(s.UnplacedHeads()) != 0 {
 		return false
 	}
@@ -179,7 +181,7 @@ func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag in
 
 // UnplacedHeads returns the heads that replay has not placed and the
 // checkpoint does not cover, in hash order. Each waits for an operation it
-// names that this set does not hold.
+// references that this set does not hold.
 func (s *SOOperationSet) UnplacedHeads() []*SOOperationPosition {
 	// Keep the heads outside the order that the checkpoint does not cover.
 	placed := make(map[string]struct{}, len(s.ops))
@@ -294,8 +296,8 @@ func (s *SOState) BuildStableCheckpoint(
 }
 
 // signStableCheckpoint signs, as the owner of privKey, the checkpoint
-// stableCheckpointInner returns, with outcomes, which is nil when the signer
-// records none.
+// stableCheckpointInner returns, with outcomes. The outcomes parameter is nil
+// when the signer records none.
 func (s *SOState) signStableCheckpoint(
 	sharedObjectID string,
 	set *SOOperationSet,

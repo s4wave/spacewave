@@ -73,8 +73,8 @@ func (c *Container) Wait(ctx context.Context) (int, error) {
 }
 
 // Logs copies the container's output streams to stdout and stderr. With
-// follow it keeps copying until the container stops or ctx ends; without it
-// returns after the output written so far.
+// follow set, Logs keeps copying until the container stops or ctx ends.
+// Without follow, Logs returns after the output written so far.
 func (c *Container) Logs(ctx context.Context, follow bool, stdout, stderr io.Writer) error {
 	args := []string{"logs"}
 	if follow {

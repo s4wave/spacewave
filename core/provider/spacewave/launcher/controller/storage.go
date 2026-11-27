@@ -23,7 +23,7 @@ var defObjectStoreID = "spacewave/launcher"
 // defObjectStoreKey is the default key used to store the distribution config packedmsg.
 var defObjectStoreKey = "dist-conf"
 
-// GetVolumeId returns volume the controller uses for storage.
+// GetVolumeId returns the volume the controller uses for storage.
 func (c *Controller) GetVolumeId() string {
 	id := c.conf.GetVolumeId()
 	if id == "" {
@@ -69,7 +69,7 @@ func (c *Controller) parseDistConf(distConfDat []byte) (*spacewave_launcher.Dist
 
 // loadDistConf loads the current dist conf from the store.
 // returns empty if not found.
-// note: returns a packed signed message
+// note: returns a packed signed message.
 func (c *Controller) loadDistConf(ctx context.Context) ([]byte, error) {
 	store, ref, err := c.openObjectStore(ctx)
 	if err != nil {
@@ -110,7 +110,7 @@ func (c *Controller) loadLocalDistConf() ([]byte, string, error) {
 }
 
 // storeDistConf stores an updated dist conf to the store.
-// note: accepts a packed signed message
+// note: accepts a packed signed message.
 func (c *Controller) storeDistConf(ctx context.Context, data []byte) error {
 	store, ref, err := c.openObjectStore(ctx)
 	if err != nil {

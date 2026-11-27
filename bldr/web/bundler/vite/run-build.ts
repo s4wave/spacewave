@@ -25,7 +25,7 @@ async function main() {
     }
     config.build.outDir = outputDir
 
-    // Create empty web package references map for this build
+    // Create an empty web package references map for this build
     const webPkgRefs = new Map<
       string,
       { root: string; subPaths: Set<string> }

@@ -135,7 +135,7 @@ func assetSetFromV86Dirs(v86Dir, v86fsDir, imageKey string) (*AssetSet, bool) {
 	return nil, false
 }
 
-// filesExist reports whether every path names a nonempty file.
+// filesExist reports whether every path identifies a nonempty file.
 func filesExist(paths ...string) bool {
 	for _, path := range paths {
 		info, err := os.Stat(path)
@@ -228,13 +228,13 @@ func resolveV86ImageKey(ctx context.Context, ws world_state.WorldState, preferre
 	return keys[len(keys)-1], nil
 }
 
-// assetSpec names one guest image file and the graph predicate linking it.
+// assetSpec identifies one guest image file and the graph predicate linking it.
 type assetSpec struct {
 	// Pred identifies the image-to-file graph edge.
 	Pred string
 	// FileName selects the file inside the UnixFS object.
 	FileName string
-	// OutName names the materialized file in the cache.
+	// OutName specifies the name of the materialized file in the cache.
 	OutName string
 }
 

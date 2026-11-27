@@ -31,7 +31,7 @@ type LocalSOHost struct {
 	soHost *sobject.SOHost
 	// snapMtx orders end with each snapshot Execute publishes.
 	snapMtx sync.Mutex
-	// ended is set by end; no snapshot is published after it. Guarded by
+	// ended is set by end. No snapshot is published after end. Guarded by
 	// snapMtx.
 	ended bool
 	// stateSnapCtr holds the snapshot of the latest committed host state,
@@ -82,7 +82,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 	defer relStateCtr()
 	defer l.end()
 
-	// Publish a snapshot and the config of each.
+	// Publish a snapshot and the config of each committed host state.
 	var state *sobject.SOState
 	for {
 		state, err = stateCtr.WaitValueChange(ctx, state, nil)
@@ -154,7 +154,7 @@ func (l *LocalSOHost) waitPublishedConfig(ctx context.Context, target *sobject.S
 }
 
 // AccessSharedObjectState adds a reference to the durable state and returns
-// the state container. released is called once the host's lifetime ends; the
+// the state container. released is called once the host's lifetime ends. The
 // container then holds nil.
 func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
 	if released == nil {

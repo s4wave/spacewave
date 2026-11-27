@@ -119,7 +119,7 @@ func debitCapacity(ctx context.Context, ws world.WorldState, res *Reservation) e
 		return err
 	}
 
-	// Increase and validate the Worker reserved capacity totals; validation
+	// Increase and validate the Worker reserved capacity totals. Validation
 	// refuses a card that is not offered or is already reserved.
 	capacity.MilliCpuReserved += res.GetRequest().GetMilliCpu()
 	capacity.MemoryBytesReserved += res.GetRequest().GetMemoryBytes()
@@ -131,10 +131,10 @@ func debitCapacity(ctx context.Context, ws world.WorldState, res *Reservation) e
 	return persistWorkerCapacity(ctx, ws, workerObjectKey, capacity)
 }
 
-// creditCapacity removes one released reservation's request and cards from
-// the Worker's reserved totals exactly once per release. This is the only path
-// that reactivates a draining record whose declared backends remain: once the
-// remaining debits fit the declared totals, the claim returns to ACTIVE.
+// creditCapacity removes one released reservation's request and cards from the
+// Worker's reserved totals exactly once per release. creditCapacity is the only
+// path that reactivates a draining record whose declared backends remain: once
+// the remaining debits fit the declared totals, the claim returns to ACTIVE.
 func creditCapacity(ctx context.Context, ws world.WorldState, res *Reservation) error {
 	// Load the Worker capacity and prevent a reservation credit underflow.
 	workerObjectKey := res.GetWorkerObjectKey()

@@ -12,7 +12,7 @@ type BlockEnc struct {
 	// cryptArena pools blockenc.Method instances. The pool is populated
 	// lazily by its New func on the first Get that finds the pool empty.
 	// sync.Pool may discard pooled items at any GC tick, so the pool floor
-	// is best-effort; New must always be able to build a fresh Method.
+	// is best-effort. New must always be able to build a fresh Method.
 	cryptArena sync.Pool
 	// alloc provides buffers for encryption and decryption.
 	alloc blockenc.AllocFn

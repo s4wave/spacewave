@@ -12,7 +12,7 @@ import (
 
 // verifyAppBundleCodesign runs `codesign --verify --deep --strict` against the
 // staged .app before the launcher advertises STAGED. A non-zero exit means the
-// extracted bundle is tampered, truncated, or unsigned; the caller must wipe
+// extracted bundle is tampered, truncated, or unsigned. The caller must wipe
 // the staging dir and fall back to DOWNLOADING. The context is passed so an
 // updater cancellation aborts the verify.
 func verifyAppBundleCodesign(ctx context.Context, appPath string) error {

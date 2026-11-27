@@ -15,13 +15,13 @@ import (
 
 // RpcServiceController resolves LookupRpcService with a srpc.Invoker.
 type RpcServiceController struct {
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// handleCtr contains the rpc handler
+	// handleCtr contains the rpc handler.
 	handleCtr *ccontainer.CContainer[srpc.Invoker]
-	// errCtr contains any error building the handler
+	// errCtr contains any error building the handler.
 	errCtr *ccontainer.CContainer[*error]
-	// rc is the refcount container
+	// rc is the refcount container.
 	rc *refcount.RefCount[srpc.Invoker]
 	// serviceIdPrefixes is the list of service id prefixes to match.
 	// ignores if empty

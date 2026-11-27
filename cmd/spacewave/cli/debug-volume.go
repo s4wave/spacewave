@@ -338,7 +338,8 @@ const volumeKeyClassesMax = 1 << 16
 // volumeKeyClasses counts scanned keys by class, narrowing its width to stay
 // within volumeKeyClassesMax classes.
 type volumeKeyClasses struct {
-	// separator, depth and width cut a key to its class; width only shrinks.
+	// separator, depth and width cut a key to its class. The width only
+	// shrinks.
 	separator    []byte
 	depth, width int
 	// byClass maps each raw class to its counts.
@@ -371,7 +372,7 @@ func (c *volumeKeyClasses) add(key []byte, keyLen, n int) {
 	kc.keyBytes += uint64(keyLen) //nolint:gosec // Key lengths are never negative.
 	kc.valueBytes += uint64(n)    //nolint:gosec // Value lengths are never negative.
 
-	// Narrow until the classes fit; width 0 leaves one class.
+	// Narrow until the classes fit. A width of 0 leaves one class.
 	for len(c.byClass) > volumeKeyClassesMax {
 		c.narrow()
 	}
@@ -453,7 +454,7 @@ func formatVolumeKeyClass(class []byte) string {
 	return string(class)
 }
 
-// Modes of openStoppedVolume.
+// volumeReadOnly and volumeWritable select modes of openStoppedVolume.
 const (
 	// volumeReadOnly opens a stopped volume for a command that only reads it.
 	volumeReadOnly = true
@@ -462,8 +463,8 @@ const (
 )
 
 // openStoppedVolume opens the volume file at path without creating or
-// rewriting its peer key. The engine refuses a conflicting writable owner;
-// read-only offline commands retain their stopped-volume check.
+// rewriting its peer key. The engine refuses a conflicting writable owner.
+// Read-only offline commands retain their stopped-volume check.
 // The caller closes the volume.
 //
 // Invariant: a command that only reads the volume opens it with readOnly set,
@@ -479,7 +480,7 @@ func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string, readO
 }
 
 // openStoppedVolumeStore is openStoppedVolume with the store configuration
-// storeConf, nil for the default.
+// storeConf, nil for the default store configuration.
 func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, readOnly bool, storeConf *store_kvtx.Config) (*volume_s4db.Volume, error) {
 	// Refuse a missing file, which the open would create.
 	if _, err := os.Stat(path); err != nil {

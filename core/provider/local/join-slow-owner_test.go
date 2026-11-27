@@ -30,7 +30,8 @@ func TestJoinViaInviteSlowOwner(t *testing.T) {
 	ownerTransport := h.owner.GetSessionTransport()
 
 	// Expire the invite so session startup does not register a competing
-	// production handler; this test's slow lookup answers before invite checks.
+	// production handler. This test's slow lookup answers before invite
+	// checks.
 	msg, err := space.CreateSOInviteOp(
 		ctx,
 		space.GetPrivKey(),
@@ -51,7 +52,7 @@ func TestJoinViaInviteSlowOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Name the error returned after the owner stalls.
+	// Declare the error returned after the owner stalls.
 	errStalled := errors.New("owner lookup stalled")
 
 	// Install a lookup handler that outlasts both owner-link bounds.

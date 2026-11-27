@@ -108,7 +108,8 @@ func TestColdPackRejectsCorruption(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// The exact key stream is intact; only payload verification can reject it.
+		// The exact key stream is intact, so only payload verification
+		// can reject it.
 		manifest, err := BuildColdPackManifest(t.Context(), f.root, coldTestKeys(f.keys))
 		if manifest != nil || !errors.Is(err, block.ErrBlockCorrupt) {
 			t.Fatalf("corrupt mirror produced a manifest: %t, %v", manifest != nil, err)
@@ -185,7 +186,8 @@ func TestColdPackRejectsCorruption(t *testing.T) {
 		}
 		s.Close()
 
-		// Mutate an index key independently; it must not authorize presence.
+		// Mutate an index key independently. The key must not authorize
+		// presence.
 		mutated[base+4] ^= 1
 		f.setObject(key, string(mutated))
 		s = f.open(t, nil)
@@ -223,7 +225,8 @@ func TestColdPackRejectsCorruption(t *testing.T) {
 		}
 		assertColdBlock(t, s, values[2])
 
-		// Cold only has range capability; a hot-prefix sweep cannot reach it.
+		// Cold only has range capability, so a hot-prefix sweep cannot
+		// reach it.
 		if _, _, err := s.PutBlock(t.Context(), values[2].data, nil); !errors.Is(err, ErrPackImmutable) {
 			t.Fatalf("cold put: %v", err)
 		}
@@ -276,7 +279,7 @@ func TestColdPackOverlappingIntervals(t *testing.T) {
 // TestColdPackUnresolvedExistence keeps a good body reachable after another
 // extent in its pack has failed verification and a second tail misses the key.
 func TestColdPackUnresolvedExistence(t *testing.T) {
-	// Mount two overlapping packs; the second has an all-ones bloom.
+	// Mount two overlapping packs. The second has an all-ones bloom.
 	v := coldValues(t, 5)
 	f := newColdFixture(t)
 	key := f.addPack(t, []coldValue{v[0], v[2], v[4]}, false)
@@ -301,7 +304,8 @@ func TestColdPackUnresolvedExistence(t *testing.T) {
 		t.Fatal("failed body did not fence existence")
 	}
 
-	// Existence skips the fenced pack; its body can still verify a good key.
+	// Existence skips the fenced pack, but its body can still verify a good
+	// key.
 	if yes, err := s.GetBlockExists(t.Context(), v[2].ref); yes || err != nil {
 		t.Fatalf("fenced existence = %t, %v", yes, err)
 	}
@@ -321,7 +325,8 @@ func TestColdPackMoveIsolation(t *testing.T) {
 
 	// Park every body request and advance only when all waiters are blocked.
 	synctest.Test(t, func(t *testing.T) {
-		// Load the tail before gating body I/O; nothing else reads the bucket.
+		// Load the tail before gating body I/O. Nothing else reads the
+		// bucket.
 		ctx := t.Context()
 		release := make(chan struct{})
 		defer close(release)
@@ -453,7 +458,7 @@ type coldPermitGate struct {
 
 // checkColdPermitReturn saturates and refills the real lanes in one synctest bubble.
 func checkColdPermitReturn(t *testing.T, opts ColdPackOptions, v []coldValue, raw []byte, fault string) {
-	// Use the real tail once; all later calls exercise only body admission.
+	// Use the real tail once. All later calls exercise only body admission.
 	t.Helper()
 	reader := coldRangeProbe(func(ctx context.Context, off int64, size int) ([]byte, error) {
 		if gate, ok := ctx.Value(coldPermitGateKey{}).(*coldPermitGate); ok {
@@ -498,7 +503,7 @@ func checkColdPermitReturn(t *testing.T, opts ColdPackOptions, v []coldValue, ra
 		t.Fatal("fixture did not park a reserved move behind a full shared lane")
 	}
 
-	// Request the identical extent; a user cannot inherit the move's wait.
+	// Request the identical extent. A user cannot inherit the move's wait.
 	start := time.Now()
 	miss := make(chan bool, 1)
 	go func() {
@@ -1068,8 +1073,8 @@ func TestColdPackPromotionBackpressure(t *testing.T) {
 		s.promotions.promoteCh <- coldPromotion{}
 	}
 
-	// Hold the promoter's publication lock as well as its full queue; readers
-	// still return a verified block promptly.
+	// Hold the promoter's publication lock as well as its full queue.
+	// Readers still return a verified block promptly.
 	s.promotions.mtx.Lock()
 	const readers = 32
 	results := make(chan bool, readers)
@@ -1108,7 +1113,7 @@ func TestColdPackPromotionBackpressure(t *testing.T) {
 
 // coldValue holds one test's data and canonical packed ref.
 type coldValue struct {
-	// ref names the SHA-256 of data.
+	// ref holds the SHA-256 of data.
 	ref *block.BlockRef
 	// data is the stable plaintext bytes expected from cold reads.
 	data []byte
@@ -1238,7 +1243,8 @@ func (f *coldFixture) manifest(t *testing.T) *packfile.ColdPackManifest {
 
 // open starts a real store and waits only in the test for its catalog to publish.
 func (f *coldFixture) open(t *testing.T, configure func(*ColdPackOptions)) *ColdPackStore {
-	// Reuse the same bucket on restart; copy options before overriding them.
+	// Reuse the same bucket on restart. Copy options before overriding
+	// them.
 	t.Helper()
 	f.initBucket(t)
 	opts := f.opts
@@ -1340,7 +1346,7 @@ func (f *coldFixture) appendTear(t *testing.T, key string, meta *packfile.ColdPa
 
 // coldTestReader counts and optionally gates real range requests.
 type coldTestReader struct {
-	// client performs the actual HTTP read.
+	// client reads the range over HTTP.
 	client ColdPackRangeReader
 	// before runs before issuing a range request in a test.
 	before func(context.Context, string, int64, int)
@@ -1430,5 +1436,5 @@ func checkColdLog(t *testing.T, path string, records int64) {
 	}
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ ColdPackRangeReader = (*coldTestReader)(nil)

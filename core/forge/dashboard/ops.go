@@ -22,7 +22,7 @@ func NewCreateForgeDashboardOp(objKey, name string, ts time.Time) *CreateForgeDa
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate cursorily checks the op.
 func (o *CreateForgeDashboardOp) Validate() error {
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
@@ -79,7 +79,7 @@ func NewLinkForgeDashboardOp(dashboardKey, entityKey string) *LinkForgeDashboard
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate cursorily checks the op.
 func (o *LinkForgeDashboardOp) Validate() error {
 	if len(o.GetDashboardKey()) == 0 {
 		return errors.New("dashboard_key is required")

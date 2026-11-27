@@ -59,9 +59,12 @@ interface ForgeViewerShellProps {
   state?: number
   stateLabels?: Record<number, string>
   tabs?: ForgeViewerTab[]
-  /** Actions that apply to the current viewer object or selection. */
+  /** actions apply to the current viewer object or selection. */
   actions?: ForgeAction[]
-  /** Global actions for the viewer bar (for example, object creation). */
+  /**
+   * headerActions are global actions for the viewer bar (for example, object
+   * creation).
+   */
   headerActions?: ViewerBarAction[]
   headerStatus?: ReactNode
   // details are the entity's facts behind the bar's Details press.
@@ -69,14 +72,16 @@ interface ForgeViewerShellProps {
   // status replaces the tabs and actions while the entity cannot show:
   // waiting for its block, failed to read it, or empty.
   status?: ViewerStatusProps | null
-  /** Stable object/viewer identity used to persist tab selection. */
+  /**
+   * stateKey is a stable object/viewer identity used to persist tab selection.
+   */
   stateKey?: string
   children?: ReactNode
 }
 
 /**
  * ForgeViewerShell owns Forge navigation, action bars, and touch target sizing.
- * Its viewer bar carries the title, state and header actions; the bottom bar
+ * Its viewer bar carries the title, state and header actions. The bottom bar
  * carries the actions on the current object or selection.
  */
 export function ForgeViewerShell({
@@ -93,7 +98,7 @@ export function ForgeViewerShell({
   stateKey,
   children,
 }: ForgeViewerShellProps) {
-  // Keep tab selection in the viewer’s existing personal state namespace.
+  // Keep tab selection in the viewer's existing personal state namespace.
   const ns = useStateNamespace(['forge-viewer', stateKey ?? title])
   const [activeTab, setActiveTab] = useStateAtom(ns, 'tab', '')
 
@@ -186,7 +191,8 @@ function ForgeViewerBody({
         </div>
       )}
 
-      {/* Content: a stream fills the pane, other tabs a centred column. */}
+      {/* Content: a stream fills the pane,
+          other tabs fill a centred column. */}
       {resolvedTab?.stream ? (
         <div className="flex min-h-0 flex-1 flex-col">
           {resolvedTab.content}

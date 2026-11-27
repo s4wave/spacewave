@@ -101,7 +101,8 @@ func TestJoinAccountSession(t *testing.T) {
 				t.Fatalf("handoff key revoked = %v, want %v", revoked.Load(), tc.wantRevoke)
 			}
 
-			// The registration marker names the key the Session now holds.
+			// The registration marker records the key
+			// the Session now holds.
 			sessions, err = acc.readAccountSessions(ctx, []*session.SessionListEntry{entry})
 			if err != nil {
 				t.Fatal(err)

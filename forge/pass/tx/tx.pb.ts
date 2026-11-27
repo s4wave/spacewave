@@ -40,7 +40,7 @@ export enum TxType {
 
   /**
    * TxType_COMPLETE sets the terminal result after every linked Execution is
-   * terminal. Canceled completion requires CANCELING; other completion
+   * terminal. Canceled completion requires CANCELING. Other completion
    * requires CHECKING.
    */
   TxType_COMPLETE = 4,
@@ -67,11 +67,11 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType('pass.tx.TxType', [
  */
 export interface Tx {
   /**
-   * TxType is the kind of transaction this is.
+   * TxType is the kind of transaction.
    */
   txType?: TxType
   /**
-   * PassObjectKey is the Pass object ID this is associated with.
+   * PassObjectKey is the Pass object ID the transaction is associated with.
    * The Pass object must already exist.
    */
   passObjectKey?: string

@@ -27,8 +27,8 @@ type Options struct {
 	// back to DefaultPointerTTL. Negative disables the TTL (pointer is cached
 	// until explicitly invalidated).
 	PointerTTL time.Duration
-	// RangeCacheMaxBytes bounds resident pack spans. Zero uses the default;
-	// a negative value disables eviction.
+	// RangeCacheMaxBytes bounds resident pack spans. Zero uses the default.
+	// A negative value disables eviction.
 	RangeCacheMaxBytes int64
 	// IndexCache optionally persists raw packfile index tails across restarts.
 	IndexCache packfile_store.IndexCache

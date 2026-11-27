@@ -16,9 +16,9 @@ import {
 } from '@s4wave/sdk/world/world-state.js'
 
 /**
- * useEntitySet follows the objects spec names and their decoded bodies. A
+ * useEntitySet follows the objects spec selects and their decoded bodies. A
  * live World is followed through its Engine, waking only on changes to the
- * set's members and its listing; a World snapshot is read once. Hooks on one
+ * set's members and its listing. A World snapshot is read once. Hooks on one
  * World with the same spec and decoder share one watch. A watch that fails
  * after its first value reopens and keeps the value meanwhile.
  */
@@ -40,7 +40,7 @@ export function useEntitySet<T>(
       }
       yield await readKeyedSet(state, entitySetSource(spec, decoder), signal)
     },
-    // spec and decoder are named by their key and name.
+    // spec and decoder are identified by their key and name.
     [entitySetKey(spec), decoder.name],
     { reconnect: true },
   )

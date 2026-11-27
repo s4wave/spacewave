@@ -24,14 +24,15 @@ import (
 // deleted, so each block of the tail stays listed in a complete packfile at
 // every moment. A reader that opened the tail before it went finds it deleted
 // and lists the entries again, as lookup describes. A failure before the
-// delete leaves the tail in place; a failure during it leaves both packfiles,
+// delete leaves the tail in place. A failure during deletion leaves both packs,
 // whose blocks repeat but are not lost. Two writers merging the same tail each
 // keep all of its blocks in their own output.
 //
 // Merges run under compactMtx, so one store merges one tail at a time and no
 // compaction or reclaim pass reads a tail being replaced.
 func (s *PackStore) mergeTail(ctx context.Context, batch []*block.PutBatchEntry) (bool, error) {
-	// Size the batch; a batch that fills a packfile on its own never merges.
+	// Size the batch. A batch that fills a packfile on its own never
+	// merges.
 	var batchBytes int64
 	for _, entry := range batch {
 		batchBytes += int64(len(entry.Data))

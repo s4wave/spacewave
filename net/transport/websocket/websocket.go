@@ -31,13 +31,13 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // WebSocket implements a WebSocket transport.
 type WebSocket struct {
-	// Transport implements the quic-backed transport type
+	// Transport implements the quic-backed transport type.
 	*transport_quic.Transport
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the websocket config
+	// conf is the websocket config.
 	conf *Config
 }
 
@@ -222,9 +222,10 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	c, err := websocket.Accept(rw, req, &websocket.AcceptOptions{
 		// Negotiate the bifrost quic sub-protocol ID.
 		Subprotocols: []string{transport_quic.Alpn},
-		// We are trusting the Quic handshake, not the Websocket handshake.
+		// WebSocket trusts the Quic handshake, not the Websocket
+		// handshake.
 		InsecureSkipVerify: true,
-		// We compress on the quic layer instead.
+		// WebSocket compresses on the quic layer instead.
 		CompressionMode: websocket.CompressionDisabled,
 	})
 	if err != nil {
@@ -264,7 +265,7 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	_ = lnk.Close()
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ transport.Transport    = (*WebSocket)(nil)
 	_ dialer.TransportDialer = (*WebSocket)(nil)

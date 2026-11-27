@@ -239,7 +239,7 @@ type equivocator struct {
 	self string
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// sent names the messages it signed.
+	// sent records the messages the voter signed.
 	sent map[string]struct{}
 	// msgs are the messages it signed.
 	msgs []*SOControlMessage
@@ -273,7 +273,7 @@ func (e *equivocator) observe(t *testing.T, state *SOState) []*SOControlMessage 
 		}
 		e.sent[key] = struct{}{}
 
-		// Name the decision, sign and keep it.
+		// Record the decision, sign and keep the message.
 		inner.SharedObjectId = mockSharedObjectID
 		inner.Height = height
 		inner.ConfigHash = cfg.GetConfigChainHash()
@@ -382,7 +382,7 @@ func countAgreements(state *SOState) int {
 // voter equivocates, and the voter both changes need restarts while locked:
 // every honest voter applies the same one change.
 func TestGroupControlSplitDishonestRestart(t *testing.T) {
-	// A, B, C and D vote; R reads; N is not yet a member.
+	// A, B, C and D vote. R reads. N is not yet a member.
 	peers := createMockPeers(t, 6)
 	keys := mustPrivKeys(t, peers)
 	ids := make([]string, len(peers))
@@ -394,7 +394,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 	hosts := []*groupHost{newGroupHost(ctx, state), newGroupHost(ctx, state), newGroupHost(ctx, state)}
 	seqno := state.GetConfig().GetConfigChainSeqno()
 
-	// D equivocates; B restarts after its first lock.
+	// D equivocates. B restarts after its first lock.
 	voters := make([]*groupVoter, len(hosts))
 	for i, h := range hosts {
 		voters[i] = &groupVoter{host: h, priv: keys[i]}
@@ -416,7 +416,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 		net.wg.Wait()
 	})
 
-	// A, B and D agree to admit N; B, C and D agree to remove R.
+	// A, B and D agree to admit N. B, C and D agree to remove R.
 	admit := func(h *groupHost, key crypto.PrivKey) {
 		_, _, _, err := AddSOParticipant(ctx, h.host, mockSharedObjectID, key, "", ids[5], peers[5].GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "")
 		if !errors.Is(err, ErrAwaitingGroup) {
@@ -430,7 +430,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 		}
 	}
 
-	// Each voter agrees on its own device; D agrees through A's and C's.
+	// Each voter agrees on its own device. D agrees through A's and C's.
 	admit(hosts[0], keys[0])
 	admit(hosts[1], keys[1])
 	admit(hosts[0], keys[3])
@@ -445,7 +445,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 		}
 	}
 
-	// The voters decide one of them.
+	// The voters decide one of the two changes.
 	for _, v := range voters {
 		v.start(ctx, t)
 	}
@@ -461,7 +461,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 		heads = append(heads, s)
 	}
 
-	// They agree on the chain head.
+	// The devices agree on the chain head.
 	for i, s := range heads[1:] {
 		if !bytes.Equal(s.GetConfig().GetConfigChainHash(), heads[0].GetConfig().GetConfigChainHash()) {
 			t.Fatalf("voter %d applied another change", i+1)
@@ -516,7 +516,7 @@ func holdsLock(state *SOState, voter string) bool {
 // change two agree to waits, and applies once the third agrees. The new
 // member's key comes from the voters, not from its own signature.
 func TestGroupControlThreeVotersWaitForAll(t *testing.T) {
-	// A, B and C vote; N is not yet a member.
+	// A, B and C vote. N is not yet a member.
 	peers := createMockPeers(t, 4)
 	keys := mustPrivKeys(t, peers)
 	newID := peers[3].GetPeerID().String()

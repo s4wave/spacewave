@@ -37,7 +37,7 @@ const packWalkLatency = 50 * time.Millisecond
 // walk's time over one GET's latency.
 //
 // It uses only APIs master also has, so the same file measures master. It runs
-// only when SPACEWAVE_PACK_WALK_KEYS names the tree's key count.
+// only when SPACEWAVE_PACK_WALK_KEYS specifies the tree's key count.
 func TestPackWalkLatency(t *testing.T) {
 	size, _ := strconv.Atoi(os.Getenv("SPACEWAVE_PACK_WALK_KEYS"))
 	if size == 0 {
@@ -61,7 +61,7 @@ func TestPackWalkLatency(t *testing.T) {
 	reader := func() *PackStore { return newIndexedStore(t, client, copyPackWalkIndex(t, ctx, index)) }
 	t.Logf("%d keys in %d blocks, %d objects", size, blocks, len(bucket.keys()))
 
-	// Count each GET and answer it after the bucket's latency, which holds
+	// Count each GET and answer it after the bucket's latency, holding
 	// the connection as a service does.
 	var gets atomic.Int64
 	bucket.mtx.Lock()

@@ -42,7 +42,7 @@ type JoinResult struct {
 // 1. Builds and signs a SOJoinResponse
 // 2. Opens an SRPC stream to the owner on protocol alpha/so-invite
 // 3. Sends AcceptInviteRequest with the raw token
-// 4. Returns the SOGrant from the owner
+// 4. Returns the SOGrant from the owner.
 func JoinViaInvite(
 	ctx context.Context,
 	childBus bus.Bus,
@@ -101,8 +101,9 @@ func JoinViaInvite(
 	}, nil
 }
 
-// LeaveSharedObject sends signed departure consent to the authenticated native owner.
-// The caller verifies the returned configuration proof before retiring its local access.
+// LeaveSharedObject sends signed departure consent to the authenticated native
+// owner. The caller verifies the returned configuration proof before retiring
+// its local access.
 func LeaveSharedObject(ctx context.Context, childBus bus.Bus, localPeerID, ownerPeerID peer.ID, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
 	open := stream_srpc.NewOpenStreamFunc(childBus, ProtocolID, localPeerID, ownerPeerID, 0)
 	return NewSRPCSOInviteServiceClient(srpc.NewClient(open)).Leave(ctx, request)

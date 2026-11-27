@@ -59,8 +59,8 @@ func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, src
 	// Hash the manifest contents to key the install cache.
 	hash := bunInstallHash(data, lockData)
 
-	// Prefer the shared cache directory; fall back to the caller's own
-	// state directory when it is unavailable.
+	// Prefer the shared cache directory. Fall back to the caller's own
+	// state directory when the shared cache directory is unavailable.
 	targetDir := fallbackDir
 	if sharedDir, ok := sharedInstallDir(hash); ok {
 		targetDir = sharedDir

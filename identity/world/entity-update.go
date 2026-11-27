@@ -32,7 +32,7 @@ func StoreEntity(
 	})
 }
 
-// Validate performs cursory validation of the operation.
+// Validate checks the operation cursorily.
 // Should not block.
 func (o *EntityUpdateOp) Validate() error {
 	if err := o.GetEntityRef().Validate(); err != nil {

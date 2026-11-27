@@ -61,7 +61,7 @@ const idleTimeout = time.Minute
 // maxOpenFiles is the most files kept open on one connection. Past it, the
 // least recently used unused file is closed to make room. A store of many
 // small packs touches a new pack on most reads, so each handle kept open
-// saves an open and a close on the next read of its pack; OpenSSH's
+// saves an open and a close on the next read of its pack. OpenSSH's
 // sftp-server keeps each handle as one descriptor of its own process.
 const maxOpenFiles = 256
 
@@ -77,7 +77,7 @@ var errNotConnected = errors.New("no connection to retry on")
 // sftp-server answers a session's requests one at a time, so calls past the
 // first two only queue at the server, in arrival order, where no read class
 // can reach them. Two keep the server busy across the round trip between
-// answers; the rest wait in the client's lanes, most urgent first.
+// answers. The rest wait in the client's lanes, most urgent first.
 const requestsPerConn = 2
 
 // interactiveReserve is how many lanes refill and background calls leave for
@@ -91,11 +91,11 @@ const tempPrefix = ".tmp-"
 // Client is a block_store_s3.ObjectStore on an SFTP server.
 //
 // A bucket is a directory relative to the login directory, and a key is a
-// slash path below it; missing directories are created on write. Each call
-// takes a lane, one of requestsPerConn on each connection, in the read class
-// of its context as lanes.Pool describes, and keeps it until the server
-// answers, even when its caller stopped waiting. A range read prefers the
-// connection that already has its object open. A call whose connection
+// slash path below the directory. Missing directories are created on write.
+// Each call takes a lane, one of requestsPerConn on each connection, in the
+// read class of its context as lanes.Pool describes, and keeps it until the
+// server answers, even when its caller stopped waiting. A range read prefers
+// the connection that already has its object open. A call whose connection
 // failed closes it and runs once more on a fresh one, and the next call on
 // the slot finds the new connection ready.
 //
@@ -118,7 +118,7 @@ type Client struct {
 // slot holds one SSH connection, dialed when first needed.
 type slot struct {
 	c *Client
-	// mu guards conn, the files of the connection in it, and down.
+	// mu guards conn, the connection's files, and down.
 	mu   sync.Mutex
 	conn *conn
 	// down is when the slot may dial again after its last dial failed.
@@ -135,7 +135,8 @@ type conn struct {
 	sftp *sftp.Client
 	// files holds the files open on the connection by name.
 	files map[string]*openFile
-	// timer closes the unused files when they idle; nil when no file is open.
+	// timer closes the unused files when they idle. Nil when no file
+	// is open.
 	timer *time.Timer
 	// closed is set when the connection is closed.
 	closed bool
@@ -396,7 +397,7 @@ func (c *Client) forget(name string) {
 	}
 }
 
-// do runs fn on a lane of any connection; see doOn.
+// do runs fn on a lane of any connection. See doOn.
 func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
 	return c.doOn(ctx, "", fn)
 }
@@ -405,14 +406,15 @@ func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
 // with the file name open, and runs fn on the lane's connection, dialing it
 // when the slot has none. A call whose slot cannot connect runs again on a
 // connected slot it has not tried, so a server that refuses some sessions
-// serves the call on the others; a retry never dials, so a server that
+// serves the call on the others. A retry never dials, so a server that
 // refuses every session costs one dial's attempts, not one per slot. It
-// returns fn's result, or the context's cause when ctx ends first; fn then runs on and holds its lane until the server
-// answers, so the lanes count every request the server holds.
+// returns fn's result, or the context's cause when ctx ends first. In that
+// case, fn runs on and holds its lane until the server answers, so the lanes
+// count every request the server holds.
 func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error) error {
 	// Each retry is refused at once by a slot without a connection, so a
 	// retry that lands on one again, when no preferred lane is free, costs
-	// nothing; the attempts are bounded all the same.
+	// nothing. The attempts are bounded all the same.
 	tried := make(map[*slot]bool, len(c.slots))
 	for attempt := 1; ; attempt++ {
 		// Run once, and return any result but a refused connection.
@@ -431,7 +433,7 @@ func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error)
 }
 
 // doOnce runs fn on one lane, preferring a slot with name open and avoiding
-// the slots tried. A ConnectError it returns names the slot that failed.
+// the slots tried. A ConnectError it returns records the slot that failed.
 func (c *Client) doOnce(ctx context.Context, name string, tried map[*slot]bool, fn func(cn *conn) error) error {
 	// Refuse a call whose caller already left.
 	if ctx.Err() != nil {
@@ -458,7 +460,7 @@ func (c *Client) doOnce(ctx context.Context, name string, tried map[*slot]bool, 
 		// Hold the lane until the server answers.
 		defer c.lanes.Put(l)
 
-		// Run fn, naming the slot in a connect error for the retry.
+		// Run fn, recording the slot in a connect error for the retry.
 		err := l.Lane.run(ctx, len(tried) == 0, fn)
 		var connectErr *ConnectError
 		if errors.As(err, &connectErr) {
@@ -593,8 +595,8 @@ func (c *Client) dial(ctx context.Context) (*conn, error) {
 
 // dialOnce makes one attempt to connect, log in and start the SFTP session.
 func (c *Client) dialOnce(ctx context.Context) (*conn, error) {
-	// Connect and run the handshake. The error names the server, never the
-	// credentials.
+	// Connect and run the handshake. The error identifies the server,
+	// never the credentials.
 	d := net.Dialer{Timeout: dialTimeout}
 	nc, err := d.DialContext(ctx, "tcp", c.conf.Addr)
 	if err != nil {
@@ -620,8 +622,8 @@ func (c *Client) dialOnce(ctx context.Context) (*conn, error) {
 	return cn, nil
 }
 
-// keepalive closes the connection when the server stops answering, which
-// fails the requests waiting on it and lets the next call dial again.
+// keepalive closes the connection when the server stops answering, so
+// requests waiting on the connection fail and the next call can dial again.
 func (cn *conn) keepalive() {
 	//gostyle:timer deadline
 	t := time.NewTicker(keepaliveInterval)

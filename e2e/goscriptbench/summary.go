@@ -11,13 +11,13 @@ import (
 
 // Summary records nearest-rank statistics derived from retained source rows.
 type Summary struct {
-	// method names the percentile algorithm
+	// Method identifies the percentile algorithm.
 	Method string
-	// sampleCount is the number of retained source rows
+	// SampleCount is the number of retained source rows.
 	SampleCount int
-	// medianDisplayReadyMs is the nearest-rank p50
+	// MedianDisplayReadyMs is the nearest-rank p50.
 	MedianDisplayReadyMs float64
-	// p95DisplayReadyMs is the nearest-rank p95
+	// P95DisplayReadyMs is the nearest-rank p95.
 	P95DisplayReadyMs float64
 }
 

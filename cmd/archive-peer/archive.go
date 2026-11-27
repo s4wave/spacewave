@@ -92,8 +92,8 @@ func (a *archive) LookupBlock(ctx context.Context, ref *block.BlockRef, _ ...buc
 
 // LookupStoredBlock reads the block and its outgoing block refs from the
 // reference graph in one read-only transaction. RefsKnown is set when the
-// graph tracked the block or it has children, so an untracked block without
-// children is not reported as a leaf.
+// graph tracked the block or the block has children, so an untracked block
+// without children is not reported as a leaf.
 func (a *archive) LookupStoredBlock(ctx context.Context, ref *block.BlockRef, _ ...bucket_lookup.LookupBlockOption) (*block.StoredBlock, error) {
 	// Open a read-only transaction for the block and its edges.
 	le := a.le.WithField("ref", ref.MarshalString())

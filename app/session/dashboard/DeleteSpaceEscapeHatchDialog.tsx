@@ -81,8 +81,8 @@ function useSpaceChoices(open: boolean, session: Session | null) {
 }
 
 // useSelectedSpaceHealth watches the health of the chosen space. It only
-// watches once the user has picked a space, which avoids fanning out one Watch
-// stream per space in the list.
+// watches once the user has picked a space, so the hook avoids fanning out
+// one Watch stream per space in the list.
 function useSelectedSpaceHealth(
   open: boolean,
   session: Session | null,
@@ -181,7 +181,7 @@ export function DeleteSpaceEscapeHatchDialog({
     deletion.clearError()
   }
 
-  // The typed name must equal the selected space's name; a missing selection
+  // The typed name must equal the selected space's name. A missing selection
   // never matches.
   const canDelete =
     acknowledged && !submitting && typedConfirm === selected?.name

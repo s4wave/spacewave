@@ -16,29 +16,30 @@ import (
 )
 
 const (
-	// WalkConcurrency is the reads a walk keeps in flight when its config
-	// names none.
+	// WalkConcurrency is the number of reads a walk keeps in flight when
+	// its config specifies none.
 	WalkConcurrency = 64
 	// WalkConcurrencyMax bounds the reads a walk keeps in flight.
 	WalkConcurrencyMax = 1024
-	// walkRetries is the rounds a walk tries its failed reads again.
+	// walkRetries is the number of rounds a walk tries its failed reads
+	// again.
 	walkRetries = 3
-	// walkRetryWait is the wait before the first retry round; each later
+	// walkRetryWait is the wait before the first retry round. Each later
 	// round waits longer.
 	walkRetryWait = 5 * time.Second
-	// walkFirstHoles is the holes a walk's status lists.
+	// walkFirstHoles is the number of holes a walk's status lists.
 	walkFirstHoles = 20
-	// walkAdmitEvery is the reads a walk worker does between waits on the
-	// walk's gate.
+	// walkAdmitEvery is the number of reads a walk worker does between
+	// waits on the walk's gate.
 	walkAdmitEvery = 64
-	// walkReadTimeout bounds one read when the config names no bound.
+	// walkReadTimeout bounds one read when the config specifies no bound.
 	walkReadTimeout = 20 * time.Second
 	// walkPersistEvery is how often a walk saves its position when the
-	// config names no interval.
+	// config specifies no interval.
 	walkPersistEvery = 30 * time.Second
 	// walkPersistShare bounds the share of the walk's time spent saving its
 	// position: after a save that took d, the next waits at least d times
-	// this.
+	// walkPersistShare.
 	walkPersistShare = 20
 )
 
@@ -66,9 +67,11 @@ const (
 
 // Walk stages, the index of a stage's stack.
 const (
-	// walkStageWorld holds the World's trees and their okra pages.
+	// walkStageWorld is the stage for the World's trees and their okra
+	// pages.
 	walkStageWorld = 0
-	// walkStageObjects holds the Objects, their roots and their bodies.
+	// walkStageObjects is the stage for the Objects, their roots and
+	// their bodies.
 	walkStageObjects = 1
 )
 
@@ -89,7 +92,8 @@ type DecodedStore interface {
 type WalkHole struct {
 	// Ref is the block.
 	Ref *block.BlockRef
-	// Parent is the block that named it, nil for a pinned root.
+	// Parent is the block that referenced this block, nil for a pinned
+	// root.
 	Parent *block.BlockRef
 	// Reason is one of the Hole constants.
 	Reason string
@@ -105,8 +109,8 @@ type WalkConfig struct {
 	Store block.StoreOps
 	// RootTypes types the root of each listed object by its type.
 	RootTypes RootTypes
-	// Concurrency is the reads kept in flight; zero uses WalkConcurrency,
-	// or the saved walk's when resuming.
+	// Concurrency is the number of reads kept in flight. Zero uses
+	// WalkConcurrency, or the saved walk's concurrency when resuming.
 	Concurrency int
 	// Keep, when set, stores each block read without its refs with the refs
 	// its type decodes, since the read path serves such a block without
@@ -116,7 +120,7 @@ type WalkConfig struct {
 	// their refs, which the walk otherwise does not keep.
 	KeepAll bool
 	// KeepSlots, when above zero, bounds the keeps running at once. A keep
-	// that finds every slot busy is counted deferred and not stored; the
+	// that finds every slot busy is counted deferred and not stored. The
 	// next walk reads the block again.
 	KeepSlots int32
 	// Locate, when set, reports which blocks the World's own packs hold. The
@@ -130,12 +134,12 @@ type WalkConfig struct {
 	// Holes, when set, receives each hole. A resumed walk may report a hole
 	// its earlier run reported after its last saved position.
 	Holes func(h WalkHole)
-	// ReadTimeout bounds one read; zero uses 20 seconds.
+	// ReadTimeout bounds one read. Zero uses 20 seconds.
 	ReadTimeout time.Duration
 	// StatePath, when set, is the file the walk saves its position in, and
 	// the file ResumeWalk reads.
 	StatePath string
-	// PersistEvery is how often the walk saves its position; zero uses 30
+	// PersistEvery is how often the walk saves its position. Zero uses 30
 	// seconds.
 	PersistEvery time.Duration
 }
@@ -144,7 +148,8 @@ type WalkConfig struct {
 type walkItem struct {
 	// ref is the block.
 	ref *block.BlockRef
-	// parent is the block that named it, nil for a pinned root.
+	// parent is the block that referenced this block, nil for a pinned
+	// root.
 	parent *walkNode
 	// typ is the block's type, nil when unknown.
 	typ any
@@ -154,15 +159,15 @@ type walkItem struct {
 	okraValue bool
 }
 
-// walkNode is a block the walk read, kept while a block it named waits, so
-// a saved position names each waiting block's parent. A node whose type a
-// save cannot name keeps its own parent, so a resume can type it from its
-// path; a node does not change once built.
+// walkNode is a block the walk read, kept while a block it referenced waits,
+// so a saved position records each waiting block's parent. A node whose type
+// a save cannot record keeps its own parent, so a resume can type the node
+// from its path. A node does not change once built.
 type walkNode struct {
 	// ref is the block.
 	ref *block.BlockRef
-	// parent is the block that named it, nil for a pinned root or a node
-	// whose type a save names.
+	// parent is the block that referenced this block, nil for a pinned root
+	// or a node whose type a save records.
 	parent *walkNode
 	// typ is the block's type, nil when unknown.
 	typ any
@@ -198,36 +203,37 @@ type walkSample struct {
 }
 
 // Walk reads every block reachable from a pinned World head through a source,
-// many reads at a time. A block's type comes from its parent; a block read
+// many reads at a time. A block's type comes from its parent. A block read
 // without its refs is decoded by its type for them and, with a Keep store,
 // stored with them. The World's trees and their okra pages are read before
-// object roots and bodies; the object types are listed between the two, from
+// object roots and bodies. The object types are listed between the two, from
 // the graph the first stage kept. A hole is recorded and the walk goes on.
 //
 // With a StatePath, the walk saves its position every PersistEvery, when its
-// phase changes and when Run returns: the pin, the phase, the counts, and
-// every block it will read with its type and the block that named it. Every
-// block reachable from the pin that the walk has not read is reachable from
-// the saved blocks, since a block stays in flight until it has queued each
-// of its children, so ResumeWalk continues from the last save, reading again
-// at most what the walk read since. A type of a kind the save cannot name is
-// not saved: the save keeps the path of blocks to it from the nearest block
-// whose type it names, and a resume reads that path again and decodes each
+// phase changes and when Run returns: the pin, the phase, the counts, and every
+// block it will read with its type and the block that referenced it. Every
+// block reachable from the pin that the walk has not read is reachable from the
+// saved blocks, since a block stays in flight until it has queued each of its
+// children, so ResumeWalk continues from the last save, reading again at most
+// what the walk read since the save. A type the save cannot record is not
+// saved: the save keeps the path of blocks to it from the nearest block whose
+// type the save records, and a resume reads that path again and decodes each
 // block by its parent's type.
 type Walk struct {
 	// le logs the walk's progress.
 	le *logrus.Entry
 	// conf is the walk's config.
 	conf WalkConfig
-	// conc is the reads kept in flight.
+	// conc is the number of reads kept in flight.
 	conc int
 	// resume reads the frontier from the state file when Run starts.
 	resume bool
-	// reg maps the block types a save names to their constructors.
+	// reg maps the block types a save records to their constructors.
 	reg map[string]block.Ctor
 	// keeping counts the keeps running.
 	keeping atomic.Int32
-	// persisted, when set, is called after each save; tests wait on it.
+	// persisted, when set, is called after each save. Tests wait on this
+	// call.
 	persisted func()
 	// persistMtx serializes the saves.
 	persistMtx sync.Mutex
@@ -237,7 +243,7 @@ type Walk struct {
 	// cond wakes workers waiting for a block to read.
 	cond *sync.Cond
 	// state is the saved header: the pin, the phase, the start and the
-	// resumes. Its status is unset; status holds the counts.
+	// resumes. Its status is unset. status holds the counts.
 	state *WalkState
 	// typer types the blocks: the World's trees alone until the objects are
 	// listed, then the objects' roots too.
@@ -269,7 +275,7 @@ type Walk struct {
 	persistTook time.Duration
 }
 
-// NewWalk builds a walk of the World pin names, from its roots.
+// NewWalk builds a walk of the World pin records, from its roots.
 func NewWalk(le *logrus.Entry, conf WalkConfig, pin *WalkPin) (*Walk, error) {
 	if len(pin.GetHeads()) == 0 || pin.GetHeads()[0].GetRootRef().GetEmpty() {
 		return nil, errors.New("the walk's pin names no World root")
@@ -284,7 +290,7 @@ func NewWalk(le *logrus.Entry, conf WalkConfig, pin *WalkPin) (*Walk, error) {
 }
 
 // ResumeWalk builds a walk that continues the position conf.StatePath holds.
-// It reads the file's header; Run reads the rest. A walk the file records as
+// It reads the file's header. Run reads the rest. A walk the file records as
 // done is refused.
 func ResumeWalk(le *logrus.Entry, conf WalkConfig) (*Walk, error) {
 	// Read the saved header, refusing a done walk.
@@ -297,7 +303,7 @@ func ResumeWalk(le *logrus.Entry, conf WalkConfig) (*Walk, error) {
 	}
 
 	// Continue its counts as one more run, at the saved concurrency unless
-	// the config names one.
+	// the config specifies one.
 	status := state.GetStatus().CloneVT()
 	if status == nil {
 		status = &WalkStatus{}
@@ -392,9 +398,9 @@ func (w *Walk) Snapshot() *WalkStatus {
 	return st
 }
 
-// Run walks until every block reachable from the pin is read, ctx ends or
-// the gate fails. With a StatePath it saves the position as it goes and once
-// more as it returns, whatever stopped it; a done walk saves its final counts
+// Run walks until every block reachable from the pin is read, ctx ends or the
+// gate fails. With a StatePath it saves the position as it goes and once more
+// as it returns, whatever stopped the walk. A done walk saves its final counts
 // with no frontier.
 func (w *Walk) Run(ctx context.Context) error {
 	// Type the World's trees, and the objects too when the listing ran.
@@ -494,7 +500,7 @@ func (w *Walk) stages(ctx context.Context) error {
 }
 
 // settle reads until the stacks drain, then tries the failed reads again, up
-// to walkRetries rounds; the last round's failures are holes.
+// to walkRetries rounds. The last round's failures are holes.
 func (w *Walk) settle(ctx context.Context) error {
 	w.mtx.Lock()
 	w.final = false
@@ -521,8 +527,8 @@ func (w *Walk) settle(ctx context.Context) error {
 		w.status.Retried += uint64(len(retry))
 		w.mtx.Unlock()
 
-		// Wait before reading them again; they stay queued, so a save
-		// meanwhile keeps them.
+		// Wait before reading the failed blocks again. The blocks stay
+		// queued, so a save meanwhile keeps them.
 		t := time.NewTimer(walkRetryWait * time.Duration(round+1))
 		select {
 		case <-ctx.Done():
@@ -654,12 +660,12 @@ func (w *Walk) done(id uint64, it walkItem, requeue bool) {
 	w.cond.Broadcast()
 }
 
-// push queues it unless the walk reached it before; a block read untyped
-// without its refs is queued again when a typed parent names it. An Object
-// reached before the listing waits for it.
+// push queues it unless the walk reached it before. A block read untyped
+// without its refs is queued again when a typed parent references the block.
+// An Object reached before the listing waits for the listing.
 func (w *Walk) push(it walkItem) {
-	// Skip a block reached before, unless a typed parent now names a block
-	// read untyped.
+	// Skip a block reached before, unless a typed parent now references a
+	// block read untyped.
 	k := keyOf(it.ref)
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -752,7 +758,7 @@ func (w *Walk) visit(ctx context.Context, it walkItem) bool {
 	}
 	w.count(it, kind, stored)
 
-	// Queue the children; an object's root starts the objects stage.
+	// Queue the children. An object's root starts the objects stage.
 	node := &walkNode{ref: it.ref, typ: it.typ, stage: it.stage}
 	if !savableType(w.reg, it.typ) {
 		node.parent = it.parent
@@ -894,7 +900,7 @@ func (w *Walk) keepDecoded(ctx context.Context, it walkItem, data []byte, typed 
 
 // hole records a block the walk could not read or learn the refs of.
 func (w *Walk) hole(it walkItem, reason, detail string) {
-	// Name the parent.
+	// Get the parent block's ref.
 	var parent *block.BlockRef
 	if it.parent != nil {
 		parent = it.parent.ref
@@ -933,7 +939,7 @@ func (w *Walk) hole(it walkItem, reason, detail string) {
 	}
 }
 
-// WalkFields are the log fields of a walk's progress.
+// WalkFields returns the log fields of a walk's progress.
 func WalkFields(st *WalkStatus) logrus.Fields {
 	return logrus.Fields{
 		"stage":        st.GetStage(),

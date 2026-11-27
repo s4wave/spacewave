@@ -22,7 +22,7 @@ type LookupWorldOp interface {
 // LookupWorldOpValue is the result type for LookupWorldOp.
 type LookupWorldOpValue = LookupOp
 
-// lookupWorldOp is an in-memory LookupWorldOp directive
+// lookupWorldOp is an in-memory LookupWorldOp directive.
 type lookupWorldOp struct {
 	operationTypeID string
 	engineID        string
@@ -46,7 +46,7 @@ func (d *lookupWorldOp) Validate() error {
 	return nil
 }
 
-// GetValueLookupWorldOpOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupWorldOp) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Second,
@@ -97,7 +97,7 @@ func (d *lookupWorldOp) GetName() string {
 	return "LookupWorldOp"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupWorldOp) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["operation-type-id"] = []string{d.LookupWorldOpOperationTypeID()}

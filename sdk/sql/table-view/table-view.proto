@@ -16,11 +16,12 @@ message TableView {
   string target_table_name = 2;
   // WhereExpression is an optional SQL WHERE expression.
   string where_expression = 3;
-  // ProjectedColumns limits returned columns. Empty selects all columns.
+  // ProjectedColumns limits returned columns. An empty list selects all
+  // columns.
   repeated string projected_columns = 4;
   // SortOrder orders returned rows.
   repeated SortOrder sort_order = 5;
-  // RowLimit limits returned rows. Zero uses the default limit.
+  // RowLimit limits returned rows. A zero value uses the default limit.
   uint32 row_limit = 6;
   // WhereParameters are positional bind arguments used by WhereExpression.
   repeated .sql.SqlValue where_parameters = 7;
@@ -70,7 +71,7 @@ message GetDriverCapabilityResponse {
 
 // DriverCapability describes SQL driver operations exposed by this table view.
 message DriverCapability {
-  // UpdateRow is true when typed row updates can be attempted.
+  // UpdateRow is true when typed row updates can be tried.
   bool update_row = 1;
   // UpdateRowUnsupportedReason explains why UpdateRow is unavailable.
   string update_row_unsupported_reason = 2;
@@ -93,11 +94,11 @@ message FetchRowsResponse {
 
 // UpdateRowRequest updates table rows selected by typed match values.
 message UpdateRowRequest {
-  // MatchColumns names columns used in the WHERE clause.
+  // MatchColumns lists columns used in the WHERE clause.
   repeated string match_columns = 1;
   // MatchValues are compared with MatchColumns in order.
   repeated .sql.SqlValue match_values = 2;
-  // SetColumns names columns updated by the SET clause.
+  // SetColumns lists columns updated by the SET clause.
   repeated string set_columns = 3;
   // SetValues are assigned to SetColumns in order.
   repeated .sql.SqlValue set_values = 4;

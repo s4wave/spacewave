@@ -223,7 +223,7 @@ func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.G
 			}
 
 			// Create a persistent read-only git store (btx=nil).
-			// subCtx outlives the RPC -- the store stays alive for subsequent
+			// subCtx outlives the RPC. The store stays alive for subsequent
 			// FSHandle operations on the child resource.
 			store, err := git_block.NewStore(subCtx, nil, bcs, &memory.IndexStorage{}, nil)
 			if err != nil {
@@ -607,7 +607,7 @@ func resolveRefNameToCommitObject(repo *git.Repository, refName string) (*object
 		return resolveRefToCommitObject(repo, refName)
 	}
 
-	// Follow symbolic refs exactly; only the storer's own not-found is absence.
+	// Follow symbolic refs exactly. Only the storer's own not-found is absence.
 	ref, err := repo.Reference(name, true)
 	if errors.Is(err, plumbing.ErrReferenceNotFound) {
 		return nil, errRefNameNotFound
@@ -616,7 +616,8 @@ func resolveRefNameToCommitObject(repo *git.Repository, refName string) (*object
 		return nil, errors.Wrap(err, "resolve ref "+refName)
 	}
 
-	// The ref names this object, so a failure to load it is a read failure.
+	// The ref references the object, so a failure to load the object is a read
+	// failure.
 	// The block store reports a type mismatch as not found, so try a tag.
 	commit, err := repo.CommitObject(ref.Hash())
 	if errors.Is(err, plumbing.ErrObjectNotFound) {

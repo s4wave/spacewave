@@ -9,13 +9,13 @@ var closedCh = func() chan struct{} {
 	return ch
 }()
 
-// revWatch wakes the waiters of one object key when a change names it.
+// revWatch wakes the waiters of one object key when a change references it.
 //
 // A waiter takes its key's channel with wait before it reads the object, then
 // waits on the channel, so a change between the read and the wait still wakes
 // it. A writer wakes while it holds the transaction's write lock, which the
 // waiter's read takes, so a woken waiter reads the finished change. A change
-// to key K closes only K's channel; a create wakes the waiters for a missing
+// to key K closes only K's channel. A create wakes the waiters for a missing
 // K the same way. Rebuilding the state wakes every waiter, and closing it
 // wakes every waiter and every later one.
 //

@@ -28,7 +28,7 @@ type StoreStats struct {
 	// ForegroundHold sums foreground turns from admission through release.
 	ForegroundHold time.Duration
 	// BackgroundHold sums background turns from admission through release.
-	// Every writer queued meanwhile waits out a hold; a foreground writer
+	// Every writer queued meanwhile waits out a hold. A foreground writer
 	// goes first in the queue but cannot cut a background hold short.
 	BackgroundHold time.Duration
 	// ForegroundHoldsOver1s counts foreground holds of at least one second.
@@ -159,7 +159,7 @@ func EachStoreStats(fn func(StoreStats)) {
 // Stats returns the store's writer turn and checkpoint counters since it
 // opened.
 func (s *Store[T]) Stats() StoreStats {
-	// Snapshot the counters and name the file they count.
+	// Snapshot the counters and record the file they count.
 	st := s.stats.snapshot()
 	s.fileMtx.Lock()
 	st.File = s.file

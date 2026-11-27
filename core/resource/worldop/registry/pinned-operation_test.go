@@ -35,7 +35,8 @@ func TestPinnedOperationReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The current runtime implements different behavior; replay must never call it.
+	// The current runtime implements different behavior. Replay must never
+	// call that runtime.
 	client := func(key string) srpc.Client {
 		return handlerClient(t, &pinnedTestHandler{key: key})
 	}
@@ -134,7 +135,8 @@ func TestPinnedOperationReplay(t *testing.T) {
 		t.Fatalf("latest implementation ran: found=%t, err=%v", found, err)
 	}
 
-	// Removing an artifact produces an explicit failure even while latest is available.
+	// Removing an artifact produces an explicit failure even while the
+	// latest executable is available.
 
 	// Hash an executable identity that has no registered manifest.
 	missingHash, err := hash.Sum(hash.RecommendedHashType, []byte("missing executable"))
@@ -154,7 +156,8 @@ func TestPinnedOperationReplay(t *testing.T) {
 		t.Fatalf("unloaded executable error = %v, expected PluginUnavailableError", err)
 	}
 
-	// A proven missing build is final for this device and names the pinned root.
+	// A proven missing build is final for this device and reports the
+	// pinned root.
 	foreign := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
 	foreign.manifestRoot = foreignHash.MarshalString()
 	foreign.handlerID = "colors/like"
@@ -180,8 +183,8 @@ func TestPinnedOperationReplay(t *testing.T) {
 		t.Fatalf("connect error at the deadline = %v, expected PluginUnavailableError", err)
 	}
 
-	// So is a handler error the worker returns as the deadline ends: the call
-	// loses its type, and the deadline decides.
+	// So is a handler error the worker returns as the deadline ends: the
+	// call loses the error's type, and the deadline decides.
 	<-opCtx.Done()
 	if err := hang.callErr(opCtx, errors.New("handler failed"), true); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("handler error at the deadline = %v, expected a deadline", err)

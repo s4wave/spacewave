@@ -83,9 +83,10 @@ func newCommitBatch(w *Window, table *SeriesTable) (*commitBatch, error) {
 // the same windows first. A store whose commit is still running makes
 // CommitStores return ErrCommitInProgress without writing. A store whose
 // target another writer has taken over writes nothing and stands down, as
-// Store.Lost reports; the others commit.
+// Store.Lost reports. The others commit.
 func CommitStores(ctx context.Context, eng world.Engine, stores ...*Store) (CommitStats, error) {
-	// Freeze each store's window; release the ones already frozen on failure.
+	// Freeze each store's window. Release the ones already frozen on
+	// failure.
 	var stats CommitStats
 	type pending struct {
 		store *Store

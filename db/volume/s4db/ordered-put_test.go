@@ -83,7 +83,7 @@ func TestOrderedPut(t *testing.T) {
 		t.Fatal("plain write did not flush")
 	}
 
-	// An ordered root move flushes nothing; a plain one flushes.
+	// An ordered root move flushes nothing. A plain root move flushes.
 	before = flushes()
 	root := []block.NamedRoot{{Name: "head", Ref: batch[0].Ref}}
 	if err := vol.SetRoots(orderedCtx, nil, root); err != nil {

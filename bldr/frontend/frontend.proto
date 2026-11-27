@@ -13,7 +13,7 @@ service Frontend {
   // Send delivers a client HMR message to the selected compiler session.
   rpc Send(SendRequest) returns (SendResponse);
 
-  // Fetch serves modules from the session named by the request URL.
+  // Fetch serves modules from the session selected by the request URL.
   rpc Fetch(stream .web.fetch.FetchRequest) returns (stream .web.fetch.FetchResponse);
 }
 
@@ -54,7 +54,7 @@ message Event {
 
 // SendRequest sends one upstream client message to its originating session.
 message SendRequest {
-  // SessionId identifies the compiler environment; stale sessions are rejected.
+  // SessionId identifies the compiler environment. Stale sessions are rejected.
   string session_id = 1;
   // Payload contains an upstream Vite client HMR JSON message.
   string payload = 2;

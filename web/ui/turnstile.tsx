@@ -2,7 +2,7 @@
 
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 
-// TURNSTILE_SITE_KEY is the Cloudflare Turnstile public site key.
+// TURNSTILE_PROD_SITE_KEY is the Cloudflare Turnstile public site key.
 export const TURNSTILE_PROD_SITE_KEY = '0x4AAAAAACr84TeZC0nMMY9O'
 export const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA'
 export const TURNSTILE_TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX'
@@ -19,7 +19,7 @@ export interface TurnstileInstance {
   takeToken(timeout?: number): Promise<string>
 }
 
-// Minimal window.turnstile type surface.
+// TurnstileAPI is the minimal window.turnstile type surface.
 interface TurnstileAPI {
   render(
     container: HTMLElement,
@@ -45,7 +45,8 @@ type TurnstileWindow = Window & {
   [CALLBACK_NAME]?: () => void
 }
 
-// Module-level singleton: one script load shared across all instances.
+// The module-level script loader is a singleton that shares one script load
+// across all instances.
 let scriptState: 'idle' | 'loading' | 'ready' = 'idle'
 let scriptResolve: (() => void) | null = null
 const scriptReady = new Promise<void>((resolve) => {

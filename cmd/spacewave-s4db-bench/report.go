@@ -48,7 +48,7 @@ const slowestCount = 10
 // slowCommit is one of the slowest commits and the window it ended in.
 type slowCommit struct {
 	commit
-	// class is the window's class, and prev and cur its samples.
+	// class is the window's class, and prev and cur are its samples.
 	class     string
 	prev, cur sample
 }
@@ -92,7 +92,7 @@ func (a *BenchArgs) classify(samples []sample, commits []commit) *Report {
 	}
 }
 
-// windowClass names the window between two samples: merge when a run above
+// windowClass classifies the window between two samples: merge when a run above
 // level 0 changed or level 0 shrank, flush when level 0 grew, busy when a job
 // held reserved chunks, else idle.
 func windowClass(prev, cur sample) string {
@@ -115,7 +115,7 @@ func windowClass(prev, cur sample) string {
 		return "merge"
 	}
 
-	// A grown level 0 ends a flush; a reservation means a job runs.
+	// A grown level 0 ends a flush. A reservation means a job runs.
 	if at(cur.runs, 0) > at(prev.runs, 0) {
 		return "flush"
 	}
@@ -249,7 +249,7 @@ func statsValue(arena *fastjson.Arena, st s4db.Stats) *fastjson.Value {
 	chunks.Set("value", intValue(arena, st.Chunks.Value))
 	chunks.Set("run", intValue(arena, st.Chunks.Run))
 
-	// The chunks a job holds or a pin keeps, and the manifest's.
+	// The chunks a job holds or a pin keeps, and the manifest's chunks.
 	chunks.Set("manifest", intValue(arena, st.Chunks.Manifest))
 	chunks.Set("reserved", intValue(arena, st.Chunks.Reserved))
 	chunks.Set("pending", intValue(arena, st.Chunks.Pending))

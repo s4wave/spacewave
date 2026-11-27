@@ -83,5 +83,5 @@ func (s *JPEGSource) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *f
 // RequestKeyframe leaves the capture cadence in control of the next keyframe.
 func (s *JPEGSource) RequestKeyframe() {}
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ frametrack.Source = (*JPEGSource)(nil)

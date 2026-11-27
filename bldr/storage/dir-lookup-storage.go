@@ -21,7 +21,7 @@ type LookupStorage interface {
 // Multiple results may be pushed to the directive.
 type LookupStorageValue = Storage
 
-// lookupStorage implements LookupStorage
+// lookupStorage implements LookupStorage.
 type lookupStorage struct {
 	storageId string
 }
@@ -53,7 +53,7 @@ func (d *lookupStorage) Validate() error {
 	return nil
 }
 
-// GetValueLookupStorageOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupStorage) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -91,7 +91,7 @@ func (d *lookupStorage) GetName() string {
 	return "LookupStorage"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupStorage) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if id := d.LookupStorageId(); id != "" {

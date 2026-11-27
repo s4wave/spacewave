@@ -35,8 +35,9 @@ type p2pSyncSpaceKey struct {
 }
 
 // p2pSyncState retains one mounted Session's direct synchronization resources.
-// The list watcher owns desired membership; active records only in-flight
-// routines so shutdown can drain removed keys as well as current keys.
+// The list watcher owns desired membership. The active map records only
+// in-flight routines so shutdown can drain removed keys as well as current
+// keys.
 type p2pSyncState struct {
 	// cancel stops the Session's synchronization context.
 	cancel context.CancelFunc
@@ -47,7 +48,8 @@ type p2pSyncState struct {
 	bcast broadcast.Broadcast
 	// closing prevents late routines and controller acquisitions from surviving shutdown.
 	closing bool
-	// active tracks in-flight routines, including removed keys; nil identifies the list watcher.
+	// active tracks in-flight routines, including removed keys.
+	// nil identifies the list watcher.
 	active map[*p2pSyncSpaceKey]struct{}
 	// relFns retains the Session mount adapter and invitation server.
 	relFns []func()

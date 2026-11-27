@@ -148,7 +148,7 @@ const maxLastLine = 1024
 
 // lastLineWriter forwards writes to w and keeps the last non-blank line. The
 // plugin writes stderr only while its event loop runs, on the goroutine that
-// reads lastLine after the loop returns, so it needs no lock.
+// reads lastLine after the loop returns, so lastLineWriter needs no lock.
 type lastLineWriter struct {
 	w io.Writer
 	// partial is the unterminated tail of the output, at most maxLastLine bytes.

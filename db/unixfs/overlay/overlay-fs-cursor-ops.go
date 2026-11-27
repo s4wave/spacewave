@@ -456,12 +456,12 @@ func (o *OverlayFSCursorOps) CopyFrom(ctx context.Context, name string, srcCurso
 // target directory up, removes any target whiteout, performs the move inside
 // the upper layer, then whiteouts the source name if the lower layer still
 // exposes it. It returns done=false when the target is a different overlay so
-// FSHandle.Rename can fall back. apt update relies on this to rename its cache
-// temp file over the read-only lower copy.
+// FSHandle.Rename can fall back. apt update relies on this move to rename its
+// cache temp file over the read-only lower copy.
 //
 // A directory that exists in the lower layer is copied up as an empty upper
 // node before the move, so renaming such a directory does not carry forward
-// lower children; the v86 consumers (apt) rename files, not lower-backed
+// lower children. The v86 consumers (apt) rename files, not lower-backed
 // directories.
 func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
 	// Require a live source and a target directory in the same overlay.
@@ -804,7 +804,7 @@ func (c *OverlayFSCursor) isHiddenByParentLocked(ctx context.Context) (bool, err
 }
 
 // cursorOps returns the operations of a layer cursor. It follows the cursor's
-// proxy chain first, as the FSCursor contract requires; each proxy stays owned
+// proxy chain first, as the FSCursor contract requires. Each proxy stays owned
 // by the cursor that returned it.
 func cursorOps(ctx context.Context, c unixfs.FSCursor) (unixfs.FSCursorOps, error) {
 	// Resolve operations only for an existing live filesystem cursor.

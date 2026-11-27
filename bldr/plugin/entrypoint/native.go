@@ -19,12 +19,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Version is the entrypoint version
+// Version is the entrypoint version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // Main runs the default main entrypoint for a plugin. logLevel is the
-// compiled default; <PROJECT>_LOG_LEVEL or BLDR_LOG_LEVEL from the host's
-// environment overrides it, matching the host process.
+// compiled default. <PROJECT>_LOG_LEVEL or BLDR_LOG_LEVEL from the host's
+// environment overrides logLevel, matching the host process.
 func Main(
 	pluginStartInfoJsonB64,
 	pluginMetaB58 string,
@@ -131,7 +131,7 @@ func Run(
 		return err
 	}
 
-	// yamux config
+	// Configure yamux.
 	yamuxConf := srpc.NewYamuxConfig()
 	yamuxConf.EnableKeepAlive = false
 

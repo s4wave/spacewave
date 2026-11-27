@@ -3,8 +3,8 @@
 //
 // Every call is one IndexedDB transaction and one round trip. A commit is
 // atomic. A durable commit maps to the strict durability hint and returns once
-// it and every earlier commit are durable; any other commit maps to the relaxed
-// hint, and a crash may lose it along with every later commit.
+// it and every earlier commit are durable. Any other commit maps to the relaxed
+// hint, and a crash may lose that commit along with every later commit.
 package records
 
 import "context"

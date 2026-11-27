@@ -9,7 +9,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// ErrCannotWrite is returned if we try to write to a kvfile.
+// ErrCannotWrite is returned if the caller tries to write to a kvfile.
 var ErrCannotWrite = errors.New("kvfile: read-only: cannot perform write tx")
 
 // KvfileTx implements a read-only transaction against a kvfile.
@@ -51,7 +51,7 @@ func (s *KvfileTx) Exists(ctx context.Context, key []byte) (bool, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (s *KvfileTx) Set(ctx context.Context, key, value []byte) error {
 	if !s.write {
 		return kvtx.ErrNotWrite
@@ -63,7 +63,7 @@ func (s *KvfileTx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (s *KvfileTx) Delete(ctx context.Context, key []byte) error {
 	if !s.write {
@@ -99,7 +99,7 @@ func (s *KvfileTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(ke
 // If sort, iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse MAY have no effect.
-// Must call Next() or Seek() before valid.
+// Caller must call Next() or Seek() before the iterator is valid.
 // Some implementations return BlockIterator.
 func (s *KvfileTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if !sort {

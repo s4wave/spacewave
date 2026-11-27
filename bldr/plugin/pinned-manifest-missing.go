@@ -4,9 +4,9 @@ package bldr_plugin
 // pinned to holds no build for any platform this host runs. The scheduler
 // raises it only after reading a manifest at that root whole and finding its
 // platform foreign, so it is final on this host until the host's platforms
-// change. A root it could not read is not missing: that load waits.
+// change. A root the scheduler could not read is not missing: that load waits.
 type PinnedManifestMissingError struct {
-	// PluginID is the plugin the load named.
+	// PluginID is the plugin the load selected.
 	PluginID string
 	// ManifestRoot is the pinned manifest root.
 	ManifestRoot string

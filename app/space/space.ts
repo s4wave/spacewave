@@ -6,15 +6,15 @@ import { Space } from '@s4wave/sdk/space/space.js'
 
 // MountSpaceParams contains the parameters for mounting a Space resource.
 export interface MountSpaceParams {
-  // Session is the session to mount the space from.
+  // session is the session to mount the space from.
   session: Session
-  // SpaceResp is the CreateSpaceResponse containing the shared object reference.
+  // spaceResp is the CreateSpaceResponse containing the shared object reference.
   spaceResp: CreateSpaceResponse
-  // AbortSignal is the signal to abort the operation.
+  // abortSignal is the signal to abort the operation.
   abortSignal: AbortSignal
-  // Cleanup is the function to register cleanup for mounted resources.
+  // cleanup is the function to register cleanup for mounted resources.
   cleanup: RegisterCleanup
-  // Phase optionally records the individual mount steps for callers with
+  // phase optionally records the individual mount steps for callers with
   // user-facing progress diagnostics.
   phase?: <T>(name: string, cb: () => Promise<T>) => Promise<T>
 }

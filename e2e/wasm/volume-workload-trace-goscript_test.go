@@ -16,7 +16,7 @@ const volumeWorkloadGCWait = 65 * time.Second
 // TestGoScriptVolumeWorkloadTraces captures the spacewave-core runtime traces
 // of a Drive import, a large-file read, and the GC sweep that follows a
 // delete. Each trace carries the volume workload records the browser storage
-// engine replays; see db/volume/workload.
+// engine replays. See db/volume/workload.
 func TestGoScriptVolumeWorkloadTraces(t *testing.T) {
 	// Skip the trace capture when the trace service is unavailable.
 	skipTraceServiceWhenDisabled(t)

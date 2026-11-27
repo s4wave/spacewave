@@ -111,7 +111,8 @@ func BuildEsbuildPlugin(
 				relPkgSubPath = strings.TrimPrefix(relPkgSubPath, ".")
 				relPkgSubPath = strings.TrimPrefix(relPkgSubPath, "/")
 
-				// Adjust suffix if we will rewrite .js -> .mjs in the build process.
+				// Adjust the suffix if the build process
+				// rewrites .js -> .mjs.
 				relPkgSubImpPath := relPkgSubPath
 				relPkgSubImpPathExt := filepath.Ext(relPkgSubPath)
 				if isJSExtension(relPkgSubImpPathExt) {
@@ -124,7 +125,8 @@ func BuildEsbuildPlugin(
 				result.Path = web_pkg.ImportSpecifierPrefix + path.Join(webPkgID, relPkgSubImpPath)
 				result.External = true
 
-				// Mark the import path we will need to bundle later.
+				// Mark the import path the bundler will need
+				// to bundle later.
 				if addWebPkgImport != nil {
 					addWebPkgImport(webPkgID, resPkgRoot, relPkgSubPath)
 				}

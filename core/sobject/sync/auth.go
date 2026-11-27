@@ -25,7 +25,8 @@ const authenticationNonceSize = 32
 // authenticate binds possession of a readable participant key to both transport
 // identities and fresh challenges. It returns no state or history to either peer.
 func (s *SOSync) authenticate(ctx context.Context, sess *stream_packet.Session, localTransport, remoteTransport peer.ID) (peer.ID, error) {
-	// The stream owner supplies transport identities; claims on the wire cannot replace them.
+	// The stream owner supplies transport identities. Claims on the wire
+	// cannot replace them.
 	if localTransport == "" || remoteTransport == "" || localTransport == remoteTransport {
 		return "", errors.New("distinct authenticated transport identities are required")
 	}

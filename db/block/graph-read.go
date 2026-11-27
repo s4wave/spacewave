@@ -82,7 +82,7 @@ func (r *graphReader[N]) fill(ctx context.Context, queue []N) []N {
 
 // read reads batch from src and sends each block, then the batch's end.
 func (r *graphReader[N]) read(ctx context.Context, batch []N) {
-	// Name each node's block.
+	// Collect each node's block ref.
 	refs := make([]*BlockRef, len(batch))
 	for i, node := range batch {
 		refs[i] = r.ref(node)
@@ -128,7 +128,8 @@ func graphBlockErr(ref *BlockRef, stored *StoredBlock, err error) error {
 		err = ErrRefsUnknown
 	}
 
-	// Name the ref only on failure: encoding it costs more than the read.
+	// Include the ref only on failure: encoding it costs more than the
+	// read.
 	if err == nil {
 		return nil
 	}

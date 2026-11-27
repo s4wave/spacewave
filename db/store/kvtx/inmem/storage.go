@@ -2,8 +2,8 @@ package store_kvtx_inmem
 
 import "bytes"
 
-// valTypeLess implements the less function for valType comparison
-// may be called with nil if we pass nil for the pivot
+// valTypeLess implements the less function for valType comparison.
+// May be called with nil if the caller passes nil for the pivot.
 func valTypeLess(a, b *valType) bool {
 	var aKey, bKey []byte
 	if a != nil {
@@ -15,7 +15,7 @@ func valTypeLess(a, b *valType) bool {
 	return bytes.Compare(aKey, bKey) < 0
 }
 
-// valType is the type used for values
+// valType is the type used for values.
 type valType struct {
 	key []byte
 	val []byte

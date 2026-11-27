@@ -18,9 +18,9 @@ import (
 )
 
 // BundleManifestsKvfile packs the world and its manifests in traversal order
-// for read locality. Only reachable blocks are included; prior build history
+// for read locality. Only reachable blocks are included, so prior build history
 // in the backing store does not affect the result.
-// The caller must finish writing the World before packing; accepted writes
+// The caller must finish writing the World before packing. Accepted writes
 // are fenced before the archive reads blocks from their backing store.
 // The kvfile records the current format version, so a Volume opens it without
 // migrating.

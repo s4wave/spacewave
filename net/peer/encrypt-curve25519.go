@@ -302,7 +302,7 @@ func DecryptWithEd25519(
 	}
 	defer scrub.Scrub(expectedMsgPubKeyCurve25519[:])
 
-	// check that they match
+	// check that expectedMsgPubKeyCurve25519 and msgPubKeyCurve25519 match
 	if subtle.ConstantTimeCompare(expectedMsgPubKeyCurve25519, msgPubKeyCurve25519) == 0 {
 		return nil, errors.Errorf(
 			"message pubkey %s does not match expected pubkey %s",

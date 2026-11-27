@@ -20,7 +20,7 @@ function describe(series: Series[], line: (s: Series) => string): string {
 }
 `
 
-// gcStuckSource fires while the stuck query returns a volume, naming each
+// gcStuckSource fires while the stuck query returns a volume, listing each
 // volume and its phase.
 const gcStuckSource = seriesTypes + `
 export default function volumeGcStuck(input: Input) {
@@ -35,7 +35,7 @@ export default function volumeGcStuck(input: Input) {
 }
 `
 
-// reserveSoonSource fires while the hours query returns a volume, naming
+// reserveSoonSource fires while the hours query returns a volume, listing
 // each volume and the whole hours until it reaches its reserve.
 const reserveSoonSource = seriesTypes + `
 export default function volumeReserveSoon(input: Input) {
@@ -50,7 +50,7 @@ export default function volumeReserveSoon(input: Input) {
 }
 `
 
-// reserveSource fires while the reserve query returns a volume, naming each
+// reserveSource fires while the reserve query returns a volume, listing each
 // volume that refuses writes.
 const reserveSource = seriesTypes + `
 export default function volumeReserve(input: Input) {

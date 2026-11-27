@@ -19,10 +19,10 @@ import { useShellTabsIfPresent, useTabId } from '../ShellTabContext.js'
 import { cancelWizard, WizardGoneError } from './wizard-finish.js'
 
 // WizardCancelState is the Cancel control's state, from WizardCancel.tla.
-// cancelling deletes the wizard; cancelled means this press deleted it and
-// the view is leaving; gone means another writer removed the wizard first,
-// so the view shows the gone screen; failed keeps the wizard and says why,
-// and a new press tries again.
+// cancelling deletes the wizard. cancelled means this press deleted the
+// wizard and the view is leaving. gone means another writer removed the
+// wizard first, so the view shows the gone screen. failed keeps the wizard
+// and says why, and a new press tries again.
 export type WizardCancelState =
   | { status: 'idle' }
   | { status: 'cancelling' }
@@ -36,7 +36,7 @@ export interface UseWizardStateResult {
   state: WizardState | undefined
   // wizardGone is true once a settled watch on the wizard object finds it
   // removed, by this view's own Finish or by another writer, but not by this
-  // view's own Cancel, which leaves the view itself; or once a Cancel was
+  // view's own Cancel, which leaves the view itself, or once a Cancel was
   // refused because another writer removed it first.
   wizardGone: boolean
   localName: string
@@ -56,12 +56,13 @@ export interface UseWizardStateResult {
   // cancel is the Cancel control's state, which WizardShell shows.
   cancel: WizardCancelState
   // handleCancel deletes the wizard in one write transaction. A Space index
-  // that names the wizard moves to indexPath, or is cleared when indexPath is
-  // omitted. Once the delete commits it leaves the view as a Finish does: it
-  // closes the shell tab, or opens the Space root when there is no tab, and
-  // the unmount releases the wizard resource and stops its work. It never
-  // rejects: a wizard another writer removed first ends in cancel's gone
-  // state, and any other failure in its failed state.
+  // that points to the wizard moves to indexPath, or is cleared when indexPath
+  // is omitted. Once the delete commits, handleCancel leaves the view as a
+  // Finish does: handleCancel closes the shell tab, or opens the Space root
+  // when there is no tab, and the unmount releases the wizard resource and
+  // stops its work. handleCancel never rejects: a wizard another writer removed
+  // first ends in cancel's gone state, and any other failure in its failed
+  // state.
   handleCancel: (indexPath?: string) => Promise<void>
 }
 
@@ -80,8 +81,8 @@ export interface WizardCancelContext {
 // UseWizardStateOptions adds a wizard type's own steps to the shared logic.
 export interface UseWizardStateOptions {
   // beforeCancel removes what this wizard type made that the wizard delete
-  // does not, and runs before it. A rejection ends Cancel in its failed state
-  // with the wizard kept, so a retry runs it again.
+  // does not, and runs before the delete. A rejection ends Cancel in its
+  // failed state with the wizard kept, so a retry runs beforeCancel again.
   beforeCancel?: (wizard: WizardCancelContext) => Promise<void>
 }
 

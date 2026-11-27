@@ -164,7 +164,8 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 	return nil
 }
 
-// loadBIOS copies the BIOS images into guest memory at their fixed
+// loadBIOS copies the BIOS image to end at 1 MiB and the optional VGA BIOS to
+// 0xc0000 in guest memory.
 func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte) error {
 	if len(bios) > 0x100000 {
 		return errors.Errorf("BIOS image too large for v86 low memory window: %d bytes", len(bios))
@@ -180,7 +181,7 @@ func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte)
 	return nil
 }
 
-// writeGuestBlob copies bytes into guest memory at the given linear
+// writeGuestBlob copies bytes into guest memory at the given linear offset.
 func (h *HostRuntime) writeGuestBlob(ctx context.Context, guestOffset uint32, data []byte) error {
 	// Ignore empty guest blobs before checking the v86 memory range.
 	if len(data) == 0 {
@@ -235,7 +236,7 @@ func (h *HostRuntime) call(ctx context.Context, name string, args ...uint64) ([]
 	return results, nil
 }
 
-// alignGuestMemorySize rounds a memory size up to the guest page multiple
+// alignGuestMemorySize rounds a memory size up to the guest page multiple.
 func alignGuestMemorySize(size uint32) uint32 {
 	if size == 0 {
 		return 0

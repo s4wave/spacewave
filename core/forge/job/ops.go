@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Validate performs cursory validation of the operation.
+// Validate cursorily validates the operation.
 func (o *ForgeJobCreateOp) Validate() error {
 	// Validate the requested placement before creating the job.
 	if placement := o.GetPlacement(); placement != nil {

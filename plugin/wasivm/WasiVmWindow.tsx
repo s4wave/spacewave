@@ -28,7 +28,7 @@ import {
   type WasiVmPaneSize,
 } from './WasiVmDisplay.js'
 
-// WasiVmWindowRoute names one window of one run of a VM.
+// WasiVmWindowRoute identifies one window of one run of a VM.
 export interface WasiVmWindowRoute {
   run: bigint
   id: number
@@ -37,8 +37,8 @@ export interface WasiVmWindowRoute {
 // windowPathPattern matches a window's viewer path, window/<run>/<id>.
 const windowPathPattern = /^\/?window\/(\d+)\/(\d+)\/?$/
 
-// parseWindowPath reads the window a viewer path names, or null when it
-// names the VM.
+// parseWindowPath reads the window a viewer path selects, or null when the
+// path selects the VM.
 export function parseWindowPath(path: string): WasiVmWindowRoute | null {
   const m = windowPathPattern.exec(path)
   return m ? { run: BigInt(m[1]), id: Number(m[2]) } : null
@@ -49,15 +49,15 @@ export function formatWindowPath(route: WasiVmWindowRoute): string {
   return `window/${route.run}/${route.id}`
 }
 
-// windowLabel names a window by its title, else its app id, else its id.
+// windowLabel labels a window by its title, else its app id, else its id.
 export function windowLabel(w: WasiVmWindow): string {
   return w.title || w.appId || `Window ${w.id ?? 0}`
 }
 
-// WasiVmWindowView is the window a VM viewer's path names, with the actions
+// WasiVmWindowView is the window a VM viewer's path selects, with the actions
 // that move between the VM's view and its windows.
 export interface WasiVmWindowView {
-  // route is the window the path names, or null for the VM's view.
+  // route is the window the path selects, or null for the VM's view.
   route: WasiVmWindowRoute | null
   // shownWindow is the named window while this run lists it.
   shownWindow?: WasiVmWindow
@@ -70,7 +70,7 @@ export interface WasiVmWindowView {
   openWindow: (id: number) => void
 }
 
-// useWasiVmWindowRoute reads the window the viewer path names among the
+// useWasiVmWindowRoute reads the window the viewer path selects among the
 // windows of run runGeneration of the VM objectKey. Its paths stay inside the
 // viewer: the host resolves them against the VM's object path.
 export function useWasiVmWindowRoute(
@@ -168,9 +168,10 @@ interface WasiVmWindowPickerProps {
   onShowDesktop: () => void
 }
 
-// WasiVmWindowPicker fills a window tab whose window is gone: it names the VM,
-// says why the tab is empty, and lists the running VM's windows to show in
-// the tab instead. The list follows the VM as windows open and close.
+// WasiVmWindowPicker fills a window tab whose window is gone: it displays the
+// VM's name, says why the tab is empty, and lists the running VM's windows
+// to show in the tab instead. The list follows the VM as windows open and
+// close.
 export function WasiVmWindowPicker({
   name,
   earlierRun,
@@ -254,13 +255,13 @@ interface WasiVmWindowPaneProps {
 
 // WasiVmWindowPane shows one window of a running VM's Wayland display at the
 // pane's size. It opens the window once the pane is measured and resizes it
-// as the pane changes; leaving returns the window to the desktop.
+// as the pane changes. Leaving returns the window to the desktop.
 export function WasiVmWindowPane({
   handle,
   id,
   onShowDesktop,
 }: WasiVmWindowPaneProps) {
-  // sizeRef is the pane's last size; windowInput is the open stream's input.
+  // sizeRef is the pane's last size. windowInput is the open stream's input.
   const sizeRef = useRef<WasiVmPaneSize | null>(null)
   const windowInput = useRef<Pushable<WasiVmWindowInput> | null>(null)
   const [measured, setMeasured] = useState(false)

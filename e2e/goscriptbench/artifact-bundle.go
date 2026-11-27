@@ -6,13 +6,14 @@ import "github.com/pkg/errors"
 
 // ArtifactBundle groups one scalar result with its separate diagnostic.
 type ArtifactBundle struct {
-	// result contains the untraced distribution
+	// Result contains the untraced distribution.
 	Result Artifact
-	// diagnostic contains the traced sample
+	// Diagnostic contains the traced sample.
 	Diagnostic DiagnosticArtifact
-	// runtimeTrace contains the separately captured diagnostic trace
+	// RuntimeTrace contains the separately captured diagnostic trace.
 	RuntimeTrace []byte
-	// browserCPUProfile contains optional Chromium-only diagnostic evidence
+	// BrowserCPUProfile contains optional Chromium-only diagnostic
+	// evidence.
 	BrowserCPUProfile []byte
 }
 

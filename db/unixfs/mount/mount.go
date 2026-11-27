@@ -79,7 +79,7 @@ var DefaultMountControllerConfig = &configset_proto.ControllerConfig{
 // BuildMountControllerWithConfig resolves the configuration to a Controller.
 //
 // buildFSHandle is called just before executing the MountController and must not be nil.
-// if ctrlConf is empty, uses the default mount controller (FUSE).
+// If ctrlConf is empty, the function uses the default mount controller (FUSE).
 func BuildMountControllerWithConfig(
 	ctx context.Context,
 	b bus.Bus,
@@ -95,10 +95,10 @@ func BuildMountControllerWithConfig(
 		return nil, nil, err
 	}
 
-	// apply path
+	// Apply the mount path.
 	mountCtrlConf.SetMountPath(mountPath)
 
-	// apply attributes
+	// Apply the mount attributes.
 	if len(mountAttributes) != 0 {
 		if err := mountCtrlConf.ApplyVolumeMountAttributes(mountAttributes); err != nil {
 			return nil, mountCtrlConf, err

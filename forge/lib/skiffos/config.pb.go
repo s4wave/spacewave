@@ -16,7 +16,7 @@ import (
 
 // Config configures one whole-workspace SkiffOS build on the Worker host.
 //
-// Brings the Step's SkiffOS checkout to the commit its skiffos input names,
+// Brings the Step's SkiffOS checkout to the commit its skiffos input selects,
 // runs "make configure compile" there for one workspace and config list, then
 // stores the workspace's images directory, the boot set, as a UnixFS
 // directory in the Task's World. The build runs on the Worker that serves the
@@ -39,18 +39,18 @@ import (
 type Config struct {
 	unknownFields []byte
 	// SkiffDir is the absolute path of the Step's SkiffOS checkout on the
-	// Worker host, created on the first build. The Step moves it to each
-	// build's commit and refuses one holding local changes, which the reuse key
-	// could not see.
+	// Worker host, created on the first build. The Step moves the checkout to
+	// each build's commit and refuses one holding local changes, which the
+	// reuse key could not see.
 	SkiffDir string `protobuf:"bytes,1,opt,name=skiff_dir,json=skiffDir,proto3" json:"skiffDir,omitempty"`
-	// Workspace names the SkiffOS workspace this build owns.
+	// Workspace selects the SkiffOS workspace this build owns.
 	// Another builder of the same workspace in the same checkout would
 	// overwrite its tree, so give each build Step its own workspace.
 	Workspace string `protobuf:"bytes,2,opt,name=workspace,proto3" json:"workspace,omitempty"`
 	// Configs is the SKIFF_CONFIG list in order, such as
 	// ["intel/x64", "virt/qemu"].
 	Configs []string `protobuf:"bytes,3,rep,name=configs,proto3" json:"configs,omitempty"`
-	// ExtraConfigInputs names Step inputs that each hold out-of-tree config
+	// ExtraConfigInputs lists Step inputs that each hold out-of-tree config
 	// packages as <namespace>/<name> directories. The controller writes each to
 	// inputs/<name> in the workspace and lists them in SKIFF_EXTRA_CONFIGS_PATH.
 	ExtraConfigInputs []string `protobuf:"bytes,4,rep,name=extra_config_inputs,json=extraConfigInputs,proto3" json:"extraConfigInputs,omitempty"`

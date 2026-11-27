@@ -4,21 +4,21 @@ test.describe('SAB SharedWorker Relay', () => {
   test('relays SharedArrayBuffer between tabs through SharedWorker', async ({
     context,
   }) => {
-    // Open sender tab.
+    // Open the sender tab.
     const sender = await context.newPage()
     await sender.goto('/sab-sharedworker-relay.html?role=sender')
     const senderLog = sender.locator('#log')
     await expect(senderLog).toContainText('stored', { timeout: 5000 })
 
-    // Give SharedWorker time to store the SAB.
+    // Give the SharedWorker time to store the SAB.
     await sender.waitForTimeout(200)
 
-    // Open receiver tab.
+    // Open the receiver tab.
     const receiver = await context.newPage()
     await receiver.goto('/sab-sharedworker-relay.html?role=receiver')
     const receiverLog = receiver.locator('#log')
 
-    // Wait for receiver to complete.
+    // Wait for the receiver to complete.
     await expect(receiverLog).toContainText('DONE', { timeout: 10000 })
 
     const receiverResults = await receiver.evaluate(
@@ -27,7 +27,7 @@ test.describe('SAB SharedWorker Relay', () => {
     console.log('Receiver results:', JSON.stringify(receiverResults, null, 2))
     console.log('Receiver log:\n' + (await receiverLog.textContent()))
 
-    // Check if sender got the confirmation.
+    // Check if the sender got the confirmation.
     await expect(senderLog).toContainText('DONE', { timeout: 10000 })
     const senderResults = await sender.evaluate(() => (window as any).__results)
     console.log('Sender results:', JSON.stringify(senderResults, null, 2))

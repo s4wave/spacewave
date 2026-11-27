@@ -77,8 +77,8 @@ func parseTar(ra io.ReaderAt, size int64) (*tarNode, error) {
 	}
 	nodes := map[string]*tarNode{".": root}
 
-	// Hardlinks may reference a target that appears later in the archive;
-	// resolve them in a second pass.
+	// Hardlinks may reference a target that appears later in the archive,
+	// so resolve them in a second pass.
 	var pendingLinks []pendingLink
 
 	// Track archive byte offsets while decoding tar headers.
@@ -104,7 +104,7 @@ func parseTar(ra io.ReaderAt, size int64) (*tarNode, error) {
 			continue
 		}
 
-		// strip trailing slash from dirs
+		// Strip the trailing slash from dirs.
 		name = strings.TrimSuffix(name, "/")
 
 		switch hdr.Typeflag {
@@ -204,7 +204,7 @@ func ensureParent(nodes map[string]*tarNode, root *tarNode, name string) {
 		return
 	}
 
-	// recursively ensure grandparent
+	// Recursively ensure the grandparent directory exists.
 	ensureParent(nodes, root, dir)
 
 	// Attach the implicit directory to its parent and index it.

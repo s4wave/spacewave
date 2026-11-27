@@ -450,8 +450,8 @@ func (r *WorldStateResource) ListObjects(ctx context.Context, req *s4wave_world.
 }
 
 // delimitedGroup returns the group prefix of key: prefix plus the remainder up
-// to and including the first delimiter. It returns empty when delimiter is
-// empty or the remainder has no delimiter.
+// to and including the first delimiter. It returns an empty string when
+// delimiter is empty or the remainder has no delimiter.
 func delimitedGroup(prefix, delimiter, key string) string {
 	if delimiter == "" || !strings.HasPrefix(key, prefix) {
 		return ""
@@ -907,8 +907,8 @@ func (r *WorldStateResource) GetObjectBodiesBatch(
 }
 
 // renderBodiesJSON sets the type ID and JSON of each existing body. The host
-// renders the types its block type lookup knows; the plugin that registered
-// a type renders the rest. A body neither can render keeps empty JSON.
+// renders the types its block type lookup knows. The plugin that registered a
+// type renders the rest. A body neither can render keeps empty JSON.
 func (r *WorldStateResource) renderBodiesJSON(ctx context.Context, bodies []*s4wave_world.ObjectBody) error {
 	// Read the type of every existing object.
 	keys := make([]string, 0, len(bodies))
@@ -1124,7 +1124,7 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 	return resp, nil
 }
 
-// applyWorldOp resolves and applies the operation req names.
+// applyWorldOp resolves and applies the operation req specifies.
 func (r *WorldStateResource) applyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
 	op, opSender, refused, err := r.resolveWorldOp(ctx, req)
 	if err != nil || refused != nil {
@@ -1133,9 +1133,9 @@ func (r *WorldStateResource) applyWorldOp(ctx context.Context, req *s4wave_world
 	return applyResolvedWorldOp(ctx, r.ws, op, opSender, world.AppliesAtomically(r.ws))
 }
 
-// resolveWorldOp resolves and decodes the operation req names and binds its
-// sender to the authenticated mount when one is bound. It returns a refusal
-// for an operation type the mount cannot resolve.
+// resolveWorldOp resolves and decodes the operation req specifies and binds its
+// sender to the authenticated mount when one is bound. It returns a refusal for
+// an operation type the mount cannot resolve.
 func (r *WorldStateResource) resolveWorldOp(
 	ctx context.Context,
 	req *s4wave_world.ApplyWorldOpRequest,
@@ -1176,11 +1176,11 @@ func (r *WorldStateResource) resolveWorldOp(
 	return op, opSender, nil, nil
 }
 
-// applyResolvedWorldOp applies op to ws and encodes the refusals
-// opErrorRefusal classifies as a response. A plugin that failed after it was
-// sent the operation, by a timeout or as unavailable, is encoded only when
-// atomic reports that the failed operation's transaction is discarded, so the
-// code means nothing was written; otherwise it returns as an error.
+// applyResolvedWorldOp applies op to ws and encodes the refusals opErrorRefusal
+// classifies as a response. A plugin that failed after it was sent the
+// operation, by a timeout or as unavailable, is encoded only when atomic
+// reports that the failed operation's transaction is discarded, so the code
+// means nothing was written. Otherwise the failure returns as an error.
 func applyResolvedWorldOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1205,14 +1205,15 @@ func applyResolvedWorldOp(
 }
 
 // opErrorRefusal classifies the error of an applied operation as an unknown
-// outcome, which matches first whatever else its error wraps, since the World
-// may hold the write, or as a refusal: a domain rejection, an unhandled operation, a pinned plugin with no build
-// for this device, which was never sent the operation, an unavailable plugin
-// that was never sent it or failed it when atomic reports that the failed
-// operation's transaction is discarded, a plugin timeout under the same
-// condition, so each code means nothing was written, or a spent write budget,
-// which ends a write only after discarding its last attempt and reads as a
-// plugin timeout. ok is false for any other error.
+// outcome, matched before whatever else the error wraps, since the World may
+// hold the write, or as a refusal: a domain rejection, an unhandled operation,
+// a pinned plugin with no build for this device that was never sent the
+// operation, an unavailable plugin that was never sent the operation or failed
+// the operation when atomic reports that the failed operation's transaction is
+// discarded, a plugin timeout under the same condition, so each code means
+// nothing was written, or a spent write budget, which ends a write only after
+// discarding its last attempt and reads as a plugin timeout. ok is false for
+// any other error.
 func opErrorRefusal(err error, atomic bool) (code s4wave_world.WorldErrorCode, rejection *world.OperationRejection, ok bool) {
 	// Match a write whose outcome is unknown before any refusal it wraps.
 	if errors.Is(err, world.ErrDurabilityUnknown) {

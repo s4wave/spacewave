@@ -35,14 +35,14 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 	// sess.Workers() is populated from page.OnWorker, which reports dedicated
 	// workers only. In shared-worker mode the instrumented root runtime lives in
 	// a SharedWorker the scan never reaches, so the capture would fail looking
-	// for a callback that is running somewhere it cannot see.
+	// for a running callback outside the scan's reach.
 	if workerMode != WorkerModeDedicated {
 		t.Skipf("Manifest startup trace captures through page workers; worker mode=%s, want %s", workerMode, WorkerModeDedicated)
 	}
 
 	// The trace hook is a build tag, so the shared harness has to be compiled
 	// with it. Once an earlier test in this slice has booted that harness there
-	// is nothing left to configure, and the run would quietly measure an
+	// is nothing left to configure, and the run would silently measure an
 	// uninstrumented worker and then fail looking for the callback.
 	if sharedHarnessBooted() {
 		t.Fatalf("shared harness already built without the trace tag; run this test alone with -run %s", t.Name())

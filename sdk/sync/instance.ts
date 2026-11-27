@@ -37,7 +37,10 @@ export interface AppInstance extends AppRevision {
   readonly collections: readonly string[]
 }
 
-/** AppOperation carries intent; the host supplies identity and shared-data authority. */
+/**
+ * AppOperation carries intent. The host supplies identity and shared-data
+ * authority.
+ */
 export interface AppOperation {
   readonly objectKey: string
   readonly requestId: string
@@ -147,8 +150,9 @@ export function parseAppOperation(bytes: Uint8Array): AppOperation {
 
 /**
  * executeAppOperation runs a trusted module against World's supplied transaction.
- * It never opens or accepts a World writer. The bridge authenticates sender;
- * callers cannot select another principal, scope, or collection binding.
+ * executeAppOperation never opens or accepts a World writer. The bridge
+ * authenticates the sender. Callers cannot select another principal, scope, or
+ * collection binding.
  */
 export async function executeAppOperation<S extends Schema>(
   app: AppDefinition<S>,

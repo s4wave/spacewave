@@ -75,7 +75,7 @@ func openNative(ctx context.Context, path string, opts Options, wait bool) (*DB,
 	}
 
 	// Both writable paths already hold ownership. Validate their descriptor
-	// before recovery; Windows rejects acquiring the lifetime byte twice.
+	// before recovery. Windows rejects acquiring the lifetime byte twice.
 	if !opts.ReadOnly {
 		// A failed builder may remove its partial file before releasing ownership.
 		// Refuse that stale descriptor rather than returning an unlinked writer.
@@ -114,7 +114,8 @@ func buildNative(ctx context.Context, s *osFile, opts Options, source func(func(
 	// Return ownership after cleanup on every exit, including a source panic.
 	defer func() { err = errors.Join(err, s.close()) }()
 
-	// Exclusive creation precedes the byte claim; another opener may have won it.
+	// Exclusive creation precedes the byte claim. Another opener may have
+	// won it.
 	if ok, err := s.lock(lockWriterOwner, false); err != nil || !ok {
 		if err != nil {
 			return err
@@ -126,7 +127,8 @@ func buildNative(ctx context.Context, s *osFile, opts Options, source func(func(
 		return err
 	}
 	if info.Size() != 0 {
-		// A writer completed between creation and our claim. Preserve its database.
+		// A writer completed between creation and this owner's claim.
+		// Preserve its database.
 		return &os.PathError{Op: "build", Path: s.path, Err: os.ErrExist}
 	}
 
@@ -140,8 +142,10 @@ func buildNative(ctx context.Context, s *osFile, opts Options, source func(func(
 	return err
 }
 
-// claimedInfo verifies that a claimed writable descriptor still names its path.
-// Call it before recovery/build writes; inode locks cannot protect a removed name.
+// claimedInfo verifies that a claimed writable descriptor still refers to the
+// file at its path.
+// Call claimedInfo before recovery/build writes. Inode locks cannot protect a
+// removed name.
 func (f *osFile) claimedInfo() (os.FileInfo, error) {
 	// Compare the name and descriptor after ownership has been acquired.
 	info, err := os.Stat(f.path)
@@ -183,7 +187,7 @@ func (f *osFile) watch(slot int, readOnly bool) (watcher, error) {
 
 // waitOwner blocks until f holds the writer-owner byte, or ctx ends. A single
 // OS wait observes close and process death without polling. On failure f is
-// closed; a cancelled wait closes it once the abandoned lock call returns.
+// closed. A cancelled wait closes f once the abandoned lock call returns.
 func (f *osFile) waitOwner(ctx context.Context) error {
 	done := make(chan error, 1)
 	go func() {

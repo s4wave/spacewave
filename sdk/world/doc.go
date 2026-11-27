@@ -10,7 +10,7 @@
 // resource that type serves, such as an FSHandle for UnixFS or a Canvas.
 //
 // A commit that is refused, as when the root is no longer held or another
-// writer superseded it, returns a typed WorldErrorCode and committed nothing; a
-// commit whose outcome is unknown is never reported as a refusal
+// writer superseded it, returns a typed WorldErrorCode and committed nothing.
+// A commit whose outcome is unknown is never reported as a refusal
 // (NewCommitResponse).
 package s4wave_world

@@ -25,7 +25,7 @@ const handlerLookupRetry = time.Second
 type handlerWait struct {
 	// opTypeID is the operation type replay waits for.
 	opTypeID string
-	// pluginID is the plugin a pinned type names, or empty.
+	// pluginID is the plugin a pinned type specifies, or empty.
 	pluginID string
 	// pluginIDs are the plugins asked for.
 	pluginIDs []string
@@ -40,10 +40,10 @@ type handlerWait struct {
 	done bool
 }
 
-// waitForHandler returns the wait of replay at an operation u names, starting
-// its watch unless replay already waits for the same type. The wait's Wake
-// closes when a handler registers or the approvals it waits for change, so the
-// driver steps again with no lock held while it waits.
+// waitForHandler returns the wait of replay at an operation u identifies,
+// starting its watch unless replay already waits for the same type. The wait's
+// Wake closes when a handler registers or the approvals it waits for change,
+// so the driver steps again with no lock held while it waits.
 func (a *Adapter) waitForHandler(u *unresolvedOpError) *sobject.BodyWait {
 	// Start the watch of a new wait.
 	w := a.handlerWait
@@ -106,7 +106,7 @@ func (a *Adapter) endHandlerWait() {
 // per interval rather than a spin of watches. It logs how the wait ended once
 // per watch.
 func (w *handlerWait) watch(ctx context.Context, le *logrus.Entry, b bus.Bus, engineID string) {
-	// Ask for the plugins, following which await approval.
+	// Ask for the plugins, tracking the plugins awaiting approval.
 	if len(w.pluginIDs) != 0 {
 		di, ref, err := b.AddDirective(ctx, NewLoadOpPlugins(engineID, w.pluginIDs), nil)
 		if err == nil {

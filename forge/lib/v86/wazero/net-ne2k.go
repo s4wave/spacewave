@@ -59,7 +59,7 @@ const (
 	enrxcrPRO = 0x10
 )
 
-// ne2kDevice models an NE2000-compatible Ethernet adapter: the 8390
+// ne2kDevice models an NE2000-compatible Ethernet adapter: the 8390 controller.
 type ne2kDevice struct {
 	host *HostRuntime
 	id   int
@@ -115,6 +115,7 @@ func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte) *ne
 }
 
 // register maps the device into PCI config space and wires byte-wide port
+// handlers.
 func (d *ne2kDevice) register(ctx context.Context) error {
 	// Require the host PCI bus before registering the NE2000 adapter.
 	if d.host == nil || d.host.pci == nil {
@@ -135,11 +136,12 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 		})
 	}
 
-	// Word and long accesses target the remote-DMA data port only. Each moves two
-	// or four bytes through the DMA engine, matching the NE2000-PCI word/long
-	// transfer modes the Linux 8390 driver uses for packet data. The other 8390
-	// registers are byte-wide; widening them would also let a word read of offset
-	// 0x1e touch the reset port at 0x1f.
+	// Word and long accesses target the remote-DMA data port only. Each
+	// moves two or four bytes through the DMA engine, matching the
+	// NE2000-PCI word/long transfer modes the Linux 8390 driver uses for
+	// packet data. The other 8390 registers are byte-wide. Widening them
+	// would also let a word read of offset 0x1e touch the reset port at
+	// 0x1f.
 	dataPort := d.port + ne2kDataPort
 	d.host.RegisterIORead(dataPort, 16, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(d.readData(ctx)) | uint32(d.readData(ctx))<<8
@@ -168,8 +170,8 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 
 // SetOutbound installs the NE2K-to-stack boundary for guest transmits: the
 // device calls sink with a copied Ethernet frame on the CPU goroutine when the
-// guest transmits; pass nil to detach it. The reverse direction is QueueInbound
-// (off-thread) plus DrainInbound (CPU goroutine).
+// guest transmits. Pass nil to detach the sink. The reverse direction is
+// QueueInbound (off-thread) plus DrainInbound (CPU goroutine).
 func (d *ne2kDevice) SetOutbound(sink func(frame []byte)) {
 	d.outbound = sink
 }
@@ -214,7 +216,7 @@ func (d *ne2kDevice) DrainInbound(ctx context.Context) {
 
 // ReceiveFrame is the stack-to-NE2K boundary. It applies the receive filter and
 // places accepted Ethernet frames into the NE2000 receive ring. It runs on the
-// CPU goroutine; off-thread callers use QueueInbound plus DrainInbound.
+// CPU goroutine. Off-thread callers use QueueInbound plus DrainInbound.
 func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 	// Apply the NE2000 run state and Ethernet destination filter.
 	if d == nil || d.cr&ne2kCRStop != 0 || len(frame) < 6 {
@@ -299,7 +301,8 @@ func (d *ne2kDevice) writePort(ctx context.Context, offset uint16, value byte) {
 	}
 }
 
-// writeCommand handles the shared command-register write: remote-DMA
+// writeCommand handles the shared command-register write: remote-DMA completion
+// and transmission.
 func (d *ne2kDevice) writeCommand(ctx context.Context, value byte) {
 	// Apply the NE2000 command and signal an already completed remote DMA.
 	d.cr = value
@@ -443,7 +446,9 @@ func (d *ne2kDevice) writeData(ctx context.Context, value byte) {
 	d.advanceDMA(ctx)
 }
 
-// advanceDMA walks the DMA address around the receive ring and raises the
+// advanceDMA walks the DMA address around the receive ring, counts down the
+// remote byte count, and raises the remote-DMA completion interrupt when the
+// count reaches zero.
 func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 	d.rsar++
 	if d.rsar >= uint16(d.pstop)<<8 {
@@ -457,7 +462,8 @@ func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 	}
 }
 
-// transmit copies the transmit-buffer frame and hands it to the outbound
+// transmit copies the transmit-buffer frame, hands it to the outbound sink if
+// one is set, and raises the transmit interrupt.
 func (d *ne2kDevice) transmit(ctx context.Context) {
 	// Copy the guest transmit buffer before delivering it to the Ethernet sink.
 	start := uint16(d.tpsr) << 8
@@ -471,7 +477,7 @@ func (d *ne2kDevice) transmit(ctx context.Context) {
 	d.interrupt(ctx, enisrTX)
 }
 
-// acceptsFrame applies the receive filter: promiscuous, broadcast, and
+// acceptsFrame applies the receive filter: promiscuous, broadcast, and unicast.
 func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 	// Apply promiscuous, broadcast, and multicast receive modes.
 	if d.rxcr&enrxcrPRO != 0 {
@@ -493,7 +499,8 @@ func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 	return true
 }
 
-// rxAvailable reports whether needed ring pages are free between BOUNDARY
+// rxAvailable reports whether needed ring pages are free between BOUNDARY and
+// CURR.
 func (d *ne2kDevice) rxAvailable(needed byte) bool {
 	// Treat an unset or coincident receive boundary as available ring space.
 	if d.boundary == 0 {
@@ -628,7 +635,7 @@ func (d *ne2kDevice) writePROM() {
 	d.memory[15<<1|1] = 0x57
 }
 
-// page returns the currently selected register page from the command
+// page returns the selected register page from the command register.
 func (d *ne2kDevice) page() byte {
 	return d.cr >> 6 & 3
 }

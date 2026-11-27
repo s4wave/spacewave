@@ -243,9 +243,9 @@ func TestFormatPluginSwapStates(t *testing.T) {
 	}
 }
 
-// TestPendingApprovalRowsNameTheAdmittedRoot checks that approvals list names
-// a waiting root by the key the scheduler admits it by, the hash of the
-// candidate manifest's root ref, so approving the listed root admits it.
+// TestPendingApprovalRowsNameTheAdmittedRoot checks that approvals list
+// identifies a waiting root by the key the scheduler admits it by, the hash of
+// the candidate manifest's root ref, so approving the listed root admits it.
 func TestPendingApprovalRowsNameTheAdmittedRoot(t *testing.T) {
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("glados-core rev 231"))
 	if err != nil {

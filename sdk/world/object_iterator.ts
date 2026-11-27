@@ -16,38 +16,39 @@ export class ObjectIterator extends Resource {
     this.service = new ObjectIteratorResourceServiceClient(resourceRef.client)
   }
 
-  // Err returns any error that has closed the iterator.
+  // err returns any error that has closed the iterator.
   // May return context.Canceled if closed.
   public async err(abortSignal?: AbortSignal): Promise<string | null> {
     const response = await this.service.Err({}, abortSignal)
     return response.error || null
   }
 
-  // Valid returns if the iterator points to a valid entry.
+  // valid returns if the iterator points to a valid entry.
   public async valid(abortSignal?: AbortSignal): Promise<boolean> {
     const response = await this.service.Valid({}, abortSignal)
     return response.valid ?? false
   }
 
-  // Key returns the current entry key, or empty string if not valid.
+  // key returns the current entry key, or empty string if not valid.
   public async key(abortSignal?: AbortSignal): Promise<string> {
     const response = await this.service.Key({}, abortSignal)
     return response.objectKey ?? ''
   }
 
-  // Next advances to the next entry and returns Valid.
+  // next advances to the next entry and returns Valid.
   public async next(abortSignal?: AbortSignal): Promise<boolean> {
     const response = await this.service.Next({}, abortSignal)
     return response.valid ?? false
   }
 
-  // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
+  // seek moves the iterator to the first key >= the provided key
+  // (or <= in reverse mode).
   // Pass empty string to seek to the beginning (or end if reversed).
   public async seek(k: string, abortSignal?: AbortSignal): Promise<void> {
     await this.service.Seek({ objectKey: k }, abortSignal)
   }
 
-  // Close releases the iterator.
+  // close releases the iterator.
   public async close(abortSignal?: AbortSignal): Promise<void> {
     await this.service.Close({}, abortSignal)
   }

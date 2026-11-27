@@ -106,8 +106,8 @@ func TestNodeHoldsBoundObject(t *testing.T) {
 		t.Fatal("a holding node took two copies")
 	}
 
-	// Unplacing the node releases the hold, and the second graph takes it; the
-	// first graph's node no longer runs.
+	// Unplacing the node releases the hold, and the second graph takes it.
+	// The first graph's node no longer runs.
 	if err := update("flowgraph/first", &s4wave_flowgraph.UpdateFlowgraphRequest{RemovePlacementNodeIds: []string{"runtime"}}); err != nil {
 		t.Fatal(err)
 	}

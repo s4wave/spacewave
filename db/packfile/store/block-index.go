@@ -10,10 +10,10 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 )
 
-// parsedIndexEnv names the environment variable that selects the parsed pack
+// parsedIndexEnv holds the environment variable that selects the parsed pack
 // index. Any nonempty value makes every store load indexes as parsed
 // kvfile.IndexEntry slices, the layout used before indexes were searched in
-// place. Config.ParsedIndex overrides it per store.
+// place. Config.ParsedIndex overrides the environment setting per store.
 const parsedIndexEnv = "SPACEWAVE_PACKFILE_PARSED_INDEX"
 
 // parsedIndexDefault is whether stores start on the parsed index layout.

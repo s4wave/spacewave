@@ -90,7 +90,7 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
   }
 }
 
-// SPACEWAVE_EMBED_TRANSFORMER handles round-tripping ::spacewave{path="..."} directives.
+// SPACEWAVE_EMBED_TRANSFORMER round-trips ::spacewave{path="..."} directives.
 export const SPACEWAVE_EMBED_TRANSFORMER: TextMatchTransformer = {
   dependencies: [SpacewaveEmbedNode],
   export: (node) => {

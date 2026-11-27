@@ -265,7 +265,7 @@ function useNodeDrag(
 
   const handleNodeMove = useCallback(
     (id: string, dx: number, dy: number) => {
-      // Accumulate local drag offsets without firing RPC.
+      // Accumulate local drag offsets without firing an RPC.
       const idsToMove = selection.selectedNodeIds.has(id)
         ? selection.selectedNodeIds
         : new Set([id])
@@ -285,7 +285,7 @@ function useNodeDrag(
   const handleNodeMoveEnd = useCallback(() => {
     if (!dragOffsets || dragOffsets.size === 0) return
 
-    // Apply accumulated offsets and persist via callback.
+    // Apply accumulated offsets and persist via the callback.
     const next: CanvasNodeMap = new Map()
     for (const [id, offset] of dragOffsets) {
       const n = nodes.get(id)
@@ -414,7 +414,8 @@ function useCanvasInsertion({
   )
 
   // requestObjectPicker opens the object picker. A point pins the chosen
-  // object there; without one it lands at the current viewport center.
+  // object there. Without a point, the object lands at the current viewport
+  // center.
   const requestObjectPicker = useCallback(
     (point: Point | null) => {
       pendingObjectInsertRef.current = point
@@ -770,16 +771,16 @@ interface CanvasProps {
   imageObjectKey?: string
   imageSubItems?: SubItemsCallback
   focusNodeId?: string | null
-  // readOnly offers no tool, drag, resize, text edit or menu, as while the
-  // viewer has no live handle to save an edit to. Selection, pan and zoom
-  // stay.
+  // readOnly disables tools, dragging, resizing, text editing and menus,
+  // such as when the viewer has no live handle to save an edit to. Selection,
+  // pan and zoom remain available.
   readOnly?: boolean
   className?: string
 }
 
 // useCanvasTool holds the active tool: toolProp when the parent controls it,
-// otherwise the canvas's own choice. A read-only canvas keeps select, and
-// onToolChange is set only while the canvas chooses its own tool.
+// otherwise the canvas's own choice. A read-only canvas uses the select tool,
+// and onToolChange is set only while the canvas chooses its own tool.
 function useCanvasTool(toolProp: CanvasTool | undefined, readOnly: boolean) {
   const [own, setOwn] = useState<CanvasTool>('select')
   const selectTool = useCallback(() => setOwn('select'), [])
@@ -883,7 +884,7 @@ export function Canvas({
     containerSize,
   })
 
-  // Notify consumer of selection changes.
+  // Notify the consumer of selection changes.
   useEffect(() => {
     callbacks.onNodeSelect?.(selection.selectedNodeIds)
   }, [selection.selectedNodeIds, callbacks])
@@ -1021,9 +1022,9 @@ export function Canvas({
         tabIndex={0}
       >
         <CanvasGridLayer viewport={viewport} layerRef={gridLayerRef} />
-        {/* Gesture layer for viewport pan/drag-select. Sits below the
-            transform layer so canvas nodes receive pointer events directly
-            without viewport gesture interference. */}
+        {/* The gesture layer handles viewport pan/drag-select. The layer sits
+            below the transform layer so canvas nodes receive pointer events
+            directly without viewport gesture interference. */}
         <div ref={gestureLayerRef} className="absolute inset-0 touch-none" />
         <div
           ref={transformLayerRef}

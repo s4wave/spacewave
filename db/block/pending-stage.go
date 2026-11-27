@@ -6,10 +6,10 @@ import (
 	"sync/atomic"
 )
 
-// pendingStage is a stage opened through a PendingStore. A keeping stage
-// keeps puts in the PendingStore while its bound allows and sends them to the
-// inner store's stage past it, so a writer whose tree outgrows memory holds
-// the overflow under the stage until its root does. Any other sends every put
+// pendingStage is a stage opened through a PendingStore. A keeping stage keeps
+// puts in the PendingStore while its bound allows and sends them to the inner
+// store's stage past it, so a writer whose tree outgrows memory holds the
+// overflow under the stage until its root does. Any other stage sends every put
 // to the inner store's stage, with the kept blocks below it.
 type pendingStage struct {
 	// PendingStore serves reads and keeps puts.
@@ -66,8 +66,8 @@ func (p *pendingStage) putVerified(ctx context.Context, entries []*PutBatchEntry
 }
 
 // ReleaseRoots drops the inner stage's holds on roots written through it. A
-// kept root is not in the inner stage, which ignores it; the stage's hold
-// keeps it until release.
+// kept root is not in the inner stage, which ignores the root. The stage's
+// hold keeps the root until release.
 func (p *pendingStage) ReleaseRoots(ctx context.Context, refs []*BlockRef) error {
 	return ReleaseRoots(ctx, p.stage, refs)
 }

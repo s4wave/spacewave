@@ -24,7 +24,8 @@ func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
 	serveFs := http.Dir(servePath)
 	fileServer := bifrost_http.NewEncodedAssetFileServer(serveFs)
 
-	// Wrap with Cross-Origin Isolation headers required for SharedArrayBuffer
+	// Wrap the handler with Cross-Origin Isolation headers required for
+	// SharedArrayBuffer
 	handler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")

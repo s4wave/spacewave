@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	// reclaimStateKey stores the ReclaimState of the last pass.
+	// reclaimStateKey is the key for the ReclaimState of the last pass.
 	reclaimStateKey = "sync/reclaim"
 	// reclaimInterval is the longest time between passes, so a Space that
 	// only deletes still reclaims.
@@ -26,7 +26,8 @@ const (
 	// starts a new one before reclaimInterval. The catalog must also grow by a
 	// quarter.
 	reclaimMinGrowth = 64 << 20
-	// reclaimMaxPacks is how many packs one trash request may name per list.
+	// reclaimMaxPacks is how many packs one trash request may list per
+	// list.
 	reclaimMaxPacks = 32
 	// reclaimConcurrency bounds the concurrent block and pack index reads.
 	reclaimConcurrency = 8

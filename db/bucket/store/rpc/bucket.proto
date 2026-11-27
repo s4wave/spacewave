@@ -46,7 +46,7 @@ message GetBucketConfigResponse {
   .bucket.Config config = 1;
 }
 
-// GetBucketInfoRequest requests to bucket information from a volume.
+// GetBucketInfoRequest requests to get bucket information from a volume.
 message GetBucketInfoRequest {
   // BucketId is the identifier of the bucket to look up.
   string bucket_id = 1;
@@ -55,11 +55,11 @@ message GetBucketInfoRequest {
 // GetBucketInfoResponse responds to the request for bucket info.
 message GetBucketInfoResponse {
   // BucketInfo is the bucket information, if found.
-  // Otherwise returns empty.
+  // Otherwise, BucketInfo is empty.
   .bucket.BucketInfo bucket_info = 1;
 }
 
-// ListBucketInfoRequest requests to bucket information from a volume.
+// ListBucketInfoRequest requests to get bucket information from a volume.
 message ListBucketInfoRequest {
   // BucketIdRe is an optional regex to filter the list by.
   string bucket_id_re = 1;

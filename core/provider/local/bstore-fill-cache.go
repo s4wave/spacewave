@@ -54,8 +54,8 @@ var packFronts sync.Map
 // account's own store misses and before the fill cache and the backend's
 // packs, such as an earlier local copy of the account's blocks. Its hits fill
 // nothing, since the store is local already. It must be called before the
-// account starts. A nil store removes it; the caller keeps it open while the
-// account runs.
+// account starts. A nil store removes the front store. The caller keeps the
+// front store open while the account runs.
 func SetPackFront(providerID, accountID string, front block.StoreOps) {
 	id := StorageVolumeID(providerID, accountID)
 	if front == nil {

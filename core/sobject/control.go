@@ -119,8 +119,8 @@ func DefaultVotingWeights(participants []*SOParticipantConfig) []*SOParticipantC
 }
 
 // validateControl checks the control setting and voting weights: under owner
-// control nobody votes; under group control only writers and owners vote, at
-// least one does, and the config names the checkpoint it sealed.
+// control nobody votes. Under group control only writers and owners vote, at
+// least one does, and the config records the checkpoint it sealed.
 func (c *SharedObjectConfig) validateControl() error {
 	// Owner control has no voters.
 	switch c.GetControl() {
@@ -160,7 +160,7 @@ func (c *SharedObjectConfig) validateControl() error {
 	return c.GetSealedCheckpoint().Validate()
 }
 
-// Validate checks that the head names a checkpoint.
+// Validate checks that the head identifies a checkpoint.
 func (h *SOCheckpointHead) Validate() error {
 	if len(h.GetHash()) != sha256.Size {
 		return errors.New("checkpoint head hash must be a 32-byte hash")
@@ -201,10 +201,10 @@ func ControlValueHash(kind SODecisionKind, value []byte) ([]byte, error) {
 	}
 }
 
-// BuildSOControlMessage signs inner as the voter of privKey, which it names as
-// the message's peer.
+// BuildSOControlMessage signs inner as the voter of privKey and records the
+// voter as the message's peer.
 func BuildSOControlMessage(privKey crypto.PrivKey, inner *SOControlMessageInner) (*SOControlMessage, error) {
-	// Name the signer and check the body.
+	// Record the signer and check the body.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func BuildSOControlMessage(privKey crypto.PrivKey, inner *SOControlMessageInner)
 // Validate checks the message body's structure: the instance it belongs to,
 // and the fields its type carries.
 func (i *SOControlMessageInner) Validate() error {
-	// The body names an object, a voter and an instance.
+	// The body identifies an object, a voter and an instance.
 	if i.GetSharedObjectId() == "" {
 		return ErrEmptySharedObjectID
 	}
@@ -273,7 +273,7 @@ func (i *SOControlMessageInner) Validate() error {
 	}
 }
 
-// validateValue checks that the message carries the value it names.
+// validateValue checks that the message carries the value its hash identifies.
 func (i *SOControlMessageInner) validateValue() error {
 	// The value must be present and bounded.
 	if len(i.GetValue()) == 0 || len(i.GetValue()) > maxControlValueSize {
@@ -292,7 +292,8 @@ func (i *SOControlMessageInner) validateValue() error {
 }
 
 // Verify authenticates the message as signed for sharedObjectID by the voter
-// it names, and returns its body. It does not check that the signer votes.
+// the message identifies, and returns its body. Verify does not check that
+// the signer votes.
 func (m *SOControlMessage) Verify(sharedObjectID string) (*SOControlMessageInner, error) {
 	// Decode the well-formed body bound to this object.
 	if len(m.GetInner()) == 0 {

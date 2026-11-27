@@ -24,7 +24,7 @@ import (
 // dropped, b and d kept for their markers, c kept since only another store's
 // rows hold it, and every key outside the blocks kept.
 func TestVolumeDropSQL(t *testing.T) {
-	// Open a fresh table in the database BLOCK_STORE_SQL_TEST_HOST names.
+	// Open a fresh table in the database at BLOCK_STORE_SQL_TEST_HOST.
 	host := os.Getenv("BLOCK_STORE_SQL_TEST_HOST")
 	if host == "" {
 		t.Skip("BLOCK_STORE_SQL_TEST_HOST names no MySQL-compatible server")
@@ -103,7 +103,7 @@ func TestVolumeDropSQL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The count drops a alone and names each block's family.
+	// The count drops a alone and reports each block's family.
 	var out, log bytes.Buffer
 	if err := countVolumeDrop(ctx, src, &sqlDrop{conf: conf, storeID: "world"}, &out, &log); err != nil {
 		t.Fatal(err)

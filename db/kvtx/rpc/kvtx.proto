@@ -76,7 +76,7 @@ message KvtxTransactionComplete {
   // Error is any error completing the transaction.
   // If this is set, usually discarded=true as well.
   string error = 1;
-  // Committed indicates we successfully committed the transaction.
+  // Committed indicates the store successfully committed the transaction.
   // If error != "" this will be false.
   bool committed = 2;
   // Discarded indicates the transaction is/was discarded.
@@ -200,7 +200,7 @@ message KvtxScanPrefixRequest {
 // KvtxScanPrefixResponse is the response to deleting a key from the store.
 message KvtxScanPrefixResponse {
   // Error is any error scanning the key/value pairs.
-  // If set, this is the final message in the stream.
+  // If set, this response is the final message in the stream.
   string error = 1;
   // Key is the key for this key/value pair.
   bytes key = 2;
@@ -233,7 +233,7 @@ message KvtxWatchEntry {
 // KvtxWatchResponse is one watched key/value snapshot.
 message KvtxWatchResponse {
   // Error is any error watching key/value changes.
-  // If set, this is the final message in the stream.
+  // If set, this response is the final message in the stream.
   string error = 1;
   // Entries is the current key/value snapshot for the watched prefix.
   repeated KvtxWatchEntry entries = 2;

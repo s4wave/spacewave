@@ -576,7 +576,7 @@ export function AddUserDialog({
   )
 }
 
-// participantRoleNames names each role in the enrollment outcome text.
+// participantRoleNames records each role's name in the enrollment outcome text.
 const participantRoleNames: Record<number, string> = {
   [SOParticipantRole.SOParticipantRole_READER]: 'reader',
   [SOParticipantRole.SOParticipantRole_WRITER]: 'writer',
@@ -585,7 +585,7 @@ const participantRoleNames: Record<number, string> = {
 
 // enrollOutcomeText describes what enrolling an account did across its
 // session peers, or returns null when no peer reports an outcome. Added wins
-// over raised, which wins over unchanged; the role is the highest held.
+// over raised, which wins over unchanged. The role is the highest held.
 export function enrollOutcomeText(
   name: string,
   results: EnrollSpaceMemberResult[],

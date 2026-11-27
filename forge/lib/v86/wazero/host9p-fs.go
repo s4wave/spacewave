@@ -65,7 +65,8 @@ type Host9PFS struct {
 	lastType atomic.Uint32
 }
 
-// host9pInode is one node of the exported tree: its stat metadata plus
+// host9pInode is one node of the exported tree: its stat metadata plus backing
+// data and tree links.
 type host9pInode struct {
 	ino      uint64
 	name     string
@@ -116,7 +117,7 @@ func OpenHost9PFS(dir string) (*Host9PFS, error) {
 	return fs, nil
 }
 
-// loadChildren recursively builds the inode tree from fs.json's fsroot
+// loadChildren recursively builds the inode tree from fs.json's fsroot entries.
 func (fs *Host9PFS) loadChildren(parent *host9pInode, values []*fastjson.Value) error {
 	for _, value := range values {
 		fields := value.GetArray()
@@ -448,7 +449,7 @@ func (fs *Host9PFS) handleStatFS(tag uint16) []byte {
 	return p9Reply(p9RStatFS, tag, out)
 }
 
-// readFile reads up to count bytes at an offset from an inode's backing
+// readFile reads up to count bytes at an offset from an inode's backing data.
 func (fs *Host9PFS) readFile(node *host9pInode, offset uint64, count uint32) ([]byte, error) {
 	// Resolve empty ranges and in-memory symlink data before opening a file.
 	if count == 0 || offset >= node.size {
@@ -584,7 +585,8 @@ type p9Cursor struct {
 	pos  int
 }
 
-// string consumes one length-prefixed string, reporting ok=false on
+// string consumes one length-prefixed string, reporting ok=false on an
+// incomplete length prefix or string payload.
 func (c *p9Cursor) string() (string, bool) {
 	// Require the 9P string length prefix before decoding its size.
 	if c.pos+2 > len(c.data) {

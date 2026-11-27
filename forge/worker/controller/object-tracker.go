@@ -37,9 +37,9 @@ type objectTracker struct {
 	// objTypeCtr publishes the object type this Worker can execute.
 	objTypeCtr *ccontainer.CContainer[string]
 
-	// ctrlCancel stops the controller demand; only execute modifies it.
+	// ctrlCancel stops the controller demand. Only execute modifies it.
 	ctrlCancel context.CancelFunc
-	// ctrlObjType is the running type; only execute modifies it.
+	// ctrlObjType is the running type. Only execute modifies it.
 	ctrlObjType string
 }
 
@@ -161,7 +161,7 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 }
 
 // executeController applies the directive to execute the object controller.
-// exits when ctx is canceled
+// Exits when ctx is canceled.
 func (t *objectTracker) executeController(ctx context.Context, objType string, ctrlConf config.Config) {
 	// Retain the directive that runs the managed object's controller.
 	t.c.le.

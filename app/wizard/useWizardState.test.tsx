@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
 }))
 
 // t is the Space World each test starts from: the wizard exists and the
-// Space index names it.
+// Space index points to the wizard.
 let t = wizardTestWorld(['wizard/git/repo/test'], 'wizard/git/repo/test')
 
 let currentConfigData = new Uint8Array()
@@ -133,7 +133,7 @@ describe('useWizardState', () => {
   })
 
   it('moves an index naming the wizard before Cancel deletes it', async () => {
-    // The Space index names this wizard, so Cancel repoints it first.
+    // The Space index points to this wizard, so Cancel repoints it first.
     const user = userEvent.setup()
     renderHarness()
     await user.click(screen.getByRole('button', { name: /cancel/i }))

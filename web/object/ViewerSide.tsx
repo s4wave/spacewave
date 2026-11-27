@@ -12,18 +12,19 @@ export interface ViewerSideProps {
   // label names the column, its Collapse and Expand presses, and the
   // region for assistive technology, such as "Device".
   label: string
-  // facts are the FactRows the column lists; the bar's Details popover
+  // facts are the FactRows the column lists. The bar's Details popover
   // lists the same facts below 42rem.
   facts: ReactNode
   // rail is the state glyphs the collapsed column keeps, each with its own
   // accessible name, such as a failed update's alert.
   rail?: ReactNode
-  // initial is the column's first state. Defaults to open.
+  // initial is the column's first state. The state defaults to open.
   initial?: ViewerSideState
   // onChange hears each Collapse and Expand, so a viewer that unmounts the
   // column, such as on a view switch, can pass the state back as initial.
   onChange?: (side: ViewerSideState) => void
-  // children is the viewer's work beside the column; it scrolls on its own.
+  // children is the viewer's work beside the column. The work scrolls on its
+  // own.
   children?: ReactNode
 }
 
@@ -34,15 +35,16 @@ const pressClass =
 /**
  * ViewerSide lays out a viewer's body with a side column of facts at the
  * pane's left edge. From a 42rem pane the column is viewer-side wide, or a
- * viewer-rail of state glyphs when collapsed; below 42rem it is gone and the
+ * viewer-rail of state glyphs when collapsed. Below 42rem it is gone and the
  * bar's Details press opens the same facts. The column's state outlives a
  * narrow spell. ViewerSide.tla checks that the facts show or are one press
  * away at every width.
  *
  * Collapse and Expand replace each other in place, and focus follows the
  * press, so a keyboard user can toggle the column without losing their place.
- * Each carries data-viewer-side-press, and the column's root data-viewer-side,
- * where ViewerBar sends focus when a widening pane closes its Details popover;
+ * Each carries data-viewer-side-press, and the column's root has
+ * data-viewer-side, where ViewerBar sends focus when a widening pane closes
+ * its Details popover.
  * ViewerBar looks only in a column that is its own sibling.
  */
 export function ViewerSide({
@@ -131,7 +133,7 @@ export function ViewerSide({
 export interface ViewerRailGlyphProps {
   // label names the state the glyph shows, such as "Update failed".
   label: string
-  // icon is the glyph; it keeps its own tone.
+  // icon is the glyph. The icon keeps its own tone.
   icon: ReactNode
 }
 

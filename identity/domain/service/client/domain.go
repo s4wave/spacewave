@@ -20,14 +20,14 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Domain is the service client backed identity domain.
 type Domain struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the config
+	// conf is the config.
 	conf *Config
 
-	// identityClient is the aperture identity client
+	// identityClient is the aperture identity client.
 	identityClient *Client
 	// peerID is the peer id to use to sign requests.
 	peerID peer.ID

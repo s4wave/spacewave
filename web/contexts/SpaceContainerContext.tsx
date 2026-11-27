@@ -7,9 +7,9 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 // NavigateToObjectsFunc navigates to one or more objects in the space.
 //
-// This will be interpreted differently depending on the space state:
+// Navigation is interpreted differently depending on the space state:
 //  - Single object: navigate to it
-//  - Single object while we are in a Layout: open in a new tab
+//  - Single object while in a Layout: open in a new tab
 //  - Multiple objects: start a temporary local ObjectLayout
 //  - Multiple objects while in a Layout: create a new split with a TabSet.
 export type NavigateToObjectsFunc = (objectKeys: string[]) => void
@@ -29,21 +29,21 @@ export type BuildObjectUrlsFunc = (objectKeys: string[]) => string[]
 export type BuildExportUrlFunc = () => string
 
 export interface SpaceContainerContextValue {
-  // spaceId is the space shared object id
+  // spaceId is the space shared object id.
   spaceId: string
   // spaceName is the live human-readable Space name.
   spaceName?: string
-  // spaceState is the space state
+  // spaceState is the space state.
   spaceState: SpaceState
-  // spaceSharingState is the combined sharing snapshot for the space
+  // spaceSharingState is the combined sharing snapshot for the space.
   spaceSharingState?: SpaceSharingState | null
-  // orgState is the combined organization snapshot for the owning org, if any
+  // orgState is the combined organization snapshot for the owning org, if any.
   orgState?: WatchOrganizationStateResponse | null
   // canDeleteObjects is true when the current participant can apply object mutations.
   canDeleteObjects?: boolean
-  // spaceWorldResource is the world resource
+  // spaceWorldResource is the world resource.
   spaceWorldResource: Resource<EngineWorldState>
-  // spaceWorld is the world instance
+  // spaceWorld is the world instance.
   spaceWorld: EngineWorldState
   // spaceObjectTargets are the first visible objects for action menus.
   spaceObjectTargets?: SpaceObjectTargets
@@ -57,11 +57,11 @@ export interface SpaceContainerContextValue {
   buildObjectUrls: BuildObjectUrlsFunc
   // buildExportUrl builds the export URL for the current space.
   buildExportUrl?: BuildExportUrlFunc
-  // objectKey is the current object key we are displaying (navigated to)
+  // objectKey is the current object key being displayed (navigated to).
   objectKey?: string
-  // objectPath is the sub-path from the URL after the /-/ delimiter
+  // objectPath is the sub-path from the URL after the /-/ delimiter.
   objectPath?: string
-  // navigateToSubPath navigates to a sub-path within the current space object
+  // navigateToSubPath navigates to a sub-path within the current space object.
   navigateToSubPath: (subpath: string) => void
 }
 

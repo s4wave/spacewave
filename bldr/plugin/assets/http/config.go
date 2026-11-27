@@ -10,7 +10,7 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new config.
 //
-// pluginID can be empty
+// pluginID can be empty.
 func NewConfig(servePath, fsPath, pluginID string) *Config {
 	return &Config{ServePath: servePath, FsPath: fsPath, PluginId: pluginID}
 }

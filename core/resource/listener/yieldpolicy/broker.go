@@ -14,8 +14,8 @@
 //   - Handoff watchers. After Allow, the broker tracks the "runtime
 //     handed off" state so the UI can show a banner and surface a
 //     Reclaim action. Reclaim re-binds the socket by closing the
-//     handoff channel; the listener controller's restart loop picks
-//     that up and invokes TakeoverSocket + Listen again.
+//     handoff channel. The listener controller's restart loop detects
+//     the channel closure and invokes TakeoverSocket + Listen again.
 package yieldpolicy
 
 import (
@@ -281,7 +281,8 @@ func (b *Broker) SnapshotPrompts() ([]Prompt, <-chan struct{}) {
 		}
 	})
 
-	// Sort outside the lock; an unchanged prompt set must snapshot stably.
+	// Sort outside the lock because an unchanged prompt set must
+	// snapshot stably.
 	slices.SortFunc(out, func(a, b Prompt) int { return strings.Compare(a.ID, b.ID) })
 	return out, waitCh
 }

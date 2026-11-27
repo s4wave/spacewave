@@ -47,8 +47,8 @@ func (v *Volume) PinBucketRoot(ctx context.Context, ref *block.BlockRef) (func()
 }
 
 // pinRoot reserves an in-process reader of ref and returns the pin's root
-// name. The first reader writes the pin; a prepared pin's root is written by
-// the publication transaction that names ref instead. rootPinMu guards only
+// name. The first reader writes the pin. A prepared pin's root is written by
+// the publication transaction that publishes ref instead. rootPinMu guards only
 // the counts: pin writes run outside it, so pinning a pinned root never waits
 // for another root's transaction.
 func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool) (string, func(), error) {
@@ -124,7 +124,7 @@ func (v *Volume) unpinRoot(name string) {
 }
 
 // settleRootPin finishes a pin write and wakes pins waiting on it. A failed
-// write or a completed release forgets the pin; a pin whose readers all left
+// write or a completed release forgets the pin. A pin whose readers all left
 // meanwhile, or whose release failed, is idle.
 func (v *Volume) settleRootPin(name string, pin *rootPin, forget bool) {
 	// Forget a failed or released pin, then wake its waiters.
@@ -215,7 +215,7 @@ func (v *Volume) applyDeferred(ctx context.Context, p *physicalTx) (deferredEdit
 }
 
 // settleDeferred finishes a transaction's deferred edits. A committed
-// transaction forgets its released pins, stages and pending proofs; otherwise
+// transaction forgets its released pins, stages and pending proofs. Otherwise
 // the pins are idle and the stages released again, and the next changing
 // transaction carries them with the proofs.
 func (v *Volume) settleDeferred(edits deferredEdits, committed bool) {

@@ -214,7 +214,8 @@ export default function runGoScriptRuntime(
       const { webRuntimeId, env } = msg.initWebRuntime
       void (async () => {
         // SharedWorker cannot open OPFS directly. A document must provide its
-        // bridge before Go mounts volumes; retry when another document connects.
+        // bridge before Go mounts volumes. Retry when another document
+        // connects.
         if (runtimeOpfsBridge && !(await runtimeOpfsBridge.ensureBridge())) {
           console.warn(
             'runtime-goscript: OPFS bridge unavailable; deferring Go start until a document can host OPFS',

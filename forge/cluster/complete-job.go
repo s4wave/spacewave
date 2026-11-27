@@ -31,7 +31,7 @@ func CompleteJob(
 	return w.ApplyWorldOp(ctx, op, sender)
 }
 
-// Validate performs cursory validation of the operation.
+// Validate validates the operation cursorily.
 // Should not block.
 func (o *ClusterCompleteJobOp) Validate() error {
 	if o.GetClusterKey() == "" {

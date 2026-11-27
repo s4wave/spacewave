@@ -11,7 +11,8 @@ import (
 
 // TestStartupSigningIdentity records signing changes for default and explicit Go builds.
 func TestStartupSigningIdentity(t *testing.T) {
-	// Explicit Go selection must preserve the same signing identity as the default.
+	// Explicit Go selection must preserve the same signing identity as the
+	// default selection.
 	t.Setenv(gocompiler.WindowsSignCommandEnv, "/build/sign")
 	t.Setenv(gocompiler.WindowsSignIdentityEnv, "example-product/publisher")
 	t.Setenv(gocompiler.MacOSSignIdentityEnv, "Developer ID Application: Example")

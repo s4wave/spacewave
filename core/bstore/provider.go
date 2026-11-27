@@ -13,10 +13,11 @@ type BlockStoreProvider interface {
 	// CreateBlockStore creates a new block store with the given details.
 	CreateBlockStore(ctx context.Context, id string) (*BlockStoreRef, error)
 
-	// MountBlockStore attempts to mount a BlockStore returning the object handle and a release function.
+	// MountBlockStore tries to mount a BlockStore, returning the object
+	// handle and a release function.
 	//
-	// note: use the MountBlockStore directive to call this.
-	// usually called by the provider controller
+	// note: use the MountBlockStore directive to call the method.
+	// usually called by the provider controller.
 	MountBlockStore(ctx context.Context, ref *BlockStoreRef, released func()) (BlockStore, func(), error)
 }
 

@@ -1197,7 +1197,7 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 	defer lnkRel()
 
 	// Both peers solicit the same protocol.
-	// Must add directives on both sides before waiting, since matching
+	// The test must add directives on both sides before waiting, since matching
 	// requires both peers to have the solicitation active.
 	testProto := protocol.ID("test/echo")
 
@@ -1348,7 +1348,7 @@ func TestSolicitProtocolNoMatch(t *testing.T) {
 	}
 	defer lnkRel()
 
-	// Peer 1 solicits "proto/a", peer 2 solicits "proto/b" -- no match.
+	// Peer 1 solicits "proto/a", peer 2 solicits "proto/b", so no match occurs.
 	_, diRef1, err := tb1.Bus.AddDirective(
 		ctx,
 		link_solicit.NewSolicitProtocol(protocol.ID("proto/a"), nil, "", 0),
@@ -1372,7 +1372,7 @@ func TestSolicitProtocolNoMatch(t *testing.T) {
 
 	// The test verifies no crash/hang with disjoint sets.
 	// A brief sleep would be needed to verify no match, but for now
-	// we just verify the system doesn't deadlock or panic.
+	// the test only verifies the system doesn't deadlock or panic.
 	t.Log("no-match test completed without panic or deadlock")
 }
 
@@ -1417,7 +1417,8 @@ func TestSolicitProtocolContextMismatch(t *testing.T) {
 	}
 	defer lnkRel()
 
-	// Same protocol but different context bytes -- should not match.
+	// Offers with the same protocol but different context bytes should not
+	// match.
 	_, diRef1, err := tb1.Bus.AddDirective(
 		ctx,
 		link_solicit.NewSolicitProtocol(protocol.ID("dex"), []byte("bucket-a"), "", 0),

@@ -243,7 +243,7 @@ func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error)
 
 // GenerationIDs returns the name of every generation directory in the store,
 // whatever identity it carries. A caller that found no usable generation uses
-// this to report what the store did hold.
+// the names to report what the store did hold.
 func GenerationIDs(storeDir string) ([]string, error) {
 	// Read generation directory entries, allowing an absent store.
 	entries, err := os.ReadDir(filepath.Join(storeDir, generationsDir))

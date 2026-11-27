@@ -240,7 +240,7 @@ func (c *ManifestConfig) Validate() error {
 }
 
 // SupportsPlatform reports whether the manifest permits the requested platform.
-// An empty platform list is unrestricted; a base ID permits all its variants.
+// An empty platform list is unrestricted. A base ID permits all its variants.
 func (c *ManifestConfig) SupportsPlatform(platformID string) bool {
 	// Preserve unrestricted manifests without changing platform resolution.
 	if len(c.GetPlatformIds()) == 0 {
@@ -304,10 +304,13 @@ func dedupeNonEmptyStrings(values []string) []string {
 	return values
 }
 
-// LoadExtendedProjectConfig loads a project config from an extended module path.
+// LoadExtendedProjectConfig loads a project config from an extended module
+// path.
 // sourcePath is the root directory of the current project (containing vendor/).
-// modulePath is the Go module path to resolve (e.g. "github.com/s4wave/spacewave").
-// Returns the loaded config and a list of files that were loaded (for watch tracking).
+// modulePath is the Go module path to resolve
+// (e.g. "github.com/s4wave/spacewave").
+// Returns the loaded config and a list of files that were loaded (for watch
+// tracking).
 func LoadExtendedProjectConfig(sourcePath, modulePath string) (*ProjectConfig, []string, error) {
 	// Reject an empty module path.
 	if modulePath == "" {

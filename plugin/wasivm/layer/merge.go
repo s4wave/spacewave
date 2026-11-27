@@ -11,7 +11,7 @@ import (
 
 // MergeLayers lays each layer onto base in order through bls and returns the
 // merged root. base may be nil for an empty root. Directories present in both
-// trees merge entry by entry; any other node in a later layer replaces the
+// trees merge entry by entry. Any other node in a later layer replaces the
 // earlier one. Every node the merge does not change keeps its reference, so
 // the merge writes only the directories along the paths where layers meet.
 // collide is called with the path of each node a layer replaces with

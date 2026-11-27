@@ -14,7 +14,7 @@ const OS_HEADINGS: Record<DownloadOS, string> = {
 
 // PlatformSection groups per-architecture download tiles under a single OS
 // heading. Windows entries carrying unsigned: true surface an "Interim
-// unsigned build" caption under the heading; the SmartScreen bypass details
+// unsigned build" caption under the heading. The SmartScreen bypass details
 // render elsewhere (WindowsBypassNotice).
 export function PlatformSection({ os, entries }: PlatformSectionProps) {
   const heading = OS_HEADINGS[os]

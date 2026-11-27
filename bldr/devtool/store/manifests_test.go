@@ -146,7 +146,7 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 // devtool database it came from: LookupManifestSet returns the exported refs,
 // their blocks read from the exported volume, and a later export replaces the
 // earlier one without leaving its temporary file. The source is a devtool
-// World, as in a build, so its refs name the devtool bucket and transform.
+// World, as in a build, so its refs identify the devtool bucket and transform.
 func TestExportManifestSetsRoundTrip(t *testing.T) {
 	// Open the source devtool World.
 	ctx := t.Context()
@@ -216,8 +216,8 @@ func TestExportManifestSetsRoundTrip(t *testing.T) {
 	}
 }
 
-// unheldPuts returns the count of blocks vol observed put with no holder,
-// which a Volume that frees refuses with block.ErrUnheldPut.
+// unheldPuts returns the count of blocks vol observed put with no holder.
+// A Volume that frees blocks refuses those puts with block.ErrUnheldPut.
 func unheldPuts(t *testing.T, vol volume.Volume) uint64 {
 	t.Helper()
 	hv, ok := vol.(interface {

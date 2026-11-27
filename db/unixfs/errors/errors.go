@@ -18,7 +18,7 @@ var (
 	//
 	// It is its own value, distinct from fs.ErrExist, so an error a disk or
 	// OS layer returns is never read as the tree's answer. errors.Is matches
-	// it against fs.ErrExist; os.IsExist does not, see ToFs.
+	// it against fs.ErrExist, but os.IsExist does not, see ToFs.
 	ErrExist error = &fsError{msg: "file already exists", fsErr: fs.ErrExist}
 	// ErrNotExist is returned if the file does not exist.
 	//
@@ -54,9 +54,11 @@ var (
 	ErrInvalidWrite = errors.New("invalid write result")
 	// ErrEmptyUnixFsId is returned if the filesystem id is empty.
 	ErrEmptyUnixFsId = errors.New("empty unixfs id")
-	// ErrCrossFsRename is retruned if we try to rename across two unrelated FS.
+	// ErrCrossFsRename is returned if the caller tries to rename across two
+	// unrelated FS.
 	ErrCrossFsRename = errors.New("cross-fs rename unimplemented")
-	// ErrNegativeOffset is returned if a write names a negative file offset.
+	// ErrNegativeOffset is returned if a write specifies a negative file
+	// offset.
 	ErrNegativeOffset = errors.New("negative offset not supported")
 	// ErrEmptyBlob is returned if a blob written into a file holds no data.
 	ErrEmptyBlob = errors.New("empty blob")
@@ -78,7 +80,8 @@ func NewUnixFSError(err error) *UnixFSError {
 		baseErr = nerr
 	}
 
-	// If we unwrapped the error, set ErrorType to the prefix, trimming the : suffix.
+	// If the function unwrapped the error, set ErrorType to the prefix,
+	// trimming the : suffix.
 	if baseErr != err {
 		errStr := err.Error()
 		baseErrStr := baseErr.Error()

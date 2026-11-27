@@ -11,13 +11,13 @@ import (
 
 // StoreOverlay layers an upper block store over a lower store.
 //
-// ctx is used for writeback requests
+// ctx is used for writeback requests.
 type StoreOverlay struct {
 	// ctx owns writeback request lifetimes.
 	ctx context.Context
 	// le is the logger.
 	le *logrus.Entry
-	// lower is the backing store; upper is the cache/front store.
+	// lower is the backing store, and upper is the cache/front store.
 	lower, upper StoreOps
 	// mode selects the read and writeback routing.
 	mode OverlayMode
@@ -29,7 +29,7 @@ type StoreOverlay struct {
 
 // NewOverlay constructs a new overlay store.
 //
-// ctx is used for writeback requests
+// ctx is used for writeback requests.
 func NewOverlay(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -57,8 +57,8 @@ func (o *StoreOverlay) GetStoreParts() []StorePart {
 }
 
 // GetHashType returns the preferred hash type for the store.
-// This should return as fast as possible (called frequently).
-// If 0 is returned, uses a default defined by Hydra.
+// GetHashType should return as fast as possible (called frequently).
+// If 0 is returned, the caller uses a default hash type defined by Hydra.
 func (o *StoreOverlay) GetHashType() hash.HashType {
 	if v := o.upper.GetHashType(); v != 0 {
 		return v
@@ -180,7 +180,7 @@ func (o *StoreOverlay) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Stor
 }
 
 // readFill reads a block from the second store and fills it into fill when
-// set. A fill carries the block's edges; without them the block would look
+// set. A fill carries the block's edges. Without them the block would look
 // like a leaf, so a block with unknown refs is served without filling.
 func (o *StoreOverlay) readFill(ctx context.Context, second, fill StoreOps, ref *BlockRef) (*StoredBlock, error) {
 	stored, err := second.GetStoredBlock(ctx, ref)
@@ -447,7 +447,8 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 		// removes go to the lower (write) store only.
 		return o.lower.RmBlock(ctx, ref)
 	case OverlayMode_UPPER_READBACK_CACHE:
-		// removes go to the upper store only; lower lifecycle is external.
+		// removes go to the upper store only. The lower store's lifecycle is
+		// external.
 		return o.upper.RmBlock(ctx, ref)
 	}
 }
@@ -540,7 +541,7 @@ func (o *StoreOverlay) ReleaseRoots(ctx context.Context, refs []*BlockRef) error
 	return nil
 }
 
-// Sync fences both overlay stores; it reports fenced only when both did.
+// Sync fences both overlay stores and reports fenced only when both did.
 func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	upperFenced, err := o.upper.Sync(ctx)
 	lowerFenced, lerr := o.lower.Sync(ctx)

@@ -23,13 +23,13 @@ type WalkResult struct {
 	// LongestView is this process's longest view of the Volume in each
 	// phase.
 	LongestView map[WalkPhase]time.Duration
-	// UndercountSample names up to sampleSize of the undercounted blocks this
-	// process found.
-	UndercountSample []*block.BlockRef
-	// UnconfirmedSample names up to sampleSize of the unconfirmed candidates
+	// UndercountSample lists up to sampleSize of the undercounted blocks
 	// this process found.
+	UndercountSample []*block.BlockRef
+	// UnconfirmedSample lists up to sampleSize of the unconfirmed
+	// candidates this process found.
 	UnconfirmedSample []UnconfirmedHole
-	// ListedAbsentSample names up to sampleSize of the listed blocks without
-	// bytes this process found.
+	// ListedAbsentSample lists up to sampleSize of the listed blocks
+	// without bytes this process found.
 	ListedAbsentSample []*block.BlockRef
 }

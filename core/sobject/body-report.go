@@ -9,9 +9,9 @@ type BodyReport struct {
 	// RejectedEdits are this device's operations an earlier replay here
 	// applied and the current order refuses.
 	RejectedEdits []*SORejectedEdit
-	// CheckpointMismatch names the latest installed checkpoint whose state
-	// differs from the state the body reached after the operations it covers,
-	// or is nil.
+	// CheckpointMismatch identifies the latest installed checkpoint whose
+	// state differs from the state the body reached after the operations it
+	// covers, or is nil.
 	CheckpointMismatch *SOCheckpointMismatch
 	// Unordered counts the edits the appointed sequencer has not placed.
 	Unordered uint32

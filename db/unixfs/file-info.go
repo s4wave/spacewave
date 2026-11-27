@@ -33,7 +33,8 @@ func (i *FileInfo) Name() string {
 	return i.name
 }
 
-// Size returns length in bytes for regular files; system-dependent for others
+// Size returns length in bytes for regular files.
+// The length is system-dependent for others.
 func (i *FileInfo) Size() int64 {
 	return i.size
 }
@@ -48,7 +49,7 @@ func (i *FileInfo) ModTime() time.Time {
 	return i.modTime
 }
 
-// IsDir is an abbreviation for Mode().IsDir()
+// IsDir is an abbreviation for Mode().IsDir().
 func (i *FileInfo) IsDir() bool {
 	return i.mode.IsDir()
 }

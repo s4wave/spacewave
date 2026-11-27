@@ -14,7 +14,8 @@ export interface FileReference {
   readonly typeId: string
 }
 
-// fileReferencesKey names the watch of the first limit referrers of file.
+// fileReferencesKey returns the key for the watch of the first limit
+// referrers of file.
 export function fileReferencesKey(file: string, limit: number): string {
   return JSON.stringify(['file-references', file, limit])
 }
@@ -23,15 +24,16 @@ export function fileReferencesKey(file: string, limit: number): string {
  * listReferrers lists the distinct objects with an edge into file, at most
  * want + 1 of them, the extra one only showing that more exist.
  *
- * The listing names no predicate, since every declared reference has its
- * own, so it can not resume after a key: the World pages edges past a key
- * only within one predicate. It grows instead. The World counts quads, and
- * one object may point at the file by several predicates, so a truncated
- * listing with too few distinct objects is read again at twice the limit.
+ * The listing selects no predicate, since every declared reference has its
+ * own predicate, so the listing can not resume after a key: the World pages
+ * edges past a key only within one predicate. The listing grows instead.
+ * The World counts quads, and one object may point at the file by several
+ * predicates, so a truncated listing with too few distinct objects is read
+ * again at twice the limit.
  *
  * Rows come in referrer key order. Every Space World is cayley_kv, which
  * sorts an incoming bucket by quad text, subject first, so the order is
- * stable and a page never reshuffles; keys carry no time, so the order is
+ * stable and a page never reshuffles. Keys carry no time, so the order is
  * not by when the reference was written.
  */
 export async function listReferrers(
@@ -62,7 +64,7 @@ export async function listReferrers(
  * fileReferencesSource is the keyed set of the first want + 1 objects with
  * an edge into file, each with its type. A wake costs one listing when an
  * edge into the file moved, and one batched type lookup for the referrers it
- * reads; a retype of a referrer reads only that type.
+ * reads. A retype of a referrer reads only that type.
  */
 export function fileReferencesSource(
   file: string,
@@ -120,8 +122,8 @@ export function fileReferencesSource(
 // FileReferencesView is what the references strip shows, one state of
 // FileReferences.tla: the read under way, its failure with a retry, or the
 // page as read. Read authority is per Space, so every referrer in a World
-// the reader can open is one they can read; an empty page is the spec's
-// "none" and any other its "found".
+// the reader can open is one the reader can read. An empty page is the
+// spec's "none" and any other page is its "found".
 export type FileReferencesView =
   | { readonly load: 'loading' }
   | {
@@ -138,7 +140,7 @@ export type FileReferencesView =
     }
 
 // fileReferencesView is what the strip shows of set, a read of want + 1
-// referrers; the extra one is read only to learn that more exist and is
+// referrers. The extra one is read only to learn that more exist and is
 // never drawn. A referrer whose type has not been read yet is left out.
 export function fileReferencesView(
   set: {

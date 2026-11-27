@@ -13,8 +13,9 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-// HashFileWithBlake3 hashes a file using blake3 and returns the first 8 characters of the base32-encoded hash.
-// This is similar to the approach used in dist/compiler/bundle.go.
+// HashFileWithBlake3 hashes a file using blake3 and returns the first 8
+// characters of the base32-encoded hash. The hashing approach is similar to
+// the approach used in dist/compiler/bundle.go.
 func HashFileWithBlake3(filePath string) (string, error) {
 	// Read the source file before computing its content hash.
 	fileData, err := os.ReadFile(filePath)
@@ -36,7 +37,7 @@ func HashFileWithBlake3(filePath string) (string, error) {
 }
 
 // AddHashToFilename adds a hash to a filename before the extension.
-// For example: "example.js" becomes "example-ABC123.js"
+// For example: "example.js" becomes "example-ABC123.js".
 func AddHashToFilename(filename, hash string) string {
 	ext := filepath.Ext(filename)
 	base := strings.TrimSuffix(filename, ext)

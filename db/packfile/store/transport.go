@@ -18,7 +18,8 @@ import (
 // state), and publication queue (verify + writeback).
 type Transport interface {
 	// Fetch returns bytes [off, off+length) from the pack in a single call.
-	// The returned slice has len <= length; a short read signals end-of-pack.
+	// The returned slice has len <= length. A short read signals
+	// end-of-pack.
 	Fetch(ctx context.Context, off int64, length int) ([]byte, error)
 }
 
@@ -55,7 +56,7 @@ func (e *transientError) Unwrap() error {
 
 // responseError returns the error of an unexpected response status. A 5xx
 // response is transient, and a 429 response is transient after the delay its
-// Retry-After header names in seconds, up to maxRetryWait.
+// Retry-After header specifies in seconds, up to maxRetryWait.
 func responseError(status int, retryAfter string) error {
 	err := pkgerrors.Errorf("range request returned status %d", status)
 	switch {
@@ -70,7 +71,7 @@ func responseError(status int, retryAfter string) error {
 }
 
 // fetchWithRetry runs fetch and retries it once after a transient failure,
-// first waiting the delay the failure names.
+// first waiting the delay the failure specifies.
 func fetchWithRetry(ctx context.Context, fetch func() ([]byte, error)) ([]byte, error) {
 	// Fetch, returning anything but a transient failure.
 	data, err := fetch()

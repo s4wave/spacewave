@@ -7,7 +7,7 @@ import { getSectionKey, sectionDefs, siteDefs } from './sections.js'
 import type { DocPage, DocFrontmatter } from './types.js'
 
 // docModules imports all .md files from the content directory.
-// Vite's import.meta.glob handles this at build time.
+// Vite's import.meta.glob handles the imports at build time.
 const docModules = import.meta.glob('./content/**/*.md', {
   query: '?raw',
   eager: true,
@@ -45,7 +45,7 @@ export function loadDocs(): DocPage[] {
     const site = parts[contentIdx + 1]
     const section = parts[contentIdx + 2]
 
-    // Derive slug from filename, stripping numeric prefix.
+    // Derive the slug from the filename, stripping the numeric prefix.
     const rawFilename = parts[parts.length - 1]
     const filename = rawFilename.replace(/\.md$/, '')
     const slug = filename.replace(/^\d+-/, '')

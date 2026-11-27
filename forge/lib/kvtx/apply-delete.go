@@ -16,7 +16,7 @@ func ApplyOpDelete(
 	outputName string,
 ) error {
 	if len(outputName) != 0 {
-		// get previous value
+		// get the previous value
 		err := ApplyOpGet(ctx, handle, btx, key, outputName)
 		if err != nil {
 			return err

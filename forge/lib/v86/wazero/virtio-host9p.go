@@ -114,6 +114,7 @@ func (d *virtioHost9PDevice) registerConfigPorts() {
 }
 
 // selectedQueue returns the single queue, or an empty queue when any other
+// queue is selected.
 func (d *virtioHost9PDevice) selectedQueue() *virtioQueue {
 	if d.queueSelect != 0 {
 		return &virtioQueue{}
@@ -200,6 +201,7 @@ func (d *virtioHost9PDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
 }
 
 // newVirtioHost9PPCISpace builds the device config space with its four PCI
+// BARs.
 func newVirtioHost9PPCISpace() []byte {
 	// Identify the virtio host9p device in its PCI configuration header.
 	space := make([]byte, 256)

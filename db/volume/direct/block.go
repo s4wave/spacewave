@@ -125,9 +125,10 @@ func (s *Store) add(ctx context.Context, entries []*block.PutBatchEntry) ([]bool
 	return existed, nil
 }
 
-// lookup returns the pending entries of refs and, for the rest, whether they
-// are stored, reading the payloads if read is set. It reads pending entries
-// before the record store, so an entry committed in between is found there.
+// lookup returns the pending entries of refs and, for the remaining refs,
+// whether the blocks are stored, reading the payloads if read is set. It reads
+// pending entries before the record store, so an entry committed in between is
+// found there.
 func (s *Store) lookup(ctx context.Context, refs []*block.BlockRef, read bool) ([][]byte, []bool, error) {
 	// Resolve keys and answer from pending entries.
 	keys := make([][]byte, len(refs))
@@ -153,7 +154,7 @@ func (s *Store) lookup(ctx context.Context, refs []*block.BlockRef, read bool) (
 	}
 	s.mtx.Unlock()
 
-	// Read the rest in one call.
+	// Read the remaining block records in one call.
 	var rest [][]byte
 	var at []int
 	for i, key := range keys {

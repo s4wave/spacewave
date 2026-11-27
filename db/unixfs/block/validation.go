@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	// ErrDirectoryNameInvalidUnicode indicates a directory name must be  utf8
+	// ErrDirectoryNameInvalidUTF8 indicates a directory name must be utf8.
 	ErrDirectoryNameInvalidUTF8 = errors.New("directory name must be valid utf8")
-	// ErrDirectoryNameInvalidReserved
+	// ErrDirectoryNameInvalidReserved indicates a directory name
+	// is reserved.
 	ErrDirectoryNameInvalidReserved = errors.New("directory name cannot be reserved")
 	// ErrDirectoryNameEmpty indicates a directory name cannot be empty.
 	ErrDirectoryNameEmpty = errors.New("directory name cannot be empty")
@@ -70,7 +71,7 @@ func ValidateSymlink(path *FSPath, tgt *FSSymlink) error {
 	return nil
 }
 
-// ValidateSetModTimestamp validates a set mod timestamp operation parameter set.
+// ValidateSetModTimestamp validates parameters for setting a mod timestamp.
 func ValidateSetModTimestamp(paths []*FSPath) error {
 	if len(paths) == 0 {
 		return errors.New("expected at least one path for set modification timestamp")
@@ -83,7 +84,7 @@ func ValidateSetModTimestamp(paths []*FSPath) error {
 	return nil
 }
 
-// ValidateSetPermissions validates a set mod timestamp operation parameter set.
+// ValidateSetPermissions validates parameters for setting a mod timestamp.
 func ValidateSetPermissions(paths []*FSPath, perms uint32) error {
 	if len(paths) == 0 {
 		return errors.New("expected at least one path for set permissions")

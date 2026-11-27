@@ -104,7 +104,7 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 }
 
 // PutBlockBatch preserves operation order across bounded remote requests.
-// A failed request stops submission; earlier requests may have committed.
+// A failed request stops submission, but earlier requests may have committed.
 func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Reject read-only clients before building the remote batch request.
 	if v.readOnly {
@@ -186,7 +186,7 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-// The bytes come from another process, so it checks them against ref and
+// The bytes come from another process, so GetBlock checks them against ref and
 // returns ErrBlockCorrupt on a mismatch.
 func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Fetch the block from the remote store.
@@ -315,7 +315,8 @@ func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// Sync requests a remote durability barrier and reports whether it fenced.
+// Sync requests a remote durability barrier and reports whether the remote
+// store applied a fence.
 func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
 	resp, err := v.client.Sync(ctx, &block_rpc.SyncRequest{})
 	if err != nil {

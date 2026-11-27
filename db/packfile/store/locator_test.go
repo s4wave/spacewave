@@ -82,7 +82,7 @@ func TestUnindexedPacksFollowManifest(t *testing.T) {
 		t.Fatalf("open %v, want both packs", got)
 	}
 
-	// Indexing refilters the open packs; a new snapshot inherits the split.
+	// Indexing refilters the open packs. A new snapshot inherits the split.
 	loc.index("a")
 	open()
 	store.ApplyManifestDelta([]*packfile.PackfileEntry{entry("c", 3)}, nil)

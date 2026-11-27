@@ -52,7 +52,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 	}, nil
 }
 
-// Snapshot delegates ObjectStore scopes; keyed scopes carry no generations.
+// Snapshot delegates ObjectStore scopes. Keyed scopes carry no generations.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
 	if scope.Key == "" {
 		return c.inner.Snapshot(ctx, scope)
@@ -63,7 +63,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 	return nil, coord.ErrUnsupported
 }
 
-// Watch delegates ObjectStore scopes; keyed scopes carry no event stream.
+// Watch delegates ObjectStore scopes. Keyed scopes carry no event stream.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
 	if scope.Key == "" {
 		return c.inner.Watch(ctx, scope, afterGeneration)
@@ -169,7 +169,8 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 	}
 }
 
-// redisLeaseDigest names the redis lease key for one backing store and scope.
+// redisLeaseDigest computes the redis lease key for one backing store and
+// scope.
 func redisLeaseDigest(storeID string, scope coord.Scope) string {
 	digest := sha256.Sum256([]byte(
 		storeID + "\x00" + scope.VolumeID + "\x00" + scope.ObjectStoreID + "\x00" + scope.Key,

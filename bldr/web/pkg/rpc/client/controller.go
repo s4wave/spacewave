@@ -22,17 +22,18 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the web pkg rpc client.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// cc is controller config
+	// cc is the controller config.
 	cc *Config
 	// serviceIdPrefix is the prefix to watch for rpc requests.
 	// If empty, defaults to web.pkg.rpc.AccessWebPkg.
 	serviceIdPrefix string
-	// matchWebPkgIdRe is the regexp to match web pkg ids
-	// if nil, match any
+	// matchWebPkgIdRe is the regexp to match web pkg ids. An id passes if it
+	// matches this regexp, a prefix or the id list. If all three are empty,
+	// every id passes.
 	matchWebPkgIdRe *regexp.Regexp
 }
 
@@ -119,7 +120,7 @@ func (c *Controller) HandleDirective(
 			return nil, nil
 		}
 
-		// resolve
+		// Resolve the web pkg lookup.
 		return directive.R(newResolveLookupWebPkg(c, webPkgID), nil)
 	}
 

@@ -63,8 +63,9 @@ func (c *virtioCommonConfig) writeDriverFeatures(value uint32) {
 }
 
 // handleStatusWrite applies the shared STATUS semantics. A zero value resets
-// the device through dev.reset and returns 0; otherwise it stores the masked
-// status, raises the ISR on failure, and returns the stored value.
+// the device through dev.reset and returns 0. Otherwise handleStatusWrite
+// stores the masked status, raises the ISR on failure, and returns the stored
+// value.
 func (c *virtioCommonConfig) handleStatusWrite(
 	ctx context.Context,
 	dev virtioCommonConfigDevice,

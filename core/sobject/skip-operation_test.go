@@ -44,7 +44,7 @@ func applyTestSkip(t *testing.T, state *SOState, priv crypto.PrivKey, skip *SOSk
 	}
 }
 
-// testPosition returns a position of peerID at nonce naming the hash of seed.
+// testPosition returns a position of peerID at nonce with the hash of seed.
 func testPosition(peerID string, nonce uint64, seed byte) *SOOperationPosition {
 	h := sha256.Sum256([]byte{seed})
 	return &SOOperationPosition{PeerId: peerID, Nonce: nonce, OpHash: h[:]}
@@ -88,7 +88,7 @@ func TestSkippedOperationsValidate(t *testing.T) {
 	}
 }
 
-// TestSkipsOperationMatchesHashAuthorNonce checks that a skip names one
+// TestSkipsOperationMatchesHashAuthorNonce checks that a skip identifies one
 // operation by its hash, author and nonce together: an operation that shares
 // the hash but not the author or nonce, or the author and nonce but not the
 // hash, is not skipped.
@@ -147,7 +147,7 @@ func TestFoldRefusesSkippedOperation(t *testing.T) {
 // TestBodyDriverCutsSkippedAppliedOperation checks that a driver whose body
 // already applied an operation an owner then skips applies again from that
 // operation, refusing it, and reaches the state of a driver that starts after
-// the skip. It fails when the driver keeps the applied position.
+// the skip. The test fails when the driver keeps the applied position.
 func TestBodyDriverCutsSkippedAppliedOperation(t *testing.T) {
 	// The writer writes two operations and the owner one.
 	peers := createMockPeers(t, 2)
@@ -277,7 +277,8 @@ func TestSkipSOOperationIsFinal(t *testing.T) {
 		t.Fatal("a writer skipped an operation")
 	}
 
-	// The owner skips the first operation, then again, which changes nothing.
+	// The owner skips the first operation, then again. The second skip
+	// changes nothing.
 	if err := SkipSOOperation(ctx, g.host, skipFirst.GetPosition(), skipFirst.GetReason(), keys[0]); err != nil {
 		t.Fatal(err)
 	}
@@ -360,14 +361,14 @@ func TestSkipSOOperationIsFinal(t *testing.T) {
 // adopts it: both owners hold the same checkpoint at the same height, the
 // operation stays applied, and no outcome remains to call it skipped.
 func TestStaleCheckpointAppliesSkippedOp(t *testing.T) {
-	// Two owners and a writer; the writer writes the operation A skips.
+	// Two owners and a writer. The writer writes the operation A skips.
 	peers := createMockPeers(t, 3)
 	keys := mustPrivKeys(t, peers)
 	owner := SOParticipantRole_SOParticipantRole_OWNER
 	state, _ := newTestSOState(t, peers, owner, owner, SOParticipantRole_SOParticipantRole_WRITER)
 	op := writeTestOp(t, state, keys[2], "skipped")
 
-	// B keeps the config before the skip; A's replica takes the skip.
+	// B keeps the config before the skip. A's replica takes the skip.
 	stale := state.CloneVT()
 	skip := testSkip(t, state, op, "")
 	applyTestSkip(t, state, keys[0], skip)

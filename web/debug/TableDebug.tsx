@@ -163,7 +163,7 @@ const fixtures: Record<
 
 // TableDebug renders the real Table in one fixture state, with the viewport
 // as its pane, for the viewer sweep. The route's state segment picks the
-// fixture; an unknown or missing one shows the populated table.
+// fixture. An unknown or missing one shows the populated table.
 export function TableDebug() {
   const { state: name } = useParams()
   const fixture = fixtures[name ?? ''] ?? fixtures.populated

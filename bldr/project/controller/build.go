@@ -27,9 +27,9 @@ type ResolvedBuildTarget struct {
 //
 // If manifestOverrides is non-nil, each matching manifest id has its builder
 // config replaced with the override (REPLACE semantics, same as the
-// BuildConfig-driven path in BuildTargets). The override's id is ignored; the
-// manifest's declared builder id wins. Callers that do not need overrides
-// should pass nil.
+// BuildConfig-driven path in BuildTargets). The override's id is ignored
+// because the manifest's declared builder id wins. Callers that do not need
+// overrides should pass nil.
 //
 // Returns the manifest refs and object keys for the built manifests.
 func (c *Controller) BuildManifests(
@@ -70,14 +70,15 @@ func (c *Controller) BuildManifests(
 
 // BuildTargets compiles the given build target(s).
 //
-// If the targets list is empty, builds all targets.
-// If targetsOverride is specified, it overrides the targets field in all build configs.
+// If the targets list is empty, builds all targets. If targetsOverride is
+// specified, it overrides the targets field in all build configs.
 // manifestRevision raises the configured revision floor for this build,
-// including manifests compiled on demand as dependencies. Zero keeps configured floors.
+// including manifests compiled on demand as dependencies. Zero keeps configured
+// floors.
 //
-// A non-nil hold runs after the first results land, with the selected
-// manifest IDs, and the builders stay retained until it returns. On a watching
-// controller they rebuild each manifest as its sources change, so hold
+// A non-nil hold runs after the first results land, with the selected manifest
+// IDs, and the builders stay retained until it returns. On a watching
+// controller the builders rebuild each manifest as its sources change, so hold
 // observes every rebuild until it returns.
 func (c *Controller) BuildTargets(
 	ctx context.Context,

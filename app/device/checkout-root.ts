@@ -6,7 +6,10 @@ import {
 } from '@s4wave/sdk/device/device.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 
-/** isBrowsableCheckoutRoot reports whether the capability names a readable folder. */
+/**
+ * isBrowsableCheckoutRoot reports whether the capability references a readable
+ * folder.
+ */
 export function isBrowsableCheckoutRoot(
   capability?: DeviceCapability,
 ): boolean {

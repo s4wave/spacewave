@@ -11,5 +11,5 @@ package launcher_install
 // The resource objects give every Windows build importing this package the
 // app icon and a manifest selecting Common Controls 6 for its dialogs. A
 // release sets SPACEWAVE_VERSION to stamp its version, which the desktop reads
-// to tell whether a staged update is newer; the committed objects carry none.
+// to tell whether a staged update is newer. The committed objects carry none.
 //go:generate go run github.com/tc-hib/go-winres@v0.3.3 simply --arch amd64,arm64 --out rsrc --manifest gui --icon ../../../web/images/spacewave-icon.png --product-name Spacewave --file-description Spacewave --original-filename Spacewave.exe --product-version=$SPACEWAVE_VERSION --file-version=$SPACEWAVE_VERSION

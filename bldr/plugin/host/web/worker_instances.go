@@ -63,7 +63,7 @@ func removeWebWorkerInstances(
 
 // removeStaleWebWorkerInstances removes workers left by previous executions of
 // the plugin. Workers carrying ownGeneration belong to this execution and are
-// never removed; every other generation is a stale predecessor under the
+// never removed. Every other generation is a stale predecessor under the
 // scheduler's single-execution-per-plugin contract, including workers left
 // behind when a previous execution crashed without cleanup.
 func removeStaleWebWorkerInstances(

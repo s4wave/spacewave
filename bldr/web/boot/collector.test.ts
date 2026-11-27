@@ -14,7 +14,7 @@ const hydrateRootMock = vi.hoisted(() =>
   vi.fn(() => ({ render: vi.fn(), unmount: vi.fn() })),
 )
 
-// The collector does not exist yet at the red-confirmed gate. Mocking its
+// The red-confirmed gate runs without the collector module. Mocking the
 // module keeps this wiring test focused on the entrypoint contract: bootstrap
 // installs exactly one BootReport collector per document.
 vi.mock('./collector.js', () => ({

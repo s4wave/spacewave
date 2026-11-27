@@ -24,7 +24,8 @@ func TestSharedDaemonElectronRoots(t *testing.T) {
 	statusA := a.watchStatus(t)
 	statusB := b.watchStatus(t)
 
-	// Open both desktops; each window shows its own root's Session and Space.
+	// Open both desktops. Each window shows its own root's Session and
+	// Space.
 	viewA := a.open(t, a.desktop)
 	a.requireIdentity(t, viewA, cliA.identity("Root A Space"))
 	viewB := b.open(t, b.desktop)

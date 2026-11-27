@@ -48,7 +48,7 @@ func TestGetObjectBodiesBatchPageWithholdsOversizedBody(t *testing.T) {
 
 // TestGetObjectBodiesBatchPageOverlapsLookups runs pages of 16 and 160 keys
 // with a lookahead of 16. Each lookup waits until 16 are in flight, so a pager
-// that read one body at a time fails on the deadline; the larger page stops at
+// that read one body at a time fails on the deadline. The larger page stops at
 // its budget, and no lookup may still run once the page returns, since the
 // caller releases the cursor the lookups read through.
 func TestGetObjectBodiesBatchPageOverlapsLookups(t *testing.T) {
@@ -73,7 +73,8 @@ func TestGetObjectBodiesBatchPageOverlapsLookups(t *testing.T) {
 			return &ObjectBody{ObjectKey: key, Body: []byte("body"), Exists: true}, nil
 		}
 
-		// Page through every key; the larger set fills a budget of 100 bodies.
+		// Page through every key. The larger set fills a budget of 100
+		// bodies.
 		keys := make([]string, n)
 		for i := range keys {
 			keys[i] = fmt.Sprintf("body/%04d", i)

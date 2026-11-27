@@ -18,7 +18,8 @@ import (
 // filter, or a checkpoint.
 const MaxRequestBody = 16 << 20
 
-// Refusal codes beside the session API's own.
+// CheckpointRefusedCode, PackNotAdmittedCode and PackMismatchCode add refusal
+// codes beside the session API's own.
 const (
 	// CheckpointRefusedCode refuses a checkpoint that does not follow the
 	// recorded one or lacks its owners' signatures.
@@ -186,7 +187,7 @@ func (w *Writer) authorize(rw http.ResponseWriter, r *http.Request, msg interfac
 	return spaceID, signer, true
 }
 
-// writeMessage writes resp, or the refusal err names.
+// writeMessage writes resp, or the refusal err specifies.
 func writeMessage(rw http.ResponseWriter, resp interface{ MarshalVT() ([]byte, error) }, err error) {
 	var data []byte
 	if err == nil {
@@ -195,7 +196,7 @@ func writeMessage(rw http.ResponseWriter, resp interface{ MarshalVT() ([]byte, e
 	writeResult(rw, data, err)
 }
 
-// writeResult writes data, or the refusal err names.
+// writeResult writes data, or the refusal err specifies.
 func writeResult(rw http.ResponseWriter, data []byte, err error) {
 	switch {
 	case err == nil:

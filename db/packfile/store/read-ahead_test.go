@@ -97,7 +97,8 @@ func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 		t.Fatalf("constrained range = %d, want 2 MiB", got)
 	}
 
-	// Prefill the far side, then request the uncovered interval between them.
+	// Prefill the far side, then request the uncovered interval between the
+	// resident ranges.
 	seedSpan(reader, 3<<20, 1<<20)
 	if _, err := reader.ReaderAt(ctx).ReadAt(buf, 2<<20); err != nil {
 		t.Fatal(err)

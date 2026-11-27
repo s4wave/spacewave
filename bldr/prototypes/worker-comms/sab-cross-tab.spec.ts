@@ -4,7 +4,7 @@ test.describe('SAB Cross-Tab Transfer', () => {
   test('shares SharedArrayBuffer between two tabs via BroadcastChannel', async ({
     context,
   }) => {
-    // Open sender tab.
+    // Open the sender tab.
     const sender = await context.newPage()
     await sender.goto('/sab-cross-tab.html?role=sender')
     const senderLog = sender.locator('#log')
@@ -12,7 +12,7 @@ test.describe('SAB Cross-Tab Transfer', () => {
       timeout: 5000,
     })
 
-    // Open receiver tab.
+    // Open the receiver tab.
     const receiver = await context.newPage()
     await receiver.goto('/sab-cross-tab.html?role=receiver')
 
@@ -27,7 +27,7 @@ test.describe('SAB Cross-Tab Transfer', () => {
 
     if (!senderResults.broadcastChannelSAB) {
       // BroadcastChannel does not support SAB in this browser.
-      // This is a valid experimental finding.
+      // This lack of SAB support is a valid experimental finding.
       console.log(
         'FINDING: BroadcastChannel does NOT support SharedArrayBuffer transfer',
       )
@@ -35,7 +35,7 @@ test.describe('SAB Cross-Tab Transfer', () => {
       return
     }
 
-    // If send succeeded, receiver should also be done.
+    // If the send succeeded, the receiver should also be done.
     const receiverLog = receiver.locator('#log')
     await expect(receiverLog).toContainText('DONE', { timeout: 10000 })
     const receiverResults = await receiver.evaluate(

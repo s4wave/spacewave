@@ -7,7 +7,7 @@ import (
 
 // Subscription holds one reference to the shared source. Its caller may combine
 // publications with application events, such as a revision-specific projection.
-// Close releases the source once; Snapshot's returned view is immutable.
+// Close releases the source once. Snapshot's returned view is immutable.
 type Subscription[S, T any] struct {
 	// run owns the publications this subscriber follows.
 	run *feedRun[S, T]
@@ -31,7 +31,7 @@ func Subscribe[S, T any](ctx context.Context, hub *Hub[S], source S, feed *Feed[
 }
 
 // Snapshot returns the current publication and a channel closed by its
-// replacement. A nil publication precedes the first read; an error ends this
+// replacement. A nil publication precedes the first read. An error ends this
 // source and a later subscription can start a new one. Sample before reading
 // application events, then wait on the sampled channel to avoid missed changes.
 func (s *Subscription[S, T]) Snapshot() (*Publication[T], <-chan struct{}, error) {

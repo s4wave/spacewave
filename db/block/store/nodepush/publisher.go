@@ -30,13 +30,13 @@ type Sender interface {
 }
 
 // Result reports how one publication's push ended, after sent elapsed. A nil
-// err means the node flushed it; otherwise the publication has only the local
-// store's durability until it is uploaded. It may run on the commit path, so it
-// must not block.
+// err means the node flushed the push. Otherwise the publication has only the
+// local store's durability until the publication is uploaded. Result may run
+// on the commit path, so the callback must not block.
 type Result func(err error, sent time.Duration)
 
 // Publisher pushes each root change beside its local commit. The local result
-// alone determines success; the node adds a wait bounded by the longer of wait
+// alone determines success. The node adds a wait bounded by the longer of wait
 // and the local commit. Every send ends before the caller reuses its entries.
 type Publisher struct {
 	sender  Sender
@@ -119,7 +119,7 @@ func (p *Publisher) SetRoots(ctx context.Context, entries []*block.PutBatchEntry
 	return err
 }
 
-// Close joins the active root changes; the caller stops new changes first.
+// Close joins the active root changes. The caller stops new changes first.
 func (p *Publisher) Close() {
 	p.running.Wait()
 }

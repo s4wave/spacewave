@@ -95,7 +95,7 @@ export const MountCdnSpaceResponse: MessageType<MountCdnSpaceResponse> =
  */
 export interface CopyV86ImageToSpaceRequest {
   /**
-   * SessionIdx is the caller's session index; used to resolve the
+   * SessionIdx is the caller's session index and is used to resolve the
    * destination user Space via the standard session-aware mount path.
    */
   sessionIdx?: number

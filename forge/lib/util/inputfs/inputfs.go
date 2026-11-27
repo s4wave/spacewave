@@ -19,8 +19,8 @@ import (
 )
 
 // Open returns a read-only handle on the UnixFS directory the named input
-// holds. The handle reads through a clone of cs, so it is valid only within
-// the storage access that produced cs; the caller releases it.
+// holds. The handle reads through a clone of cs, so the handle is valid only
+// within the storage access that produced cs. The caller releases the handle.
 func Open(
 	ctx context.Context,
 	cs *bucket_lookup.Cursor,
@@ -61,7 +61,7 @@ func Checkout(
 	return errors.Wrapf(unixfs_checkout.Checkout(ctx, dir, handle, nil), "check out input %q", name)
 }
 
-// ValidateName checks that name can name an input's directory under a
+// ValidateName checks that name can identify an input's directory under a
 // checkout root: non-empty, one path element, and not hidden.
 func ValidateName(name string) error {
 	if name == "" || strings.ContainsAny(name, "/\\") || strings.HasPrefix(name, ".") {
@@ -96,7 +96,7 @@ func CheckoutAll(
 // World stage and returns its root, the value an output carries and a later
 // input checks out. File contents stream through the blob builder. Symbolic
 // links are skipped, never followed, so a tree written by a container cannot
-// reach a host file; dir itself must be a directory, not a link.
+// reach a host file. dir itself must be a directory, not a link.
 func StoreDir(ctx context.Context, handle forge_target.ExecControllerHandle, dir string) (*block.BlockRef, error) {
 	// Refuse a missing directory or a link in its place.
 	if info, err := os.Lstat(dir); err != nil || !info.IsDir() {

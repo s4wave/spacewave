@@ -10,15 +10,15 @@ import { FactList, factGrid } from '@s4wave/web/ui/FactList.js'
  * ViewerStatusProps is what a viewer shows before, instead of or above its
  * object:
  *
- * - waiting: nothing has arrived yet; what names the record, such as "the
- *   notebook". rows is how many skeleton rows fill the body under that line;
- *   with rows 0 the line alone is drawn, one row tall, for a viewer that
+ * - waiting: nothing has arrived yet. what names the record, such as "the
+ *   notebook". rows is how many skeleton rows fill the body under that line.
+ *   With rows 0 the line alone is drawn, one row tall, for a viewer that
  *   draws its stage under it.
- * - failed: the read failed; message says what went wrong. retry is set only
+ * - failed: the read failed. message says what went wrong. retry is set only
  *   when reading again can succeed, and the notice offers it. The notice is
  *   one row, so a viewer whose record arrived earlier draws it above the
  *   record rather than in its place.
- * - empty: the record arrived and holds nothing to show; message says so and,
+ * - empty: the record arrived and holds nothing to show. message says so and,
  *   where one exists, names the press that fills it.
  *
  * ViewerStatus.tla checks that each press shows where it can succeed and that
@@ -41,10 +41,10 @@ export type ViewerStatusProps =
  * arrived yet, or null. A resource read again keeps its value while the read
  * runs, so it does not wait. A failed resource holds no value, only the last
  * value it had. A viewer opts in to keeping its record through a failure by
- * drawing resourceContent: then it draws this failure as a notice above that
- * stale record, never an empty claim from it, and the notice's Retry reads
- * again behind it. A viewer that draws only the value lets the failure take
- * the body. what names the record, such as "the notebook".
+ * drawing resourceContent: then the viewer draws the resource failure as a
+ * notice above that stale record, never an empty claim from it, and the
+ * notice's Retry reads again behind it. A viewer that draws only the value lets
+ * the failure take the body. what names the record, such as "the notebook".
  */
 export function resourceStatus(
   what: string,
@@ -90,8 +90,8 @@ const valueWidths = ['w-2/5', 'w-3/5', 'w-1/2', 'w-4/5', 'w-2/3']
  * rows keep the fact row's height and the pane's padding, and the skeleton
  * rows sit in a FactList, so their label column is the one the viewer's facts
  * take at the same width. Waiting draws skeleton rows under a line naming
- * what is read, or the line alone; failed is a notice row with Retry when a read can run again;
- * empty is one muted row.
+ * what is read, or the line alone. Failed is a notice row with Retry when a
+ * read can run again. Empty is one muted row.
  */
 export function ViewerStatus(props: ViewerStatusProps) {
   if (props.state === 'waiting' && props.rows === 0) {

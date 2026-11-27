@@ -11,7 +11,7 @@ import (
 // ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch
 // requests and responses. One page must fit in a single starpc frame, which is
 // capped at 10,000,000 bytes, with room for the packet envelope. A body whose
-// entry alone exceeds the budget is withheld; see ObjectBody.WithheldSize.
+// entry alone exceeds the budget is withheld. See ObjectBody.WithheldSize.
 const ObjectBodiesBatchByteBudget = 8 << 20
 
 // ObjectBody contains the serialized root body for one object key.
@@ -28,8 +28,9 @@ type ObjectBody struct {
 	// Exists reports whether the object key exists.
 	Exists bool
 	// WithheldSize is the length of a body left out of its page because the
-	// entry alone exceeds the page budget; Body is then empty. Zero for a body
-	// the page carries. LookupObjectBodyEntry reads a withheld body alone.
+	// entry alone exceeds the page budget. Body is then empty. Zero for a
+	// body the page carries. LookupObjectBodyEntry reads a withheld body
+	// alone.
 	WithheldSize uint64
 
 	// keep stores the body's block once its decoder knows the block's refs,
@@ -120,8 +121,8 @@ func collectObjectBodyPages(ctx context.Context, ws WorldState, keys []string) (
 // through one World storage cursor held for the page, with up to width lookups
 // in flight. Call it only on a store that reads one revision, such as a
 // transaction, and pass a width above 1 only when the store serves concurrent
-// reads, such as a read-only block World state; 1 reads one body at a time on
-// the caller's goroutine.
+// reads, such as a read-only block World state. A width of 1 reads one body at
+// a time on the caller's goroutine.
 func LookupObjectBodiesPage(
 	ctx context.Context,
 	ws WorldState,

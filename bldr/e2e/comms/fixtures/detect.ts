@@ -1,4 +1,4 @@
-// detect.ts - feature detection probe verification fixture.
+// detect.ts: feature detection probe verification fixture.
 //
 // Imports the actual detectWorkerCommsConfig and runs it in a real browser.
 // Writes structured results to window.__results for playwright-go extraction.

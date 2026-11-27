@@ -22,7 +22,7 @@ const DefaultKeepLogs = 8
 //
 // Non-existent dir is treated as success with zero removed files.
 // Subdirectories and non-.log entries are skipped. Symlinks are not
-// followed; their own metadata is consulted via os.Lstat semantics from
+// followed. Their own metadata is consulted via os.Lstat semantics from
 // os.ReadDir's DirEntry.
 func PruneOldLogs(dir string, maxAge time.Duration, keep int, now time.Time) (int, error) {
 	// Read the log directory, treating a missing directory as empty.
@@ -34,7 +34,7 @@ func PruneOldLogs(dir string, maxAge time.Duration, keep int, now time.Time) (in
 		return 0, err
 	}
 
-	// Collect regular log files; a failed stat is reported but skipped.
+	// Collect regular log files. Report a failed stat but skip the file.
 	var logs []os.FileInfo
 	var firstErr error
 	for _, entry := range entries {

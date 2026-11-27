@@ -52,7 +52,7 @@ type ObjectCounts struct {
 	OnNext int `json:"onNext"`
 }
 
-// RetainedRpcEntry is a service/method pair with count.
+// RetainedRpcEntry is a service/method pair with a count.
 type RetainedRpcEntry struct {
 	// Service is the RPC service name.
 	Service string `json:"service"`
@@ -182,7 +182,7 @@ func RunAnalysis(snapshots *SnapshotSet) (*AnalysisResult, error) {
 }
 
 func parseAnalysisResult(dat []byte) (*AnalysisResult, error) {
-	// Parse the whole document once; the fields below read from it.
+	// Parse the whole document once. The fields below read from the document.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(dat)
 	if err != nil {

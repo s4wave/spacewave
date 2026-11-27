@@ -16,7 +16,7 @@ type TargetMap struct {
 	underlying map[string]*Target
 }
 
-// UnmarshalYAML unmarshals YAML to a TargetMap.
+// UnmarshalTargetMapYAML unmarshals YAML to a TargetMap.
 func UnmarshalTargetMapYAML(data []byte) (*TargetMap, error) {
 	t := &TargetMap{}
 	if err := t.UnmarshalYAML(data); err != nil {
@@ -25,7 +25,7 @@ func UnmarshalTargetMapYAML(data []byte) (*TargetMap, error) {
 	return t, nil
 }
 
-// ResolveYAML parses the YAML target map and resolves it on a bus.
+// ResolveTargetMapYAML parses the YAML target map and resolves it on a bus.
 func ResolveTargetMapYAML(ctx context.Context, b bus.Bus, data []byte) (map[string]*target.Target, error) {
 	tgtCtr, err := UnmarshalTargetMapYAML(data)
 	if err != nil {

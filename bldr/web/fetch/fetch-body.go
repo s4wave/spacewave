@@ -7,9 +7,9 @@ import (
 
 // FetchBodyReader implements io.Reader with a FetchStream.
 type FetchBodyReader struct {
-	// strm is the rpc stream
+	// strm is the rpc stream.
 	strm SRPCFetchService_FetchStream
-	// buf is the incoming data buffer
+	// buf is the incoming data buffer.
 	buf bytes.Buffer
 	// done indicates there will be no more data.
 	done bool

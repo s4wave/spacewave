@@ -21,20 +21,24 @@ message BuilderConfig {
   // EngineId is the world engine to store the manifest.
   string engine_id = 5;
   // LinkObjectKeys is the list of object keys to link to the manifest.
-  // NOTE: also used to search for other manifests in the dist compiler.
+  // NOTE: LinkObjectKeys is also used to search for other manifests in the
+  // dist compiler.
   repeated string link_object_keys = 7;
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 8;
 
   // ProjectId is the project identifier.
-  // Must be a valid-dns-label.
-  // Used to construct the application storage and dist bundle filenames.
+  // ProjectId must be a valid-dns-label.
+  // ProjectId is used to construct the application storage and dist bundle
+  // filenames.
   string project_id = 9;
 
   // TargetPlatformIds contains all platform IDs from the build target.
-  // Used by the dist compiler to collect manifests from all compatible platforms.
+  // The dist compiler uses TargetPlatformIds to collect manifests from all
+  // compatible platforms.
   // For example, a browser target may include ["web/js/wasm", "js"].
-  // If empty, falls back to using only the platform_id from ManifestMeta.
+  // If TargetPlatformIds is empty, the dist compiler falls back to using only
+  // the platform_id from ManifestMeta.
   repeated string target_platform_ids = 10;
 
   // BuildPolicy is the effective build-scoped policy for this Manifest build.
@@ -58,13 +62,13 @@ message BuilderResult {
   // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
   .bldr.manifest.ManifestRef manifest_ref = 2;
   // InputManifest details which files were used to produce Manifest.
-  // Used for change detection.
+  // InputManifest is used for change detection.
   InputManifest input_manifest = 3;
   // SubManifestResults contains child builder results keyed by sub-manifest ID.
   // Persisting child provenance lets startup validation reuse nested builders.
   map<string, BuilderResult> sub_manifest_results = 4;
   // SourceRef retains the exact Space source filesystem in this result's bucket.
-  // Native checkout builds omit it; Space builds store a local DAG reference.
+  // Native checkout builds omit it, but Space builds store a local DAG reference.
   .bucket.ObjectRef source_ref = 5;
 }
 
@@ -96,19 +100,19 @@ message InputManifest {
     // Path is the path of the file in the source directory.
     string path = 1;
     // Metadata is additional builder-specific metadata about the file.
-    // Optional.
+    // Metadata is optional.
     bytes metadata = 2;
     // Identity is the publish-time file identity for startup validation.
-    // Optional.
+    // Identity is optional.
     FileIdentity identity = 3;
     // StartupOnly records files needed only for startup validation.
     // These files are ignored by the live watch loop.
     bool startup_only = 4;
     // DirSuffix marks Path as a directory whose files ending in DirSuffix,
     // such as ".sql", are read as inputs. The input is the list of those file
-    // names, so adding or removing one changes it; each file's content is an
+    // names, so adding or removing one changes it. Each file's content is an
     // input of its own.
-    // Optional.
+    // DirSuffix is optional.
     string dir_suffix = 5;
   }
 
@@ -125,29 +129,30 @@ message InputManifest {
   }
 
   // Files is the list of consumed source files.
-  // Optional.
+  // Files is optional.
   repeated File files = 1;
   // Metadata is additional builder-specific metadata about the output.
-  // Optional.
+  // Metadata is optional.
   bytes metadata = 2;
   // StartupInputs are typed non-file inputs used for startup validation.
-  // Optional.
+  // StartupInputs is optional.
   repeated StartupInput startup_inputs = 4;
 }
 
 // BuildManifestArgs are arguments passed to the BuildManifest function.
 message BuildManifestArgs {
   // BuilderConfig is the builder configuration.
-  // Must be set.
+  // BuilderConfig must be set.
   BuilderConfig builder_config = 1;
 
   // PrevBuilderResult is the previous builder result, if applicable.
-  // Set only if we are re-building the manifest after a file changed.
-  // May be nil.
+  // PrevBuilderResult is set only if the builder is re-building the manifest
+  // after a file changed.
+  // PrevBuilderResult may be nil.
   BuilderResult prev_builder_result = 2;
   // ChangedFiles is the list of files from PrevBuilderResult InputManifest
   // filtered to contain only files that changed since the previous build. //
-  // Set only if PrevBuilderResult is set.
-  // May be nil.
+  // ChangedFiles is set only if PrevBuilderResult is set.
+  // ChangedFiles may be nil.
   repeated InputManifest.File changed_files = 3;
 }

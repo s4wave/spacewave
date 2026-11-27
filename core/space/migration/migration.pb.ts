@@ -348,7 +348,7 @@ export interface MigrationConflict {
    */
   objectType?: string
   /**
-   * SuggestedKey is the deterministic default for key collisions.
+   * SuggestedKey is the deterministic default key for key collisions.
    */
   suggestedKey?: string
   /**

@@ -60,7 +60,7 @@ func run() error {
 	// Report authenticated messages received from other peers.
 	relHandler := channelSub.AddHandler(func(m pubsub.Message) {
 		from := m.GetFrom()
-		// ignore unauthenticated and/or from ourselves
+		// ignore unauthenticated messages and/or messages from the local peer
 		if !m.GetAuthenticated() || from == localPeerID {
 			return
 		}
@@ -85,14 +85,14 @@ func run() error {
 	}
 	defer wsRef.Release()
 
-	// get transport
+	// get the transport
 	tpt, err := ws.GetTransport(ctx)
 	if err != nil {
 		return err
 	}
 	wsServer := tpt.(*wtpt.WebSocket)
 
-	// get current working directory
+	// get the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err

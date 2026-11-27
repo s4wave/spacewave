@@ -57,13 +57,13 @@ type pluginReference struct {
 	ref directive.Reference
 	// releaseState stops watching the plugin state.
 	releaseState func()
-	// manifestKeys are the sorted artifact keys of the admitted manifests the
-	// load names, empty for a load that names none.
+	// manifestKeys are the sorted artifact keys of the admitted manifests
+	// the load specifies, empty for a load that specifies none.
 	manifestKeys []string
-	// manifests are the World manifests the load names.
+	// manifests are the World manifests the load specifies.
 	manifests []*manifest.ManifestRef
-	// replaced are the World manifests the load it replaced names, until a
-	// lost admission releases that load.
+	// replaced are the World manifests the load it replaced specifies,
+	// until a lost admission releases that load.
 	replaced []*manifest.ManifestRef
 	// releasePrevious releases the load this one replaced, once.
 	releasePrevious func()
@@ -348,7 +348,7 @@ func (c *Controller) resolveListAvailablePlugins(
 		return nil, nil
 	}
 
-	// Use current SpaceSettings plugin_ids.
+	// Use the current SpaceSettings plugin_ids.
 	var ids []string
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ids = slices.Clone(c.pluginIDs)
@@ -388,10 +388,10 @@ func (c *Controller) GetRegistrationPendingAndWaitCh() (bool, <-chan struct{}) {
 }
 
 // resolveFetchManifest handles a FetchManifest directive. The Space World
-// resolver always runs; processResolvers resolves it from World state. With a
-// manifest source, a second resolver relays listed requests to the parent
-// bus, so a manifest resolves whether it is stored in the Space World or
-// supplied by the parent.
+// resolver always runs. processResolvers resolves the directive from World
+// state. With a manifest source, a second resolver relays listed requests to
+// the parent bus, so a manifest resolves whether it is stored in the Space
+// World or supplied by the parent.
 func (c *Controller) resolveFetchManifest(
 	_ context.Context,
 	_ directive.Instance,
@@ -514,12 +514,12 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 	return world_control.ExecuteBusWatchLoop(ctx, c.GetBus(), engineID, false, watchLoop)
 }
 
-// reconcilePlugins reads SpaceSettings from the world and reconciles
-// LoadPlugin directives for the demanded plugin_ids of the Space and the
-// account. A plugin on both lists keeps the Space's installation pin. A Space
-// hosted in a plugin loads an unpinned plugin from the manifests hosted selects.
-// A load names only World manifests the gate has admitted or not yet answered
-// for, and a plugin only replay asks for loads like a listed one.
+// reconcilePlugins reads SpaceSettings from the world and reconciles LoadPlugin
+// directives for the demanded plugin_ids of the Space and the account. A plugin
+// on both lists keeps the Space's installation pin. A Space hosted in a plugin
+// loads an unpinned plugin from the manifests hosted selects. A load specifies
+// only World manifests the gate has admitted or not yet answered for, and a
+// plugin only replay asks for loads like a listed one.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, loads *pluginLoads) {
 	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
@@ -587,15 +587,16 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	// Add a replacement demand before releasing the previous one. The scheduler
 	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
-		// Name the World manifests the gate admits: a pinned plugin's
-		// installation, or the hosted selection of an unpinned one, including
-		// a plugin only a waiting replay asks for. While the gate has not
-		// answered for a root, a new load names every candidate not refused,
-		// admitted and pending alike, and an existing load is kept. With none
-		// admitted and none pending, an existing load on roots outside the
-		// selection that were never refused keeps running; otherwise an
-		// unpinned plugin gets a plain load, from which the host starts only
-		// the release's or development build's own build, or a root the
+		// Specify the World manifests the gate admits: a pinned
+		// plugin's installation, or the hosted selection of an unpinned
+		// one, including a plugin only a waiting replay asks for. While
+		// the gate has not answered for a root, a new load specifies
+		// every candidate not refused, admitted and pending alike, and
+		// an existing load is kept. With none admitted and none
+		// pending, an existing load on roots outside the selection that
+		// were never refused keeps running. Otherwise an unpinned
+		// plugin gets a plain load, from which the host starts only the
+		// release's or development build's own build, or a root the
 		// device's person allowed. A refused Space root never starts.
 		installKeys := installs[pid].GetManifestKeys()
 		var candidates []*manifest.ManifestRef
@@ -610,10 +611,10 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 		admitted, open := loads.gate.admitted(ctx, pid, candidates)
 
-		// Stop at once a load that names a root which lost its admission,
-		// rather than when its replacement runs. The released load no longer
-		// runs, whatever its watch last said; the next load's watch reports
-		// from here.
+		// Stop at once a load that specifies a root which lost its
+		// admission, rather than when its replacement runs. The
+		// released load no longer runs, whatever its watch last said.
+		// The next load's watch reports from here.
 		previous, existed := refs[pid]
 		if existed && loads.gate.refused(ctx, pid, previous.replaced) {
 			previous.releasePrevious()
@@ -627,12 +628,13 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			c.loadedPlugins.SetPluginState(pid, false, false)
 		}
 
-		// While any candidate's admission has not answered, keep the current
-		// load, or else name every candidate not refused: the host then says
-		// which root awaits whose approval and runs none until every root it
-		// asks about has answered, so the first pass does not load a fallback
-		// only to swap it out. The answers wake the loop, and the next pass
-		// keeps, replaces or withdraws this load.
+		// While any candidate's admission has not answered, keep the
+		// current load, or else specify every candidate not refused:
+		// the host then says which root awaits whose approval and runs
+		// none until every root it asks about has answered, so the
+		// first pass does not load a fallback only to swap it out. The
+		// answers wake the loop, and the next pass keeps, replaces or
+		// withdraws this load.
 		if len(open) != len(admitted) {
 			if existed {
 				continue
@@ -660,10 +662,11 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		if existed && slices.Equal(previous.manifestKeys, keys) {
 			continue
 		}
-		// A load that names a root not yet admitted is only ever sent to a host
-		// that asks for each root; it names the peer so the host must ask. The
-		// peer is the gate's: a root is pending only while the gate asks about
-		// it for that peer, and a gate with no peer refuses every root.
+		// A load that specifies a root not yet admitted is only ever
+		// sent to a host that asks for each root. The load specifies
+		// the peer so the host must ask. The peer is the gate's: a root
+		// is pending only while the gate asks about it for that peer,
+		// and a gate with no peer refuses every root.
 		demand := bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId())
 		if len(admitted) != 0 {
 			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), loads.gate.peerID, admitted...)
@@ -725,7 +728,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 	}
 
-	// Stop watching the roots no load names any longer.
+	// Stop watching the roots no load specifies any longer.
 	loads.gate.prune()
 }
 
@@ -829,8 +832,8 @@ func (c *Controller) syncProcesses(ctx context.Context, ws world.WorldState) boo
 		return false
 	}
 
-	// Build set of desired enabled bindings keyed by objectKey, and remember
-	// the bound objects.
+	// Build the set of desired enabled bindings keyed by objectKey, and
+	// remember the bound objects.
 	boundKeys := make([]string, len(bindings))
 	desired := make(map[string]processConfig, len(bindings))
 	for i, b := range bindings {
@@ -976,7 +979,8 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 	// Capture the controller's bus for the object type lookup.
 	b := c.GetBus()
 
-	// Inject session peer ID, engine ID and plugin bus into context for factories.
+	// Inject session peer ID, engine ID and plugin bus into the context for
+	// factories.
 	ctx = objecttype.WithPluginBus(ctx, c.pluginBus())
 	conf := c.GetConfig()
 	if spid := conf.GetSessionPeerId(); spid != "" {

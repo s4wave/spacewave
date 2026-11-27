@@ -16,9 +16,9 @@ import (
 
 // remoteTracker tracks a running Remote config.
 type remoteTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// remoteID is the identifier of the remote to mount
+	// remoteID is the identifier of the remote to mount.
 	remoteID string
 	// remote is the config for the remote.
 	remote *bldr_project.RemoteConfig

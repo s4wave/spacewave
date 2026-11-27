@@ -27,7 +27,7 @@ const (
 	registryGlobal = 0
 )
 
-// wl_callback.
+// callbackDone is the wl_callback done event opcode.
 const callbackDone = 0
 
 // wl_compositor.
@@ -76,7 +76,7 @@ const (
 	subsurfacePlaceBelow  = 3
 )
 
-// wl_subcompositor error codes.
+// subcompositorErrBadSurface is a wl_subcompositor error code.
 const subcompositorErrBadSurface = 0
 
 // wl_shm.
@@ -154,7 +154,7 @@ const (
 	keyboardRepeatInfo = 5
 )
 
-// wl_keyboard keymap format: an xkbcommon text keymap.
+// keymapXKBV1 is the wl_keyboard keymap format: an xkbcommon text keymap.
 const keymapXKBV1 = 1
 
 // wl_output.
@@ -169,7 +169,8 @@ const (
 	outputRelease = 0
 )
 
-// wl_output mode flags: the mode is current and preferred.
+// outputModeCurrentPreferred is the wl_output mode flags for a current and
+// preferred mode.
 const outputModeCurrentPreferred = 3
 
 // zxdg_output_manager_v1.

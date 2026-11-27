@@ -35,17 +35,17 @@ type MergeProgress struct {
 //
 // A pack dst lacks gets the next number of dst and its e/ and p/ rows. A pack
 // dst lists but has not indexed, which src has indexed, keeps its dst number.
-// The h rows of those packs are copied with their numbers mapped, and each
-// pack is marked indexed only after all its rows are committed, so an
-// interrupted merge leaves its packs unindexed and a rerun, or the indexer of
-// the pack store, completes them. A pack dst has indexed is left as it is. t/
-// rows are a cache and are not copied.
+// The h rows of those packs are copied with their numbers mapped, and each pack
+// is marked indexed only after all its rows are committed, so an interrupted
+// merge leaves its packs unindexed and a rerun, or the indexer of the pack
+// store, completes them. A pack dst has indexed is left as it is. t/ rows are a
+// cache and are not copied.
 //
-// An h row names one pack that holds the block, so a row copied over another
-// row names a pack dst also holds. A key whose row src rewrote for a later
-// pack during the merge reads as unlocated in dst, which a lookup answers from
-// the pack filters. src is read in short snapshots, and dst must not have
-// another writer.
+// An h row identifies one pack that holds the block, so a row copied over
+// another row identifies a pack dst also holds. A key whose row src rewrote for
+// a later pack during the merge reads as unlocated in dst, which a lookup
+// answers from the pack filters. src is read in short snapshots, and dst must
+// not have another writer.
 func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress func(MergeProgress)) (MergeProgress, error) {
 	return newPackIndex(dst, false).merge(ctx, src, progress)
 }
@@ -170,8 +170,8 @@ func (x *packIndex) merge(ctx context.Context, src ReadFunc, progress func(Merge
 }
 
 // copyHashRows streams the h rows of src in key order, indexBatchKeys per
-// snapshot, and writes each row that names a pack of numbers to dst with the
-// pack's dst number.
+// snapshot, and writes each row that identifies a pack of numbers to dst with
+// the pack's dst number.
 func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map[uint32]packRow, p *MergeProgress, progress func(MergeProgress)) error {
 	// Track the source cursor and the destination pack number for each row.
 	type hashRow struct {
@@ -200,7 +200,8 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 
 			// Read up to a batch of rows.
 			for ; it.Valid() && scanned < indexBatchKeys; it.Next() {
-				// Keep the row when it names a chosen pack.
+				// Keep the row when it identifies a chosen
+				// pack.
 				scanned++
 				next = bytes.Clone(it.Key())
 				value, err := it.Value()

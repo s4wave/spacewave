@@ -20,8 +20,8 @@ import (
 //
 // A write appends its values to the Log, which returns once they are durable,
 // and then lands the entries in local. A crash between the two leaves values
-// no child list names, which upload as garbage and lose nothing; the other
-// order could leave a child list naming bytes the disk lost.
+// no child list references. Those values upload as garbage and lose nothing.
+// The other order could leave a child list referencing bytes the disk lost.
 //
 // With divert unset, writes go to local as they did before the Log, and the
 // Log's values stay readable and draining: the switch back to the old path.
@@ -30,7 +30,7 @@ type PackedStore struct {
 	log *packahead.Log
 	// local is the store's bucket on the Volume.
 	local block.StoreOps
-	// divert sends new values to the Log; unset, writes go to local.
+	// divert sends new values to the Log. When unset, writes go to local.
 	divert bool
 	// counts counts the writes, shared by the read scopes.
 	counts *packedCounts
@@ -92,7 +92,7 @@ func (s *PackedStore) GetSupportedFeatures() block.StoreFeature {
 	return s.local.GetSupportedFeatures()
 }
 
-// BeginReadOperation opens a read scope on the local store; the Log needs
+// BeginReadOperation opens a read scope on the local store. The Log needs
 // none.
 func (s *PackedStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	scope, release, err := s.local.BeginReadOperation(ctx)
@@ -239,7 +239,7 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 		values = append(values, packahead.Block{Key: key, Value: value})
 	}
 
-	// Make the values durable before any child list names them.
+	// Make the values durable before any child list references them.
 	if len(values) != 0 {
 		if err := s.log.Append(ctx, values); err != nil {
 			return nil, nil, errors.Wrap(err, "append values")
@@ -309,7 +309,7 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 		}
 	}
 
-	// Read the local store's.
+	// Read the local store's copy.
 	return s.local.GetStoredBlock(ctx, ref)
 }
 
@@ -353,7 +353,7 @@ func (s *PackedStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 		}
 	}
 
-	// Stat the local store's.
+	// Stat the local store's copy.
 	return s.local.StatBlock(ctx, ref)
 }
 
@@ -371,8 +371,8 @@ func (s *PackedStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// Sync makes the local store durable; every Log append is durable when it
-// returns.
+// Sync makes the local store durable. Every Log append is durable when the
+// append returns.
 func (s *PackedStore) Sync(ctx context.Context) (bool, error) {
 	return s.local.Sync(ctx)
 }

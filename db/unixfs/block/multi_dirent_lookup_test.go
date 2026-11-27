@@ -15,10 +15,10 @@ import (
 // Each insert sorts the directory via sort.Sort, which calls DirentSlice.Swap.
 // On the bcs path Swap reorders the in-memory slice only as a side effect of
 // SetAsSubBlock -> ApplySubBlock. Under GoScript that Swap is async, so sort.Sort
-// must await it; a dropped promise leaves the slice unsorted and the
+// must await Swap. A dropped promise leaves the slice unsorted and the
 // same-transaction binary search misses a present entry, surfacing as
 // unixfs ErrNotExist. Inserting names in descending order forces multiple swaps
-// per insert, which is the case that regressed.
+// per insert, so the test covers the case requiring multiple async swaps.
 func TestMultiDirentSameTxLookup(t *testing.T) {
 	// Prepare logging for same-transaction directory lookup.
 	ctx := context.Background()

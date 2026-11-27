@@ -143,7 +143,7 @@ export function CommitDetail({
     )
   }
 
-  // Show a hash that names no commit.
+  // Show a hash that identifies no commit.
   if (!commit) {
     return (
       <div className="px-3 py-4">

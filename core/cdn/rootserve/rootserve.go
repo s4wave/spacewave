@@ -1,7 +1,7 @@
 // Package cdn_rootserve serves CDN Space root pointers and the cache rule of
 // their packs. A pointer changes on every commit, so it is served with
 // no-cache and a strong ETag, and a reader polling it gets 304 until it moves.
-// A pack's ID names its content, so it is cached for a year.
+// A pack's ID identifies its content, so the pack is cached for a year.
 package cdn_rootserve
 
 import (
@@ -29,7 +29,7 @@ const PointerName = "root.packedmsg"
 // reaches a reader on its next poll.
 const PointerCacheControl = "no-cache"
 
-// PackCacheControl caches a pack for a year: its ID names its bytes.
+// PackCacheControl caches a pack for a year: its ID identifies its bytes.
 const PackCacheControl = "public, max-age=31536000, immutable"
 
 // originTimeout bounds one conditional fetch of a foreign pointer.
@@ -40,7 +40,7 @@ const originTimeout = 10 * time.Second
 // one request a second between them.
 const revalidateAfter = time.Second
 
-// maxSpaceIDLen bounds the Space ID a request may name.
+// maxSpaceIDLen bounds the Space ID a request may specify.
 const maxSpaceIDLen = 64
 
 // ErrPointerNotFound reports a Space that has no pointer here or at the
@@ -157,7 +157,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the pointer; a foreign pointer whose origin failed keeps its last
+	// Find the pointer. A foreign pointer whose origin failed keeps its last
 	// copy.
 	ptr, err := h.Pointer(r.Context(), spaceID)
 	if errors.Is(err, ErrPointerNotFound) {
@@ -169,7 +169,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Serve it for revalidation; ServeContent answers If-None-Match with 304.
+	// Serve the pointer for revalidation. ServeContent answers If-None-Match
+	// with 304.
 	hdr := w.Header()
 	hdr.Set("Content-Type", "application/octet-stream")
 	hdr.Set("Cache-Control", PointerCacheControl)
@@ -179,8 +180,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Pointer returns the pointer of spaceID: the owned one, or else the
 // origin's. A held copy the origin confirmed within the last second is served
-// as is; an older one is revalidated conditionally. When the origin fails it
-// returns the held copy, if any, with the error.
+// as is. An older copy is revalidated conditionally. When the origin fails,
+// Pointer returns the held copy, if any, with the error.
 func (h *Handler) Pointer(ctx context.Context, spaceID string) (Pointer, error) {
 	// Serve an owned Space without asking the origin.
 	h.mtx.Lock()
@@ -265,7 +266,7 @@ func parsePointerPath(path string) (string, bool) {
 	return spaceID, true
 }
 
-// validSpaceID reports whether id is a Space ID a pointer path may name:
+// validSpaceID reports whether id is a Space ID a pointer path may specify:
 // lowercase letters, digits, '-' and '_', at most 64 of them.
 func validSpaceID(id string) bool {
 	if id == "" || len(id) > maxSpaceIDLen {

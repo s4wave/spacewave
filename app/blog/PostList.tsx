@@ -9,7 +9,7 @@ interface PostListItemProps {
   post: BlogPost
 }
 
-// PostListItem renders a compact post row with title, date, and tags.
+// PostListItem renders a compact post row with a title, date, and tags.
 function PostListItem({ post }: PostListItemProps) {
   const navigate = useNavigate()
 

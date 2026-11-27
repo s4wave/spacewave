@@ -10,7 +10,7 @@ import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/cli
 //
 // The resource provides two levels of access:
 //  - getServiceClient() returns the raw FSCursorServiceClient for direct RPC use
-//  - buildFSHandle() constructs an FSHandle backed by the resource's cursor
+//  - buildFSHandle() constructs an FSHandle backed by the resource's cursor.
 export class FSCursorResource extends Resource {
   private svc: FSCursorServiceClient
   private fsHandle: FSHandle | null = null

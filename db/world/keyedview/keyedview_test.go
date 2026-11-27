@@ -21,8 +21,8 @@ func (r *countedRecord) MarshalVT() ([]byte, error) {
 }
 
 // TestBuilderHashesChangedRecords rebuilds a large view after one record
-// changes and sees the Builder encode that one record, while naming the same
-// version Build names.
+// changes and sees the Builder encode that one record, while computing the
+// same version Build computes.
 func TestBuilderHashesChangedRecords(t *testing.T) {
 	// Build a view of a thousand records.
 	var encodes int

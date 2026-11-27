@@ -3,11 +3,13 @@
 /// OpenOrFocusDesktopRequest identifies the route to open in the desktop shell.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenOrFocusDesktopRequest {
-    /// Route is an optional in-app route; empty opens or focuses the main window.
+    /// Route is an optional in-app route. An empty route opens or focuses the main
+    /// window.
     #[prost(string, tag = "1")]
     pub route: ::prost::alloc::string::String,
     /// InstalledApp is the application bundle that requested the desktop.
-    /// Desktop app updates replace this bundle; empty when not launched from one.
+    /// Desktop app updates replace this bundle. InstalledApp is empty when not
+    /// launched from a bundle.
     #[prost(string, tag = "2")]
     pub installed_app: ::prost::alloc::string::String,
 }
@@ -31,7 +33,8 @@ pub struct WatchDesktopPresenceResponse {
     /// State first reports active or ended, then reports ended when an active shell exits.
     #[prost(enumeration = "DesktopPresenceState", tag = "1")]
     pub state: i32,
-    /// Error describes a failed shell exit; empty on a normal end or while active.
+    /// Error describes a failed shell exit. Error is empty on a normal end or
+    /// while the shell is active.
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -42,7 +45,7 @@ pub struct HandleWebViewViaPluginRequest {
     #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
-    /// If empty, will forward any.
+    /// If empty, the web plugin forwards any web view ID.
     #[prost(string, tag = "2")]
     pub web_view_id_re: ::prost::alloc::string::String,
 }
@@ -72,13 +75,13 @@ pub struct HandleWebPkgViaPluginRequest {
     #[prost(string, tag = "2")]
     pub web_pkg_id_re: ::prost::alloc::string::String,
     /// WebPkgIdPrefixes is a list of web pkg id prefixes to match.
-    /// If the value is in this list, overrides web_pkg_id_re.
+    /// A value in this list overrides web_pkg_id_re.
     /// Set to '.*' or empty to match all web pkgs ids.
     #[prost(string, repeated, tag = "3")]
     pub web_pkg_id_prefixes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// WebPkgIdList is a list of web pkg IDs to resolve.
-    /// If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
-    /// Ignored if empty.
+    /// A value in this list overrides web_pkg_id_re and web_pkg_id_prefixes.
+    /// The list is ignored if empty.
     #[prost(string, repeated, tag = "4")]
     pub web_pkg_id_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
@@ -104,15 +107,15 @@ pub struct HandleRpcViaPluginRequest {
     #[prost(string, tag = "1")]
     pub handle_plugin_id: ::prost::alloc::string::String,
     /// ServiceIdRe is the regex of service IDs to forward.
-    /// If empty, will forward any.
+    /// If empty, the web plugin forwards any service ID.
     #[prost(string, tag = "2")]
     pub service_id_re: ::prost::alloc::string::String,
     /// ServerIdRe is the regex of server IDs to forward for.
-    /// If empty, will forward any.
+    /// If empty, the web plugin forwards for any server ID.
     #[prost(string, tag = "3")]
     pub server_id_re: ::prost::alloc::string::String,
     /// Backoff is the backoff config for calling the RPC service.
-    /// If unset, defaults to reasonable defaults.
+    /// Backoff uses reasonable defaults when unset.
     #[prost(message, optional, tag = "4")]
     pub backoff: ::core::option::Option<super::super::super::backoff::Backoff>,
 }
@@ -165,7 +168,7 @@ pub struct HandleWebPkgsViaPluginAssetsRequest {
     #[prost(string, tag = "2")]
     pub web_pkgs_path: ::prost::alloc::string::String,
     /// WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
-    /// Must be at least one web pkg listed.
+    /// The list must contain at least one web pkg.
     #[prost(string, repeated, tag = "3")]
     pub web_pkg_id_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }

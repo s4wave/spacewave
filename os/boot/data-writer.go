@@ -11,7 +11,7 @@ import (
 )
 
 // dataWriter binds buffered WriteAt commits to Data's controller availability.
-// Other operations carry their caller's request context; only WriteAt is also
+// Other operations carry their caller's request context. Only WriteAt is also
 // called by FSHandle's background idle/release flush. Storage remains borrowed.
 type dataWriter struct {
 	// FSWriter preserves the ordinary durable World write path and capabilities.

@@ -10,10 +10,10 @@ import (
 	_ "github.com/s4wave/spacewave/bldr/values"
 )
 
-// Commands are the CLI commands
+// commands are the CLI commands.
 var commands []*cli.Command
 
-// Flags are the CLI flags
+// flags are the CLI flags.
 var flags []cli.Flag
 
 // afterFuncs are cleanup functions called after the app exits.

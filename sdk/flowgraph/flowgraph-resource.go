@@ -17,8 +17,8 @@ type FlowgraphResource struct {
 	ws world.WorldState
 	// engine opens transactions when the granting mount permits edits.
 	engine world.Engine
-	// bus resolves the object types of bound objects. It may be nil, which
-	// leaves every bound object's type unregistered.
+	// bus resolves the object types of bound objects. It may be nil, in
+	// which case every bound object's type is unregistered.
 	bus bus.Bus
 	// engineID scopes the object type lookup to the granting World engine.
 	engineID string
@@ -30,9 +30,10 @@ type FlowgraphResource struct {
 	mux srpc.Mux
 }
 
-// NewFlowgraphResource constructs a graph Resource without retaining object handles.
-// b and engineID resolve the object types of the nodes' bound objects.
-// sessionPeerID selects the granting Session for port calls; empty disables them.
+// NewFlowgraphResource constructs a graph Resource without retaining object
+// handles. b and engineID resolve the object types of the nodes' bound objects.
+// sessionPeerID selects the granting Session for port calls. An empty
+// sessionPeerID disables port calls.
 func NewFlowgraphResource(ws world.WorldState, engine world.Engine, b bus.Bus, engineID, key string, sessionPeerID peer.ID) *FlowgraphResource {
 	r := &FlowgraphResource{ws: ws, engine: engine, bus: b, engineID: engineID, key: key, sessionPeerID: sessionPeerID}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
@@ -132,8 +133,9 @@ func (r *FlowgraphResource) WatchFlowgraph(_ *WatchFlowgraphRequest, stream SRPC
 	defer watches.close()
 	var sent *FlowgraphSnapshot
 	for {
-		// Read the snapshot from one World state and record what it read, so a
-		// change after the read to any of it ends the wait below.
+		// Read the snapshot from one World state and record the objects
+		// and edges read, so a change to any of those after the read
+		// ends the wait below.
 		snapshot, reads, seqno, err := r.readWatched(ctx)
 		if err != nil {
 			return err
@@ -148,8 +150,9 @@ func (r *FlowgraphResource) WatchFlowgraph(_ *WatchFlowgraphRequest, stream SRPC
 			sent = snapshot
 		}
 
-		// Watch the registry for the types bound objects have, and read again
-		// after a new watch since it saw no change before it began.
+		// Watch the registry for the types bound objects have, and read
+		// again after a new watch since the watch saw no change before
+		// the watch began.
 		added, err := watches.sync(ctx, snapshot)
 		if err != nil {
 			return err

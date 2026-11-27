@@ -16,11 +16,11 @@ message Execution {
   // ExecutionState is the current state of the execution.
   State execution_state = 1;
   // PeerId is the identifier of the peer assigned to the execution.
-  // Can be empty.
+  // PeerId can be empty.
   string peer_id = 2;
   // Timestamp is the time the parent object (usually Pass) was created.
-  // Used as a reference timestamp to make all ops deterministic.
-  // Must be set & is not updated.
+  // Timestamp is used as a reference timestamp to make all ops deterministic.
+  // Timestamp must be set and is not updated.
   google.protobuf.Timestamp timestamp = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
   // Outputs are updated while the execution is RUNNING or CANCELING.
@@ -30,12 +30,13 @@ message Execution {
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 6;
   // LogEntries contains log output from the execution.
-  // Appended while the execution is RUNNING or CANCELING.
+  // LogEntries are appended while the execution is RUNNING or CANCELING.
   repeated LogEntry log_entries = 7;
   // Claim identifies the controller instance authorized to run and write back.
   Claim claim = 8;
-  // Waiting names what blocks this Execution before its work starts, such as
-  // a plugin load or Worker capacity. It is unset once nothing blocks it.
+  // Waiting records what blocks this Execution before its work starts, such as
+  // a plugin load or Worker capacity. Waiting is unset once nothing blocks the
+  // Execution.
   .forge.target.Waiting waiting = 11;
   reserved 9;
   reserved "waiting_plugin_id";
@@ -50,8 +51,9 @@ message Claim {
   // Epoch is the monotonic fencing token for this claim.
   uint64 epoch = 2;
   // LeaseExpiresAt is when the claim stops being live unless its holder renews
-  // it. Once it has passed, a peer that observed the expiry may reclaim the
-  // Execution, which advances the epoch and fences the previous holder.
+  // the lease. Once LeaseExpiresAt has passed, a peer that observed the expiry
+  // may reclaim the Execution. Reclaiming advances the epoch and fences the
+  // previous holder.
   google.protobuf.Timestamp lease_expires_at = 3;
 }
 
@@ -68,13 +70,13 @@ message LogEntry {
 // Spec contains information specified when creating a Execution.
 message Spec {
   // PeerId is the identifier of the peer assigned to the execution.
-  // Can be empty.
+  // PeerId can be empty.
   string peer_id = 1;
   // ValueSet is the set of inputs and outputs used in the execution.
   // Specified output values are used as initial values, and can be overridden.
   .forge.target.ValueSet value_set = 2;
   // TargetRef is the target to run in the Execution.
-  // Overrides "target" field if set.
+  // TargetRef overrides the "target" field if set.
   .block.BlockRef target_ref = 3;
 }
 
@@ -83,12 +85,13 @@ enum State {
   // ExecutionState_UNKNOWN is the unknown type.
   ExecutionState_UNKNOWN = 0;
   // ExecutionState_PENDING is the state before the execution starts.
-  // Transitions to RUNNING when the assigned peer acks exec start.
+  // ExecutionState_PENDING transitions to RUNNING when the assigned peer acks
+  // exec start.
   ExecutionState_PENDING = 1;
   // ExecutionState_RUNNING is the state when the execution is running.
   ExecutionState_RUNNING = 2;
   // ExecutionState_COMPLETE is the terminal state of the execution.
-  // This includes both success and failure termination states.
+  // This state includes both success and failure termination states.
   ExecutionState_COMPLETE = 3;
   // ExecutionState_CANCELING is the state while the executor drains custody.
   ExecutionState_CANCELING = 4;

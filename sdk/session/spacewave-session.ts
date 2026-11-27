@@ -480,7 +480,7 @@ export class SpacewaveSession extends Resource {
   }
 
   // transferResource transfers a resource to a typed principal owner.
-  // newOwnerType is "account" or "organization"; newOwnerId is the destination
+  // newOwnerType is "account" or "organization". newOwnerId is the destination
   // principal id (account ULID or org ULID).
   public async transferResource(
     resourceId: string,
@@ -547,7 +547,8 @@ export class SpacewaveSession extends Resource {
   }
 
   // assignBillingAccount binds a billing account to a principal.
-  // targetOwnerType is "account" or "organization"; targetOwnerId is the principal id.
+  // targetOwnerType is "account" or "organization". targetOwnerId is the
+  // principal id.
   public async assignBillingAccount(
     billingAccountId: string,
     targetOwnerType: string,
@@ -684,8 +685,8 @@ export class SpacewaveSession extends Resource {
     return await this.service.RemoveEmail({ email }, abortSignal)
   }
 
-  // setPrimaryEmail promotes a verified email to primary. Rejects unverified
-  // or unknown rows; already-primary is idempotent.
+  // setPrimaryEmail promotes a verified email to primary. It rejects unverified
+  // or unknown rows. Selecting an already-primary email is idempotent.
   public async setPrimaryEmail(
     email: string,
     abortSignal?: AbortSignal,

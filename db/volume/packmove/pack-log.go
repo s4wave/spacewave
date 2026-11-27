@@ -117,7 +117,7 @@ func (l *packLog) open(batch frame) error {
 }
 
 // commit appends the commit frame of the pending batch and makes the log
-// durable, which also makes the pending frame durable.
+// durable. Making the log durable also makes the pending frame durable.
 func (l *packLog) commit() error {
 	l.buf = appendFrame(l.buf[:0], frame{kind: frameCommit})
 	if _, err := l.f.Write(l.buf); err != nil {

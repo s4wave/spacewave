@@ -51,8 +51,8 @@ func storeTestKeypair(ctx context.Context, t *testing.T, eng world.Engine) (stri
 	return identity_world.NewKeypairKey(kp.GetPeerId()), kp.GetPeerId()
 }
 
-// requireKeypair reads the keypair at key through eng and fails unless it
-// names peerID.
+// requireKeypair reads the keypair at key through eng and fails unless it has
+// peer ID peerID.
 func requireKeypair(ctx context.Context, t *testing.T, phase string, eng world.Engine, key, peerID string) {
 	t.Helper()
 	rctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -100,10 +100,10 @@ func storedTxs(ctx context.Context, t *testing.T, so sobject.SharedObject) []*wo
 	return txs
 }
 
-// requireDurableSetRoots fails unless every root that a stored World
-// operation above the checkpoint holds is in the Space's durable block store,
-// which a restart reads without the adapter's kept pages, resolving operation
-// types with lookup. It returns how many set roots the operations named.
+// requireDurableSetRoots fails unless every root that a stored World operation
+// above the checkpoint holds is in the Space's durable block store, which a
+// restart reads without the adapter's kept pages, resolving operation types
+// with lookup. It returns how many set roots the operations recorded.
 func requireDurableSetRoots(ctx context.Context, t *testing.T, so sobject.SharedObject, lookup world.LookupOp) int {
 	t.Helper()
 	store := so.GetBlockStore()
@@ -246,13 +246,13 @@ func TestSetRootReplaysAboveStoredWorld(t *testing.T) {
 	requireKeypair(ctx, t, "after remount", eng, key, peerID)
 }
 
-// TestSetRootNeverDurableUnheld tries to find a durable operation that names
-// a root the store may drop. After each write, and with no checkpoint, it
-// reads every stored operation above the checkpoint, the way a restart or an
-// account replica does, and requires each root the operation's payload refs
-// name to be in the durable store: a KeypairUpdateOp's staged root, and an
-// object root whose graph nests chunk blocks below it, which must read back
-// whole after a remount.
+// TestSetRootNeverDurableUnheld tries to find a durable operation that
+// references a root the store may drop. After each write, and with no
+// checkpoint, it reads every stored operation above the checkpoint, the way a
+// restart or an account replica does, and requires each root the operation's
+// payload refs list to be in the durable store: a KeypairUpdateOp's staged
+// root, and an object root whose graph nests chunk blocks below it, which must
+// read back whole after a remount.
 func TestSetRootNeverDurableUnheld(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -383,10 +383,10 @@ func rewriteMsgs(ctx context.Context, ws world.WorldState, key string, roots []*
 
 // TestSetRootKeepsFinalRoot applies one operation that sets an object's root
 // twice and sets and deletes another's. With the changelog off the stored
-// operation names only the first object's final root. With it on, the
+// operation records only the first object's final root. With it on, the
 // committed changelog links every root the operation set, so the operation
-// names each of them, final roots first. Every root it names is durable once
-// the write returns and reads back after a remount that replays it.
+// records each of them, final roots first. Every root it records is durable
+// once the write returns and reads back after a remount that replays it.
 func TestSetRootKeepsFinalRoot(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -423,7 +423,7 @@ func TestSetRootKeepsFinalRoot(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Read the roots the stored operation names.
+			// Read the roots the stored operation records.
 			requireDurableSetRoots(ctx, t, so, lookup)
 			var roots []*block.BlockRef
 			for _, tx := range storedTxs(ctx, t, so) {
@@ -435,8 +435,8 @@ func TestSetRootKeepsFinalRoot(t *testing.T) {
 				t.Fatalf("checkpoint at %d covers the operation; the test needs it above", h)
 			}
 
-			// Remount before any stored World covers the operation and read
-			// every named root back.
+			// Remount before any stored World covers the operation
+			// and read every recorded root back.
 			eng, engRef = f.remount(ctx, t, eng, engRef)
 			defer engRef.Release()
 			var got []string
@@ -456,7 +456,7 @@ func TestSetRootKeepsFinalRoot(t *testing.T) {
 
 // TestSetRootReplacedInTx records roots that one transaction sets and then
 // replaces or deletes, as a GLaDOS drain does when it creates a light and then
-// updates it. The stored batch names each recorded root, so each must be
+// updates it. The stored batch references each recorded root, so each must be
 // durable even though the committed World reaches none of them.
 func TestSetRootReplacedInTx(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -507,8 +507,8 @@ func TestSetRootReplacedInTx(t *testing.T) {
 
 // TestPayloadBuiltInTx applies a payload operation whose payload the
 // transaction builds and the committed World does not reach: an append to a
-// file re-chunks the written blob into the file. The stored operation names
-// the blob's root, so it must be durable.
+// file re-chunks the written blob into the file. The stored operation
+// references the blob's root, so it must be durable.
 func TestPayloadBuiltInTx(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()

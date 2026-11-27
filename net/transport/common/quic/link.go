@@ -19,33 +19,33 @@ import (
 
 // Link represents a Quic-based connection/link.
 type Link struct {
-	// ctx is the context for this link
+	// ctx is the context for this link.
 	ctx context.Context
 	// ctxCancel cancels the context for this link.
 	ctxCancel context.CancelFunc
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// addr is the bound remote address
+	// addr is the bound remote address.
 	addr net.Addr
-	// localAddr is the local address
+	// localAddr is the local address.
 	localAddr net.Addr
-	// sess is the quic session
+	// sess is the quic session.
 	sess *quic.Conn
-	// remotePeerID is the remote peer id
+	// remotePeerID is the remote peer id.
 	remotePeerID peer.ID
-	// remotePubKey is the remote public key
+	// remotePubKey is the remote public key.
 	remotePubKey crypto.PublicKey
-	// uuid is the link uuid
+	// uuid is the link uuid.
 	uuid uint64
-	// transportUUID is the transport uuid
+	// transportUUID is the transport uuid.
 	transportUUID uint64
-	// remoteTransportUUID is the remote transport uuid
+	// remoteTransportUUID is the remote transport uuid.
 	remoteTransportUUID uint64
-	// localPeerID is the local peer ID
+	// localPeerID is the local peer ID.
 	localPeerID peer.ID
-	// closed is the closed callback
+	// closed is the closed callback.
 	closed func()
-	// closedOnce guards closed
+	// closedOnce guards closed.
 	closedOnce sync.Once
 	// dialed indicates the local side dialed the session.
 	dialed bool
@@ -176,9 +176,10 @@ func (l *Link) RemoteAddr() net.Addr {
 // OpenStream opens a stream on the link, with the given parameters. An
 // unreliable stream is a MessageStream whose control is the opened stream.
 func (l *Link) OpenStream(opts stream.OpenOpts) (stream.Stream, error) {
-	// OpenStream returns an error if we hit the stream limit.
-	// it is better to return an error and backoff / know something is wrong,
-	// than wait forever (potentially) while we are at the cap.
+	// OpenStream returns an error if the session hits the stream limit.
+	// Returning an error lets the caller back off / know something is wrong
+	// rather than potentially waiting forever while the session is at the
+	// cap.
 	qstream, err := l.sess.OpenStream()
 	if err != nil {
 		return nil, err

@@ -53,7 +53,8 @@ func testArchivePeerServes(t *testing.T, format string) {
 		t.Fatal(err)
 	}
 
-	// Start the reading peer, which admits only the archive once it dials in.
+	// Start the reading peer, which admits only the archive once the archive
+	// dials in.
 	key := filepath.Join(dir, "archive.pem")
 	archiveID, err := createKey(key)
 	if err != nil {
@@ -143,7 +144,7 @@ func testArchivePeerServes(t *testing.T, format string) {
 		t.Fatal("second archive opened a held file")
 	}
 
-	// Stop the archive; the file is unchanged.
+	// Stop the archive. The file is unchanged.
 	stop()
 	<-served
 	after, err := os.ReadFile(file)

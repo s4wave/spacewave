@@ -118,7 +118,8 @@ func TestBackgroundCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Walk snapshots until the commits finish; each one is sorted and whole.
+	// Walk snapshots until the commits finish. Each snapshot is sorted
+	// and whole.
 	const n = 500
 	done := make(chan struct{})
 	walked := make(chan error, 1)

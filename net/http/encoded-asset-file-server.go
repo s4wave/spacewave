@@ -42,7 +42,7 @@ func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs htt
 		return
 	}
 
-	// Plain assets need no metadata read; FileServer supplies the size and
+	// Plain assets need no metadata read. FileServer supplies the size and
 	// replaces Content-Type when it returns an HTTP error.
 	if encoded == "" {
 		rw.Header().Set("Content-Type", contentType)

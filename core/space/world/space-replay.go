@@ -44,8 +44,8 @@ type spacePosition struct {
 	// payloads are the roots of the operation's payload, which replay reads
 	// again while the operation is above the checkpoint.
 	payloads []*block.BlockRef
-	// handlers identifies the handlers that named payloads, or is nil when
-	// payloads are not known to be what they name now.
+	// handlers identifies the handlers that identified payloads, or is nil
+	// when payloads are not known to be the roots those handlers identify.
 	handlers *PayloadHandlers
 }
 
@@ -82,7 +82,7 @@ type spaceReplay struct {
 	engine *world_block.Engine
 	// cursor is the engine's root cursor.
 	cursor *bucket_lookup.Cursor
-	// bound is the World engine serves.
+	// bound is the World the engine serves.
 	bound *bucket.ObjectRef
 	// stage holds what the replay stores: for a serving adapter until a
 	// cursor save lands, and for a transient replay in its one epoch until its
@@ -109,9 +109,9 @@ func (r *spaceReplay) head() (*InnerState, uint64) {
 	return r.stateBefore(len(r.positions))
 }
 
-// savedPayloads returns the payloads of the restored positions that applied,
-// by operation hash, where the handlers that named them name the same roots
-// now (invariant 6 of the payload hold). A payload depends only on the
+// savedPayloads returns the payloads of the restored positions that applied, by
+// operation hash, where the handlers that identified them still identify the
+// same roots (invariant 6 of the payload hold). A payload depends only on the
 // operation and its handlers, so it holds wherever the operation lands in the
 // order.
 func (r *spaceReplay) savedPayloads() map[string]opHold {
@@ -125,8 +125,8 @@ func (r *spaceReplay) savedPayloads() map[string]opHold {
 }
 
 // restoredAt returns the saved position at index when it records op after the
-// same World, or nil. A position whose handlers name other roots now takes the
-// payloads Hold resolved for op, and is nil when Hold did not resolve them.
+// same World, or nil. A position whose handlers identify other roots now takes
+// the payloads Hold resolved for op, and is nil when Hold did not resolve them.
 func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *InnerState) *spacePosition {
 	// The saved position must record op.
 	if index >= len(r.restored) || !bytes.Equal(r.restored[index].op.Hash, op.Hash) {
@@ -165,7 +165,7 @@ func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *
 // position takes without running op again.
 func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOperation, adopt *spacePosition) (spacePosition, error) {
 	// The World before index may have left memory unstored. Only running an
-	// operation reads its pages; the other outcomes compare and copy its
+	// operation reads its pages. The other outcomes compare and copy its
 	// InnerState, which computing it again leaves the same.
 	unstored := index != 0 && index <= r.floor
 	prev, prevSeqno := r.stateBefore(index)
@@ -299,7 +299,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		return pos, err
 	}
 	if pos.handlers == nil {
-		// An operation without a transaction names no payloads.
+		// An operation without a transaction has no payloads.
 		pos.handlers = newPayloadHandlers(nil)
 	}
 
@@ -340,7 +340,7 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 }
 
 // writeRoot writes the root of an empty World, in the format and with the
-// changelog and graph settings initOp names, to the kept pages under the
+// changelog and graph settings initOp specifies, to the kept pages under the
 // World's transform, and returns its reference.
 func (r *spaceReplay) writeRoot(ctx context.Context, transformConf *block_transform.Config, initOp *InitWorldOp) (*block.BlockRef, error) {
 	// Build the transformer of the World's transform.
@@ -404,9 +404,9 @@ func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed str
 	// Run the change on the World and commit it.
 	var next *bucket.ObjectRef
 	aerr := func() error {
-		// A Space created with a seeded state names its World's transform but
-		// no root, so its first change writes the root every Space World
-		// starts with.
+		// A Space created with a seeded state specifies its World's
+		// transform but no root, so its first change writes the root
+		// every Space World starts with.
 		head := prev.GetHeadRef()
 		if head.GetRootRef().GetEmpty() {
 			rootRef, err := r.writeRoot(ctx, head.GetTransformConf(), SpaceInitWorldOp())
@@ -479,8 +479,8 @@ func (r *spaceReplay) seqno(ctx context.Context, state *InnerState) (uint64, err
 }
 
 // bind returns the replay engine at head. An engine at another World with the
-// same transform moves to head, as after an adopted own candidate; one with
-// another transform, or one that cannot move, is rebuilt.
+// same transform moves to head, as after an adopted own candidate. An engine
+// with another transform, or one that cannot move, is rebuilt.
 func (r *spaceReplay) bind(ctx context.Context, head *bucket.ObjectRef) (*world_block.Engine, error) {
 	// Reuse the engine at head, or move it there.
 	if r.engine != nil {
@@ -634,9 +634,9 @@ func operationPerson(participant *sobject.SOParticipantConfig) string {
 	return participant.GetPeerId()
 }
 
-// opTypeOf returns the operation type of wop a log line names: the World or
-// object operation type of a transaction that applies one, the transaction
-// type of another transaction, or the kind of World operation.
+// opTypeOf returns the operation type of wop a log line records: the World or
+// object operation type of a transaction that applies one, the transaction type
+// of another transaction, or the kind of World operation.
 func opTypeOf(wop *WorldOp) string {
 	switch tx := wop.GetApplyTxOp().GetTx(); {
 	case tx.GetTxApplyWorldOp() != nil:

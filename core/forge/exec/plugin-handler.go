@@ -46,7 +46,7 @@ type pluginExecHandler struct {
 	conf *PluginExecConfig
 	// load retains the plugin service for Execute's lifetime.
 	load pluginExecClientLoader
-	// resourceOpenTimeout bounds the plugin's Resource client open; zero
+	// resourceOpenTimeout bounds the plugin's Resource client open. Zero
 	// selects defaultPluginResourceOpenTimeout.
 	resourceOpenTimeout time.Duration
 }

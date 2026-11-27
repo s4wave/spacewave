@@ -11,8 +11,9 @@ import (
 // its refs, asks the reader to hand them over once it decodes the block, so
 // the block is kept as a peer fill with the refs a write of it records. The
 // read path cannot store such a block itself, since the pack would keep it as
-// a leaf. Without this, every read of a block the old owner holds without
-// refs, as it holds most of the World, asks the old owner again.
+// a leaf. Without keeping decoded refs, every read of a block the old owner
+// holds without refs, as the old owner holds most of the World, asks the old
+// owner again.
 type peerDecodedReads struct {
 	block.StoreOps
 	p *placementState

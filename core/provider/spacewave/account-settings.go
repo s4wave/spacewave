@@ -40,7 +40,8 @@ func (a *ProviderAccount) ensureAccountSettingsSharedObject(
 		return ref, nil
 	}
 
-	// Create the account settings SharedObject; tolerate an existing object.
+	// Create the account settings SharedObject.
+	// Tolerate an existing object.
 	_, err = a.CreateSharedObject(
 		ctx,
 		binding.GetSoId(),

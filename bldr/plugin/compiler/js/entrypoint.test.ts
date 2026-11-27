@@ -307,7 +307,7 @@ describe('plugin JS backend entrypoint startup', () => {
     const onFailure = vi.fn()
 
     try {
-      // A swap or shutdown aborts the plugin; its lifecycle then rejects.
+      // A swap or shutdown aborts the plugin, so its lifecycle then rejects.
       await startBackendEntrypoint(
         { importPath: '/assets/backend.js', importName: 'default' },
         backendAPI as never,

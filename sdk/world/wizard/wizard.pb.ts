@@ -180,15 +180,15 @@ export const WatchWizardStateResponse: MessageType<WatchWizardStateResponse> =
  */
 export interface UpdateWizardStateRequest {
   /**
-   * Step is the new step value. Set to -1 to leave unchanged.
+   * Step is the new step value. Set to -1 to leave the step unchanged.
    */
   step?: number
   /**
-   * Name is the new name. Empty string leaves unchanged.
+   * Name is the new name. An empty string leaves the name unchanged.
    */
   name?: string
   /**
-   * ConfigData is the new config data. Nil leaves unchanged.
+   * ConfigData is the new config data. Nil leaves the config data unchanged.
    */
   configData?: Uint8Array
   /**
@@ -359,7 +359,7 @@ export const GitCloneProgress: MessageType<GitCloneProgress> =
 export interface ListWizardsRequest {
   /**
    * InstanceKey selects the wizards visible to one plugin installation, such
-   * as a Space world engine id. Empty selects only global wizards.
+   * as a Space world engine id. An empty key selects only global wizards.
    */
   instanceKey?: string
 }
@@ -432,7 +432,7 @@ export const ListWizardsResponse: MessageType<ListWizardsResponse> =
 export interface WatchWizardsRequest {
   /**
    * InstanceKey selects the wizards visible to one plugin installation, such
-   * as a Space world engine id. Empty selects only global wizards.
+   * as a Space world engine id. An empty key selects only global wizards.
    */
   instanceKey?: string
 }
@@ -713,7 +713,7 @@ export interface IntroWizardCallout {
    */
   region?: IntroWizardRegion
   /**
-   * Title names the UI part.
+   * Title labels the UI part.
    */
   title?: string
   /**

@@ -119,7 +119,8 @@ func TestBlockSyncDEX(t *testing.T) {
 	// Connect via inproc.
 	connectSessionTransports(ctx, t, stA, stB)
 
-	// Start P2P sync on both (this starts SOSync + DEX solicit for each SO).
+	// Start P2P sync on both accounts (starting SOSync + DEX solicit for
+	// each SO).
 	if err := accA.StartP2PSync(ctx, stA); err != nil {
 		t.Fatal(err)
 	}
@@ -711,7 +712,8 @@ func TestStopP2PSyncReleasesResourceRegisteredDuringStartup(t *testing.T) {
 	}
 
 	// Registration proceeds only after stop has retired the state. Cleanup must
-	// wait for the startup pass to retain this reference before releasing it.
+	// wait for the startup pass to retain the controller resource reference
+	// before releasing it.
 	close(allowRegistration)
 	select {
 	case <-resourceReleased:

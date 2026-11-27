@@ -16,9 +16,10 @@ import (
 const remoteOpenWait = time.Minute
 
 // remoteReads returns the backend store serving reads. While the placement
-// names a backend that has not opened yet, as just after a start, it returns
-// a store whose reads wait for it to open, so a block eviction dropped from
-// the disk reads from the backend instead of failing over to peers.
+// selects a backend that has not opened yet, as just after a start,
+// remoteReads returns a store whose reads wait for the backend to open, so a
+// block eviction dropped from the disk reads from the backend instead of
+// failing over to peers.
 func (p *placementState) remoteReads() block.StoreOps {
 	// Serve an open, matching backend without taking the notification lock.
 	backend := p.backend.Load()
@@ -63,9 +64,9 @@ func (p *placementState) readBackend() (block.StoreOps, <-chan struct{}) {
 	return store, changed
 }
 
-// waitBackend returns the placement's open backend store once it opens, or
-// nil once the placement names no backend. It fails with ErrUnavailable once
-// the mount ends, even while ctx stays alive.
+// waitBackend returns the placement's open backend store once it opens, or nil
+// once the placement selects no backend. It fails with ErrUnavailable once the
+// mount ends, even while ctx stays alive.
 func (p *placementState) waitBackend(ctx context.Context) (block.StoreOps, error) {
 	for {
 		// A remount ends this mount's wait.

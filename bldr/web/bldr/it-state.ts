@@ -1,6 +1,6 @@
 // ItStateOpts are optional settings for ItState.
 export interface ItStateOpts {
-  // mostRecentOnly drops all messages but the most recent.
+  // mostRecentOnly drops all messages but the most recent message.
   // messages are only dropped during backpressure.
   // in other words: the queue size will be capped to 1.
   mostRecentOnly?: boolean
@@ -13,7 +13,7 @@ export interface ItStateOpts {
 export class ItState<T> {
   // nonce is only used if mostRecentOnly is enabled.
   private nonce?: number
-  // getSnapshot returns the initial snapshot or undefined
+  // getSnapshot returns the initial snapshot or undefined.
   private getSnapshot: () => Promise<T | undefined>
   private listeners: Set<(value: T) => void> = new Set()
   private errorListeners: Set<(error: Error) => void> = new Set()
@@ -25,7 +25,7 @@ export class ItState<T> {
     this.getSnapshot = getSnapshot || (async () => undefined)
   }
 
-  // snapshot returns a snapshot or undefined
+  // snapshot returns a snapshot or undefined.
   public get snapshot(): Promise<T | undefined> {
     return this.getSnapshot()
   }
@@ -103,14 +103,14 @@ export class ItState<T> {
               return { value: undefined, done: true }
             }
 
-            // If we have a most recent value waiting (mostRecentOnly mode)
+            // If the most recent value is waiting (mostRecentOnly mode)
             if (mostRecentValue) {
               const { value } = mostRecentValue
               mostRecentValue = null
               return { value, done: false }
             }
 
-            // If we have queued values
+            // If the queue has values
             if (queue.length > 0) {
               return { value: queue.shift()!, done: false }
             }
@@ -155,17 +155,18 @@ export class ItState<T> {
   public pushChangeEvent(changeEvent: T) {
     if (this.opts?.mostRecentOnly) {
       this.nonce = (this.nonce ?? 0) + 1
-      // We need to make a copy of the listeners to avoid race conditions
+      // Copy the listeners to avoid race conditions
       // when multiple events are pushed in rapid succession
       const currentListeners = Array.from(this.listeners)
-      // We don't pass the nonce to the listener as it's only used internally
+      // The listener does not receive the nonce, which is used only internally.
       currentListeners.forEach((listener) => listener(changeEvent))
     } else {
       this.listeners.forEach((listener) => listener(changeEvent))
     }
   }
 
-  // pushSnapshot calls the snapshot function and pushes it as a change event.
+  // pushSnapshot calls the snapshot function and pushes the snapshot as a
+  // change event.
   public async pushSnapshot() {
     try {
       const snapshot = await this.getSnapshot()

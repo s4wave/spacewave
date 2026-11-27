@@ -5,8 +5,8 @@ import (
 	"sync"
 )
 
-// PageCounts counts pages by tree and level. It is safe for concurrent use;
-// the zero value is empty.
+// PageCounts counts pages by tree and level. It is safe for concurrent use.
+// The zero value is empty.
 type PageCounts struct {
 	// mtx guards counts.
 	mtx sync.Mutex

@@ -20,34 +20,34 @@ export interface Config {
   unixfsId?: string
   /**
    * UnixfsPrefix is a path prefix to apply to paths in the FS.
-   * This applies a chroot to the UnixFS.
+   * UnixfsPrefix applies a chroot to the UnixFS.
    */
   unixfsPrefix?: string
   /**
    * UnixfsHttpPrefix is a HTTP prefix to match & strip from requests.
-   * Note: this is not related to match_path_prefixes.
+   * Note: UnixfsHttpPrefix is not related to match_path_prefixes.
    */
   unixfsHttpPrefix?: string
   /**
    * NotFoundIfIdle returns 404 not found if the handler lookup becomes idle.
    * Lookup becomes idle if no handler is available for the URL.
-   * If unset, waits until a handler is available.
+   * If NotFoundIfIdle is unset, the lookup waits until a handler is available.
    */
   notFoundIfIdle?: boolean
   /**
    * MatchPathPrefixes is the list of URL path prefixes to match.
-   * Can be empty to match all.
+   * MatchPathPrefixes can be empty to match all URL paths.
    */
   matchPathPrefixes?: string[]
   /**
    * StripPathPrefix enables removing the matched path prefix from the URL path.
    * The first path prefix in match_path_prefixes to match will be removed.
-   * If match_path_prefixes is empty, has no effect.
+   * If match_path_prefixes is empty, StripPathPrefix has no effect.
    */
   stripPathPrefix?: boolean
   /**
    * PathRe is a url path regex to match URL paths with.
-   * If unset, uses match_path_prefixes.
+   * If PathRe is unset, the handler uses match_path_prefixes.
    */
   pathRe?: string
 }

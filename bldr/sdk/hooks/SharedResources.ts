@@ -125,8 +125,8 @@ export class SharedResources {
   /**
    * acquire leases key and returns the function that drops the lease. The
    * first lease starts mount. A non-empty generation that differs from the
-   * entry's remounts it once, so every lessee that observed the same change
-   * shares one remount.
+   * entry's generation remounts the entry once, so every lessee that observed
+   * the same change shares one remount.
    */
   acquire<T>(
     key: string,
@@ -229,7 +229,7 @@ export class SharedResources {
     if (!mount) return
     this.abortRun(entry)
 
-    // Collect the run's handles; a replaced run disposes late arrivals.
+    // Collect the run's handles. A replaced run disposes late arrivals.
     const run: SharedRun = { controller: new AbortController(), cleanups: [] }
     entry.run = run
     const cleanup: RegisterCleanup = (handle) => {
@@ -269,7 +269,7 @@ export class SharedResources {
       return
     }
 
-    // Take ownership of a value's handles; an error keeps none.
+    // Take ownership of a value's handles. An error keeps no handles.
     entry.run = null
     const previous = entry.owned
     entry.owned = error ? [] : run.cleanups
@@ -297,7 +297,8 @@ export class SharedResources {
   }
 
   // releaseIdle handles an entry with no leases: a value or an in-flight
-  // mount waits out the grace period; an empty or failed result goes now.
+  // mount waits out the grace period, but an empty or failed result goes
+  // at once.
   private releaseIdle(entry: SharedEntry): void {
     if (entry.run || entry.snapshot.value !== null) {
       this.scheduleGrace(entry)

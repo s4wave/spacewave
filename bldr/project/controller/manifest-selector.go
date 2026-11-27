@@ -4,9 +4,10 @@ import (
 	"slices"
 )
 
-// ForManifestSelector iterates over all combinations of platform id & manifest id in the given sets.
+// ForManifestSelector iterates over all combinations of platform id & manifest
+// id in the given sets.
 //
-// Callback returns cntu, err
+// Callback returns cntu, err.
 func ForManifestSelector(manifestIDs, platformIDs []string, cb func(manifestID, platformID string) (bool, error)) error {
 	// sort & dedupe list of manifests
 	manifestIDs = slices.Clone(manifestIDs)

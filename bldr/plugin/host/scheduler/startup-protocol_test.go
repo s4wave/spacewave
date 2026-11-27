@@ -49,7 +49,8 @@ func TestStartupProtocolFailureStopsSelection(t *testing.T) {
 	t.Cleanup(instance.executions.ClearContext)
 	t.Cleanup(func() { instance.clearExecution(nil) })
 
-	// A nil routine result suppresses retry; another manifest remains selectable.
+	// A nil routine result suppresses retry. Another manifest remains
+	// selectable.
 	for rev := uint64(1); rev <= 2; rev++ {
 		args := &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
 			ManifestRef: newTestManifestRef("sample", "js", rev, "candidate").GetManifestRef(),

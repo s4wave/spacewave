@@ -25,11 +25,11 @@ const DefaultInterruptChecks = 1000
 // ErrModuleRequired is returned when a PureFunction has no compiled module.
 var ErrModuleRequired = errors.New("the function has no compiled module")
 
-// ErrTypeRequired is returned when a PureFunction names no input or output
+// ErrTypeRequired is returned when a PureFunction specifies no input or output
 // type.
 var ErrTypeRequired = errors.New("the function needs an input and an output type")
 
-// GetMemoryLimit returns the heap limit in bytes, applying the default.
+// GetMemoryLimit returns the heap limit in bytes, applying the default limit.
 func (b *Budget) GetMemoryLimit() uint32 {
 	if limit := b.GetMemoryLimitBytes(); limit != 0 {
 		return limit
@@ -37,7 +37,8 @@ func (b *Budget) GetMemoryLimit() uint32 {
 	return DefaultMemoryLimitBytes
 }
 
-// GetInterruptLimit returns the interrupt check limit, applying the default.
+// GetInterruptLimit returns the interrupt check limit, applying the default
+// limit.
 func (b *Budget) GetInterruptLimit() uint32 {
 	if checks := b.GetInterruptChecks(); checks != 0 {
 		return checks
@@ -45,7 +46,7 @@ func (b *Budget) GetInterruptLimit() uint32 {
 	return DefaultInterruptChecks
 }
 
-// Validate checks that the function has a module and names its types.
+// Validate checks that the function has a module and specifies its types.
 func (f *PureFunction) Validate() error {
 	if f.GetModule() == "" {
 		return ErrModuleRequired

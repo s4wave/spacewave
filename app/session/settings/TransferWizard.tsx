@@ -60,7 +60,7 @@ async function loadTransferRecovery(
     }
     if (status.active) return recovery
 
-    // Checkpoint exists: auto-resume the transfer.
+    // The checkpoint exists: auto-resume the transfer.
     if (state?.sourceSessionIndex && state.targetSessionIndex && state.mode) {
       await session.startTransfer({
         sourceSessionIndex: state.sourceSessionIndex,
@@ -71,7 +71,7 @@ async function loadTransferRecovery(
     }
     return recovery
   } catch {
-    // Ignore errors during status check.
+    // Ignore errors during the status check.
     return null
   }
 }
@@ -233,7 +233,7 @@ function TransferWizardSteps({
     handleBack()
   }
 
-  // Navigate to target session on complete.
+  // Navigate to the target session when the transfer completes.
   const handleComplete = () => {
     if (targetIdx != null) {
       navigate({ path: `/u/${targetIdx}/` })
@@ -507,8 +507,9 @@ function SelectStep({
   onTargetChange: (idx: number) => void
   onModeChange: (mode: TransferMode) => void
 }) {
-  // Migrate copies the source keypair over the target's, which would lock a
-  // cloud account's stored session, so it is offered only for local targets.
+  // Migrate copies the source keypair over the target's. Replacing the target
+  // keypair would lock a cloud account's stored session, so Migrate is offered
+  // only for local targets.
   const cloudTarget =
     sessionOptions.find((s) => s.index === targetIdx)?.providerId !== 'local' &&
     targetIdx != null

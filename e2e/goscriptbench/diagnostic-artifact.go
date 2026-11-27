@@ -6,17 +6,17 @@ import "github.com/pkg/errors"
 
 // DiagnosticArtifact is the separately traced sample for one engine result.
 type DiagnosticArtifact struct {
-	// schemaVersion identifies the artifact format
+	// SchemaVersion identifies the artifact format.
 	SchemaVersion int
-	// runID links the diagnostic to its scalar result
+	// RunID links the diagnostic to its scalar result.
 	RunID string
-	// engine links the diagnostic to its browser engine
+	// Engine links the diagnostic to its browser engine.
 	Engine string
-	// sample is excluded from the retained scalar population
+	// Sample is excluded from the retained scalar population.
 	Sample Sample
-	// runtimeTraceFile names the required runtime trace
+	// RuntimeTraceFile identifies the required runtime trace.
 	RuntimeTraceFile string
-	// browserCPUProfileFile names optional Chromium-only CPU evidence
+	// BrowserCPUProfileFile identifies optional Chromium-only CPU evidence.
 	BrowserCPUProfileFile string
 }
 

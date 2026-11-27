@@ -54,7 +54,7 @@ const jsInputs =
 const sliceCoverageInputs = /^e2e\/(wasm|scenario)\//
 
 // Member is one job of the member matrix. roots are the Go package roots its
-// test and lint scripts cover; the scripts read GO_PACKAGES and
+// test and lint scripts cover. The scripts read GO_PACKAGES and
 // GO_LINT_PACKAGES and default to the roots.
 interface Member {
   name: string
@@ -148,7 +148,8 @@ const dbRoots = ['db', 'bldr/util/runtimeenv']
 const startupTraceRoots = ['bldr', 'db']
 
 // MemberEntry is one member matrix entry. go_packages and lint_packages are
-// space-separated package directories; empty means the script's default.
+// space-separated package directories. Empty lists mean the script's default
+// packages.
 interface MemberEntry extends Omit<Member, 'roots'> {
   go_packages: string
   lint_packages: string
@@ -162,8 +163,9 @@ interface AlphaEntry {
   go_packages: string
 }
 
-// DbEntry is one db stage matrix entry. Each flag selects one step; the
-// package lists narrow the step and are empty for the script's default.
+// DbEntry is one db stage matrix entry. Each flag selects one step. The
+// package lists narrow the step and are empty for the script's default
+// packages.
 interface DbEntry {
   name: string
   startup_trace: boolean
@@ -192,7 +194,7 @@ const dbTests: DbEntry = { ...dbChecks, name: 'tests' }
 
 // SpecEntry is one TLA+ spec job matrix entry: the configs it checks, with
 // workers checker threads, within timeout minutes. In ownSpecJobs a config
-// may be a Git pathspec glob that names a family of configs.
+// may be a Git pathspec glob that selects a family of configs.
 interface SpecEntry {
   name: string
   configs: string
@@ -202,12 +204,12 @@ interface SpecEntry {
 
 // ownSpecJobs are the models that take minutes, each checked in its own job so
 // no job nears its timeout, alone or with a family of configs whose times sum
-// within it; every other config, including a new one, checks in the models
-// job, whose configs take about 13 minutes on one core. A model that needs
-// longer than 25 minutes on one core checks on the runner's four cores when
-// tla-ts spreads it across them and that fits 25 minutes, and otherwise is
-// made smaller. The times are on one core of a build host, which runs as fast
-// as a GitHub runner.
+// within the timeout. Every other config, including a new one, checks in the
+// models job, whose configs take about 13 minutes on one core. A model that
+// needs longer than 25 minutes on one core checks on the runner's four cores
+// when tla-ts spreads the model across those cores and the run fits 25 minutes,
+// and otherwise is made smaller. The times are on one core of a build host,
+// which runs as fast as a GitHub runner.
 const ownSpecJobs: SpecEntry[] = [
   {
     // Sixteen configs, 563 s together.
@@ -316,7 +318,7 @@ function loadGraph(): Graph {
       continue
     }
 
-    // A test variant stands for the package it tests; a test main adds nothing.
+    // A test variant stands for the package it tests. A test main adds nothing.
     const [importPath, forTest, dir, deps] = line.split('\t')
     if (importPath.endsWith('.test')) {
       continue
@@ -349,9 +351,9 @@ function relativeDir(root: string, dir: string): string {
 }
 
 // packageOf returns the import path of the package that owns a changed file. A
-// Go file belongs to the package in its own directory; none owns a Go file that
-// build constraints exclude. Other files, such as embeds and testdata, belong to
-// the nearest enclosing package below the repository root.
+// Go file belongs to the package in its own directory. No package owns a Go
+// file that build constraints exclude. Other files, such as embeds and testdata,
+// belong to the nearest enclosing package below the repository root.
 function packageOf(graph: Graph, file: string): string | undefined {
   if (file.endsWith('.go')) {
     return graph.dirs.get(dirname(file))
@@ -457,7 +459,7 @@ function goscriptPackages(graph: Graph): Set<string> {
   return out
 }
 
-// gitFiles returns the tracked files the pathspecs name.
+// gitFiles returns the tracked files the pathspecs select.
 function gitFiles(pathspecs: string[]): string[] {
   return run('git', ['ls-files', '--', ...pathspecs])
     .split('\n')
@@ -473,8 +475,8 @@ function specConfigs(): string[] {
 }
 
 // specEntries returns the spec jobs that check a config selected allows: each
-// own job, holding those of its configs it allows, and a models job of the
-// other configs it allows.
+// own job, holding those of its configs selected allows, and a models job of
+// the other configs selected allows.
 function specEntries(selected: (config: string) => boolean): SpecEntry[] {
   // Partition configs between dedicated jobs and the shared model job.
   const all = specConfigs()
@@ -517,7 +519,8 @@ function deltaSpecs(files: string[]): SpecEntry[] {
 
 // specOf returns the spec the checker pairs config with: the .tla in its
 // directory with the longest stem that is the config's name or a dash
-// separated prefix of it, or undefined when none is, which the checker skips.
+// separated prefix of the config's name, or undefined when no stem matches.
+// The checker skips configs with no matching spec.
 function specOf(config: string, tlaFiles: Set<string>): string | undefined {
   // Find the longest matching spec stem in the config's directory.
   const dir = dirname(config)

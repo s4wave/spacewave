@@ -22,7 +22,7 @@ import (
 
 // Remote is a remote instance of a WebRuntime.
 //
-// Communicates with the frontend using bldr/document.ts
+// Communicates with the frontend using bldr/document.ts.
 type Remote struct {
 	runtimeID string
 	le        *logrus.Entry
@@ -42,12 +42,13 @@ type Remote struct {
 	webRuntime SRPCWebRuntimeClient
 
 	// snapshotCtr contains a snapshot of below state for observers.
-	// it is not a source of truth and is only for GetWebRuntimeStatus
-	// contains nil until the remote is ready or closed
+	// snapshotCtr is not a source of truth and is only for
+	// GetWebRuntimeStatus.
+	// contains nil until the remote is ready or closed.
 	snapshotCtr *ccontainer.CContainer[*WebRuntimeStatus]
 
-	// cstate is the controller state
-	// contains a mutex which guards below fields
+	// cstate is the controller state.
+	// contains a mutex which guards below fields.
 	cstate *cstate.CState[*Remote]
 	// ready indicates the initial snapshot has been received.
 	ready bool
@@ -55,7 +56,7 @@ type Remote struct {
 	closed bool
 	// remoteWebDocuments is the current snapshot of web documents.
 	// sorted by ID
-	// do not retain this slice without holding mtx
+	// do not retain this slice without holding mtx.
 	remoteWebDocuments []*RemoteWebDocument
 }
 
@@ -93,7 +94,7 @@ func NewRemote(
 		r.updateStatusSnapshot()
 	})
 
-	// WebRuntimeHost mux
+	// Build the WebRuntimeHost mux.
 	r.rpcMux = srpc.NewMux()
 	if err := SRPCRegisterWebRuntimeHost(r.rpcMux, newRemoteWebRuntimeHost(r)); err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func NewRemote(
 	r.rpcServer = srpc.NewServer(r.rpcMux)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.rpcClient)
 
-	// ServiceWorkerHost mux
+	// Build the ServiceWorkerHost mux.
 	r.swMux = srpc.NewMux()
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, sw.NewServiceWorkerHost(r.handler)); err != nil {
 		return nil, err
@@ -178,7 +179,8 @@ func (r *Remote) GetWebDocument(ctx context.Context, webDocumentID string, wait 
 
 // CreateWebDocument creates a new web document.
 //
-// Returns created, error: returns false for created if already exists.
+// Returns created, error: returns false for created if the document already
+// exists.
 // Returns false, nil if WebDocument cannot be created.
 func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (bool, error) {
 	if webDocumentID == "" {
@@ -204,8 +206,8 @@ func (r *Remote) FlushIndexCache(ctx context.Context) error {
 }
 
 // RemoveWebDocument removes a web document by ID.
-// note: this is called by webDocument.Remove.
-// returns nil if not found
+// note: RemoveWebDocument is called by webDocument.Remove.
+// returns nil if not found.
 func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) (removed bool, err error) {
 	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		req := &RemoveWebDocumentRequest{Id: webDocumentID}
@@ -411,8 +413,8 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) erro
 }
 
 // handleWebRuntimeStatus handles an incoming web status message.
-// expects mtx to be locked
-// returns dirty, err
+// expects mtx to be locked.
+// returns dirty, err.
 func (r *Remote) handleWebRuntimeStatus(ctx context.Context, ws *WebRuntimeStatus) (bool, error) {
 	return r.handleWebDocumentStatuses(ctx, ws.GetSnapshot(), ws.GetWebDocuments())
 }
@@ -420,15 +422,16 @@ func (r *Remote) handleWebRuntimeStatus(ctx context.Context, ws *WebRuntimeStatu
 // handleWebDocumentStatuses handles a list of web document statuses.
 // snapshot: if set, removes any views that don't appear in the list.
 // note: ctx is used as the context for the new remote web document.
-// returns dirty, err
-// expects mtx to be locked
+// returns dirty, err.
+// expects mtx to be locked.
 func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, statuses []*WebDocumentStatus) (bool, error) {
 	// Ignore empty incremental document status updates.
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
 
-	// we got a snapshot or initial list of statuses: mark as ready
+	// Mark the remote as ready after a snapshot or initial status list
+	// arrives.
 	r.ready = true
 
 	// notSeenDocs contains web documents /not/ seen in the status list.
@@ -441,10 +444,10 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 			continue
 		}
 
-		// web document seen: remove from beforeState.
+		// Remove the seen web document from beforeState.
 		delete(notSeenDocs, webDocumentID)
 
-		// delete
+		// Delete the web document.
 		if status.GetDeleted() {
 			if r.removeRemoteWebDocument(webDocumentID) != nil {
 				dirty = true
@@ -452,7 +455,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 			continue
 		}
 
-		// insert / update
+		// Insert or update the web document.
 		insertIdx, rwv := r.lookupRemoteWebDocument(webDocumentID)
 		if rwv != nil {
 			// Reconcile the existing document's permanence with its status.
@@ -477,7 +480,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 		}
 	}
 
-	// if this is a snapshot, delete any views we didn't see.
+	// If the status list is a snapshot, delete views absent from the list.
 	if snapshot {
 		for webDocumentID := range notSeenDocs {
 			if r.removeRemoteWebDocument(webDocumentID) != nil {
@@ -490,7 +493,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 }
 
 // insertRemoteWebDocument adds a new remote web document to the set.
-// expects mtx to be locked
+// expects mtx to be locked.
 func (r *Remote) insertRemoteWebDocument(insertIdx int, doc *RemoteWebDocument) {
 	r.remoteWebDocuments = slices.Insert(r.remoteWebDocuments, insertIdx, doc)
 	r.le.
@@ -565,8 +568,8 @@ func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string, _ fun
 }
 
 // removeRemoteWebDocument removes a remote web document, if found.
-// returns val, error, returns nil, nil if not found
-// expects mtx to be locked
+// returns val, error, returns nil, nil if not found.
+// expects mtx to be locked.
 func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
 	// Locate the remote document before removing it.
 	idx, doc := r.lookupRemoteWebDocument(id)
@@ -612,9 +615,10 @@ func (r *Remote) buildRemoteWebDocumentsMap() map[string]web_document.WebDocumen
 	return out
 }
 
-// lookupRemoteWebDocument searches the remoteWebDocuments field for a web document.
-// returns insertion index if not found
-// expects mtx to be locked
+// lookupRemoteWebDocument searches the remoteWebDocuments field for a web
+// document.
+// returns insertion index if not found.
+// expects mtx to be locked.
 func (r *Remote) lookupRemoteWebDocument(id string) (int, *RemoteWebDocument) {
 	i := sort.Search(len(r.remoteWebDocuments), func(i int) bool {
 		return r.remoteWebDocuments[i].id >= id
@@ -626,8 +630,9 @@ func (r *Remote) lookupRemoteWebDocument(id string) (int, *RemoteWebDocument) {
 	return i, rwv
 }
 
-// updateStatusSnapshot generates the status snapshot and sets it in the container.
-// expects mtx to be locked
+// updateStatusSnapshot generates the status snapshot and sets it in the
+// container.
+// expects mtx to be locked.
 func (r *Remote) updateStatusSnapshot() {
 	if !r.ready && !r.closed {
 		return

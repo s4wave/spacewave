@@ -99,9 +99,9 @@ func (e *Engine) startCatchUpLocked(w *engineChangeWatch, afterSeqno uint64, aft
 	// Record the catch-up for later subscribers.
 	c := w.addCatchUpLocked(afterSeqno, after)
 
-	// Collect the span plan under bcast. Complete immediately when unknown or
-	// one recorded ChangeSet covers the span; otherwise merge and compare in
-	// one shared goroutine outside bcast.
+	// Collect the span plan under bcast. Complete immediately when unknown
+	// or one recorded ChangeSet covers the span. Otherwise merge and
+	// compare in one shared goroutine outside bcast.
 	plan := e.watchSpanPlanLocked(after.publication, after.ref, w.basePublication)
 	if plan.unknown {
 		c.changes = world.NewUnknownChangeSet()

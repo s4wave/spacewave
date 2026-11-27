@@ -24,19 +24,19 @@ const ControllerID = "forge/worker"
 // Controller implements the Worker controller. The Worker processes the
 // objects assigned to its keypairs: Clusters, Tasks, Passes and Executions.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the execution bus
+	// bus is the execution bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// objKey is the object key (from the config)
+	// objKey is the object key (from the config).
 	objKey string
-	// peerID is the parsed peer id
+	// peerID is the parsed peer id.
 	// may be empty
 	peerID peer.ID
 
-	// objLoop watches the object for changes
+	// objLoop watches the object for changes.
 	objLoop *world_control.WatchLoop
 	// objectTrackers manages the list of object tracker routines.
 	objectTrackers *keyed.Keyed[string, *objectTracker]

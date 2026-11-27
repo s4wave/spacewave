@@ -8,8 +8,8 @@ import "github.com/s4wave/spacewave/sdk/device/device.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/camera;s4wave_camera";
 
-// Camera is the world-block state for a camera a Device serves. It names the
-// Device object and the capability, not the Device's peer, so the viewer
+// Camera is the world-block state for a camera a Device serves. It records
+// the Device object and the capability, not the Device's peer, so the viewer
 // follows the Device through re-enrollment.
 message Camera {
   option (typeid.id) = "spacewave/camera";

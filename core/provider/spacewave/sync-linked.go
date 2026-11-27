@@ -26,8 +26,8 @@ const linkedQueuePrefix = "u/"
 const linkedRefPage = 1024
 
 // errLinkedStale reports queued chunks that no file serves now while the index
-// still names their files. The folder links a changed file again, which drops
-// the old ranges and their entries, so a later pass finds them gone.
+// still references their files. The folder links a changed file again,
+// dropping the old ranges and their entries, so a later pass finds them gone.
 var errLinkedStale = errors.New("linked chunks wait for their changed files to link again")
 
 // linkedLane uploads the chunks of linked files to the cloud. A linked chunk
@@ -41,7 +41,7 @@ var errLinkedStale = errors.New("linked chunks wait for their changed files to l
 // Invariants:
 //  1. A ref a path gained is queued in the same transaction that records the
 //     range, so a recorded range has its queue entry until a current pack
-//     holds its chunk; the transaction that drops a ref's last range deletes
+//     holds its chunk. The transaction that drops a ref's last range deletes
 //     its entry, so a superseded chunk is never read or pushed. The
 //     reconcile, at start and after a pull that trashes packs, queues again
 //     every indexed ref no current pack holds. That covers a crash between
@@ -49,11 +49,11 @@ var errLinkedStale = errors.New("linked chunks wait for their changed files to l
 //     never linked again, and a lane pack that a reclaim pass trashed before
 //     a published tree reached its chunks.
 //  2. The lane deletes only its own queue entries, and only once a current
-//     pack holds the chunk or the index names no file for the ref.
+//     pack holds the chunk or the index references no file for the ref.
 //  3. pending counts the queue's keys: each write counts only the entries it
 //     created or deleted.
-//  4. A checkpoint does not wait for the lane: it may name a linked chunk the
-//     cloud does not hold yet, which the file serves meanwhile.
+//  4. A checkpoint does not wait for the lane: it may reference a linked chunk
+//     the cloud does not hold yet, which the file serves meanwhile.
 //  5. The lane never takes flushMtx and pushes no pack while a flush runs,
 //     so a checkpoint never waits behind a large linked folder.
 type linkedLane struct {
@@ -110,8 +110,8 @@ func (l *linkedLane) wrapPrimary(primary block.StoreOps) block.StoreOps {
 
 // enqueue writes a queue entry for each gained ref and deletes the entry of
 // each lost ref in the index's write, and counts the entries it created and
-// deleted once it commits. It is the index's RefsHook; each ref costs one
-// point read.
+// deleted once the write commits. It is the index's RefsHook. Each ref costs
+// one point read.
 func (l *linkedLane) enqueue(ctx context.Context, tx kvtx.Tx, gained, lost []*block.BlockRef) (func(), error) {
 	// Create the missing entries of the gained refs.
 	var n int
@@ -202,7 +202,7 @@ func (l *linkedLane) requestReconcile() {
 }
 
 // Execute uploads queued chunks until ctx ends. A refusal for the account's
-// access or limits holds the lane until the account state changes; another
+// access or limits holds the lane until the account state changes. Another
 // failure, or chunks waiting for their files, retries after a backoff or the
 // next queue change.
 func (l *linkedLane) Execute(ctx context.Context) {
@@ -291,7 +291,7 @@ type linkedQueueEntry struct {
 	ref *block.BlockRef
 }
 
-// linkedPack gathers the chunks of the next pack.
+// linkedPack contains the chunks of the next pack.
 type linkedPack struct {
 	// blocks are the chunks, each once.
 	blocks []packfile_store.PackBlock
@@ -306,7 +306,7 @@ type linkedPack struct {
 // pass reconciles when due, then reads the queue in order and pushes its
 // chunks in packs up to the sync pack target. It deletes the entries of each
 // pushed pack, of chunks a current pack already holds, and of refs the index
-// no longer names. It returns errLinkedStale when it skipped chunks whose
+// no longer references. It returns errLinkedStale when it skipped chunks whose
 // files changed.
 func (l *linkedLane) pass(ctx context.Context) error {
 	// Queue the unheld indexed refs when asked.
@@ -361,8 +361,9 @@ func (l *linkedLane) pass(ctx context.Context) error {
 				return err
 			}
 			if stored == nil {
-				// A reconcile can queue a ref just as its last range drops;
-				// the index then names no file and the entry goes.
+				// A reconcile can queue a ref just as the
+				// ref's last range drops. The index then
+				// references no file and the entry goes.
 				segs, err := l.files.GetIndex().Lookup(ctx, e.ref)
 				if err != nil {
 					return err

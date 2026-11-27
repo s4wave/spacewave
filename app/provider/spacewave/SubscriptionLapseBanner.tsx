@@ -144,7 +144,8 @@ function LapseMessage({ message, error }: LapseMessageProps) {
 // SubscriptionLapseBanner shows a two-stage prompt when a subscription is lapsing.
 // Stage 1 (nudge): cancel_at is set but subscription is still active.
 // Stage 2 (read-only): subscription is canceled, show migration wizard link.
-// Reads from SpacewaveOnboardingContext instead of opening its own stream.
+// The banner reads from SpacewaveOnboardingContext instead of opening its own
+// stream.
 export function SubscriptionLapseBanner() {
   const ctx = SpacewaveOnboardingContext.useContextSafe()
   const onboarding = ctx?.onboarding ?? null

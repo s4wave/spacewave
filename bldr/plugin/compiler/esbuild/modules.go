@@ -366,7 +366,7 @@ func packageExport(value *fastjson.Value, key string, kind api.ResolveKind) stri
 
 // exportCondition follows package declaration order for active browser conditions.
 func exportCondition(value *fastjson.Value, kind api.ResolveKind) (string, bool) {
-	// String exports are file paths; null exports remain unavailable.
+	// String exports are file paths, but null exports remain unavailable.
 	if value == nil {
 		return "", false
 	}

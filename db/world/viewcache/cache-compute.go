@@ -122,14 +122,16 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			return nil, err
 		}
 
-		// Its parts are set under mtx, since a catch-up reads every entry's.
+		// The entry's parts are set under mtx, since a catch-up reads
+		// every entry's parts.
 		c.mtx.Lock()
 		entry.collectParts(parts.collected)
 		c.mtx.Unlock()
 
-		// Check the value against the changes passed while it computed. One
-		// they left alone holds at the newer revisions too, so the readers
-		// that joined there share it instead of each starting another.
+		// Check the value against the changes passed while it computed.
+		// A value the changes left alone holds at the newer revisions
+		// too, so the readers that joined there share it instead of
+		// each starting another.
 		c.mtx.Lock()
 		if !c.heldSinceLocked(entry, seqno) {
 			entry.markStale()
@@ -258,7 +260,8 @@ func (c *Cache) computeBehind(
 	}
 }
 
-// behindKey names the computation of a value at a revision the cache passed.
+// behindKey identifies the computation of a value at a revision the cache
+// passed.
 type behindKey struct {
 	name  string
 	seqno uint64

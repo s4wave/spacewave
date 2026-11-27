@@ -13,9 +13,10 @@ import {
 } from 'starpc'
 import { LayoutHostClient } from '@s4wave/sdk/layout/layout_srpc.pb.js'
 import type { LayoutHost } from '@s4wave/sdk/layout/layout_srpc.pb.js'
-// Minimal WebSocket-like type used for E2E tests that run in browser and
-// node environments. This intentionally only includes the members we need.
-// Keep this small to avoid coupling to the `ws` type definitions.
+// TestWebSocket is a minimal WebSocket-like type used for E2E tests that
+// run in browser and node environments. This type intentionally only includes
+// the members the tests need. Keep this type small to avoid coupling to the
+// `ws` type definitions.
 export type TestWebSocket = {
   onopen?: (() => void) | null
   onerror?: ((ev: Event | ErrorEvent) => void) | null
@@ -28,15 +29,16 @@ export type TestWebSocket = {
  * E2ETestClient provides a connection to the Go test server.
  */
 export class E2ETestClient {
-  // The E2E client runs in both browser (DOM WebSocket) and Node (ws).
-  // Keep ws typed minimally to avoid coupling to a specific WebSocket lib.
+  // ws stores the E2E client's WebSocket in both browser (DOM WebSocket)
+  // and Node (ws). Keep ws typed minimally to avoid coupling to a specific
+  // WebSocket lib.
   private ws: TestWebSocket | null = null
   private conn: StreamConn | null = null
   private client: Client | null = null
   private layoutHost: LayoutHost | null = null
 
   /**
-   * Connects to the test server at the given URL.
+   * connect connects to the test server at the given URL.
    * @param url WebSocket URL (e.g., ws://localhost:12345/ws)
    */
   async connect(url: string): Promise<void> {
@@ -54,7 +56,7 @@ export class E2ETestClient {
 
       ws = new GlobalWS(url)
     } else {
-      // Node environment - dynamically import 'ws' to avoid require() style import.
+      // Node environment: dynamically import 'ws' to avoid require() style import.
       // Use dynamic import so TypeScript won't statically bind to Node-only types.
 
       const wsMod = await import('ws')
@@ -105,7 +107,7 @@ export class E2ETestClient {
     this.ws = ws
 
     // Create stream connection using a duplex wrapper. When possible, pass
-    // the original runtime WebSocket; otherwise, cast to any so the runtime
+    // the original runtime WebSocket. Otherwise, cast to any so the runtime
     // wrapper from `it-ws` can adapt it.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
     const wsDuplex = duplex(ws as any)
@@ -135,7 +137,7 @@ export class E2ETestClient {
   }
 
   /**
-   * Returns the LayoutHost RPC client.
+   * getLayoutHost returns the LayoutHost RPC client.
    * Must be connected first.
    */
   getLayoutHost(): LayoutHost {
@@ -146,7 +148,7 @@ export class E2ETestClient {
   }
 
   /**
-   * Returns the raw starpc Client.
+   * getClient returns the raw starpc Client.
    * Must be connected first.
    */
   getClient(): Client {
@@ -157,7 +159,7 @@ export class E2ETestClient {
   }
 
   /**
-   * Returns the OpenStreamFunc for creating RPC streams.
+   * getOpenStreamFunc returns the OpenStreamFunc for creating RPC streams.
    * Must be connected first.
    */
   getOpenStreamFunc(): OpenStreamFunc {
@@ -168,7 +170,7 @@ export class E2ETestClient {
   }
 
   /**
-   * Disconnects from the server.
+   * disconnect disconnects from the server.
    */
   disconnect(): void {
     if (this.conn) {
@@ -184,7 +186,7 @@ export class E2ETestClient {
   }
 
   /**
-   * Returns true if connected.
+   * isConnected returns true if connected.
    */
   isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN
@@ -192,7 +194,7 @@ export class E2ETestClient {
 }
 
 /**
- * Creates and connects an E2E test client.
+ * createE2EClient creates and connects an E2E test client.
  * @param port The port number of the test server
  */
 export async function createE2EClient(port: number): Promise<E2ETestClient> {
@@ -202,8 +204,8 @@ export async function createE2EClient(port: number): Promise<E2ETestClient> {
 }
 
 /**
- * Gets the test server port from environment variable.
- * This should be set by the test harness.
+ * getTestServerPort gets the test server port from the environment variable.
+ * The environment variable should be set by the test harness.
  */
 export function getTestServerPort(): number {
   const port = import.meta.env.VITE_E2E_SERVER_PORT

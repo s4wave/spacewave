@@ -13,13 +13,13 @@ import (
 
 // FSWriter implements a writer on top of a FS.
 type FSWriter struct {
-	// fs is the target fs
+	// fs is the target fs.
 	fs *FS
-	// ts is the timestamp
+	// ts is the timestamp.
 	ts *timestamp.Timestamp
 }
 
-// NewFSWriter is a writer which applies changes to a cursor.
+// NewFSWriter creates a writer which applies changes to a cursor.
 // Note: call SetFS before writer is used.
 func NewFSWriter() *FSWriter {
 	return &FSWriter{}
@@ -82,7 +82,7 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 	})
 }
 
-// Write writes data to an offset in an inode (usually a file).
+// WriteAt writes data to an offset in an inode (usually a file).
 func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
 		return wr.WriteAt(ctx, path, offset, data, ts)

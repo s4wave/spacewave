@@ -130,7 +130,7 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	}
 
 	// Collect the project startup configuration.
-	// TODO: reload these if ProjectController restarts?
+	// TODO: reload the startup configuration if ProjectController restarts?
 	currProjConf := currProjCtrl.GetConfig().GetProjectConfig()
 	appID := currProjConf.GetId()
 	startConf := currProjConf.GetStart()
@@ -483,7 +483,7 @@ func (d *DevtoolBus) executeWebWasm(
 		}
 
 		// Stream the page with the frontend's package bindings in its one
-		// import map; the loading shell shows while the compiler starts.
+		// import map. The loading shell shows while the compiler starts.
 		if frontendService != nil && (req.URL.Path == "/" || req.URL.Path == "/index.html") {
 			if err := bundleResult.ServeIndex(rw, req, frontendService.WebPkgImports); err != nil && req.Context().Err() == nil {
 				le.WithError(err).Warn("dev index served without frontend package bindings")
@@ -578,7 +578,7 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 		select {
 		case <-ctx.Done():
 			// Drain plain HTTP requests without a deadline. Upgraded
-			// (hijacked) connections are not tracked by Shutdown; their
+			// (hijacked) connections are not tracked by Shutdown, so their
 			// lifecycle owner closes and joins them separately.
 			shutdownErrCh <- server.Shutdown(context.WithoutCancel(ctx))
 		case <-stopShutdownCh:

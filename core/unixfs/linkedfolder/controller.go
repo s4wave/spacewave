@@ -53,14 +53,14 @@ const watchMaxWait = 5 * time.Second
 // Controller keeps one Drive equal to a folder on this Device. On start it
 // watches the folder, then syncs it with a stat walk, linking only what
 // changed since the Drive last matched it. After that it syncs each directory
-// the watcher names, and the whole folder when the watcher dropped events.
+// the watcher reports, and the whole folder when the watcher dropped events.
 // While the folder's root is off the file system it was linked on, as when
 // its disk is unmounted, it syncs nothing and waits for the file system.
 //
 // Its node status shows indexing during a full sync, watching while it
 // follows the folder, with the files waiting out a backoff because they kept
-// changing during their reads, and rejected, naming both file systems, while
-// the folder's root is off its file system.
+// changing during their reads, and rejected, identifying both file systems,
+// while the folder's root is off its file system.
 type Controller struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -212,7 +212,7 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 	return c.follow(ctx, link, watcher, stale, remote, folder, err != nil)
 }
 
-// follow syncs the directories the watcher names once the folder has been
+// follow syncs the directories the watcher reports once the folder has been
 // quiet for watchQuiet, or watchMaxWait after the first unsynced change. An
 // event outside the folder's tree, on the folder itself, or a report of
 // dropped events syncs the whole folder. A file whose bytes the store found
@@ -222,8 +222,8 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 // A two-way link also syncs, with the same wait, after each change others
 // commit to the Drive, and after unappliedRetry while a pass left remote
 // changes unapplied. A sync refused because another writer changed its files
-// first syncs the whole folder again, applying that change; so does the
-// first one when resync is set.
+// first syncs the whole folder again, applying that change. So does the
+// first sync when resync is set.
 func (c *Controller) follow(
 	ctx context.Context,
 	link *unixfs_world.FolderLink,
@@ -276,21 +276,22 @@ func (c *Controller) follow(
 		}
 		changing, changingC = nil, nil
 
-		// Arm it for the earliest due file, if any.
+		// Arm the changing timer for the earliest due file, if any.
 		if n, due := link.Changing(); n != 0 {
 			changing = time.NewTimer(time.Until(due))
 			changingC = changing.C
 		}
 	}
 
-	// Arm it for the files the starting sync left changing.
+	// Arm the changing timer for the files the starting sync left changing.
 	armChanging()
 
 	// Sync each batch of changes until the context ends.
 	for {
-		// Collect changes until the folder is quiet or the deadline passes.
-		// A wake that names nothing in this folder, such as a hash miss in
-		// another folder on the same store, changes nothing and arms no timer.
+		// Collect changes until the folder is quiet or the deadline
+		// passes. A wake that reports no path in this folder, such as a
+		// hash miss in another folder on the same store, changes nothing
+		// and arms no timer.
 		var changed, due bool
 		select {
 		case <-ctx.Done():
@@ -362,8 +363,8 @@ func (c *Controller) follow(
 		case len(dirs) != 0:
 			err = link.SyncDirs(ctx, slices.Collect(maps.Keys(dirs)), c.logProgress)
 		case applyRemote && len(files) == 0:
-			// Only the Drive changed: apply its changes, and let the
-			// watcher name what they wrote.
+			// Only the Drive changed: apply its changes, and let
+			// the watcher report the paths written by those changes.
 			err = link.ApplyRemote(ctx)
 		}
 		if err == nil && len(files) != 0 {
@@ -395,8 +396,8 @@ func isFileConflict(err error) bool {
 	return errors.As(err, &conflict)
 }
 
-// relPath returns path relative to folder, when it lies inside it and is not
-// the folder itself.
+// relPath returns path relative to folder, when path lies inside folder and
+// is not the folder itself.
 func relPath(folder, path string) (string, bool) {
 	rel, err := filepath.Rel(folder, path)
 	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
@@ -406,7 +407,7 @@ func relPath(folder, path string) (string, bool) {
 }
 
 // stalePaths collects the paths of files whose bytes the store found changed
-// under an unchanged stat, as its reads report them.
+// under an unchanged stat, as the store's reads report them.
 type stalePaths struct {
 	// mtx guards paths.
 	mtx sync.Mutex
@@ -421,7 +422,7 @@ func newStalePaths() *stalePaths {
 	return &stalePaths{paths: make(map[string]struct{}), wake: make(chan struct{}, 1)}
 }
 
-// add records path and signals wake; it never blocks the read reporting it.
+// add records path and signals wake. It never blocks the read reporting path.
 func (p *stalePaths) add(path string) {
 	p.mtx.Lock()
 	p.paths[path] = struct{}{}
@@ -450,7 +451,8 @@ func (c *Controller) GetNodeStatus() (s4wave_device.DeviceCapabilityState, strin
 	return c.state, c.detail, l.WaitCh()
 }
 
-// setStatus shows state and detail, waking the watchers when they change.
+// setStatus shows state and detail, waking the watchers when state or detail
+// changes.
 func (c *Controller) setStatus(state s4wave_device.DeviceCapabilityState, detail string) {
 	// Keep an unchanged status quiet.
 	l := c.status.Lock()

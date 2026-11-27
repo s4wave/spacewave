@@ -2,10 +2,12 @@
 
 package sqlite_ncruces
 
-// This technically works on GOOS=js GOARCH=wasm but has test failures / unpredictable behavior.
+// The ncruces driver technically works on GOOS=js GOARCH=wasm but has test
+// failures / unpredictable behavior.
 // See: https://github.com/ncruces/go-sqlite3/pull/369
 // See: https://github.com/ncruces/go-sqlite3/issues/370
-// Worth revisiting in future if the "found bad pointer in Go heap" issue is diagnosed.
+// Worth revisiting in future if the "found bad pointer in Go heap" issue is
+// diagnosed.
 
 import (
 	"context"

@@ -23,7 +23,7 @@ type BuildBucketLookup interface {
 // The value is removed and replaced when any values change.
 type BuildBucketLookupValue = Handle
 
-// buildBucketLookup implements BuildBucketLookup
+// buildBucketLookup implements BuildBucketLookup.
 type buildBucketLookup struct {
 	bucketID string
 }
@@ -59,7 +59,7 @@ func ExBuildBucketLookup(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// Validate cursorily checks whether the values "look correct."
 func (d *buildBucketLookup) Validate() error {
 	if d.bucketID == "" {
 		return errors.New("bucket id cannot be empty")
@@ -68,7 +68,7 @@ func (d *buildBucketLookup) Validate() error {
 	return nil
 }
 
-// GetValueBuildBucketLookupOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *buildBucketLookup) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -78,7 +78,7 @@ func (d *buildBucketLookup) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// BuildBucketLookupBucketIDRe returns the bucket ID constraint.
+// BuildBucketLookupBucketID returns the bucket ID constraint.
 func (d *buildBucketLookup) BuildBucketLookupBucketID() string {
 	return d.bucketID
 }
@@ -106,14 +106,14 @@ func (d *buildBucketLookup) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The result is not necessarily unique, and is primarily intended for display.
 func (d *buildBucketLookup) GetName() string {
 	return "BuildBucketLookup"
 }
 
-// GetDebugString returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// GetDebugVals returns the directive arguments stringified.
+// The arguments should be something like param1="test", param2="test".
+// The result is not necessarily unique, and is primarily intended for display.
 func (d *buildBucketLookup) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["bucket-id"] = []string{d.BuildBucketLookupBucketID()}

@@ -133,7 +133,7 @@ func WriteAt(
 		return err
 	}
 
-	// set placeholder if nil
+	// Set a placeholder timestamp if ts is nil.
 	ts = FillPlaceholderTimestamp(ts)
 	node.node.ModTime = ts
 
@@ -210,7 +210,7 @@ func WriteBlob(
 		return err
 	}
 
-	// full validate if necessary
+	// Validate the full blob if necessary.
 	if fullValidate {
 		if err := bl.ValidateFull(ctx, blobCs); err != nil {
 			return err
@@ -224,7 +224,7 @@ func WriteBlob(
 	}
 
 	// update timestamp
-	// set placeholder if nil
+	// Set a placeholder timestamp if ts is nil.
 	ts = FillPlaceholderTimestamp(ts)
 	node.node.ModTime = ts
 
@@ -243,7 +243,7 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 	ts = FillPlaceholderTimestamp(ts)
 
 	// source path cannot be a parent of destination path
-	// TODO: change this to check the parents recursively (handles symlinks)
+	// TODO: check the parents recursively to handle symlinks.
 	if PathContains(srcPath, destPath) {
 		return unixfs_errors.ErrMoveToSelf
 	}
@@ -378,7 +378,7 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 }
 
 // MknodWithContent creates a file at the given path and writes blob content to it.
-// This is an atomic operation: the file is fully formed after this call.
+// MknodWithContent is atomic: the file is fully formed after the call.
 // path must include the file name as the last element.
 // blobRef is the reference to a pre-built blob containing the file data.
 func MknodWithContent(
@@ -414,12 +414,13 @@ func MknodWithContent(
 
 	// Step 3: write pre-built blob content into the file.
 	// forceUseBlob=true: reference the blob directly, don't re-read and re-chunk.
-	// fullValidate=false: we just built this blob, no need to validate again.
+	// fullValidate=false: the caller built the blob, so no need to validate
+	// again.
 	if !blobRef.GetEmpty() {
 		return WriteBlob(ctx, root, path, 0, blobRef, false, true, ts)
 	}
 
-	// Empty blob: just mark the file node dirty.
+	// Empty blob: only mark the file node dirty.
 	childFtree.bcs.MarkDirty()
 	return nil
 }
@@ -427,12 +428,12 @@ func MknodWithContent(
 // LookupFSTreePath repeatedly calls LookupFollowDirent to traverse to a path.
 // Returns the parent FSNode and ErrNotExist if path does not exist.
 //
-// Note: if ErrNotExist is returned, we also return the node at which the lookup
-// returning ErrNotExist error occurred.
+// Note: if ErrNotExist is returned, LookupFSTreePath also returns the node
+// where the lookup returning ErrNotExist occurred.
 //
-// Returns the path to the returned FSTree node. This will be a subset of the
-// full path passed as an argument. The same slice memory will be used for the
-// returned path: changing the values in that slice will change the path
+// Returns the path to the returned FSTree node. The path will be a subset
+// of the full path passed as an argument. The same slice memory will be used
+// for the returned path: changing the values in that slice will change the path
 // argument slice as well. Do not change this slice without copying it first.
 func LookupFSTreePath(node *FSTree, path []string) (*FSTree, []string, error) {
 	for i, dir := range path {

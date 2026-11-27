@@ -181,7 +181,7 @@ const AnimatedLogo = ({
             : 'transform 0.8s ease-out',
         }}
       >
-        {/* Background Gradient Layer - Blur for Depth */}
+        {/* Background Gradient Layer: Blur for Depth */}
         <div
           className={cn(
             'absolute -inset-0.5 z-1 rounded-3xl opacity-50 blur-md transition duration-800 will-change-transform group-hover:scale-105 group-hover:opacity-55',
@@ -192,7 +192,7 @@ const AnimatedLogo = ({
           )}
         />
 
-        {/* Background Gradient Layer - Sharp for Clean Border */}
+        {/* Background Gradient Layer: Sharp for Clean Border */}
         <div
           className={cn(
             'absolute -inset-0.25 z-2 rounded-3xl will-change-transform',
@@ -200,7 +200,7 @@ const AnimatedLogo = ({
           )}
         />
 
-        {/* Logo Image - Ensures it stays on top */}
+        {/* Logo Image: Ensures it stays on top */}
         <div
           className={cn(
             'relative z-10 h-full w-full overflow-hidden rounded-3xl',

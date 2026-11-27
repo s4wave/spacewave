@@ -13,8 +13,9 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
-// TestResourceCallOrigin checks a resource call names the server's origin controller.
-// The client generation the call runs in names it too.
+// TestResourceCallOrigin checks a resource call records the server's origin
+// controller. The client generation the call runs in records that
+// controller too.
 func TestResourceCallOrigin(t *testing.T) {
 	// Bound the test.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
@@ -69,7 +70,7 @@ func TestResourceCallOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Check both contexts name the origin controller.
+	// Check both contexts record the origin controller.
 	got := <-seenCh
 	if got.call.ControllerID != originID {
 		t.Fatalf("call origin = %q, want %q", got.call.ControllerID, originID)

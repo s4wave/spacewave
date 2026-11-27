@@ -62,7 +62,7 @@ import {
 import { useKeybindingGraph } from './useKeybindingGraph.js'
 import { getSubItemQuery } from './sub-item-navigation.js'
 
-// isMacPlatform detects whether the current platform is macOS.
+// isMacPlatform is true when the current platform is macOS.
 const isMacPlatform =
   typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
 
@@ -264,7 +264,8 @@ function highlightQueryText(
   )
 }
 
-// GroupedCommands groups commands by the first segment of their menu path.
+// GroupedCommands contains commands grouped by the first segment of their menu
+// path.
 interface GroupedCommands {
   group: string
   commands: CommandState[]
@@ -742,7 +743,7 @@ function useCommandPaletteController() {
         }
         // The focused native input owns text editing in filter mode, including
         // selection deletes after select-all. Intercepting Backspace here to
-        // slice one character broke select-all + delete; let the input edit its
+        // slice one character broke select-all + delete. Let the input edit its
         // own value and rely on handlePaletteQueryChange to restore chord mode
         // when onValueChange reports an empty query.
         return

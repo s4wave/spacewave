@@ -61,7 +61,8 @@ func TestImportProofAfterPartialSync(t *testing.T) {
 		SOParticipantRole_SOParticipantRole_READER,
 	)
 
-	// The owner removes the reader and then peer 1; the replica has synced only the first.
+	// The owner removes the reader and then peer 1. The replica has synced
+	// only the first removal.
 	var entries []*SOConfigChange
 	config := previous.Config
 	for range 2 {
@@ -107,7 +108,7 @@ func TestImportProofAfterPartialSync(t *testing.T) {
 // snapshots hold the newer checkpoint and every operation, and keep their own
 // invitations.
 func TestPeerSnapshotExchangeConverges(t *testing.T) {
-	// The left peer writes; the right peer advances the checkpoint.
+	// The left peer writes. The right peer advances the checkpoint.
 	peers := createMockPeers(t, 2)
 	keys := mustPrivKeys(t, peers)
 	genesis, _ := newTestSOState(t, peers)

@@ -45,7 +45,7 @@ export enum State {
 
   /**
    * PassState_COMPLETE is the normal terminal state of the pass.
-   * This includes both success and failure termination states.
+   * This terminal state includes both success and failure termination states.
    */
   PassState_COMPLETE = 4,
 

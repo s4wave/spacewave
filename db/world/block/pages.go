@@ -12,14 +12,14 @@ import (
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
 
-// PageTree names the part of a World a page belongs to.
+// PageTree identifies the part of a World a page belongs to.
 type PageTree int
 
 const (
 	// PageTreeRoot is the World block itself, with the tree roots inline in it.
 	PageTreeRoot PageTree = iota
-	// PageTreeObject holds the object tree's nodes and the Object blocks its
-	// values name.
+	// PageTreeObject holds the object tree's nodes and the Object blocks
+	// its values reference.
 	PageTreeObject
 	// PageTreeRecord holds the blocks below an Object's root: its record.
 	PageTreeRecord
@@ -52,24 +52,24 @@ type Page struct {
 	Ref *block.BlockRef
 	// Tree is the part of the World that holds the block.
 	Tree PageTree
-	// Level counts the blocks between this one and the World block, which is
-	// level 0. A tree root inline in the World block is part of it, so the
-	// pages that root names are level 1.
+	// Level counts the blocks between this one and the World block, which
+	// is level 0. A tree root inline in the World block is part of it, so
+	// the pages that root references are level 1.
 	Level int
 }
 
-// WalkPages visits each page below the World blocks at roots once, depth
-// first, the object tree before the graph tree and the change log, so a
-// record two trees name counts under its object, and a page two Worlds share
-// counts under the first. It reads each page it enters from store
-// and decodes it with xfrm, which may be nil for blocks stored as they are.
+// WalkPages visits each page below the World blocks at roots once, depth first,
+// the object tree before the graph tree and the change log, so a record two
+// trees reference counts under its object, and a page two Worlds share counts
+// under the first. It reads each page it enters from store and decodes it with
+// xfrm, which may be nil for blocks stored as they are.
 //
 // visit reports whether to walk below a page, before the walk reads it. A
 // caller counting the pages a store adds returns false for a page the store
 // holds already: a stored page's children are stored too, so the walk reads
 // only the new pages and costs what they cost, not the World's size.
 //
-// A typed page is decoded and its children typed by the refs it names. The
+// A typed page is decoded and its children typed by the refs it declares. The
 // blocks below an Object's root, and any ref the holder leaves untyped, are
 // walked by the child list the store recorded, and not walked when it recorded
 // none. A page that does not decode is walked the same way.
@@ -166,10 +166,11 @@ func (n pageNode) children(ctx context.Context, store block.StoreOps, xfrm block
 	return out, nil
 }
 
-// typedChildren returns the children blk names, typed as its refs name them.
-// Sub-blocks are part of the page, so their refs are the page's children.
+// typedChildren returns the children blk references, typed as its refs declare
+// them. Sub-blocks are part of the page, so their refs are the page's
+// children.
 func (n pageNode) typedChildren(blk any) []pageNode {
-	// Name the children of the World and Object blocks, which set the tree
+	// List the children of the World and Object blocks, which set the tree
 	// below them, and keep the tree's values only on its own pages.
 	switch b := blk.(type) {
 	case *World:
@@ -213,7 +214,7 @@ func (n pageNode) typedChildren(blk any) []pageNode {
 		n.values = nil
 	}
 
-	// Type each ref as its holder names it, or as the tree's value.
+	// Type each ref as its holder declares it, or as the tree's value.
 	var out []pageNode
 	if holder, ok := blk.(block.BlockWithRefs); ok {
 		refs, _ := holder.GetBlockRefs()

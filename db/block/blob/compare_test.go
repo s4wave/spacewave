@@ -31,7 +31,7 @@ func TestCompareBlobs(t *testing.T) {
 	}
 	defer cs.Release()
 
-	// test not equal
+	// Test that the blobs are not equal.
 	r1 := prng.BuildSeededReader([]byte("test-1"))
 	r2 := prng.BuildSeededReader([]byte("test-2"))
 

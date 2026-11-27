@@ -10,7 +10,8 @@ import (
 type Target struct {
 	// SessionIdx is the Session index.
 	SessionIdx uint32
-	// Space is a Space ID or display name; empty selects the first Space.
+	// Space is a Space ID or display name. An empty value selects the first
+	// Space.
 	Space string
 	// ObjectKey is the object key, used when no resolver is given.
 	ObjectKey string

@@ -23,7 +23,7 @@ import (
 type WalkPhase int32
 
 const (
-	// WALK_PHASE_WORLD reads the World's trees and their okra pages; the
+	// WALK_PHASE_WORLD reads the World's trees and their okra pages. The
 	// Objects wait for the listing.
 	WalkPhase_WALK_PHASE_WORLD WalkPhase = 0
 	// WALK_PHASE_OBJECTS reads the Objects, their roots and their bodies,
@@ -103,7 +103,7 @@ type WalkState struct {
 	Pin *WalkPin `protobuf:"bytes,1,opt,name=pin,proto3" json:"pin,omitempty"`
 	// Phase is how far the walk's stages got.
 	Phase WalkPhase `protobuf:"varint,2,opt,name=phase,proto3" json:"phase,omitempty"`
-	// Concurrency is the reads the walk keeps in flight.
+	// Concurrency is the number of reads the walk keeps in flight.
 	Concurrency uint32 `protobuf:"varint,3,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
 	// StartedAt is when the walk first started, in Unix milliseconds.
 	StartedAt int64 `protobuf:"varint,4,opt,name=started_at,json=startedAt,proto3" json:"startedAt,omitempty"`
@@ -117,7 +117,7 @@ type WalkState struct {
 	Nodes uint64 `protobuf:"varint,8,opt,name=nodes,proto3" json:"nodes,omitempty"`
 	// Entries counts the entries the chunks hold.
 	Entries uint64 `protobuf:"varint,9,opt,name=entries,proto3" json:"entries,omitempty"`
-	// Ctors names the block types the saved types use, by Go type.
+	// Ctors lists the block types the saved types use, by Go type.
 	Ctors []string `protobuf:"bytes,10,rep,name=ctors,proto3" json:"ctors,omitempty"`
 	// Xfrms are the transform configs the saved types use, each marshaled.
 	Xfrms [][]byte `protobuf:"bytes,11,rep,name=xfrms,proto3" json:"xfrms,omitempty"`
@@ -207,8 +207,8 @@ func (x *WalkState) GetXfrms() [][]byte {
 }
 
 // WalkType is a saved block type. A resume rebuilds it when this build knows
-// the type Ctor names; otherwise it reads the block's parent again and types
-// the block from the parent's decode.
+// the type Ctor selects. Otherwise the resume reads the block's parent again
+// and types the block from the parent's decode.
 type WalkType struct {
 	unknownFields []byte
 	// Ctor is the block's type, counting from 1 in the header's ctors, or 0 for
@@ -288,16 +288,16 @@ func (x *WalkChunk) GetEntries() []*WalkEntry {
 	return nil
 }
 
-// WalkNode is a block the walk read that names a block in the frontier. A
-// resume reads it again only when a block it names has no saved type, and
-// decodes it by its own saved type, or the type its parent gives it, to type
-// its children.
+// WalkNode is a block the walk read that references a block in the frontier. A
+// resume reads the node again only when a block it references has no saved
+// type, and decodes it by its own saved type, or the type its parent gives it,
+// to type its children.
 type WalkNode struct {
 	unknownFields []byte
 	// Ref is the block.
 	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
-	// Parent is the number of the node that named this one, counting from 1,
-	// or 0 for a pinned root or a node with a saved type.
+	// Parent is the number of the node that referenced this node, counting from
+	// 1, or 0 for a pinned root or a node with a saved type.
 	Parent uint64 `protobuf:"varint,2,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Stage is the stage the block was read in: 0 for the world, 1 for the
 	// objects.
@@ -346,8 +346,8 @@ type WalkEntry struct {
 	unknownFields []byte
 	// Ref is the block.
 	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
-	// Parent is the number of the node that named this block, counting from 1,
-	// or 0 for a pinned root.
+	// Parent is the number of the node that referenced this block, counting from
+	// 1, or 0 for a pinned root.
 	Parent uint64 `protobuf:"varint,2,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Stage is the stage the block belongs to: 0 for the world, 1 for the
 	// objects.
@@ -400,7 +400,7 @@ func (x *WalkEntry) GetType() *WalkType {
 }
 
 // WalkStatus is the progress of a walk. A hole is a block the walk could not
-// read or could not learn the refs of; the walk records it and goes on.
+// read or could not learn the refs of. The walk records the hole and goes on.
 type WalkStatus struct {
 	unknownFields []byte
 	// Head is the pinned World root.
@@ -411,7 +411,7 @@ type WalkStatus struct {
 	// pages are read, "types" while the object types are listed, "objects" for
 	// object roots and bodies, "retry" for the reads that failed, then "done".
 	Stage string `protobuf:"bytes,3,opt,name=stage,proto3" json:"stage,omitempty"`
-	// Concurrency is the reads kept in flight.
+	// Concurrency is the number of reads kept in flight.
 	Concurrency uint32 `protobuf:"varint,4,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
 	// Visited counts the distinct blocks the walk reached. A resume does not
 	// know the blocks reached before it, so a block reached again after a
@@ -460,11 +460,11 @@ type WalkStatus struct {
 	// KeepHeld counts blocks read without their refs that the World's packs
 	// hold, which the walk does not keep.
 	KeepHeld uint64 `protobuf:"varint,26,opt,name=keep_held,json=keepHeld,proto3" json:"keepHeld,omitempty"`
-	// KeepDeferred counts blocks not kept because every keep slot was busy;
-	// the next walk reads them again.
+	// KeepDeferred counts blocks not kept because every keep slot was busy.
+	// The next walk reads those blocks again.
 	KeepDeferred uint64 `protobuf:"varint,27,opt,name=keep_deferred,json=keepDeferred,proto3" json:"keepDeferred,omitempty"`
 	// PersistedAt is when the walk last saved its position, in Unix
-	// milliseconds; zero for a walk that saves none.
+	// milliseconds, or zero for a walk that saves no position.
 	PersistedAt int64 `protobuf:"varint,28,opt,name=persisted_at,json=persistedAt,proto3" json:"persistedAt,omitempty"`
 	// Frontier counts the blocks the last saved position holds.
 	Frontier uint64 `protobuf:"varint,29,opt,name=frontier,proto3" json:"frontier,omitempty"`

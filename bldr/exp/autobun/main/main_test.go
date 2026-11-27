@@ -28,7 +28,7 @@ func TestChildExitCodePreservesProcessStatus(t *testing.T) {
 // TestAutobunExitHelper exits with the status in AUTOBUN_EXIT_HELPER when it
 // runs as a child of TestChildExitCodePreservesProcessStatus.
 func TestAutobunExitHelper(t *testing.T) {
-	// Run only as a child that names an exit status.
+	// Run only as a child that specifies an exit status.
 	raw := os.Getenv("AUTOBUN_EXIT_HELPER")
 	if raw == "" {
 		return

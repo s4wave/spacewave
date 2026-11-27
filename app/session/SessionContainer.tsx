@@ -134,7 +134,8 @@ function useSessionArrival(session: Session | null) {
   const environment = useAppEnvironment()
   const navigate = useNavigate()
 
-  // Return visitors with the flag see the loading screen instead of landing.
+  // Return visitors with the flag see the loading screen instead of the
+  // landing page.
   useEffect(() => {
     if (session && !environment.storage.getItem('spacewave-has-session')) {
       environment.storage.setItem('spacewave-has-session', '1')
@@ -151,7 +152,8 @@ function useSessionArrival(session: Session | null) {
   }, [session, navigate, environment.documentStorage])
 }
 
-// useSessionStateAccessor reads the Session's state atoms once it mounts.
+// useSessionStateAccessor reads the Session's state atoms once the Session
+// mounts.
 function useSessionStateAccessor(
   sessionResource: Resource<Session>,
 ): StateAtomAccessor {
@@ -276,7 +278,8 @@ function useSessionAccountOverlay(
   return null
 }
 
-// AccountButton is the account bottom-bar item and the key that refreshes it.
+// AccountButton is the account bottom-bar item and the key that refreshes
+// the item.
 interface AccountButton {
   button: (
     selected: boolean,
@@ -338,7 +341,8 @@ function useAccountButton(
   return { button, label }
 }
 
-// accountBadge names the account's provider, or marks a dormant cloud account.
+// accountBadge identifies the account's provider, or marks a dormant cloud
+// account.
 function accountBadge(isCloudProvider: boolean, isDormant: boolean) {
   if (isDormant) {
     return { label: 'INACTIVE', className: 'bg-warning/15 text-warning' }
@@ -604,7 +608,7 @@ function SessionSelfEnrollmentStatusScope({
 }
 
 // TargetedInvitationInbox lists pending targeted invitations from the watched
-// inbox with Accept and Decline.
+// inbox with Accept and Decline buttons.
 function TargetedInvitationInbox(props: {
   sessionResource: Resource<Session>
 }) {
@@ -741,7 +745,7 @@ function TargetedInvitationInbox(props: {
   )
 }
 
-// targetedInvitationTitle names what a targeted invitation joins.
+// targetedInvitationTitle identifies what a targeted invitation joins.
 function targetedInvitationTitle(inv: TargetedInvitationInfo): string {
   if (inv.purpose === TargetedInvitePurpose.SPACE) {
     return `Space invite: ${inv.contextId || 'unknown space'}`

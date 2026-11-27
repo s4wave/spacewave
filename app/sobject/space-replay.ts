@@ -4,8 +4,9 @@ import type { SOReplayState } from '@s4wave/core/sobject/sobject.pb.js'
 
 // SpaceReplayContext carries the mounted Space's watched replay state, as
 // SharedObjectHealth.replay reports it. The container that watches the
-// Space's health provides it; undefined means the first health has not
-// arrived. Outside a Space no provider exists and nothing is held.
+// Space's health provides the context. An undefined replay state means the
+// first health has not arrived. Outside a Space no provider exists and
+// nothing is held.
 export const SpaceReplayContext = createContext<{
   replay: SOReplayState | undefined
 } | null>(null)

@@ -31,7 +31,8 @@ export enum TxType {
 
   /**
    * TxType_UPDATE_WITH_PASS_STATE updates the Task from the current Pass.
-   * Canceled completion transitions to PENDING; other completion to CHECKING.
+   * Canceled completion transitions to PENDING. Other completion transitions
+   * to CHECKING.
    * A nonterminal Pass leaves the Task state unchanged.
    */
   TxType_UPDATE_WITH_PASS_STATE = 3,
@@ -74,11 +75,11 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
  */
 export interface Tx {
   /**
-   * TxType is the kind of transaction this is.
+   * TxType is the kind of transaction.
    */
   txType?: TxType
   /**
-   * TaskObjectKey is the Task object ID this is associated with.
+   * TaskObjectKey is the Task object ID associated with the transaction.
    * The Task object must already exist.
    */
   taskObjectKey?: string
@@ -93,7 +94,7 @@ export interface Tx {
    */
   txStart?: TxStart
   /**
-   * TxUpdatePassState contains the update pass state tx.
+   * TxUpdateWithPassState contains the update pass state tx.
    * TxType_UPDATE_WITH_PASS_STATE
    */
   txUpdateWithPassState?: TxUpdateWithPassState
@@ -233,7 +234,8 @@ export const TxStart: MessageType<TxStart> =
 
 /**
  * TxUpdateWithPassState updates the Task from the current Pass.
- * Canceled completion transitions to PENDING; other completion to CHECKING.
+ * Canceled completion transitions to PENDING. Other completion transitions
+ * to CHECKING.
  * A nonterminal Pass leaves the Task state unchanged.
  * TxType: TxType_UPDATE_WITH_PASS_STATE
  *

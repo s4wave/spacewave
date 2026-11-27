@@ -13,8 +13,8 @@ import (
 // maxScrapeBytes bounds the body of one scrape.
 const maxScrapeBytes = 64 << 20
 
-// fallbackContentType parses a page that sends no usable Content-Type as the
-// Prometheus text format.
+// fallbackContentType is the Prometheus text format used to parse a page that
+// sends no usable Content-Type.
 const fallbackContentType = "text/plain"
 
 // httpSource returns the source that fetches and parses the metrics page at
@@ -52,7 +52,7 @@ func httpSource(url string) scrapeSource {
 }
 
 // parsePage decodes the float samples of a metrics page. Native histograms and
-// metadata entries are skipped; exporter timestamps are ignored.
+// metadata entries are skipped. Exporter timestamps are ignored.
 func parsePage(body []byte, contentType string) ([]scrapeSample, error) {
 	// Choose the parser from the content type.
 	p, err := textparse.New(body, contentType, nil, textparse.ParserOptions{FallbackContentType: fallbackContentType})

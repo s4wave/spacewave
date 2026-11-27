@@ -31,13 +31,13 @@ func NewTxStartTxn() Transaction {
 	return &TxStart{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction type.
 func (t *TxStart) GetTxType() TxType {
 	return TxType_TxType_START
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxStart) Validate() error {
 	if len(t.GetCreateExecSpecs().GetExecSpecs()) != 0 {
 		if err := t.GetCreateExecSpecs().Validate(); err != nil {
@@ -63,7 +63,7 @@ func (t *TxStart) ExecuteTx(
 		return nil
 	}
 
-	// ensure PENDING
+	// ensure the pass is PENDING
 	if passState != forge_pass.State_PassState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
@@ -77,7 +77,7 @@ func (t *TxStart) ExecuteTx(
 		}
 	}
 
-	// promote to RUNNING
+	// promote the pass to RUNNING
 	root.PassState = forge_pass.State_PassState_RUNNING
 
 	// apply the create specs op if set, otherwise call update exec states

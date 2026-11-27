@@ -44,7 +44,7 @@ const (
 // whether its block is still reachable.
 //
 // Compaction merges the rewritten packfiles later. A packfile another writer
-// merged first is skipped; its blocks wait for the next pass.
+// merged first is skipped. Its blocks wait for the next pass.
 //
 // Returns the time the next pass comes due if the store is not written again,
 // or zero when none will. A caller that asks again at that time runs the last

@@ -10,7 +10,8 @@ type ColdPackStats struct {
 	Ready bool
 	// LoadedPacks counts packs loaded in the immutable manifest.
 	LoadedPacks int
-	// GonePackIDs names packs fenced after an authoritative not-found response.
+	// GonePackIDs lists packs fenced after an authoritative not-found
+	// response.
 	GonePackIDs []string
 	// UncachedExistenceMisses counts false answers with at least one uncached candidate.
 	UncachedExistenceMisses uint64
@@ -87,7 +88,7 @@ func (s *ColdPackStore) Stats() ColdPackStats {
 		LastNewKeyUnix:          s.stats.lastNewKeyUnix.Load(),
 	}
 
-	// This admin-only scan names packs that no longer authorize a positive.
+	// This admin-only scan lists packs that no longer authorize a positive.
 	if catalog != nil {
 		stats.LoadedPacks = len(catalog.packs)
 		for i := range catalog.packs {

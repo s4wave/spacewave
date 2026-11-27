@@ -129,7 +129,8 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 		t.Fatalf("retry did not copy the write made after the interruption: found=%v err=%v", found, err)
 	}
 
-	// Check that the retry kept the listed generation and the catalog names it.
+	// Check that the retry kept the listed generation and the catalog records
+	// it.
 	targetSettings, err := target.readAccountSettings(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -249,8 +250,8 @@ func TestAccountMergeCopyHeldPastGrace(t *testing.T) {
 
 	// Collect twice after the copy, while its stage alone holds the World,
 	// so a copy under no stage, or a stage released before the hold, loses
-	// it. StageCopy puts blocks only at a drain or its flush, so this is
-	// also the state of a copy slower than the grace.
+	// it. StageCopy puts blocks only at a drain or its flush, so this stage
+	// state also occurs in a copy slower than the grace.
 	target.migrationHook = collectAt(target, migrationCopied)
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err != nil {
 		t.Fatal(err)
@@ -511,7 +512,7 @@ func TestAccountMergeUnresolvedOpWaitsForHandler(t *testing.T) {
 	after := putPayload(ctx, t, so, "after")
 	queueTxs(ctx, t, so, applyWorldOpTx(t, so, missing), createTx(t, "after", after.ref))
 
-	// The merge fails naming the unresolved operation.
+	// The merge fails identifying the unresolved operation.
 	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
 	if !errors.Is(err, space_world.ErrUnresolvedOp) {
 		t.Fatalf("merge without the handler = %v, want %v", err, space_world.ErrUnresolvedOp)
@@ -570,8 +571,8 @@ func TestAccountMergeUnresolvedOpWaitsForHandler(t *testing.T) {
 
 // TestAccountMergeOpsOnNoWorld migrates Spaces whose operations sit above no
 // World, where replay refuses an operation whose type resolves nowhere. One
-// whose type the bus resolves to a handler naming payload roots fails the
-// merge with that lookup's ErrBusPayloadOperation, before any listing; one
+// whose type the bus resolves to a handler declaring payload roots fails the
+// merge with that lookup's ErrBusPayloadOperation, before any listing. One
 // whose type resolves nowhere is copied with the create after it.
 func TestAccountMergeOpsOnNoWorld(t *testing.T) {
 	t.Run("bus payload op", func(t *testing.T) {
@@ -584,7 +585,7 @@ func TestAccountMergeOpsOnNoWorld(t *testing.T) {
 
 // mergeOpOnNoWorld merges a Space holding, above no World, an operation and
 // then a create. With busPayload the source's bus resolves the operation to a
-// busPayloadOp and the merge must fail with ErrBusPayloadOperation; otherwise
+// busPayloadOp and the merge must fail with ErrBusPayloadOperation. Otherwise
 // its type resolves nowhere and the merge must list the Space at the target,
 // holding the create's payload.
 func mergeOpOnNoWorld(t *testing.T, busPayload bool) {
@@ -655,7 +656,7 @@ func mergeOpOnNoWorld(t *testing.T, busPayload bool) {
 }
 
 // TestAccountMergeBusPayloadOpAboveCheckpoint migrates a Space whose operation
-// above its initialized checkpoint resolves on the bus to a handler naming
+// above its initialized checkpoint resolves on the bus to a handler declaring
 // payload roots. The merge fails with that lookup's ErrBusPayloadOperation,
 // not ErrUnresolvedOp, and lists nothing at the target.
 func TestAccountMergeBusPayloadOpAboveCheckpoint(t *testing.T) {
@@ -688,7 +689,7 @@ func TestAccountMergeBusPayloadOpAboveCheckpoint(t *testing.T) {
 // busPayloadOpTypeID is the type of busPayloadOp.
 const busPayloadOpTypeID = "test/migration-bus-payload-op"
 
-// busPayloadOp is a pluginOp whose bus handler names payload roots, which no
+// busPayloadOp is a pluginOp whose bus handler declares payload roots, which no
 // handler the bus resolves may.
 type busPayloadOp struct {
 	pluginOp
@@ -699,7 +700,7 @@ func (*busPayloadOp) TypeID() string {
 	return busPayloadOpTypeID
 }
 
-// GetPayloadRefs names no roots.
+// GetPayloadRefs returns no roots.
 func (*busPayloadOp) GetPayloadRefs() []*block.BlockRef {
 	return nil
 }
@@ -717,18 +718,19 @@ func TestAccountMergeOpsAboveCheckpoint(t *testing.T) {
 }
 
 // TestAccountMergePayloadOpAboveCheckpoint migrates a Space whose operations
-// above its checkpoint are a built-in operation naming a payload, writing a
-// file whose content was built outside the World, and then a create.
+// above its checkpoint are a built-in operation referencing a payload,
+// writing a file whose content was built outside the World, and then a create.
 func TestAccountMergePayloadOpAboveCheckpoint(t *testing.T) {
 	mergeOpsAboveCheckpoint(t, true)
 }
 
 // mergeOpsAboveCheckpoint migrates a Space with operations above its
 // checkpoint onto a target whose Volume frees at once, collecting between the
-// copy and the listing. Without payload they are a create and a running
-// plugin's operation; with payload they are a write of a file whose content
-// only the operation names, resolved by the static table, and a create. The
-// target replays them and reads every payload after more collection.
+// copy and the listing. Without payload the operations are a create and a
+// running plugin's operation. With payload the operations are a write of a file
+// whose content only the operation references, resolved by the static table,
+// and a create. The target replays them and reads every payload after more
+// collection.
 func mergeOpsAboveCheckpoint(t *testing.T, payload bool) {
 	// Start a source and a target account, the target's Volume freeing at
 	// once, running the plugin unless the operation is built in.
@@ -792,8 +794,8 @@ const fsObjectKey = "fs"
 
 // initFsWithContent creates the UnixFS object fsObjectKey in the World of eng,
 // writes file content to the block store of so outside any object, as a writer
-// does before naming it in an operation, and returns the content's root. The
-// content goes through a cursor on the World's storage, so it carries the
+// does before referencing it in an operation, and returns the content's root.
+// The content goes through a cursor on the World's storage, so it carries the
 // World's transform, but lands in the store of so directly: a World
 // transaction keeps its blocks in the Space's kept pages, which the export
 // does not read.
@@ -849,7 +851,7 @@ func TestAccountMergeUnloadedOpPlugin(t *testing.T) {
 	}
 	writeCreateThenPluginOp(ctx, t, pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, nil))
 
-	// The merge fails naming the unresolved operation, before any listing.
+	// The merge fails identifying the unresolved operation, before any listing.
 	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
 	if !errors.Is(err, space_world.ErrUnresolvedOp) {
 		t.Fatalf("merge without the plugin = %v, want %v", err, space_world.ErrUnresolvedOp)
@@ -940,8 +942,8 @@ func TestAccountMergeSavedRefusalWaitsForHandler(t *testing.T) {
 // TestAccountMergeReorderedCursor checks that a saved cursor whose outcomes no
 // longer match the operations by position and hash, as after a reorder, is
 // ignored: the refused operation after the create falls to the export's own
-// rule, which cannot know the World before it, and the merge fails with
-// ErrUnresolvedOp before the target lists anything.
+// rule, which cannot know the World before the operation, and the merge fails
+// with ErrUnresolvedOp before the target lists anything.
 func TestAccountMergeReorderedCursor(t *testing.T) {
 	// Save the cursor recording the refusal at the source.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -960,7 +962,7 @@ func TestAccountMergeReorderedCursor(t *testing.T) {
 	outcomes[0].Hash, outcomes[1].Hash = outcomes[1].GetHash(), outcomes[0].GetHash()
 	writeSavedCursor(ctx, t, source, ref, cursor)
 
-	// The merge fails naming the unresolved operation, before any listing.
+	// The merge fails identifying the unresolved operation, before any listing.
 	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
 	if !errors.Is(err, space_world.ErrUnresolvedOp) {
 		t.Fatalf("merge with a reordered cursor = %v, want %v", err, space_world.ErrUnresolvedOp)
@@ -1022,12 +1024,12 @@ func refusalFillerKey(i int) string {
 // create of the object "y" whose root is stored, and refusalFillers creates.
 // Replay now waits for a missing handler, so the Adapter records the pluginOp
 // refused by a handler that fails it instead, and the refusal's reason is
-// rewritten to the missing handler's; a refused transaction's outcome is the
-// same either way. It runs a Space world Adapter on the Space with account's
-// owner as its sequencer until its World is checkpointed, then holds every
-// later checkpoint, writes the operations, waits for the Adapter to save a
-// replay cursor recording the first two, stops the Adapter, and returns the
-// rewritten cursor and the root of "y".
+// rewritten to the missing handler's. A refused transaction's outcome is the
+// same either way. saveRefusalCursor runs a Space world Adapter on the Space
+// with account's owner as its sequencer until its World is checkpointed, then
+// holds every later checkpoint, writes the operations, waits for the Adapter
+// to save a replay cursor recording the first two operations, stops the
+// Adapter, and returns the rewritten cursor and the root of "y".
 func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccount, ref *sobject.SharedObjectRef) (*space_world.ReplayCursor, seededPayload) {
 	// Hold the Space as its sequencer and run the Adapter as the Space
 	// controller does.
@@ -1103,7 +1105,7 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	}
 	queueTxs(ctx, t, so, txs...)
 
-	// Wait for the saved cursor recording the first two.
+	// Wait for the saved cursor recording the first two operations.
 	var cursor *space_world.ReplayCursor
 	for len(cursor.GetOutcomes()) < 2 {
 		select {
@@ -1218,7 +1220,7 @@ func writeSavedCursor(ctx context.Context, t *testing.T, account *ProviderAccoun
 	}
 }
 
-// seededPayload is a payload an operation names and its bytes.
+// seededPayload is a payload an operation references and its bytes.
 type seededPayload struct {
 	// ref is the payload's root.
 	ref *block.BlockRef
@@ -1226,7 +1228,7 @@ type seededPayload struct {
 	data []byte
 }
 
-// writeCreateThenPluginOp writes to so a create of the object "z" naming a
+// writeCreateThenPluginOp writes to so a create of the object "z" referencing a
 // payload and then a pluginOp on it, and returns the payload by its object.
 func writeCreateThenPluginOp(ctx context.Context, t *testing.T, so *SharedObject) map[string]seededPayload {
 	t.Helper()
@@ -1458,7 +1460,7 @@ func replayedTo(ctx context.Context, t *testing.T, eng world.Engine, key string)
 const pluginOpTypeID = "test/migration-plugin-op"
 
 // pluginOp is a plugin's World operation, resolved on the bus while its
-// plugin runs. It names only the object roots of its transaction, as every
+// plugin runs. It references only the object roots of its transaction, as every
 // operation the bus resolves must. Its apply links its object to itself, since
 // a transaction that leaves the World unchanged proposes no operation.
 type pluginOp struct {

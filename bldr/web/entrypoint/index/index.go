@@ -22,17 +22,18 @@ type ImportMap struct {
 	Imports map[string]string `json:"imports"`
 }
 
-// IndexData contains the params for the index.html template
+// IndexData contains the params for the index.html template.
 type IndexData struct {
 	ImportMap      ImportMap
 	EntrypointPath string
 	// ReactVersion is the version of the React build the import map binds.
 	// The shell switches to Development React only when the cached
-	// development generation has this version; empty keeps production.
+	// development generation has this version. An empty version keeps
+	// production.
 	ReactVersion string
 }
 
-// String returns the JSON string representation of ImportMap
+// String returns the JSON string representation of ImportMap.
 func (m ImportMap) String() string {
 	// Build a deterministic import map by sorting its keys before encoding.
 	var a fastjson.Arena
@@ -62,7 +63,7 @@ const WebPkgFallbackPath = "/b/pkg/"
 // Firefox ignores every import map after the document's first, so the
 // document's own map must resolve the bare package specifiers bundles emit.
 // Web views add more specific per-package prefixes where the browser accepts
-// additional maps; the longest matching prefix wins.
+// additional maps. The longest matching prefix wins.
 func (m ImportMap) WithWebPkgFallback() ImportMap {
 	imports := maps.Clone(m.Imports)
 	if imports == nil {
@@ -102,9 +103,10 @@ func RenderIndexHTML(data IndexData) (string, error) {
 const importMapMarker = `<template id="bldr-import-map"`
 
 // SplitIndexHTML splits a rendered index before its import map. The shell
-// holds the loading screen and loads no module, so a server can send it before
-// it knows the map, then send the rest from a render with the final map. Both
-// renders split at the same offset, since the map follows the shell.
+// contains the loading screen and loads no module, so a server can send the
+// shell before the server knows the map, then send the rest from a render with
+// the final map. Both renders split at the same offset, since the map follows
+// the shell.
 func SplitIndexHTML(rendered string) (shell, rest string, err error) {
 	i := strings.Index(rendered, importMapMarker)
 	if i < 0 {

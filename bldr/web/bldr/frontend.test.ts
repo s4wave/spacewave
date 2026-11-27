@@ -23,7 +23,8 @@ function snapshot(id = 'recovery', sequence = 0n): Event {
 }
 
 it('resumes a dropped stream without replacing the unchanged compiler', async () => {
-  // Control only the stream interruption; retain the real resource and retry.
+  // Control only the stream interruption and retain the real resource and
+  // retry.
   vi.useFakeTimers()
   vi.spyOn(console, 'debug').mockImplementation(() => {})
   const streams = [

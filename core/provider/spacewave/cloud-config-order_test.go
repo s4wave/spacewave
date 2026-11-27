@@ -13,8 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestCloudConfigParticipantOrder accepts reordered membership without accepting
-// changes to signed authority, and retains that state across cache hydration.
+// TestCloudConfigParticipantOrder accepts reordered membership without
+// accepting changes to signed authority, and retains that state across cache
+// hydration.
 func TestCloudConfigParticipantOrder(t *testing.T) {
 	// Build a real signed genesis state.
 	owner, ownerID := generateTestKeypair(t)
@@ -38,7 +39,8 @@ func TestCloudConfigParticipantOrder(t *testing.T) {
 	chain.ConfigChanges = append(chain.ConfigChanges, change)
 	encodedChain := mustMarshalVT(t, chain)
 
-	// Only the HTTP response is substituted; verification and publication are real.
+	// Only the HTTP response is substituted. Verification and publication are
+	// real.
 	for _, tc := range []struct {
 		// name identifies the cloud response.
 		name string
@@ -56,7 +58,8 @@ func TestCloudConfigParticipantOrder(t *testing.T) {
 		{name: "checkpoint signature", mutate: func(s *sobject.SOState) { s.Checkpoint.Signatures = nil }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// Preserve the signed chain while the response projects participants differently.
+			// Preserve the signed chain while the response projects participants
+			// differently.
 			candidate := state.CloneVT()
 			slices.Reverse(candidate.Config.Participants)
 			if tc.mutate != nil {

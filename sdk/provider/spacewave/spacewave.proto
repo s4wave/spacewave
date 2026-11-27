@@ -620,7 +620,7 @@ message StartDesktopSSOResponse {
 }
 
 // StartDesktopSSOLinkRequest starts the native desktop SessionDetails
-// SSO-link flow for the currently authenticated account.
+// SSO-link flow for the authenticated account.
 message StartDesktopSSOLinkRequest {
   // SsoProvider is the requested SSO provider ("google" or "github").
   string sso_provider = 1;
@@ -750,7 +750,8 @@ message RecoverExecuteRequest {
   // NewPassword is the new password for key derivation.
   string new_password = 3;
   // RemovePeerId is the base58 peer ID of the old keypair to remove.
-  // If empty, only adds the new keypair without removing any.
+  // If RemovePeerId is empty, recovery only adds the new keypair without
+  // removing any keypairs.
   string remove_peer_id = 4;
   // AccountId is the account ID from the verify step, included in
   // the recovery signing payload to prevent cross-account replay.
@@ -853,8 +854,8 @@ message EnrollForHandoffResponse {
   string session_peer_id = 4;
 }
 
-// CreateCheckoutSessionRequest creates a Stripe Checkout Session for subscription.
 // BillingStatus is the billing account status.
+// CreateCheckoutSessionRequest creates a Stripe Checkout Session for subscription.
 enum BillingStatus {
   // BillingStatus_UNKNOWN is unknown.
   BillingStatus_UNKNOWN = 0;
@@ -882,8 +883,8 @@ enum AccountLifecycleState {
   AccountLifecycleState_UNKNOWN = 0;
   // AccountLifecycleState_ACTIVE is a normal accessible account.
   AccountLifecycleState_ACTIVE = 1;
-  // AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END keeps full access
-  // until the current billing period ends.
+  // AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END is a state with
+  // full access until the current billing period ends.
   AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END = 2;
   // AccountLifecycleState_CANCELED_GRACE_READONLY is the standard 30-day
   // read-only/export grace window after end-of-period cancellation.
@@ -995,8 +996,8 @@ message CreateCheckoutSessionRequest {
   string cancel_url = 2;
   // BillingInterval must select monthly billing.
   BillingInterval billing_interval = 3;
-  // BillingAccountId selects a specific billing account to check out. Empty
-  // falls back to the caller's single managed BA (legacy default).
+  // BillingAccountId selects a specific billing account to check out. An empty
+  // ID falls back to the caller's single managed BA (legacy default).
   string billing_account_id = 5;
   // Consent records the terms affirmatively accepted before checkout.
   BillingConsent consent = 6;
@@ -1084,18 +1085,19 @@ message WatchOnboardingStatusRequest {}
 
 // SelfEnrollmentGateState describes the route-level self-enrollment decision.
 enum SelfEnrollmentGateState {
-  // SelfEnrollmentGateState_UNKNOWN indicates no gate state was provided.
+  // SELF_ENROLLMENT_GATE_STATE_UNKNOWN indicates no gate state was provided.
   SELF_ENROLLMENT_GATE_STATE_UNKNOWN = 0;
-  // SelfEnrollmentGateState_CHECKING indicates the backend is evaluating
+  // SELF_ENROLLMENT_GATE_STATE_CHECKING indicates the backend is evaluating
   // connected spaces.
   SELF_ENROLLMENT_GATE_STATE_CHECKING = 1;
-  // SelfEnrollmentGateState_AUTO_CONNECTING indicates the backend is
+  // SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING indicates the backend is
   // automatically connecting this session to readable spaces.
   SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING = 2;
-  // SelfEnrollmentGateState_ACTION_REQUIRED indicates the user must unlock or
-  // skip session connection for one or more spaces.
+  // SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED indicates the user must unlock
+  // or skip session connection for one or more spaces.
   SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED = 3;
-  // SelfEnrollmentGateState_READY indicates no self-enrollment gate is needed.
+  // SELF_ENROLLMENT_GATE_STATE_READY indicates no self-enrollment gate is
+  // needed.
   SELF_ENROLLMENT_GATE_STATE_READY = 4;
 }
 
@@ -1674,7 +1676,7 @@ message PublicOriginLink {
 
 // PublicOriginState is where a public Space's packs live.
 enum PublicOriginState {
-  // PublicOriginState_NONE is no linked origin; packs stay on Spacewave's CDN.
+  // PublicOriginState_NONE is no linked origin. Packs stay on Spacewave's CDN.
   PublicOriginState_NONE = 0;
   // PublicOriginState_COPYING is a linked origin receiving the existing packs.
   // Pushes still land on Spacewave's CDN until the copy completes.
@@ -1821,7 +1823,7 @@ message TransferResourceResponse {}
 
 // AssignBillingAccountRequest is the request for AssignBillingAccount.
 // Binds a billing account to a principal (account or organization). The caller
-// must be the BA's created_by_account_id; for org targets the caller must also
+// must be the BA's created_by_account_id. For org targets the caller must also
 // hold org:owner on the target org.
 message AssignBillingAccountRequest {
   // BillingAccountId is the billing account to assign.
@@ -1879,15 +1881,15 @@ message PrincipalAssignment {
   // OwnerId is the principal id (account ULID or org ULID).
   string owner_id = 2;
   // DisplayName is the principal's display name. For accounts this may be
-  // empty; the caller typically renders their own account as "Personal".
+  // empty. The caller typically renders their own account as "Personal".
   string display_name = 3;
 }
 
 // CreateBillingAccountRequest is the request for CreateBillingAccount.
 // Creates a new unassigned billing account owned (managed) by the caller.
 message CreateBillingAccountRequest {
-  // DisplayName is the initial label for the billing account. Optional; the
-  // server falls back to a generic default when empty.
+  // DisplayName is the optional initial label for the billing account. The
+  // server falls back to a generic default label when DisplayName is empty.
   string display_name = 1;
 }
 
@@ -2054,7 +2056,7 @@ message ConfirmDeleteNowCodeResponse {
   string invoice_currency = 4;
   // InvoiceStatus is the final invoice status.
   string invoice_status = 5;
-  // ChargeAttempted reports whether Stripe attempted an immediate charge.
+  // ChargeAttempted reports whether Stripe tried to charge immediately.
   bool charge_attempted = 6;
   // RefundAmount is the immediate refund amount in cents.
   int64 refund_amount = 7;
@@ -2398,8 +2400,8 @@ message ApproveSpaceLinkResponse {
 }
 
 // SpaceLinkCallback is the generic approval result payload. Browser callback
-// mode can encode it into the verified callback URL; CLI mode can transport the
-// same binary payload directly for import.
+// mode can encode it into the verified callback URL. CLI mode can transport
+// the same binary payload directly for import.
 message SpaceLinkCallback {
   // Status is the approval result.
   SpaceLinkCallbackStatus status = 1;

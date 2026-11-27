@@ -79,7 +79,8 @@ export interface DevelopmentConfig {
   disableProjectConfig?: boolean
   /**
    * RoutePrefix is the same-origin namespace before the compiler SessionId.
-   * Empty uses /b/fe/; attached compilers use a routed frontend service prefix.
+   * An empty RoutePrefix uses /b/fe/. Attached compilers use a routed frontend
+   * service prefix.
    */
   routePrefix?: string
   /**
@@ -87,7 +88,7 @@ export interface DevelopmentConfig {
    */
   webPkgIds?: string[]
   /**
-   * ExternalChanges disables filesystem watching; the source owner reports
+   * ExternalChanges disables filesystem watching. The source owner reports
    * each edit through ChangeDevelopment instead.
    */
   externalChanges?: boolean
@@ -190,7 +191,7 @@ export interface DevelopmentResult {
    * WebPkgImports maps each shared package specifier prefix to the URL prefix
    * that serves it. A package aliased to project source is served from this
    * graph, so separately bundled views share the application's module
-   * instances; every other package is served from the shared /b/pkg route.
+   * instances. Every other package is served from the shared /b/pkg route.
    */
   webPkgImports?: { [key: string]: string }
 }

@@ -115,7 +115,7 @@ export const SessionRecoveryState_Enum = /* @__PURE__ */ createEnumType(
 export interface SessionRef {
   /**
    * ProviderResourceRef is the reference to the resource on the provider.
-   * Contains the session ID, provider ID and provider account ID.
+   * The reference contains the session ID, provider ID and provider account ID.
    * The session ID is the ID for this particular session.
    * The provider account ID is the ID for this user account.
    */
@@ -154,8 +154,9 @@ export const SessionListEntry: MessageType<SessionListEntry> =
   )
 
 /**
- * SessionMetadata contains display and pre-mount lock information for a session.
- * Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
+ * SessionMetadata contains display and pre-mount lock information for a
+ * session. The metadata is stored in the session controller ObjectStore at
+ * sessions/meta/{sessionID}.
  *
  * @generated from message session.SessionMetadata
  */
@@ -174,8 +175,9 @@ export interface SessionMetadata {
   providerAccountId?: string
   /**
    * LockMode is set at registration and updated by SetLockMode.
-   * Used as a pre-mount hint to show the PIN overlay before the session mounts.
-   * The authoritative lock state comes from WatchLockState on the mounted session.
+   * The mode is a pre-mount hint to show the PIN overlay before the session
+   * mounts. The authoritative lock state comes from WatchLockState on the
+   * mounted session.
    */
   lockMode?: SessionLockMode
   /**
@@ -184,7 +186,7 @@ export interface SessionMetadata {
   createdAt?: bigint
   /**
    * CloudAccountId is the cloud account ULID for free local sessions.
-   * Set when a local session is created with a cloud identity.
+   * The ID is set when a local session is created with a cloud identity.
    */
   cloudAccountId?: string
   /**
@@ -294,8 +296,8 @@ export const EntityKeypair: MessageType<EntityKeypair> =
 
 /**
  * EntityCredential is a credential for deriving an entity private key.
- * Used by local in-process RPCs where the credential never crosses a
- * network boundary (Go WASM and TS share the same browser process).
+ * The credential is used by local in-process RPCs where the credential never
+ * crosses a network boundary (Go WASM and TS share the same browser process).
  *
  * @generated from message session.EntityCredential
  */

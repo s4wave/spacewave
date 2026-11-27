@@ -171,7 +171,7 @@ func TestApplicationRegistration(t *testing.T) {
 
 // enrollApplicationTestSession independently signs a fresh login credential and
 // registers and mounts its Device Session through the provider. The test operator
-// stands in for a trusted identity integration; no external login is simulated.
+// stands in for a trusted identity integration. No external login is simulated.
 func enrollApplicationTestSession(ctx context.Context, t *testing.T, operator *provider_spacewave.SessionClient, applicationID string, revision uint64) (*provider_spacewave.SessionClient, string) {
 	t.Helper()
 

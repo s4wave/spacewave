@@ -7,11 +7,11 @@ import * as wasi from './wasi_defs.js'
  * PollResult is returned by fd_poll to indicate readiness for I/O.
  */
 export interface PollResult {
-  /** Whether the fd is ready for the requested operation */
+  /** ready indicates whether the fd is ready for the requested operation. */
   ready: boolean
-  /** Number of bytes available to read (for FD_READ) */
+  /** nbytes is the number of bytes available to read (for FD_READ). */
   nbytes: bigint
-  /** Any flags to set on the event (e.g., HANGUP) */
+  /** flags holds any flags to set on the event (e.g., HANGUP). */
   flags: number
 }
 
@@ -134,12 +134,13 @@ export abstract class Fd {
   }
 
   /**
-   * Poll for I/O readiness. Override this in subclasses that support polling.
+   * fd_poll polls for I/O readiness.
+   * Override fd_poll in subclasses that support polling.
    * @param eventtype EVENTTYPE_FD_READ or EVENTTYPE_FD_WRITE
    * @returns PollResult indicating readiness
    */
   fd_poll(_eventtype: number): PollResult {
-    // Default: not ready (override in pollable Fd implementations)
+    // The default result is not ready (override in pollable Fd subclasses).
     return { ready: false, nbytes: 0n, flags: 0 }
   }
 }
@@ -151,7 +152,7 @@ export abstract class Inode {
     this.ino = Inode.issue_ino()
   }
 
-  // NOTE: ino 0 is reserved for the root directory
+  // next_ino starts at 1 because ino 0 is reserved for the root directory.
   private static next_ino: bigint = 1n
   static issue_ino(): bigint {
     return Inode.next_ino++

@@ -95,7 +95,7 @@ type dropOnRead struct {
 	reads atomic.Int64
 }
 
-// GetBlock counts the read and drops the link on every nth.
+// GetBlock counts the read and drops the link on every nth read.
 func (s *dropOnRead) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if s.reads.Add(1)%s.n == 0 {
 		s.link.drop(100 * time.Millisecond)
@@ -103,7 +103,7 @@ func (s *dropOnRead) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return s.StoreOps.GetBlock(ctx, ref)
 }
 
-// GetStoredBlock counts the read and drops the link on every nth.
+// GetStoredBlock counts the read and drops the link on every nth read.
 func (s *dropOnRead) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if s.reads.Add(1)%s.n == 0 {
 		s.link.drop(100 * time.Millisecond)
@@ -167,7 +167,7 @@ func TestChainedCheckoutSurvivesReconnect(t *testing.T) {
 	}
 	ws := world.NewEngineWorldState(eng, false)
 
-	// Check out both trees; each file matches its source.
+	// Check out both trees. Each file matches its source.
 	for key, files := range map[string]fstest.MapFS{fsKey: tr.files, "newer": newer} {
 		checkout(t, ctx, le, ws, key, files)
 	}

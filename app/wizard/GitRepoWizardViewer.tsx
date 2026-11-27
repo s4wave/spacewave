@@ -219,7 +219,7 @@ function cloneUrlErrorFor(isClone: boolean, url: string): string {
 
 // GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
 // Step 0: config editor (mode toggle + clone options). Step 1: repository name.
-// Step 2: clone progress; a failed or refused clone shows Clone beside its
+// Step 2: clone progress. A failed or refused clone shows Clone beside its
 // message, and Clone again picks a free key and starts over.
 export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, 'git/repo')

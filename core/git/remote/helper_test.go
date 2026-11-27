@@ -159,13 +159,13 @@ func TestHelperPushFromWorktree(t *testing.T) {
 		t.Fatalf("list = %q, want %s", list, head)
 	}
 
-	// A source that names nothing is refused for that ref alone.
+	// A source that selects no object is refused for that ref alone.
 	if got := run(t, ctx, h, "push refs/heads/missing:refs/heads/missing\n\n"); got != "error refs/heads/missing src refspec refs/heads/missing does not match any\n\n" {
 		t.Fatalf("missing source push = %q", got)
 	}
 }
 
-// newTestWorld returns an empty World; the first push creates the Repo object.
+// newTestWorld returns an empty World. The first push creates the Repo object.
 func newTestWorld(t *testing.T, ctx context.Context) world.Engine {
 	t.Helper()
 	return world_testbed.MustDefault(t, ctx).Engine

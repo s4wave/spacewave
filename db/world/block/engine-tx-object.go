@@ -12,11 +12,11 @@ import (
 
 // EngineTxObjectState is an ObjectState handle attached to a EngineTx.
 type EngineTxObjectState struct {
-	// t is the engine transaction the handle belongs to
+	// t is the engine transaction the handle belongs to.
 	t *EngineTx
-	// key is the object key
+	// key is the object key.
 	key string
-	// obj is the object handle cached by a write transaction, or nil
+	// obj is the object handle cached by a write transaction, or nil.
 	obj world.ObjectState
 }
 
@@ -55,8 +55,9 @@ func (t *EngineTxObjectState) GetModSeqno(ctx context.Context) (seqno uint64, er
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, will default to the object RootRef.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// If the ref is empty, AccessWorldState defaults to the object RootRef.
+// If the ref Bucket ID is empty, AccessWorldState uses the same bucket +
+// volume as the world.
 // The lookup cursor will be released after cb returns.
 func (t *EngineTxObjectState) AccessWorldState(
 	ctx context.Context,
@@ -88,7 +89,7 @@ func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.Objec
 // ApplyObjectOp applies a batch operation at the object level.
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
-// If nil is returned for the error, implies success.
+// If nil is returned for the error, the operation succeeded.
 func (t *EngineTxObjectState) ApplyObjectOp(
 	ctx context.Context,
 	op world.Operation,
@@ -117,7 +118,7 @@ func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (rev uint64, err
 	return rev, err
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified revision.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // A writer advances within its pending transaction, and only a change to this
@@ -133,7 +134,7 @@ func (t *EngineTxObjectState) WaitRev(
 
 // withObject runs cb on the object through the transaction's performOp. A
 // write transaction lends its cached handle, loading and caching it on first
-// use; a read snapshot loads a handle for each attempt and releases it after
+// use. A read snapshot loads a handle for each attempt and releases it after
 // cb.
 func (t *EngineTxObjectState) withObject(ctx context.Context, cb func(world.ObjectState) error) error {
 	return t.t.performOp(ctx, func(tx *Tx) error {
@@ -149,8 +150,8 @@ func (t *EngineTxObjectState) withObject(ctx context.Context, cb func(world.Obje
 			return err
 		}
 
-		// note: to create a EngineTxObjectState, we previously checked
-		// if the object key exists. it must have been deleted since.
+		// The object key was checked for existence before EngineTxObjectState
+		// was created. The object must have been deleted since.
 		if !found {
 			return world.ErrObjectNotFound
 		}

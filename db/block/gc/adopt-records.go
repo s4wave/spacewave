@@ -30,9 +30,9 @@ type adoptRecord struct {
 }
 
 // scanAfter returns up to limit records of kind whose key, after the prefix
-// and kind, sorts after after, in key order; a nil after starts at the first.
-// It reads them all before returning, so the caller may write in the same
-// transaction.
+// and kind, sorts after after, in key order. A nil after starts at the first
+// record. It reads them all before returning, so the caller may write in the
+// same transaction.
 func (r *Records) scanAfter(ctx context.Context, kind byte, after []byte, limit int) ([]adoptRecord, error) {
 	// Seek past after, and copy out the records.
 	from := after
@@ -75,9 +75,9 @@ func (r *Records) scanNamesAfter(ctx context.Context, after []byte, limit int, k
 }
 
 // scanThrough returns the records of kind whose key, after the prefix and
-// kind, sorts after after and at or before last, in key order; a nil after
-// starts at the first, and a nil last reads to the kind's end. It reads them
-// all before returning, so the caller may write in the same transaction.
+// kind, sorts after after and at or before last, in key order. A nil after
+// starts at the first record, and a nil last reads to the kind's end. It reads
+// them all before returning, so the caller may write in the same transaction.
 func (r *Records) scanThrough(ctx context.Context, kind byte, after, last []byte) (sortedRecords, error) {
 	// Seek past after, and copy out the records through last.
 	from := after

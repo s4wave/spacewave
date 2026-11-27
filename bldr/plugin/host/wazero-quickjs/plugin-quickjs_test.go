@@ -105,7 +105,7 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 
-	// run a service on the plugin host that our plugin will call
+	// run a service on the plugin host that the test plugin will call
 	calledPromise := promise.NewPromise[*starpc_mock.MockMsg]()
 
 	// Register the mock service on the testbed mux.

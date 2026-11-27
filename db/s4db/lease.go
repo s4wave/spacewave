@@ -7,7 +7,7 @@ import (
 )
 
 // Lease is a named lock held across transactions. One holder at a time, in
-// any process, holds a name; the system releases the lock when the holding
+// any process, holds a name. The system releases the lock when the holding
 // process dies.
 type Lease struct {
 	// db is the database the lease locks.
@@ -22,7 +22,7 @@ type Lease struct {
 }
 
 // leaseOff returns the lock byte of the lease name. Two names may share a
-// byte; they then exclude each other, which costs contention but never
+// byte. The two names then exclude each other, costing contention but never
 // correctness.
 func leaseOff(name string) int64 {
 	h := fnv.New64a()
@@ -63,7 +63,7 @@ func (db *DB) TryLease(name string) (*Lease, bool, error) {
 // WaitLease waits until it holds the lease name, then tails the log as
 // TryLease does. When ctx ends while another process holds the name, the
 // abandoned wait keeps the name claimed in this handle until the system grants
-// the lock, then releases it; Close waits for it.
+// the lock, then releases the lock. Close waits for the abandoned wait.
 func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	// Wait for this handle's holder to release the byte, then claim it.
 	off := leaseOff(name)

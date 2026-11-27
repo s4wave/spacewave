@@ -10,7 +10,7 @@ import {
 
 // Cdn wraps a server-side CdnResource. Obtain via root.getCdn(cdnId). Each
 // instance is scoped to one CDN (identified by cdn_id in the enclosing
-// GetCdn call; empty cdn_id selects the default CDN). RPC methods on the
+// GetCdn call). An empty cdn_id selects the default CDN. RPC methods on the
 // resource do not re-take cdn_id because it is implicit in the bound
 // resource.
 export class Cdn extends Resource {
@@ -39,7 +39,7 @@ export class Cdn extends Resource {
   // edges) from this CDN Space into a user-owned destination Space and streams
   // the server's block-copy accounting.
   //
-  // Asset UnixFS blocks are content-addressed; the destination block store
+  // Asset UnixFS blocks are content-addressed. The destination block store
   // dedupes them against the CDN block store without re-upload.
   public copyV86ImageToSpace(
     sessionIdx: number,

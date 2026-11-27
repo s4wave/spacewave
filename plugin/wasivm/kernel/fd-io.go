@@ -204,7 +204,7 @@ func (p *Process) writeVFS(of *OpenFile, buf []byte) uint64 {
 }
 
 // writeTerminal writes buf to a terminal as its output. A pty slave waits
-// while its master's queue is full; a caught signal interrupts the wait, and
+// while its master's queue is full. A caught signal interrupts the wait, and
 // a nonblocking file takes only what fits. A write after the master closed
 // fails with EIO.
 func (p *Process) writeTerminal(ctx context.Context, of *OpenFile, buf []byte) uint64 {

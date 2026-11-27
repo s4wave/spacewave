@@ -10,10 +10,10 @@ import (
 // revision. It returns ErrObjectNotFound if the object does not exist, unless
 // ignoreNotFound is set, in which case it waits for the object to appear.
 //
-// Only a change that names key wakes the wait, so a change to another object
-// costs it nothing, and a create of a missing key wakes it although a run of
-// same-type changes leaves the seqno where it was. A read snapshot cannot
-// advance: its wait ends with ctx or the snapshot's discard.
+// Only a change that references key wakes the wait, so a change to another
+// object costs it nothing, and a create of a missing key wakes it although a
+// run of same-type changes leaves the seqno where it was. A read snapshot
+// cannot advance: its wait ends with ctx or the snapshot's discard.
 func (t *Tx) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
 	for {
 		// Read the revision under the read lock, which a writer's change holds

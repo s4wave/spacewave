@@ -7,7 +7,7 @@ import {
 import { NotebookEditOutcome } from './sdk/notebook.pb.js'
 import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 
-// Mock cursor returned by objectState.accessWorldState().
+// createMockCursor returns a mock cursor for objectState.accessWorldState().
 function createMockCursor(blockData?: Uint8Array) {
   const release = vi.fn()
   return {
@@ -23,7 +23,7 @@ function createMockCursor(blockData?: Uint8Array) {
   }
 }
 
-// Mock ObjectState returned by tx.getObject().
+// createMockObjectState returns a mock ObjectState for tx.getObject().
 function createMockObjectState(
   cursor?:
     | ReturnType<typeof createMockCursor>
@@ -55,7 +55,7 @@ function createMockObjectState(
   }
 }
 
-// Mock read snapshot yielded by engine.watchWorldState().
+// createMockSnapshot returns a mock read snapshot for engine.watchWorldState().
 function createMockSnapshot(
   objectState?: ReturnType<typeof createMockObjectState> | null,
   seqno = 1n,
@@ -76,8 +76,9 @@ function abortError() {
   return new DOMException('Aborted', 'AbortError')
 }
 
-// Mock Engine created from engineRef. Its watch yields each queued snapshot,
-// then waits for the next push until the signal aborts.
+// createMockEngine returns a mock Engine created from engineRef. Its watch
+// yields each queued snapshot, then waits for the next push until the signal
+// aborts.
 function createMockEngine(snapshots: MockSnapshot[] = []) {
   const queue = [...snapshots]
   let wake: (() => void) | undefined
@@ -196,7 +197,7 @@ describe('NotebookResource', () => {
       expect(notebook.sources).toHaveLength(1)
       expect(notebook.sources![0].ref).toBe('fs/-/notes')
 
-      // Verify resource chain was called correctly.
+      // Verify the resource chain was called correctly.
       expect(mockEngineInstance.watchWorldState).toHaveBeenCalledWith(ac.signal)
       expect(snapshot.getObject).toHaveBeenCalledWith('my-notebook', ac.signal)
       expect(objectState.accessWorldState).toHaveBeenCalledWith(

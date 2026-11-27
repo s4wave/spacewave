@@ -19,11 +19,11 @@ var (
 // StorageBackendInUseError is returned when removing a backend that holds
 // Spaces. It matches ErrStorageBackendInUse.
 type StorageBackendInUseError struct {
-	// Spaces names each placed Space, or its block store id when unnamed.
+	// Spaces lists each placed Space, or its block store id when unnamed.
 	Spaces []string
 }
 
-// Error names the Spaces the backend holds.
+// Error lists the Spaces the backend holds.
 func (e *StorageBackendInUseError) Error() string {
 	return ErrStorageBackendInUse.Error() + ": " + strings.Join(e.Spaces, ", ")
 }

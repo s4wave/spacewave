@@ -5,7 +5,7 @@ export interface ObjectViewerNotFoundStateProps {
 }
 
 // ObjectViewerNotFoundState fills a viewer's place when its object is gone.
-// Reading again cannot bring it back, so it offers no Retry.
+// Reading again cannot bring the object back, so the state offers no Retry.
 export function ObjectViewerNotFoundState({
   objectKey,
 }: ObjectViewerNotFoundStateProps) {

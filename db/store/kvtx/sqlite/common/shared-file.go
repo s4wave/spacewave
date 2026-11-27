@@ -11,7 +11,7 @@ import (
 // Closing any descriptor of a file drops every POSIX fcntl lock the process
 // holds on it, including the SHARED lock SQLite holds on the database file in
 // WAL mode. mattn's SQLite takes such locks, and so does modernc's unless the
-// process opts into OFD locks; ncruces takes OFD locks, which belong to the
+// process opts into OFD locks. ncruces takes OFD locks, which belong to the
 // descriptor that took them. So a Store holds its file before its pool opens,
 // each connection of the pool holds it from before it opens until after it
 // closes, and the descriptor closes with the last hold: no close here drops a
@@ -21,8 +21,8 @@ var sharedFiles = newFileTable()
 
 // fileTable is the database files held in one process by path, each with the
 // one descriptor their checkpointers write it back through. Paths are joined
-// through symlinks; a hard link to a file defeats this, as does code outside
-// this package closing a descriptor of the file.
+// through symlinks. A hard link to a file defeats this descriptor sharing, as
+// does code outside this package closing a descriptor of the file.
 //
 // Every hold, a Store's or a connection's, is taken through acquire, which
 // finds the file's entry by path, so a file has an entry in open exactly

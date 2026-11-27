@@ -28,18 +28,19 @@ import (
 //     delete and a re-add after the pin cancel in the diff and would lose the
 //     item a live read missed.
 //  2. The old root stays held by name until a streamed comparison finds every
-//     object record and quad of the two Worlds equal; a switch back to it
-//     works until then.
+//     object record and quad of the two Worlds equal. A switch back to the
+//     old root works until then.
 //  3. Nothing is deleted on doubt: a failed or interrupted build deletes only
 //     its own runs, and the old World keeps serving.
 //  4. The build is a function of the pinned root alone: no map order, time or
 //     run boundary reaches the new root, so a replica building the same root
 //     writes the same blocks.
 
-// Run bytes the sort writes per old node and quad, used to reserve disk before
-// the first spill. A node writes its value map entry and its meta, each
-// holding the value text, estimated at 64 bytes; a quad writes two 27-byte
-// edge keys and a pin marker for its predicate, and one more for a label.
+// regenNodeRunBytes and regenQuadRunBytes are the run bytes the sort writes
+// per old node and quad, used to reserve disk before the first spill.
+// A node writes its value map entry and its meta, each holding the value text,
+// estimated at 64 bytes. A quad writes two 27-byte edge keys and a pin marker
+// for its predicate, and one more for a label.
 const (
 	regenNodeRunBytes = 160
 	regenQuadRunBytes = 96
@@ -61,9 +62,10 @@ type RegenConfig struct {
 	// FloorDir is a directory on the file system holding the Volume, whose
 	// free disk the build keeps above FloorBytes, as it does SpillDir's.
 	FloorDir string
-	// FloorBytes is the least free disk the build leaves on the file systems
-	// of FloorDir and SpillDir; below it the build stops with ErrRegenFloor
-	// before the switch, and the old tree stays live. Zero sets no floor.
+	// FloorBytes is the least free disk the build leaves on the file
+	// systems of FloorDir and SpillDir. Below FloorBytes the build stops
+	// with ErrRegenFloor before the switch, and the old tree stays live.
+	// Zero sets no floor.
 	FloorBytes uint64
 }
 
@@ -79,8 +81,8 @@ func (c RegenConfig) newSorter() (*extsort.Sorter, error) {
 
 // buildNodeGraphRoot writes a node graph World holding the objects, quads and
 // changelog of the cayley kv World at root, and returns the new root. The
-// object tree, the changelog and the sequence number carry over unchanged;
-// the graph tree is rebuilt from one walk of the old graph's log. Every node
+// object tree, the changelog and the sequence number carry over unchanged.
+// The graph tree is rebuilt from one walk of the old graph's log. Every node
 // keeps its old ID, so the build holds no map from old IDs to new.
 //
 // The build reads only root. Its memory is cfg.Budget plus the sort's read
@@ -157,8 +159,8 @@ const regenSliceKeys = 256
 type regenPacer struct {
 	// yield waits for the writers, or is nil for work no writer waits behind.
 	yield func(context.Context) error
-	// slice is the steps between yields; a catch-up round, whose single change
-	// can cost a kv World milliseconds, yields at every step.
+	// slice is the steps between yields. A catch-up round, whose single
+	// change can cost a kv World milliseconds, yields at every step.
 	slice int
 	// n counts the steps of the current slice.
 	n int
@@ -185,7 +187,8 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 		return err
 	}
 
-	// Stream the sorted keys into the tree; a stopped yield cancels the merge.
+	// Stream the sorted keys into the tree. A stopped yield cancels the
+	// merge.
 	var writeErr error
 	err = graphTx.(*kvtx_block_okra.Tx).ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
 		writeErr = builder.Write(ctx, func(key, value []byte) error {
@@ -267,7 +270,7 @@ func addKvGraph(
 	}
 
 	// Walk the log once, through the adapter kvtx_cayley.NewGraph opens the
-	// graph with; nodes keep their IDs.
+	// graph with. Nodes keep their IDs.
 	logStore := flat.Upgrade(hidalgo.NewKV(kvtx.NewTxStore(gtx)))
 	var spilled int64
 	return cayley_kv.WalkLog(ctx, logStore, func(p *proto.Primitive) error {

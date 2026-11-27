@@ -11,9 +11,9 @@ import (
 
 // EchoResolver resolves HandleMountedStream by echoing data.
 type EchoResolver struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

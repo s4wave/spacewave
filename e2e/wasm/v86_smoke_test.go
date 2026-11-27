@@ -384,7 +384,7 @@ func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {
 	// Mark the function as a test helper.
 	t.Helper()
 
-	// Wait for the hash to leave the wizard and name the VM object.
+	// Wait for the hash to leave the wizard and contain the VM object key.
 	handle, err := page.WaitForFunction(`() => {
 		const hash = window.location.hash || ''
 		const marker = '/-/'

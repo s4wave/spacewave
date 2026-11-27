@@ -28,7 +28,7 @@ func main() {
 type registrations struct {
 	*echo.EchoServer
 
-	// bcast guards live and is broadcast when it changes.
+	// bcast guards live and is broadcast when live changes.
 	bcast broadcast.Broadcast
 	// live is the number of registered child resources not yet released.
 	live int

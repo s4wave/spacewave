@@ -17,21 +17,21 @@ var ErrRootMoved = errors.New("named root moved")
 var ErrRootsUnheld = errors.New("store holds no named roots")
 
 // ErrRootNotHeld is returned by SetRoots for a root that requires its blocks
-// held when it would hold a stored block that nothing holds now: the block
-// is missing, stored without a child list, at zero holders, or held only by a
-// released stage. The collector may have freed what such a block names. The
-// move is refused whole. A repeat of the write that stores the tree again in
-// its own batch commits; a write that names blocks it did not store in that
-// batch is refused again until they are stored.
+// held when it would hold a stored block that nothing holds now: the block is
+// missing, stored without a child list, at zero holders, or held only by a
+// released stage. The collector may have freed what such a block references.
+// The move is refused whole. A repeat of the write that stores the tree again
+// in its own batch commits. A write that references blocks it did not store in
+// that batch is refused again until they are stored.
 var ErrRootNotHeld = errors.New("root names a block nothing holds")
 
 // ErrUnheldPut is returned for a put that stores a block no root, parent in
 // its batch, stage or recorded count holds: the collector would free it once
 // its record ages past the grace period. A writer stores a block under a
-// stage, or in the batch that moves the root naming it.
+// stage, or in the batch that moves the root referencing it.
 var ErrUnheldPut = errors.New("put stores a block nothing holds")
 
-// NamedRoot moves one named root of a store.
+// NamedRoot records a move of one named root of a store.
 type NamedRoot struct {
 	// Name is the root name, unique within the store's bucket.
 	Name string
@@ -46,7 +46,7 @@ type NamedRoot struct {
 	// held until released. A store that keeps leases releases every root of a
 	// lease once its holder stops renewing it, so a reader pins a snapshot
 	// under its process's lease, and a process that dies releases its roots
-	// by silence. A store refuses a root onto a lease that is not live; one
+	// by silence. A store refuses a root onto a lease that is not live. A store
 	// without leases holds the root until released.
 	Lease string
 	// RequireHeld refuses the change with ErrRootNotHeld unless the tree the
@@ -79,18 +79,18 @@ type RootOps interface {
 	// releases the old one atomically. A root may hold a block entries write.
 	// It writes nothing and returns ErrRootMoved when any root's Previous
 	// differs from the reference the name holds. The caller serializes this
-	// with publication of the head the root names. The change is durable
-	// when SetRoots returns, together with every write the store accepted
-	// before it, unless ctx asks for write ordering
+	// SetRoots call with publication of the head the root references. The
+	// change is durable when SetRoots returns, together with every write the
+	// store accepted before it, unless ctx asks for write ordering
 	// (kvtx.WithOrderedCommitContext): a World head it publishes is
 	// acknowledged to its writers as durable.
 	SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error
 }
 
 // SetRootsUnheld implements SetRoots for a store that holds no roots. It
-// refuses a root that would hold a block with ErrRootsUnheld, and a root
-// whose Previous names a block with ErrRootMoved, since every name is free
-// there; otherwise it stores the entries. Such a store never frees a block by
+// refuses a root that would hold a block with ErrRootsUnheld, and a root whose
+// Previous references a block with ErrRootMoved, since every name is free
+// there. Otherwise it stores the entries. Such a store never frees a block by
 // liveness, so every block written to it stays stored.
 func SetRootsUnheld(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
 	// Refuse a hold the store cannot keep, and a swap from a block no name
@@ -112,7 +112,7 @@ func SetRootsUnheld(ctx context.Context, store StoreOps, entries []*PutBatchEntr
 	return err
 }
 
-// RootMoved returns ErrRootMoved naming the root.
+// RootMoved returns ErrRootMoved identifying the root.
 func RootMoved(name string) error {
 	return errors.Wrap(ErrRootMoved, name)
 }

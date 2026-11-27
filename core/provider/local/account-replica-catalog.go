@@ -45,7 +45,8 @@ func (a *ProviderAccount) publishAccountCatalogEntry(ctx context.Context, entry 
 }
 
 // runAccountReplicaSync reacts to settings and local inventory changes. Network
-// failures use the owning routine's backoff; unchanged accounts produce no traffic.
+// failures use the owning routine's backoff. Unchanged accounts produce no
+// traffic.
 func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pSyncState) error {
 	// Deliver account transitions as the settings change.
 	delivery := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.AccountSettings](a.le.WithField("routine", "account-transition-delivery"), routine.WithRetry(providerBackoff))
@@ -153,8 +154,9 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 		return err
 	}
 
-	// Install each missing object; one that no peer serves does not hold back
-	// the rest, and is reported at the end so the next pass retries it.
+	// Install each missing object. One that no peer serves does not hold
+	// back the rest, and is reported at the end so the next pass retries
+	// the object.
 	installed := false
 	var failed []error
 	for _, entry := range missing {
@@ -184,7 +186,7 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 // local object whose generation is in its id's deleted set and never
 // republishes one. Empty is a generation like any other, for objects made
 // before generations. A local object of another live generation than the
-// catalog's is kept untouched; the catalog's object is not installed over
+// catalog's is kept untouched. The catalog's object is not installed over
 // it. Every removal and metadata change decides under the account lock that
 // the object is still of the generation it planned against, so a create
 // that lands after list was read is never touched.
@@ -224,9 +226,10 @@ func (a *ProviderAccount) reconcileAccountCatalog(ctx context.Context, settingsI
 				continue
 			}
 
-			// Keep a local object of another live generation. A tombstone
-			// record's generation is not compared: it names only the
-			// tombstone that replaced the record.
+			// Keep a local object of another live generation. A
+			// tombstone record's generation is not compared: the
+			// generation identifies only the tombstone that
+			// replaced the record.
 			if !catalog.GetDeleted() && current.GetGeneration() != entry.GetGeneration() {
 				a.le.WithField("sobject-id", id).Warn("keeping local shared object of another generation than the account catalog's")
 				continue
@@ -316,11 +319,11 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 }
 
 // releaseAccountReplicaPeer removes reconnect demand after membership
-// revocation. The link stays while a holder, such as a Space that names the
-// peer as a participant, still names it.
+// revocation. The link stays while a holder, such as a Space that lists the
+// peer as a participant, still references the peer.
 func (a *ProviderAccount) releaseAccountReplicaPeer(remote peer.ID) {
-	// Drop the reconnect demand and, unless a holder names the peer, its
-	// running link.
+	// Drop the reconnect demand and, unless a holder references the peer,
+	// its running link.
 	var release func()
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		delete(a.p2pPeerIDs, remote.String())

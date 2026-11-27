@@ -68,7 +68,7 @@ func TestReserve(t *testing.T) {
 		t.Fatalf("exempt batch below the reserve: %v", err)
 	}
 
-	// Inside the margin the state holds; above it, writes resume.
+	// Inside the margin the state holds. Above the margin, writes resume.
 	free.Store(reserve + reserve/reserveMarginDivisor/2)
 	v.wakeHealthSizes()
 	waitSizes(t, v, free.Load())
@@ -123,7 +123,7 @@ func waitSizes(t *testing.T, v *Volume, free uint64) {
 
 // waitHealth waits on the health watch until ok accepts a snapshot.
 func waitHealth(t *testing.T, v *Volume, ok func(*volume.VolumeHealth) bool) {
-	// Watch the health until ok or the deadline.
+	// Watch the health until ok accepts a snapshot or the deadline expires.
 	t.Helper()
 	deadline := time.After(5 * time.Second)
 	for {

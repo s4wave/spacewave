@@ -1,7 +1,7 @@
 import type { SpaceSharingState } from '@s4wave/sdk/space/space.pb.js'
 
-// deviceName names the member whose device holds peerID, or returns fallback
-// when no participant lists that peer.
+// deviceName identifies the member whose device holds peerID, or returns
+// fallback when no participant lists that peer.
 export function deviceName(
   state: SpaceSharingState,
   peerID: string,

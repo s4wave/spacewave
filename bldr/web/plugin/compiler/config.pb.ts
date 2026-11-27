@@ -82,9 +82,10 @@ export interface Config {
   projectId?: string
   /**
    * DelveAddr is the address to listen for Delve remote connections.
-   * If the build mode is dev and this is set, uses delve to run the plugin.
+   * If the build mode is dev and DelveAddr is set, uses delve to run the
+   * plugin.
    * Ignored if build mode is not dev or build platform is not "desktop".
-   * Special value: "wait" - waits for plugin entrypoint to be run manually.
+   * Special value: "wait", waits for plugin entrypoint to be run manually.
    */
   delveAddr?: string
   /**

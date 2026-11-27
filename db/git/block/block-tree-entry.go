@@ -30,7 +30,7 @@ func (i *TreeEntry) IsNil() bool {
 	return i == nil
 }
 
-// Validate performs cursory validation of the tree entry.
+// Validate validates the tree entry cursorily.
 func (i *TreeEntry) Validate() error {
 	if err := i.GetHash().Validate(); err != nil {
 		return err

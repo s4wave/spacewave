@@ -72,7 +72,7 @@ func (b *CdnSpaceBody) GetWorldEngineBucketID() string {
 }
 
 // GetSharedObjectRef returns the synthesized shared object ref for the CDN
-// Space. The ref has a CdnProviderID provider id; downstream code that
+// Space. The ref has a CdnProviderID provider id, so downstream code that
 // branches on provider id (e.g. mailbox access) skips CDN mounts.
 func (b *CdnSpaceBody) GetSharedObjectRef() *sobject.SharedObjectRef {
 	return b.ref
@@ -84,5 +84,5 @@ func (b *CdnSpaceBody) GetSharedObject() sobject.SharedObject {
 	return b.so
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ space.SpaceSharedObjectBody = (*CdnSpaceBody)(nil)

@@ -131,7 +131,7 @@ func TestSignaling(t *testing.T) {
 		t.Fatal("forged peer got", refused.Code)
 	}
 
-	// Admit the second by a peer socket its key signed.
+	// Admit the second peer by a peer socket its key signed.
 	signed := httptest.NewRequest(http.MethodGet, peerPath, nil)
 	if err := transport.SignHTTPRequest(signed, nil, keys[1], ids[1], "test-signaling"); err != nil {
 		t.Fatal(err)
@@ -180,7 +180,8 @@ func TestSignaling(t *testing.T) {
 	}
 }
 
-// The client contract uses these routes; the application mounts the handlers.
+// ticketPath is a client contract route, as are socketPath and peerPath.
+// The application mounts the handlers.
 const (
 	ticketPath = "/api/signal/ticket"
 	socketPath = "/api/signal/ws"

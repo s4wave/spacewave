@@ -26,7 +26,7 @@ func TestVirtualTerminalDiscipline(t *testing.T) {
 		t.Fatalf("echo = %q, want %q", out.String(), want)
 	}
 
-	// VEOF on an empty line is an end-of-file mark; on a partial line it
+	// VEOF on an empty line is an end-of-file mark. On a partial line it
 	// delivers the line without a newline.
 	got, eofMarks = in.discipline([]byte("\x04ab\x04"))
 	if string(got) != "ab" || eofMarks != 1 {
@@ -106,7 +106,7 @@ func TestBootStopsOnCancel(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- k.Boot(runCtx) }()
 
-	// Cancel once the shell waits at its prompt; Boot must return.
+	// Cancel once the shell waits at its prompt. Boot must return.
 	select {
 	case <-prompted:
 	case err := <-done:

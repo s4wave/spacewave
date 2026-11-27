@@ -26,11 +26,11 @@ type superblock struct {
 	// continues.
 	logCrc uint32
 	// logWriter is the writer identity of record seq, which the record at
-	// logPos names as its predecessor.
+	// logPos references as its predecessor.
 	logWriter uint64
 	// through is the last commit the runs hold. The commits after it up to
-	// seq are in the log before logPos and rebuild the memtable at open; the
-	// manifest already holds their effect on the table.
+	// seq are in the log before logPos and rebuild the memtable at open.
+	// The manifest already holds their effect on the table.
 	through uint64
 	// memPos, memEnd, memCrc and memWriter locate the first record after
 	// through, as logPos, logEnd, logCrc and logWriter locate the first after
@@ -60,7 +60,7 @@ func decodeSuperblock(b []byte) (superblock, bool) {
 		return superblock{}, false
 	}
 
-	// Decode the fields; generation zero marks a never written copy.
+	// Decode the fields. Generation zero marks a never written copy.
 	u := func(i int) uint64 { return binary.LittleEndian.Uint64(b[i*8:]) }
 	s := superblock{
 		gen:     u(0),

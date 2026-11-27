@@ -10,7 +10,8 @@ message Config {
   // CdnBaseUrl is the public CDN base URL.
   string cdn_base_url = 3;
   // PointerTtlDur is the cached root pointer TTL.
-  // Empty uses the CDN block store default. Negative disables expiry.
+  // An empty value uses the CDN block store default. A negative value disables
+  // expiry.
   string pointer_ttl_dur = 4;
   // CacheBlockStoreId optionally resolves a local block store for co-block
   // writeback while reading remote pack ranges.
@@ -27,6 +28,6 @@ message Config {
   bool verbose = 10;
   // RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
   // so an owner can serve the mutable pointer from its own server and keep the
-  // CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+  // CDN hostname immutable. An empty value reads the pointer from cdn_base_url.
   string root_pointer_base_url = 11;
 }

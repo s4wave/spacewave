@@ -12,11 +12,11 @@ import (
 //
 // The first cursor returned from GetProxyCursor manages the event stream.
 type FSCursor struct {
-	// released indicates the cursor has been released
+	// released indicates the cursor has been released.
 	released atomic.Bool
-	// ctx is the context for the client
+	// ctx is the context for the client.
 	ctx context.Context
-	// client is the fs cursor service client
+	// client is the fs cursor service client.
 	client unixfs_rpc.SRPCFSCursorServiceClient
 }
 

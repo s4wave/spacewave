@@ -20,7 +20,8 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Args names the local export, its sorted key stream and a new manifest file.
+// Args identifies the local export, its sorted key stream and a new manifest
+// file.
 type Args struct {
 	// Source is the mirror directory containing XNN/packs and XNN/entries.
 	Source string
@@ -102,7 +103,7 @@ func publishManifest(path string, data []byte) (err error) {
 	}
 	defer func() { err = stderrors.Join(err, os.Remove(f.Name())) }()
 
-	// Fence the complete contents; on failure the destination stays absent.
+	// Fence the complete contents. On failure the destination stays absent.
 	if _, err := f.Write(data); err != nil {
 		return stderrors.Join(err, f.Close())
 	}

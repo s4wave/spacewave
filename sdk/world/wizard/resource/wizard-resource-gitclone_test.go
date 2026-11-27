@@ -18,7 +18,7 @@ import (
 // errPublishStep is the failure injected into one step of a clone publish.
 var errPublishStep = errors.New("publish step failed")
 
-// failCommitKey names the commit as the failing step of a publish.
+// failCommitKey selects the commit as the failing step of a publish.
 const failCommitKey = "commit"
 
 // failingPublishEngine opens transactions that fail reads and deletes of one
@@ -74,7 +74,7 @@ func TestPublishGitCloneCommitsTogether(t *testing.T) {
 	const wizardKey, repoKey = "wizard/git/publish", "git/publish"
 	cases := []struct {
 		name string
-		// failKey names the injected failure, or "" for none.
+		// failKey selects the injected failure, or "" for none.
 		failKey string
 		// wizardGone skips creating the wizard.
 		wizardGone bool
@@ -104,7 +104,8 @@ func TestPublishGitCloneCommitsTogether(t *testing.T) {
 			tb := world_testbed.MustDefault(t, ctx, world_testbed.WithWorldVerbose(false))
 			ws := tb.WorldState
 
-			// A wizard object that the Space index names, unless it is gone.
+			// A wizard object that the Space index references,
+			// unless the wizard is gone.
 			mustCreate := func(key string) {
 				obj, err := ws.CreateObject(ctx, key, nil)
 				world.ReleaseObjectState(obj)
@@ -148,8 +149,9 @@ func TestPublishGitCloneCommitsTogether(t *testing.T) {
 				t.Fatalf("unexpected publish result: %v", err)
 			}
 
-			// The repository, the index and the wizard all moved, or none did; an
-			// index that names a path under the wizard never moves.
+			// The repository, the index and the wizard all moved,
+			// or none did. An index that references a path under
+			// the wizard never moves.
 			published := err == nil
 			repoObj, repoFound, err := ws.GetObject(ctx, repoKey)
 			world.ReleaseObjectState(repoObj)

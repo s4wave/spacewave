@@ -447,7 +447,7 @@ type grantResolver struct {
 	src cdn_bstore.GrantSource
 }
 
-// GetControllerInfo names the resolver.
+// GetControllerInfo identifies the resolver.
 func (r *grantResolver) GetControllerInfo() *controller.Info {
 	return controller.NewInfo("test/cdn-grants", controller.MustParseVersion("0.0.1"), "CDN grant test")
 }

@@ -49,7 +49,7 @@ type LookupRpcClientResolver struct {
 
 // NewLookupRpcClientResolver constructs a new LookupRpcClientResolver.
 //
-// Usually you will want to use ResolveLookupRpcClient instead.
+// Prefer ResolveLookupRpcClient in most cases.
 // If pluginID is empty, addresses the plugin host.
 // stripServiceIDPrefix is the prefix to strip from the service ID, if any.
 func NewLookupRpcClientResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *LookupRpcClientResolver {

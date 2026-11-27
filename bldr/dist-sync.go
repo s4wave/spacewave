@@ -157,7 +157,8 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return nil
 	}
 
-	// #nosec G703 -- this fixed filename is written in the caller-owned dist checkout.
+	// #nosec G703: this fixed filename is written in the caller-owned dist
+	// checkout.
 	if err := os.WriteFile(distGoModPath, updatedDistGoMod, 0o644); err != nil {
 		return err
 	}
@@ -165,7 +166,8 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	// Write the dist go.sum beside the dist go.mod.
 	distGoSumPath := filepath.Join(conf.DistRoot, "go.sum")
 
-	// #nosec G703 -- this fixed filename is written in the caller-owned dist checkout.
+	// #nosec G703: this fixed filename is written in the caller-owned dist
+	// checkout.
 	if err := os.WriteFile(distGoSumPath, sourceGoSumData, 0o644); err != nil {
 		return err
 	}
@@ -207,7 +209,8 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return err
 	}
 
-	// #nosec G703 -- this fixed filename is written in the caller-owned dist checkout.
+	// #nosec G703: this fixed filename is written in the caller-owned dist
+	// checkout.
 	if err := os.WriteFile(syncHashPath, []byte(hashStr), 0o644); err != nil {
 		le.WithError(err).Debug("failed to write bldr sources sync hash")
 	}

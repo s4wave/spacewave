@@ -53,13 +53,15 @@ export interface DistMeta {
    */
   manifestRev?: bigint
   /**
-   * UpdateGuardPluginIds name plugins that quiesce owned work before replacement.
+   * UpdateGuardPluginIds identify plugins that quiesce owned work before
+   * replacement.
    */
   updateGuardPluginIds?: string[]
   /**
-   * AdmissionPluginId names the plugin that owns this device's plugin
+   * AdmissionPluginId identifies the plugin that owns this device's plugin
    * approvals. The host builds its root admission controller asking that
-   * plugin in code at startup; empty leaves admission to the trusted roots.
+   * plugin in code at startup. An empty AdmissionPluginId leaves admission to
+   * the trusted roots.
    */
   admissionPluginId?: string
 }

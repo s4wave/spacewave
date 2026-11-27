@@ -85,7 +85,7 @@ export function List<T>({
 }: ListProps<T>) {
   const listRef = useRef<ListImperativeAPI | null>(null)
 
-  // Track sorted items for the reducer - use ref to avoid stale closure
+  // Track sorted items for the reducer. Use a ref to avoid a stale closure.
   const sortedItemsRef = useRef<ListItem<T>[]>(items)
 
   const dispatch = useCallback(

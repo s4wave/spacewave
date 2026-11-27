@@ -13,10 +13,11 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 )
 
-// CopyCredential atomically preserves this Session's PIN protection, recovery
-// envelope, and setup state. Auto-unlock is rewrapped under the destination
-// volume key. An existing credential is retained only when it is the same key;
-// a different or unprovable credential fails without changing either store.
+// CopyCredential atomically preserves the source Session's PIN protection,
+// recovery envelope, and setup state. Auto-unlock is rewrapped under the
+// destination volume key. An existing credential is retained only when it is
+// the same key.
+// A different or unprovable credential fails without changing either store.
 func CopyCredential(ctx context.Context, source, destination object.ObjectStore, sourceID, destinationID string, key crypto.PrivKey, destinationKey [32]byte) error {
 	// Read the credential records carried between the two stores.
 	suffixes := [][]byte{SuffixPK, SuffixLocked, SuffixLockKey, SuffixLockParams, SuffixEnvelope, SuffixSetupDone}

@@ -98,7 +98,7 @@ describe('PromDashboardViewer', () => {
   afterEach(cleanup)
 
   it('shows a failed targets read with its retry instead of waiting', () => {
-    // The Dashboard arrived; the targets stream failed.
+    // The Dashboard arrived. The targets stream failed.
     reads.dash = resource({ panels: [] })
     reads.targets = resource(null, new Error('targets stream closed'))
     renderViewer()
@@ -130,7 +130,7 @@ describe('PromDashboardViewer', () => {
     // The kept target is drawn: its last scrape dates the Dashboard.
     expect(screen.getByText(`Updated ${formatClock(scrapedMs)}`)).toBeDefined()
 
-    // The failure is a notice with Retry; the empty states stay unclaimed.
+    // The failure is a notice with Retry. The empty states stay unclaimed.
     expect(
       screen.getByText('Could not read the Dashboard: targets stream closed'),
     ).toBeDefined()
@@ -162,7 +162,7 @@ describe('PromDashboardViewer', () => {
     reads.targets = resource(null, lost, false, new Map([['target/forge', {}]]))
     view.rerender(viewerElement())
 
-    // The draft stays; Save is withheld and the notice says why.
+    // The draft stays. Save is withheld and the notice says why.
     expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
       'Load',
     )
@@ -186,7 +186,7 @@ describe('PromDashboardViewer', () => {
     reads.targets = resource(new Map([['target/forge', {}]]))
     const view = renderViewer()
 
-    // The writer types a title; count the suggestion queries so far.
+    // The writer types a title. Count the suggestion queries so far.
     fireEvent.click(screen.getByRole('button', { name: 'Add panel' }))
     fireEvent.change(screen.getByLabelText('Title'), {
       target: { value: 'Load' },
@@ -204,7 +204,7 @@ describe('PromDashboardViewer', () => {
     reads.handle = resource(null, null, true)
     view.rerender(viewerElement())
 
-    // The draft stays under the reload, Save withheld, and typing a
+    // The draft stays under the reload, Save is withheld, and typing a
     // selector runs no suggestion query on the released handle.
     expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
       'Load',
@@ -288,7 +288,7 @@ describe('PromDashboardViewer', () => {
     const queries = handle.query.mock.calls.length
 
     // The handle watch fails over its last records, and the reader picks
-    // another range while it is lost.
+    // another range while the handle is lost.
     const lost = new Error('plugin stream closed')
     reads.handle = resource(null, lost)
     reads.dash = resource(null, lost, false, { panels })

@@ -56,7 +56,7 @@ import {
   servedEntryName,
 } from './web-pkg-naming.js'
 
-// verboseDebug is the verbose debugging flag
+// verboseDebug is the verbose debugging flag.
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
 
 // stableMinifyOutput minifies while keeping top-level and cross-chunk export
@@ -68,7 +68,7 @@ const stableMinifyOutput = {
   minifyInternalExports: false,
 } as const
 
-// Parse command line arguments
+// parseArgs parses command line arguments.
 function parseArgs() {
   const args = process.argv.slice(2)
   const result: { [key: string]: string } = {}
@@ -89,7 +89,7 @@ function parseArgs() {
   return result
 }
 
-// Implementation of the ViteBundler service
+// ViteBundlerService implements the ViteBundler service.
 class ViteBundlerService implements ViteBundler {
   private development?: Promise<DevelopmentEnvironment>
 
@@ -190,9 +190,9 @@ function findNearestGoModRoot(startDir: string): string | null {
 }
 
 /**
- * Core build function that processes Vite bundling requests
- * @param {BuildRequest} request - The build configuration request
- * @returns {Promise<BuildResponse>} The build results
+ * buildBundle processes Vite bundling requests.
+ * @param {BuildRequest} request: The build configuration request.
+ * @returns {Promise<BuildResponse>} The build results.
  */
 async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
   if (verboseDebug) {
@@ -411,7 +411,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         mergedConfig.build.rolldownOptions = {}
       }
 
-      // Merge the input map and guarantee we output ES-modules.
+      // Merge the input map and guarantee the build outputs ES-modules.
       mergedConfig.build.rolldownOptions = {
         ...mergedConfig.build.rolldownOptions,
         input,
@@ -706,7 +706,7 @@ async function buildWebPkg(
       // chunk.name is the named input key (e.g. "index", "jsx-runtime", "client").
       const baseName = chunk.name
 
-      // The root entry maps the bare package id; TypeScript entries map the
+      // The root entry maps the bare package id. TypeScript entries map the
       // emitted ".js" path consumers import.
       const specifier = buildWebPkgImportSpecifier(
         pkgId,
@@ -880,7 +880,7 @@ async function main() {
   const connection = createSocketConnection(socket, streamConn)
   startSocketSender(connection)
 
-  // The native owner is the only client; its pipe ending ends this process.
+  // The native owner is the only client, so its pipe ending ends this process.
   socket.once('close', () => process.exit(0))
 
   // Handle socket errors after connection is established

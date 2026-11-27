@@ -12,9 +12,9 @@ func newReplayOpening() *sobject.SOReplayState {
 }
 
 // ObserveReplay takes the replay state the driver reached, waking serve, the
-// writes waiting while replay opens, and any watcher on a change. A wait for
-// a handler lasts only while the state waits for one: on any other state it
-// ends. The driver calls it on its goroutine, which owns the handler wait.
+// writes waiting while replay opens, and any watcher on a change. A wait for a
+// handler lasts only while the state waits for one: on any other state it ends.
+// The driver calls ObserveReplay on its goroutine, which owns the handler wait.
 func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.replayState.EqualVT(state) {
@@ -36,12 +36,12 @@ func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
 // the next change of the Adapter's state, without running admit.
 //
 // Invariant: a write is admitted only on a World that applied every operation
-// ordered before it that this device has seen; while replay opens or waits at
+// ordered before it that this device has seen. While replay opens or waits at
 // any position, the Space takes no write on this device. A turn builds on the
-// installed head, which lacks the operation replay waits at and every one
-// after it, and a recorded write applied after them would replace what they
-// wrote, such as an object root, with nothing to detect it. Opening holds the
-// write rather than refuse it, as replay of what this device already holds
+// installed head, which lacks the operation replay waits at and every one after
+// it, and a recorded write applied after them would replace what they wrote,
+// such as an object root, with nothing to detect the replacement. Opening holds
+// the write rather than refuse it, as replay of what this device already holds
 // usually reaches the end of its order in moments.
 func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
 	for {

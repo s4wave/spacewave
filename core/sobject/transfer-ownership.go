@@ -106,7 +106,7 @@ func applySOOwnerPromotion(
 // changes when the head carries no departure or owner is departing, so a host
 // may call it after each configuration change it accepts.
 func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto.PrivKey, promote ...string) (bool, error) {
-	// Only an owner at the head can commit the departure it carries.
+	// Only an owner at the head can commit the departure the head carries.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
 		return false, err
@@ -141,9 +141,10 @@ func CompleteSOOwnershipTransfer(ctx context.Context, host *SOHost, owner crypto
 }
 
 // ReadSOOwnershipSuccessor returns the owner that the latest retained departure
-// transfer handed the object to, or empty when retained history has none. That
-// is the first owner in the transfer's configuration that was not departing,
-// which is the promoted successor unless another owner already remained.
+// transfer handed the object to, or an empty string when retained history has
+// none. That is the first owner in the transfer's configuration that was not
+// departing, which is the promoted successor unless another owner already
+// remained.
 func ReadSOOwnershipSuccessor(ctx context.Context, host *SOHost) (string, error) {
 	// Walk back from the head to the latest departure transfer.
 	state, err := host.GetHostState(ctx)
@@ -214,7 +215,8 @@ func isSODepartureTransfer(entry *SOConfigChange) bool {
 }
 
 // selectSOSuccessor returns the remaining participant with the highest role,
-// the earliest in configuration order among equals, or empty if none remains.
+// the earliest in configuration order among equals, or an empty string if none
+// remains.
 func selectSOSuccessor(config *SharedObjectConfig, departing []string) string {
 	var successor *SOParticipantConfig
 	for _, p := range config.GetParticipants() {

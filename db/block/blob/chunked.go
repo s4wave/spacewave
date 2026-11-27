@@ -93,11 +93,11 @@ func (r *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start
 	dataBcs.SetBlock(byteslice.NewByteSlice(&data), true)
 }
 
-// ReadFromChunks reads up to len(buf) data from the chunks, starting at byte
-// index start. It checks the chunk at chunkIdx first and otherwise searches for
-// the chunk containing start. Save outChunkIdx and pass it again when stepping
-// through the chunks sequentially. Returns io.EOF if start is past the last
-// chunk.
+// ReadFromChunks reads up to len(buf) bytes of data from the chunks, starting
+// at byte index start. It checks the chunk at chunkIdx first and otherwise
+// searches for the chunk containing start. Save outChunkIdx and pass it again
+// when stepping through the chunks sequentially. Returns io.EOF if start is
+// past the last chunk.
 func ReadFromChunks(
 	ctx context.Context,
 	chunkSet *sbset.SubBlockSet,

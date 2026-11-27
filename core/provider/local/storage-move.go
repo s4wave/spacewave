@@ -166,14 +166,15 @@ func (a *ProviderAccount) lookupSharedObjectBlockStoreID(sharedObjectID string) 
 //
 // The fetch opens its own store on the backend's bucket, so a backend that
 // cannot be reached fails the move before the placement changes and releases
-// the bucket's objects. It skips only blocks those sources do not hold;
-// an unresolved cold read aborts the move. The walk stops at a block
-// without a child list, such as a hole or a block a store before format 7
-// wrote, so the fetch also checks each child a fetched block names that the
-// walk did not reach: the bucket may hold the only copy.
+// the bucket's objects. It skips only blocks those sources do not hold. An
+// unresolved cold read aborts the move. The walk stops at a block without a
+// child list, such as a hole or a block a store before format 7 wrote, so the
+// fetch also checks each child a fetched block references that the walk did not
+// reach: the bucket may hold the only copy.
 //
-// Cost: one existence check per child of a fetched block, batched per chunk;
-// the walk already reached most of them, so they add only a map lookup.
+// Cost: one existence check per child of a fetched block, batched per chunk.
+// The walk already reached most children, so those children add only a map
+// lookup.
 func (a *ProviderAccount) fetchPlacedBlocks(
 	ctx context.Context,
 	tkr *bstoreTracker,

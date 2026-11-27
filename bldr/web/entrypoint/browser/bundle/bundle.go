@@ -49,7 +49,7 @@ type BrowserBundleResult struct {
 	CSSPaths []string
 	// ImportMap is the import map the renderer index.html declares.
 	ImportMap web_entrypoint_index.ImportMap
-	// ReactVersion is the React build version the renderer index.html names.
+	// ReactVersion is the React build version the renderer index.html selects.
 	ReactVersion string
 }
 
@@ -996,7 +996,8 @@ func BuildOpfsWorkerBundle(
 }
 
 // BuildRendererIndex builds the web renderer index.html. reactVersion is the
-// version of the React build the map binds; empty keeps the shell on it.
+// version of the React build the map binds. An empty reactVersion keeps the
+// shell on that React build.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
 func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap, reactVersion string) error {
@@ -1310,7 +1311,7 @@ func BuildBrowserBundle(
 
 	// Build the web packages and collect their import map entries.
 	// A production build also carries Development React beside its packages,
-	// for the device setting to copy into the service worker's cache; nothing
+	// for the device setting to copy into the service worker's cache. Nothing
 	// loads it until that setting is on. A development build already runs it.
 	var reactDevDir, reactVersion string
 	if !devMode {
@@ -1371,8 +1372,8 @@ func BuildBrowserBundle(
 // release's own pkgs/, and ReactDevFilesName listing every file.
 const ReactDevDir = "react-dev"
 
-// ReactDevFilesName names the list of Development React files, a JSON object
-// whose files field maps each path below pkgs/ to its hex SHA-256.
+// ReactDevFilesName is the filename of the list of Development React files, a
+// JSON object whose files field maps each path below pkgs/ to its hex SHA-256.
 const ReactDevFilesName = "files.json"
 
 // BuildWebPkgsBundle builds the web pkg bundle files.
@@ -1394,10 +1395,10 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		return web_entrypoint_index.ImportMap{}, err
 	}
 
-	// web pkgs we distribute with bldr
+	// web pkgs bldr distributes
 	refs := web_pkg_external.GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot)
 
-	// if we are in development mode: include test-utils to react-dom
+	// In development mode, include test-utils in react-dom.
 	if devMode {
 		for _, ref := range refs {
 			if ref.WebPkgId == "react-dom" {
@@ -1493,7 +1494,7 @@ func buildReactDevPkgs(ctx context.Context, le *logrus.Entry, buildDir, stateDir
 }
 
 // readReactVersion reads the version of the React package the web packages
-// were built from, which names the matching Development React build.
+// were built from. The version identifies the matching Development React build.
 func readReactVersion(buildPkgsDir string) (string, error) {
 	// Read the installed package's manifest and take its version.
 	data, err := os.ReadFile(filepath.Join(buildPkgsDir, "node_modules", "react", "package.json"))

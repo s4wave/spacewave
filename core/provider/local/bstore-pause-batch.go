@@ -15,7 +15,7 @@ const pausedBatchAlternates = 16
 // alternates for each block while the backend is paused, as raceAlternates
 // races them for one read. Once the backend pauses, each block the batch has
 // not answered asks the alternates in order, each once and only while the
-// backend is paused; an alternate's hit answers the block and the batch's later
+// backend is paused. An alternate's hit answers the block and the batch's later
 // answer for it is dropped. Once every block is answered the batch is
 // cancelled. Calls of fn never overlap.
 func (r *pausedReads) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
@@ -154,7 +154,7 @@ func (b *pausedBatch) isAnswered(i int) bool {
 
 // answer passes the first answer for block i to fn and drops the rest.
 func (b *pausedBatch) answer(i int, stored *block.StoredBlock, err error) error {
-	// Drop the answers after a block's first and after a failure.
+	// Drop the answers after a block's first answer and after a failure.
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	if b.err != nil {
@@ -164,8 +164,8 @@ func (b *pausedBatch) answer(i int, stored *block.StoredBlock, err error) error 
 		return nil
 	}
 
-	// Pass on the first, closing done once every block is answered or fn
-	// fails.
+	// Pass on the first answer, closing done once every block is answered
+	// or fn fails.
 	b.answered[i] = true
 	b.left--
 	if ferr := b.fn(i, stored, err); ferr != nil {

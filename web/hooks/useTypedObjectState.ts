@@ -9,7 +9,8 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useAccessTypedHandle } from './useAccessTypedHandle.js'
 
 // useTypedObjectState composes useAccessTypedHandle + useStreamingResource +
-// source derivation into a single hook. Shared by notebook, docs, and blog viewers.
+// source derivation into a single hook. The hook is shared by notebook, docs,
+// and blog viewers.
 export function useTypedObjectState<
   THandle extends SDKResource,
   TState extends { sources?: { ref?: string }[] },

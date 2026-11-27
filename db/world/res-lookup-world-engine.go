@@ -8,7 +8,7 @@ import (
 
 // WorldEngineResolver resolves LookupWorldEngine with the controller engine.
 type WorldEngineResolver struct {
-	// c is the controller
+	// c is the controller.
 	c Controller
 }
 

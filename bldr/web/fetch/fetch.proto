@@ -14,9 +14,9 @@ service FetchService {
 // Note: many fields are optional.
 message FetchRequest {
   oneof body {
-    // FetchRequestInfo contains the headers and other request info.
+    // RequestInfo is a FetchRequestInfo with headers and other request info.
     FetchRequestInfo request_info = 1;
-    // FetchRequestData contains a request data packet.
+    // RequestData contains a request data packet in a FetchRequestData.
     FetchRequestData request_data = 2;
   }
 }

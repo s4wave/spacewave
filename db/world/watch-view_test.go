@@ -93,7 +93,8 @@ func TestWatchViewRerunAt(t *testing.T) {
 	stop := errors.New("deadline reached")
 	runs := 0
 
-	// Request deadlines in both orders; neither a later nor zero time replaces it.
+	// Request deadlines in both orders. Neither a later nor zero time
+	// replaces it.
 	err := world.WatchView(ctx, tb.WorldState, func(ctx context.Context, _ world.WorldState) error {
 		// Finish the second evaluation only after the requested time.
 		runs++

@@ -50,7 +50,8 @@ import { docsMarkdownOverrides } from './markdown-overrides.js'
 
 export const DocumentationTypeID = 'spacewave-docs/documentation'
 
-// DOC_SOURCE_PREDICATE is the graph predicate linking documentation to its UnixFS source.
+// DOC_SOURCE_PREDICATE is the graph predicate linking documentation to its
+// UnixFS source.
 const DOC_SOURCE_PREDICATE = '<doc/source>'
 
 type DocHandle = NonNullable<ReturnType<typeof useUnixFSRootHandle>['value']>
@@ -93,8 +94,8 @@ function useDocSource(
 /**
  * createUntitledPage creates the next free untitled page, writes its title,
  * and returns its name. A page created whose title then failed to write stays
- * empty: it throws UntitledPageEmptyError naming it, so the caller says what
- * exists.
+ * empty: createUntitledPage throws UntitledPageEmptyError with the page's name,
+ * so the caller says what exists.
  */
 async function createUntitledPage(
   handle: DocHandle,
@@ -125,8 +126,8 @@ async function createUntitledPage(
   return name
 }
 
-// UntitledPageEmptyError is a page createUntitledPage created whose title
-// failed to write.
+// UntitledPageEmptyError identifies a page created by createUntitledPage
+// whose title failed to write.
 class UntitledPageEmptyError extends Error {
   constructor(public readonly page: string) {
     super(`${page} was created empty`)
@@ -151,7 +152,7 @@ export function useDocPage(
   const fileHandle = useUnixFSHandle(rootHandle, selectedPage)
   const textResource = useUnixFSHandleTextContent(fileHandle)
   const saveHold = useSaveHold()
-  // closed is aborted once the viewer unmounts; saving is set while a save is
+  // closed is aborted once the viewer unmounts. saving is set while a save is
   // in flight, so a second press sends no second write for the same draft.
   const closed = useAbortSignal([])
   const saving = useRef(false)
@@ -178,9 +179,10 @@ export function useDocPage(
     }
     // Save on exit from edit mode, and keep editing if the save fails: the
     // Space's replay may enter a wait between this check and the commit.
-    // Hold the file and the root above it until the Space decides the save,
-    // which waits while the Space opens, so closing the viewer neither drops
-    // it nor releases its handles; a closed viewer shows a failure in a toast.
+    // Hold the file and the root above it until the Space decides the save.
+    // The save waits while the Space opens, so closing the viewer neither drops
+    // the save nor releases the file and root handles. A closed viewer shows a
+    // failure in a toast.
     const root = rootHandle.value
     const handle = fileHandle.value
     if (editContent !== null && root && handle) {
@@ -237,7 +239,9 @@ export function useDocPage(
   }
 }
 
-/** DocPlaceholder shows the documentation title bar over a single centered body. */
+/**
+ * DocPlaceholder shows the documentation title bar over a single centered body.
+ */
 function DocPlaceholder({
   title,
   status,
@@ -264,7 +268,10 @@ interface DocSidebarBodyProps {
   onCreatePage: () => void
 }
 
-/** DocSidebarBody is the search, create, and page listing shared by the rail and the drawer. */
+/**
+ * DocSidebarBody is the search, create, and page listing shared by the rail and
+ * the drawer.
+ */
 function DocSidebarBody({
   searchQuery,
   onSearchChange,
@@ -355,7 +362,9 @@ interface DocNavDrawerProps {
   children: ReactNode
 }
 
-/** DocNavDrawer is the narrow-width page drawer, scoped to the viewer's pane. */
+/**
+ * DocNavDrawer is the narrow-width page drawer, scoped to the viewer's pane.
+ */
 function DocNavDrawer({
   title,
   open,
@@ -418,7 +427,9 @@ interface DocPageBodyProps {
   onEditContentChange: (content: string) => void
 }
 
-/** DocPageBody renders the page as loading, an error, the editor, or markdown. */
+/**
+ * DocPageBody renders the page as loading, an error, the editor, or markdown.
+ */
 function DocPageBody({
   textResource,
   editing,
@@ -462,7 +473,10 @@ interface DocContentProps extends DocPageBodyProps {
   onCancelEdit: () => void
 }
 
-/** DocContent shows the selected page with its edit controls, or a prompt to pick one. */
+/**
+ * DocContent shows the selected page with its edit controls, or a prompt to
+ * pick one.
+ */
 function DocContent({
   selectedPage,
   onToggleEdit,
@@ -550,13 +564,13 @@ export function DocumentationViewer({
   const [searchQuery, setSearchQuery] = useState('')
 
   // Narrow-width navigation drawer state. portalContainer scopes the drawer
-  // overlay to this viewer so it stays inside a resizable pane.
+  // overlay to this viewer so the overlay stays inside a resizable pane.
   const [navOpen, setNavOpen] = useState(false)
   const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
     null,
   )
 
-  // Selecting or creating a page closes the drawer; on desktop the drawer is
+  // Selecting or creating a page closes the drawer. On desktop the drawer is
   // already closed so the call is a no-op.
   const handleSelectPage = useCallback(
     (name: string) => {
@@ -592,7 +606,7 @@ export function DocumentationViewer({
   // Gate the viewer on the doc source: while the link resolves, or until the
   // first directory listing arrives, show one status under the bar instead of
   // flashing partial UI. A failed listing is a notice over the page, which
-  // reads on its own.
+  // is read on its own.
   const status: ViewerStatusProps | null =
     resourceStatus('the documentation', linkedSource) ??
     (sourceKey && entries.loading && !entries.value
@@ -638,7 +652,7 @@ export function DocumentationViewer({
       </DocNavDrawer>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar - wide widths only */}
+        {/* Sidebar: wide widths only */}
         <div className="border-border hidden w-55 shrink-0 flex-col border-r @lg:flex">
           {/* Header */}
           <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">

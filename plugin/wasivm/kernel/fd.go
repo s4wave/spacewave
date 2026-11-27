@@ -57,7 +57,7 @@ func (p *Process) openResolved(resolved string, flags, mode uint32) uint64 {
 }
 
 // openTerminal binds an open of /dev/tty, /dev/console or a pty slave to its
-// terminal. /dev/tty names p's controlling terminal. As on Linux, a session
+// terminal. /dev/tty selects p's controlling terminal. As on Linux, a session
 // leader without a controlling terminal that opens a pty slave no session
 // controls, without O_NOCTTY, takes it as its controlling terminal.
 func (p *Process) openTerminal(of *OpenFile) uint64 {

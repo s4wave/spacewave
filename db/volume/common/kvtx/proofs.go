@@ -20,14 +20,14 @@ const rootProofSlice = 256
 
 // MarkRootsComplete records completion proofs for stored roots: the graph
 // under each is stored. A proof outlives the eviction of a block below its
-// root, which RmBlock makes only for bytes the store can fetch again, such as
-// the writeback cache's blocks its remote holds: eviction keeps the block's
+// root. RmBlock evicts only bytes the store can fetch again, such as the
+// writeback cache's blocks its remote holds: eviction keeps the block's
 // child list and count, so the proved graph stays whole in liveness and a
 // read refills the bytes. The World copy, the one consumer, skips and holds a
 // proved subtree on that basis. The collector deletes a proof when it starts
-// releasing the block's children, since it may free them before the block,
-// and with the block when it frees it; a pending proof counts only while its
-// root is held.
+// releasing the block's children, since the collector may free them before
+// the block, and with the block when it frees the block. A pending proof
+// counts only while its root is held.
 //
 // A proof stays pending in memory until a transaction carries it. A mark of
 // one root, such as the derived proof of a World commit, leaves it for the
@@ -51,7 +51,7 @@ func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef)
 
 // carryPendingRootProofs writes the pending proofs in transactions of their
 // own, rootProofSlice per transaction, until none remain. It stops when a
-// transaction carries nothing, which leaves proofs whose roots are gone for a
+// transaction carries nothing, so proofs whose roots are gone remain for a
 // later carry to drop.
 func (v *Volume) carryPendingRootProofs(ctx context.Context) error {
 	// Leave carrying to other writers when the store has no atomic publication.
@@ -91,7 +91,7 @@ func (v *Volume) pendingRootProofs() int {
 // proofs.
 func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) error {
 	for {
-		// Note the frees attempted before checking that the roots exist.
+		// Note the frees tried before checking that the roots exist.
 		v.proofMu.Lock()
 		frees := v.frees
 		v.proofMu.Unlock()

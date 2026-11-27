@@ -53,7 +53,7 @@ func (d *Domain) Sync(ctx context.Context) error {
 }
 
 // WaitDurable makes every completed ordered commit durable. The index has no
-// background flush to wait for, so it syncs.
+// background flush to wait for, so WaitDurable syncs.
 func (d *Domain) WaitDurable(ctx context.Context) error {
 	return d.s.sync(ctx)
 }

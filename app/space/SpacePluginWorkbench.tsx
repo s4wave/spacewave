@@ -60,7 +60,7 @@ export function SpacePluginWorkbench({
 }: {
   request: BuildSpacePluginRequest
 }) {
-  // The open Space owns data; this workbench owns only its compiler attachment.
+  // The open Space owns data. This workbench owns only its compiler attachment.
   const id = useId()
   const space = SpaceContext.useContext()
   const contents = SpaceContentsContext.useContext()
@@ -86,14 +86,14 @@ export function SpacePluginWorkbench({
   const selectedResource = useObjectMetadata(spaceWorldResource, objectKey)
   const selectedType = resourceContent(selectedResource)?.typeId
 
-  // A failed read shows its notice over what it kept, naming what failed:
-  // the preview object list, or the selected object's type.
+  // A failed read shows its notice over the retained data, identifying what
+  // failed: the preview object list, or the selected object's type.
   const previewFailure = [
     resourceStatus('the preview objects', objectKeysResource),
     resourceStatus(`the type of ${objectKey}`, selectedResource),
   ].find((status) => status?.state === 'failed')
 
-  // Preview through the chosen frontend module, or the first one.
+  // Preview through the chosen frontend module, or the first frontend module.
   const entrypoints = frontend.value?.session.entrypoints ?? []
   const entrypoint = entrypoints.includes(entry) ? entry : entrypoints[0]
 
@@ -118,7 +118,8 @@ export function SpacePluginWorkbench({
   )
 
   // Each loaded module keeps its React identity through compatible Vite edits.
-  // The override is confined to this preview; installed viewers keep their artifact.
+  // The override is confined to this preview. Installed viewers keep their
+  // artifact.
   const viewers = useMemo<ObjectViewerComponent[]>(() => {
     const attached = frontend.loading ? null : frontend.value
     if (!attached || !entrypoint || !selectedType) {

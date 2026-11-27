@@ -209,7 +209,7 @@ func registerSQL(
 	return refs, nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ controller.Controller                  = (*Controller)(nil)
 	_ bldr_plugin.InitialCapabilityRegistrar = (*Controller)(nil)

@@ -3,7 +3,7 @@
 package cdn
 
 // BaseURL returns the CDN origin used for anonymous read artifacts. Prod
-// builds always return =DefaultBaseURL=; the env-var override ships only
+// builds always return =DefaultBaseURL=. The env-var override ships only
 // with dev builds (see =base-url-dev.go=).
 func BaseURL() string {
 	return DefaultBaseURL

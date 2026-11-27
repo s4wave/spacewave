@@ -9,13 +9,13 @@ import (
 )
 
 // rootSet is a named root that holds a list of roots as a chain of HeldRoots
-// blocks, moved only through setRootSets and appendRoots with the block it
-// held as Previous.
+// blocks, moved only through setRootSets and appendRoots with the block it held
+// as Previous.
 //
 // The cursor, pending and checkpoint roots are World histories: each holds
 // every World it was moved onto since a checkpoint last covered them, since a
-// kept World names stored pages that only an earlier World of the history may
-// hold, and moving the root onto the newest World alone would leave those
+// kept World references stored pages that only an earlier World of the history
+// may hold, and moving the root onto the newest World alone would leave those
 // pages held by nothing. A trim releases a World once no position or candidate
 // the adapter still keeps is that World. The replay payloads root holds the
 // payloads of the operations the Space's state holds above its checkpoint,
@@ -23,21 +23,21 @@ import (
 //
 // Invariants, which the Volume's collector relies on to free nothing live:
 //
-//  1. roots is what the stored root's block names: it changes only after the
+//  1. roots is what the stored root's block lists: it changes only after the
 //     move that stores the new block lands, and it is read from that block at
 //     open before any move, so a move after a restart keeps every root the
-//     stored block names unless the caller drops it. An open that cannot read
+//     stored block lists unless the caller drops it. An open that cannot read
 //     the block fails rather than start from an empty set.
-//  2. A move names a set's old block as Previous, so one that another writer
+//  2. A move records a set's old block as Previous, so one that another writer
 //     moved first fails and changes nothing.
-//  3. A move's new block lands in the same Land as the release of the old
-//     one, so a root both name nets its new holder and its lost one in the
-//     same netting slice and is never at zero between them.
-//  4. A root a move adds is held until that Land by what put it: the kept
-//     pages the swap stores, a replay stage epoch, a pin, or another root.
-//  5. A set whose roots stay is not moved; the stored block already holds
-//     them. A set that holds none releases its name and forgets its roots,
-//     so the next move holds only what its caller names.
+//  3. A move's new block lands in the same Land as the release of the old one,
+//     so a root both reference nets its new holder and its lost one in the same
+//     netting slice and is never at zero between them.
+//  4. A root a move adds is held until that Land by what put it: the kept pages
+//     the swap stores, a replay stage epoch, a pin, or another root.
+//  5. A set whose roots stay is not moved because the stored block already
+//     holds them. A set that holds none releases its name and forgets its
+//     roots, so the next move holds only what its caller supplies.
 //  6. A move back onto a block the set left is a root moved onto a stored
 //     block, which sets the Volume's hold mark when that block is at zero, so
 //     no free takes a child before the block's re-hold nets.
@@ -111,8 +111,8 @@ func (h *rootSet) held(keep func(*block.BlockRef) bool, live []*block.BlockRef) 
 // moves the sets as block.NamedRoot.RequireHeld does. The caller holds
 // rootMtx.
 func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*block.BlockRef, entries []*block.PutBatchEntry, requireHeld bool, roots ...block.NamedRoot) error {
-	// Encode each changed set as one block naming its roots, or release its
-	// name when it holds none.
+	// Encode each changed set as one block listing its roots, or release
+	// its name when it holds none.
 	for i, h := range hs {
 		if slices.EqualFunc(next[i], h.roots, refEqual) {
 			continue
@@ -141,16 +141,16 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 	return nil
 }
 
-// appendRoots adds extra to h in one root move whose block names extra and
-// the block h's root holds now as its Prev, so an append writes and links the
-// same however many roots h holds, until the chain reaches maxRootLinks and
-// the append rewrites the set as one block. The new block holds the earlier
-// one from the move that takes the root off it. A root of extra that h holds
+// appendRoots adds extra to h in one root move whose block lists extra and the
+// block h's root holds now as its Prev, so an append writes and links the same
+// however many roots h holds, until the chain reaches maxRootLinks and the
+// append rewrites the set as one block. The new block holds the earlier one
+// from the move that takes the root off it. A root of extra that h holds
 // already, or that extra repeats or leaves empty, is left out: by invariant 1
-// the stored chain names it already, so leaving it out keeps the same roots
-// held. requireHeld refuses the move with block.ErrRootNotHeld when a stored
-// root of extra is not held now, as block.NamedRoot.RequireHeld describes. The
-// caller holds rootMtx.
+// the stored chain references it already, so leaving it out keeps the same
+// roots held. requireHeld refuses the move with block.ErrRootNotHeld when a
+// stored root of extra is not held now, as block.NamedRoot.RequireHeld
+// describes. The caller holds rootMtx.
 func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.BlockRef, requireHeld bool) error {
 	// Add only the roots h does not hold yet.
 	extra = slices.DeleteFunc(dedupRefs(extra), h.holds)
@@ -163,7 +163,7 @@ func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.Bl
 		return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{slices.Concat(h.roots, extra)}, nil, requireHeld)
 	}
 
-	// Name the new roots and the block they extend.
+	// Record the new roots and the block they extend.
 	prev := a.held[h.name]
 	refs := slices.Clone(extra)
 	if !prev.GetEmpty() {
@@ -217,7 +217,7 @@ func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
 
 // readRootBlock reads ref, a block the named root name holds directly or
 // through a Prev chain, or nil for an empty ref. A block the store does not
-// find is an error: the next move would name the root's block as Previous and
+// find is an error: the next move would record the root's block as Previous and
 // release every root it holds, so the adapter stays closed until the block
 // reads. The caller holds rootMtx.
 func (a *Adapter) readRootBlock(ctx context.Context, name string, ref *block.BlockRef) ([]byte, error) {

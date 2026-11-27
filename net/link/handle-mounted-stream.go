@@ -17,14 +17,14 @@ type HandleMountedStream interface {
 	// Directive indicates HandleMountedStream is a directive.
 	directive.Directive
 
-	// HandleMountedStreamProtocolID returns the protocol ID we are requesting a
-	// handler for. Cannot be empty.
+	// HandleMountedStreamProtocolID returns the protocol ID the directive
+	// requests a handler for. Cannot be empty.
 	HandleMountedStreamProtocolID() protocol.ID
-	// HandleMountedStreamLocalPeerID returns the local peer ID we are
-	// requesting a handler for. Cannot be empty.
+	// HandleMountedStreamLocalPeerID returns the local peer ID the
+	// directive requests a handler for. Cannot be empty.
 	HandleMountedStreamLocalPeerID() peer.ID
-	// HandleMountedStreamRemotePeerID returns the remote peer ID we are
-	// requesting a handler for. Cannot be empty.
+	// HandleMountedStreamRemotePeerID returns the remote peer ID the
+	// directive requests a handler for. Cannot be empty.
 	HandleMountedStreamRemotePeerID() peer.ID
 }
 
@@ -51,20 +51,20 @@ func NewHandleMountedStream(
 	}
 }
 
-// HandleMountedStreamProtocolID returns the protocol ID we are requesting a
-// handler for. Cannot be empty.
+// HandleMountedStreamProtocolID returns the protocol ID the directive requests
+// a handler for. Cannot be empty.
 func (d *handleMountedStream) HandleMountedStreamProtocolID() protocol.ID {
 	return d.protocolID
 }
 
-// HandleMountedStreamLocalPeerID returns the local peer ID we are
-// requesting a handler for. Cannot be empty.
+// HandleMountedStreamLocalPeerID returns the local peer ID the directive
+// requests a handler for. Cannot be empty.
 func (d *handleMountedStream) HandleMountedStreamLocalPeerID() peer.ID {
 	return d.localPeerID
 }
 
-// HandleMountedStreamRemotePeerID returns the remote peer ID we are
-// requesting a handler for. Cannot be empty.
+// HandleMountedStreamRemotePeerID returns the remote peer ID the directive
+// requests a handler for. Cannot be empty.
 func (d *handleMountedStream) HandleMountedStreamRemotePeerID() peer.ID {
 	return d.remotePeerID
 }
@@ -133,5 +133,5 @@ func (d *handleMountedStream) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ HandleMountedStream = (*handleMountedStream)(nil)

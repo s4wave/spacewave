@@ -22,11 +22,11 @@ type trackedLink struct {
 	ctxCancel context.CancelFunc
 }
 
-// trackLink executes tracking the link.
+// trackLink tracks the link.
 func (t *trackedLink) trackLink(ctx context.Context) error {
 	// decide which side opens stream using whoever's peer id is greater
-	// this is deterministic enough, as long as everyone uses the same
-	// String() implementation.
+	// The decision is deterministic enough, as long as all peers use the
+	// same String() implementation.
 	if t.lnk.GetLocalPeer().String() > t.lnk.GetRemotePeer().String() {
 		return nil
 	}

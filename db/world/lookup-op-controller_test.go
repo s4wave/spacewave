@@ -43,7 +43,7 @@ func TestLookupOpController(t *testing.T) {
 		_ = b.ExecuteController(ctx, testCtrl)
 	}()
 
-	// allow it to start
+	// Allow the World operation controller to start.
 	<-time.After(time.Millisecond * 100)
 
 	// Bind operation lookups to the controller engine target.

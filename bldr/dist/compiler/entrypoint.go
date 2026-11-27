@@ -43,7 +43,8 @@ func main() {
 // FormatDistEntrypoint formats the embedded dist entrypoint code.
 //
 // When composePackage is set, main composes the host process from its Compose
-// function; native builds add the cliImports command builders to it.
+// function. Native builds add the cliImports command builders to the
+// composition.
 func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
 	embedAssetsFS []string,

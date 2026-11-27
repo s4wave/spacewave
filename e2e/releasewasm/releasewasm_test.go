@@ -1168,7 +1168,7 @@ func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) moduleBodyProbe
 }
 
 func releaseWebPkgArtifactRelPath(t *testing.T, modulePath string) string {
-	// Require the module path to name a release web package.
+	// Require the module path to identify a release web package.
 	t.Helper()
 	const prefix = "/b/pkg/"
 	if !strings.HasPrefix(modulePath, prefix) {
@@ -2794,7 +2794,7 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 		t.Fatalf("production resume-ready surface is not ready: %#v", raw)
 	}
 
-	// Verify resume readiness names the selected runtime.
+	// Verify resume readiness identifies the selected runtime.
 	runtimeMark := lastComposedStartupMark(t, page, "runtime.mode-selected")
 	if composedString(resume["runtimeId"]) != composedString(runtimeMark.Detail["runtimeId"]) {
 		t.Fatalf("resume-ready runtime identity drifted: resume=%#v mode=%#v", resume, runtimeMark)
@@ -2892,7 +2892,7 @@ func assertReattachedWithoutColdBoot(t *testing.T, page playwright.Page, generat
 		t.Fatalf("wait for attached document to rejoin promoted host %q: %v", generation, err)
 	}
 
-	// An attached document relays to the host; a worker of its own is a cold boot.
+	// An attached document relays to the host. A worker of its own is a cold boot.
 	for _, mark := range readComposedStartupMarks(t, page) {
 		if mark.Label == "runtime.worker-created" {
 			t.Fatalf("attached document cold-booted a runtime worker after host loss: %#v", mark)
@@ -3114,7 +3114,7 @@ func waitForQuickstartAppRoute(t *testing.T, page playwright.Page) {
 
 // bootFailureProbeJS returns the page's terminal startup failure text, or
 // null. The boot shell's error state and the loading screen's failure are
-// terminal; a module error the boundary is still retrying is not.
+// terminal. A module error the boundary is still retrying is not.
 const bootFailureProbeJS = `() => {
 	const status = globalThis.__swBootStatus
 	if (status?.state === 'error') {

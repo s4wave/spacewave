@@ -20,7 +20,7 @@ import (
 // Store is the single writer of one target's samples.
 //
 // The target is a World object whose root is a block-backed key-value tree.
-// The Store keeps the open window and the target's series table in memory;
+// The Store keeps the open window and the target's series table in memory.
 // Append adds to the window and CommitStores writes the window as one segment.
 // A crash or Rollback loses only the uncommitted window. Exactly one Store
 // writes a target, so a Store reads the tree after it opens only to maintain
@@ -44,7 +44,7 @@ type Store struct {
 	// open is the window Append adds to.
 	open *Window
 	// frozen is the encoded window a commit is writing, or retrying after a
-	// failed commit; nil when none is pending.
+	// failed commit, and is nil when none is pending.
 	frozen *commitBatch
 	// inFlight is set while a commit of the frozen batch is running.
 	inFlight bool
@@ -155,7 +155,7 @@ func (s *Store) Key() string {
 
 // Lost returns a channel closed when a commit finds that another writer wrote
 // the target's status since this Store opened it. A lost Store writes nothing
-// more; the writer reopens the target to write again.
+// more. The writer reopens the target to write again.
 func (s *Store) Lost() <-chan struct{} {
 	return s.lost
 }
@@ -164,7 +164,7 @@ func (s *Store) Lost() <-chan struct{} {
 //
 // lset must not carry a name that the target's labels set. The timestamp must
 // be later than every sample the target has committed or is committing, and
-// later than the series' earlier samples in the open window; otherwise Append
+// later than the series' earlier samples in the open window. Otherwise Append
 // returns storage.ErrOutOfOrderSample, or
 // storage.ErrDuplicateSampleForTimestamp for the same time with another value.
 func (s *Store) Append(lset labels.Labels, t int64, v float64) error {
@@ -276,9 +276,10 @@ func (s *Store) freeze() (*commitBatch, error) {
 }
 
 // finish ends the in-flight commit of batch. A written batch becomes
-// committed state; a failed one stays frozen for the next commit.
+// committed state. A failed batch stays frozen for the next commit.
 func (s *Store) finish(batch *commitBatch, written bool) {
-	// End the commit; a failed one leaves the frozen batch for the next try.
+	// End the commit. A failed commit leaves the frozen batch for the
+	// next try.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	s.inFlight = false
@@ -312,7 +313,8 @@ func (s *Store) standDown() {
 // is harmless. It returns ErrStoodDown, writing nothing, when the target's
 // status is not the one the Store last saw.
 func (s *Store) write(ctx context.Context, wtx world.WorldState, batch *commitBatch) error {
-	// Open the target; it must exist because a Store is created or opened on it.
+	// Open the target. It must exist because a Store is created or opened
+	// on it.
 	obj, err := world.MustGetObject(ctx, wtx, s.key)
 	if err != nil {
 		return errors.Wrapf(err, "target %q", s.key)

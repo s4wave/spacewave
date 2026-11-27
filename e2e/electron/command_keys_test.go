@@ -18,12 +18,12 @@ const commandKeyAttemptTimeout = 5_000
 // TIER: nightly
 //
 // The renderer key dispatcher owns command keybindings. The main process must
-// therefore claim neither the leader nor the palette accelerator, which the
-// control endpoint reports directly. The key presses below only observe that
-// the renderer discovery surfaces are wired: Playwright drives the debugging
-// protocol, which injects below the native layer where menu accelerators and
-// globalShortcut intercept keys, so a press arrives at the renderer whether or
-// not a native owner would have stolen it.
+// therefore claim neither the leader nor the palette accelerator. The control
+// endpoint reports both registrations directly. The key presses below only
+// observe that the renderer discovery surfaces are wired: Playwright drives the
+// debugging protocol, which injects below the native layer where menu
+// accelerators and globalShortcut intercept keys, so a press arrives at the
+// renderer whether or not a native owner would have stolen it.
 func TestElectronDoesNotClaimRendererCommandKeys(t *testing.T) {
 	// Require the shared Electron harness for renderer command keys.
 	h := testHarness
@@ -130,8 +130,8 @@ func waitForVisibleSelector(
 //
 // A keybinding reaches the dispatcher only once the command registry snapshot
 // carrying it arrives in the renderer, and a press delivered before that is
-// simply discarded. Retrying the press is therefore the only way to separate a
-// key that is not wired from a key that arrived early; each attempt first
+// discarded. Retrying the press is therefore the only way to separate a
+// key that is not wired from a key that arrived early. Each attempt first
 // clears any partial sequence state so presses cannot accumulate.
 func pressUntilVisible(
 	ctx context.Context,

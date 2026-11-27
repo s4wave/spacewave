@@ -48,7 +48,8 @@ func WaitForDesktopSSOLink(
 		return nil, errors.Errorf("unsupported sso provider %q", provider)
 	}
 
-	// Delete the auth session on any failed exit; success disarms it.
+	// Delete the auth session on any failed exit. Success disarms the
+	// cleanup.
 	cleanupSession := func() {
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
@@ -66,9 +67,10 @@ func WaitForDesktopSSOLink(
 		return nil, errors.Wrap(openErr, "open browser for SSO link")
 	}
 
-	// Wait for SSO-link result via WS, falling back to HTTP exchange on read
-	// error. WS returns the legacy DesktopSSOLinkResult JSON shape; HTTP returns
-	// the same proto in binary. Both converge into a single typed result.
+	// Wait for the SSO-link result via WS, falling back to HTTP exchange on
+	// a read error. WS returns the legacy DesktopSSOLinkResult JSON shape.
+	// HTTP returns the same proto in binary. Both converge into a single
+	// typed result.
 	var result *api.DesktopSSOLinkResult
 	for attempts := 0; ; attempts++ {
 		conn, _, dialErr := websocket.Dial(ctx, wsURL, nil)

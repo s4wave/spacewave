@@ -37,8 +37,8 @@ const releasedResourceClient: ReleasedResourceClient = new Proxy(
       if (prop === 'released') return true
       if (prop === 'toJSON') return () => ({ released: true })
 
-      // Return undefined for inspection properties used by React/DevTools/vitest/pretty-format
-      // This includes:
+      // Return undefined for inspection properties used by
+      // React/DevTools/vitest/pretty-format. These properties include:
       // - Symbols (Symbol.toStringTag, Symbol.iterator, etc.)
       // - React internals ($$typeof, etc.)
       // - JS internals (constructor, prototype, __proto__)
@@ -111,8 +111,9 @@ function isServerMissingResourceError(error: unknown): boolean {
 }
 
 /**
- * A reference to a remote resource that can be used to communicate with it.
- * Each resource has a unique ID and must be explicitly released when no longer needed.
+ * ClientResourceRef is a reference to a remote resource that can be used to
+ * communicate with that resource. Each resource has a unique ID and must be
+ * explicitly released when no longer needed.
  */
 export interface ClientResourceRef {
   readonly resourceId: number
@@ -129,7 +130,7 @@ export interface ClientResourceRef {
 }
 
 /**
- * Event fired when a resource is released.
+ * ResourceReleasedEvent is fired when a resource is released.
  */
 export interface ResourceReleasedEvent {
   readonly resourceId: number
@@ -137,16 +138,16 @@ export interface ResourceReleasedEvent {
 }
 
 /**
- * Reasons why a resource might be released.
+ * ResourceReleaseReason describes why a resource might be released.
  */
 export type ResourceReleaseReason =
   | 'client-released' // Client called release()
-  | 'server-released' // Server notified us of release
+  | 'server-released' // Server notified the client of release
   | 'connection-lost' // Connection was lost
   | 'client-disposed' // Client was disposed/cancelled
 
 // clientErrorBrand marks ResourceClientError instances from any bundle copy of
-// the SDK; the registered symbol is shared across bundles.
+// the SDK. The registered symbol is shared across bundles.
 const clientErrorBrand = Symbol.for('bldr.ResourceClientError')
 
 /** ResourceClientError reports a client lifecycle failure across bundle boundaries. */
@@ -180,7 +181,7 @@ export type ResourceClientErrorCode =
   | 'ATTACH_SESSION_CLOSED'
 
 /**
- * Simple event emitter for resource lifecycle events.
+ * EventEmitter is a simple event emitter for resource lifecycle events.
  */
 class EventEmitter<T> {
   private listeners: ((event: T) => void)[] = []
@@ -212,14 +213,14 @@ class EventEmitter<T> {
 }
 
 /**
- * Internal interface that extends the public interface with mutable state.
+ * InternalResourceRef extends the public interface with mutable state.
  */
 interface InternalResourceRef extends ClientResourceRef {
   _markReleased(): void
 }
 
 /**
- * Client initialization state.
+ * ClientInitState contains the client initialization state.
  */
 interface ClientInitState {
   clientHandleId: number
@@ -434,13 +435,14 @@ interface ResourceClientSession {
 }
 
 /**
- * Manages connections to remote resources via RPC.
+ * Client manages connections to remote resources via RPC.
  * Handles resource lifecycle, reference counting, and cleanup.
  *
- * Note: Server-side handlers may send the same resource ID to the client multiple times
- * (out-of-band from this Client). Additionally, client code may create multiple references
- * to the same resource ID. We use reference counting to track when all client-side
- * references to a resource have been released before notifying the server.
+ * Note: Server-side handlers may send the same resource ID to the client
+ * multiple times (out-of-band from this Client). Additionally, client code may
+ * create multiple references to the same resource ID. Client uses reference
+ * counting to track when all client-side references to a resource have been
+ * released before notifying the server.
  */
 export class Client {
   private initState: ClientInitState | null = null
@@ -472,16 +474,17 @@ export class Client {
   }
 
   /**
-   * The connection generation counter. Increments each time the connection
-   * is lost and resources are released. React hooks can use this to detect
-   * when resources need to be re-created.
+   * connectionGeneration counts the connection generations. The counter
+   * increments each time the connection is lost and resources are released.
+   * React hooks can use the counter to detect when resources need to be
+   * re-created.
    */
   get connectionGeneration(): number {
     return this._connectionGeneration
   }
 
   /**
-   * Register a callback for when resources are released.
+   * onResourceReleased registers a callback for when resources are released.
    * Returns an unsubscribe function.
    */
   onResourceReleased(
@@ -492,8 +495,9 @@ export class Client {
   }
 
   /**
-   * Register a callback for when the connection is lost and all resources
-   * are released. This fires when the server connection drops and reconnects.
+   * onConnectionLost registers a callback for when the connection is lost and
+   * all resources are released. The callback fires when the server connection
+   * drops and reconnects.
    * Returns an unsubscribe function.
    */
   onConnectionLost(callback: () => void): () => void {
@@ -550,7 +554,7 @@ export class Client {
       const sess = await this.ensureAttachSession()
 
       try {
-        // Allocate attach correlation ID.
+        // Allocate an attach correlation ID.
         const attachId = ++sess.attachIdCtr
         const resultPromise = new Promise<number>((resolve, reject) => {
           sess.pending.set(attachId, { resolve, reject })
@@ -638,7 +642,7 @@ export class Client {
     const state = await this.ensureInitialized()
     const controller = createAbortController(this.signal)
 
-    // Create outgoing packet pushable.
+    // Create an outgoing packet pushable.
     const outgoing = pushable<ResourceAttachRequest>({ objectMode: true })
 
     // Open the ResourceAttach bidi stream.
@@ -650,7 +654,7 @@ export class Client {
     )
     const incomingIt = incoming[Symbol.asyncIterator]()
 
-    // Send session-only Init.
+    // Send the session-only Init.
     outgoing.push({
       body: {
         case: 'init' as const,
@@ -658,7 +662,7 @@ export class Client {
       },
     })
 
-    // Read session Ack.
+    // Read the session Ack.
     const ackResult = await incomingIt.next()
     if (ackResult.done) {
       outgoing.end()
@@ -697,8 +701,8 @@ export class Client {
       pending: new Map(),
     }
 
-    // Create yamux StreamConn.
-    // CLIENT side is yamux server (inbound) -- accepts streams
+    // Create a yamux StreamConn.
+    // CLIENT side is yamux server (inbound). The server accepts streams
     // and routes to the correct mux via service ID prefix routing.
     const routedLookup: LookupMethod = async (
       serviceId: string,
@@ -793,7 +797,7 @@ export class Client {
   }
 
   /**
-   * Create a reference to a specific resource by ID.
+   * createResourceReference creates a reference to a specific resource by ID.
    * The resource should already exist on the server.
    */
   createResourceReference(id: number): ClientResourceRef {
@@ -802,7 +806,7 @@ export class Client {
   }
 
   /**
-   * Dispose the client and clean up all resources.
+   * dispose disposes the client and cleans up all resources.
    */
   dispose(reason: ResourceClientErrorCode = 'CLIENT_DISPOSED'): void {
     // Dispose once and fail any pending reconnect.
@@ -846,18 +850,19 @@ export class Client {
   }
 
   /**
-   * Ensure the client is initialized and return the init state.
+   * ensureInitialized ensures the client is initialized and returns the init
+   * state.
    */
   private async ensureInitialized(): Promise<ClientInitState> {
     // Refuse a disposed client.
     this.throwIfDisposed()
 
-    // Return existing state if available
+    // Return the existing state if available
     if (this.initState) {
       return this.initState
     }
 
-    // Return existing promise if already initializing
+    // Return the existing promise if already initializing
     if (this.initPromise) {
       return this.initPromise
     }
@@ -868,12 +873,12 @@ export class Client {
   }
 
   /**
-   * Perform the actual client initialization.
+   * performInitialization initializes the client.
    */
   private async performInitialization(): Promise<ClientInitState> {
     this.throwIfDisposed()
 
-    // Create connection controller
+    // Create the connection controller
     this.connectionController = createAbortController(this.signal)
 
     return new Promise<ClientInitState>((resolve, reject) => {
@@ -929,7 +934,7 @@ export class Client {
   }
 
   /**
-   * Start the connection and handle the message stream.
+   * startConnection starts the connection and handles the message stream.
    */
   private async startConnection(
     onInitialized: (state: ClientInitState) => void,
@@ -1094,7 +1099,7 @@ export class Client {
   }
 
   /**
-   * Throw an error if the client has been disposed.
+   * throwIfDisposed throws an error if the client has been disposed.
    */
   private throwIfDisposed(): void {
     if (this.disposed) {
@@ -1106,7 +1111,7 @@ export class Client {
   }
 
   /**
-   * Creates a new reference to a resource.
+   * createRef creates a new reference to a resource.
    */
   private createRef(id: number): ClientResourceRef {
     // Find or start the reference set for the resource.
@@ -1259,7 +1264,8 @@ export class Client {
   }
 
   /**
-   * Called when the server notifies us that a resource was released.
+   * handleServerResourceRelease handles the server notification that a
+   * resource was released.
    */
   private handleServerResourceRelease(resourceId: number): void {
     // Ignore a resource with no references.
@@ -1269,10 +1275,10 @@ export class Client {
     // Mark all references as released
     refs.forEach((ref) => ref._markReleased())
 
-    // Remove from tracking
+    // Remove the resource from tracking
     this.resources.delete(resourceId)
 
-    // Emit event
+    // Emit the resource release event
     this.events.emit({
       resourceId,
       reason: 'server-released',
@@ -1280,8 +1286,8 @@ export class Client {
   }
 
   /**
-   * Release all resources with the given reason.
-   * Used when connection is lost and resources are no longer valid.
+   * releaseAllResources releases all resources with the given reason.
+   * Used when the connection is lost and resources are no longer valid.
    */
   private releaseAllResources(reason: ResourceReleaseReason): void {
     // Retire the generation and release every reference.

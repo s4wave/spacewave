@@ -8,19 +8,19 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures the identity server.
- * Forwards incoming requests to directives.
+ * The server forwards incoming requests to directives.
  *
  * @generated from message identity.domain.server.Config
  */
 export interface Config {
   /**
    * Server configures the peer ids and protocol ids to listen on.
-   * If the protocol IDs list is empty, uses the default protocol id.
+   * If the protocol IDs list is empty, the server uses the default protocol id.
    */
   server?: Config$1
   /**
    * DomainIds is the list of domain IDs to service.
-   * If empty, allows any domain ID.
+   * If DomainIds is empty, the server allows any domain ID.
    */
   domainIds?: string[]
   /**

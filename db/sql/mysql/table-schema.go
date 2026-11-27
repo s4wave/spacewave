@@ -19,7 +19,7 @@ func NewTableSchema(schema sql.Schema) *TableSchema {
 	return sch
 }
 
-// Validate performs cursory validation of the table schema.
+// Validate cursorily validates the table schema.
 func (s *TableSchema) Validate() error {
 	// Require at least one stored table column.
 	cols := s.GetColumns()

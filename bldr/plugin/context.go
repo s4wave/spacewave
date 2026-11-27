@@ -35,7 +35,7 @@ func NewPluginContextInfo(meta *PluginMeta, instanceKey, manifestRoot string) *P
 // PinAssetsHref pins href, a path under the plugin's assets route, to the
 // manifest root the plugin runs, so a browser loads the files of that exact
 // build. A Space serves its plugins' files only at pinned paths. It returns
-// href unchanged when the root is unknown or href names other files.
+// href unchanged when the root is unknown or href selects other files.
 func (i *PluginContextInfo) PinAssetsHref(href string) string {
 	// Cut the plugin's assets route from href.
 	pluginID := i.GetPluginMeta().GetPluginId()

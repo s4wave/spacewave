@@ -35,7 +35,8 @@ func SqlDbFactory(
 		return nil, nil, err
 	}
 
-	// Open the database; it stages its writes until it publishes them.
+	// Open the database. The database stages its writes until it publishes
+	// them.
 	store, err := NewWorldBackedSql(ctx, ws, objectKey)
 	if err != nil {
 		return nil, nil, err

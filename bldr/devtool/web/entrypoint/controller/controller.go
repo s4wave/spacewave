@@ -100,7 +100,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-// NOTE: we le.Fatal a lot of things in here
+// NOTE: the controller calls le.Fatal for many failures here.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// Start the web runtime stack the plugin hosts run on.
 	b, le, devtoolInfo := c.b, c.le, c.devtoolInfo
@@ -139,7 +139,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 
 	// The open runtime owns reconnection, including a native server rebuild.
-	// Keep retrying until it closes; an individual RPC still has a dial timeout.
+	// Keep retrying until the runtime closes. Each RPC still has a dial
+	// timeout.
 	devtoolBackoff := &backoff.Backoff{
 		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 		Exponential: &backoff.Exponential{
@@ -172,7 +173,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer wsEstRef.Release()
 
 	// forward RPC service ids with the HostServiceID to the devtool
-	// this will forward LookupRpcClient<devtool/*>
+	// The controller forwards LookupRpcClient<devtool/*>.
 	fwdDevtoolCtrlI, _, fwdDevtoolRpcRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&stream_srpc_client_controller.Config{
 		Client: &stream_srpc_client.Config{
 			ServerPeerIds:    []string{devtoolInfo.GetDevtoolPeerId()},
@@ -396,7 +397,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns resolver(s). If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns
+// resolver(s). Otherwise, HandleDirective returns nil.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {

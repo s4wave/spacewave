@@ -23,15 +23,15 @@ export interface ForgeSetRow<T> {
 
 interface ForgeSetListProps<T> {
   set: Resource<KeyedSet<EntityRow<T>>>
-  // what names the set in a failure, such as "the tasks".
+  // what labels the set in a failure, such as "the tasks".
   what: string
   icon: ReactNode
   loadingLabel: string
   emptyLabel: string
-  // renderRow draws one row; it should return a memoized row keyed by
+  // renderRow draws one row. It should return a memoized row keyed by
   // objectKey, so a change to one member draws only that row.
   renderRow: (row: ForgeSetRow<T>) => ReactNode
-  // compare orders the rows; without it they keep the listing order.
+  // compare orders the rows. Without it, they keep the listing order.
   compare?: (a: ForgeSetRow<T>, b: ForgeSetRow<T>) => number
 }
 

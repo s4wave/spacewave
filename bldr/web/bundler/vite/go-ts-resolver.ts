@@ -68,7 +68,7 @@ function vendorRoots(
 
 // resolveGoImportPaths returns the candidate sources of an @go/ import. An
 // import of the project module or of the importer's own module resolves to
-// that module's sources; any other import resolves through the vendor trees,
+// that module's sources. Any other import resolves through the vendor trees,
 // then the module cache when the vendor file is absent.
 // The importer's module matters when the build root reaches source outside the
 // project, such as an app startup module bundled into the Bldr renderer.
@@ -138,8 +138,8 @@ function resolveSourcePaths(
   return [resolve(dirname(importer), source)]
 }
 
-// isPackageImport reports whether source names an npm package rather than a
-// file, a virtual module or an @go/ or vendor/ path.
+// isPackageImport reports whether source identifies an npm package rather than
+// a file, a virtual module or an @go/ or vendor/ path.
 function isPackageImport(source: string): boolean {
   return (
     !source.startsWith('.') &&
@@ -171,8 +171,8 @@ export function buildGoAliases(
 }
 
 /**
- * Creates a Vite plugin that resolves @go/ paths that end in .js to their .ts equivalents
- * when the .ts file exists but the .js file doesn't
+ * goTsResolver creates a Vite plugin that resolves @go/ paths that end in .js
+ * to their .ts equivalents when the .ts file exists but the .js file doesn't.
  */
 export function goTsResolver(
   projectRoot: string,

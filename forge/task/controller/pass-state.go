@@ -4,9 +4,9 @@ import forge_pass "github.com/s4wave/spacewave/forge/pass"
 
 // passState is a snapshot of the pass state.
 type passState struct {
-	// objKey is the object key
+	// objKey is the object key.
 	objKey string
-	// pass is the most recent pass object
+	// pass is the most recent pass object.
 	pass *forge_pass.Pass
 }
 

@@ -53,7 +53,7 @@ func (h *testRootHandler) InvokeMethod(_, methodID string, strm srpc.Stream) (bo
 }
 
 func TestParseWebListenRequestBinding(t *testing.T) {
-	// Reject a binding that names only a Space or only a session.
+	// Reject a binding that selects only a Space or only a session.
 	for _, req := range []*s4wave_root.AccessWebListenerRequest{
 		{SpaceId: "space"},
 		{SessionIdx: 1},

@@ -81,7 +81,7 @@ func TestApplyRehearsedRejectsWithoutSlot(t *testing.T) {
 }
 
 // errGuardRefused is the refusal of refuseAllGuard. A guard refuses only with
-// an OperationRejection; any other error is a failure to decide.
+// an OperationRejection. Any other error is a failure to decide.
 var errGuardRefused = &world.OperationRejection{Code: "test/refused", Message: "refused by the test guard"}
 
 // refuseAllGuard refuses every write.

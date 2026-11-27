@@ -4,7 +4,7 @@ package resource_proxy
 // then by method ID.
 type Rules map[string]map[string]Rule
 
-// Rule returns the rule of one method, or End for a method r does not name.
+// Rule returns the rule of one method, or End for a method r does not list.
 func (r Rules) Rule(service, method string) Rule {
 	return r[service][method]
 }

@@ -22,7 +22,7 @@ import (
 
 // GraphLogAudit reports what the graph tree's primitive log still holds and
 // what a rebuild from it would lose. The log keeps one record per live node
-// and quad; every other bucket derives from it. The posting indexes list only
+// and quad. Every other bucket derives from it. The posting indexes list only
 // live quads, so a quad they list without a log record is a live quad whose
 // record is missing, and its node IDs are in the posting keys.
 type GraphLogAudit struct {
@@ -56,18 +56,19 @@ type GraphLogAudit struct {
 
 	// MissingQuads are the live quads the postings list without a log record.
 	MissingQuads []*GraphMissingQuad
-	// MissingNodes are the nodes live quads or the value index name without
-	// a log record.
+	// MissingNodes are the nodes live quads or the value index reference
+	// without a log record.
 	MissingNodes []*GraphMissingNode
-	// PostingNodes counts posting entries that name a node record as a quad.
+	// PostingNodes counts posting entries that reference a node record as a
+	// quad.
 	PostingNodes int
 	// NodeValues are the values of the readable nodes the missing quads
-	// name.
+	// reference.
 	NodeValues map[uint64]quad.Value
 
-	// ObjectKeys is the number of World object keys hashed as candidates
-	// for missing node values, and ObjectHoles the object tree's missing
-	// pages.
+	// ObjectKeys and ObjectHoles count the World object keys hashed as
+	// candidates for missing node values and the object tree's missing
+	// pages, respectively.
 	ObjectKeys  int
 	ObjectHoles int
 }
@@ -93,7 +94,8 @@ type GraphMissingNode struct {
 	Hash []byte
 	// Refs is the stored reference count, -1 when unread.
 	Refs int64
-	// KnownRefs is the number of quad directions known to name the node.
+	// KnownRefs is the number of quad directions known to reference the
+	// node.
 	KnownRefs int
 	// Value is the recovered value, nil when no candidate matched.
 	Value quad.Value
@@ -164,8 +166,9 @@ type graphAudit struct {
 	postings map[string][]quad.Direction
 	report   *GraphLogAudit
 
-	// have marks the IDs with a readable log record, nodes those that are
-	// nodes, and refs counts the quad directions naming each ID.
+	// have and nodes mark the IDs with a readable log record and those that
+	// are nodes, respectively. refs counts the quad directions referencing
+	// each ID.
 	have, nodes idBitset
 	refs        []uint32
 	// missingQ are the live quads without a log record.
@@ -367,7 +370,7 @@ func (a *graphAudit) valueIndex(ctx context.Context, entry kvtx_block_okra.Build
 	return nil
 }
 
-// collectMissingNodes records each ID a live quad names that has no log
+// collectMissingNodes records each ID a live quad references that has no log
 // record.
 func (a *graphAudit) collectMissingNodes() {
 	a.missingN = make(map[uint64]*GraphMissingNode)
@@ -466,7 +469,8 @@ func (a *graphAudit) finish() {
 	sort.Slice(a.report.MissingNodes, func(i, j int) bool { return a.report.MissingNodes[i].ID < a.report.MissingNodes[j].ID })
 }
 
-// readNodeValues reads the value of each readable node a missing quad names.
+// readNodeValues reads the value of each readable node a missing quad
+// references.
 func (a *graphAudit) readNodeValues(ctx context.Context) error {
 	a.report.NodeValues = make(map[uint64]quad.Value)
 	for _, mq := range a.report.MissingQuads {
@@ -506,7 +510,7 @@ func (a *graphAudit) inLogHole(id uint64) bool {
 	return false
 }
 
-// ref counts one quad direction naming id.
+// ref counts one quad direction referencing id.
 func (a *graphAudit) ref(id uint64) {
 	if id == 0 {
 		return

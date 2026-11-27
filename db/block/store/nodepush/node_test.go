@@ -171,7 +171,7 @@ func TestNodeRunThrough(t *testing.T) {
 		t.Fatal("corrupted push reached the log")
 	}
 
-	// The drain uploads the pack; the first apply fails.
+	// The drain uploads the pack, but the first apply fails.
 	remote := &memRemote{packs: map[string][]byte{}}
 	reporting := NewReportingRemote(remote, server)
 	drainCtx, stopDrain := context.WithCancel(ctx)

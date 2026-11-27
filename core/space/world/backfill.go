@@ -53,13 +53,14 @@ type BackfillEngine interface {
 	// The choice persists on this device.
 	SetBackfill(ctx context.Context, enabled bool) error
 	// SetBackfillFollowsHead chooses whether the copy follows the installed
-	// head instead of the checkpoint, copying again at each head. A successor
-	// proving its copy during a handover follows the head, since its proof
-	// must name the owner's head. The choice lasts for this engine only.
+	// head instead of the checkpoint, copying again at each head. A
+	// successor proving its copy during a handover follows the head, since
+	// its proof must identify the owner's head. The choice lasts for this
+	// engine only.
 	SetBackfillFollowsHead(follow bool)
 	// RecheckBackfill restarts the copy so it reads every block of the
 	// covered roots again and fetches each one the store lacks. It returns
-	// once the recheck starts; GetBackfillState reports its outcome.
+	// once the recheck starts. GetBackfillState reports its outcome.
 	RecheckBackfill(ctx context.Context) error
 }
 
@@ -110,7 +111,7 @@ func (b *spaceBackfill) start(ctx context.Context) error {
 	b.choice.SetValue(enabled)
 
 	// Run the copy with ordered root moves: a crash that drops one repeats
-	// the copy, so they need not wait on a disk sync under rootMtx.
+	// the copy, so root moves need not wait on a disk sync under rootMtx.
 	b.routine.SetContext(kvtx.WithOrderedCommitContext(ctx), false)
 	b.routine.SetState(enabled)
 	if enabled {
@@ -253,7 +254,7 @@ func (b *spaceBackfill) execute(ctx context.Context, _ bool) error {
 // copy copies the graph of each root into the local store and holds them all
 // under the backfill root, and returns the number of blocks no reachable store
 // held. A copy skips each subtree its stage holds, which a completion proof
-// on the local store lets it hold; a recheck reads every block again.
+// on the local store lets the stage hold. A recheck reads every block again.
 //
 // Invariant: each copied block is held from before it is stored until a later
 // copy's root move takes the backfill root off it, first by the stage the copy

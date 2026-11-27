@@ -33,42 +33,41 @@ func rebuildable(state *LivenessState) error {
 	return nil
 }
 
-// ListRebuild is the typed walk of the settle of a Volume's old generation,
-// as settle.go describes: a walker that decodes each block by its type,
-// which only a walk from the roots can know, hands it each block's refs
-// through Verify, and the rebuild writes the block's list from them, marked,
-// in bounded transactions that yield to writers. Writing a marked list takes
-// the block off the run and the front and pushes its unverified children
-// onto the front, so the front holds what the walk still owes and the
-// settle flips only once it is empty.
+// ListRebuild is the typed walk of the settle of a Volume's old generation, as
+// settle.go describes: a walker that decodes each block by its type, which only
+// a walk from the roots can know, hands it each block's refs through Verify,
+// and the rebuild writes the block's list from them, marked, in bounded
+// transactions that yield to writers. Writing a marked list takes the block off
+// the run and the front and pushes its unverified children onto the front, so
+// the front holds what the walk still owes and the settle flips only once the
+// front is empty.
 //
 // A marked list is compared too, since Land and the rebuild mark a list with
-// whatever refs their caller hands them, and the walker can verify one
-// block twice in a run, under two types: the first, short, marks the list,
-// and the second must still add the children it lacks. A marked list that
-// lacks a decoded child is rewritten as the union, still marked, and notes
-// the rewrite; one that names every child is not written.
+// whatever refs their caller hands them, and the walker can verify one block
+// twice in a run, under two types: the first, short, marks the list, and the
+// second must still add the children it lacks. A marked list that lacks a
+// decoded child is rewritten as the union, still marked, and notes the rewrite.
+// One that references every child is not written.
 //
-// Invariant: after a walk that finishes with an empty front, every list a
-// root reaches through the walker and that it decoded names every child
-// this run decoded from its block's content. Outside it, and so reported
-// rather than held by the front: a marked list of a block the walker could
-// not decode or type with certainty (MarkedUndecodable), a block no read
-// resolves, and the blocks below a ref whose type the walker cannot name.
+// Invariant: after a walk that finishes with an empty front, every list a root
+// reaches through the walker and that the walker decoded references every child
+// the run decoded from its block's content. Outside that invariant, and so
+// reported rather than held by the front: a marked list of a block the walker
+// could not decode or type with certainty (MarkedUndecodable), a block no read
+// resolves, and the blocks below a ref whose type the walker cannot identify.
 //
 // Verify writes the union of the stored list and the refs, since a list may
-// lack a child and naming one more only keeps a block longer. Refs that lack
-// a child an unverified stored list names are refused, not written: a stored
-// list can only miss children, so such refs come from a wrong decoder, and
-// the block stays on the front, which holds the flip. A marked list is past
-// the front, so a refusal would leave it lacking with nothing to hold the
-// flip, and the sweep would free the child it lacks: it takes the union
-// whatever else it names, and MarkedRefused reports the disagreement. A
-// child only a wrong decoder names has no marked list, so it joins the
-// front and holds the flip. A list that gains a child logs no holder for
-// it, so on a Volume that keeps the logs the rewrite records that the
-// counts owe a recount, which the flip reads to return the Volume to
-// unadopted first.
+// lack a child and referencing one more only keeps a block longer. Refs that
+// lack a child an unverified stored list references are refused, not written: a
+// stored list can only miss children, so such refs come from a wrong decoder,
+// and the block stays on the front, which holds the flip. A marked list is past
+// the front, so a refusal would leave it lacking with nothing to hold the flip,
+// and the sweep would free the child it lacks: it takes the union whatever else
+// it references, and MarkedRefused reports the disagreement. A child only a
+// wrong decoder references has no marked list, so it joins the front and holds
+// the flip. A list that gains a child logs no holder for it, so on a Volume
+// that keeps the logs the rewrite records that the counts owe a recount, which
+// the flip reads to return the Volume to unadopted first.
 //
 // The walker reads through the Volume's full read chain, peers included,
 // and fills nothing, so a block the Volume lacks, as a peer's cache lacks
@@ -96,7 +95,7 @@ type ListRebuild struct {
 type pendingList struct {
 	// entry holds the block's ref and decoded refs.
 	entry *block.PutBatchEntry
-	// typ names the block's decoded type, for the samples.
+	// typ records the block's decoded type, for the samples.
 	typ string
 	// undecodable reports that the walker could not decode the block, so it
 	// is only counted when its list is marked.
@@ -133,15 +132,15 @@ func (r *ListRebuild) Verify(ctx context.Context, ref *block.BlockRef, refs []*b
 	return r.VerifyAs(ctx, ref, refs, "")
 }
 
-// VerifyAs is Verify for a block decoded as the type typ names, which the
+// VerifyAs is Verify for a block decoded as the type typ records, which the
 // samples carry.
 func (r *ListRebuild) VerifyAs(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref, Refs: refs}, typ: typ})
 }
 
-// Undecodable records that the walker reached ref, as the type typ names,
-// and could not decode it, or not with certainty. The rebuild counts and
-// samples it when its list is marked, and never writes its list.
+// Undecodable records that the walker reached ref, as the type typ records, and
+// could not decode it, or not with certainty. The rebuild counts and samples it
+// when its list is marked, and never writes its list.
 func (r *ListRebuild) Undecodable(ctx context.Context, ref *block.BlockRef, typ string) error {
 	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref}, typ: typ, undecodable: true})
 }
@@ -159,12 +158,13 @@ func (r *ListRebuild) queue(ctx context.Context, p pendingList) error {
 type listVerdict int
 
 const (
-	// listVerified is a block whose stored list named every child its refs
-	// name.
+	// listVerified is a block whose stored list referenced every child its
+	// refs reference.
 	listVerified listVerdict = iota
 	// listRewritten is a block whose list was missing or lacked a child.
 	listRewritten
-	// listDropped is a block whose refs lack a child its stored list names.
+	// listDropped is a block whose refs lack a child its stored list
+	// references.
 	listDropped
 )
 
@@ -241,8 +241,8 @@ func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildR
 			}
 		}
 
-		// Leave an undecodable block's list, and a marked list that names
-		// every child.
+		// Leave an undecodable block's list, and a marked list that
+		// references every child.
 		if p.undecodable || marked && !lacking {
 			continue
 		}
@@ -280,7 +280,8 @@ func judgeList(value []byte, listed bool, refs []*block.BlockRef) (listVerdict, 
 		return listRewritten, nil
 	}
 
-	// An unverified one is refused when the refs drop a child it names.
+	// An unverified one is refused when the refs drop a child it
+	// references.
 	old, encoded := listKeys(value), EncodeChildren(refs)
 	if !listMarked(value) && !containsChildren(encoded, old) {
 		return listDropped, nil
@@ -294,15 +295,15 @@ func judgeList(value []byte, listed bool, refs []*block.BlockRef) (listVerdict, 
 	return listRewritten, nil
 }
 
-// verifyOne writes the list of the block entry names from its decoded refs,
-// marked, while the generation is Open, given its list value and whether it
-// is listed: a missing list from the refs, a listed one, unverified or a
-// marked one that lacks a child, as the union, as mergeList describes,
-// strictly for an unverified list alone. A missing list is written whether
-// or not the Volume stores the bytes, and ends the block's hole record,
-// since the list now holds its children; the audit walk counts such a block
-// as ListedAbsent, the refill's input. A refused list is left as it was,
-// unverified and on the front.
+// verifyOne writes the list of the block that entry references from its decoded
+// refs, marked, while the generation is Open, given its list value and whether
+// it is listed: a missing list from the refs, a listed one, unverified or a
+// marked one that lacks a child, as the union, as mergeList describes, strictly
+// for an unverified list alone. A missing list is written whether or not the
+// Volume stores the bytes, and ends the block's hole record, since the list now
+// holds its children. The audit walk counts such a block as ListedAbsent, the
+// refill's input. A refused list is left as it was, unverified and on the
+// front.
 func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, value []byte, listed bool) (listVerdict, error) {
 	// Write a missing list from the refs, or merge a listed one.
 	key := BlockKey(entry.Ref)

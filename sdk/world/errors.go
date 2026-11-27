@@ -39,7 +39,7 @@ func operationError(code WorldErrorCode, rejectionCode, message string) error {
 // build does not know, returns an error.
 //
 // The wire carries only the code, so the plugin errors come back with their
-// identifying fields empty; callers classify them by type.
+// identifying fields empty. Callers classify them by type.
 func ErrorFromCode(code WorldErrorCode) error {
 	switch code {
 	case WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED:

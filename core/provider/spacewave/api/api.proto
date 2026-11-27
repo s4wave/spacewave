@@ -622,7 +622,7 @@ message CheckoutResponse {
 }
 
 // BillingPortalRequest is the request body for POST /billing/:id/portal.
-// No fields; the billing account is identified by the URL parameter.
+// No fields. The billing account is identified by the URL parameter.
 message BillingPortalRequest {}
 
 // BillingPortalResponse is the response body for POST /billing/:id/portal.
@@ -1116,7 +1116,7 @@ message TransferResourceRequest {
 
 // AssignBillingAccountRequest is the request body for POST /api/billing/assign.
 // Binds a billing account to a principal (account or organization). The caller
-// must be the BA's created_by_account_id; for org targets the caller must also
+// must be the BA's created_by_account_id. For org targets the caller must also
 // hold org:owner on the target org.
 message AssignBillingAccountRequest {
   // BillingAccountId is the billing account to assign.
@@ -1159,7 +1159,7 @@ message ManagedBillingAccount {
   int64 created_at = 5;
   // UpdatedAt is the billing account last-updated time in unix ms.
   int64 updated_at = 6;
-  // Assignees is the list of principals currently pointing at this BA
+  // Assignees is the list of principals pointing at this BA
   // (accounts.billing_account_id or organizations.billing_account_id).
   repeated PrincipalAssignment assignees = 7;
   // DisplayName is the user-editable label for this billing account.
@@ -1174,7 +1174,7 @@ message PrincipalAssignment {
   // OwnerId is the principal id (account ULID or org ULID).
   string owner_id = 2;
   // DisplayName is the principal's display name. For accounts this may be
-  // empty; the caller typically renders their own account as "Personal".
+  // empty. The caller typically renders their own account as "Personal".
   string display_name = 3;
 }
 
@@ -1183,8 +1183,8 @@ message PrincipalAssignment {
 // (managed) by the caller. The caller must then run checkout to activate it
 // and separately call AssignBillingAccount to bind it to a principal.
 message CreateBillingAccountRequest {
-  // DisplayName is the initial label for the billing account. Optional; the
-  // server falls back to a generic default when empty.
+  // DisplayName is the initial label for the billing account. Optional. The
+  // server falls back to a generic default label when DisplayName is empty.
   string display_name = 1;
 }
 
@@ -1437,7 +1437,7 @@ message AccountStateResponse {
   // EmailVerified is true if the account has at least one verified email.
   bool email_verified = 10;
   // AccountSObjectBindings is the set of purpose-scoped account-owned shared
-  // object bindings currently reserved or ready in cloud state.
+  // object bindings reserved or ready in cloud state.
   repeated AccountSObjectBinding account_sobject_bindings = 11;
   // AuthMethods is the richer account auth-method projection for settings UI.
   repeated AccountAuthMethod auth_methods = 12;
@@ -1920,7 +1920,7 @@ message DesktopSSOLinkResult {
   // Code is the OAuth authorization code returned by the provider.
   string code = 2;
   // Email is the OAuth provider display email, when available. Informational
-  // for UI and error surfaces only; account linking uses Provider + Code.
+  // for UI and error surfaces only. Account linking uses Provider + Code.
   string email = 3;
 }
 
@@ -2150,7 +2150,7 @@ message DesktopPasskeyRelayResult {
 }
 
 // DesktopPasskeyRelayResponse is the response body for POST
-// /auth/passkey/desktop/relay. Empty acknowledgement; the relay handler stores
+// /auth/passkey/desktop/relay. Empty acknowledgement. The relay handler stores
 // the payload on the auth-session DO and returns success.
 message DesktopPasskeyRelayResponse {}
 
@@ -2490,25 +2490,25 @@ message MultiSigActionResponse {
 // -- Empty request protos for OQ-3 endpoints --
 
 // UndoDeleteRequest is the request body for POST /api/account/undo-delete.
-// No fields; the action is identified by the authenticated session.
+// No fields. The action is identified by the authenticated session.
 message UndoDeleteRequest {}
 
 // RegisterPasskeyOptionsRequest is the request body for
-// POST /api/auth/passkey/register/options. No fields; the request is
+// POST /api/auth/passkey/register/options. No fields. The request is
 // identified by the authenticated session.
 message RegisterPasskeyOptionsRequest {}
 
 // SessionTicketRequest is the request body for POST /api/session/ticket.
-// No fields; the ticket is issued for the authenticated session.
+// No fields. The ticket is issued for the authenticated session.
 message SessionTicketRequest {}
 
 // ReinitializeSObjectRequest is the request body for
-// POST /api/sobject/:id/reinitialize. No fields; the SObject is identified by
+// POST /api/sobject/:id/reinitialize. No fields. The SObject is identified by
 // the URL parameter.
 message ReinitializeSObjectRequest {}
 
 // OrgDeleteRequest is the request body for POST /api/org/:orgId/delete.
-// No fields; the org is identified by the URL parameter.
+// No fields. The org is identified by the URL parameter.
 message OrgDeleteRequest {}
 
 // OrgDeleteResponse is the response body for POST /api/org/:orgId/delete.
@@ -2518,7 +2518,7 @@ message OrgDeleteResponse {
 }
 
 // OrgLeaveRequest is the request body for POST /api/org/:orgId/leave.
-// No fields; the org is identified by the URL parameter.
+// No fields. The org is identified by the URL parameter.
 message OrgLeaveRequest {}
 
 // OrgLeaveResponse is the response body for POST /api/org/:orgId/leave.
@@ -2529,7 +2529,7 @@ message OrgLeaveResponse {
 
 // RemoveOrgMemberRequest is the request body for
 // DELETE /api/org/:orgId/member/:memberId.
-// No fields; both ids come from URL parameters.
+// No fields. Both ids come from URL parameters.
 message RemoveOrgMemberRequest {}
 
 // RemoveOrgMemberResponse is the response body for
@@ -2541,7 +2541,7 @@ message RemoveOrgMemberResponse {
 
 // CancelOrgInviteRequest is the request body for
 // DELETE /api/org/:orgId/invite/:inviteId.
-// No fields; both ids come from URL parameters.
+// No fields. Both ids come from URL parameters.
 message CancelOrgInviteRequest {}
 
 // CancelOrgInviteResponse is the response body for
@@ -2552,7 +2552,7 @@ message CancelOrgInviteResponse {
 }
 
 // CancelBillingRequest is the request body for POST /api/billing/:baId/cancel.
-// No fields; the billing account is identified by the URL parameter.
+// No fields. The billing account is identified by the URL parameter.
 message CancelBillingRequest {}
 
 // CancelBillingResponse is the response body for POST /api/billing/:baId/cancel.
@@ -2563,7 +2563,7 @@ message CancelBillingResponse {
 
 // ReactivateBillingRequest is the request body for
 // POST /api/billing/:baId/reactivate.
-// No fields; the billing account is identified by the URL parameter.
+// No fields. The billing account is identified by the URL parameter.
 message ReactivateBillingRequest {}
 
 // ReactivateBillingResponse is the response body for
@@ -2719,7 +2719,7 @@ message GetFriendDmResponse {
   bool ready = 3;
   // OwnerAccountId is the account that owns the shared object.
   string owner_account_id = 4;
-  // OwnerType is the owner kind; always "account".
+  // OwnerType is the owner kind and is always "account".
   string owner_type = 5;
   // Accounts are the two accounts of the friendship.
   repeated FriendDmAccount accounts = 6;

@@ -46,7 +46,7 @@ interface CatalogEntry {
 // catalogSuggestions merges the backend plugin catalog with known-plugin
 // presentation metadata, keyed by manifest ID, and returns the entries not yet
 // installed sorted by name. The streamed availablePlugins list is the source
-// of truth for what is installable; known-plugins supplies name/icon and a
+// of truth for what is installable. known-plugins supplies name/icon and a
 // fallback description, and stands in as the browsable set until the catalog
 // syncs.
 function catalogSuggestions(
@@ -236,7 +236,7 @@ interface RequestedPluginListProps {
 
 // RequestedPluginList renders plugins something in the Space is waiting to
 // load but the Space does not list. A plugin whose manifest is stored in the
-// Space can be added in place; otherwise the row names the deploy step.
+// Space can be added in place. Otherwise the row describes the deploy step.
 function RequestedPluginList({
   requestedIds,
   availableIds,

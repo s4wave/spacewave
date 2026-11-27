@@ -137,8 +137,9 @@ func (s *AccountSettings) applyOpData(opData []byte) error {
 }
 
 // setDeveloperSpace records the developer Space. Devices race to create one,
-// so the operation replaces the recorded Space only when it names that Space
-// as previous: the first record of a race wins and later ones are rejected.
+// so the operation replaces the recorded Space only when the operation
+// records that Space as previous: the first record of a race wins and later
+// ones are rejected.
 func (s *AccountSettings) setDeveloperSpace(op *SetDeveloperSpaceOp) error {
 	spaceID := op.GetSpaceId()
 	if spaceID == "" {

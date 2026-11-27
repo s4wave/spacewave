@@ -285,15 +285,15 @@ func (t *Transfer) finish(ctx context.Context, phase TransferPhase) error {
 }
 
 // cleanupSpace deletes the Space at idx from the source once the target
-// holds it at the source's current head, which it checks just before the
-// delete. A Space whose source moved on since it was moved is moved again,
-// at most maxCleanupMoves times. It returns a reason when the Space must stay
-// on the source.
+// holds it at the source's current head. cleanupSpace checks the head just
+// before the delete. A Space whose source moved on since it was moved is
+// moved again, at most maxCleanupMoves times. It returns a reason when the
+// Space must stay on the source.
 //
 // A write to the source between the head check and the delete is lost with
-// the source; the source has no delete conditioned on its head yet.
+// the source. The source has no delete conditioned on its head yet.
 func (t *Transfer) cleanupSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry, head []byte) (string, error) {
-	// Name the Space for the checks and the log.
+	// Identify the Space for the checks and the log.
 	soRef := entry.GetRef()
 	soID := soRef.GetProviderResourceRef().GetId()
 	le := t.le.WithField("so-id", soID)
@@ -355,7 +355,7 @@ func (t *Transfer) sourceHead(ctx context.Context, le *logrus.Entry, soRef *sobj
 //     stage's lease and the collector's grace may have lost the copy, and
 //     the Space then fails before its state is written, so a retry copies
 //     again.
-//  4. The state is written only after the check, so the target never names
+//  4. The state is written only after the check, so the target never references
 //     a World it does not hold, and only while the target holds the state
 //     the run read (Transfer.tla: NoEditOverwritten).
 //  5. The hold releases nothing. A retained root the target's Adapter never
@@ -366,11 +366,11 @@ func (t *Transfer) sourceHead(ctx context.Context, le *logrus.Entry, soRef *sobj
 // the import root hold the copy there. Its uploaded packs are safe only
 // because Spacewave pack reclaim is off by default (SetPackReclaim): a reclaim
 // pass trashes a pack at least half dead by the roots a fence reports, and
-// neither hold reaches a fence; a trashed pack stays readable, and a pass
+// neither hold reaches a fence. A trashed pack stays readable, and a pass
 // retires it only after packfile.TrashAge, rescuing first the blocks that are
 // live again.
 func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) ([]byte, string, error) {
-	// Name the Space and its source.
+	// Identify the Space and its source.
 	soRef := entry.GetRef()
 	soID := soRef.GetProviderResourceRef().GetId()
 	le := t.le.WithField("so-id", soID)
@@ -395,7 +395,7 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 		return nil, "", nil
 	}
 
-	// Replay the World and name it by its head.
+	// Replay the World and identify the World by its head.
 	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_BLOCKS)
 	world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
 	if err != nil {
@@ -403,7 +403,7 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 	}
 	defer releaseWorld()
 
-	// Name the World by its head, and ask the target about that head.
+	// Identify the World by its head, and ask the target about that head.
 	data, err := world.MarshalVT()
 	if err != nil {
 		return nil, "", err
@@ -490,7 +490,7 @@ func (t *Transfer) copyWorld(
 	world *space_world.InnerState,
 	dst block.StoreOps,
 ) ([]*block.BlockRef, *block.StageCopy, error) {
-	// List the roots the World's state names.
+	// List the roots the World's state references.
 	var roots []*block.BlockRef
 	if root := world.GetHeadRef().GetRootRef(); !root.GetEmpty() {
 		roots = append(roots, root)

@@ -19,7 +19,7 @@ const preferWindow = 8
 //
 // A lane is one call's share of the link: an FTPS session, or one of the
 // requests an SFTP session keeps in flight. An urgent call takes a free lane
-// at once, or the next lane released before any other class; an interactive
+// at once, or the next lane released before any other class. An interactive
 // call comes next. Refill and background calls share the rest: they hold at
 // most capped lanes at once, leaving reserve lanes for the urgent and
 // interactive calls, and take a lane only while none of those waits, refill
@@ -60,8 +60,8 @@ type Pool[T comparable] struct {
 	// probeHeld counts the lanes probes hold.
 	probeHeld int
 	// floorLast is the capped kind that took the last lane granted below
-	// the capped floor; the next such grant goes to the other kind when it
-	// waits.
+	// the capped floor. The next such grant goes to the other kind when
+	// that kind waits.
 	floorLast kind
 	// queues holds the waiting calls of each kind, most urgent first.
 	queues [kinds][]*waiter[T]
@@ -141,7 +141,7 @@ func (p *Pool[T]) SetLimit(n int) {
 
 // SetCappedFloor lets refill and background calls hold up to n lanes ahead
 // of waiting urgent and interactive calls, within the limit, so a foreground
-// load above the limit cannot starve them. The default is zero.
+// load above the limit cannot starve them. The default floor is zero.
 func (p *Pool[T]) SetCappedFloor(n int) {
 	p.mu.Lock()
 	p.cappedFloor = max(n, 0)
@@ -150,7 +150,8 @@ func (p *Pool[T]) SetCappedFloor(n int) {
 }
 
 // SetProbes lets up to n urgent calls hold a lane each while the limit is
-// zero, as probes of whether the link has recovered. The default is zero.
+// zero, as probes of whether the link has recovered. The default probe count
+// is zero.
 func (p *Pool[T]) SetProbes(n int) {
 	p.mu.Lock()
 	p.probes = max(n, 0)
@@ -187,9 +188,9 @@ func (p *Pool[T]) Len() int {
 
 // Take waits for a lane for a call in the read class of ctx. prefer, when
 // not nil, picks the lanes the call would rather take, such as the one that
-// already has the object open; it runs under the pool's lock, so it must not
-// block. The caller returns the lease with Put. Take fails only when ctx ends
-// first.
+// already has the object open. prefer runs under the pool's lock, so it must
+// not block. The caller returns the lease with Put. Take fails only when ctx
+// ends first.
 func (p *Pool[T]) Take(ctx context.Context, prefer func(T) bool) (*Lease[T], error) {
 	// Take a free lane the call's class may hold. Read the raise channel
 	// before the class, so a rise between the two still wakes the wait.

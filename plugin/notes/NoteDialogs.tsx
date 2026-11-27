@@ -88,8 +88,8 @@ export function TextInputDialog({
   )
 }
 
-// EditError is the line a dialog shows when its edit failed; its confirm
-// tries the same input again.
+// EditError is the line a dialog shows when its edit failed. The dialog's
+// confirm button tries the same input again.
 function EditError({ error }: { error?: string }) {
   if (!error) return null
   return (
@@ -101,9 +101,9 @@ function EditError({ error }: { error?: string }) {
 
 interface SourceInputDialogProps {
   open: boolean
-  // sending disables the confirm and Cancel while an edit is applied.
+  // sending disables the confirm button and Cancel while an edit is applied.
   sending?: boolean
-  // error says what failed; the inputs keep what the person typed.
+  // error says what failed. The inputs keep what the person typed.
   error?: string
   onOpenChange: (open: boolean) => void
   onConfirm: (source: { name: string; ref: string }) => void
@@ -186,9 +186,9 @@ interface ConfirmActionDialogProps {
   title: string
   description: string
   confirmLabel: string
-  // sending disables the confirm and Cancel while the action runs.
+  // sending disables the confirm button and Cancel while the action runs.
   sending?: boolean
-  // error says what failed; the confirm then tries the action again.
+  // error says what failed. The confirm button then tries the action again.
   error?: string
   onOpenChange: (open: boolean) => void
   onConfirm: () => void

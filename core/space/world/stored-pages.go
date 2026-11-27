@@ -41,8 +41,8 @@ func (s *storedPages) get() block.Transformer {
 // writer's, since the PendingStore never kept them, and two stores that
 // overlap may both count a page that only one of them writes.
 //
-// Cost per store: one decode of each new page, and a lookup of each ref they
-// name; the stored pages they name end the walk unread.
+// Cost per store: one decode of each new page, and a lookup of each ref the
+// page holds. Stored pages those refs identify end the walk unread.
 func (a *Adapter) countStoredPages(ctx context.Context, roots ...*block.BlockRef) {
 	// Skip a transient adapter, and one with no World cursor yet.
 	xfrm := a.storedPages.get()

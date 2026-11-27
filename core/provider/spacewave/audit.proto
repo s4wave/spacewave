@@ -11,7 +11,8 @@ message AuditEventMetadata {
   // ActorPeerId is the session or entity peer id when the mutation came from a
   // signed caller.
   string actor_peer_id = 3;
-  // AuthorizedBy names the entity keypair that authorized a session action.
+  // AuthorizedBy identifies the entity keypair that authorized a session
+  // action.
   string authorized_by = 4;
 
   // Body is the per-action metadata payload.

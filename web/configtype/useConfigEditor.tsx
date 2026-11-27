@@ -19,9 +19,9 @@ interface BinaryMessageType {
 }
 
 // useConfigEditor looks up a config type registration by ID and renders the
-// editor component. For static registrations with messageType, handles
-// bytes<->typed conversion automatically. For dynamic registrations without
-// messageType, passes raw bytes to the component.
+// editor component. For static registrations with messageType, useConfigEditor
+// handles bytes<->typed conversion automatically. For dynamic registrations
+// without messageType, useConfigEditor passes raw bytes to the component.
 export function useConfigEditor(
   configId: string | undefined,
   configData: Uint8Array | undefined,

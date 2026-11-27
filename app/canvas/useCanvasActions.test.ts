@@ -113,7 +113,7 @@ describe('useCanvasActions', () => {
       result.current.selection.toggleSelect('a', false)
     })
 
-    // Delete selected.
+    // Delete the selected nodes.
     act(() => {
       result.current.actions.delete()
     })

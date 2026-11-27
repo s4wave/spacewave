@@ -23,19 +23,19 @@ type batchOp struct {
 	sender peer.ID
 }
 
-// ExecuteWorldBatch applies the mutations in order in one write transaction
-// and commits it. The first refused mutation discards the transaction and
-// names its index; a stale base replays the whole list in a fresh transaction.
+// ExecuteWorldBatch applies the mutations in order in one write transaction and
+// commits it. The first refused mutation discards the transaction and reports
+// its index. A stale base replays the whole list in a fresh transaction.
 //
 // Every op entry is resolved and prepared before the transaction takes the
 // engine's writer, so a cold plugin load costs this caller time while other
 // writers proceed, and ends with the caller's context error. An op the mount
 // cannot resolve, or whose plugin load fails or passes its deadline, refuses
-// the batch before any transaction opens, whatever entries precede it.
-// Because a refused batch discards its transaction, a plugin that times out
-// inside it is reported as WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT: nothing was
-// written. So is a batch whose replays spent the write budget; that refusal
-// names no entry, and its failed index is zero.
+// the batch before any transaction opens, whatever entries precede it. Because
+// a refused batch discards its transaction, a plugin that times out inside it
+// is reported as WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT: nothing was written. So is
+// a batch whose replays spent the write budget. That refusal identifies no
+// entry, and its failed index is zero.
 func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_world.ExecuteWorldBatchRequest) (*s4wave_world.ExecuteWorldBatchResponse, error) {
 	// Resolve and prepare every op before the transaction takes the writer.
 	mutations := req.GetMutations()
@@ -50,7 +50,8 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 	// Apply the mutations in order, stopping at the first refusal.
 	var resp *s4wave_world.ExecuteWorldBatchResponse
 	err = world.ExecTransaction(ctx, r.engine, true, func(ctx context.Context, wtx world.WorldState) error {
-		// Name the failed index on a refusal and discard the transaction.
+		// Record the failed index on a refusal and discard the
+		// transaction.
 		ws := world.GuardWorldState(wtx, access.writeGuard)
 		results := make([]*s4wave_world.WorldMutationResult, len(mutations))
 		for i, m := range mutations {

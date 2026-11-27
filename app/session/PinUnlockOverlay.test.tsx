@@ -148,9 +148,10 @@ describe('PinUnlockOverlay', () => {
         onReset={vi.fn()}
       />,
     )
-    // The unlock button is disabled when PIN is empty, but the handleUnlock
-    // function also guards against empty PIN. We can test the error display
-    // by entering a PIN, triggering unlock with a rejection, then checking error.
+    // The unlock button is disabled when the PIN is empty, but the handleUnlock
+    // function also guards against an empty PIN. The test checks the error
+    // display by entering a PIN, triggering unlock with a rejection, then
+    // checking the error.
     const input = screen.getByPlaceholderText('PIN')
     fireEvent.change(input, { target: { value: '9999' } })
 

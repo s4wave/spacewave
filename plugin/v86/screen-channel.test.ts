@@ -86,7 +86,7 @@ describe('ScreenRelay', () => {
   })
 
   it('answers a fill with a frame even when nothing changed', async () => {
-    // Request a fill before the emulator attaches, then after.
+    // Request a fill before the emulator attaches, then after the attachment.
     const channel = new FakeChannel()
     const relay = new ScreenRelay(channel as never)
     channel.send({ dir: 'in', op: { kind: 'fill' } })
@@ -133,7 +133,7 @@ describe('ScreenRelay', () => {
   })
 
   it('relays viewer keys to the emulator', () => {
-    // Press a key, release all, send Ctrl+Alt+Delete.
+    // Press a key, release all keys, send Ctrl+Alt+Delete.
     const channel = new FakeChannel()
     const relay = new ScreenRelay(channel as never)
     const emulator = fakeEmulator()

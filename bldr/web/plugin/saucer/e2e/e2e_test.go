@@ -135,9 +135,10 @@ func newMockWebPkg(id string) web_pkg.WebPkg {
 	return pkg
 }
 
-// TestSaucerInProcess runs the saucer runtime stack in-process with a simulated browser.
+// TestSaucerInProcess runs the saucer runtime stack in-process with a
+// simulated browser.
 //
-// This replicates the exact Go-side flow from saucer.Controller.Execute:
+// The test replicates the exact Go-side flow from saucer.Controller.Execute:
 //   - Creates two net.Pipe pairs (main RPC + fetch)
 //   - Wraps them with yamux muxed connections
 //   - The "browser" side runs SRPCWebRuntimeServer (simulated)
@@ -201,7 +202,8 @@ func TestSaucerInProcess(t *testing.T) {
 	// Set up the simulated browser.
 	browser := newSimulatedBrowser(le.WithField("side", "browser"))
 
-	// Register WebRuntime service on the browser's mux and start accepting.
+	// Register the WebRuntime service on the browser's mux
+	// and start accepting.
 	browserMux := srpc.NewMux()
 	if err := web_runtime.SRPCRegisterWebRuntime(browserMux, browser); err != nil {
 		t.Fatalf("register browser WebRuntime: %v", err)
@@ -235,7 +237,8 @@ func TestSaucerInProcess(t *testing.T) {
 				func(ctx context.Context, rem *web_runtime.Remote) error {
 					remEg, remCtx := errgroup.WithContext(ctx)
 
-					// Main RPC: accept incoming streams from browser.
+					// Main RPC: accept incoming streams
+					// from the browser.
 					remEg.Go(func() error {
 						err := rem.GetRpcServer().AcceptMuxedConn(remCtx, mainGoMc)
 						if err == io.EOF || err == context.Canceled {

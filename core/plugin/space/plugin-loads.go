@@ -18,7 +18,7 @@ type pluginLoads struct {
 	hosted hostedManifests
 	// pinned is each pinned plugin's resolved installation, by plugin ID.
 	pinned map[string]pinnedManifests
-	// gate admits the World manifests a load names.
+	// gate admits the World manifests a load specifies.
 	gate *admissionGate
 }
 

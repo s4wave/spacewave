@@ -18,9 +18,9 @@ import (
 //
 // The destination root directory must already exist in the batch writer's
 // world object (e.g. via FsInit). On error, the batch writer is Released to
-// drop accumulated state; on success, Commit is called exactly once.
+// drop accumulated state. On success, Commit is called exactly once.
 //
-// The source handle must point at a directory; lone file or symlink sources
+// The source handle must point at a directory. Lone file or symlink sources
 // are not supported.
 func SyncToUnixfsBatch(
 	ctx context.Context,
@@ -55,7 +55,7 @@ func SyncToUnixfsBatch(
 
 // walkBatchDir iterates children of the directory handle and forwards each
 // regular file into b.AddFile. Directories are traversed recursively with an
-// extended parentPath; other node types are skipped.
+// extended parentPath. Other node types are skipped.
 //
 // parentPath carries the dst-relative path components for the directory
 // currently being visited. The top-level call passes nil (root).

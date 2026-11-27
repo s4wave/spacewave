@@ -174,7 +174,7 @@ function useCanvasNodeController({
   // 2. Remove onClickCapture which @use-gesture adds for filterTaps. That
   //    capture-phase handler fires parent-to-child and blocks clicks from
   //    reaching embedded content (e.g. UnixFS browser rows).
-  // Selection is NOT triggered here; handleClick handles it after children
+  // Selection is NOT triggered here. handleClick handles it after children
   // have processed the click event.
   const wrappedBind = useCallback(() => {
     const handlers = bind()

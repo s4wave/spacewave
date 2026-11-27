@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// lookupBlockStoreResolver resolves LookupBlockStore directives
+// lookupBlockStoreResolver resolves LookupBlockStore directives.
 type lookupBlockStoreResolver struct {
 	c   *Controller
 	dir block_store.LookupBlockStore
@@ -43,20 +43,20 @@ func (c *Controller) resolveLookupBlockStore(
 	dir block_store.LookupBlockStore,
 ) (directive.Resolver, error) {
 	// Reject the directive when block store lookup is disabled.
-	// check if we can immediately reject this directive
+	// Check if the controller can immediately reject this directive.
 	if c.config.GetDisableLookupBlockStore() {
 		return nil, nil
 	}
 
 	// Reject the directive when the resolved volume does not match.
-	// check volume matches
+	// Check that the volume matches.
 	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {
 		if !volume.CheckLookupBlockStoreMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &lookupBlockStoreResolver{c: c, dir: dir}, nil
 }
 

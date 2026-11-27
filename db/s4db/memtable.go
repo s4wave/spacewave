@@ -28,10 +28,10 @@ func lessMentry(a, b *mentry) bool {
 }
 
 // memtable holds the entries since the last flush in key order. A published
-// state's memtable is immutable; the writer copies it before changing it,
+// state's memtable is immutable. The writer copies it before changing it,
 // which the tree does cheaply by sharing nodes. The tree holds pointers, so a
 // commit's copy of each node it changes moves a word per entry rather than
-// the entry; an entry never changes once set, so trees share it.
+// the entry. An entry never changes once set, so trees share it.
 type memtable struct {
 	// copyMtx serializes Copy, which changes the source tree's COW epoch.
 	// Readers never use that epoch and never hold this lock.
@@ -55,15 +55,16 @@ func newMemtable(budget int64) *memtable {
 // copy returns a memtable the caller may change without affecting m.
 func (m *memtable) copy() *memtable {
 	// Copy changes source metadata even though its nodes remain immutable.
-	// Only competing copies serialize; a scan cannot hold up this operation.
+	// Only competing copies serialize. A scan cannot hold up this
+	// operation.
 	m.copyMtx.Lock()
 	defer m.copyMtx.Unlock()
 	return &memtable{tree: m.tree.Copy(), filter: m.filter, bytes: m.bytes}
 }
 
-// probes holds the entries get searches with. The tree's comparison takes
-// its probe by pointer through a function value, so a probe built per call
-// escapes; a pooled one makes a lookup allocate nothing.
+// probes holds the entries get searches with. The tree's comparison takes its
+// probe by pointer through a function value, so a probe built per call escapes.
+// A pooled probe makes a lookup allocate nothing.
 var probes = sync.Pool{New: func() any { return new(mentry) }}
 
 // get returns the entry of key.

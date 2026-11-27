@@ -32,7 +32,8 @@ func TestJmpTableCopiedBuffer(t *testing.T) {
 }
 
 // TestJmpTableReplaces checks a setjmp into the same buffer from the same
-// frame replaces the last, so a loop that sets one buffer keeps one entry.
+// frame replaces the last entry, so a loop that sets one buffer keeps one
+// entry.
 func TestJmpTableReplaces(t *testing.T) {
 	// Set one buffer from one frame many times.
 	var tbl jmpTable

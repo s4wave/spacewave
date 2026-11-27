@@ -16,13 +16,13 @@ import (
 // runGuestShell owns every wait after mounting helpers finish. The independent
 // bootstrap exec releases the parent's vfork before touching its FUSE tree.
 // joined proves guest processes have stopped, including adopted descendants.
-// daemonArgs, when set, start the image's daemon beside the shell. trial,
-// when set, is accepted by a child once healthy, or ends the run with Reboot
-// at its deadline. stageArgs, when set, start the child that stages the next
-// release once ready closes and no trial is unsettled; its clean exit ends
-// the run with Reboot, which boots the staged trial. A request ends the run
-// with Reboot for SIGTERM, which BusyBox reboot sends, and with PowerOff for
-// any other signal.
+// daemonArgs, when set, start the image's daemon beside the shell. trial, when
+// set, is accepted by a child once healthy, or ends the run with Reboot at its
+// deadline. stageArgs, when set, start the child that stages the next release
+// once ready closes and no trial is unsettled. The child's clean exit ends the
+// run with Reboot, which boots the staged trial. A request ends the run with
+// Reboot for SIGTERM, which BusyBox reboot sends, and with PowerOff for any
+// other signal.
 func runGuestShell(
 	ctx context.Context,
 	requests <-chan os.Signal,
@@ -62,14 +62,16 @@ func runGuestShell(
 	}
 	defer func() { retErr = errors.Join(retErr, child.Release()) }()
 	defer func() {
-		// Kill all guest jobs, including detached sessions, then reap to ECHILD.
-		// Release closes Go's process descriptor; it never calls Cmd.Wait.
+		// Kill all guest jobs, including detached sessions, then reap
+		// to ECHILD. Release closes Go's process descriptor. Release
+		// never calls Cmd.Wait.
 		err := containGuest()
 		joined = err == nil
 		retErr = errors.Join(retErr, err)
 	}()
 
-	// Start the daemon after containment is deferred; stopping it runs first.
+	// Start the daemon after containment is deferred. Stopping the daemon
+	// runs first.
 	var daemon *guestChild
 	if daemonArgs != nil {
 		daemon = &guestChild{name: "DAEMON", executable: executable, args: daemonArgs, tty: tty}
@@ -173,7 +175,8 @@ func containGuest() error {
 	}
 	println("Stopping console jobs.")
 
-	// A stopped shell may leave detached jobs; process-group signals miss those.
+	// A stopped shell may leave detached jobs. Process-group signals miss
+	// those.
 	for {
 		if err := unix.Kill(-1, unix.SIGKILL); err != nil && err != unix.ESRCH {
 			return err

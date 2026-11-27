@@ -7,7 +7,8 @@ type pluginReference struct {
 	pluginID string
 	// instanceKey identifies the caller's authorized plugin binding.
 	instanceKey string
-	// manifestRoot selects an exact manifest content hash; empty follows updates.
+	// manifestRoot selects an exact manifest content hash. An empty
+	// manifestRoot follows updates.
 	manifestRoot string
 }
 

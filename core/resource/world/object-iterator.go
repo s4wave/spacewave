@@ -47,7 +47,8 @@ func (r *ObjectIteratorResource) Valid(ctx context.Context, req *s4wave_world.Va
 	return &s4wave_world.ValidResponse{Valid: r.iter.Valid()}, nil
 }
 
-// Key returns the current entry key, or empty if not valid.
+// Key returns the current entry key, or an empty string if the iterator is
+// invalid.
 func (r *ObjectIteratorResource) Key(ctx context.Context, req *s4wave_world.KeyRequest) (*s4wave_world.KeyResponse, error) {
 	return &s4wave_world.KeyResponse{ObjectKey: r.iter.Key()}, nil
 }

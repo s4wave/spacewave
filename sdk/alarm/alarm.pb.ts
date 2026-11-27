@@ -52,7 +52,7 @@ export const AlarmState_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface AlarmOption {
   /**
-   * Label names the action.
+   * Label identifies the action.
    */
   label?: string
   /**
@@ -83,7 +83,7 @@ export const AlarmOption: MessageType<AlarmOption> =
  */
 export interface Alarm {
   /**
-   * Title names the condition the Alarm flags.
+   * Title describes the condition the Alarm flags.
    */
   title?: string
   /**
@@ -116,7 +116,7 @@ export interface Alarm {
    */
   acknowledgedMs?: bigint
   /**
-   * AcknowledgedBy names who acknowledged the Alarm.
+   * AcknowledgedBy records who acknowledged the Alarm.
    */
   acknowledgedBy?: string
   /**

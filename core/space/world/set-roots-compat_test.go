@@ -26,15 +26,15 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// TestSetRootsAcrossBuilds checks that a Space written by one build replays
-// to the same World on another, so builds with and without set roots can
-// share a Space. SPACEWAVE_SR_COMPAT_ROLE runs one step on the s4db store
-// under SPACEWAVE_SR_COMPAT_DIR: "write" stores keypairs below and above a
-// checkpoint and records every object root; "verify" replays, requires the
-// same roots and keypairs, and requires each stored operation to re-encode to
-// its stored bytes. SPACEWAVE_SR_COMPAT_ABOVE_KEYPAIR=0 leaves out the
-// keypair above the checkpoint, whose staged block a build without set roots
-// does not store. Run the steps with test binaries of the two builds.
+// TestSetRootsAcrossBuilds checks that a Space written by one build replays to
+// the same World on another, so builds with and without set roots can share a
+// Space. SPACEWAVE_SR_COMPAT_ROLE runs one step on the s4db store under
+// SPACEWAVE_SR_COMPAT_DIR: "write" stores keypairs below and above a checkpoint
+// and records every object root. "verify" replays, requires the same roots and
+// keypairs, and requires each stored operation to re-encode to its stored
+// bytes. SPACEWAVE_SR_COMPAT_ABOVE_KEYPAIR=0 leaves out the keypair above the
+// checkpoint, whose staged block a build without set roots does not store. Run
+// the steps with test binaries of the two builds.
 func TestSetRootsAcrossBuilds(t *testing.T) {
 	role, dir := os.Getenv("SPACEWAVE_SR_COMPAT_ROLE"), os.Getenv("SPACEWAVE_SR_COMPAT_DIR")
 	if role == "" || dir == "" {

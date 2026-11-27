@@ -17,13 +17,14 @@ const ControllerID = "bifrost/tptaddr/controller"
 var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the tptaddr dialer controller.
-// Resolves EstablishLinkWithPeer directives by creating LookupTptAddr and DialTptAddr directives.
+// Resolves EstablishLinkWithPeer directives by creating LookupTptAddr and
+// DialTptAddr directives.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 

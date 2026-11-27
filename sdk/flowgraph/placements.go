@@ -40,8 +40,8 @@ func PlacementQuad(graphKey, nodeID string, placement *FlowgraphPlacement) (worl
 // ReadPlacements reads the placement edges of this graph, keyed by node ID.
 func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (map[string]*FlowgraphPlacements, error) {
 	// Query the placement predicates without scanning other World objects.
-	// A Flowgraph has one edge per copy, so the lookups take no limit; the
-	// batch lookup requires one over a remote World.
+	// A Flowgraph has one edge per copy, so the lookups take no limit. The
+	// batch lookup requires a limit over a remote World.
 	var edges []world.GraphQuad
 	for _, predicate := range []string{DevicePlacementPredicate, ActorPlacementPredicate, ActorTemplatePlacementPredicate} {
 		found, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(graphKey, predicate, "", ""), 0)

@@ -60,7 +60,8 @@ message RegisterQuickstartResponse {
 
 // ListQuickstartsRequest is the request for ListQuickstarts.
 message ListQuickstartsRequest {
-  // InstanceKey selects a logical installation; empty lists global registrations.
+  // InstanceKey selects a logical installation. An empty InstanceKey lists
+  // global registrations.
   string instance_key = 1;
 }
 
@@ -72,7 +73,8 @@ message ListQuickstartsResponse {
 
 // WatchQuickstartsRequest is the request for WatchQuickstarts.
 message WatchQuickstartsRequest {
-  // InstanceKey selects a logical installation; empty lists global registrations.
+  // InstanceKey selects a logical installation. An empty InstanceKey lists
+  // global registrations.
   string instance_key = 1;
 }
 

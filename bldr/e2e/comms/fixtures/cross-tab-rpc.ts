@@ -1,11 +1,11 @@
-// cross-tab-rpc.ts - StarPC echo RPC over brokered cross-tab MessagePort.
+// cross-tab-rpc.ts: StarPC echo RPC over brokered cross-tab MessagePort.
 //
 // Two browser pages register with the ServiceWorker broker and get direct
 // MessagePort channels. When the Go test calls callEcho(), the page creates
 // a sub-channel (MessageChannel), sends one end to the peer through the
 // brokered port, wraps the local end as a ChannelStream, and makes a StarPC
 // Echo call. The peer accepts the relay port, wraps it, and runs the echo
-// server. Verifies the full RPC round-trip across tabs.
+// server. The fixture verifies the full RPC round-trip across tabs.
 
 import { Server, Client, ChannelStream, createHandler, createMux } from 'starpc'
 import { EchoerDefinition, EchoerClient, EchoerServer } from 'starpc/echo'
@@ -34,7 +34,7 @@ const streamOpts: ChannelStreamOpts = {
   idleTimeoutMs: 10000,
 }
 
-// Expose peers map on window for Go test to read peer IDs.
+// Expose the peers map on window for the Go test to read peer IDs.
 const peers = new Map<string, MessagePort>()
 window.__peers = peers
 
@@ -47,7 +47,7 @@ function isCrossTabBrokerMessage(data: unknown): data is CrossTabBrokerMessage {
   )
 }
 
-// Set up StarPC echo server for incoming relay connections.
+// Set up the StarPC echo server for incoming relay connections.
 const mux = createMux()
 mux.register(createHandler(EchoerDefinition, new EchoerServer()))
 const server = new Server(mux.lookupMethod)
@@ -90,7 +90,8 @@ window.callEcho = async (peerId: string, body: string): Promise<string> => {
   const port = peers.get(peerId)
   if (!port) throw new Error(`no peer: ${peerId}`)
 
-  // Create sub-channel: local port1 for client, send port2 to peer server.
+  // Create a sub-channel: keep port1 local for the client and send port2 to the
+  // peer server.
   const { port1, port2 } = new MessageChannel()
   port.postMessage({ type: 'relay', port: port2 }, [port2])
 
@@ -113,7 +114,7 @@ async function run() {
     echoBody: '',
   }
 
-  // Set up SW message listener before registration.
+  // Set up the SW message listener before registration.
   navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
     const data = ev.data
     if (!isCrossTabBrokerMessage(data)) return
@@ -151,7 +152,7 @@ async function run() {
     })
   })
 
-  // Wait for controller.
+  // Wait for the controller.
   if (!navigator.serviceWorker.controller) {
     await navigator.serviceWorker.ready
     await new Promise<void>((resolve) => {

@@ -11,12 +11,12 @@ type WebWorker interface {
 	GetDocumentId() string
 	// GetGeneration returns the execution generation that created the worker.
 	GetGeneration() string
-	// GetShared indicates this is a shared worker.
+	// GetShared indicates whether the worker is shared.
 	GetShared() bool
 
 	// Remove shuts down the WebWorker and unregisters it from the host.
 	// Returns context.Canceled if ctx is canceled
-	// Returns if the worker was confirmed removed.
+	// Returns whether the worker was confirmed removed.
 	// Returns false, nil if the worker was not found.
 	Remove(ctx context.Context) (bool, error)
 }

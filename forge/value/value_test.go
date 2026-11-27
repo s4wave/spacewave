@@ -30,7 +30,7 @@ func TestValidateAcceptsKnownValueTypes(t *testing.T) {
 		t.Fatalf("world-object-snapshot value should validate: %v", err)
 	}
 
-	// unknown means empty; nothing further to validate
+	// unknown means empty. Nothing further to validate.
 	empty := &Value{}
 	if err := empty.Validate(true); err != nil {
 		t.Fatalf("unknown/empty value should validate: %v", err)

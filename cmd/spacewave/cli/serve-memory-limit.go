@@ -22,8 +22,9 @@ const minServeMemoryLimit = 4 << 30
 // one. Without a limit the collector lets the heap grow to twice its live
 // size, which the page caches and checkpoints of a large Volume make
 // gigabytes. The limit must stay well above the live heap, about 2 GB for a
-// busy daemon: near it the collector runs continuously, up to the runtime's GC
-// CPU limit. No allocation fails past the limit.
+// busy daemon: with the limit near the live heap the collector runs
+// continuously, up to the runtime's GC CPU limit. No allocation fails past
+// the limit.
 func setServeMemoryLimit(le *logrus.Entry) {
 	// Keep a limit the operator set.
 	if os.Getenv("GOMEMLIMIT") != "" {

@@ -19,7 +19,7 @@ import (
 // chosen by the CLOCK ring of readers holding spans, until the bytes fit, and
 // reclaimIndexes drops a cold index, chosen by the CLOCK ring of loaded
 // indexes, until the bytes fit. A hot pack keeps its bytes and index while
-// cold packs give theirs up; a dropped index reloads from the index cache on
+// cold packs give theirs up. A dropped index reloads from the index cache on
 // its next use. Each eviction costs a short sweep of a ring rather than a
 // visit to every reader.
 type residentBudget struct {
@@ -43,15 +43,15 @@ type residentBudget struct {
 	leaveShared func()
 
 	// mtx guards spanReaders, indexes and each reader's spanElem and
-	// indexElem. A reader takes mtx under its own lock; the budget never takes
+	// indexElem. A reader takes mtx under its own lock. The budget never takes
 	// a reader lock under mtx.
 	mtx sync.Mutex
 	// spanReaders is the CLOCK ring of open readers holding resident spans,
-	// the next candidate in front. A span use sets the reader's spanRef; the
+	// the next candidate in front. A span use sets the reader's spanRef. The
 	// sweep gives a referenced reader a second chance at the back of the ring.
 	spanReaders list.List
 	// indexes is the CLOCK ring of readers holding indexes, the
-	// next candidate in front. A use sets the reader's indexRef; the sweep
+	// next candidate in front. A use sets the reader's indexRef. The sweep
 	// gives a referenced reader a second chance at the back of the ring.
 	indexes list.List
 }
@@ -150,7 +150,7 @@ func (b *residentBudget) unringSpansLocked(e *PackReader) {
 
 // nextSpanVictimLocked sweeps the span ring and returns the first reader not
 // used since the sweep last passed it, or nil when the ring is empty. Two
-// passes clear every reference unless uses keep setting them; then the front
+// passes clear every reference unless uses keep setting them. Then the front
 // is the coldest choice the sweep found.
 func (b *residentBudget) nextSpanVictimLocked() *PackReader {
 	n := b.spanReaders.Len()
@@ -208,7 +208,7 @@ func (b *residentBudget) nextIndexVictimLocked() *PackReader {
 	if n < 2 {
 		return nil
 	}
-	// Two passes clear every reference unless uses keep setting them; then
+	// Two passes clear every reference unless uses keep setting them. Then
 	// the front is the coldest choice the sweep found.
 	for range 2 * n {
 		front := b.indexes.Front()

@@ -133,7 +133,7 @@ type viewCostCase struct {
 // on the seeded World, commits a change to an object only one of them read,
 // and checks the transactions each view opens in response.
 func TestWorldViewCostOnUnrelatedCommit(t *testing.T) {
-	// Open an Engine on a small seeded World; the transaction counts do not
+	// Open an Engine on a small seeded World. The transaction counts do not
 	// depend on its size.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -255,11 +255,11 @@ func TestWorldViewCostOnUnrelatedCommit(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// A key view on an unchanged object never wakes, so only the view on the
-	// changed object starts another key wait. Its wakeup shares the commit's
-	// key comparison with every other key view. A tracked view on an
-	// unchanged object receives the commit's changes and keeps waiting; a
-	// view that reruns waits again.
+	// A key view on an unchanged object never wakes, so only the view on
+	// the changed object starts another key wait. Its wakeup shares the
+	// commit's key comparison with every other key view. A tracked view on
+	// an unchanged object receives the commit's changes and keeps waiting.
+	// A view that reruns waits again.
 	for i, c := range cases {
 		keyWaits := c.keyWaits
 		if c.want != 0 {

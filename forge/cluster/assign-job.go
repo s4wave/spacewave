@@ -30,7 +30,7 @@ func AssignJobToCluster(
 	return w.ApplyWorldOp(ctx, op, sender)
 }
 
-// Validate performs cursory validation of the operation.
+// Validate validates the operation cursorily.
 // Should not block.
 func (o *ClusterAssignJobOp) Validate() error {
 	if o.GetClusterKey() == "" {

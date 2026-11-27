@@ -7,7 +7,7 @@ option go_package = "github.com/s4wave/spacewave/plugin/prom;prom_plugin";
 
 // ChunkEncoding identifies how a Chunk encodes its samples.
 enum ChunkEncoding {
-  // CHUNK_ENCODING_UNKNOWN is the zero value; a stored chunk never carries it.
+  // CHUNK_ENCODING_UNKNOWN is the zero value. A stored chunk never carries it.
   CHUNK_ENCODING_UNKNOWN = 0;
   // CHUNK_ENCODING_XOR is the Prometheus XOR float chunk of tsdb/chunkenc.
   CHUNK_ENCODING_XOR = 1;

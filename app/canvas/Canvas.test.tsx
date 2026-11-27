@@ -127,8 +127,8 @@ describe('Canvas', () => {
       pressKey('Delete')
       pressKey('Backspace')
 
-      // Read-only: nothing sent and the node stays selected. Editable, the
-      // same keys remove it.
+      // Read-only: no removal is sent and the node stays selected. When
+      // editable, the same keys remove the node.
       expect(onNodesRemove.mock.calls.length > 0).toBe(!readOnly)
       if (readOnly) {
         expect(onNodeSelect.mock.calls.at(-1)?.[0].has('kept')).toBe(true)

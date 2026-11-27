@@ -226,7 +226,8 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 						t.Fatalf("first minute totals = %+v", entries)
 					}
 
-					// Complete the blocked pass; cancellation must flush its interval.
+					// Complete the blocked pass.
+					// Cancellation must flush its interval.
 					release()
 					synctest.Wait()
 					if entries := summaries(); len(entries) != 1 {
@@ -448,7 +449,7 @@ func TestEvictionKeepsCacheHits(t *testing.T) {
 	}
 
 	// The hit is kept for at least readKeepAge on its own clock, and dropped
-	// two generations later; a block never hit is not kept.
+	// two generations later. A block never hit is not kept.
 	now = hitAt.Add(readKeepAge)
 	if !hits.has(cached.GetHash()) || hits.has(unread.GetHash()) {
 		t.Fatal("hit set dropped the hit within readKeepAge or kept an unread block")

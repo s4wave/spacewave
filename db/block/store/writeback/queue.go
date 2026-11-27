@@ -30,9 +30,9 @@ const queuePrefix = "queue/"
 const queueTimeLen = 16
 
 // queueItem is a queue entry as a scan reads it. key and value belong to the
-// iterator and hold only during the scan's callback; pending copies them.
+// iterator and hold only during the scan's callback. pending copies them.
 type queueItem struct {
-	// key names this entry for the duration of the callback.
+	// key identifies this entry for the duration of the callback.
 	key []byte
 	// value holds its encoding for the duration of the callback.
 	value []byte
@@ -90,7 +90,7 @@ func queueTime(at time.Time) time.Time {
 }
 
 // queueFloor returns a key at or before every queue key of a block written
-// at at or later, which queueTime has normalized.
+// at at or later. queueTime has normalized at.
 func queueFloor(at time.Time) []byte {
 	var stamp [8]byte
 	binary.BigEndian.PutUint64(stamp[:], uint64(at.UnixNano()))
@@ -207,7 +207,7 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (*queueDelta, err
 		return nil, err
 	}
 
-	// Read every block's marker, which names its queue entry.
+	// Read every block's marker, which holds its queue entry's key.
 	keys := make([][]byte, len(marks))
 	for i, mark := range marks {
 		keys[i] = markedKey(mark.Hash)
@@ -285,9 +285,9 @@ func coverMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (int64, error) {
 // evictable by an indexed entry. The policy flips on before an enabling
 // repair commits its epoch boundary, and that commit and this check both hold
 // the writer. A marker whose check runs before the boundary commits before the
-// repair's walk starts, so the walk reads it; one whose check runs after finds
-// the policy on and covers against the state the repair left. While the
-// policy is off the check reads only the two switches.
+// repair's walk starts, so the walk reads the marker. A marker whose check
+// runs after finds the policy on and covers against the state the repair
+// left. While the policy is off the check reads only the two switches.
 func coverMarksAtCommit(ctx context.Context, tx kvtx.Tx, marks []Mark, delta *queueDelta) error {
 	return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
 		if !evictQueueIndex.Load() || !evictRefusedRetry.Load() {

@@ -12,10 +12,11 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 )
 
-// Run the two legs from the repository root and diff the per-hop sha256 logs.
-// The parser comparison spans these two commands, never two parsers linked
-// into one binary; each binary exercises only the parser it was compiled
-// with, so differing outputs separate a reader defect from corrupted bytes.
+// TestTransformStepConfigBindingChain runs in two legs. Run both from the
+// repository root and diff the per-hop sha256 logs. The parser comparison spans
+// these two commands, never two parsers linked into one binary. Each binary
+// exercises only the parser it was compiled with, so differing outputs separate
+// a reader defect from corrupted bytes.
 //
 //	bound/es-lite leg:
 //	go tool github.com/s4wave/goscript/cmd/goscript test --dir . --timeout 10m -p 1 \
@@ -28,7 +29,7 @@ import (
 //
 // TestTransformStepConfigBindingChain walks the stored transform-config bytes
 // through the same hops the first-mount path uses, hashing Steps[0].Config at
-// each hop. A changed hash names the layer that mutates the bytes:
+// each hop. A changed hash identifies the layer that mutates the bytes:
 //
 //	H0 marshal       (the MarshalVT implementation selected by this build;
 //	                  the binding lowers it to es-lite toBinary under the
@@ -38,7 +39,7 @@ import (
 //	H3 parse           (the build's UnmarshalVT over the captured bytes)
 //
 // The H2 SOState marshal/unmarshal covers the wire persistence boundary only.
-// It does not write an actual KV store; a store-layer mutation would need a
+// The H2 hop does not write an actual KV store. A store-layer mutation needs a
 // separate hop against the real store implementation.
 func TestTransformStepConfigBindingChain(t *testing.T) {
 	// Share one context across the hops.
@@ -103,7 +104,7 @@ func TestTransformStepConfigBindingChain(t *testing.T) {
 		t.Fatal("H2 lost the grant")
 	}
 
-	// Decrypt it back; the step config bytes survive.
+	// Decrypt the grant back and check that the step config bytes survive.
 	innerDec, err := stateBack.CurrentKeyEpoch().GetGrants()[0].DecryptInnerData(priv, mockSharedObjectID)
 	if err != nil {
 		t.Fatalf("H2 DecryptInnerData: %v", err)
@@ -117,9 +118,10 @@ func TestTransformStepConfigBindingChain(t *testing.T) {
 		t.Fatalf("H2 grant chain changed step config bytes: H0 %x vs H2 %x", h0, h2)
 	}
 
-	// H3: bound parse of the surviving bytes. Under the GoScript leg this
-	// delegates to the es-lite fromBinary reader; under the native leg it is
-	// the protobuf-go-lite parser. The twin command provides the other side.
+	// H3: bound parse of the surviving bytes. Under the GoScript leg the
+	// parse delegates to the es-lite fromBinary reader. Under the native
+	// leg the parse uses the protobuf-go-lite parser. The twin command
+	// provides the other side.
 	parsed := &transform_blockenc.Config{}
 	if err := parsed.UnmarshalVT(decSteps[0].Config); err != nil {
 		t.Fatalf("H3 bound parse of step config: %v", err)

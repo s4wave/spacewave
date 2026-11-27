@@ -70,7 +70,7 @@ describe('PluginRepositoriesPage', () => {
     mocks.inventory = { devices: [], repositories: [] }
     render(<PluginRepositoriesPage />)
 
-    // The page explains the missing Device and refuses to add.
+    // The page explains the missing Device and refuses to add a repository.
     expect(
       screen.getByText(/needs a desktop or command-line Device/),
     ).toBeDefined()
@@ -119,7 +119,7 @@ describe('PluginRepositoriesPage', () => {
     }
     render(<PluginRepositoriesPage />)
 
-    // Only the stale one offers its newer commit; checking it refetches.
+    // Only the stale repository offers its newer commit. Checking it refetches.
     expect(screen.getByText('Pinned at aaaaaaa · Up to date')).toBeDefined()
     expect(
       screen.getByText('Pinned at aaaaaaa · Update available: bbbbbbb'),

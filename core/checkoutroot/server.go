@@ -81,7 +81,8 @@ func serve(
 	return nil
 }
 
-// HandleDirective offers this root when the incoming stream names its protocol.
+// HandleDirective offers this root when the incoming stream selects its
+// protocol.
 func (s *Server) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	// Match the placement and access mode identified by the incoming protocol.
 	dir, ok := di.GetDirective().(link.HandleMountedStream)

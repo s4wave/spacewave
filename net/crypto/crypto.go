@@ -190,7 +190,7 @@ func basicEquals(k1, k2 Key) bool {
 	return subtle.ConstantTimeCompare(a, b) == 1
 }
 
-// ensure proto types implement the interface
+// PublicKey and PrivateKey implement the protobuf message interface.
 var (
 	_ protobuf_go_lite.Message = (*PublicKey)(nil)
 	_ protobuf_go_lite.Message = (*PrivateKey)(nil)

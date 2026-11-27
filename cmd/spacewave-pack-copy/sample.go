@@ -26,11 +26,11 @@ import (
 
 // sampleArgs configures the sample command.
 type sampleArgs struct {
-	// count is the reads to time.
+	// count is the number of reads to time.
 	count int
 	// bytes is the length of each read, about one block.
 	bytes int
-	// reads is the reads kept in flight.
+	// reads is the number of reads kept in flight.
 	reads int
 }
 

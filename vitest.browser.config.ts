@@ -82,7 +82,8 @@ export default mergeConfig(
             }),
           },
         ],
-        // Disable automatic screenshots - they just capture loading states
+        // Disable automatic screenshots because screenshots only capture
+        // loading states.
         screenshotFailures: false,
         // Force dark mode for Vitest UI
         orchestratorScripts: [
@@ -98,7 +99,7 @@ export default mergeConfig(
       include: ['**/*.e2e.test.{ts,tsx}'],
       // Browser E2E files share browser globals such as window hash,
       // localStorage, viewport, and body-level render roots. Direct Vitest
-      // runs should avoid file parallelism; the Go CI harness also runs one
+      // runs should avoid file parallelism. The Go CI harness also runs one
       // browser E2E file per Vitest process.
       fileParallelism: false,
       // Setup files for E2E tests

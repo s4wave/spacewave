@@ -25,28 +25,30 @@ const (
 
 // ProjectedImage sets up and restarts the retained-OPFS image workload.
 type ProjectedImage struct {
-	// t receives failures from reused browser harness helpers
+	// t receives failures from reused browser harness helpers.
 	t testing.TB
-	// harness provides the browser and GoScript runtime lifecycle
+	// harness provides the browser and GoScript runtime lifecycle.
 	harness *wasm.Harness
-	// config identifies the run sources and browser engine
+	// config identifies the run sources and browser engine.
 	config ProjectedImageConfig
 
-	// session holds the retained BrowserContext and replaceable page
+	// session holds the retained BrowserContext and replaceable page.
 	session *wasm.TestSession
-	// sessionIndex identifies the mounted browser session
+	// sessionIndex identifies the mounted browser session.
 	sessionIndex uint32
-	// spaceID identifies the Drive containing the fixture
+	// spaceID identifies the Drive containing the fixture.
 	spaceID string
-	// metadata is complete after Setup verifies the stored fixture
+	// metadata is complete after Setup verifies the stored fixture.
 	metadata RunMetadata
-	// priorWorkers identifies the runtime generation replaced by Restart
+	// priorWorkers identifies the runtime generation replaced by Restart.
 	priorWorkers []playwright.Worker
-	// targetHash reopens the created Drive without quickstart setup
+	// targetHash is the hash used to reopen the created Drive without
+	// quickstart setup.
 	targetHash string
-	// measuredSamples records cache tokens already consumed by browser actions
+	// measuredSamples records cache tokens already consumed by browser
+	// actions.
 	measuredSamples map[string]struct{}
-	// readyToMeasure reports that Restart completed for the next sample
+	// readyToMeasure reports that Restart completed for the next sample.
 	readyToMeasure bool
 }
 
@@ -314,7 +316,7 @@ func (p *ProjectedImage) requireDedicatedRuntime() error {
 		return errors.Wrap(err, "read GoScript runtime mode")
 	}
 
-	// Require the runtime generation named by the benchmark state boundary.
+	// Require the runtime generation selected by the benchmark state boundary.
 	mode, _ := raw.(string)
 	if mode != "dedicated-worker" {
 		return errors.Errorf("GoScript runtime mode = %q, want dedicated-worker", mode)

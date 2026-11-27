@@ -40,7 +40,8 @@ func TestGenerateRegex(t *testing.T) {
 	}
 }
 
-// Additional test to check if the generated regex truly matches the strings
+// TestGeneratedRegexMatching also checks if the generated regex truly matches
+// the strings.
 func TestGeneratedRegexMatching(t *testing.T) {
 	tests := []struct {
 		input   []string

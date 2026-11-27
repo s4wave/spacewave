@@ -24,7 +24,7 @@ export enum HashType {
 
   /**
    * HashType_SHA1 is the sha1 hash type.
-   * NOTE: Do not use SHA1 unless you absolutely have to for backwards compat! (Git)
+   * NOTE: Do not use SHA1 unless backwards compatibility requires it (Git).
    */
   HashType_SHA1 = 2,
 

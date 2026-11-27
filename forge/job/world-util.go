@@ -120,7 +120,7 @@ func CreateJobWithTasks(
 			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)
 		}
 
-		// create parent link
+		// create the parent link
 		err = world_parent.SetObjectParent(ctx, ws, taskKey, objKey, false)
 		if err != nil {
 			return objState, rootRef, err

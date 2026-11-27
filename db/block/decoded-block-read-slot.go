@@ -18,12 +18,13 @@ type decodedBlockReadSlot struct {
 type decodedBlockReadLink struct {
 	// ref is the immutable reference stored in the parent block.
 	ref *BlockRef
-	// slot is the most recently admitted child entry; nil for a raw edge.
+	// slot is the most recently admitted child entry. Nil for a raw edge.
 	slot atomic.Pointer[decodedBlockReadSlot]
 }
 
 // decodedBlockReadData holds only immutable content and bounded edge metadata.
-// Its pages are already charged to the pool; attachment charges its extra heap.
+// Its pages are already charged to the pool. Attachment charges its extra
+// heap.
 type decodedBlockReadData struct {
 	// block is the pool's immutable decoded instance.
 	block Block
@@ -46,7 +47,7 @@ type decodedBlockReadData struct {
 }
 
 // newDecodedBlockReadData builds child metadata outside every cache shard lock.
-// Every nonempty reference gets a link; only a typed one can later hold a slot,
+// Every nonempty reference gets a link. Only a typed one can later hold a slot,
 // so a raw one is charged for its reference alone.
 func newDecodedBlockReadData(scopeID uint64, key decodedBlockCacheKey, entry decodedBlockCacheEntry) (*decodedBlockReadData, int64) {
 	// Preserve the exact cache identity and its durable-admission state.

@@ -25,8 +25,8 @@ type EngineConfig interface {
 // replacements within one run, so a caller never holds a retired engine.
 //
 // StartEngine waits for the first engine and returns the startup error the
-// controller reports for it. factory constructs the controller when set;
-// otherwise the bus resolves the factory by config ID. ctx bounds the Engine's
+// controller reports for it. factory constructs the controller when set.
+// Otherwise the bus resolves the factory by config ID. ctx bounds the Engine's
 // lookups. Release the reference to stop the controller.
 //
 // The returned Engine implements only Engine. Assert an optional interface of
@@ -38,7 +38,7 @@ func StartEngine(
 	conf EngineConfig,
 	factory controller.Factory,
 ) (*BusEngine, directive.Reference, error) {
-	// Require a valid config that names its engine.
+	// Require a valid config that declares its engine ID.
 	if err := conf.Validate(); err != nil {
 		return nil, nil, err
 	}

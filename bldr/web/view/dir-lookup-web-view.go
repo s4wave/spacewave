@@ -16,9 +16,10 @@ type LookupWebView interface {
 	// LookupWebViewID is the web view ID to lookup.
 	// Cannot be empty.
 	LookupWebViewID() string
-	// LookupWebViewWait indicates we should wait for the view to exist.
+	// LookupWebViewWait indicates whether the lookup waits for the view
+	// to exist.
 	//
-	// If unset, we expect the view already exists, and will not be recreated
+	// If unset, the view is expected to exist and will not be recreated
 	// after it is deleted (thus pointless to wait if not found).
 	LookupWebViewWait() bool
 }
@@ -26,7 +27,7 @@ type LookupWebView interface {
 // LookupWebViewValue is the result of LookupWebView.
 type LookupWebViewValue = WebView
 
-// lookupWebView implements LookupWebView
+// lookupWebView implements LookupWebView.
 type lookupWebView struct {
 	webViewID string
 	wait      bool
@@ -66,7 +67,7 @@ func (d *lookupWebView) Validate() error {
 	return nil
 }
 
-// GetValueLookupWebViewOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupWebView) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Millisecond * 100,
@@ -74,14 +75,14 @@ func (d *lookupWebView) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// LookupWebView is the web view ID to lookup.
+// LookupWebViewID is the web view ID to lookup.
 func (d *lookupWebView) LookupWebViewID() string {
 	return d.webViewID
 }
 
-// LookupWebViewWait indicates we should wait for the view to exist.
+// LookupWebViewWait indicates whether the lookup waits for the view to exist.
 //
-// If unset, we expect the view already exists, and will not be recreated
+// If unset, the view is expected to exist and will not be recreated
 // after it is deleted (thus pointless to wait if not found).
 func (d *lookupWebView) LookupWebViewWait() bool {
 	return d.wait
@@ -120,7 +121,7 @@ func (d *lookupWebView) GetName() string {
 	return "LookupWebView"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupWebView) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["view-id"] = []string{d.LookupWebViewID()}

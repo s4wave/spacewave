@@ -13,7 +13,7 @@ import { SqlValue } from '../../sql.pb.js'
  */
 export interface OpenDbRequest {
   /**
-   * path is the database path (e.g. "/vol-123.db").
+   * Path is the database path (e.g. "/vol-123.db").
    */
   path?: string
 }
@@ -31,7 +31,7 @@ export const OpenDbRequest: MessageType<OpenDbRequest> =
  */
 export interface OpenDbResponse {
   /**
-   * db_id is the handle for the opened database.
+   * DbId is the handle for the opened database.
    */
   dbId?: number
 }
@@ -49,7 +49,7 @@ export const OpenDbResponse: MessageType<OpenDbResponse> =
  */
 export interface CloseDbRequest {
   /**
-   * db_id is the handle of the database to close.
+   * DbId is the handle of the database to close.
    */
   dbId?: number
 }
@@ -80,15 +80,15 @@ export const CloseDbResponse: MessageType<CloseDbResponse> =
  */
 export interface ExecRequest {
   /**
-   * db_id is the handle of the database.
+   * DbId is the handle of the database.
    */
   dbId?: number
   /**
-   * sql is the SQL statement to execute.
+   * Sql is the SQL statement to execute.
    */
   sql?: string
   /**
-   * params are the bind parameters.
+   * Params are the bind parameters.
    */
   params?: SqlValue[]
 }
@@ -110,11 +110,11 @@ export const ExecRequest: MessageType<ExecRequest> =
  */
 export interface ExecResponse {
   /**
-   * changes is the number of rows changed by the statement.
+   * Changes is the number of rows changed by the statement.
    */
   changes?: bigint
   /**
-   * last_insert_row_id is the rowid of the last inserted row.
+   * LastInsertRowId is the rowid of the last inserted row.
    */
   lastInsertRowId?: bigint
 }
@@ -135,15 +135,15 @@ export const ExecResponse: MessageType<ExecResponse> =
  */
 export interface QueryRequest {
   /**
-   * db_id is the handle of the database.
+   * DbId is the handle of the database.
    */
   dbId?: number
   /**
-   * sql is the SQL query to execute.
+   * Sql is the SQL query to execute.
    */
   sql?: string
   /**
-   * params are the bind parameters.
+   * Params are the bind parameters.
    */
   params?: SqlValue[]
 }
@@ -166,11 +166,11 @@ export const QueryRequest: MessageType<QueryRequest> =
  */
 export interface QueryResponse {
   /**
-   * column_names is set in the first response message only.
+   * ColumnNames is set in the first response message only.
    */
   columnNames?: string[]
   /**
-   * row contains one row of values, set in subsequent messages.
+   * Row contains one row of values, set in subsequent messages.
    */
   row?: SqlValue[]
 }
@@ -191,7 +191,7 @@ export const QueryResponse: MessageType<QueryResponse> =
  */
 export interface DeleteDbRequest {
   /**
-   * path is the database path to delete.
+   * Path is the database path to delete.
    */
   path?: string
 }

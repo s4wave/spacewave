@@ -29,7 +29,7 @@ func NewBusObjectStore(ctx context.Context, b bus.Bus, returnIfIdle bool, storeI
 }
 
 // NewTransaction returns a new transaction against the store.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after finishing the transaction.
 // The transaction will be read-only unless write is set.
 func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Bind the transaction lifetime to the bus object store context.

@@ -35,11 +35,11 @@ func (f *buildFailure) Error() string {
 // BuildCached returns the response of an earlier build of req whose inputs all
 // still hold the same content, after restoring its outputs under req's OutDir.
 // Otherwise it runs build and records a successful response in cache. The key
-// leaves out OutDir and CacheDir, which name per platform working directories
-// without changing the output, so platforms that build the same bundle share
-// one build. sqlSchema is the schema the Vite process serves to plugins as
-// DATABASE_URL, which the request does not carry. Callers start Vite inside
-// build, so a replay starts nothing.
+// leaves out OutDir and CacheDir, which specify per platform working
+// directories without changing the output, so platforms that build the same
+// bundle share one build. sqlSchema is the schema the Vite process serves to
+// plugins as DATABASE_URL, which the request does not carry. Callers start Vite
+// inside build, so a replay starts nothing.
 func BuildCached(
 	ctx context.Context,
 	le *logrus.Entry,

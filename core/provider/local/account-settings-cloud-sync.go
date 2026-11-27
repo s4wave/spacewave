@@ -149,8 +149,9 @@ func waitForLinkedCloudSessionRef(
 // reauthentication flow owns them and the next attempt succeeds after it.
 // Access-gated errors stay retriable too: role, subscription, or access
 // state may change while the account stays linked, and the routine's
-// account-state waits recover once it does. Deletion and blocked states do
-// not recover through this loop; the existing account lifecycle owns them.
+// account-state waits recover once the role, subscription, or access state
+// changes. Deletion and blocked states do not recover through this loop. The
+// existing account lifecycle owns them.
 func (a *ProviderAccount) runAccountSettingsCloudSync(
 	ctx context.Context,
 	cloudAccountID string,
@@ -688,7 +689,7 @@ func buildAccountSettingsSyncOps(
 	}
 
 	// The settings never unset the developer Space, so a source without one
-	// leaves the target's alone.
+	// leaves the target's developer Space alone.
 	if id := source.GetDeveloperSpaceId(); id != "" && id != target.GetDeveloperSpaceId() {
 		opData, err := marshalAccountSettingsSyncOp(&account_settings.AccountSettingsOp{
 			Op: &account_settings.AccountSettingsOp_SetDeveloperSpace{

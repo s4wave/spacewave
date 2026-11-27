@@ -38,7 +38,7 @@ type fakeBucket struct {
 	throttled int
 	// throttleNext, when positive, throttles that many more requests.
 	throttleNext int
-	// retryAfter is the Retry-After of a throttled answer; empty is "0".
+	// retryAfter is the Retry-After of a throttled answer. Empty is "0".
 	retryAfter string
 	// before, when set, runs before each request is answered, with the
 	// bucket released, as a service's latency does: the connection carries

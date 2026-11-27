@@ -24,13 +24,13 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the rpc volume client.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// cc is controller config
+	// cc is controller config.
 	cc *Config
-	// matchVolumeIdRe is the regexp to match volume ids
+	// matchVolumeIdRe is the regexp to match volume ids.
 	// if nil, match any
 	matchVolumeIdRe *regexp.Regexp
 	// proxyVolumes is the list of proxy volume trackers.
@@ -160,7 +160,7 @@ func (c *Controller) resolveLoadProxyVolume(
 	return directive.R(NewLoadProxyVolumeResolver(c, di, volumeID), nil)
 }
 
-// resolveLoadProxyVolumeIDList checks the regex
+// resolveLoadProxyVolumeIDList checks the regex.
 func (c *Controller) resolveLoadProxyVolumeIDList(
 	di directive.Instance,
 	volumeIDs []string,

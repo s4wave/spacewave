@@ -10,7 +10,7 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // ForgeTaskConfigEditor edits the config-specific fields of a ForgeTaskCreateOp.
-// Renders a job picker for selecting which Job to link the new Task to.
+// The editor renders a job picker to select which Job to link the new Task to.
 export function ForgeTaskConfigEditor({
   value,
   onValueChange,

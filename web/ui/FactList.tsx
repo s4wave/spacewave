@@ -8,17 +8,18 @@ import { cn } from '@s4wave/web/style/utils.js'
 export interface FactListProps {
   children?: ReactNode
   // dense packs the rows at viewer-row, 24px or 44px under a coarse pointer,
-  // for a side column or popover; a list in the body keeps viewer-fact-row.
+  // for a side column or popover. A list in the body keeps viewer-fact-row.
   // A row's copy press is 24px either way, so it meets the target floor.
   dense?: boolean
   // className is appended to the list's class list.
   className?: string
 }
 
-// FactList holds FactRows and is the inline-size container facts they read,
-// so each row lays out by the list's own width, not the pane's or window's:
+// FactList contains FactRows and is the inline-size container named facts
+// that FactRows read, so each row lays out by the list's own width, not the
+// pane's or window's:
 // below 13rem a row's label sits over its value. A dense list sets --fact-row,
-// the height of each row's line, which is viewer-fact-row unset.
+// the height of each row's line, which is viewer-fact-row when unset.
 export function FactList({ children, dense, className }: FactListProps) {
   return (
     <div
@@ -41,14 +42,14 @@ export interface FactRowProps {
   // title and on copy.
   value: string
   // kind says how the value gives way when it does not fit: an id (a hash,
-  // key, peer ID, path or URL) is mono and shortened in its middle; text
+  // key, peer ID, path or URL) is mono and shortened in its middle. Text
   // ends in an ellipsis. Defaults to id.
   kind?: 'id' | 'text'
   // sub is a second fact, one muted line under the value, such as a
   // commit's subject under its hash.
   sub?: string
   // control is the press that acts on the value. Defaults to a copy press,
-  // or none for an empty value; null leaves the control column empty. A
+  // or none for an empty value. null leaves the control column empty. A
   // placeholder for a missing value, such as Unknown, is a text fact with
   // control null, never a copyable id.
   control?: ReactNode
@@ -82,9 +83,10 @@ const stacked = {
 // FactRow is one fact as one line of label, value and control,
 // viewer-fact-row tall, or viewer-row in a dense FactList. Nothing in it
 // wraps: a value that does not fit is shortened, an id in its middle and text
-// at its end, so one-fact rows share one height and two-fact rows another,
-// and every control sits on one right edge. The data-fact, data-fact-value
-// and data-fact-sub attributes mark the parts for the viewer clip check.
+// at its end, so one-fact rows share one height and two-fact rows another
+// height, and every control sits on one right edge. The data-fact,
+// data-fact-value and data-fact-sub attributes mark the parts for the viewer
+// clip check.
 export function FactRow({
   label,
   value,

@@ -75,14 +75,15 @@ export interface WebPkgRefConfig {
    */
   id?: string
   /**
-   * Exclude indicates we should reference this web pkg but exclude it from this bundle.
-   * This is useful if another plugin already provides this web pkg.
+   * Exclude indicates the bundler should reference this web pkg but exclude
+   * the web pkg from this bundle. Exclusion is useful if another plugin
+   * already provides this web pkg.
    */
   exclude?: boolean
   /**
    * Imports is the list of imports to include in the web pkg bundle.
-   * NOTE: this will be merged with any imports the code accesses.
-   * NOTE: this is therefore optional.
+   * NOTE: Imports will be merged with any imports the code accesses.
+   * NOTE: Imports is therefore optional.
    */
   imports?: string[]
   /**

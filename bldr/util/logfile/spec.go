@@ -47,7 +47,7 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 		Format: "text",
 	}
 
-	// Check if this is a short form (no semicolons and no '=' sign).
+	// Check if the spec is a short form (no semicolons and no '=' sign).
 	if !strings.Contains(spec, ";") && !strings.Contains(spec, "=") {
 		result.Path = ExpandTemplate(spec, ts)
 		return result, nil

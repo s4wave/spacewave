@@ -7,10 +7,11 @@ import (
 
 // TestPackAheadScaling holds the allocations of Get, Append and Remove flat
 // between n and 10n local packs, as the path walk's cost sentences require.
-// The calls run with no finalize or rotation beside them, and Append averages
-// over enough calls that the maintainer's wakes on its broadcasts, which
-// scheduling decides, move the mean by under one allocation. The slack covers
-// amortized table growth; a cost per pack would add dozens.
+// The calls run with no finalization or rotation beside them, and Append
+// averages over enough calls that the maintainer's wakes on its broadcasts
+// move the mean by under one allocation. Scheduling decides when the maintainer
+// wakes. The slack covers amortized table growth. A cost per pack would add
+// dozens of allocations.
 func TestPackAheadScaling(t *testing.T) {
 	small := measureCalls(t, 4)
 	large := measureCalls(t, 40)
@@ -58,8 +59,8 @@ func measureCalls(t *testing.T, packs int) map[string]float64 {
 	waitFinalized(t, l, packs-1)
 
 	// Rotate the full open pack, then wait for the maintainer to go idle, so no
-	// finalize or spare runs beside the measured calls: testing.AllocsPerRun
-	// counts every goroutine's allocations.
+	// finalization or spare opening runs beside the measured calls:
+	// testing.AllocsPerRun counts every goroutine's allocations.
 	if err := l.Append(ctx, []Block{fresh()}); err != nil {
 		t.Fatal(err)
 	}

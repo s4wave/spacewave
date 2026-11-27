@@ -21,12 +21,12 @@ type Remote interface {
 }
 
 // Drain uploads a Log's finalized packs to one remote and evicts the uploaded
-// ones beyond a budget. Build one per Log: the Log's upload marks name the
+// ones beyond a budget. Build one per Log: the Log's upload marks identify the
 // one remote it drains to.
 //
-// Invariant: a pack is evicted only after the Log marked it uploaded, which
-// the Drain does once it saw the remote list the pack or PutPackFile return
-// for it, so every evicted value is on the remote.
+// Invariant: a pack is evicted only after the Log marked it uploaded.
+// The Drain marks the pack uploaded once the remote lists the pack or
+// PutPackFile returns for the pack, so every evicted value is on the remote.
 type Drain struct {
 	// log is the drained Log.
 	log *Log
@@ -113,7 +113,7 @@ func (d *Drain) upload(ctx context.Context, remote Remote, p PackInfo, last int6
 }
 
 // UploadedBefore reports whether the remote holds every value the Log took
-// before at: no pack not marked uploaded holds one.
+// before at: every pack holding such a value is marked uploaded.
 func (d *Drain) UploadedBefore(at time.Time) bool {
 	return !d.log.HoldsBefore(at)
 }

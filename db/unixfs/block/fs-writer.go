@@ -14,7 +14,7 @@ import (
 
 // FSWriter implements the writer against a block cursor.
 type FSWriter struct {
-	// fsTree is the root of the filesystem tree
+	// fsTree is the root of the filesystem tree.
 	fsTree *FSTree
 }
 
@@ -112,7 +112,8 @@ func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType
 	}
 
 	// Write the detached transaction to flush blocks and compute the blob ref.
-	// Without this, GetRef() returns nil because the block has not been hashed.
+	// Without the write, GetRef() returns nil because the block has not
+	// been hashed.
 	blobRef, _, err := blobCs.GetTransaction().Write(ctx, true)
 	if err != nil {
 		return err

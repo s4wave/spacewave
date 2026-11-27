@@ -10,7 +10,8 @@ import (
 
 // NewNestedWorld stores roots from the enclosing World's bucket as local edges.
 // bucketID identifies the enclosing bucket. An explicit bucket on either
-// reference must match it; transform settings remain attached to each reference.
+// reference must match it. Transform settings remain attached to each
+// reference.
 func NewNestedWorld(bucketID string, worldRef, payloadRef *bucket.ObjectRef) (*NestedWorld, error) {
 	if (worldRef.GetBucketId() != "" && worldRef.GetBucketId() != bucketID) ||
 		(payloadRef.GetBucketId() != "" && payloadRef.GetBucketId() != bucketID) {

@@ -64,8 +64,8 @@ func PostCheckpoint(ctx context.Context, opts Options, headRef *bucket.ObjectRef
 	}
 
 	// Sign the checkpoint that follows the destination's. A competing
-	// publication may still win after the snapshot; the server rejects this
-	// checkpoint rather than overwriting the newer one.
+	// publication may still win after the snapshot, and then the server rejects
+	// this checkpoint rather than overwriting the newer one.
 	stateData, err := EncodeHeadState(headRef)
 	if err != nil {
 		return nil, err

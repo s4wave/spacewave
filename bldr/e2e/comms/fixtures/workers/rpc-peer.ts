@@ -1,9 +1,9 @@
-// rpc-peer.ts - DedicatedWorker that runs a StarPC echo server or client
+// rpc-peer.ts: DedicatedWorker that runs a StarPC echo server or client
 // over a SAB pair stream.
 //
-// Receives init message with role and one pair endpoint descriptor.
-// Server: registers echo handler, accepts one stream, handles RPC.
-// Client: waits for 'start' signal, calls Echo, reports result.
+// Receives an init message with a role and one pair endpoint descriptor.
+// Server: registers an echo handler, accepts one stream, handles RPC.
+// Client: waits for the 'start' signal, calls Echo, reports the result.
 
 import { Server, Client, createHandler, createMux } from 'starpc'
 import { EchoerDefinition, EchoerClient, EchoerServer } from 'starpc/echo'
@@ -21,7 +21,7 @@ interface InitMsg {
 
 self.onmessage = async (ev: MessageEvent<InitMsg | { type: 'start' }>) => {
   if ('type' in ev.data && ev.data.type === 'start') {
-    // Client start signal handled below via promise.
+    // The client start signal is handled below via a promise.
     return
   }
 
@@ -32,25 +32,25 @@ self.onmessage = async (ev: MessageEvent<InitMsg | { type: 'start' }>) => {
   self.postMessage({ type: 'pair-ready', pairId, role })
 
   if (role === 'server') {
-    // Set up StarPC echo server.
+    // Set up the StarPC echo server.
     const mux = createMux()
     mux.register(createHandler(EchoerDefinition, new EchoerServer()))
     const server = new Server(mux.lookupMethod)
 
     self.postMessage({ type: 'server-ready' })
 
-    // Handle the single stream (blocks until stream closes).
+    // Handle the single stream (blocks until the stream closes).
     await server.rpcStreamHandler(stream)
     self.postMessage({ type: 'server-done' })
   } else {
-    // Client: wait for start signal.
+    // Client: wait for the start signal.
     await new Promise<void>((resolve) => {
       self.onmessage = (startEv: MessageEvent) => {
         if (startEv.data?.type === 'start') resolve()
       }
     })
 
-    // Create StarPC client using the pair stream.
+    // Create a StarPC client using the pair stream.
     const client = new Client(async () => stream)
     const echoer = new EchoerClient(client)
 

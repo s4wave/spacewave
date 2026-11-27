@@ -22,7 +22,8 @@ const envelopeContext = "spacewave session envelope v1"
 // envelope is written to {sessionID}/env in the session's ObjectStore.
 //
 // Threshold is 0 (any single entity keypair can recover the session key).
-// This is called after keypair add/remove to keep the envelope in sync.
+// RewrapSessionEnvelope is called after keypair add/remove to keep the
+// envelope in sync.
 //
 // Skipped silently when the session is locked (privkey not in memory) or
 // when no entity keypairs are available.

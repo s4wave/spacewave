@@ -28,7 +28,7 @@ func TestAppendReserve(t *testing.T) {
 	defer l.Close()
 
 	// Above the reserve, a pack of two blocks fills and finalizes, and a
-	// third opens the next pack.
+	// third block opens the next pack.
 	blocks := []Block{testBlock(t, 0, 4096), testBlock(t, 1, 4096), testBlock(t, 2, 4096), testBlock(t, 3, 4096)}
 	for _, b := range blocks[:3] {
 		if err := l.Append(ctx, []Block{b}); err != nil {

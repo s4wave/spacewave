@@ -556,7 +556,7 @@ describe('WebRuntimeClient', () => {
     await client.rerouteChannel()
 
     expect(streamAbort).not.toHaveBeenCalled()
-    // The runtime is not told the client is going away; no close is posted.
+    // The runtime is not told the client is going away. No close is posted.
     expect(postMessage).not.toHaveBeenCalledWith(
       expect.objectContaining({ close: true }),
     )

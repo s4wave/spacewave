@@ -10,11 +10,11 @@ import (
 // objectIterator implements ObjectIterator for WorldState over the object
 // tree, stripping the object key prefix from each key.
 type objectIterator struct {
-	// prefix is the object key prefix to filter by
+	// prefix is the object key prefix to filter by.
 	prefix string
-	// iter iterates the object tree, nil once closed
+	// iter iterates the object tree, nil once closed.
 	iter kvtx.Iterator
-	// err is any error that closed the iterator
+	// err is any error that closed the iterator.
 	err error
 }
 

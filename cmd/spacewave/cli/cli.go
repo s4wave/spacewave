@@ -19,13 +19,13 @@ import (
 )
 
 // NewCliCommands builds the spacewave CLI commands. The yield broker is the
-// process-shared broker from the composition root; nil builds commands with
+// process-shared broker from the composition root. nil builds commands with
 // a private broker for tests and read-only command trees. Frees is the
-// collector frees switch serve's flags set, shared with the host storage; nil
+// collector frees switch serve's flags set, shared with the host storage. nil
 // keeps frees off. Upgrade is the format upgrade decision serve's and the
-// debug commands' flags set, shared with the host storage; nil refuses
+// debug commands' flags set, shared with the host storage. nil refuses
 // upgrades unless a flag opts in. DevicePolicy is the Device policy store
-// serve loads before it starts the bus, shared with the root resource; nil
+// serve loads before it starts the bus, shared with the root resource. nil
 // gives serve a store of its own.
 func NewCliCommands(
 	getBus func() cli_entrypoint.CliBus,

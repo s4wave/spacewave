@@ -39,6 +39,7 @@ type optionROM struct {
 }
 
 // loadLinuxKernel validates a bzImage and installs it with its initrd and
+// command line.
 func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd []byte, cmdline string) error {
 	// Require a complete Linux boot header before reading the image.
 	if len(kernel) < linuxBootHdrCmdlineSize+4 {
@@ -139,7 +140,8 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 	return nil
 }
 
-// makeLinuxBootROM builds the 16-bit boot stub that jumps into the loaded
+// makeLinuxBootROM builds the 16-bit boot stub that jumps into the loaded Linux
+// setup.
 func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
 	// Allocate a one-sector Linux option ROM with its BIOS signature.
 	const size = 0x200

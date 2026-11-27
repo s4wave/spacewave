@@ -31,9 +31,9 @@ func NewSqlite(
 // Options sets how NewSqliteWithOptions opens a Volume beyond its Config.
 type Options struct {
 	// WALCheckpointBytes bounds the write-ahead log, as
-	// sqlite.Pragmas.WALCheckpointBytes describes; 0 keeps the store's
-	// default. A Volume whose log grows megabytes a second wants a bound
-	// above the default, so it checkpoints less often.
+	// sqlite.Pragmas.WALCheckpointBytes describes. 0 keeps the store's
+	// default bound. A Volume whose log grows megabytes a second wants a bound
+	// above the default bound, so the Volume checkpoints less often.
 	WALCheckpointBytes int64
 }
 

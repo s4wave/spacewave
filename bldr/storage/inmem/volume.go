@@ -42,7 +42,7 @@ func (c *VolumeConfig) EqualsConfig(other config.Config) bool {
 
 // VolumeFactory constructs volumes whose data an InmemStorage on the bus owns.
 type VolumeFactory struct {
-	// b is the controller bus
+	// b is the controller bus.
 	b bus.Bus
 }
 
@@ -96,10 +96,10 @@ func (f *VolumeFactory) GetVersion() controller.Version {
 	return Version
 }
 
-// openVolume finds the InmemStorage named by conf and opens the volume over
+// openVolume finds the InmemStorage selected by conf and opens the volume over
 // its leased store. Closing the volume ends the lease.
 func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (volume.Volume, error) {
-	// Resolve the storage reference named by the volume config.
+	// Resolve the storage reference selected by the volume config.
 	storages, _, ref, err := storage.ExLookupStorage(ctx, f.b, conf.GetStorageId(), true)
 	if err != nil {
 		return nil, err

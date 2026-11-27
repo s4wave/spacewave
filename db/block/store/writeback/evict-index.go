@@ -15,13 +15,14 @@ import (
 
 // evictIndexPrefix maps each hash to its canonical epoch queue key. While a
 // marker covers the value, its pointer reserves an absent entry and contributes
-// no eviction bytes. Entries, pointers and EvictableBytes change atomically. Index
-// repair changes metadata only: it never deletes a block value or remote
-// object. A marker covers a value instead of contributing eviction bytes;
-// retry-on clear restores queue coverage atomically, even after an absent read.
+// no eviction bytes. Entries, pointers and EvictableBytes change atomically.
+// Index repair changes metadata only: it never deletes a block value or remote
+// object. A marker covers a value instead of contributing eviction bytes.
+// Retry-on clear restores queue coverage atomically, even after an absent read.
 const evictIndexPrefix = "evictable-index/"
 
-// evictQueueIndex selects indexed accounting; foreground paths read it atomically.
+// evictQueueIndex selects indexed accounting. Foreground paths read it
+// atomically.
 var evictQueueIndex atomic.Bool
 
 // evictIndexPolicy guards the policy revision, waking stores after either
@@ -33,12 +34,12 @@ var evictIndexPolicy struct {
 	revision atomic.Uint64
 }
 
-// SetEvictQueueIndex selects indexed accounting without enabling eviction.
-// Both this switch and refusal retry must be on. Turning either off selects
-// the legacy queue for new work. A dropped clear honors a retained reservation;
-// retry-off passes still have the legacy stranding behavior. Re-enabling starts
-// a fresh bounded repair of recorded entries, not a scan of unqueued values.
-// No saved completion state is trusted.
+// SetEvictQueueIndex selects indexed accounting without enabling eviction. Both
+// this switch and refusal retry must be on. Turning either off selects the
+// legacy queue for new work. A dropped clear honors a retained reservation.
+// Retry-off passes still have the legacy stranding behavior. Re-enabling starts
+// a fresh bounded repair of recorded entries, not a scan of unqueued values. No
+// saved completion state is trusted.
 func SetEvictQueueIndex(on bool) {
 	if evictQueueIndex.Swap(on) != on {
 		evictIndexPolicy.bcast.HoldLock(func(changed func(), _ func() <-chan struct{}) {
@@ -64,9 +65,9 @@ func evictIndexKey(h *hash.Hash) []byte {
 }
 
 // deleteEvictEntry subtracts only an entry actually deleted. A clear or fill
-// may have moved the pointer since the scan: delete it only if it still names
-// this exact entry. The boolean reports live membership, even for a zero-byte
-// value. Reads and mutations share the caller's transaction.
+// may have moved the pointer since the scan: delete the pointer only if it
+// still points to this exact entry. The boolean reports live membership, even
+// for a zero-byte value. Reads and mutations share the caller's transaction.
 func deleteEvictEntry(ctx context.Context, tx kvtx.Tx, entry evictEntry) (int64, bool, error) {
 	// Read the live entry rather than subtracting a stale scan's size.
 	value, found, err := tx.Get(ctx, entry.key)
@@ -96,9 +97,10 @@ func deleteEvictEntry(ctx context.Context, tx kvtx.Tx, entry evictEntry) (int64,
 }
 
 // coverMarkedEvict removes indexed bytes and retains the epoch key as a
-// marker-covered reservation. It has no queue entry or byte contribution.
-// A later dropped clear honors a retained pointer even if retry was disabled;
-// legacy markers without a reservation retain the off policy.
+// marker-covered reservation. The reservation has no queue entry or byte
+// contribution. A later dropped clear honors a retained pointer even if
+// retry was disabled.
+// Legacy markers without a reservation retain the off policy.
 func coverMarkedEvict(ctx context.Context, tx kvtx.Tx, h *hash.Hash) (int64, error) {
 	// Read one pointer and reserve coverage for a new marker if none exists.
 	key := evictIndexKey(h)
@@ -184,9 +186,9 @@ func queueIndexedEvict(ctx context.Context, tx kvtx.Tx, epoch uint64, h *hash.Ha
 	return delta + size - previous, nil
 }
 
-// rebuildEvictIndex runs bounded repairs under the store's owning context.
-// It does no work while either opt-in switch is off. Every reopen or policy
-// revision restarts the walk; revisiting an indexed entry changes no bytes.
+// rebuildEvictIndex runs bounded repairs under the store's owning context. It
+// does no work while either opt-in switch is off. Every reopen or policy
+// revision restarts the walk. Revisiting an indexed entry changes no bytes.
 func (s *Store) rebuildEvictIndex(ctx context.Context) {
 	// Release lifecycle waiters only after the repair stops touching the store.
 	defer close(s.indexDone)
@@ -218,10 +220,10 @@ func (s *Store) rebuildEvictIndex(ctx context.Context) {
 	}
 }
 
-// repairEvictIndex walks a closed epoch range. Advancing epoch before the
-// walk makes all concurrent inserts sort beyond its boundary; there is no
-// foreground scan or startup dependency. No persistent completion bit survives
-// a reopen or switch flip. Cursor progress follows successful commits only.
+// repairEvictIndex walks a closed epoch range. Advancing epoch before the walk
+// makes all concurrent inserts sort beyond its boundary. There is no foreground
+// scan or startup dependency. No persistent completion bit survives a reopen or
+// switch flip. Cursor progress follows successful commits only.
 // The advance holds the fill barrier, as an eviction pass's does, so a fill
 // step finds the epoch it reserved under when it removes a dropped fill's
 // entry.
@@ -261,8 +263,8 @@ func (s *Store) repairEvictIndex(ctx context.Context, revision uint64) error {
 }
 
 // repairEvictIndexSlice repairs at most 64 scanned entries, keeping only that
-// slice in memory. Cold iteration runs outside the writer; exact live reads
-// and pointer changes commit atomically and yield before the next slice.
+// slice in memory. Cold iteration runs outside the writer. Exact live reads and
+// pointer changes commit atomically and yield before the next slice.
 func (s *Store) repairEvictIndexSlice(ctx context.Context, from []byte, boundary uint64) ([]byte, bool, error) {
 	// Capture generation outside SetEnabled's published-zero/reset interval,
 	// then release its gate before any cold read, I/O or writer admission.
@@ -349,7 +351,7 @@ func repairEvictEntry(ctx context.Context, tx kvtx.Tx, entry evictEntry) (int64,
 		return delta, tx.Set(ctx, key, entry.key)
 	}
 
-	// Prefer the existing live pointer; its entry may have moved beyond the
+	// Prefer the existing live pointer. Its entry may have moved beyond the
 	// fenced range. An interrupted walk can revisit that canonical entry.
 	key := evictIndexKey(entry.hash)
 	pointer, exists, err := tx.Get(ctx, key)

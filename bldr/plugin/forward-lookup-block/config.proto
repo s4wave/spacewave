@@ -8,13 +8,13 @@ import "github.com/aperturerobotics/util/backoff/backoff.proto";
 // Calls the AccessRpcService service.
 // Resolves the LookupBlockFromNetwork directive.
 message Config {
-  // PluginId is the plugin to load and use as .
+  // PluginId is the plugin to load and use.
   string plugin_id = 1;
   // ServiceIdRegex is the regex of service IDs to forward.
-  // If empty, will forward any.
+  // If empty, forwards any service ID.
   string service_id_regex = 2;
   // ServerIdRegex is the regex of server IDs to forward for.
-  // If empty, will forward any.
+  // If empty, forwards any server ID.
   string server_id_regex = 3;
   // Backoff is the backoff config for calling the RPC service.
   // If unset, defaults to reasonable defaults.

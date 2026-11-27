@@ -12,7 +12,7 @@ type ReadCounts struct {
 	// Cached counts the blocks the read cache served, which held their hash.
 	Cached uint64
 	// CacheRejected counts the read cache's answers whose bytes failed the
-	// block's hash; the bucket served each of them instead.
+	// block's hash, so the bucket served each of them instead.
 	CacheRejected uint64
 	// Bucket counts the blocks read from the bucket with one range read.
 	Bucket uint64
@@ -30,12 +30,13 @@ type ReadCounts struct {
 	// its blocks' reaches, read again without a request.
 	Spanned uint64
 
-	// The other bytes the store downloaded from the bucket, by read mode:
-	// Window through the pack readers' range windows of block payloads, Tail
-	// for the index tails the pack readers load, Extent by the one range read
-	// of a block's extent, Index for the tails and entry objects the indexer
-	// and adoption read, Whole for packs read whole, as a compaction does,
-	// and Other for the rest, such as the reclaim state.
+	// WindowBytes and the other byte counts record the bytes the store
+	// downloaded from the bucket, by read mode: Window through the pack
+	// readers' range windows of block payloads, Tail for the index tails
+	// the pack readers load, Extent by the one range read of a block's
+	// extent, Index for the tails and entry objects the indexer and
+	// adoption read, Whole for packs read whole, as a compaction does, and
+	// Other for the rest, such as the reclaim state.
 	WindowBytes, TailBytes, ExtentBytes, IndexBytes, WholeBytes, OtherBytes uint64
 	// WindowFetches and TailFetches count the range reads behind WindowBytes
 	// and TailBytes.
@@ -84,7 +85,7 @@ func (l *rangeLatency) snapshot() RangeLatency {
 	return out
 }
 
-// readMode names what a bucket download was for, in ReadCounts' byte counts.
+// readMode records what a bucket download was for, in ReadCounts' byte counts.
 type readMode int
 
 const (

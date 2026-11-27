@@ -24,7 +24,8 @@ export interface AuthorInfo {
 export type AuthorRegistry = Record<string, AuthorInfo>
 
 // parseAuthorRegistry parses YAML content into an AuthorRegistry.
-// Uses gray-matter to parse YAML by wrapping content in frontmatter delimiters.
+// parseAuthorRegistry uses gray-matter to parse YAML by wrapping content in
+// frontmatter delimiters.
 export function parseAuthorRegistry(yamlContent: string): AuthorRegistry {
   const parsed: unknown = parseYaml(yamlContent)
   if (!parsed || typeof parsed !== 'object') return {}
@@ -46,7 +47,8 @@ export function parseAuthorRegistry(yamlContent: string): AuthorRegistry {
 }
 
 // useAuthorRegistry reads and parses an authors.yaml file from UnixFS.
-// Falls back to an empty registry if the file is missing or unparseable.
+// useAuthorRegistry falls back to an empty registry if the file is missing or
+// unparseable.
 export function useAuthorRegistry(
   rootHandle: Resource<FSHandle>,
   registryPath: string,
@@ -64,7 +66,7 @@ export function useAuthorRegistry(
         )
         return parseAuthorRegistry(text)
       } catch {
-        // File not found or unreadable, return empty registry.
+        // Return an empty registry if the file is not found or unreadable.
         return {}
       }
     },
@@ -73,7 +75,8 @@ export function useAuthorRegistry(
 }
 
 // resolveAuthor looks up an author slug in the registry.
-// Returns the AuthorInfo if found, or a fallback with the raw slug as name.
+// resolveAuthor returns the AuthorInfo if found, or a fallback with the raw
+// slug as the name.
 export function resolveAuthor(
   registry: AuthorRegistry,
   slug: string | undefined,

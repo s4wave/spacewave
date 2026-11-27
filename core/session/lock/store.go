@@ -11,13 +11,13 @@ import (
 type SessionLockMode int32
 
 const (
-	// SessionLockMode_AUTO_UNLOCK is encrypted with volume-derived key.
+	// SessionLockMode_AUTO_UNLOCK is encrypted with a volume-derived key.
 	SessionLockMode_AUTO_UNLOCK SessionLockMode = 0
-	// SessionLockMode_PIN_ENCRYPTED is encrypted with PIN-derived key.
+	// SessionLockMode_PIN_ENCRYPTED is encrypted with a PIN-derived key.
 	SessionLockMode_PIN_ENCRYPTED SessionLockMode = 1
 )
 
-// ObjectStore key suffixes.
+// SuffixPK and the other suffixes define ObjectStore key suffixes.
 var (
 	SuffixPK         = []byte("/pk")
 	SuffixEnvelope   = []byte("/env")
@@ -32,7 +32,7 @@ func MakeKey(sessionID string, suffix []byte) []byte {
 	return append([]byte(sessionID), suffix...)
 }
 
-// ReadLockMode checks ObjectStore to determine lock mode.
+// ReadLockMode checks the ObjectStore to determine the lock mode.
 // Returns PIN_ENCRYPTED if lock-params exists, AUTO_UNLOCK otherwise.
 func ReadLockMode(ctx context.Context, objStore object.ObjectStore, sessionID string) (SessionLockMode, error) {
 	mode := SessionLockMode_AUTO_UNLOCK
@@ -73,7 +73,8 @@ func ReadAutoUnlockKey(ctx context.Context, objStore object.ObjectStore, session
 	return data, found, err
 }
 
-// ReadPINLockFiles reads the encrypted privkey, encrypted symkey, and lock config.
+// ReadPINLockFiles reads the encrypted privkey, encrypted symkey, and lock
+// config.
 func ReadPINLockFiles(ctx context.Context, objStore object.ObjectStore, sessionID string) (encPriv, encSymKey []byte, config *LockConfig, err error) {
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -108,7 +109,7 @@ func ReadPINLockFiles(ctx context.Context, objStore object.ObjectStore, sessionI
 	return
 }
 
-// WriteAutoUnlock writes encrypted privkey for auto-unlock mode and deletes
+// WriteAutoUnlock writes the encrypted privkey for auto-unlock mode and deletes
 // any PIN lock files.
 func WriteAutoUnlock(ctx context.Context, objStore object.ObjectStore, sessionID string, encPriv []byte) error {
 	return kvtx.RunTransaction(ctx, true,
@@ -129,7 +130,8 @@ func WriteAutoUnlock(ctx context.Context, objStore object.ObjectStore, sessionID
 	)
 }
 
-// WritePINLock writes PIN-encrypted lock files and deletes auto-unlock /pk file.
+// WritePINLock writes PIN-encrypted lock files and deletes the auto-unlock /pk
+// file.
 func WritePINLock(ctx context.Context, objStore object.ObjectStore, sessionID string, encPriv, encSymKey []byte, config *LockConfig) error {
 	configBytes, err := config.MarshalVT()
 	if err != nil {

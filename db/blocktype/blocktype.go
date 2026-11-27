@@ -2,7 +2,7 @@ package blocktype
 
 import "github.com/s4wave/spacewave/db/block"
 
-// BlockType provides construction and identification for a block.Block type.
+// BlockType constructs block.Block instances and identifies their type.
 type BlockType interface {
 	// Constructor builds a new zero-value block.Block instance.
 	Constructor() block.Block

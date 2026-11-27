@@ -31,7 +31,8 @@ type testBody struct {
 	missing bool
 	// gap makes the failure of "missing" a gap wait with no Wake.
 	gap bool
-	// storeGate, when set, holds each store Root returns until it closes.
+	// storeGate holds each store Root returns until storeGate closes,
+	// when set.
 	storeGate chan struct{}
 }
 
@@ -133,7 +134,7 @@ func testCheckpoint(t *testing.T, state *SOState, priv crypto.PrivKey, prefix []
 	}
 }
 
-// writeConcurrentOp writes data as priv's next operation naming no other
+// writeConcurrentOp writes data as priv's next operation referencing no other
 // author's operation, so it is concurrent with every operation it does not
 // follow in its own chain.
 func writeConcurrentOp(t *testing.T, state *SOState, priv crypto.PrivKey, data string) *SOOperation {

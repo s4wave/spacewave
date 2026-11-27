@@ -19,7 +19,7 @@ import (
 var Version = controller.MustParseVersion("0.0.1")
 
 // NewVolume opens the volume named by conf on its device, creating it when
-// absent. A failed open releases the device for the next.
+// absent. A failed open releases the device for the next open.
 func NewVolume(ctx context.Context, conf *Config) (*Volume, error) {
 	if err := conf.Validate(); err != nil {
 		return nil, volume.Permanent(err)

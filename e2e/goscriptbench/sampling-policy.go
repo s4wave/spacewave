@@ -17,13 +17,13 @@ const (
 
 // SamplingPolicy records the fixed populations and summary method.
 type SamplingPolicy struct {
-	// warmupSamples is the discarded sample count
+	// WarmupSamples is the discarded sample count.
 	WarmupSamples int
-	// retainedSamples is the untraced scalar sample count
+	// RetainedSamples is the untraced scalar sample count.
 	RetainedSamples int
-	// diagnosticSamples is the traced sample count
+	// DiagnosticSamples is the traced sample count.
 	DiagnosticSamples int
-	// summaryMethod names the percentile algorithm
+	// SummaryMethod identifies the percentile algorithm.
 	SummaryMethod string
 }
 

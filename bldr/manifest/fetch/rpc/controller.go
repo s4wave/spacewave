@@ -19,14 +19,14 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller fetches Manifests via the ManifestFetch service.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 	// fetchManifestIdRe is the parsed regex to filter manifest by.
-	// if nil, accepts any
+	// if nil, accepts any.
 	fetchManifestIdRe *regexp.Regexp
 }
 

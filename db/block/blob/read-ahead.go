@@ -10,15 +10,16 @@ import (
 )
 
 const (
-	// Streaming reads overlap at most eight chunks. The window is four MiB,
-	// except that a larger demanded chunk is read alone.
+	// chunkReadAheadCount limits streaming reads to eight overlapping
+	// chunks. The window is four MiB, except that a larger demanded chunk
+	// is read alone.
 	chunkReadAheadCount   = 8
 	chunkReadAheadBytes   = 4 << 20
 	chunkReadAheadMinRead = 32 << 10
 )
 
-// chunkReadAhead belongs to one Reader. Only the reader accesses pending;
-// workers resolve their own promises. Closing cancels and joins every fetch
+// chunkReadAhead belongs to one Reader. Only the reader accesses pending.
+// Workers resolve their own promises. Closing cancels and joins every fetch
 // before the reader releases its cursors.
 type chunkReadAhead struct {
 	ctx     context.Context
@@ -30,7 +31,7 @@ type chunkReadAhead struct {
 }
 
 func newChunkReadAhead(ctx context.Context, chunks *sbset.SubBlockSet) *chunkReadAhead {
-	// The last chunk ends the stored bytes; Start sums the preceding sizes.
+	// The last chunk ends the stored bytes. Start sums the preceding sizes.
 	var blobEnd uint64
 	if value, _ := chunks.Get(chunks.Len() - 1); value != nil {
 		if last, ok := value.(*Chunk); ok {

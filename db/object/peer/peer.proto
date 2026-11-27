@@ -12,7 +12,7 @@ message Config {
   // Required.
   string object_store_id = 1;
   // VolumeId is the volume id to use for the object store.
-  // Can be empty to select any.
+  // Can be empty to select any volume.
   string volume_id = 2;
   // ObjectStoreKey is the key to use in the object store for the private key.
   //

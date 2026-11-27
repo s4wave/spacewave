@@ -188,7 +188,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // SupportsStartupManifestCache returns true if startup cache reuse is safe.
 // Reuse is safe when every registered pre-build hook has declared complete
-// deterministic provenance; an undeclared hook keeps the compiler
+// deterministic provenance. An undeclared hook keeps the compiler
 // always-building.
 func (c *Controller) SupportsStartupManifestCache() bool {
 	for _, entry := range c.preBuildHooks {
@@ -228,7 +228,7 @@ func (c *Controller) BuildManifest(
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
 
-	// Do nothing if we are not targeting a supported JavaScript platform.
+	// Do nothing unless the compiler targets a supported JavaScript platform.
 	basePlatformID := buildPlatform.GetBasePlatformID()
 	if basePlatformID != bldr_platform.PlatformID_WEB && basePlatformID != bldr_platform.PlatformID_JS {
 		le.Warnf("skipping build for non-js platform: %v", buildPlatform.GetInputPlatformID())
@@ -252,8 +252,8 @@ func (c *Controller) BuildManifest(
 	// build output world engine
 	buildWorld := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
-	// The JS plugin compiler owns the dist tree; stale hashed plugin entrypoints
-	// can retain dead frontend asset hashes across rebuilds.
+	// The JS plugin compiler owns the dist tree. Stale hashed plugin
+	// entrypoints can retain dead frontend asset hashes across rebuilds.
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
@@ -319,8 +319,8 @@ func (c *Controller) BuildManifest(
 	esbuildBundleMetas := buildCtrlConf.GetEsbuildBundles()
 	baseEsbuildFlags := buildCtrlConf.GetEsbuildFlags() // Use raw flags
 
-	// Prepare backend and frontend entrypoints from the config.
-	// We clone the slices to avoid modifying the original config object directly,
+	// Prepare backend and frontend entrypoints from the config. Clone the
+	// slices to avoid modifying the original config object directly,
 	// although buildCtrlConf itself is already a clone.
 	backendEntrypoints := slices.Clone(buildCtrlConf.GetBackendEntrypoints())
 	frontendEntrypoints := slices.Clone(buildCtrlConf.GetFrontendEntrypoints())
@@ -332,10 +332,11 @@ func (c *Controller) BuildManifest(
 	var snapshotModules []*JsModule
 	frontendBindings := make(map[string]*frontend.Binding)
 
-	// Configure bundles and potentially add default entrypoints based on jsModules.
-	// This adds default Vite bundles for modules defined with the shortcut syntax.
-	// If bundles with the same name ("fe" or "be") are already defined in vite_bundles,
-	// they will be merged later during the Vite compiler build step.
+	// Configure bundles and potentially add default entrypoints based on
+	// jsModules. The module configuration adds default Vite bundles for
+	// modules defined with the shortcut syntax. If bundles with the same
+	// name ("fe" or "be") are already defined in vite_bundles, those
+	// bundles will be merged during the Vite compiler build step.
 	for _, mod := range buildCtrlConf.GetModules() {
 		// on the frontend, pass BldrExternal as external packages.
 		var externalPkgs []string
@@ -391,7 +392,7 @@ func (c *Controller) BuildManifest(
 			ViteConfigPaths:      mod.GetViteConfigPaths(),
 			DisableProjectConfig: mod.GetDisableProjectConfig(),
 
-			// TODO: is there a way we can set this dynamically at runtime?
+			// TODO: can PublicPath be set dynamically at runtime?
 			// TODO: if the plugin ID changes this URL will change.
 			PublicPath: bldr_plugin.PluginAssetHTTPPath(pluginID, path.Join("v", "b", bundleID)),
 
@@ -494,7 +495,8 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
-	// Snapshot entries identify emitted bytes; live entries retain their binding.
+	// Snapshot entries identify emitted bytes. Live entries retain their
+	// binding.
 	backendEntrypoints, frontendEntrypoints, err = CreateEntrypointsFromViteOutputs(
 		outAssetsPath,
 		snapshotModules,
@@ -531,7 +533,7 @@ func (c *Controller) BuildManifest(
 	// Record the pinned dist dependency inputs used by the direct owner.
 	distDepsPackagePath := distpath.Resolve(distSourcePath, "dist", "deps", "package.json")
 
-	// -- Compile the main JS entrypoint (plugin-{hash}.mjs) --
+	// Compile the main JS entrypoint (plugin-{hash}.mjs).
 	le.Info("compiling js plugin entrypoint")
 	entrypointTsSrcPath := distpath.Resolve(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
 
@@ -711,7 +713,7 @@ func (c *Controller) BuildManifest(
 	}
 	inputManifest.SortStartupInputs()
 
-	// -- Commit assets to the manifest store --
+	// Commit assets to the manifest store.
 	tx, err := buildWorld.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
@@ -735,7 +737,7 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// -- Finalize and return result --
+	// Finalize and return the result.
 	le.Debug("js plugin build complete")
 	builderResult := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,

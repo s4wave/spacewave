@@ -22,9 +22,9 @@ export interface V86SourceStepProps {
   inSpaceImages: V86ImageEntry[]
   // pending is set while the Space's images and VMs are still loading.
   pending: boolean
-  // failures lists each listing that could not be read; pending stays set.
+  // failures lists each listing that could not be read. pending stays set.
   failures?: V86ListingsFailure[]
-  // waiting names the listing the loading card says is being read.
+  // waiting identifies the listing the loading card says is being read.
   waiting?: V86ListingsStatus['waiting']
   // stopped is set when the complete image list stopped following changes.
   stopped?: V86ListingsFailure | null

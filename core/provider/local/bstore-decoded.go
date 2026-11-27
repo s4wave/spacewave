@@ -15,9 +15,9 @@ var ErrNoDecodedStore = errors.New("the block store does not keep peer reads for
 // the caller decoded from its bytes by the block's type, as a peer fill stores
 // a peer's block that came with them: with its upload marker, below the
 // ownership layer as a cache fill. The read path serves such a block without
-// storing it, since the pack would keep it as a leaf; refs decoded by type
-// are the refs a write of the block records. It writes only on the World's
-// new owner, where peer fills upload.
+// storing it, since the pack would keep it as a leaf. Refs decoded by type
+// are the refs a write of the block records. StoreDecodedRefs writes only on
+// the World's new owner, where peer fills upload.
 func (b *BlockStore) StoreDecodedRefs(ctx context.Context, ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
 	// Write only where peer fills upload.
 	p := b.placement

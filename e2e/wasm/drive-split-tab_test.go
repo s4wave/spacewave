@@ -301,7 +301,7 @@ func (p *splitDriveProbe) clickPaneButton(pane int, title string) {
 	// Report failures at the caller.
 	p.t.Helper()
 
-	// Click the pane button and wait for it to settle.
+	// Click the pane button and wait for the pane to settle.
 	_, err := p.page.WaitForFunction(`({ pane, title }) => {
 		const browser = splitDriveVisibleBrowser(pane)
 		if (!browser) return false

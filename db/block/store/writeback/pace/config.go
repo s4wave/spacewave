@@ -7,8 +7,9 @@ import "time"
 type Config struct {
 	// Paused holds every pass until its context ends.
 	Paused bool
-	// BytesPerSecond caps removal bandwidth; zero leaves it uncapped.
+	// BytesPerSecond caps removal bandwidth. Zero leaves it uncapped.
 	BytesPerSecond float64
-	// FlushMax is the mean flush time that triggers backoff; zero disables it.
+	// FlushMax is the mean flush time that triggers backoff.
+	// Zero disables backoff.
 	FlushMax time.Duration
 }

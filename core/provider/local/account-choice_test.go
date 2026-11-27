@@ -131,7 +131,8 @@ func TestPairingAccountChoice(t *testing.T) {
 				}
 			}
 
-			// The chosen direction controls attachment; both original accounts remain intact.
+			// The chosen direction controls attachment. Both original accounts remain
+			// intact.
 			source, receiving := 0, 1
 			if outcome == pairing.AccountOutcome_AccountOutcome_SIGN_IN_RECEIVING || outcome == pairing.AccountOutcome_AccountOutcome_MERGE_INTO_RECEIVING {
 				source, receiving = 1, 0

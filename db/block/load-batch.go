@@ -5,22 +5,22 @@ import (
 	"time"
 )
 
-// BatchLoad gathers the blocks a walk reads next, such as one level of a
-// tree, and reads those no cache holds with one batch read of the store. Add
-// each block with AddRead, AddCursorRead, AddLeaf or AddCursorLeaf, then call
-// Load, and read the blocks on the context it returns: each read, through
+// BatchLoad gathers the blocks a walk reads next, such as one level of a tree,
+// and reads those no cache holds with one batch read of the store. Add each
+// block with AddRead, AddCursorRead, AddLeaf or AddCursorLeaf, then call Load,
+// and read the blocks on the context it returns: each read, through
 // UnmarshalReadBlock, a Cursor or a leaf fetch, takes the batch's answer once
-// rather than read the store again, and keeps every effect of a store read:
-// the cold-read admission, which the batch takes once, the counter, the access
-// log, the hold, the decode and the decoded-block admission a durable store's
-// mark allows. A block the batch failed to read fails its read with that error.
+// rather than read the store again, and keeps every effect of a store read: the
+// cold-read admission, which the batch takes once, the counter, the access log,
+// the hold, the decode and the decoded-block admission a durable store's mark
+// allows. A block the batch failed to read fails its read with that error.
 //
-// The batch reads through the transaction and store of the first block added;
-// a block of another reads alone. Whether the cache holds a block is a guess
-// made when it is added: a block it guessed cached reads alone, and an answer
-// no read takes stays on the context unused. The context holds the answers
-// until the reads take them, so the caller reads the blocks soon after, as a
-// walk reads one level. The zero BatchLoad is empty.
+// The batch reads through the transaction and store of the first block added. A
+// block of another transaction or store reads alone. Whether the cache holds a
+// block is a guess made when it is added: a block it guessed cached reads
+// alone, and an answer no read takes stays on the context unused. The context
+// holds the answers until the reads take them, so the caller reads the blocks
+// soon after, as a walk reads one level. The zero BatchLoad is empty.
 type BatchLoad struct {
 	// source is the position of the first block added, whose transaction and
 	// store the batch reads through.
@@ -131,7 +131,8 @@ func wouldHit[T any, PT Ptr[T]](ctx context.Context, r ReadCursor) bool {
 		}
 	}
 
-	// Otherwise the read operation's front cache or the shared pool may.
+	// Otherwise the read operation's front cache or the shared pool may
+	// hold the block.
 	c := r.loadCursor()
 	key, ok := decodedBlockCacheKeyFor(r.ref, PT(new(T)), c.transformer())
 	if !ok {

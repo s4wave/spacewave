@@ -23,8 +23,9 @@ import (
 )
 
 // localTransport intercepts remote git URLs and redirects them to local
-// filesystem paths based on a .gitmodules URL-to-path mapping. Falls back
-// to the original transport for URLs not in the map (e.g. sub-submodules).
+// filesystem paths based on a .gitmodules URL-to-path mapping. The transport
+// falls back to the original transport for URLs not in the map
+// (e.g. sub-submodules).
 type localTransport struct {
 	// urlToPath maps normalized URL keys to absolute local paths.
 	// Key format: "github.com/s4wave/spacewave/db"
@@ -92,7 +93,7 @@ func normalizeURL(url string) string {
 }
 
 func (lt *localTransport) resolve(ep *transport.Endpoint) (string, bool) {
-	// Build key from endpoint: host + path
+	// Build the key from the endpoint: host + path
 	path := strings.TrimPrefix(ep.Path, "/")
 	path = strings.TrimSuffix(path, ".git")
 	key := ep.Host + "/" + path

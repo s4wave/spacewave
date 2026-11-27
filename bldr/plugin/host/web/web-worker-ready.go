@@ -11,8 +11,8 @@ import (
 )
 
 // webWorkerReadyTimeout must cover the browser's silent download, compile, and
-// startup window for large Go wasm plugin workers. WebDocument currently
-// advances to STARTUP_RUNNING before that phase and does not publish finer
+// startup window for large Go wasm plugin workers. WebDocument advances to
+// STARTUP_RUNNING before that phase and does not publish finer
 // progress, so a short host timeout recreates a worker that may still be
 // starting correctly.
 const webWorkerReadyTimeout = time.Minute * 5

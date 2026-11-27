@@ -26,8 +26,9 @@ var errChanged = errors.New("its files are not the ones written from the release
 // fingerprint returns a digest of parts and of the name, size and
 // modification time of every file below directory but the fingerprint
 // itself. A file changes only through a writer, which moves its modification
-// time or size, so an equal digest shows the files are the ones it was
-// recorded over. It reads only directory entries, never file contents.
+// time or size, so an equal digest shows the files are the ones the digest
+// was recorded over. fingerprint reads only directory entries, never file
+// contents.
 func fingerprint(directory string, parts []*block.BlockRef) ([]byte, error) {
 	// Bind the digest to the roots the files were written from.
 	sum := sha256.New()

@@ -2,29 +2,30 @@ import { useEffect, useState } from 'react'
 import { castToError } from 'starpc'
 
 /**
- * Result object returned by usePromise hook
+ * UsePromiseResult is the result object returned by the usePromise hook.
  *
- * @typeParam T - The type of data returned by the promise
+ * @typeParam T: The type of data returned by the promise
  */
 export interface UsePromiseResult<T> {
-  /** The resolved data from the promise, or undefined if not yet resolved */
+  /** data is the resolved promise data, or undefined if not yet resolved. */
   data: T | undefined
-  /** Whether the promise is currently pending */
+  /** loading indicates whether the promise is pending. */
   loading: boolean
-  /** Any error that occurred during promise execution, or null if no error */
+  /** error is any error from executing the promise, or null if no error. */
   error: Error | null
 }
 
 /**
- * Hook for managing async promise execution with loading and error states
+ * usePromise manages async promise execution with loading and error states.
  *
- * Automatically handles promise cancellation when the component unmounts or when
- * the callback changes. Provides loading and error states for UI feedback.
+ * The hook automatically handles promise cancellation when the component
+ * unmounts or when the callback changes. The hook provides loading and error
+ * states for UI feedback.
  *
- * @typeParam T - The type of data returned by the promise
- * @param callback - Function that receives an AbortSignal and returns a promise to execute.
- *                   Wrap with useCallback to control when the promise re-executes.
- *                   Return undefined to skip fetching (useful for conditional fetches).
+ * @typeParam T: The type of data returned by the promise
+ * @param callback: Function that receives an AbortSignal and returns a promise
+ * to execute. Wrap with useCallback to control when the promise re-executes.
+ * Return undefined to skip fetching (useful for conditional fetches).
  * @returns Object containing data, loading state, and error state
  *
  * @example

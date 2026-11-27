@@ -7,7 +7,7 @@ import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
 // NotFoundBehavior controls what happens when a block was not found locally.
 enum NotFoundBehavior {
-  // NotFoundBehavior_NONE does nothing when we don't find a block.
+  // NotFoundBehavior_NONE does nothing when the lookup finds no block.
   NotFoundBehavior_NONE = 0;
   // NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block.
   // If the directive becomes idle returns not found.

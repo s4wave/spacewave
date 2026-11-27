@@ -90,7 +90,8 @@ func TestInlineValuesRetainExistingDataAndCursors(t *testing.T) {
 	}
 
 	// An inline cursor from a separate read transaction must become a real
-	// value when another tree adopts it; its containing page ref is not a value.
+	// value when another tree adopts it. Its containing page ref is not a
+	// value.
 	inline, err := read.GetCursorAtKey(ctx, []byte("small"))
 	if err != nil {
 		t.Fatal(err)

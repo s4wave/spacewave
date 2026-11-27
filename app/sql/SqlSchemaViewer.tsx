@@ -54,7 +54,7 @@ export function SqlSchemaViewer({
   )
 
   // The row-count query targets the schema's owning database object. The handle
-  // resolves to null until the schema metadata names a target db.
+  // resolves to null until the schema metadata specifies a target db.
   const targetDbKey = schemaResource.value?.metadata?.targetDbObjectKey ?? ''
   const dbHandle = useAccessTypedHandle(worldState, targetDbKey, SqlDatabase)
   useObjectName(schemaResource.value?.metadata?.displayName)

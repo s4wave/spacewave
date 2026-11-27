@@ -9,13 +9,13 @@ import type { Resource, ResourceFields } from './useResource.js'
  * value is what the hook reports while it is not failed. It stays while the
  * resource loads again, and becomes null whenever the resource fails or its
  * parent stops being ready with no value of its own. last is the most recent
- * value for this key once value has gone null that way; the hook shows it
+ * value for this key once value has gone null that way. The hook shows last
  * only on the failed state. keepable is false once the run that produced
  * value disposed its handles, so a disposed value never becomes last. owner
  * is the generation of the run that produced value, or last once it moved.
  * reopening is the failure a stream that had yielded is reopening after,
- * while it loads again over value, which may be out of date; a value, a
- * failure or a new key clears it.
+ * while the stream loads again over value, which may be out of date. A value,
+ * a failure or a new key clears reopening.
  */
 export type ResourceTransitionState<T> = {
   key: number
@@ -58,8 +58,8 @@ export function isReleasedHandle(value: unknown): boolean {
 /**
  * resourceReady reports whether a child may start on resource: it holds a
  * live value and is neither loading nor failed. Every hook that runs a child
- * through startAfter gates on this predicate alone; useSharedResource keys a
- * lease on any live parent value instead, so a parent reload keeps it.
+ * through startAfter gates on this predicate alone. useSharedResource keys a
+ * lease on any live parent value instead, so a parent reload keeps the lease.
  */
 export function resourceReady(resource: ParentState): boolean {
   return (
@@ -73,8 +73,8 @@ export function resourceReady(resource: ParentState): boolean {
 /**
  * resourceOf builds the Resource state for fields. An error wins: the
  * resource is failed, value is null and last keeps fields.last unless it is a
- * released handle. Otherwise loading wins over settled. It lives here rather
- * than in useResource.js, which many tests mock whole.
+ * released handle. Otherwise loading wins over settled. resourceOf lives here
+ * rather than in useResource.js, which many tests mock whole.
  */
 export function resourceOf<T>(fields: ResourceFields<T>): Resource<T> {
   const { value, loading, error, last, reopening, ...base } = fields
@@ -151,8 +151,8 @@ function fresh<T>(key: number, loading: boolean): ResourceTransitionState<T> {
 /**
  * enter returns prev as the state of key. A state written under another key
  * starts key loading with no last. With carry it keeps the other key's value
- * while key loads, marked so it never becomes last; the first value, failure
- * or empty settle under key replaces it.
+ * while key loads, marked so the value never becomes last. The first value,
+ * failure or empty settle under key replaces the value.
  */
 function enter<T>(
   prev: ResourceTransitionState<T>,
@@ -220,10 +220,10 @@ export function useResourceTransitionState<T>(
   /**
    * waitAgain marks the resource loading, keeping its value. A failure that
    * kept a last, or a quiet wait over any failure, stays failed as it is, so
-   * a wait or a run that follows never blanks kept content; the run's first
-   * value, failure or empty settle replaces it. reopening marks a wait that
-   * follows a failure of a stream that had yielded; it lasts through the run
-   * that reopens it.
+   * a wait or a run that follows never blanks kept content. The run's first
+   * value, failure or empty settle replaces the kept content. reopening marks
+   * a wait that follows a failure of a stream that had yielded. reopening lasts
+   * through the run that reopens the stream.
    */
   const waitAgain = useCallback(
     (key: number, quiet = false, reopening: Error | null = null) =>
@@ -303,8 +303,8 @@ export function useResourceTransitionState<T>(
    * the child: under a failed parent its value moves to last and the child
    * takes the parent's failure as its own, so it stays failed over that last
    * through the parent's reload and recovery until its own run settles,
-   * never empty or blank; loading under a loading or released parent; and
-   * empty under a parent that settled with no value.
+   * never empty or blank. The child stays loading under a loading or released
+   * parent, and empty under a parent that settled with no value.
    */
   const startAfter = useCallback(
     (

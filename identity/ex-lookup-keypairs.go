@@ -8,16 +8,16 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// LookupOrDeriveEntityKeypair attempts to resolve peer.Peer from entity keypairs.
+// LookupOrDeriveEntityKeypair tries to resolve peer.Peer from entity keypairs.
 //
 // - Find all available local private keys which match the entity keypairs.
-// - Allow the user to interactively derive those keypairs that we don't have.
+// - Allow the user to interactively derive keypairs with no local private keys.
 func LookupOrDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*EntityKeypair,
 ) ([]peer.Peer, error) {
-	// Check if we already have any of them loaded.
+	// Check if any private keys for the entity keypairs are already loaded.
 	var lpeers []peer.Peer
 	for _, selEkp := range kps {
 		// Derive the keypair.
@@ -30,7 +30,7 @@ func LookupOrDeriveEntityKeypair(
 			return nil, errors.Wrap(err, "parse keypair peer id")
 		}
 
-		// Check if we have the private key (peer) loaded already.
+		// Check if the private key (peer) is loaded already.
 		vals, _, valsRef, err := bus.ExecCollectValues[peer.GetPeerValue](ctx, b, peer.NewGetPeer(peerID), false, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "lookup peer %s", selKp.GetPeerId())
@@ -49,7 +49,8 @@ func LookupOrDeriveEntityKeypair(
 		}
 	}
 
-	// If we don't have any loaded already, try to derive at least one.
+	// If no matching private keys are loaded already, try to derive at least
+	// one.
 	if len(lpeers) == 0 {
 		kpv, _, kpvRef, err := ExDeriveEntityKeypair(ctx, b, kps, false)
 		if err != nil {
@@ -63,7 +64,8 @@ func LookupOrDeriveEntityKeypair(
 	return lpeers, nil
 }
 
-// LookupOrDeriveKeypair attempts to resolve peer.Peer from keypairs w/o entity info.
+// LookupOrDeriveKeypair tries to resolve peer.Peer from keypairs w/o entity
+// info.
 func LookupOrDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,

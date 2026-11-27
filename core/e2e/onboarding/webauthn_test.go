@@ -172,9 +172,9 @@ func (va *virtualAuthenticator) marshalCOSEKey() []byte {
 
 	// 1: 2 (kty: EC2)
 	buf = append(buf, 0x01, 0x02)
-	// 3: -7 (alg: ES256) -- negative: -7 = major1(6) = 0x26
+	// 3: -7 (alg: ES256), negative: -7 = major1(6) = 0x26
 	buf = append(buf, 0x03, 0x26)
-	// -1: 1 (crv: P-256) -- key -1 = major1(0) = 0x20
+	// -1: 1 (crv: P-256), key -1 = major1(0) = 0x20
 	buf = append(buf, 0x20, 0x01)
 	// -2: x (bstr)
 	buf = append(buf, 0x21)           // key -2 = major1(1) = 0x21

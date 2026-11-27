@@ -27,7 +27,7 @@ func acquireStateLock(ctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 
 	// Create the state root if it does not exist.
-	// #nosec G703 -- stateRoot is the caller-selected local build state directory.
+	// #nosec G703: stateRoot is the caller-selected local build state directory.
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, err
 	}
@@ -35,7 +35,8 @@ func acquireStateLock(ctx context.Context, le *logrus.Entry, stateRoot string) (
 	// Open the fixed-name lock file in the state root.
 	lockPath := filepath.Join(stateRoot, stateLockFileName)
 
-	// #nosec G703 -- lockPath adds a fixed filename to the selected build state directory.
+	// #nosec G703: lockPath adds a fixed filename to the selected build state
+	// directory.
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, errors.Wrap(err, "open bldr state lock")
@@ -73,7 +74,7 @@ func acquireStateLock(ctx context.Context, le *logrus.Entry, stateRoot string) (
 	return lock, nil
 }
 
-// waitMessage describes the state lock wait, naming the recorded holder.
+// waitMessage describes the state lock wait, identifying the recorded holder.
 func (l *stateLock) waitMessage(stateRoot string) string {
 	if pid := l.readHolderPID(); pid != "" {
 		return "waiting for pid " + pid + " to release bldr state lock: " + stateRoot

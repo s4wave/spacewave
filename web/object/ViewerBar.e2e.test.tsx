@@ -118,7 +118,7 @@ describe('ViewerBar', () => {
     await screen.rerender(<Pane width={narrow} actions={actions} />)
     await expect.poll(listed).toEqual(['a', 'b'])
 
-    // Past the last fold More leaves the bar; focus goes to the first press.
+    // Past the last fold More leaves the bar. Focus goes to the first press.
     await screen.rerender(<Pane width={wide} actions={actions} />)
     await expect.poll(listed).toEqual([])
     await expect.poll(focused).toBe('a')
@@ -143,7 +143,7 @@ describe('ViewerBar', () => {
   })
 
   it('keeps focus on a press while its action runs', async () => {
-    // Show an idle press. A keyboard user starts the action; WebKit does
+    // Show an idle press. A keyboard user starts the action. WebKit does
     // not focus a clicked button.
     const run = vi.fn()
     const idle = [press('open', { label: 'Open', onClick: run })]
@@ -185,7 +185,7 @@ describe('ViewerBar', () => {
     const copy = page.getByRole('button', { name: 'Copy Setup' })
     ;(copy.element() as HTMLElement).focus()
 
-    // Widening closes Details; the inner Collapse belongs to another viewer,
+    // Widening closes Details. The inner Collapse belongs to another viewer,
     // so focus goes to the outer bar.
     await screen.rerender(<NestedPane width="w-192" />)
     await expect

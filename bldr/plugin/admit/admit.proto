@@ -9,7 +9,7 @@ service PluginRootAdmission {
   rpc WatchPluginRootAdmitted(WatchPluginRootAdmittedRequest) returns (stream WatchPluginRootAdmittedResponse);
 }
 
-// WatchPluginRootAdmittedRequest names the root to watch.
+// WatchPluginRootAdmittedRequest identifies the root to watch.
 message WatchPluginRootAdmittedRequest {
   // PeerId is the b58 peer whose approvals decide the root.
   string peer_id = 1;

@@ -7,8 +7,8 @@ import (
 
 // WatchSlot keeps one watcher's change feed subscription across the
 // WatchIndexedChanges calls made, one at a time, with a context that carries
-// it. A view's reruns make such calls, each naming nearly the same reads, so a
-// feed that keeps the subscription diffs its index entry instead of removing
+// it. A view's reruns make such calls, each declaring nearly the same reads, so
+// a feed that keeps the subscription diffs its index entry instead of removing
 // and adding every name on each rerun. A feed that does not know the slot
 // ignores it.
 type WatchSlot struct {
@@ -16,8 +16,8 @@ type WatchSlot struct {
 	mtx sync.Mutex
 	// busy is set while a call holds the slot.
 	busy bool
-	// closed is set once Close ran; a call returning after it releases what it
-	// kept.
+	// closed is set once Close ran. A call returning after it releases what
+	// it kept.
 	closed bool
 	// held is the kept subscription, or nil.
 	held WatchSlotHolder
@@ -48,7 +48,7 @@ func WatchSlotFromContext(ctx context.Context) *WatchSlot {
 
 // Take claims the slot for one call and returns the subscription it kept,
 // which may be nil. ok is false when another call holds the slot or it is
-// closed; the caller then subscribes on its own.
+// closed. The caller then subscribes on its own.
 func (s *WatchSlot) Take() (held WatchSlotHolder, ok bool) {
 	// Claim the kept subscription for one caller.
 	s.mtx.Lock()
@@ -63,7 +63,7 @@ func (s *WatchSlot) Take() (held WatchSlotHolder, ok bool) {
 
 // Put ends the call that took the slot and keeps held, which may be nil, for
 // the next call. covered is the seqno through which the call reported every
-// change its interest accepts, or 0 when it cannot say; a caller that starts
+// change its interest accepts, or 0 when it cannot say. A caller that starts
 // its next call after covered misses none of them. After Close it releases
 // held instead.
 func (s *WatchSlot) Put(held WatchSlotHolder, covered uint64) {

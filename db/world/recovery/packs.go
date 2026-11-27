@@ -55,7 +55,7 @@ func (r *readOnlyFile) Close() error {
 
 // nextPackName returns the smallest pack file name in dir after after, or ""
 // when none is left. It streams the directory in bounded batches, so memory
-// does not grow with the number of packs; each call costs one pass over the
+// does not grow with the number of packs. Each call costs one pass over the
 // directory's entries. Entries that are not regular files, such as links, are
 // reported through skipped and never followed.
 func nextPackName(dir string, tier PackTier, after string, skipped func()) (string, error) {
@@ -125,7 +125,7 @@ func (s *Scanner) inventoryPack(ctx context.Context) error {
 	location := append(binary.BigEndian.AppendUint32(nil, uint32(len(s.source.GetTables()))+dirIndex), name...) //nolint:gosec // bounded declarations.
 	location = append(location, 0)
 	return s.db.Update(func(tx *scratchTx) error {
-		// Open and read the pack, naming any skipped entries.
+		// Open and read the pack, reporting any skipped entries.
 		if skipped {
 			s.addGap("pack directory entries that are not regular files are not read")
 		}
@@ -153,7 +153,7 @@ func (s *Scanner) inventoryPack(ctx context.Context) error {
 }
 
 // readPack records every verified value of one pack. A finalized or remote
-// pack reads through its index; an open log, or a local pack whose index does
+// pack reads through its index. An open log, or a local pack whose index does
 // not read, reads through its valid batch records, and the bytes past the
 // last valid record are counted as retained and unread, never truncated. A
 // pack neither reader accepts is counted unreadable, keeping any value it
@@ -163,7 +163,7 @@ func (s *Scanner) readPack(ctx context.Context, tx *scratchTx, f *readOnlyFile, 
 	var fnErr error
 	values := 0
 	record := func(key, value []byte) error {
-		// Count a corrupt value and go on; record a verified one.
+		// Count a corrupt value and go on. Record a verified value.
 		values++
 		ref, stored, err := packfile.DecodeBlockValue(key, value)
 		if err != nil {
@@ -216,9 +216,9 @@ func (s *Scanner) readPack(ctx context.Context, tx *scratchTx, f *readOnlyFile, 
 	return nil
 }
 
-// packGaps names the value tiers the declared packs leave unread.
+// packGaps lists the value tiers the declared packs leave unread.
 func packGaps(packs []*PackSource) []string {
-	// Name each undeclared tier, then the tiers no reader covers.
+	// List each undeclared tier, then the tiers no reader covers.
 	declared := map[PackTier]bool{}
 	for _, p := range packs {
 		declared[p.GetTier()] = true

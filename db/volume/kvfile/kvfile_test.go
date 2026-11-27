@@ -37,7 +37,7 @@ func TestKvfile(t *testing.T) {
 	}
 
 	// Write the ordered records to the in-memory KVFile.
-	// we write the keys in sequential order, use that here:
+	// Use the sequential key order to select each value:
 	var index int
 	err := kvfile.Write(&buf, keys, func(wr io.Writer, key []byte) (uint64, error) {
 		nw, err := wr.Write(vals[index])

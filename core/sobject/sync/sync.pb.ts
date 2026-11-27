@@ -91,8 +91,8 @@ export const SOSyncSnapshot: MessageType<SOSyncSnapshot> =
   )
 
 /**
- * SOSyncHeld names the records of a receiver's state by record hash: SHA-256
- * of the record's encoding.
+ * SOSyncHeld identifies the records of a receiver's state by record hash:
+ * SHA-256 of the record's encoding.
  *
  * @generated from message sobject.sync.SOSyncHeld
  */
@@ -326,7 +326,8 @@ export interface SOSyncHead {
    */
   configSeqno?: bigint
   /**
-   * StateHash is SHA-256 of the serialized transferable snapshot; it grants no authority.
+   * StateHash is SHA-256 of the serialized transferable snapshot. The hash
+   * grants no authority.
    */
   stateHash?: Uint8Array
 }
@@ -362,8 +363,8 @@ export interface SOSyncHistoryRequest {
    */
   floorSeqno?: bigint
   /**
-   * Held names the records the receiver holds, which the snapshot omits.
-   * It is empty when the names would not fit in one frame.
+   * Held identifies the records the receiver holds and the snapshot omits.
+   * Held is empty when the record hashes would not fit in one frame.
    */
   held?: SOSyncHeld
 }
@@ -441,9 +442,9 @@ export const SOSyncHistoryPage: MessageType<SOSyncHistoryPage> =
  * SOSyncConfigSuffix carries the sender's newest retained config changes after
  * the receiver refused admission that the sender granted. The receiver adopts
  * the changes that follow its held head, each authorized by the config before
- * it, so a participant whose config predates the sender's key can admit it on
- * the next stream. Neither side discloses state, and the refusing receiver
- * discloses nothing.
+ * each change, so a participant whose config predates the sender's key can
+ * admit the sender on the next stream. Neither side discloses state, and the
+ * refusing receiver discloses nothing.
  *
  * @generated from message sobject.sync.SOSyncConfigSuffix
  */

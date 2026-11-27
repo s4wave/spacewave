@@ -17,22 +17,23 @@ import (
 
 // Controller resolves LookupBlockStore with a block_store.Store.
 type Controller struct {
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// storeCtr contains the block store
+	// storeCtr contains the block store.
 	storeCtr *ccontainer.CContainer[block_store.Store]
-	// errCtr contains any error building the handler
+	// errCtr contains any error building the handler.
 	errCtr *ccontainer.CContainer[*error]
-	// rc is the refcount container
+	// rc is the refcount container.
 	rc *refcount.RefCount[block_store.Store]
-	// blockStoreIds is the list of block store ids to match
-	// ignores if empty
+	// blockStoreIds is the list of block store ids to match. A lookup with an
+	// empty store id matches regardless of the list.
 	blockStoreIds []string
 	// bucketIDs is a list of bucket ids to resolve LookupBlockFromNetwork directives.
 	bucketIDs []string
-	// skipNotFound returns no value if not found. otherwise returns found=false
+	// skipNotFound returns no value if not found. Otherwise returns
+	// found=false.
 	skipNotFound bool
-	// verbose wraps the block store with a verbose logger
+	// verbose wraps the block store with a verbose logger.
 	verbose bool
 }
 

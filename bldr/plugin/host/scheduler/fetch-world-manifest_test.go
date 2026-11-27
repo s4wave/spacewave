@@ -120,7 +120,8 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 }
 
 // assertDirectSelectionRev requires the plugin's recorded manifest selection to
-// name the executing manifest and carry its rev, as plugin list shows them.
+// reference the executing manifest and carry its rev, as plugin list shows
+// them.
 func assertDirectSelectionRev(t *testing.T, pi *pluginInstance, rev uint64) {
 	t.Helper()
 	row := pi.c.pluginManifestRecoveryStatus[pluginInstanceKey(pi.pluginID, pi.instanceKey)]
@@ -3320,7 +3321,7 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		}()
 	}
 
-	// The first admitted copy enters traversal alone; the queued requests
+	// The first admitted copy enters traversal alone. The queued requests
 	// must not start reading source blocks.
 	var activeReq *manifestCopyRequest
 	var activeID string
@@ -3362,7 +3363,7 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		t.Fatal("foreground world access returned an empty bucket id")
 	}
 
-	// Cancel one queued request while it waits for admission; it must exit
+	// Cancel one queued request while it waits for admission. It must exit
 	// without entering traversal or publishing.
 	var cancelReq, queuedReq *manifestCopyRequest
 	for _, req := range requests {
@@ -3401,7 +3402,7 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		t.Fatalf("canceled queued copy published %d manifests, want 0", len(got))
 	}
 
-	// Release the active copy; it completes and publishes its copied root.
+	// Release the active copy. It completes and publishes its copied root.
 	close(releaseCopy)
 	select {
 	case err := <-activeReq.errCh:
@@ -3412,8 +3413,9 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		t.Fatalf("timed out waiting for the active manifest copy: %v", ctx.Err())
 	}
 
-	// The remaining queued request proceeds only after the allowance
-	// released: its first observation must record release already closed.
+	// The remaining queued request proceeds only after the allowance is
+	// released: its first observation must record the release channel already
+	// closed.
 	select {
 	case obs := <-observed:
 		if obs.manifestID != queuedReq.manifestID {
@@ -3838,8 +3840,8 @@ func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T)
 		pluginHost:       &testPluginHost{id: "desktop/darwin/arm64"},
 	})
 
-	// The copy publishes only for the routine's currently selected manifest;
-	// establish the selection this test drives directly.
+	// The copy publishes only for the routine's currently selected manifest.
+	// Establish the selection this test drives directly.
 	pi.downloadManifestRoutine.SetState(snapshot)
 
 	// Bound the test with a timeout.

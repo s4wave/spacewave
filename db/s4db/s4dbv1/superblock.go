@@ -15,7 +15,7 @@ const superSize = 88
 // superblock is a checkpoint: the tree root, the key count, the space
 // record and the log position after it. Two copies alternate by generation.
 type superblock struct {
-	// gen selects the newer copy; zero marks a copy never written.
+	// gen selects the newer copy. Zero marks a copy never written.
 	gen uint64
 	// seq is the last commit the tree holds.
 	seq uint64
@@ -31,7 +31,7 @@ type superblock struct {
 	logPos uint64
 	// logEnd is the end of the log run holding logPos.
 	logEnd uint64
-	// logCrc is the checksum of record seq, which the next continues.
+	// logCrc is the checksum of record seq, which the next record continues.
 	logCrc uint32
 }
 

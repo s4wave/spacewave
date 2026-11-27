@@ -33,7 +33,8 @@ func (c *Config) ParseProtocolIDs() ([]protocol.ID, error) {
 
 // GetDebugVals returns the directive arguments as key/value pairs.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug values are not necessarily unique and are primarily intended for
+// display.
 func (c *Config) GetDebugVals() config.DebugValues {
 	return config.DebugValues{
 		"peer-ids":     c.GetPeerIds(),

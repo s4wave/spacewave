@@ -21,9 +21,9 @@ type Histogram struct {
 	total HistogramRow
 }
 
-// histogramKey names a row: a block type, nil for the blocks a scanning walk
-// read with no type, and whether the walk guessed the type without confirming
-// it.
+// histogramKey identifies a row: a block type, nil for the blocks a scanning
+// walk read with no type, and whether the walk guessed the type without
+// confirming it.
 type histogramKey struct {
 	typ    reflect.Type
 	unsure bool
@@ -64,7 +64,7 @@ func NewHistogram() *Histogram {
 
 // Add counts a visited block the store holds, unless it was counted before
 // under a confirmed type. A guessed block's refs were never read, so it is
-// no leaf; a scanned block is one when the scan found no ref in it.
+// no leaf. A scanned block is a leaf when the scan found no ref in the block.
 func (h *Histogram) Add(rd Visit) {
 	// Count each stored block once, a confirmed type replacing a guess or a
 	// scan.

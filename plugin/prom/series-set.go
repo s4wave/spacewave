@@ -32,7 +32,7 @@ func (s *SeriesSet) At() storage.Series {
 	return s.series[s.next-1]
 }
 
-// Err returns nil; the series are already read.
+// Err returns nil because the series are already read.
 func (s *SeriesSet) Err() error {
 	return nil
 }

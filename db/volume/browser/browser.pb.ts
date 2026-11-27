@@ -15,7 +15,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * Name names the volume's storage: its OPFS directory path and its
+   * Name selects the volume's storage: its OPFS directory path and its
    * IndexedDB database name.
    */
   name?: string

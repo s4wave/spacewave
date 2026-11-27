@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/bitset"
 )
 
-// TestBloom performs a end to end test of the bloom block.
+// TestBloom tests the bloom block end to end.
 func TestBloom(t *testing.T) {
 	// Define the bloom filter capacity and expected hash count.
 	n := uint(512)

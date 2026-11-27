@@ -28,10 +28,10 @@ var v86ImageEdgePreds = []string{
 
 const legacySpacewaveV86ImageTypeID = "spacewave/vm/image/v86"
 
+// copyConcurrency sets concurrent traversal to overlap remote range reads.
 // CDN packs store blocks in hash order, so a graph traversal reads each pack
-// at scattered offsets. Concurrent traversal overlaps the remote range reads,
-// and a 4 MiB minimum per range-cache miss turns hundreds of small reads into
-// a few dozen large ones.
+// at scattered offsets. A 4 MiB minimum per range-cache miss turns hundreds
+// of small reads into a few dozen large ones.
 const (
 	copyConcurrency = 8
 	copyReadAhead   = 4 << 20
@@ -44,11 +44,11 @@ const (
 // (the read-only CDN Space), and write authorization is enforced by whatever
 // mounted =dst= (session membership / RBAC on the user Space).
 //
-// Edge target object keys are preserved verbatim; UnixFS asset objects and
+// Edge target object keys are preserved verbatim. UnixFS asset objects and
 // their underlying blocks are content-addressed so the destination block
 // store resolves them against the CDN block store without a re-upload.
 //
-// Fails loud when =dst= is read-only: the underlying ApplyWorldOp /
+// Returns an error when =dst= is read-only: the underlying ApplyWorldOp /
 // SetGraphQuad calls propagate the read-only error from the engine.
 func CopyV86ImageFromCdn(
 	ctx context.Context,
@@ -367,7 +367,7 @@ func lookupV86ImageEdge(ctx context.Context, ws world.WorldState, subject, pred 
 }
 
 // checkDstV86Image verifies that the destination accepts the image copy. A
-// matching image is a resumable retry; a different existing object is never
+// matching image is a resumable retry, but a different existing object is never
 // overwritten.
 func checkDstV86Image(
 	ctx context.Context,

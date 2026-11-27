@@ -16,7 +16,8 @@ message Config {
   string volume_id = 3;
   // ProjectId is the project identifier that must match the dist config project id.
   string project_id = 4;
-  // DistPeerIds are the peer IDs we accept for distribution signatures.
+  // DistPeerIds are the peer IDs the launcher accepts for distribution
+  // signatures.
   repeated string dist_peer_ids = 5;
   // Endpoints is the list of HTTPs endpoints to check for updates.
   repeated HttpEndpoint endpoints = 6;

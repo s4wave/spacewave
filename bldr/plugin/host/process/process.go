@@ -37,13 +37,13 @@ type Controller = host_controller.Controller
 
 // ProcessHost implements the plugin host with native processes.
 type ProcessHost struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// stateDir is the directory to use for state
+	// stateDir is the directory to use for state.
 	stateDir string
-	// binsDir is the directory to use for binaries
+	// distDir is the directory to use for binaries.
 	distDir string
-	// pluginPlatformID is the plugin platform to use
+	// pluginPlatformID is the plugin platform to use.
 	pluginPlatformID string
 	// packageStatusMtx guards packageStatus.
 	packageStatusMtx sync.Mutex

@@ -114,7 +114,7 @@ message GetSessionInfoResponse {
   // CryptoInfo contains the session's cryptographic identity info.
   SessionCryptoInfo crypto_info = 3;
   // Username is the verified Spacewave Cloud username of the session's account.
-  // Empty for sessions of other providers.
+  // Username is empty for sessions of other providers.
   string username = 4;
   // SigningPeerId is the peer that signs the session's Space operations and
   // messages. It equals peer_id except for a local account, whose volume peer
@@ -157,7 +157,7 @@ message CreateSpaceRequest {
   // OwnerId is the owner principal id (account id or organization id).
   string owner_id = 3;
   // StorageBackendId places the Space's blocks on a storage backend.
-  // Empty uses the account's default storage backend.
+  // An empty StorageBackendId uses the account's default storage backend.
   string storage_backend_id = 4;
   // AccountStorage places the Space's blocks on the account's own storage,
   // overriding the default storage backend.
@@ -193,9 +193,10 @@ message DeleteSpaceResponse {}
 message LeaveSpaceRequest {
   // SharedObjectId identifies the external shared object whose native grants are relinquished.
   string shared_object_id = 1;
-  // SuccessorPeerId names the participant promoted to owner when the leaving
-  // account hosts the Space and others remain. Empty selects the remaining
-  // participant with the highest role, then the earliest admitted.
+  // SuccessorPeerId selects the participant promoted to owner when the leaving
+  // account hosts the Space and others remain. An empty SuccessorPeerId
+  // selects the remaining participant with the highest role, then the earliest
+  // admitted.
   string successor_peer_id = 2;
 }
 
@@ -222,14 +223,15 @@ message MountSharedObjectRequest {
 
 // MountSharedObjectResponse is the response type for MountSharedObject.
 message MountSharedObjectResponse {
-  // Health explains a failed mount; no resource is allocated when set.
+  // Health explains a failed mount. No resource is allocated when Health is
+  // set.
   .sobject.SharedObjectHealth health = 8;
   // ResourceId is the ID of the mounted shared object resource.
   uint32 resource_id = 1;
   // SharedObjectMeta is the metadata for the SharedObject.
-  // Contains the body type and body metadata.
+  // SharedObjectMeta contains the body type and body metadata.
   .sobject.SharedObjectMeta shared_object_meta = 2;
-  // PeerId is the peer id of our local participant for the shared object.
+  // PeerId is the peer id of the local participant for the shared object.
   string peer_id = 3;
   // SharedObjectId is the id of the shared object.
   string shared_object_id = 4;
@@ -268,7 +270,7 @@ enum SyncStatusState {
   SyncStatusState_ERROR = 2;
 }
 
-// SyncUploadHold names the account limit that holds cloud uploads.
+// SyncUploadHold identifies the account limit that holds cloud uploads.
 enum SyncUploadHold {
   // SyncUploadHold_NONE means no account limit holds uploads.
   SyncUploadHold_NONE = 0;
@@ -488,20 +490,20 @@ message WatchSyncStatusResponse {
   bool direct_p2p_disabled = 55;
   // BlockStores contains owner-observed mechanics keyed by mounted block store.
   repeated SyncBlockStoreStatus block_stores = 56;
-  // local_account selects account-replica status instead of cloud queues.
+  // LocalAccount selects account-replica status instead of cloud queues.
   bool local_account = 57;
-  // local_copies reports durable availability for each accepted Space head.
+  // LocalCopies reports durable availability for each accepted Space head.
   repeated SyncLocalCopyStatus local_copies = 58;
-  // peer_upload_bytes and peer_download_bytes count actual block payload traffic.
+  // PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
   uint64 peer_upload_bytes = 59;
   uint64 peer_download_bytes = 60;
-  // peers breaks the payload totals down by authenticated Session peer.
+  // Peers breaks the payload totals down by authenticated Session peer.
   repeated SyncPeerTransferStatus peers = 61;
   // UploadError is the latest upload failure of a store whose uploads are
   // still pending, empty while pending uploads succeed. Unlike LastError, it
   // ignores download and transport errors.
   string upload_error = 62;
-  // UploadHold names the account limit that refused the latest upload of a
+  // UploadHold identifies the account limit that refused the latest upload of a
   // store whose uploads are still pending. Those uploads wait, without
   // retrying, until the account state changes, as when the limit is raised.
   SyncUploadHold upload_hold = 63;
@@ -573,10 +575,11 @@ message SetBackgroundPluginRequest {
   string space_id = 1;
   // PluginId is the manifest ID of the plugin.
   string plugin_id = 2;
-  // Enabled confirms the plugin to run in the background, or withdraws it.
+  // Enabled confirms the plugin to run in the background, or withdraws the
+  // confirmation.
   bool enabled = 3;
   // Suspended keeps an enabled confirmation while the plugin does not run in
-  // the background. Clearing it resumes the plugin.
+  // the background. Clearing Suspended resumes the plugin.
   bool suspended = 4;
 }
 
@@ -685,7 +688,7 @@ message DeleteAccountResponse {}
 // AccessSessionStateAtomRequest is the request for AccessStateAtom.
 message AccessSessionStateAtomRequest {
   // StoreId is the identifier for the state store.
-  // If empty, uses the default "ui-state" store.
+  // An empty StoreId uses the default "ui-state" store.
   string store_id = 1;
 }
 
@@ -858,11 +861,11 @@ message WatchPairingStatusResponse {
   string remote_label = 10;
   // SessionPeerId is the base58 peer ID of the receiving Session the approval
   // enrolls (set during verification). It differs from RemotePeerId, which
-  // names the pairing link.
+  // references the pairing link.
   string session_peer_id = 11;
 }
 
-// -- Space Invites --
+// Space Invites.
 
 // CreateSpaceInviteRequest is the request for CreateSpaceInvite.
 message CreateSpaceInviteRequest {
@@ -870,14 +873,14 @@ message CreateSpaceInviteRequest {
   string space_id = 1;
   // Role is the participant role granted on acceptance.
   .sobject.SOParticipantRole role = 2;
-  // TargetPeerId is the optional peer ID of the intended invitee (b58).
-  // Empty means open invite (anyone with the token can join).
+  // TargetPeerId is the optional peer ID of the intended invitee (b58). An
+  // empty TargetPeerId means an open invite (anyone with the token can join).
   string target_peer_id = 3;
   // MaxUses is the maximum number of times the invite can be used.
   // 0 means unlimited.
   uint32 max_uses = 4;
   // ExpiresAt is the time after which the invite is invalid.
-  // Unset means no expiry.
+  // An unset ExpiresAt means no expiry.
   .google.protobuf.Timestamp expires_at = 5;
   // ApprovalRequired queues redemptions the invite does not otherwise admit
   // as join requests.
@@ -889,10 +892,10 @@ message CreateSpaceInviteRequest {
 // CreateSpaceInviteResponse is the response for CreateSpaceInvite.
 message CreateSpaceInviteResponse {
   // InviteMessage is the signed invite message for out-of-band distribution.
-  // Contains the raw token (not stored on-chain).
+  // InviteMessage contains the raw token (not stored on-chain).
   .sobject.SOInviteMessage invite_message = 1;
   // ShortCode is an optional short code registered with the cloud.
-  // Present for spacewave sessions, empty for local sessions.
+  // ShortCode is present for spacewave sessions, empty for local sessions.
   string short_code = 2;
 }
 
@@ -927,11 +930,12 @@ message RemoveSpaceParticipantsRequest {
   // PeerIds are the participant peer IDs to remove in one configuration change.
   repeated string peer_ids = 2;
   // AdmitThrough maps a peer ID to the last of its operations every member
-  // still applies; replay rejects the peer's later operations. A peer it does
-  // not name keeps every operation the Space holds. It recovers a Space whose
-  // removed author signed operations whose payloads no member holds.
+  // still applies. Replay rejects the peer's later operations. A peer absent
+  // from AdmitThrough keeps every operation the Space holds. AdmitThrough
+  // recovers a Space whose removed author signed operations whose payloads no
+  // member holds.
   map<string, uint64> admit_through = 3;
-  // DryRun reports the cut for each peer AdmitThrough names without signing
+  // DryRun reports the cut for each peer AdmitThrough lists without signing
   // the removal.
   bool dry_run = 4;
 }
@@ -941,9 +945,9 @@ message RemoveSpaceParticipantsResponse {
   // RemovedPeerIds are the participant peer IDs that were present and removed.
   repeated string removed_peer_ids = 1;
   // AwaitingGroup is true when the viewer agreed to the removal under group
-  // control, and it applies once the group decides it.
+  // control, and the removal applies once the group decides the removal.
   bool awaiting_group = 2;
-  // Cuts reports each peer AdmitThrough named, in peer ID order.
+  // Cuts reports each peer AdmitThrough listed, in peer ID order.
   repeated SpaceParticipantCut cuts = 3;
 }
 
@@ -980,8 +984,8 @@ message ResolveSpaceJoinRequestRequest {
   string space_id = 1;
   // PeerId is the requesting peer (b58).
   string peer_id = 2;
-  // Grant admits the requester at the role of the invite it redeemed; false
-  // refuses the request.
+  // Grant admits the requester at the role of the invite the requester
+  // redeemed. A false Grant refuses the request.
   bool grant = 3;
 }
 
@@ -1033,7 +1037,8 @@ enum JoinSpaceViaInviteResult {
 message JoinSpaceViaInviteResponse {
   // SharedObjectId is the invited space ID when known.
   string shared_object_id = 1;
-  // Result describes whether the join completed immediately or only submitted.
+  // Result describes whether the join completed immediately or the join
+  // request was only submitted.
   JoinSpaceViaInviteResult result = 2;
 }
 
@@ -1050,12 +1055,13 @@ message GetTransferStatusResponse {
   .provider.transfer.TransferState state = 3;
 }
 
-// -- No-Cloud Pairing (Direct WebRTC) --
+// No-Cloud Pairing (Direct WebRTC).
 
 // LocalPairingOffer is the SDP offer for no-cloud device pairing.
-// Serialized as proto binary, compressed with DEFLATE, then base58 encoded for
-// display as QR code or copyable string. The public key is extracted from the
-// peer ID (which embeds the multihash of the public key).
+// LocalPairingOffer is serialized as proto binary, compressed with DEFLATE,
+// then base58 encoded for display as a QR code or copyable string. The public
+// key is extracted from the peer ID (which embeds the multihash of the public
+// key).
 message LocalPairingOffer {
   // Sdp is the complete SDP offer string (with ICE candidates gathered).
   string sdp = 1;
@@ -1064,7 +1070,8 @@ message LocalPairingOffer {
 }
 
 // LocalPairingAnswer is the SDP answer for no-cloud device pairing.
-// Same encoding: proto binary -> DEFLATE compress -> base58.
+// LocalPairingAnswer uses the same encoding: proto binary -> DEFLATE compress
+// -> base58.
 message LocalPairingAnswer {
   // Sdp is the complete SDP answer string (with ICE candidates gathered).
   string sdp = 1;
@@ -1167,7 +1174,7 @@ message WatchStorageBackendsResponse {
   // StorageBackends lists each backend with the Spaces placed on it.
   repeated StorageBackendInfo storage_backends = 1;
   // DefaultStorageBackendId identifies the backend new Spaces use.
-  // Empty means the account's own storage.
+  // An empty DefaultStorageBackendId means the account's own storage.
   string default_storage_backend_id = 2;
 }
 
@@ -1179,7 +1186,7 @@ message StorageBackendInfo {
   repeated PlacedSpace placed_spaces = 2;
 }
 
-// PlacedSpace names a Space placed on a storage backend.
+// PlacedSpace references a Space placed on a storage backend.
 message PlacedSpace {
   // SpaceId is the Space's SharedObject id.
   string space_id = 1;
@@ -1218,7 +1225,7 @@ message AddStorageBackendRequest {
 // AddStorageBackendResponse is the response for AddStorageBackend.
 message AddStorageBackendResponse {
   // StorageBackendId identifies the saved backend.
-  // Empty when the check failed and nothing was saved.
+  // StorageBackendId is empty when the check failed and nothing was saved.
   string storage_backend_id = 1;
   // Check is the connectivity check that ran before saving.
   .block.store.s3.CheckResult check = 2;
@@ -1235,8 +1242,8 @@ message RemoveStorageBackendResponse {}
 
 // SetDefaultStorageBackendRequest is the request for SetDefaultStorageBackend.
 message SetDefaultStorageBackendRequest {
-  // StorageBackendId identifies the new default.
-  // Empty returns new Spaces to the account's own storage.
+  // StorageBackendId identifies the new default storage backend.
+  // An empty StorageBackendId returns new Spaces to the account's own storage.
   string storage_backend_id = 1;
 }
 
@@ -1248,7 +1255,7 @@ message SetStorageBackendPricingRequest {
   // StorageBackendId identifies the backend.
   string storage_backend_id = 1;
   // Pricing is the new price list.
-  // Empty returns to the published prices of the endpoint's service.
+  // Empty Pricing returns to the published prices of the endpoint's service.
   .block.store.s3.Pricing pricing = 2;
 }
 
@@ -1282,7 +1289,7 @@ message MoveSpaceStorageRequest {
   // SharedObjectId is the Space's SharedObject id.
   string shared_object_id = 1;
   // StorageBackendId identifies the destination backend.
-  // Empty moves the blocks to the account's own storage.
+  // An empty StorageBackendId moves the blocks to the account's own storage.
   string storage_backend_id = 2;
 }
 

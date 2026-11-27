@@ -28,8 +28,8 @@ import { createV86fsSrpcAdapter, type V86fsAdapter } from './v86fs-bridge.js'
 
 const V86_RUNTIME_V86FS_SERVICE_PREFIX = 'vm/v86-runtime/v86fs/'
 const V86_RUNTIME_STATUS_SERVICE_PREFIX = 'vm/v86-runtime/status/'
-// V86_RUNTIME_INSTANCE_PREFIX marks the plugin instances that run one VmV86;
-// the rest of the instance key is the VM object key. Other instances, such as
+// V86_RUNTIME_INSTANCE_PREFIX marks the plugin instances that run one VmV86.
+// The rest of the instance key is the VM object key. Other instances, such as
 // the one each Space loads, only register the viewer.
 const V86_RUNTIME_INSTANCE_PREFIX = 'vm/v86-runtime/instance/'
 
@@ -107,7 +107,7 @@ function isDirectoryMode(mode: number): boolean {
 
 // readV86fsMountFile mounts a named v86fs asset and reads the binary file.
 // Imported V86Image single-file assets are FS_NODE directories containing the
-// original filename; direct file roots remain supported for per-VM overrides.
+// original filename. Direct file roots remain supported for per-VM overrides.
 function readV86fsMountFile(
   adapter: V86fsAdapter,
   mountName: string,
@@ -376,8 +376,8 @@ async function registerV86Viewer(
 
 // main is the V86 backend entry point. Startup ends once the viewer is
 // registered, so the host counts the plugin loaded only when it can open VMs.
-// A VM runtime instance then boots its VM and runs it until signal aborts;
-// every other instance holds the viewer registration until then. A failed
+// A VM runtime instance then boots its VM and runs it until signal aborts.
+// Every other instance holds the viewer registration until then. A failed
 // startup reports through startup alone.
 export default function main(
   api: BackendAPI,

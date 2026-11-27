@@ -9,8 +9,8 @@ package world
 // instead.
 //
 // Unless Sent, the handler was never asked to apply, so nothing it would write
-// was written. When Sent, the handler may have written before the failure;
-// those writes are gone only where the failed operation's transaction is
+// was written. When Sent, the handler may have written before the failure.
+// Those writes are gone only where the failed operation's transaction is
 // discarded (AppliesAtomically).
 type PluginUnavailableError struct {
 	// PluginID is the plugin that could not be reached.

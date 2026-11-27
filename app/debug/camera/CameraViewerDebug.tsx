@@ -51,7 +51,7 @@ async function testPicture(step: number): Promise<FrameEvent> {
   }
 }
 
-// sources are the fixture frame tracks, kept stable so the track runs once.
+// tracks are the fixture frame tracks, kept stable so the track runs once.
 const tracks: Record<string, OpenFrameTrack> = {
   // starting opens and sends no picture.
   async *starting(signal) {
@@ -66,7 +66,7 @@ const tracks: Record<string, OpenFrameTrack> = {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   },
-  // stalled sends one picture and then none, so it pauses.
+  // stalled sends one picture and then none, so the track pauses.
   async *stalled(signal) {
     yield { state: { case: 'opened', value: {} } }
     yield await testPicture(30)

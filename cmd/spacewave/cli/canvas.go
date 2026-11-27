@@ -315,7 +315,7 @@ func buildCanvasNodeListCommand() *cli.Command {
 			// Read the nodes and apply the type filter when requested.
 			nodes := state.GetNodes()
 
-			// apply type filter
+			// apply the type filter
 			if typeFilter != "" {
 				filterType := parseNodeTypeFilter(typeFilter)
 				filtered := make(map[string]*s4wave_canvas.CanvasNode, len(nodes))
@@ -638,7 +638,7 @@ func autoPlaceNode(nodes map[string]*s4wave_canvas.CanvasNode, nodeType s4wave_c
 	cx /= float64(count)
 	cy /= float64(count)
 
-	// spiral outward from centroid, preferring down-right
+	// spiral outward from the centroid, preferring down-right
 	step := math.Max(width, height) + 20
 	for r := step; r < step*20; r += step {
 		for _, angle := range []float64{0.25, 0.5, 0.75, 0, 1.0, 1.25, 1.5, 1.75} {
@@ -1197,7 +1197,7 @@ func formatEdgeAddBody(e *s4wave_canvas.CanvasEdge) string {
 	return body
 }
 
-// writeCanvasDiff writes compact text diff between two canvas states.
+// writeCanvasDiff writes a compact text diff between two canvas states.
 func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasState) {
 	// Snapshot the previous and current node maps.
 	prevNodes := make(map[string]*s4wave_canvas.CanvasNode)
@@ -1301,7 +1301,7 @@ func hiddenGraphLinkDisplay(link *s4wave_canvas.HiddenGraphLink) string {
 	return out
 }
 
-// truncate shortens a string to max length with ellipsis.
+// truncate shortens a string to max length with an ellipsis.
 func truncate(s string, max int) string {
 	if len(s) <= max {
 		return s
@@ -1406,7 +1406,7 @@ func buildCanvasApplyCommand() *cli.Command {
 				return errors.New("empty input")
 			}
 
-			// Apply as UpdateCanvas request (JSON).
+			// Apply the payload as an UpdateCanvas request (JSON).
 			req := &s4wave_canvas.UpdateCanvasRequest{}
 			if err := req.UnmarshalJSON(data); err != nil {
 				return errors.Wrap(err, "parse input as UpdateCanvasRequest JSON")

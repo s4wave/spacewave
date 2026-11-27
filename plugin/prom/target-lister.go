@@ -8,7 +8,7 @@ import (
 )
 
 // TargetLister lists the World object keys of the targets a Queryable reads.
-// The Space's set of prom/target objects is the list; a lister is where that
+// The Space's set of prom/target objects is the list. A lister is where that
 // set comes from.
 type TargetLister interface {
 	// ListTargets returns the object keys of the targets to query. A key whose

@@ -128,7 +128,8 @@ func TestMissingHeadMountsOnRefreshRPC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
-	// Keep the first two pointer reads headless; the explicit refresh publishes a head.
+	// Keep the first two pointer reads headless. The explicit refresh
+	// publishes a head.
 	var requests atomic.Int32
 	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{
 		SpaceId:    "release-space",

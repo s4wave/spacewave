@@ -81,9 +81,9 @@ func (v *vmDisplay) WatchWindows(_ *s4wave_vm.WatchWasiVmWindowsRequest, strm s4
 // Window pops one window of the running VM's Wayland display out to the
 // viewer at the viewer's size, streams it and injects the viewer's input,
 // until the window closes or the viewer leaves. The first input opens the
-// window; later ones resize it or carry input. The stream ends without an
-// error when the window closes, and the window returns to the desktop when
-// the viewer leaves.
+// window. Subsequent inputs resize the window or carry input. The stream
+// ends without an error when the window closes, and the window returns to
+// the desktop when the viewer leaves.
 func (v *vmDisplay) Window(strm s4wave_vm.SRPCWasiVmDisplayService_WindowStream) error {
 	// Read which window to open.
 	ctx := strm.Context()
@@ -141,13 +141,13 @@ func windowSize(s *s4wave_vm.WasiVmWindowSize) image.Point {
 
 // framesAhead is how many scene updates the viewer may have been sent but
 // not yet drawn. Two let the screen build an update while the viewer draws
-// the last.
+// the last update.
 const framesAhead = 2
 
 // serveScreen streams the screen to the viewer through send and injects the
 // input recv returns, until either ends. It holds an update while
 // framesAhead are undrawn, so the screen folds the changes made meanwhile into
-// the next.
+// the next update.
 func serveScreen(
 	ctx context.Context,
 	send func(*s4wave_vm.WasiVmScene) error,

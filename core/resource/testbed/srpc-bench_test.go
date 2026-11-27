@@ -32,7 +32,7 @@ const (
 )
 
 // benchGraphEndpointKeys are the object keys every graph-write benchmark
-// requires to exist before it mutates; SetGraphQuad resolves subject and
+// requires to exist before mutating. SetGraphQuad resolves subject and
 // object through object lookups and fails with "object not found" otherwise.
 var benchGraphEndpointKeys = []string{"bench-subj", "bench-obj"}
 
@@ -167,7 +167,8 @@ func BenchmarkSRPCUnaryEmptyUnixSocket(b *testing.B) {
 }
 
 func dialUnixSocketPair(b *testing.B) (net.Conn, net.Conn) {
-	// macOS rejects unix socket paths over 104 bytes; keep the directory short.
+	// macOS rejects unix socket paths over 104 bytes, so keep the directory
+	// short.
 	dir, err := os.MkdirTemp("", "srpc-bench")
 	if err != nil {
 		b.Fatal(err.Error())
@@ -319,7 +320,7 @@ type benchEndpointTx interface {
 }
 
 // requireGraphEndpoints reads each graph endpoint object through a fresh
-// read transaction on the same engine the writes will use. This proves the
+// read transaction on the same engine the writes will use. The read proves the
 // cross-transaction visibility SetGraphQuad depends on before any timed work.
 func requireGraphEndpoints(ctx context.Context, b *testing.B, open func() (benchEndpointTx, func())) {
 	b.Helper()
@@ -531,7 +532,7 @@ func BenchmarkWorldMutationCommitDirect(b *testing.B) {
 	}
 	defer tb.Release()
 
-	// Create the graph endpoints once; see the SRPC variant for the per-op
+	// Create the graph endpoints once. See the SRPC variant for the per-op
 	// predicate note.
 	setupTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {

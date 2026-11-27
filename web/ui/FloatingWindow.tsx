@@ -15,7 +15,9 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 const MIN_Y_ELECTRON = 60
 
-// FloatingWindowManagerContext manages z-index ordering for multiple floating windows.
+// FloatingWindowManagerContextValue is the value of
+// FloatingWindowManagerContext, which manages z-index ordering for multiple
+// floating windows.
 interface FloatingWindowManagerContextValue {
   bringToFront: (id: string) => void
   getZIndex: (id: string) => number
@@ -133,31 +135,34 @@ export const DEFAULT_FLOATING_WINDOW_STATE: FloatingWindowState = {
 }
 
 export interface FloatingWindowProps {
-  /** Unique identifier for this window (used for z-index management) */
+  /** id is the unique window identifier (used for z-index management). */
   id: string
-  /** Window title displayed in header */
+  /** title is the window title displayed in the header. */
   title: string
-  /** Icon displayed before title */
+  /** icon is displayed before the title. */
   icon?: ReactNode
-  /** Current window state */
+  /** state is the current window state. */
   state: FloatingWindowState
-  /** Callback when state changes */
+  /** onStateChange is called when the state changes. */
   onStateChange: (state: FloatingWindowState) => void
-  /** Window content */
+  /** children are the window content. */
   children: ReactNode
-  /** Additional class name for the window */
+  /** className is an additional class name for the window. */
   className?: string
-  /** Minimum window width */
+  /** minWidth is the minimum window width. */
   minWidth?: number
-  /** Minimum window height */
+  /** minHeight is the minimum window height. */
   minHeight?: number
-  /** Default position (used for reset on double-click) */
+  /** defaultPosition is the default position (reset on double-click). */
   defaultPosition?: FloatingWindowPosition
-  /** Default size (used for reset on double-click) */
+  /** defaultSize is the default size (reset on double-click). */
   defaultSize?: FloatingWindowSize
-  /** Called when close button is clicked (if not provided, minimize is used) */
+  /**
+   * onClose is called when the close button is clicked (if not provided,
+   * minimize is used).
+   */
   onClose?: () => void
-  /** Test ID for the window container */
+  /** testId is the test ID for the window container. */
   testId?: string
 }
 
@@ -187,7 +192,7 @@ export function FloatingWindow({
     return () => manager?.unregister(id)
   }, [manager, id])
 
-  // Refs for drag/resize - update DOM directly, persist on mouseup
+  // Refs for drag/resize: update DOM directly, persist on mouseup.
   const dragOffset = useRef({ x: 0, y: 0 })
   const current = useRef({ pos: state.position, size: state.size })
 

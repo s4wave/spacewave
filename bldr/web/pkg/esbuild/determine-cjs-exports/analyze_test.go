@@ -210,7 +210,7 @@ func TestAnalyzeCjsExports_React(t *testing.T) {
 }
 
 func TestResolveModule_BarePackage(t *testing.T) {
-	// Create a bare package whose manifest names a library entrypoint.
+	// Create a bare package whose manifest selects a library entrypoint.
 	dir := t.TempDir()
 	pkgDir := filepath.Join(dir, "node_modules", "testpkg")
 	if err := os.MkdirAll(pkgDir, 0o755); err != nil {

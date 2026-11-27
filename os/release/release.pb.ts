@@ -19,7 +19,8 @@ export interface Release {
   /**
    * Authorization is the signer's peer.SignedMsg over the image's
    * bucket.ObjectRef, in os/image's image authorization context. A Device
-   * stages the image only when a signer it pinned made it.
+   * stages the image only when a signer the Device pinned made the
+   * authorization.
    */
   authorization?: SignedMsg
 }

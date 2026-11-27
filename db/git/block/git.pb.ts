@@ -72,8 +72,8 @@ export const EncodedObjectType_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum TagMode {
   /**
-   * TagMode_DEFAULT indicates to use default tag mode.
-   * Default is to fetch ALL.
+   * TagMode_DEFAULT indicates to use the default tag mode.
+   * The default tag mode is to fetch ALL.
    */
   TagMode_DEFAULT = 0,
 
@@ -182,7 +182,7 @@ export const EncodedObjectStore: MessageType<EncodedObjectStore> =
 export interface Packfile {
   /**
    * PackHash contains the packfile checksum.
-   * Note: currently, this is enforced to hash type SHA1.
+   * The hash type must be SHA1.
    */
   packHash?: Hash
   /**
@@ -237,7 +237,8 @@ export const ReferencesStore: MessageType<ReferencesStore> =
   )
 
 /**
- * ModuleReferences maps between submodule name and a block ref to the Repo.
+ * ModuleReferencesStore maps between submodule name and a block ref to
+ * the Repo.
  *
  * @generated from message git.block.ModuleReferencesStore
  */
@@ -314,7 +315,7 @@ export interface Reference {
   referenceType?: ReferenceType
   /**
    * Hash contains the sha1 hash (20 bytes) if hash reference.
-   * Note: currently, this is enforced to hash type SHA1.
+   * The hash type must be SHA1.
    */
   hash?: Hash
   /**
@@ -343,11 +344,11 @@ export interface EncodedObject {
   dataBlob?: Blob
   /**
    * DataHash is the hash of DataBlob.
-   * Note: currently, this is enforced to hash type SHA1.
+   * The hash type must be SHA1.
    */
   dataHash?: Hash
   /**
-   * ObjectType is the encoded object type.
+   * EncodedObjectType is the encoded object type.
    */
   encodedObjectType?: EncodedObjectType
 }
@@ -438,7 +439,7 @@ export interface TreeEntry {
   trees?: number
   /**
    * Hash is the hash of the object that would result from writing this span of
-   * index as a tree. Note: currently this is sha1.
+   * index as a tree. The hash type is sha1.
    */
   hash?: Hash
 }
@@ -453,7 +454,7 @@ export const TreeEntry: MessageType<TreeEntry> =
 
 /**
  * ResolveUndo is used when a conflict is resolved (e.g. with "git add path"),
- * these higher stage entries are removed and a stage-0 entry with proper
+ * higher stage entries are removed and a stage-0 entry with proper
  * resolution is added. When these higher stage entries are removed, they are
  * saved in the resolve undo extension.
  *
@@ -498,7 +499,7 @@ export const ResolveUndoEntry: MessageType<ResolveUndoEntry> =
   )
 
 /**
- * EndOfIndexEntry is the End of Index Entry (EOIE) is used to locate the end of
+ * EndOfIndexEntry is the End of Index Entry (EOIE) used to locate the end of
  * the variable length index entries and the beginning of the extensions.
  *
  * @generated from message git.block.EndOfIndexEntry
@@ -531,7 +532,7 @@ export const EndOfIndexEntry: MessageType<EndOfIndexEntry> =
 export interface IndexEntry {
   /**
    * DataHash is the hash of the index entry.
-   * Note: currently, this is enforced to hash type SHA1.
+   * The hash type must be SHA1.
    */
   dataHash?: Hash
   /**
@@ -555,7 +556,7 @@ export interface IndexEntry {
    */
   inode?: number
   /**
-   * Mode is the Git file mode used for the entry.
+   * FileMode is the Git file mode used for the entry.
    * i.e. Dir, Regular, Executable, Symlink, Submodule
    */
   fileMode?: number
@@ -615,7 +616,7 @@ export interface AuthOpts {
    */
   username?: string
   /**
-   * PeerId configures looking up peer priv key by id for ssh.
+   * PeerId selects the peer priv key to look up by id for ssh.
    */
   peerId?: string
 }
@@ -641,7 +642,7 @@ export interface CloneOpts {
    */
   remoteName?: string
   /**
-   * Ref is the reference name to clone, uses default if empty.
+   * Ref is the reference name to clone, uses the default reference if empty.
    */
   ref?: string
   /**
@@ -663,7 +664,7 @@ export interface CloneOpts {
   recursive?: boolean
   /**
    * RecursionDepth overrides the default submodule recursion depth (10).
-   * Only used when recursive is true. Zero means use the default.
+   * Only used when recursive is true. Zero means use the default depth.
    */
   recursionDepth?: number
   /**
@@ -764,7 +765,7 @@ export const FetchOpts: MessageType<FetchOpts> =
 export interface CheckoutOpts {
   /**
    * Commit is the commit hash to check out.
-   * Note: currently, this is enforced to hash type SHA1.
+   * The hash type must be SHA1.
    */
   commit?: Hash
   /**

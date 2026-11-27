@@ -77,10 +77,10 @@ export async function seedBlog(
       ),
       // A blog op stored before applySeed decided seeds replays through
       // this handler, since stored op logs replay through the current
-      // handler of an unpinned op id. The earlier handler kept any object
-      // already at the companion notebook key, whatever its type, and wrote
-      // the blog and its UnixFS root, so this seed keeps it too and the
-      // replay reaches the same World.
+      // handler of an unpinned op id. Replay must preserve the earlier
+      // handler's behavior: keep any object already at the companion notebook
+      // key, whatever its type, and write the blog and its UnixFS root. This
+      // seed keeps that object too, so the replay reaches the same World.
       {
         ...seedTypedObject(
           'create companion notebook object',

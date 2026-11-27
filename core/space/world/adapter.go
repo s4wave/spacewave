@@ -56,19 +56,19 @@ var refusalHandoffOff = os.Getenv(RefusalHandoffEnv) == "off"
 // The adapter keeps the pages of every World it computes in a PendingStore and
 // stores a World only where a named root moves onto it: the checkpoint, the
 // replay base and the replay cursor. Pages written and replaced between those
-// Worlds never reach the Volume. A backfill or fence copy stores the Worlds
-// it holds and leaves their pages kept. An operation's payloads, which no
-// World need reach, are held under the replay payloads root before the
-// operation is queued, so the operation log never names a payload a restart
-// cannot read. Replay holds another device's payloads the same way as it
-// applies the operation, so a successor that owns the Space after a handover
-// holds every payload above the checkpoint once its peer is gone.
+// Worlds never reach the Volume. A backfill or fence copy stores the Worlds it
+// holds and leaves their pages kept. An operation's payloads, which no World
+// need reach, are held under the replay payloads root before the operation is
+// queued, so the operation log never references a payload a restart cannot
+// read. Replay holds another device's payloads the same way as it applies the
+// operation, so a successor that owns the Space after a handover holds every
+// payload above the checkpoint once its peer is gone.
 //
 // Invariants:
 //   - The adopted checkpoint's World is held, by replay-base or checkpoint, at
 //     every point, so a restart always finds the World replay starts from.
-//   - The replay cursor record names a World only after replay-cursor holds
-//     it.
+//   - The replay cursor record references a World only after replay-cursor
+//     holds it.
 //   - The writer head is the last pending candidate, or the installed head
 //     when none is pending, and a candidate's base is the writer head when it
 //     was admitted.
@@ -76,7 +76,7 @@ var refusalHandoffOff = os.Getenv(RefusalHandoffEnv) == "off"
 //     applied, until replay places that operation again or refuses it.
 //   - A candidate is decided only after every head watcher saw the head that
 //     holds it.
-//   - Every stored page a live World names is held, by a named root whose
+//   - Every stored page a live World references is held, by a named root whose
 //     World reaches it through child lists. The live Worlds are the ones
 //     gatherLive returns, which the sweep and the trim share: the positions,
 //     the restored positions, the installed and writer heads, the candidates
@@ -120,7 +120,7 @@ type Adapter struct {
 	replay *spaceReplay
 	// missing holds the operations an installed head applied that a reorder
 	// put after the positions replay has applied again. The installed head
-	// stays until it is empty. The driver goroutine owns it.
+	// stays until missing is empty. The driver goroutine owns missing.
 	missing map[string]struct{}
 	// turnMtx is held from Begin to the turn's Release, so one local writer
 	// proposes at a time.
@@ -198,8 +198,8 @@ type Adapter struct {
 	// acceptHeight is the checkpoint height of the last head installHead
 	// finished: it held the head's retained roots and reported the head to
 	// every watcher. A candidate the installed cover places is accepted at
-	// once only at or below it; otherwise the install finishing there
-	// accepts it. Guarded by bcast.
+	// once only at or below acceptHeight. Otherwise the install finishing
+	// there accepts it. Guarded by bcast.
 	acceptHeight uint64
 	// replayState is the replay state the body driver last reached, opening
 	// before its first step. It alone decides whether the Space takes writes
@@ -227,7 +227,7 @@ type Adapter struct {
 	cursorSaving atomic.Bool
 	// trimMtx runs the background trims one at a time.
 	trimMtx csync.Mutex
-	// trimSeq numbers the trims the driver gathers; a trim older than the
+	// trimSeq numbers the trims the driver gathers. A trim older than the
 	// newest is skipped.
 	trimSeq atomic.Uint64
 	// readers is the engine whose readers the sweep and the history trim keep
@@ -318,9 +318,9 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	runCtx, stopRun := context.WithCancel(ctx)
 	a.runCtx = runCtx
 
-	// Stop body calls before releasing replay resources on every exit, including
-	// startup failure while the driver waits for opened. Keep the claim until
-	// this cleanup returns; detach is the last defer.
+	// Stop body calls before releasing replay resources on every exit,
+	// including startup failure while the driver waits for opened. Keep the
+	// claim until this cleanup returns. detach is the last defer.
 	defer func() {
 		// Join every driver and voter call while retaining the body's claim.
 		stopBody()
@@ -385,7 +385,7 @@ var errAdapterStopped = errors.New("space world adapter stopped")
 
 // startBackground starts a background store that keeps roots live, under its
 // own token, so a sweep keeps their pages for the store, and Execute waits for
-// the store until the returned done is called; a second call does nothing. It
+// the store until the returned done is called. A second call does nothing. It
 // reports false, and starts nothing, once Execute's run ended.
 func (a *Adapter) startBackground(roots ...*block.BlockRef) (done func(), ok bool) {
 	// Count the store and keep its roots live, unless the run ended.
@@ -456,7 +456,7 @@ func (a *Adapter) waitOpened(ctx context.Context) error {
 // endAdmissions ends every admission still undecided at unmount. One still
 // waiting in the queue never reached the SharedObject, so it is superseded:
 // its writer runs again on the next head. Any other may be durable, such as
-// one inside QueueOperation, so its durability is unknown; the next open
+// one inside QueueOperation, so its durability is unknown. The next open
 // replays its operation if the SharedObject holds it.
 func (a *Adapter) endAdmissions() {
 	// Supersede the ones the queue never passed on.
@@ -671,7 +671,7 @@ func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), err
 // Begin waits for the local writer turn. A participant whose role cannot
 // write, or an owner handing over, gets tx.ErrNotWrite, since replay would
 // refuse every operation it writes. While replay opens, Begin waits for it
-// until ctx ends; while replay waits, it returns a *sobject.WriteWait. The
+// until ctx ends. While replay waits, Begin returns a *sobject.WriteWait. The
 // turn's Base is the writer head, not durable while a candidate admitted
 // before it waits.
 func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
@@ -759,7 +759,7 @@ func (a *Adapter) ownershipOf(ctx context.Context, snap sobject.SharedObjectStat
 // Root returns the encoded InnerState of the World after the first n
 // positions, and the store that moves the checkpoint root onto it beside
 // every World returned since the last install. Until store returns, the World
-// is live, so a sweep keeps its pages and a trim holds it; store flushes its
+// is live, so a sweep keeps its pages and a trim holds it. store flushes its
 // kept pages in slices before it takes the root lock for the swap, so the
 // driver may run it beside its apply loop.
 func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context) error, error) {
@@ -823,7 +823,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 
 // Apply computes the World after op at index. An operation of this device
 // whose candidate was built on the World before index takes the candidate's
-// root without running op again; any other runs on the replay engine. When the
+// root without running op again. Any other runs on the replay engine. When the
 // positions hold every operation the installed head applied, the head after
 // the last one is installed, and the candidates it holds are decided.
 func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOperation) (string, error) {
@@ -856,13 +856,14 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		}
 	}
 
-	// Compute the position. At an operation whose type no handler resolves,
-	// return the wait for its handler, so the driver steps again with no lock
-	// held once it registers; at a block or plugin this device lacks, the
-	// wait for it, which the driver retries after a backoff; at a body this
-	// build cannot read, the wait for a build that reads it, which only a
-	// restart or the owner's skip of the operation ends. A transient replay
-	// has no driver to wait in.
+	// Compute the position. At an operation whose type no handler
+	// resolves, return the wait for its handler, so the driver steps
+	// again with no lock held once the handler registers. At a block or
+	// plugin this device lacks, return the wait for that block or plugin,
+	// which the driver retries after a backoff. At a body this build
+	// cannot read, return the wait for a build that reads the body, which
+	// only a restart or the owner's skip of the operation ends. A
+	// transient replay has no driver to wait in.
 	pos, err := r.run(ctx, index, op, adopt)
 	var unresolved *unresolvedOpError
 	switch {
@@ -1068,9 +1069,9 @@ func (a *Adapter) trimInBackground(ctx context.Context) error {
 		return err
 	}
 
-	// Run it beside the apply loop, keeping the Worlds it holds and its base
-	// live until it returns, so a sweep keeps their pages for its flush. A
-	// run that ended trims nothing more; the next mount does.
+	// Run it beside the apply loop, keeping the Worlds it holds and its
+	// base live until it returns, so a sweep keeps their pages for its
+	// flush. A run that ended trims nothing more. The next mount trims.
 	done, ok := a.startBackground(slices.Concat(plan.memory, plan.candidates, []*block.BlockRef{plan.base})...)
 	if !ok {
 		return nil
@@ -1123,15 +1124,15 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 // checkpoint stays held while a later position still is that World, since
 // Root stored its pages and dropped them from memory.
 //
-// A live World kept in memory may name stored pages that only the old base or
-// an earlier history World holds, so when the base moves or any history
+// A live World kept in memory may reference stored pages that only the old base
+// or an earlier history World holds, so when the base moves or any history
 // releases a World, the live Worlds are stored and held in their place: the
 // Worlds in memory under the cursor root and the candidates under the pending
-// root. The Worlds whose pages left memory stay where a history holds them.
-// The base, the holds and every release are one root move, so the trim
-// releases only Worlds that no held or live World reaches through its child
-// lists, and a failed move releases nothing. The same move releases each
-// imported root the Adapter now holds itself (see HoldImport).
+// root. The Worlds whose pages left memory stay where a history holds them. The
+// base, the holds and every release are one root move, so the trim releases
+// only Worlds that no held or live World reaches through its child lists, and a
+// failed move releases nothing. The same move releases each imported root the
+// Adapter now holds itself (see HoldImport).
 //
 // Cost per install: one pass over the live Worlds, keyed by ref, and one
 // root move that stores the kept pages of the live Worlds.
@@ -1325,7 +1326,8 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 // Each hold is one swap that stores the writer's own pages, and waits on the
 // root lock only for another swap, never for the driver's store of its pages.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
-	// Hold the payloads before the operation that names them is queued.
+	// Hold the payloads before the operation that references them is
+	// queued.
 	if len(adm.payloads) != 0 {
 		if err := a.addPayloads(ctx, adm.payloads, true); err != nil {
 			return err
@@ -1477,7 +1479,7 @@ func (s *spaceAdmission) getCandidate() *world.Candidate {
 }
 
 // place records the position of adm's operation. An applied one is decided
-// when the installed head holds it; a refused one is decided now: Superseded
+// when the installed head holds it. A refused one is decided now: Superseded
 // when replay ran it on a World other than its base, so the writer runs its
 // change again on the head, and Rejected otherwise.
 func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
@@ -1503,13 +1505,13 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 }
 
 // installCoverLocked installs the cover checkpoint gives peerID's operations,
-// proving chain membership from the operations held returns, and applies it
-// to every pending admission. It returns the refused and the unknown
-// admissions for the caller to decide after it releases bcast; an applied one
-// becomes covered. It first moves the placed admissions off the
-// replay positions the install drops, as reconcilePlacedLocked does, given
-// the positions the checkpoint covers and those the replay keeps above it.
-// The caller holds bcast.
+// proving chain membership from the operations held returns, and applies it to
+// every pending admission. It returns the refused and the unknown admissions
+// for the caller to decide after the caller releases bcast. An applied one
+// becomes covered. It first moves the placed admissions off the replay
+// positions the install drops, as reconcilePlacedLocked does, given the
+// positions the checkpoint covers and those the replay keeps above it. The
+// caller holds bcast.
 func (a *Adapter) installCoverLocked(
 	checkpoint *sobject.SOCheckpointInner,
 	inCheckpoint, kept []spacePosition,
@@ -1547,15 +1549,15 @@ func (a *Adapter) coverLocked(adm *spaceAdmission) coverOutcome {
 // reconcilePlacedLocked moves each placed admission off the replay positions
 // an install drops, before the install's cover applies: one placed at a
 // position in inCheckpoint, whose World the installed checkpoint's equals, is
-// covered; one placed at a position in kept stays placed; any other lost the
+// covered. One placed at a position in kept stays placed. Any other lost the
 // only evidence that a head holds its operation, so it is queued again, for
 // the cover's proof to decide or replay to place again.
 //
 // Invariant: installHead accepts an admission only when the head it installs
-// holds the operation. A placed admission's position is in the replay
-// positions that head is built from, or in the missing set that holds the
-// install back until replay applies it again; a covered one is proven held by
-// an installed checkpoint. The caller holds bcast.
+// holds the operation. A placed admission's position is in the replay positions
+// that head is built from, or in the missing set that holds the install back
+// until replay applies the operation again. A covered one is proven held by an
+// installed checkpoint. The caller holds bcast.
 func (a *Adapter) reconcilePlacedLocked(inCheckpoint, kept []spacePosition) {
 	holds := func(positions []spacePosition, hash []byte) bool {
 		return slices.ContainsFunc(positions, func(pos spacePosition) bool {
@@ -1787,7 +1789,7 @@ func (a *Adapter) moveRoots(ctx context.Context, entries []*block.PutBatchEntry,
 // lockRoots stores the kept pages reach leads to under a PendingStore flush,
 // then takes rootMtx, so the lock and the store's writer are held only for
 // the root swap the caller makes under it. The release unlocks rootMtx, then
-// ends the flush. reach lists the roots the caller's swap may name; a page
+// ends the flush. reach lists the roots the caller's swap may reference. A page
 // the swap reaches beyond them is stored in the swap. A transient replay holds
 // nothing, so it flushes nothing.
 func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func(), error) {
@@ -1864,7 +1866,7 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 	}
 	defer release()
 
-	// Read each root, and the payloads and Worlds their blocks name.
+	// Read each root, and the payloads and Worlds their blocks reference.
 	if err := a.readHeldRoots(ctx, heldRootNames); err != nil {
 		return err
 	}
@@ -1919,14 +1921,14 @@ var ownRoots = []string{
 // move once more. The caller holds rootMtx.
 //
 // Invariant: the retry runs only when every root in ownRoots still holds what
-// held says, and the import root's new block reaches the block held names
+// held says, and the import root's new block reaches the block held references
 // through its Prev links, so every root the Adapter read is still held.
 // HoldImport is the one writer outside an Adapter, and it only appends that
 // way. move releases an imported root only when it reads, at the move, that
 // the Adapter holds it elsewhere, so the retry keeps every root the append
 // added. Any other move, such as a stale Adapter's rewrite of a root alone,
 // returns ErrRootMoved unchanged and the move changes nothing: that rewrite
-// may have released a root the move would name.
+// may have released a root the move would reference.
 func (a *Adapter) retryMovedLocked(ctx context.Context, move func() error) error {
 	// Move, and return unless another writer moved a root first.
 	err := move()
@@ -2031,13 +2033,13 @@ func (a *Adapter) readRetained(ctx context.Context) error {
 }
 
 // addPayloads holds extra beside the payloads already held. A local writer
-// calls it before the operation that names them is queued, so the swap stores
-// the writer's own kept payload pages in its one transaction, and the lock
-// waits only for another swap. Apply calls it for each operation it applies,
-// which holds nothing new for one this device already holds. requireHeld
-// refuses a payload nothing holds now with block.ErrRootNotHeld: a local
-// writer sets it, since a stage released before the admit may have left its
-// tree to the collector.
+// calls it before the operation that references them is queued, so the swap
+// stores the writer's own kept payload pages in its one transaction, and the
+// lock waits only for another swap. Apply calls it for each operation it
+// applies, so the call holds nothing new for an operation this device already
+// holds. requireHeld refuses a payload nothing holds now with
+// block.ErrRootNotHeld: a local writer sets requireHeld, since a stage released
+// before the admit may have left its tree to the collector.
 func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef, requireHeld bool) error {
 	release, err := a.lockRoots(ctx)
 	if err != nil {
@@ -2133,7 +2135,8 @@ func (a *Adapter) bucketRef(head *bucket.ObjectRef) *bucket.ObjectRef {
 // cache.
 //
 // The cursor's transform is the Space's, so the block store's linked files
-// encode with it; the store reads no file until it has one.
+// encode with that transform. The store reads no file until the store has a
+// transform.
 func (a *Adapter) newCursor(ctx context.Context, store block.StoreOps, head *bucket.ObjectRef) (*bucket_lookup.Cursor, error) {
 	// Build the cursor.
 	cursor, err := newWorldCursor(ctx, a.le, a.opts.Bus, a.opts.StepFactorySet, store, a.bucketID, a.decoded, head)
@@ -2200,7 +2203,7 @@ func refsEntry(msg interface{ MarshalVT() ([]byte, error) }, refs []*block.Block
 	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}, nil
 }
 
-// refEqual reports whether a and b name the same block, or both none.
+// refEqual reports whether a and b reference the same block, or both none.
 func refEqual(a, b *block.BlockRef) bool {
 	if a.GetEmpty() || b.GetEmpty() {
 		return a.GetEmpty() == b.GetEmpty()

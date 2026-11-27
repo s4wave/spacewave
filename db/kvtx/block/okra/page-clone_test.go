@@ -68,8 +68,8 @@ func TestPageLocalClonesMatchDeepClones(t *testing.T) {
 		}
 	}
 
-	// Updating references and inline subblocks is legal after page construction;
-	// byte pooling must not change that ownership contract.
+	// Updating references and inline subblocks is legal after page construction.
+	// Byte pooling must not change that ownership contract.
 	for i, src := range original[:32] {
 		before := cloned[i].CloneVT()
 		clear(src.Key)

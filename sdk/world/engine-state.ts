@@ -100,7 +100,7 @@ async function applyObjectMutation(
 
 // EngineWorldState implements IWorldState on top of an Engine. Each write is
 // one ExecuteWorldBatch round trip, and each read a short-lived read
-// transaction; no write transaction is held across a round trip.
+// transaction. No write transaction is held across a round trip.
 export class EngineWorldState implements IWorldState {
   private engine: Engine
   private write: boolean
@@ -117,18 +117,18 @@ export class EngineWorldState implements IWorldState {
     return this.engine.resourceRef
   }
 
-  // getReadOnly returns if the state is read-only
+  // getReadOnly returns if the state is read-only.
   public getReadOnly(): boolean {
     return !this.write
   }
 
-  // getSeqno returns the current seqno of the world state
+  // getSeqno returns the current seqno of the world state.
   public async getSeqno(abortSignal?: AbortSignal): Promise<{ seqno: bigint }> {
     const response = await this.engine.getSeqno(abortSignal)
     return { seqno: response.seqno ?? 0n }
   }
 
-  // waitSeqno waits for the seqno of the world state to be >= value
+  // waitSeqno waits for the seqno of the world state to be >= value.
   public async waitSeqno(
     seqno: bigint,
     abortSignal?: AbortSignal,
@@ -137,14 +137,14 @@ export class EngineWorldState implements IWorldState {
     return { seqno: response.seqno ?? 0n }
   }
 
-  // buildStorageCursor builds a cursor to the world storage with an empty ref
+  // buildStorageCursor builds a cursor to the world storage with an empty ref.
   public async buildStorageCursor(
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor> {
     return await this.engine.buildStorageCursor(abortSignal)
   }
 
-  // accessWorldState builds a bucket lookup cursor with an optional ref
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
   public async accessWorldState(
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
@@ -160,7 +160,10 @@ export class EngineWorldState implements IWorldState {
     return this.engine.stageWorldState(abortSignal)
   }
 
-  /** openNestedWorld opens a read-only nested World that follows a typed outer object. */
+  /**
+   * openNestedWorld opens a read-only nested World that follows a typed outer
+   * object.
+   */
   public async openNestedWorld(
     objectKey: string,
     abortSignal?: AbortSignal,
@@ -170,14 +173,17 @@ export class EngineWorldState implements IWorldState {
     )
   }
 
-  /** openOuterWorld rejects a top-level state through its short-lived transaction. */
+  /**
+   * openOuterWorld rejects a top-level state through its short-lived
+   * transaction.
+   */
   public async openOuterWorld(
     abortSignal?: AbortSignal,
   ): Promise<IWorldState & Disposable> {
     return this.performRead(abortSignal, (tx) => tx.openOuterWorld(abortSignal))
   }
 
-  // applyWorldOp applies a batch operation at the world level
+  // applyWorldOp applies a batch operation at the world level.
   public async applyWorldOp(
     opTypeId: string,
     opData: Uint8Array,
@@ -193,7 +199,7 @@ export class EngineWorldState implements IWorldState {
     return { seqno: response.seqno ?? 0n, sysErr: false }
   }
 
-  // createObject creates an object with a key and initial root ref
+  // createObject creates an object with a key and initial root ref.
   public async createObject(
     key: string,
     rootRef: ObjectRef,
@@ -207,7 +213,7 @@ export class EngineWorldState implements IWorldState {
     return this.bindObject(key)
   }
 
-  // getObject looks up an object by key
+  // getObject looks up an object by key.
   public async getObject(
     key: string,
     abortSignal?: AbortSignal,
@@ -231,7 +237,7 @@ export class EngineWorldState implements IWorldState {
     return new EngineWorldStateObject(this, key)
   }
 
-  // iterateObjects returns an iterator with the given object key prefix
+  // iterateObjects returns an iterator with the given object key prefix.
   public async iterateObjects(
     prefix?: string,
     reversed?: boolean,
@@ -247,7 +253,7 @@ export class EngineWorldState implements IWorldState {
     }
   }
 
-  // renameObject renames an object key and associated graph quads
+  // renameObject renames an object key and associated graph quads.
   public async renameObject(
     oldKey: string,
     newKey: string,
@@ -268,7 +274,7 @@ export class EngineWorldState implements IWorldState {
     return this.bindObject(newKey)
   }
 
-  // deleteObject deletes an object and associated graph quads by ID
+  // deleteObject deletes an object and associated graph quads by ID.
   public async deleteObject(
     key: string,
     abortSignal?: AbortSignal,
@@ -285,7 +291,7 @@ export class EngineWorldState implements IWorldState {
     return { deleted: true }
   }
 
-  // setGraphQuad sets a quad in the graph store
+  // setGraphQuad sets a quad in the graph store.
   public async setGraphQuad(
     subject: string,
     predicate: string,
@@ -303,7 +309,7 @@ export class EngineWorldState implements IWorldState {
     )
   }
 
-  // deleteGraphQuad deletes a quad from the graph store
+  // deleteGraphQuad deletes a quad from the graph store.
   public async deleteGraphQuad(
     subject: string,
     predicate: string,
@@ -321,7 +327,7 @@ export class EngineWorldState implements IWorldState {
     )
   }
 
-  // lookupGraphQuads searches for graph quads in the store
+  // lookupGraphQuads searches for graph quads in the store.
   public async lookupGraphQuads(
     subject?: string,
     predicate?: string,
@@ -342,7 +348,8 @@ export class EngineWorldState implements IWorldState {
     })
   }
 
-  // listGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  // listGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin
+  // object keys.
   public async listGraphEdgeBuckets(
     originObjectKeys: string[],
     limitPerOrigin: number,
@@ -441,7 +448,7 @@ export class EngineWorldState implements IWorldState {
     })
   }
 
-  // deleteGraphObject deletes all quads with Subject or Object set to value
+  // deleteGraphObject deletes all quads with Subject or Object set to value.
   public async deleteGraphObject(
     objectKey: string,
     abortSignal?: AbortSignal,
@@ -490,7 +497,7 @@ export class EngineWorldState implements IWorldState {
     return this.write
   }
 
-  // getEngine returns the underlying Engine (for advanced usage)
+  // getEngine returns the underlying Engine (for advanced usage).
   public getEngine(): Engine {
     return this.engine
   }
@@ -513,7 +520,8 @@ export class EngineWorldState implements IWorldState {
   }
 }
 
-// EngineWorldStateObject wraps an EngineWorldState to provide ObjectState operations
+// EngineWorldStateObject wraps an EngineWorldState to provide ObjectState
+// operations.
 class EngineWorldStateObject implements IObjectState {
   private engineState: EngineWorldState
   private objectKey: string
@@ -627,12 +635,13 @@ class EngineWorldStateObject implements IObjectState {
     throw new Error('World watch ended')
   }
 
-  // release is a no-op for EngineWorldStateObject since it doesn't own any resources
+  // release is a no-op for EngineWorldStateObject since it doesn't own any
+  // resources.
   public release(): void {
     // No-op: EngineWorldStateObject is not a Resource
   }
 
-  // Symbol.dispose is a no-op for EngineWorldStateObject
+  // Symbol.dispose is a no-op for EngineWorldStateObject.
   [Symbol.dispose](): void {
     // No-op: EngineWorldStateObject is not a Resource
   }

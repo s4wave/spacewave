@@ -18,7 +18,8 @@ func guardCursor(ctx context.Context, cursor *bucket_lookup.Cursor, check func(c
 
 // guardedStore is the block store behind a guarded state's cursors. Putting a
 // block adds content under its own hash and changes no World object: a block
-// changes the World only once a guarded write, such as SetRootRef, names it.
+// changes the World only once a guarded write, such as SetRootRef, references
+// it.
 // Removing a block, moving a named root and recording a completion proof can
 // each change what committed World state reads, so each is checked as an
 // unscoped write first.
@@ -137,7 +138,7 @@ func (s *guardedStore) HoldsRoots() bool {
 	return block.HoldsRoots(s.store)
 }
 
-// PinRoot pins a root in the wrapped store; a pin only keeps a block.
+// PinRoot pins a root in the wrapped store. A pin only keeps a block.
 func (s *guardedStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.store, ref)
 }
@@ -152,7 +153,7 @@ func (s *guardedStore) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 }
 
 // ReleaseRoots drops this stage's own holds, which keep nothing a committed
-// World object names alive.
+// World object references alive.
 func (s *guardedStore) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	return block.ReleaseRoots(ctx, s.store, refs)
 }

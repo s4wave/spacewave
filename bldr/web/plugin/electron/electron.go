@@ -50,7 +50,7 @@ func RunElectron(
 	}
 
 	// electron acts as the server (outbound=false)
-	// we act as the client (outbound=true)
+	// The Go runtime acts as the client (outbound=true)
 
 	// Pump accepted IPC connections through the singleton muxed conn.
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)

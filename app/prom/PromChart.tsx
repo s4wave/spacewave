@@ -13,7 +13,8 @@ import {
 // load. The panel's placeholders match it with h-40.
 const chartHeight = 160
 
-// Margins around the plot area for the axis labels.
+// marginLeft, marginBottom and marginTop are the margins around the plot area
+// for axis labels.
 const marginLeft = 56
 const marginBottom = 18
 const marginTop = 6

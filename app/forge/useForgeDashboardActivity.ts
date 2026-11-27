@@ -285,8 +285,9 @@ export function buildForgeDashboardActivityEntries(
 }
 
 // useForgeDashboardWork follows the objects a dashboard links and derives
-// its activity from their bodies. A live World wakes it only on a change to
-// the links or to a linked object; a World snapshot is read once.
+// the dashboard's activity from their bodies. A live World wakes the hook only
+// on a change to the links or to a linked object. A World snapshot is read
+// once.
 export function useForgeDashboardWork(
   worldState: Resource<IWorldState>,
   objectKey: string,

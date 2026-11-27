@@ -22,7 +22,8 @@ const DEFAULT_STATE: FloatingWindowState = {
   expanded: true,
 }
 
-// Position window 2 to the right so they don't overlap
+// SECOND_WINDOW_STATE positions window 2 to the right so the windows
+// don't overlap.
 const SECOND_WINDOW_STATE: FloatingWindowState = {
   position: { x: 300, y: 50 },
   size: { width: 200, height: 150 },
@@ -115,7 +116,7 @@ describe('FloatingWindow z-index management', () => {
       return parseInt(window.getComputedStyle(el).zIndex || '0', 10)
     }
 
-    // Verify initial state - window 2 should be on top
+    // Verify initial state: window 2 should be on top.
     await expect
       .poll(() => {
         const z1 = getZIndex(window1.element())
@@ -169,7 +170,8 @@ describe('FloatingWindow z-index management', () => {
       })
       .toBe(true)
 
-    // Click on window 1's header (the title text) - use exact: true to avoid matching content
+    // Click on window 1's header (the title text): use exact: true to avoid
+    // matching content.
     const window1Title = page.getByText('Window 1', { exact: true })
     await userEvent.click(window1Title.element())
 

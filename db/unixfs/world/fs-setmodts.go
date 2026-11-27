@@ -42,7 +42,7 @@ func NewFsSetModTimestampOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsSetModTimestampOp) Validate() error {
 	if err := unixfs_block.ValidateSetModTimestamp(o.GetPaths()); err != nil {
 		return err

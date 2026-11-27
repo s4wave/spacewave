@@ -16,7 +16,7 @@ func (v *Volume) HoldsRoots() bool {
 
 // GetRoot returns the block the view's own root name holds, or nil. The
 // view's own roots are the roots of its bucket with the empty ID, which the
-// prefix keeps apart from every other owner's.
+// prefix keeps apart from every other owner's roots.
 func (v *Volume) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
 	return v.GetBucketRoot(ctx, "", name)
 }
@@ -133,7 +133,7 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 // innerStage returns the underlying volume's name of a stage this view opened,
 // or refuses a stage it did not.
 func (v *Volume) innerStage(stage string) (string, error) {
-	// Look the stage up among the view's open ones.
+	// Look the stage up among the view's open stages.
 	v.stageMtx.Lock()
 	_, open := v.stages[stage]
 	v.stageMtx.Unlock()
@@ -143,8 +143,8 @@ func (v *Volume) innerStage(stage string) (string, error) {
 	return strings.TrimPrefix(stage, v.bucketStore.prefix), nil
 }
 
-// refuseTombstones refuses a batch that deletes a block, which the volume's
-// collector owns.
+// refuseTombstones refuses a batch that deletes a block: the volume's
+// collector owns block deletion.
 func refuseTombstones(entries []*block.PutBatchEntry) error {
 	for _, entry := range entries {
 		if entry.Tombstone {

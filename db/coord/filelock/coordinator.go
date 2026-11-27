@@ -58,7 +58,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 	}, nil
 }
 
-// Snapshot delegates ObjectStore scopes; keyed scopes carry no generations.
+// Snapshot delegates ObjectStore scopes. Keyed scopes carry no generations.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
 	// Delegate snapshots to the coordinator selected by scope kind.
 	if scope.Key == "" {
@@ -67,7 +67,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 	return c.keyed.Snapshot(ctx, scope)
 }
 
-// Watch delegates ObjectStore scopes; keyed scopes carry no event stream.
+// Watch delegates ObjectStore scopes. Keyed scopes carry no event stream.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
 	// Delegate watches to the coordinator selected by scope kind.
 	if scope.Key == "" {
@@ -175,7 +175,8 @@ func (c *Coordinator) openLockFile(ctx context.Context, scope coord.Scope) (*os.
 }
 
 // LockPath returns the keyed scope's actual lock file path without opening it.
-// Callers preserving an immutable input can reject filesystem aliases before a lease opens it.
+// Callers preserving an immutable input can reject filesystem aliases before
+// a lease opens the lock file.
 func (c *Coordinator) LockPath(scope coord.Scope) string {
 	return filepath.Join(c.dir, lockDirName, lockDigest(c.storeID, scope)+".lock")
 }
@@ -214,7 +215,7 @@ func wrapLockError(err error) error {
 	return pkgerrors.Wrap(err, "acquire lock file")
 }
 
-// lockDigest names the lock file for one backing store and scope.
+// lockDigest derives the lock file name for one backing store and scope.
 func lockDigest(storeID string, scope coord.Scope) string {
 	digest := sha256.Sum256([]byte(
 		storeID + "\x00" + scope.VolumeID + "\x00" + scope.ObjectStoreID + "\x00" + scope.Key,

@@ -24,7 +24,7 @@ type ExistsChecker interface {
 // fail to parse as a packfile.BlockKey are skipped silently (kvfile entries
 // that are not hydra blocks).
 //
-// =mirror= may be nil; in that case every src block is emitted (mirror-absent
+// =mirror= may be nil. In that case every src block is emitted (mirror-absent
 // degenerate case).
 func DiffBlockStores(ctx context.Context, src *kvfile.Reader, mirror ExistsChecker) (writer.BlockIterator, error) {
 	return DiffBlockStoresByChildLists(ctx, src, mirror, nil)

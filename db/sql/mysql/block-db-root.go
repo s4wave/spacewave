@@ -15,7 +15,7 @@ func NewDatabaseRootBlock() block.Block {
 }
 
 // LoadDatabaseRoot follows the database root cursor.
-// may return nil
+// may return nil.
 func LoadDatabaseRoot(ctx context.Context, cursor *block.Cursor) (*DatabaseRoot, error) {
 	// Decode the DatabaseRoot block from the supplied cursor.
 	ni, err := cursor.Unmarshal(ctx, NewDatabaseRootBlock)
@@ -63,7 +63,7 @@ func (r *DatabaseRoot) Validate() error {
 	return nil
 }
 
-// Validate performs cursory validation.
+// Validate cursorily validates.
 func (r *DatabaseRootTable) Validate() error {
 	if len(r.GetName()) == 0 {
 		return ErrEmptyTableName
@@ -103,7 +103,7 @@ func (r *DatabaseRoot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // GetRootTableSet returns the root table set sub-block.
 //
-// bcs is optional
+// bcs is optional.
 func (r *DatabaseRoot) GetRootTableSet(bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 	if bcs != nil {
 		bcs = bcs.FollowSubBlock(1)

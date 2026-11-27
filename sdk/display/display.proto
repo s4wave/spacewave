@@ -8,8 +8,8 @@ import "github.com/s4wave/spacewave/sdk/device/device.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/display;s4wave_display";
 
-// Display is the world-block state for a display a Device serves. It names the
-// Device object and the capability, not the Device's peer, so the viewer
+// Display is the world-block state for a display a Device serves. It references
+// the Device object and the capability, not the Device's peer, so the viewer
 // follows the Device through re-enrollment.
 message Display {
   option (typeid.id) = "spacewave/display";

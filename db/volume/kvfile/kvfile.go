@@ -19,7 +19,7 @@ const ControllerID = "hydra/volume/kvfile"
 // Version is the version of the KVFile implementation.
 var Version = controller.MustParseVersion("0.0.1")
 
-// ctrlDescrip is the controller description
+// ctrlDescrip is the controller description.
 var ctrlDescrip = "kvfile read-only volume"
 
 // KVFile implements a kvfile backed key/value tx store volume.

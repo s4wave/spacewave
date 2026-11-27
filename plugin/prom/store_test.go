@@ -120,7 +120,8 @@ func TestStoreStaleness(t *testing.T) {
 	f.commit(ctx)
 	q := f.queryable()
 
-	// Before the marker the series is present; at and after it, absent.
+	// Before the marker the series is present. At and after it, the series
+	// is absent.
 	vec, err := instantQuery(ctx, t, q, `http_requests_total`, staleAt-1).Vector()
 	if err != nil || len(vec) != 1 {
 		t.Fatalf("before marker = %v, %v", vec, err)
@@ -268,7 +269,8 @@ func TestStoreAppendErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Repeating a sample is ignored; a different value at the same time fails.
+	// Repeating a sample is ignored. A different value at the same time
+	// fails.
 	if err := st.Append(lset, testBaseTime, 1); err != nil {
 		t.Fatalf("repeat = %v, want nil", err)
 	}
@@ -382,7 +384,7 @@ func TestStoreCompactionAndRetention(t *testing.T) {
 	}
 
 	// No kept segment ends a bucket before the retention, and each closed
-	// bucket has one.
+	// bucket has one segment.
 	open := compactBucket(end)
 	perBucket := make(map[int64]int)
 	for _, s := range spans {
@@ -400,7 +402,8 @@ func TestStoreCompactionAndRetention(t *testing.T) {
 		t.Fatalf("segments per bucket = %v, want merged closed buckets and an open run", perBucket)
 	}
 
-	// The kept range answers as the reference does; the dropped range is empty.
+	// The kept range answers as the reference does. The dropped range is
+	// empty.
 	q := f.queryable()
 	start := spans[0].minTime + 10*time.Minute.Milliseconds()
 	for _, qs := range []string{`http_requests_total`, `rate(http_requests_total[5m])`, `max_over_time(temperature[10m])`} {

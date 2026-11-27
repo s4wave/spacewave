@@ -116,7 +116,7 @@ export async function prerenderElement(
 }
 
 // resolveOgImage returns the absolute link preview image URL for a page,
-// falling back to the site default when the page names none.
+// falling back to the site default image when the page specifies none.
 export function resolveOgImage(ctx: PrerenderContext, ogImage?: string) {
   return new URL(ogImage ?? ctx.ogImageUrl, ctx.siteOrigin).href
 }
@@ -138,8 +138,8 @@ function validateMetadata(path: string, meta: PageMetadata) {
   }
 }
 
-// buildPrerenderContext reads bldr manifest, extracts CSS, importmap,
-// bootstrap script, and hydration script. Returns a PrerenderContext
+// buildPrerenderContext reads the bldr manifest, extracts CSS, importmap,
+// bootstrap script, and hydration script, and returns a PrerenderContext
 // shared by both static page and blog pipelines.
 export function buildPrerenderContext(
   verbose: boolean,
@@ -149,7 +149,7 @@ export function buildPrerenderContext(
     if (verbose) console.log(`[prerender] ${message}`)
   }
 
-  // Read bldr manifest.
+  // Read the bldr manifest.
   const manifestPath = join(DIST_DIR, 'manifest.json')
   if (!existsSync(manifestPath)) {
     console.error(
@@ -309,14 +309,15 @@ async function main() {
     ctx.log(`Wrote ${outputPath} (${pageHtml.length} bytes)`)
   }
 
-  // Prerender each static page in route order so logs and failure ordering stay stable.
+  // Prerender each static page in route order so logs and failure ordering
+  // stay stable.
   let staticPageSequence = Promise.resolve()
   for (const page of STATIC_ROUTES) {
     staticPageSequence = staticPageSequence.then(() => buildStaticPage(page))
   }
   await staticPageSequence
 
-  // Build root path special template.
+  // Build the special template for the root path.
   ctx.log('Building root template (/)...')
   await buildRootTemplate(ctx)
 
@@ -324,7 +325,7 @@ async function main() {
   await buildBlog(ctx, includeDrafts)
 
   // Generate sitemap.xml from all indexable prerendered paths. Tag pages are
-  // noindex listings of posts the sitemap already names.
+  // noindex listings of posts the sitemap already lists.
   const sitePaths = new Set([
     '/',
     ...STATIC_ROUTES.map((page) => page.path),

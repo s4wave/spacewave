@@ -1,4 +1,5 @@
-// LOADING_SCREEN_CSS styles the static and React startup surfaces before app.css loads.
+// LOADING_SCREEN_CSS styles the static and React startup surfaces before
+// app.css loads.
 export const LOADING_SCREEN_CSS = `
 .swl-canvas {
   --app-brand: oklch(0.82 0.1355 16.5);

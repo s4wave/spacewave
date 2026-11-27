@@ -16,15 +16,15 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * Path is the absolute host path to check. It follows symbolic links.
+   * Path is the absolute host path to check. The check follows symbolic links.
    */
   path?: string
   /**
-   * PresentOutput names the output set when the path exists.
+   * PresentOutput selects the output set when the path exists.
    */
   presentOutput?: string
   /**
-   * AbsentOutput names the output set when the path does not exist.
+   * AbsentOutput selects the output set when the path does not exist.
    */
   absentOutput?: string
 }

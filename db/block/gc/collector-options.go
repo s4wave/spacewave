@@ -14,28 +14,29 @@ const (
 
 // CollectorOptions adjusts a Collector.
 type CollectorOptions struct {
-	// Frees turns freeing on. With it off, a pass releases lapsed leases and
-	// nets the logs, and frees nothing. A Volume whose collector frees
+	// Frees turns freeing on. With it off, a pass releases lapsed leases
+	// and nets the logs, and frees nothing. A Volume whose collector frees
 	// adopts itself in the background when it opens unadopted, such as one
-	// upgraded from an older format; with Frees off it stays unadopted, since
-	// nothing reads exact counts until frees turn on.
+	// upgraded from an older format. With Frees off it stays unadopted,
+	// since nothing reads exact counts until frees turn on.
 	Frees bool
 	// Grace is how old a down page must be before a pass nets it. It must
 	// exceed the time a reader takes to pin a head it saw and the lease of a
 	// leased root, so a reader whose process stalled past its lease still
 	// finds its blocks. Zero uses DefaultGrace.
 	Grace time.Duration
-	// Now returns the time records and leases are read on; nil is time.Now.
+	// Now returns the time records and leases are read on. Nil is time.Now.
 	Now func() time.Time
-	// Budget bounds the time one Collect spends before it reports More; zero
-	// uses DefaultBudget.
+	// Budget bounds the time one Collect spends before it reports More.
+	// Zero uses DefaultBudget.
 	Budget time.Duration
-	// Phase reports each step of a pass, returning the func that ends it; nil
-	// reports nothing.
+	// Phase reports each step of a pass, returning the func that ends it.
+	// Nil reports nothing.
 	Phase func(Phase) func()
-	// WritersWaiting reports that a foreground writer waits on the store, as
-	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
-	// next block, and a paged release at the next page, once one waits.
+	// WritersWaiting reports that a foreground writer waits on the store,
+	// as kvtx.WriterQueueStore does. Nil reports none. The free loop stops
+	// at the next block, and a paged release at the next page, once one
+	// waits.
 	WritersWaiting func() bool
 	// ParkKeepsHolds selects the park that keeps a block's holds while the
 	// old generation is Open: its children keep the parked block as a

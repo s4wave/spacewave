@@ -38,7 +38,7 @@ func (c *applicationCore) Execute(ctx context.Context) error {
 	return nil
 }
 
-// HandleDirective serves only the core family; the real scheduler runs the app.
+// HandleDirective serves only the core family. The real scheduler runs the app.
 func (c *applicationCore) HandleDirective(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
 	dir, ok := inst.GetDirective().(plugin.LoadPlugin)
 	if !ok || dir.LoadPluginID() != "spacewave-core" {

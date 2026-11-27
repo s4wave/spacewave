@@ -13,25 +13,25 @@ export { cleanup, render } from '@testing-library/react'
 export { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 /**
- * Wraps children in a minimal shared test shell.
+ * TestWrapper wraps children in a minimal shared test shell.
  */
 export function TestWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
 /**
- * Wraps children in AppShell.
+ * ShellWrapper wraps children in AppShell.
  *
  * Used by e2e tests that render EditorShell or other full-shell components.
- * This is the most common wrapper in e2e tests (App.e2e.test, TabDragOverlay.e2e.test,
- * ShellFlexLayout.e2e.test, etc).
+ * This is the most common wrapper in e2e tests (App.e2e.test,
+ * TabDragOverlay.e2e.test, ShellFlexLayout.e2e.test, etc).
  */
 export function ShellWrapper({ children }: { children: React.ReactNode }) {
   return <AppShell>{children}</AppShell>
 }
 
 /**
- * Wraps children in BottomBarRoot with mock handlers.
+ * BottomBarWrapper wraps children in BottomBarRoot with mock handlers.
  *
  * Used by tests that need the bottom bar context (SessionFrame.test, etc).
  */
@@ -52,7 +52,8 @@ export function BottomBarWrapper({
 }
 
 /**
- * Common beforeEach setup for e2e tests that clears state between tests.
+ * cleanupBrowserTest provides common beforeEach setup for e2e tests that
+ * clears state between tests.
  *
  * Clears localStorage, resets URL hash, and runs cleanup.
  * This pattern is repeated in App.e2e.test, ShellFlexLayout.e2e.test,

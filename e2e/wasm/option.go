@@ -41,13 +41,16 @@ const (
 	// E2EWasmJSSourcemapsEnv opts browser bundles into source-map emission.
 	E2EWasmJSSourcemapsEnv = "E2E_WASM_JS_SOURCEMAPS"
 	// E2EWasmGoScriptRuntimeTraceEnv opts GoScript browser runs into
-	// runtime-trace capture; off by default so routine GoScript e2e stays fast.
+	// runtime-trace capture. Capture is off by default so routine GoScript
+	// e2e stays fast.
 	E2EWasmGoScriptRuntimeTraceEnv = "E2E_WASM_GOSCRIPT_RUNTIME_TRACE"
-	// E2EWasmDriveBenchEnv opts in the time-to-Drive startup bench; off by
-	// default so routine e2e does not pay the bench measurement cost.
+	// E2EWasmDriveBenchEnv opts in the time-to-Drive startup bench. The bench
+	// is off by default so routine e2e does not pay the bench measurement
+	// cost.
 	E2EWasmDriveBenchEnv = "E2E_WASM_DRIVE_BENCH"
 	// E2EWasmDriveBenchJSProfileEnv opts the Drive bench into same-window
-	// Chromium JS CPU profile capture; off by default so routine e2e stays cheap.
+	// Chromium JS CPU profile capture. Capture is off by default so routine
+	// e2e stays cheap.
 	E2EWasmDriveBenchJSProfileEnv = "E2E_WASM_DRIVE_BENCH_JS_PROFILE"
 )
 
@@ -150,8 +153,8 @@ func WithStartupBuildCache(enabled bool) Option {
 }
 
 // WithConfigMutator registers a function that mutates the loaded project
-// config before the project controller starts. Use this to inject test-only
-// controller wiring such as trace service entries.
+// config before the project controller starts. Use this mutator to inject
+// test-only controller wiring such as trace service entries.
 func WithConfigMutator(fn func(*bldr_project.ProjectConfig) error) Option {
 	return func(o *options) {
 		o.configMutators = append(o.configMutators, fn)
@@ -188,9 +191,9 @@ func e2eWasmBrowserWebRTCEnabled(compiler E2EWasmCompiler) bool {
 }
 
 // E2EWasmTraceServiceEnabled reports whether the trace service should be
-// injected into the app harness config. Native Go always carries it; GoScript
+// injected into the app harness config. Native Go always carries it. GoScript
 // opts in via E2E_WASM_GOSCRIPT_RUNTIME_TRACE so routine GoScript e2e does not
-// pay the trace-service compile cost; TinyGo never carries it.
+// pay the trace-service compile cost. TinyGo never carries it.
 func E2EWasmTraceServiceEnabled(compiler E2EWasmCompiler) bool {
 	switch compiler {
 	case E2EWasmCompilerGo:
@@ -253,7 +256,8 @@ func ResolveE2EWasmWorkerMode(explicit WorkerMode) (WorkerMode, error) {
 // ResolveE2EWasmManifestBuildTimeout resolves the startup Manifest build wait
 // for local harness runs.
 func ResolveE2EWasmManifestBuildTimeout(defaultTimeout time.Duration) (time.Duration, error) {
-	// Parse the manifest build timeout, or use the default when unset.
+	// Parse the manifest build timeout, or use the default timeout when
+	// unset.
 	raw := strings.TrimSpace(os.Getenv(E2EWasmManifestBuildTimeoutEnv))
 	if raw == "" {
 		return defaultTimeout, nil

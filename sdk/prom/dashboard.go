@@ -12,8 +12,8 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
-// ErrPanelRemoved is returned when an edit names a panel that another writer
-// removed.
+// ErrPanelRemoved is returned when an edit references a panel that another
+// writer removed.
 var ErrPanelRemoved = errors.New("another member removed this panel")
 
 // ErrPanelTitleRequired is returned when a stored panel has no title.

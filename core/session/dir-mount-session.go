@@ -49,7 +49,7 @@ func ExMountSession(
 	return av.GetValue(), avRef, nil
 }
 
-// mountSession implements MountSession
+// mountSession implements MountSession.
 type mountSession struct {
 	sessionRef *SessionRef
 }

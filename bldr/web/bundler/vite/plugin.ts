@@ -4,7 +4,7 @@ import { type Plugin, type Rollup, esmExternalRequirePlugin } from 'vite'
 
 import { servedEntryName, specifierEntryNames } from './web-pkg-naming.js'
 
-// List of file extensions that should be remapped to .mjs
+// JS_EXTENSIONS lists file extensions that should be remapped to .mjs.
 const JS_EXTENSIONS = ['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx']
 const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
 
@@ -15,22 +15,26 @@ export function isWebPkgModule(source: string): boolean {
 }
 
 export interface WebPkgRemapPluginConfig {
-  // List of packages that can be bundled as web pkgs
+  // webPkgIDs lists packages that can be bundled as web pkgs.
   webPkgIDs: string[]
-  // Package IDs kept as bare imports so the document import map owns them.
+  // preserveWebPkgIDs lists package IDs kept as bare imports so the document
+  // import map owns them.
   preserveWebPkgIDs?: string[]
-  // Per-package declared entry imports, relative to each package's web pkg root.
+  // webPkgImports holds per-package declared entry imports, relative to each
+  // package's web pkg root.
   // When present for a package, served names are derived from these imports
   // (matching buildWebPkg) instead of the package's on-disk file layout, whose
   // dist/ subdir and .pb.js filenames differ from the served names.
   webPkgImports?: Record<string, string[]>
-  // Base URL path that serves web package files.
-  // Defaults to the plugin-assets route; entrypoint web packages use /entrypoint/pkgs.
+  // webPkgBasePath is the base URL path that serves web package files.
+  // Defaults to the plugin-assets route. Entrypoint web packages use
+  // /entrypoint/pkgs.
   webPkgBasePath?: string
-  // Optional callback to report the resolved root directory for a web package.
+  // addWebPkgRoot is an optional callback to report the resolved root directory
+  // for a web package.
   // Called once per package when the root is first discovered.
   addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
-  // Enable debug logging
+  // debug enables debug logging.
   debug?: boolean
 }
 
@@ -233,8 +237,8 @@ export function remapWebPkgSpecifier(
 
 /**
  * resolveWebPkgImportURL returns the served URL for a web package import:
- * the package's served-name map when it names the import, else the specifier
- * remap. Returns null if the id does not match any webPkgID.
+ * the package's served-name map when the map contains the import, else the
+ * specifier remap. Returns null if the id does not match any webPkgID.
  */
 export function resolveWebPkgImportURL(
   id: string,
@@ -307,7 +311,7 @@ export function createWebPkgRemapPlugin(
     apply: 'build',
 
     // Extract web pkg root directories from the resolved Vite config.
-    // We look at resolve.alias entries that match web pkg IDs.
+    // The plugin looks at resolve.alias entries that match web pkg IDs.
     // For tsconfig-aliased packages, Vite injects alias entries from
     // compilerOptions.paths.
     configResolved(resolvedConfig) {
@@ -476,7 +480,7 @@ export function createWebPkgRemapPlugin(
     },
 
     // renderChunk rewrites external web pkg import specifiers in the
-    // output code. This handles the case where rolldownOptions.external
+    // output code. This hook handles the case where rolldownOptions.external
     // marks the import as external (preserving the original specifier)
     // but shared packages need mapped specifiers with .mjs extensions.
     //
@@ -543,7 +547,7 @@ const webAssetPattern = new RegExp(`\\.(?:${webAssetExts.join('|')})$`)
 // import of a web package. Project sources import web packages through
 // tsconfig paths, which resolve before plugin hooks, so the option must claim
 // those imports. Installed dependencies are left to the external require
-// plugin, which converts their CommonJS require() calls into imports; the
+// plugin, which converts their CommonJS require() calls into imports. The
 // option would otherwise claim those calls first and leave them unconverted.
 export function isExternalWebPkgImport(
   webPkgIDs: string[],

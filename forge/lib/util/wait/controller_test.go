@@ -75,7 +75,7 @@ func TestUtilWait(t *testing.T) {
 		setInputObject.Store(true)
 	}()
 
-	// Run the job; it completes only after the input exists.
+	// Run the job. It completes only after the input exists.
 	ts := timestamp.Now()
 	jobKey := "job/1"
 	clusterKey := "cluster/1"
@@ -90,7 +90,7 @@ func TestUtilWait(t *testing.T) {
 		t.Fatalf("expected job state COMPLETE but got %s", outState.GetJobState().String())
 	}
 
-	// lookup the list of Task for the Job
+	// Look up the list of Tasks for the Job.
 	jobTasks, _, err := forge_job.CollectJobTasks(ctx, tb.WorldState, jobKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -107,7 +107,7 @@ func TestUtilWait(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check output
+	// Check the output.
 	stv := valMap["example"]
 	if stv.IsEmpty() {
 		t.Fatal("expected example output to be set but was empty")

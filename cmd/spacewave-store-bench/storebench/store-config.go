@@ -17,10 +17,10 @@ type StoreConfig struct {
 	// EngineID is the World engine ID.
 	EngineID string
 	// CacheBytes is the memory budget of each s4db volume. Zero keeps the
-	// native storage's, which a server runs with.
+	// native storage's budget, which a server runs with.
 	CacheBytes int64
 	// BlockCacheBytes is the decoded block cache budget. Zero keeps the
-	// default.
+	// default budget.
 	BlockCacheBytes int64
 	// PackDir is the directory of the World store's packahead log. Empty
 	// keeps every write in the volume.

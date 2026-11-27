@@ -152,7 +152,7 @@ func selected(s Scenario, tags []string) bool {
 
 // Run executes selected scenarios in declaration order and emits NOT RUN rows
 // for the rest. Declared session boundaries reset only the scenario that owns
-// them; warm scenarios inherit the current runtime state.
+// them. Warm scenarios inherit the current runtime state.
 func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
 	// Snapshot the catalog and allocate the report rows.
 	scenarios := r.All()

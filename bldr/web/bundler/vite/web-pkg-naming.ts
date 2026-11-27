@@ -1,7 +1,7 @@
 import path from 'path'
 
-// Extensions stripped from compiled JavaScript entries, including ".pb" for
-// proto modules addressed by export subpath.
+// KNOWN_EXTENSIONS contains extensions stripped from compiled JavaScript
+// entries, including ".pb" for proto modules addressed by export subpath.
 const KNOWN_EXTENSIONS = new Set([
   '.js',
   '.cjs',
@@ -13,11 +13,12 @@ const KNOWN_EXTENSIONS = new Set([
   '.css',
 ])
 
-// Extensions of TypeScript sources, which consumers import by their emitted
-// ".js" path.
+// TYPESCRIPT_EXTENSIONS contains extensions of TypeScript sources, which
+// consumers import by their emitted ".js" path.
 const TYPESCRIPT_EXTENSIONS = new Set(['.ts', '.tsx'])
 
-// Extensions a consumer may write on an entry specifier.
+// SPECIFIER_EXTENSIONS contains extensions a consumer may write on an entry
+// specifier.
 const SPECIFIER_EXTENSIONS = new Set(['.js', '.mjs', '.jsx', '.ts', '.tsx'])
 
 /** isTypeScriptEntry reports whether a package import path is a TypeScript source. */
@@ -58,7 +59,7 @@ export function servedEntryName(importPath: string): string {
 
 /**
  * specifierEntryNames returns the served-name candidates for a consumer
- * subpath, most specific first: "object/object.pb.js" names a TypeScript
+ * subpath, most specific first: "object/object.pb.js" selects a TypeScript
  * "object/object.pb" entry or a compiled "object/object" entry.
  */
 export function specifierEntryNames(subPath: string): string[] {

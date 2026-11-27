@@ -19,7 +19,7 @@ import (
 // path: an account whose subscription state does not permit SO list access
 // must short-circuit the sweep with zero HTTP traffic. Hot path for the
 // "reconnect during dormant subscription" case where the sweep would
-// otherwise fan out a /sobject/list fetch we already know will be rejected.
+// otherwise fan out a /sobject/list fetch already known to be rejected.
 func TestRunSelfRejoinSweepNoSubscriptionSkipsFetch(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected HTTP call from rejoin sweep: %s", r.URL.Path)
@@ -38,7 +38,7 @@ func TestRunSelfRejoinSweepNoSubscriptionSkipsFetch(t *testing.T) {
 // TestRunSelfRejoinSweepEmptyListSingleFetch covers the warm-but-empty path:
 // active subscription, server returns an empty SO list. The sweep must issue
 // exactly one /sobject/list fetch and exit cleanly without per-SO mount
-// traffic. This is the bound that protects against per-mount rejoin storms
+// traffic. This request bound protects against per-mount rejoin storms
 // when reconnect fires against an account with no shared objects.
 func TestRunSelfRejoinSweepEmptyListSingleFetch(t *testing.T) {
 	var (

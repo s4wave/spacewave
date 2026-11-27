@@ -21,7 +21,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "hydra/unixfs/world/access"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -47,7 +47,8 @@ func newController(base *bus.BusController[*Config]) (*Controller, error) {
 	ctrl := &Controller{BusController: base, sender: senderPeerID}
 	ctrl.errCtr = ccontainer.NewCContainer[*error](nil)
 
-	// note: keep the handle if we have zero references and the context is not canceled.
+	// note: keep the handle if the reference count is zero and the
+	// context is not canceled.
 	ctrl.fsRc = refcount.NewRefCount(nil, true, nil, ctrl.errCtr, ctrl.resolveFs)
 	return ctrl, nil
 }

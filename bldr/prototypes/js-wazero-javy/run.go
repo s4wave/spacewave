@@ -16,14 +16,14 @@ func main() {
 
 	// Create a new WebAssembly Runtime.
 	r := wazero.NewRuntime(ctx)
-	defer r.Close(ctx) // This closes everything this Runtime created.
+	defer r.Close(ctx) // Close everything this Runtime created.
 
-	// Combine the above into our baseline config, overriding defaults.
+	// Combine the above into the baseline config, overriding defaults.
 	// By default, I/O streams are discarded and there's no file system.
 	config := wazero.NewModuleConfig().WithStdout(os.Stdout).WithStderr(os.Stderr)
 
 	// Instantiate WASI, which implements system call APIs.
-	// This is required for the Wasm module to print to the console.
+	// WASI is required for the Wasm module to print to the console.
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
 	// Load the Wasm binary from a file.
@@ -33,12 +33,13 @@ func main() {
 	}
 
 	// Instantiate the Wasm module.
-	// This will automatically run the "_start" function of the module.
+	// Instantiation automatically runs the "_start" function of the module.
 	// -, err = r.Instantiate(ctx, mainWasm)
 	mod, err := r.InstantiateWithConfig(ctx, mainWasm, config.WithArgs("main.wasm", "my argument"))
 	if err != nil {
-		// Note: Most compilers do not exit the module after running "_start",
-		// unless there was an error. This allows you to call exported functions.
+		// Note: Most compilers do not exit the module after running
+		// "_start", unless there was an error, so the caller can call
+		// exported functions.
 		if exitErr, ok := err.(*sys.ExitError); ok && exitErr.ExitCode() != 0 {
 			log.Panicf("exit_code: %d\n", exitErr.ExitCode())
 		} else if !ok {

@@ -47,7 +47,7 @@ func TestWorthReclaim(t *testing.T) {
 		}
 	}
 
-	// Judge each on each service.
+	// Judge each packfile on each service.
 	cases := []struct {
 		name    string
 		pricing *Pricing

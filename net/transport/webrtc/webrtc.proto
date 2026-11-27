@@ -30,13 +30,13 @@ message Config {
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff backoff = 6;
   // Dialers maps peer IDs to dialers.
-  // This allows mapping which peer ID should be dialed via this transport.
+  // The map selects which peer ID should be dialed via this transport.
   map<string, dialer.DialerOpts> dialers = 7;
   // AllPeers tells the transport to attempt to negotiate a WebRTC session with
   // any peer, even those not listed in the Dialers map.
   bool all_peers = 8;
   // DisableListen disables listening for incoming Links.
-  // If set, we will only dial out, not accept incoming links.
+  // If set, the transport will only dial out, not accept incoming links.
   bool disable_listen = 9;
   // BlockPeers is a list of peer ids that will not be contacted via this transport.
   repeated string block_peers = 10;
@@ -71,7 +71,7 @@ enum IceTransportPolicy {
   IceTransportPolicy_RELAY = 1;
 }
 
-// IceServer is a WebRTC ICE server config.
+// IceServerConfig is a WebRTC ICE server config.
 message IceServerConfig {
   // Urls is the list of URLs for the ICE server.
   //
@@ -125,7 +125,7 @@ message WebRtcSdp {
   // Sdp contains the WebRTC session description.
   string sdp = 3;
   // OfferId is the SHA-256 of the exact offer SDP bytes this description
-  // belongs to. Offers carry their own digest; answers echo the digest of
+  // belongs to. Offers carry their own digest. Answers echo the digest of
   // the offer they answer. Signals whose offer_id does not match the active
   // generation are rejected before Pion.
   bytes offer_id = 4;

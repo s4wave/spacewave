@@ -29,7 +29,7 @@ func TestCompile(t *testing.T) {
 		},
 	}
 
-	// The config names every input, with the queries in name order.
+	// The config records every input, with the queries in name order.
 	entries, err := NodeType{}.Compile(context.Background(), node)
 	if err != nil {
 		t.Fatal(err)

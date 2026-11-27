@@ -12,7 +12,7 @@ import (
 //
 // publicPath is the base public path, e.x.: /p/{plugin-id} or /b/pkg/{pkg-id}.
 // An empty publicPath makes chunk imports and CSS URLs relative to the file
-// that names them, while a file asset imported from JavaScript resolves
+// that references them, while a file asset imported from JavaScript resolves
 // against the document.
 func BuildEsbuildBuildOpts(
 	le *logrus.Entry,

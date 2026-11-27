@@ -262,7 +262,7 @@ func (l *load) write(ctx context.Context) {
 		stall.Stop()
 	}
 
-	// Stop quietly when the load ends.
+	// Stop without logging when the load ends.
 	if ctx.Err() != nil {
 		return
 	}

@@ -19,15 +19,19 @@ import "github.com/aperturerobotics/util/filter/filter.proto";
 //
 // There are two ways to specify code to include in the plugin:
 //
-// - Define in the "modules" list, which is a shortcut for configuring entrypoints and bundles.
-// - Define bundles in esbuild_bundles or vite_bundles and entrypoints that consume those bundles.
+// - Define in the "modules" list, which is a shortcut for configuring
+//   entrypoints and bundles.
+// - Define bundles in esbuild_bundles or vite_bundles and entrypoints that
+//   consume those bundles.
 //
 // The most common way to use this plugin is:
 //
-// - Define your plugin backend .ts (runs in a WebWorker) in modules with type BACKEND
-// - Define your app frontend .tsx (runs in a WebView) in modules with type FRONTEND
+// - Define the plugin backend .ts (runs in a WebWorker) in modules with type
+//   BACKEND
+// - Define the app frontend .tsx (runs in a WebView) in modules with type
+//   FRONTEND
 //
-// This will configure:
+// Defining these modules configures:
 //
 // - Vite compiler with two bundle entrypoints: frontend and backend.
 // - Entrypoint which on the plugin backend:
@@ -36,7 +40,8 @@ import "github.com/aperturerobotics/util/filter/filter.proto";
 //   - applies any configured hostConfigSet
 //   - serves the plugin assets fs at /p/{plugin-id}/a/{asset-path}
 //
-// Alternatively you can manually configure the bundles and entrypoints for more control.
+// Alternatively, configure the bundles and entrypoints manually for more
+// control.
 message Config {
   // TODO configuration for the plugin entrypoint bundle
   // - can reference bundles under esbuild_bundles and vite_bundles
@@ -95,7 +100,7 @@ message Config {
 
   // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
   // This ConfigSet is applied to the plugin host bus.
-  // This will be included in the plugin binary.
+  // The ConfigSet is included in the plugin binary.
   // Adds a config to configSet with ID bldr/plugin/host/configset
   // Merged with the plugin compiler HostConfigSet field.
   map<string, .configset.proto.ControllerConfig> host_config_set = 10;
@@ -137,7 +142,8 @@ message PreBuildHookResult {
 message InputManifestMeta {
   // WebPkgRefs contains the list of web pkg references.
   repeated .web.pkg.WebPkgRef web_pkg_refs = 1;
-  // WebPkgs is the list of web pkgs that we separate from the bundle.
+  // WebPkgs is the list of web pkgs that the compiler separates from the
+  // bundle.
   repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 2;
 
   // EsbuildBundles is the list of esbuild bundles that were configured.

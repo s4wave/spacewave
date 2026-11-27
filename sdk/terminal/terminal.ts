@@ -27,7 +27,7 @@ export interface ITerminalHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose supports the 'using' statement.
   [Symbol.dispose](): void
 }
 

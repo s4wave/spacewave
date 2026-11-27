@@ -44,8 +44,9 @@ func queryIndexTest(ctx *sql.Context, engine *sqle.Engine, query string) ([]sql.
 	}
 }
 
-// TestStoredPrimaryKeyReads verifies that equality consumers fetch only one row key.
-// Tree navigation may read several branch blocks; unrelated row values must not load.
+// TestStoredPrimaryKeyReads verifies that equality consumers fetch only one row
+// key. Tree navigation may read several branch blocks, but unrelated row values
+// must not load.
 func TestStoredPrimaryKeyReads(t *testing.T) {
 	// Populate an actual SQL engine over a private block store.
 	ctx := sql.NewContext(t.Context())
@@ -130,7 +131,8 @@ func TestStoredPrimaryKeyReads(t *testing.T) {
 		t.Fatalf("found %d stored user keys, want 64", len(rowRefs))
 	}
 
-	// Each query starts cold; count fetched row keys independently of tree branches.
+	// Each query starts cold. Count fetched row keys independently of tree
+	// branches.
 	cases := []struct {
 		// name identifies the indexed consumer.
 		name string
@@ -439,7 +441,8 @@ func TestUnsupportedPredicatesScan(t *testing.T) {
 		"INSERT INTO scans VALUES (1, 1, 1), (3, 1, 2), (5, 2, 1), (7, 1, 1), (9, 2, 2)",
 	)
 
-	// A condition only on a later column scans; spans of number columns walk keys.
+	// A condition only on a later column scans. Spans of number columns walk
+	// keys.
 	for _, test := range []struct {
 		// query selects through an unsupported predicate.
 		query string
@@ -572,7 +575,7 @@ func TestLookupJoinNullKeys(t *testing.T) {
 		"INSERT INTO outer_keys VALUES (1, NULL), (2, 7), (3, 9)",
 	)
 
-	// Only the equal non-null key joins; a NULL outer key joins nothing.
+	// Only the equal non-null key joins. A NULL outer key joins nothing.
 	query := "SELECT CONCAT(outer_keys.id, ':', inner_keys.id) FROM outer_keys JOIN inner_keys ON inner_keys.k = outer_keys.k ORDER BY outer_keys.id"
 	if got := strings.Join(queryStrings(t, ctx, db, query), " "); got != "2:3" {
 		t.Fatalf("lookup join rows %q, want %q", got, "2:3")

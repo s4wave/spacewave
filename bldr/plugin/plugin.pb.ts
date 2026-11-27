@@ -177,7 +177,7 @@ export interface PluginExecutionStatus {
    */
   runningManifestRef?: string
   /**
-   * RunningManifestRev is the build rev of the manifest named by
+   * RunningManifestRev is the build rev of the manifest selected by
    * RunningManifestRef.
    */
   runningManifestRev?: bigint
@@ -478,7 +478,7 @@ export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
 /**
  * PluginCaller identifies the plugin making a call that another plugin serves.
  * The host writes it as the PluginRpc component ID from the identity it bound
- * when it built the caller's host services; the caller never supplies it.
+ * when it built the caller's host services. The caller never supplies it.
  *
  * @generated from message bldr.plugin.PluginCaller
  */
@@ -723,8 +723,8 @@ export interface LoadPluginRequest {
    */
   manifestRoot?: string
   /**
-   * PeerId is the peer whose approvals decide the roots Manifests names. A
-   * host that serves one peer ignores it.
+   * PeerId is the peer whose approvals decide the roots Manifests selects. A
+   * host that serves one peer ignores PeerId.
    */
   peerId?: string
 }
@@ -847,13 +847,13 @@ export interface PluginContextInfo {
   pluginMeta?: PluginMeta
   /**
    * InstanceKey identifies the plugin installation the host runs.
-   * Empty for a singleton plugin; a Space uses its World engine ID.
+   * Empty for a singleton plugin. A Space uses its World engine ID.
    * State private to one installation is scoped by this key.
    */
   instanceKey?: string
   /**
-   * ManifestRoot is the root of the manifest the plugin runs, which names the
-   * exact build of its files. Empty when the host did not report it.
+   * ManifestRoot is the root of the manifest the plugin runs, which selects
+   * the exact build of its files. Empty when the host did not report it.
    */
   manifestRoot?: string
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// maxMessageBytes bounds one frame. A publication's blocks fit well inside it;
-// a larger one is left to the local upload.
+// maxMessageBytes bounds one frame. A publication's blocks fit well inside the
+// frame limit. A larger publication is left to the local upload.
 const maxMessageBytes = 16 << 20
 
 // encodeMessage returns msg as one frame.
@@ -28,7 +28,7 @@ func encodeMessage(msg *Message) ([]byte, error) {
 
 // readMessage reads one frame.
 func readMessage(r *bufio.Reader) (*Message, error) {
-	// Read the length, then the body it names.
+	// Read the length, then the body of that length.
 	size, err := binary.ReadUvarint(r)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,8 @@ func readMessage(r *bufio.Reader) (*Message, error) {
 
 // blocksSum returns the sum a Push carries of blocks.
 func blocksSum(blocks []*Block) []byte {
-	// Length-prefix each part, so moving a byte across a boundary changes it.
+	// Length-prefix each part, so moving a byte across a boundary changes the
+	// sum.
 	h := sha256.New()
 	var size [binary.MaxVarintLen64]byte
 	for _, b := range blocks {

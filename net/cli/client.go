@@ -39,9 +39,9 @@ type ClientArgs struct {
 	// CbusConf is the controller-bus configuration.
 	CbusConf cbus_cli.ClientArgs
 
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// client is the client instance
+	// client is the client instance.
 	client bifrost_api.BifrostAPIClient
 
 	// DialAddr is the address to dial.
@@ -49,7 +49,8 @@ type ClientArgs struct {
 
 	// IdentifyKeyPath is the path to the key to read.
 	IdentifyKeyPath string
-	// IdentifyGenKey indicates we should generate the key if it doesn't exist.
+	// IdentifyGenKey indicates the client should generate the key
+	// if the key does not exist.
 	IdentifyGenKey bool
 
 	// RemotePeerIdsCsv are the set of remote peer IDs to connect to.

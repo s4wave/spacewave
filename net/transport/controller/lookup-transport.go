@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/transport"
 )
 
-// lookupTransportResolver resolves lookupTransport directives
+// lookupTransportResolver resolves lookupTransport directives.
 type lookupTransportResolver struct {
 	c   *Controller
 	dir transport.LookupTransport
@@ -35,7 +35,7 @@ func (o *lookupTransportResolver) Resolve(ctx context.Context, handler directive
 	return nil
 }
 
-// checkLookupMatchesTpt checks if a lookuptransport matches a tpt
+// checkLookupMatchesTpt checks if a lookuptransport matches a tpt.
 func checkLookupMatchesTpt(dir transport.LookupTransport, tpt transport.Transport) bool {
 	if tptIDConstraint := dir.LookupTransportIDConstraint(); tptIDConstraint != 0 {
 		if tpt.GetUUID() != tptIDConstraint {
@@ -53,8 +53,9 @@ func checkLookupMatchesTpt(dir transport.LookupTransport, tpt transport.Transpor
 
 // resolveLookupTransport returns a resolver for looking up a transport.
 func (c *Controller) resolveLookupTransport(_ context.Context, dir transport.LookupTransport) ([]directive.Resolver, error) {
-	// Try to skip this if it doesn't match this transport and we can lock.
-	// Otherwise return a resolver and check later.
+	// Try to skip resolution if the directive does not match the transport
+	// and the controller can lock. Otherwise return a resolver and check
+	// later.
 	var skip bool
 	_ = c.bcast.TryHoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		skip = c.tpt != nil && !checkLookupMatchesTpt(dir, c.tpt)
@@ -63,7 +64,7 @@ func (c *Controller) resolveLookupTransport(_ context.Context, dir transport.Loo
 		return nil, nil
 	}
 
-	// Return resolver.
+	// Return a resolver.
 	return directive.Resolvers(&lookupTransportResolver{
 		c:   c,
 		dir: dir,

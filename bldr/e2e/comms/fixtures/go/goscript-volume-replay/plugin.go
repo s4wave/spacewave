@@ -85,7 +85,7 @@ func run() {
 
 // target is one engine on one storage primitive.
 type target struct {
-	// name names the engine and primitive.
+	// name identifies the engine and primitive.
 	name string
 	// open creates fresh storage and opens the engine on it.
 	open func(ctx context.Context) (engine, error)
@@ -218,9 +218,9 @@ func result(err error) string {
 
 // replayReport is the result of one trace replay.
 type replayReport struct {
-	// Trace names the replayed trace.
+	// Trace identifies the replayed trace.
 	Trace string `json:"trace"`
-	// Target names the engine and storage primitive.
+	// Target identifies the engine and storage primitive.
 	Target string `json:"target"`
 	// Policy is "durable" or "ordered".
 	Policy string `json:"policy"`
@@ -295,14 +295,14 @@ func replayOne(ctx context.Context, recs []workload.Record, t target, ordered bo
 	}
 	rep.Storage = e.counts().sub(seeded)
 
-	// Reopen.
+	// Reopen the engine.
 	openStart := time.Now()
 	if _, err := e.reopen(ctx); err != nil {
 		return err
 	}
 	rep.OpenMs = ms(time.Since(openStart))
 
-	// Report.
+	// Report the replay results.
 	rep.Records = result.Ops
 	rep.WallMs = ms(result.Wall)
 	rep.OrderedCommits = result.OrderedCommits
@@ -340,7 +340,7 @@ func ms(d time.Duration) float64 {
 
 // readMode reads the worker's requested mode.
 func readMode() string {
-	// The start info is base64 JSON whose instance key names the mode.
+	// The start info is base64 JSON whose instance key selects the mode.
 	encoded := js.Global().Get("BLDR_PLUGIN_START_INFO")
 	if encoded.IsUndefined() || encoded.IsNull() {
 		return ""

@@ -79,9 +79,9 @@ func RotateTransformKey(
 	return soTransformConf, &SOKeyEpoch{Epoch: currentEpoch + 1, Grants: grants, ConfigChainSeqno: configSeqno}, nil
 }
 
-// NeedsKeyRotation reports whether a config record after the one the latest
-// of epochs was created under removed a reader, who still holds that epoch's
-// key. history is the config chain in sequence order.
+// NeedsKeyRotation reports whether a config record after the record the
+// latest epoch in epochs was created under removed a reader, who still holds
+// that epoch's key. history is the config chain in sequence order.
 func NeedsKeyRotation(history []*SOConfigChange, epochs []*SOKeyEpoch) bool {
 	// Start after the record the latest epoch was created under.
 	var latest *SOKeyEpoch

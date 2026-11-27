@@ -54,8 +54,8 @@ function QuickstartErrorState({ message, onRetry }: QuickstartErrorStateProps) {
 // Quickstart retains setup resources across the final route transition.
 export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
   const environment = useAppEnvironment()
-  // isCreate indicates this is an option that should call createQuickstartSetup.
-  // otherwise we redirect below.
+  // isCreate indicates the option should call createQuickstartSetup.
+  // Otherwise, Quickstart redirects below.
   const isCreate = isQuickstartCreateId(quickstartId)
   const isLocal = quickstartId === 'local'
   const rootResource = useRootResource()
@@ -65,7 +65,8 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     setProgress(state)
   }, [])
 
-  // For 'local' (login page "Continue without account"), always create new session.
+  // For 'local' (login page "Continue without account"), always create a new
+  // session.
   const localSessionResource = useResource(
     rootResource,
     async (root, signal, cleanup) => {
@@ -98,7 +99,8 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     { enabled: isLocal },
   )
 
-  // For other create options, we create account/session/space
+  // For other create options, Quickstart reuses or creates a local session,
+  // then reuses or creates the quickstart's space.
   const setupResource = useResource(
     rootResource,
     async (root, signal, cleanup) => {
@@ -151,18 +153,18 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
   const setup = setupResource.value
   const spaceID = setup?.spaceResp.sharedObjectRef?.providerResourceRef?.id
 
-  // account option: redirect to /login
+  // For the account option, redirect to /login.
   if (quickstartId === 'account') {
     return <NavigatePath to="/login" />
   }
 
   if (!isCreate) {
-    // We shouldn't have gotten here
+    // Log the option that no branch above handles, such as 'pair', and go home.
     console.error(`unknown quickstart option: ${String(quickstartId)}`)
     return <NavigatePath to="/" />
   }
 
-  // Handle 'local' quickstart
+  // Handle the 'local' quickstart.
   if (isLocal) {
     if (localSessionResource.error) {
       return (
@@ -182,7 +184,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     return <Redirect to={`/u/${localSetup.sessionIndex}`} />
   }
 
-  // Handle other create options (with space)
+  // Handle other create options (with a space).
   if (setupResource.error) {
     return (
       <QuickstartErrorState

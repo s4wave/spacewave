@@ -141,7 +141,7 @@ func (e *Engine) watchChanges(ctx context.Context) error {
 
 // callChangeCbs invalidates older cursors before notifying newer descendants.
 func (e *Engine) callChangeCbs() {
-	// Snapshot callbacks in registration order; map order can notify a child
+	// Snapshot callbacks in registration order. Map order can notify a child
 	// while its cached parent still exposes the previous repository snapshot.
 	e.mtx.Lock()
 	cbs := make([]func(), 0, len(e.changeCbs))

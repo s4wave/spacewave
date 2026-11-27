@@ -103,7 +103,7 @@ func (l *Log) EvictCarry(ctx context.Context, seq uint64, carryBytes int64) (int
 }
 
 // evicting claims finalized pack seq and reads its index outside the lock.
-// It returns a nil pack when the Log holds no finalized pack seq; otherwise
+// It returns a nil pack when the Log holds no finalized pack seq. Otherwise
 // the caller calls release once it has finished with the pack. Two evictions
 // of the same pack share the outcome through the registry and its watch.
 func (l *Log) evicting(ctx context.Context, seq uint64) (*pack, []*kvfile.IndexEntry, func(), error) {
@@ -155,7 +155,7 @@ func (l *Log) evicting(ctx context.Context, seq uint64) (*pack, []*kvfile.IndexE
 // it, and unlinks its file.
 func (l *Log) unlink(p *pack, index []*kvfile.IndexEntry) error {
 	// Fence cached reads of blocks GC removed while the pack held them. Evict
-	// has drained them already; a cache's pack drains them here.
+	// has drained them already, but a cache's pack drains them here.
 	for more := true; more; {
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			l.dropRemovedLocked(p)
@@ -245,7 +245,7 @@ func (l *Log) MarkUploaded(seq uint64) {
 
 // deferredRemoval is a location to forget once the pack has a remote copy.
 type deferredRemoval struct {
-	// tail names the location in the log's table.
+	// tail identifies the location in the log's table.
 	tail keyTail
 	// stripe is the decoded read fence for that location.
 	stripe block.BlockRemovalStripe

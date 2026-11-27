@@ -56,8 +56,9 @@ func (o *ObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, will default to the object RootRef.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// If the ref is empty, AccessWorldState defaults to the object RootRef.
+// If the ref Bucket ID is empty, AccessWorldState uses the same bucket +
+// volume as the world.
 // The lookup cursor will be released after cb returns.
 func (o *ObjectState) AccessWorldState(
 	ctx context.Context,
@@ -127,8 +128,8 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 
 // ApplyObjectOp applies a batch operation at the object level.
 // The handling of the operation is operation-type specific.
-// Returns the revision following the operation execution.
-// If nil is returned for the error, implies success.
+// Returns the revision after the operation executes.
+// If nil is returned for the error, the operation succeeded.
 func (o *ObjectState) ApplyObjectOp(
 	rctx context.Context,
 	op world.Operation,
@@ -208,7 +209,7 @@ func (o *ObjectState) incrementRevBy(ctx context.Context, count uint64, addToCha
 }
 
 // setRoot updates both the metadata and its content-derived index entry.
-// IAVL follows mutable cursors directly; Okra must rebuild the entry's hash
+// IAVL follows mutable cursors directly. Okra must rebuild the entry's hash
 // and page boundaries after its value changes.
 func (o *ObjectState) setRoot(ctx context.Context, root *Object) error {
 	// Write the root block and rebuild a packed index entry.
@@ -225,7 +226,7 @@ func (o *ObjectState) setRoot(ctx context.Context, root *Object) error {
 	return nil
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified rev.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev. Only a change to this object's key wakes the wait.
@@ -267,8 +268,9 @@ func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
 
 // getCursor resolves replaced packed pages without mutating a read handle.
 func (o *ObjectState) getCursor(ctx context.Context) (*block.Cursor, error) {
-	// Packed writes replace pages. Resolve the current entry so retained handles
-	// see this writer's changes; readonly handles keep their immutable cursor.
+	// Packed writes replace pages. Resolve the current entry so retained
+	// handles see this writer's changes. Readonly handles keep their
+	// immutable cursor.
 	if _, packed := o.w.objTree.(*kvtx_block_okra.Tx); packed && o.w.write {
 		cursor, err := o.w.objTree.GetCursorAtKey(ctx, []byte(objectKeyPrefix+o.key))
 		if err != nil {

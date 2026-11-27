@@ -89,7 +89,8 @@ type Controller struct {
 	le *logrus.Entry
 	b  bus.Bus
 	cc *Config
-	// authorizeRequest acquires incoming request authority, or nil for public stores.
+	// authorizeRequest acquires incoming request authority, or is nil for
+	// public stores.
 	authorizeRequest RequestAuthorizer
 
 	bcast broadcast.Broadcast
@@ -333,7 +334,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 		c.startRecovery(ctx, ml.GetRemotePeer(), ml.GetLocalPeer() < ml.GetRemotePeer(), reason)
 	})
 
-	// Make it the newest session with this peer, ending its recovery.
+	// Make sess the newest session with this peer, ending its recovery.
 	var restored *peerRecovery
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions[remotePeer] = append(c.sessions[remotePeer], sess)
@@ -452,8 +453,9 @@ func (c *Controller) stopRecoveries() {
 // waitRecovery waits for a peer session while a peer whose last session ended
 // within sessionReplaceWait is being recovered, asking each recovery to renew
 // at once. It returns no sessions and no error when no recovery is that
-// recent or none restored a session within it, so a read that may not wait
-// for peers is held only while a lost session is expected back.
+// recent or none restored a session within sessionReplaceWait, so a read
+// that may not wait for peers is held only while a lost session is expected
+// back.
 func (c *Controller) waitRecovery(ctx context.Context) ([]*peerSession, error) {
 	// Find the latest end of the recent recoveries and hurry them.
 	var deadline time.Time
@@ -627,8 +629,8 @@ func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wan
 			if slices.Contains(peerSessions, exclude) {
 				continue
 			}
-			// A closed session awaiting removal cannot answer; ask the
-			// open session pickSession picks.
+			// A closed session awaiting removal cannot answer, so
+			// ask the open session pickSession picks.
 			if peerSession := c.pickSession(peerSessions); peerSession != nil {
 				sessions = append(sessions, peerSession)
 			}
@@ -663,7 +665,7 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	_ directive.Instance,
 	dir dex.LookupBlockFromNetwork,
 ) ([]directive.Resolver, error) {
-	// Skip a lookup that names no block.
+	// Skip a lookup that identifies no block.
 	ref := dir.LookupBlockFromNetworkRef()
 	if ref.GetEmpty() {
 		return nil, nil
@@ -723,8 +725,8 @@ type peerBlockFanout struct {
 	// linked answer fails its request, so the fanout takes another peer's
 	// data or reports the block unavailable.
 	linked func(peer.ID) bool
-	// subtree, when set, asks every peer for the blocks under ref as well;
-	// the first peer to verify the ref with blocks to follow claims the
+	// subtree, when set, asks every peer for the blocks under ref as well.
+	// The first peer to verify the ref with blocks to follow claims the
 	// fanout and streams them, and the others stop at the ref.
 	subtree *subtreeAsk
 }

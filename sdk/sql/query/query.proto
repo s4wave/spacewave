@@ -86,7 +86,7 @@ message SetParametersResponse {}
 
 // RunQueryRequest executes the query.
 message RunQueryRequest {
-  // MaxRows limits rows persisted in the result. Zero uses the default.
+  // MaxRows limits rows persisted in the result. Zero uses the default limit.
   uint32 max_rows = 1;
 }
 

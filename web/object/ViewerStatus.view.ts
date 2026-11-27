@@ -24,7 +24,7 @@ export const step = (action: string, from: Status, to: Status) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // Each action names the edge it draws.
+  // Each action labels the edge it draws.
   if (action === 'Arrive') return 'record arrives'
   if (action === 'Fail') return 'read fails'
   if (action === 'Reread') return 'reads again'

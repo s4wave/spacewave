@@ -53,10 +53,10 @@ export interface AuthMutationWizardProps {
   mode: WizardMode
   account: Resource<Account>
   retainAfterClose?: boolean
-  // For remove: the peer ID of the method being removed.
+  // removePeerId is the peer ID of the method being removed in remove mode.
   removePeerId?: string
   removeMethodLabel?: string
-  // For add: the method type being added.
+  // addMethodType is the method type being added in add mode.
   addMethodType?: AddMethodType
 }
 
@@ -543,7 +543,8 @@ function StepIndicator({
   )
 }
 
-// Step0Content renders the first step content (credential for add, confirmation for remove).
+// Step0Content renders the first step content (a credential for add,
+// a confirmation for remove).
 function Step0Content({
   mode,
   removePeerId,
@@ -579,7 +580,7 @@ function Step0Content({
     )
   }
 
-  // Add mode: collect credential to prove identity.
+  // Add mode: collect a credential to prove identity.
   const hasPassword = keypairs.some(
     (kp) => kp.keypair?.authMethod === 'password',
   )

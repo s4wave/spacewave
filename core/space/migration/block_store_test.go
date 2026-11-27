@@ -26,7 +26,7 @@ func TestPlannerBlocksTypedBlockStoreMismatch(t *testing.T) {
 	}
 	defer destination.Release()
 
-	// Store a Secret envelope that names a different block store.
+	// Store a Secret envelope that refers to a different block store.
 	setObjectBlock(t, ctx, source.WorldState, "secret", s4wave_secret.SecretTypeID, &s4wave_secret.Secret{
 		NestedSharedObjectId: "nested-secret",
 		Ref:                  &sobject.SharedObjectRef{BlockStoreId: "wrong-store"},
@@ -61,10 +61,11 @@ func TestPlannerBlocksTypedBlockStoreMismatch(t *testing.T) {
 }
 
 // TestSecretRewriteRemapsRefIdentity rewrites a Secret and checks that the ref
-// readers and delete mount names the same remapped SharedObject as the id
-// field, so the migrated Secret never points at the source Space's payload.
+// refers to the same remapped SharedObject as the id field. Readers and the
+// delete mount use the ref, so the migrated Secret never points at the source
+// Space's payload.
 func TestSecretRewriteRemapsRefIdentity(t *testing.T) {
-	// Store a Secret whose id field and ref name one nested SharedObject.
+	// Store a Secret whose id field and ref refer to one nested SharedObject.
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {

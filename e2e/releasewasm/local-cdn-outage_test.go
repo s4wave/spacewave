@@ -148,8 +148,8 @@ func TestLocalCDNRuntimePanicOffersRetry(t *testing.T) {
 			}
 			retryIntoSession(t, "retrying", retrying)
 
-			// The survivor still shows the failure; its Retry joins the new
-			// runtime.
+			// The survivor still shows the failure. Its Retry joins
+			// the new runtime.
 			text, err := survivor.Locator("body").InnerText()
 			if err != nil {
 				t.Fatal(err)
@@ -189,8 +189,8 @@ func waitForSession(t *testing.T, role string, page playwright.Page) {
 }
 
 // openRuntimeFailure opens the quickstart in a new page of ctx and waits for
-// the runtime failure screen, not the web view deadline's, for up to
-// timeoutMS.
+// the runtime failure screen, not the web view deadline's failure screen, for
+// up to timeoutMS.
 func openRuntimeFailure(t *testing.T, ctx playwright.BrowserContext, timeoutMS float64) playwright.Page {
 	t.Helper()
 	page, err := ctx.NewPage()

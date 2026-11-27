@@ -17,7 +17,7 @@ import {
 import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
 
-// Detect whether we are running as a SharedWorker or a dedicated Worker.
+// Detect whether the runtime runs as a SharedWorker or a dedicated Worker.
 // SharedWorker receives connections via the 'connect' event.
 // Dedicated Worker receives an initial message with a communication port.
 const isSharedWorker =
@@ -43,7 +43,7 @@ const removeDocCb: RemoveWebDocumentFunc | null = null
 
 // goOpenStreamCtr contains the function to open a stream with the Go runtime.
 const goOpenStreamCtr = new OpenStreamCtr(undefined)
-// goOpenStream is a function that waits for goOpenStreamCtr & calls it.
+// goOpenStream waits for goOpenStreamCtr's function & calls the function.
 const goOpenStream = goOpenStreamCtr.openStreamFunc
 
 // construct the WebRuntime
@@ -63,10 +63,10 @@ global.BLDR_NOTIFY_DURABLE_MUTATION = () => {
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url
 
-// BLDR_RUNTIME_WASM is an injected variable with the path to the runtime.wasm
+// BLDR_RUNTIME_WASM is an injected variable with the path to the runtime.wasm.
 declare const BLDR_RUNTIME_WASM: string | undefined
 
-// runtimeWasmURL is the path to the bldr runtime wasm that we will use.
+// runtimeWasmURL is the path to the bldr runtime wasm to use.
 const runtimeWasmURL = new URL(
   typeof BLDR_RUNTIME_WASM === 'string' && !!BLDR_RUNTIME_WASM
     ? BLDR_RUNTIME_WASM
@@ -77,7 +77,8 @@ const runtimeWasmURL = new URL(
 // Start prefetching the Go WASM module immediately.
 const goWasmModule = loadWebAssemblyModule(runtimeWasmURL.toString())
 
-// the Go process will open streams with the WebRuntime via this channel and vise-versa.
+// goOpenStreamChannel lets the Go process open streams with the WebRuntime
+// and lets the WebRuntime open streams with the Go process.
 const goOpenStreamChannel = new MessageChannel()
 global.BLDR_WEB_RUNTIME_CLIENT_OPEN = goOpenStreamChannel.port2
 goOpenStreamChannel.port1.onmessage = (msg) => {
@@ -177,7 +178,8 @@ function handlePortMessage(msgEvent: MessageEvent) {
     const { webRuntimeId, env } = msg.initWebRuntime
     void (async () => {
       // SharedWorker cannot open OPFS directly. A document must provide its
-      // bridge before Go mounts volumes; retry when another document connects.
+      // bridge before Go mounts volumes. Retry when another document
+      // connects.
       if (runtimeOpfsBridge && !(await runtimeOpfsBridge.ensureBridge())) {
         console.warn(
           'runtime-wasm: OPFS bridge unavailable; deferring Go start until a document can host OPFS',

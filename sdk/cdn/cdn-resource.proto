@@ -32,7 +32,7 @@ message MountCdnSpaceResponse {
 
 // CopyV86ImageToSpaceRequest is the request type for CopyV86ImageToSpace.
 message CopyV86ImageToSpaceRequest {
-  // SessionIdx is the caller's session index; used to resolve the
+  // SessionIdx is the caller's session index and is used to resolve the
   // destination user Space via the standard session-aware mount path.
   uint32 session_idx = 1;
   // DstSpaceId is the ULID of the user Space the V86Image will land in.

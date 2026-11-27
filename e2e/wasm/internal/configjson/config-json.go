@@ -16,7 +16,7 @@ type Marshaler interface {
 }
 
 // MarshalCanonical marshals a protobuf-go-lite message to JSON with object
-// keys sorted recursively. Generated protobuf-go-lite map fields currently use
+// keys sorted recursively. Generated protobuf-go-lite map fields use
 // Go map iteration order, so harness-mutated builder config bytes otherwise
 // churn between identical boots and invalidate the startup Manifest cache.
 func MarshalCanonical(m Marshaler) ([]byte, error) {

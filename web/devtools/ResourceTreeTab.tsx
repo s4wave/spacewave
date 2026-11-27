@@ -109,8 +109,8 @@ function buildTreeNodes(
     addedIds.add(resource.id)
 
     // Find children that list this resource as a parent and haven't been added yet
-    // We must check addedIds inside the loop (not just filter) because buildNode
-    // modifies addedIds, and we need to see updates from sibling subtrees
+    // buildNode must check addedIds inside the loop (not just filter) because
+    // buildNode modifies addedIds, and updates from sibling subtrees must be seen.
     const children: TreeNode<TrackedResource>[] = []
     for (const r of childrenByParentId.get(resource.id) ?? []) {
       if (!addedIds.has(r.id)) {

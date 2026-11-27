@@ -29,21 +29,21 @@ const (
 // slow or commits wait for a checkpoint, and can pause eviction outright.
 type Pace struct {
 	le *logrus.Entry
-	// stats reads the database's stats; false while none is open.
+	// stats reads the database's stats and returns false while none is open.
 	stats func() (Stats, bool)
 	// setMtx guards paused, rate and changed.
 	setMtx sync.Mutex
-	// paused holds every batch until it is cleared or its pass ends;
+	// paused holds every batch until it is cleared or its pass ends.
 	// SetPaused changes it while passes run.
 	paused bool
-	// rate caps the bytes evicted a second, zero for no cap;
+	// rate caps the bytes evicted a second, zero for no cap.
 	// SetBytesPerSecond changes it while passes run.
 	rate float64
 	// changed is closed and replaced when paused or rate changes, waking a
 	// batch waiting under the old setting to read the new one.
 	changed chan struct{}
 	// flushMax is the mean flush time past which a batch waits, zero to
-	// never wait on flushes; SetFlushMax changes it while passes run.
+	// never wait on flushes. SetFlushMax changes it while passes run.
 	flushMax atomic.Int64
 	// sleep waits d, until wake closes, or until ctx ends, and reports
 	// whether wake ended it. A nil wake never closes.
@@ -55,13 +55,15 @@ type Pace struct {
 	// prev holds the stats at the last sample, if sampled.
 	prev    Stats
 	sampled bool
-	// held is the time waited since the last report, and reported when.
+	// held is the time waited since the last report, and reported is the
+	// report time.
 	held     time.Duration
 	reported time.Time
 }
 
 // New constructs an optional policy for a store's EvictAdmit hook. The
-// policy delays work only; it never changes which blocks may be removed.
+// policy delays work only. The policy never changes which blocks may be
+// removed.
 func New(le *logrus.Entry, stats func() (Stats, bool), config Config) *Pace {
 	// Apply the config through the setters, which open the first change channel.
 	p := &Pace{le: le, stats: stats, sleep: sleepCtx}
@@ -79,7 +81,7 @@ func (p *Pace) SetBytesPerSecond(rate float64) {
 }
 
 // SetPaused pauses or resumes eviction. A pause holds each pass at its next
-// batch, including one waiting on the rate cap or backing off; a batch
+// batch, including one waiting on the rate cap or backing off. A batch
 // already admitted runs. Resuming admits a held batch at once, with no wait
 // for the time it was held.
 func (p *Pace) SetPaused(paused bool) {
@@ -129,7 +131,8 @@ func (p *Pace) Admit(ctx context.Context, lastBytes int64) error {
 	// Time the whole wait, across every restart, for the report.
 	start := time.Now()
 
-	// Wait until every rule admits the batch; a settings change restarts the rules.
+	// Wait until every rule admits the batch.
+	// Restart the rules when the settings change.
 admit:
 	for {
 		// Hold the batch while paused.
@@ -172,7 +175,7 @@ admit:
 		break
 	}
 
-	// Log the time held each minute it held any.
+	// Log the time eviction was held each minute that had a wait.
 	now := time.Now()
 	p.last = now
 	p.held += now.Sub(start)

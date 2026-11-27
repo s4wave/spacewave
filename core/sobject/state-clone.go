@@ -6,7 +6,7 @@ import "slices"
 // operations, the positions and the control messages. Their slices and every
 // other field are independent, so a clone costs one pointer copy per record
 // and a store can tell an unchanged record by its pointer. Callers must not
-// modify a shared record or its signature; CloneVT makes a fully deep copy.
+// modify a shared record or its signature. CloneVT makes a fully deep copy.
 func (s *SOState) Clone() *SOState {
 	// Preserve nil snapshots.
 	if s == nil {

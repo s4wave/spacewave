@@ -13,7 +13,7 @@ import (
 // one observation on one Device, and checks the step of every row of the
 // plan's table.
 func TestNextStep(t *testing.T) {
-	// Name two Devices and the agreed spec of a move from a to b.
+	// Identify two Devices and the agreed spec of a move from a to b.
 	keyA, a := testPeer(t)
 	_, b := testPeer(t)
 	_, aSession := testPeer(t)

@@ -205,7 +205,8 @@ func TestBlockStoreBackgroundPolicyMarksEveryRead(t *testing.T) {
 var _ block.StoreOps = (*testStore)(nil)
 
 // TestBlockStorePutBlockRefusesWrongBytes checks that a single put whose bytes
-// do not hash to the ref it forces is refused before the store sees it.
+// do not hash to the ref the put forces is refused before the store sees
+// the put.
 func TestBlockStorePutBlockRefusesWrongBytes(t *testing.T) {
 	store := &testStore{}
 	server := NewBlockStore(store)

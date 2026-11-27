@@ -23,7 +23,7 @@ interface SpaceStorageMoveProps {
 }
 
 // SpaceStorageMove moves a Space to another storage backend and shows the
-// progress. Leaving the page stops the progress stream; the upload continues.
+// progress. Leaving the page stops the progress stream. The upload continues.
 export function SpaceStorageMove({
   sharedObjectId,
   placedId,

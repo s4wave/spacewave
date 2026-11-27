@@ -4,12 +4,13 @@
 // A commit flushes the device's earlier writes and then appends one record to
 // the current log file with a flush. On a device.AtomicFlusher the record's
 // flush covers the earlier writes, so the first flush is skipped. An ordered
-// commit appends its record without either flush. Recovery replays records only while their sequence
-// continues, so a crash loses at most a suffix of the ordered commits. A
-// checkpoint writes the table to a checkpoint file and then a manifest naming
-// that checkpoint and the first log file written after it, and removes the
-// files the manifest no longer names. Recovery loads the manifest's
-// checkpoint and replays the later log records in sequence order.
+// commit appends its record without either flush. Recovery replays records
+// only while their sequence continues, so a crash loses at most a suffix of
+// the ordered commits. A checkpoint writes the table to a checkpoint file and
+// then a manifest selecting that checkpoint and the first log file written
+// after the checkpoint, and removes the files the manifest no longer selects.
+// Recovery loads the manifest's checkpoint and replays the later log records
+// in sequence order.
 //
 // The table is a memtable, whose snapshots serve read transactions without
 // locks.
@@ -41,7 +42,7 @@ type Options struct {
 	// is also longer than half the last checkpoint. Zero selects 4 MiB.
 	CheckpointBytes int64
 	// Foreground runs each checkpoint inside the commit that starts it and
-	// returns its error from that commit, which fixes the device call order.
+	// returns its error from that commit, fixing the device call order.
 	Foreground bool
 }
 
@@ -54,8 +55,8 @@ type Index struct {
 	ctx context.Context
 	// dev holds the index files.
 	dev device.Device
-	// atomicFlush is set when each device flush is atomic, which makes the
-	// barrier before a record unnecessary.
+	// atomicFlush is set when each device flush is atomic, so the barrier
+	// before a record is unnecessary.
 	atomicFlush bool
 	// opts holds the options with defaults applied.
 	opts Options
@@ -139,7 +140,7 @@ func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) 
 		i.log = logs[len(logs)-1] + 1
 	}
 
-	// Remove the files no manifest names.
+	// Remove the files no manifest selects.
 	var stale []string
 	for _, f := range files {
 		if n, ok := parseFile(checkpointPrefix, f.Name); ok && n != i.man.checkpoint {
@@ -268,7 +269,7 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 	start := !i.checkpointing && i.logSize > max(i.opts.CheckpointBytes, int64(i.man.checkpointLen/2)) //nolint:gosec
 	if start {
 		// Later records go to a new log, which the checkpoint's manifest
-		// names as the first to replay.
+		// selects as the first to replay.
 		i.checkpointing = true
 		i.log++
 		i.logSize = 0
@@ -297,8 +298,8 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 }
 
 // checkpoint writes table, which holds every record through seq, as
-// checkpoint number log, then a manifest naming it with log as the first log to
-// replay, and removes the files that manifest replaces.
+// checkpoint number log, then a manifest selecting that checkpoint with log
+// as the first log to replay, and removes the files that manifest replaces.
 func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, log uint64) error {
 	// Clear the checkpointing flag when the checkpoint finishes.
 	defer func() {

@@ -47,8 +47,8 @@ func ValidateGrant(g *cdn.CdnSpaceGrant, spaceID string, now time.Time) error {
 
 // GrantKeeper holds the current grant of one Space and renews it when three
 // quarters of its life have passed, so pack reads never wait on a renewal
-// while the current grant is valid. A writer calls Current before each write,
-// which keeps its admission, renewed with the grant, from lapsing.
+// while the current grant is valid. A writer calls Current before each write
+// to keep the writer's admission, renewed with the grant, from lapsing.
 type GrantKeeper struct {
 	src     GrantSource
 	spaceID string
@@ -103,7 +103,8 @@ func (k *GrantKeeper) Current(ctx context.Context) (*cdn.CdnSpaceGrant, error) {
 			continue
 		}
 
-		// Renew the grant; a valid one keeps serving if the renewal fails.
+		// Renew the grant. A valid grant keeps serving if renewal
+		// fails.
 		load := &grantLoad{done: make(chan struct{})}
 		k.load = load
 		k.mtx.Unlock()

@@ -402,8 +402,8 @@ func (t *sessionTracker) releasePinnedRef() {
 
 // startTransport starts the account's session transport and restores P2P
 // sync for accounts with paired devices. Callers publish the Session first so
-// local work never waits on transport startup. Returns only context.Canceled;
-// other failures are logged.
+// local work never waits on transport startup. Returns only context.Canceled.
+// Other failures are logged.
 func (t *sessionTracker) startTransport(ctx context.Context, sessionPriv crypto.PrivKey) error {
 	// Resolve the cloud relay for a linked account.
 	relay := cloudRelayEndpoint{}
@@ -556,7 +556,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}
 	if lockMode != session_lock.SessionLockMode_PIN_ENCRYPTED {
-		// Auto-unlock: read and decrypt.
+		// Auto-unlock: read and decrypt the session key.
 		data, found, err := session_lock.ReadAutoUnlockKey(ctx, objStore, sessionID)
 		if err != nil {
 			return err
@@ -577,8 +577,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 			le.Debug("initializing session priv key")
 			seedPEM := t.seedPEM
 			if len(seedPEM) == 0 {
-				// The account volume can restart before the caller re-opens
-				// the session; the provider-level seed keeps the identity.
+				// The account volume can restart before the
+				// caller re-opens the session. The
+				// provider-level seed keeps the identity.
 				seedPEM = t.a.t.p.getSeedKey(providerID, providerAccountID, sessionID)
 			}
 			if len(seedPEM) != 0 {
@@ -677,7 +678,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	t.sessionProm.SetResult(so, nil)
 
 	// Always start the session transport. Only cloud-linked local accounts
-	// need the cloud signaling controller; no-cloud accounts can run direct
+	// need the cloud signaling controller. No-cloud accounts can run direct
 	// manual links through the same session bus.
 	if err := t.startTransport(ctx, sessionPriv); err != nil {
 		return err
@@ -739,7 +740,8 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 	return err
 }
 
-// MountSession attempts to mount a Session returning the session and a release function.
+// MountSession tries to mount a Session, returning the session and a release
+// function.
 //
 // It is usually called by the provider controller.
 func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.SessionRef, released func()) (session.Session, func(), error) {

@@ -58,11 +58,11 @@ type residentOverride struct {
 }
 
 // SetResidentMarks overrides the resident marks of the account's placed block
-// stores, as ResidentMarks describes. A store running an eviction pass
-// finishes it at the marks it started under, then checks the new ones; a
-// store waiting between passes checks them at once. A pass that drops many
-// bytes still drops them in batches the store's batch bounds keep short, so
-// lowering the high mark far holds the store's writer no longer at a time.
+// stores, as ResidentMarks describes. A store running an eviction pass finishes
+// it at the marks it started under, then checks the new ones. A store waiting
+// between passes checks them at once. A pass that drops many bytes still drops
+// them in batches the store's batch bounds keep short, so lowering the high
+// mark far holds the store's writer no longer at a time.
 func (a *ProviderAccount) SetResidentMarks(marks ResidentMarks) {
 	// Record the marks and apply them over every mounted store's settings.
 	r := &a.resident
@@ -97,11 +97,12 @@ func (r *residentOverride) remove(p *placementState) {
 	r.mtx.Unlock()
 }
 
-// applyPolicy sets the store's policy. Reads are recorded from before the
-// store sees a resident budget, so no read the budget pass should keep goes
-// unrecorded; a budget set while the store runs keeps only the reads after
-// it. A changed policy wakes the eviction loop before the store broadcasts
-// it, so a loop waiting out evictShortWait checks the new marks at once.
+// applyPolicy sets the store's policy. Reads are recorded from before the store
+// sees a resident budget, so no read the budget pass should keep goes
+// unrecorded. A budget set while the store runs keeps only the reads after the
+// budget is set. A changed policy wakes the eviction loop before the store
+// broadcasts it, so a loop waiting out evictShortWait checks the new marks at
+// once.
 func (p *placementState) applyPolicy(policy block_store_writeback.Policy) {
 	p.reads.enabled.Store(policy.ResidentHigh > 0)
 	if status, _ := p.wb.GetStatus(); status.Policy != policy {

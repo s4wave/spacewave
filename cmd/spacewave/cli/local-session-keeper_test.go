@@ -480,7 +480,7 @@ func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
 type keeperTestSpaceBody struct {
 	// engine is the mounted Space World.
 	engine world.Engine
-	// engineID names that World to the Space runtime.
+	// engineID identifies that World to the Space runtime.
 	engineID string
 	// ref identifies the mounted Space.
 	ref *sobject.SharedObjectRef

@@ -103,9 +103,10 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 		bldr_manifest.NewFetchManifest(
 			// use pluginID as manifest id
 			t.pluginID,
-			// accept any build type (presuming we only have the right one)
+			// accept any build type (presuming only the right build
+			// type is available)
 			nil,
-			// accept any of the platform ids we have
+			// accept any of the available platform ids
 			platformIDs,
 			// accept any revision
 			0,
@@ -369,10 +370,11 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			return
 		}
 
-		// The fetch never says the plugin has no manifest: each value names
-		// the builder's latest manifest, and a gap between values is a rebuild.
-		// With no ref for a present host, the current target and its admitted
-		// worker stay, as for a host loss.
+		// The fetch never says the plugin has no manifest: each value
+		// references the builder's latest manifest, and a gap between
+		// values is a rebuild. With no ref for a present host, the
+		// current target and its admitted worker stay, as for a host
+		// loss.
 		if t.executePluginRoutine.GetState() != nil || t.downloadManifestRoutine.GetState() != nil {
 			t.le.Debug("preserving current plugin target without a compatible fetched manifest ref")
 			return

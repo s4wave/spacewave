@@ -40,7 +40,7 @@ const (
 	defaultManifestBuildTimeout = 5 * time.Minute
 )
 
-// BrowserCompiler names the compiler for browser Go plugins.
+// BrowserCompiler selects the compiler for browser Go plugins.
 type BrowserCompiler string
 
 const (
@@ -50,7 +50,7 @@ const (
 	BrowserCompilerGoScript BrowserCompiler = "goscript"
 )
 
-// WorkerMode names how the browser runs plugin workers.
+// WorkerMode selects how the browser runs plugin workers.
 type WorkerMode string
 
 const (

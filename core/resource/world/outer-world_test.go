@@ -23,14 +23,14 @@ import (
 // nested World, confines it to that Space, and applies World ops there.
 func TestOpenOuterWorld(t *testing.T) {
 
-	// context ctx.
+	// Get the test context ctx.
 	ctx := t.Context()
 	tb, releaseTestbed := setupWorldTestbed(ctx, t)
 	defer releaseTestbed()
 	client, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
-	// createResourceReference storageRef via client.
+	// Create storageRef via client.CreateResourceReference.
 	storageRef := client.CreateResourceReference(engine.GetResourceRef().GetResourceID())
 	storage, err := sdk_world_engine.NewSDKEngine(client, storageRef)
 	if err != nil {
@@ -46,7 +46,7 @@ func TestOpenOuterWorld(t *testing.T) {
 	}
 	defer stage.Release()
 
-	// importSnapshot snapshot,err via world_block.
+	// Get snapshot and err via world_block.ImportSnapshot.
 	snapshot, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("nested"),
 	}), nil)
@@ -84,7 +84,7 @@ func TestOpenOuterWorld(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// createResourceReference otherRef via client.
+	// Create otherRef via client.CreateResourceReference.
 	otherRef := client.CreateResourceReference(otherResp.GetResourceId())
 	other, err := sdk_world_engine.NewSDKEngine(client, otherRef)
 	if err != nil {
@@ -197,10 +197,10 @@ func TestOpenOuterWorld(t *testing.T) {
 	}
 }
 
-// requireObject fails unless the current state of eng has key exactly when want.
+// requireObject fails unless eng contains key exactly when want is true.
 func requireObject(ctx context.Context, t *testing.T, eng world.Engine, key string, want bool) {
 
-	// helper.
+	// Mark the function as a test helper.
 	t.Helper()
 	var found bool
 	err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, state world.WorldState) error {

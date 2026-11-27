@@ -20,6 +20,7 @@ func (h *HostRuntime) registerEmptyATA() {
 
 // registerEmptyATAChannel stubs one ATA channel at the given port bases:
 // command registers read as zero, the alternate status reads zero, and the
+// bus-master registers read as zero.
 func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMasterBase uint16) {
 	// Expose empty ATA command and control registers on the channel.
 	for offset := range uint16(8) {

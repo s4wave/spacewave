@@ -51,7 +51,7 @@ message V86Config {
   // Mounts lists workspace/home/other v86fs mounts to attach after boot.
   repeated VmMount mounts = 6;
   // RuntimePluginId is the plugin that hosts the instanced V86 runtime.
-  // Empty defaults to spacewave-v86.
+  // An empty RuntimePluginId defaults to spacewave-v86.
   string runtime_plugin_id = 7;
 }
 
@@ -110,19 +110,20 @@ message CreateVmV86Op {
   V86Config config = 3;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 4;
-  // ImageObjectKey points at a V86Image providing default asset edges. Required.
+  // ImageObjectKey points at a V86Image providing default asset edges.
+  // ImageObjectKey is required.
   string image_object_key = 5;
   // KernelOverrideObjectKey optionally overrides the kernel resolved from the
-  // linked V86Image. Points at a UnixFS object.
+  // linked V86Image. The override points at a UnixFS object.
   string kernel_override_object_key = 6;
   // RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-  // linked V86Image. Points at a UnixFS object.
+  // linked V86Image. The override points at a UnixFS object.
   string rootfs_override_object_key = 7;
   // BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-  // linked V86Image. Points at a UnixFS object.
+  // linked V86Image. The override points at a UnixFS object.
   string bios_override_object_key = 8;
   // WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-  // the linked V86Image. Points at a UnixFS object.
+  // the linked V86Image. The override points at a UnixFS object.
   string wasm_override_object_key = 9;
 }
 
@@ -133,7 +134,7 @@ message SetV86ConfigOp {
 
   // ObjectKey is the object key of the VmV86 to update.
   string object_key = 1;
-  // Config is the new configuration to apply. Replaces the stored Config.
+  // Config is the new configuration to apply. It replaces the stored Config.
   V86Config config = 2;
 }
 
@@ -187,7 +188,7 @@ message ReportV86RuntimeStatusResponse {
 
 // V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
 // kernel, rootfs) linked through graph edges. The object itself carries
-// metadata; the five UnixFS targets are attached via v86image/wasm,
+// metadata. The five UnixFS targets are attached via v86image/wasm,
 // v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
 message V86Image {
   option (typeid.id) = "vm/image/v86";
@@ -209,7 +210,8 @@ message V86Image {
   // CreatedAt is the creation timestamp.
   .google.protobuf.Timestamp created_at = 8;
   // CdnSource locates the published image whose assets this image reads
-  // lazily. Unset when every asset edge points at an object in this Space.
+  // lazily. CdnSource is unset when every asset edge points at an object in
+  // this Space.
   VmImageCdnSource cdn_source = 9;
   // Links (via graph edges, not proto fields):
   //   v86image/wasm          -> UnixFS object (emulator WASM binary)
@@ -229,21 +231,21 @@ message VmImageCdnSource {
 }
 
 // CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
-// inline; the five UnixFS edges are set separately via SetGraphQuad.
+// inline. The five UnixFS edges are set separately via SetGraphQuad.
 message CreateV86ImageOp {
   option (typeid.id) = "vm/image/v86/create";
 
   // ObjectKey is the key to create the V86Image at.
   string object_key = 1;
   // Image carries the metadata for the new V86Image. Name / platform / tags
-  // are required; the remaining fields are optional.
+  // are required. The remaining fields are optional.
   V86Image image = 2;
-  // Timestamp is the creation timestamp. Stored on the block as CreatedAt.
+  // Timestamp is the creation timestamp, stored on the block as CreatedAt.
   .google.protobuf.Timestamp timestamp = 3;
 }
 
 // SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
-// The four UnixFS edges are immutable post-create; use graph-quad ops on a
+// The four UnixFS edges are immutable post-create. Use graph-quad ops on a
 // fresh V86Image to change asset bindings.
 message SetV86ImageMetadataOp {
   option (typeid.id) = "vm/image/v86/set-metadata";
@@ -251,6 +253,6 @@ message SetV86ImageMetadataOp {
   // ObjectKey is the key of the V86Image to update.
   string object_key = 1;
   // Image carries the new metadata. CreatedAt is preserved from the stored
-  // block; any CreatedAt on the supplied V86Image is ignored.
+  // block. Any CreatedAt on the supplied V86Image is ignored.
   V86Image image = 2;
 }

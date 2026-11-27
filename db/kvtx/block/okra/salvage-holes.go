@@ -82,7 +82,7 @@ type holeWalk struct {
 	// keys counts the readable leaf keys in range.
 	keys atomic.Uint64
 
-	// mu guards the fields below; cond wakes workers waiting for work.
+	// mu guards the fields below. cond wakes workers waiting for work.
 	mu   sync.Mutex
 	cond *sync.Cond
 	// stack holds the pages to load. It is a stack so the walk stays near

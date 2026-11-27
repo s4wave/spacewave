@@ -43,7 +43,7 @@ interface GpuTexture {
 }
 
 // openGpuRenderer draws scenes with WebGPU, keeping each texture on the
-// device. onLost is called once if the device is lost; the renderer then
+// device. onLost is called once if the device is lost. The renderer then
 // draws nothing until it is destroyed. It returns null when the browser has
 // no WebGPU adapter, before touching the canvas, so a Canvas 2D renderer can
 // take it.

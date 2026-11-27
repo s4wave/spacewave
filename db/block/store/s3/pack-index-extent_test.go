@@ -104,8 +104,8 @@ func tailOf(ctx context.Context, t *testing.T, client *Client, entry *packfile.P
 	return tail
 }
 
-// checkExtents reads each block through its row's extent alone and checks
-// the row names the pack id.
+// checkExtents reads each block through its row's extent alone and checks the
+// row identifies the pack id.
 func checkExtents(ctx context.Context, t *testing.T, s *PackStore, client *Client, id string, refs []*block.BlockRef) {
 	t.Helper()
 	for i, ref := range refs {
@@ -128,7 +128,7 @@ func checkExtents(ctx context.Context, t *testing.T, s *PackStore, client *Clien
 
 // TestIndexExtentWrites writes a pack and adopts one with extent writes on and
 // off. On, each block's h row is written once, holding its extent before the
-// call returns, and no tail is queued; off, each row is written twice, the
+// call returns, and no tail is queued. Off, each row is written twice, the
 // second time by the tail's drain. Either way every row's extent reads its
 // block, so the two paths leave the same rows.
 func TestIndexExtentWrites(t *testing.T) {
@@ -190,7 +190,8 @@ func TestExtentValues(t *testing.T) {
 	other := adoptBlocks(ctx, t, s, "y", 2)
 	otherTail := tailOf(ctx, t, client, entryOf(ctx, t, s, 2))
 
-	// The true tail gives every key its extent, naming the pack's number.
+	// The true tail gives every key its extent, recording the pack's
+	// number.
 	got := extentValues(tail, entry.GetSizeBytes(), 7, keys)
 	if len(got) != len(keys) {
 		t.Fatalf("extents = %d, want %d", len(got), len(keys))
@@ -219,8 +220,8 @@ func TestExtentValues(t *testing.T) {
 }
 
 // TestExtentWriteFallsBack adopts a pack through addWritten with a tail that
-// lacks one of its keys: the rows name the pack alone, the tail is queued as
-// before, and once it drains the keys it lists hold their extents.
+// lacks one of its keys: the rows identify the pack alone, the tail is queued
+// as before, and once it drains the keys it lists hold their extents.
 func TestExtentWriteFallsBack(t *testing.T) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
@@ -252,7 +253,7 @@ func TestExtentWriteFallsBack(t *testing.T) {
 }
 
 // TestExtentRowsNewestPack writes two blocks in one pack, then adopts a pack
-// that holds them again: their rows name the newer pack with its extents,
+// that holds them again: their rows identify the newer pack with its extents,
 // and the older pack's tail, queued afterwards, does not take them back.
 func TestExtentRowsNewestPack(t *testing.T) {
 	ctx := t.Context()

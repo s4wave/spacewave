@@ -17,7 +17,7 @@ const sectorBytes = 512
 type crashCase struct {
 	// name describes the state.
 	name string
-	// mutate rewrites the pack file's bytes; last spans the last batch.
+	// mutate rewrites the pack file's bytes. last spans the last batch.
 	mutate func(data []byte, start, end int) []byte
 	// keepsLast reports whether recovery keeps the last batch.
 	keepsLast bool
@@ -58,13 +58,13 @@ func TestPackAheadExclusiveOpen(t *testing.T) {
 
 // TestPackAheadCrash leaves the last batch of an open pack in every state a
 // crash can and checks that recovery keeps every earlier batch, keeps the
-// last only when all of it survived, never returns wrong bytes, and finalizes
-// a pack a remote reader accepts.
+// last batch only when all of it survived, never returns wrong bytes, and
+// finalizes a pack a remote reader accepts.
 func TestPackAheadCrash(t *testing.T) {
 	ctx := t.Context()
 
-	// Write six batches; the first five stand for acknowledged writes and the
-	// sixth for a batch written but not synced when the crash came.
+	// Write six batches. The first five stand for acknowledged writes and
+	// the sixth for a batch written but not synced when the crash came.
 	src := t.TempDir()
 	l, err := Open(ctx, src, Options{})
 	if err != nil {
@@ -248,8 +248,9 @@ func TestPackAheadCrashFinalize(t *testing.T) {
 }
 
 // checkRecovered opens the Log in dir and checks that every batch but the
-// last reads back, that the last reads back whole when keepsLast and not at
-// all otherwise, and that the recovered pack is a valid packfile.
+// last batch reads back, that the last batch reads back whole when keepsLast
+// is true and not at all otherwise, and that the recovered pack is a valid
+// packfile.
 func checkRecovered(t *testing.T, dir, name string, batches [][]Block, keepsLast bool) {
 	t.Helper()
 	l, err := Open(t.Context(), dir, Options{})

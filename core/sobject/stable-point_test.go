@@ -75,7 +75,7 @@ func TestStablePoint(t *testing.T) {
 
 // TestCheckpointCoverKeepsLinks checks that a checkpoint covering any prefix
 // of the order keeps the rest of the order placed, even when a later
-// operation names a covered operation that is not a head of the prefix.
+// operation references a covered operation that is not a head of the prefix.
 func TestCheckpointCoverKeepsLinks(t *testing.T) {
 	// Sign each operation with a fixed config hash.
 	privA, _ := vectorKey(t, "cover a")

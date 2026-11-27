@@ -12,7 +12,7 @@ func NewTask(ctx context.Context, _ string) (context.Context, *Task) {
 	return ctx, &Task{}
 }
 
-// End ends the task; it is a no-op on the TinyGo build.
+// End ends the task. End is a no-op on the TinyGo build.
 func (t *Task) End() {}
 
 // IsEnabled reports false on the TinyGo build.

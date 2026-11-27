@@ -38,7 +38,7 @@ type WorldBackedStore struct {
 
 // NewWorldBackedStore opens a KVTX store against a world object's current
 // root. The store stages its writes until it publishes the root that
-// references them; Close releases the stage.
+// references them. Close releases the stage.
 func NewWorldBackedStore(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// installDesktop installs nothing; only the Windows launcher installs itself.
+// installDesktop installs nothing. Only the Windows launcher installs itself.
 func installDesktop(context.Context, *logrus.Entry) (*launcher_helper.Client, bool) {
 	return nil, false
 }
 
 // installedApp returns the application bundle containing this executable, the
-// destination for desktop app updates, or empty outside a bundle.
+// destination for desktop app updates, or an empty string outside a bundle.
 func installedApp() string {
 	// Resolve this process's executable path through its symlinks.
 	executable, err := os.Executable()

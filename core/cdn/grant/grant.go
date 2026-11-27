@@ -4,7 +4,7 @@
 // same span, so the holder reads and publishes straight to the bucket and the
 // server never relays pack bytes.
 //
-// A volume serves any block it holds to anyone who names its hash, so a
+// A volume serves any block it holds to anyone who supplies its hash, so a
 // server holding public and private content keeps them on separate volumes.
 package cdn_grant
 

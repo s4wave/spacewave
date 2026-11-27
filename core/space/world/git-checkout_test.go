@@ -59,7 +59,7 @@ func holesRepo(t *testing.T, files, size int) string {
 // engine stage as the wizard does, collects, checks out three worktrees with a
 // collection after each, then remounts and reads every object. Its writes
 // outgrow a 64 KiB PendingStore, so with frees on it fails if a block a
-// commit stored past the bound loses its hold before a root names it.
+// commit stored past the bound loses its hold before a root references it.
 func TestHolesGitCheckout(t *testing.T) {
 	for _, tc := range []struct {
 		name       string

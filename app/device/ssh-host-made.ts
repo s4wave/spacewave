@@ -7,9 +7,9 @@ import { iriToKey, keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // PRED_WIZARD_SSH_HOST links an Add Device wizard to an SSH Host it created,
-// and PRED_WIZARD_SSH_TERMINAL to a terminal it created for one. Each link
-// commits in one list with the create it records, so a link names an object
-// that exists, and deleting the wizard removes its links.
+// and PRED_WIZARD_SSH_TERMINAL links the wizard to a terminal it created for
+// a host. Each link commits in one list with the create it records, so a link
+// identifies an object that exists, and deleting the wizard removes its links.
 export const PRED_WIZARD_SSH_HOST = '<wizard/ssh-host>'
 export const PRED_WIZARD_SSH_TERMINAL = '<wizard/ssh-terminal>'
 

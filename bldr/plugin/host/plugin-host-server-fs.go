@@ -46,7 +46,8 @@ func (s *PluginHostServer) newPluginHostServerFsTracker(pluginID string) (keyed.
 
 // execute retains the demanded plugin and filesystem services until release or load failure.
 func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
-	// The keyed tracker owns retry; publish each terminal load failure to waiters.
+	// The keyed tracker owns retry. Publish each terminal load failure to
+	// waiters.
 	t.resultPromiseCtr.SetPromise(nil)
 	defer func() {
 		if rerr != nil && rctx.Err() == nil {
@@ -178,8 +179,9 @@ func (t *pluginHostServerFsTracker) retainPlugin(
 }
 
 // accessFiles binds filesystem acquisition to the tracked execution without waiting
-// for registration. Worker startup can fetch its modules before it reports ready;
-// failed loading cancels a blocked read and invalidates acquired cursors.
+// for registration. Worker startup can fetch its modules before it reports
+// ready. Failed loading cancels a blocked read and invalidates acquired
+// cursors.
 //
 // A caller that retries a released acquisition fails once the execution ended.
 func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id string) unixfs_access.AccessUnixFSFunc {

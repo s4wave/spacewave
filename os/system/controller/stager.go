@@ -11,7 +11,7 @@ import (
 
 // stager serves the release the node binds over one World engine.
 type stager struct {
-	// ctx ends when the engine stops serving; every stream ends with it.
+	// ctx ends when the engine stops serving. Every stream ends with it.
 	ctx context.Context
 	// eng is the World engine holding the release.
 	eng world.Engine
@@ -23,7 +23,7 @@ type stager struct {
 
 // WatchRelease sends the release, and again each time it changes. A release
 // that cannot be read ends the stream with its error, since the console can
-// stage nothing from it; the console retries after its backoff.
+// stage nothing from it. The console retries after its backoff.
 func (s *stager) WatchRelease(_ *os_system_stager.WatchReleaseRequest, strm os_system_stager.SRPCStager_WatchReleaseStream) error {
 	// End the stream with the engine as well as with the client.
 	ctx, cancel := context.WithCancel(strm.Context())
@@ -31,7 +31,7 @@ func (s *stager) WatchRelease(_ *os_system_stager.WatchReleaseRequest, strm os_s
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer stop()
 
-	// Send each readable release; wait while none exists.
+	// Send each readable release. Wait while none exists.
 	return watchRelease(ctx, s.eng, s.key, func(r *os_release.Release, err error) error {
 		if errors.Is(err, world.ErrObjectNotFound) {
 			return nil
@@ -76,8 +76,8 @@ func (s *stager) WatchRevision(_ *os_system_stager.WatchRevisionRequest, strm os
 
 // watchRelease calls cb with the release at key, and again after each change
 // to the object, until ctx ends or cb returns an error. A missing or deleted
-// object calls cb with world.ErrObjectNotFound and waits for it to appear;
-// the stager sends nothing then, so the Device keeps the image it runs.
+// object calls cb with world.ErrObjectNotFound and waits for it to appear.
+// The stager sends nothing then, so the Device keeps the image it runs.
 func watchRelease(ctx context.Context, eng world.Engine, key string, cb func(*os_release.Release, error) error) error {
 	ws := world.NewEngineWorldState(eng, false)
 	for {

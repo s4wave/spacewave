@@ -51,7 +51,7 @@ func SSOCodeExchange(
 // SSONonceExchange calls POST /api/auth/sso/result/exchange to exchange a
 // browser auth-session nonce for the stored OAuth sign-in result.
 // Per the OQ-8 result/exchange split, this endpoint serves the sign-in flow
-// only; the desktop SSO-link flow uses /api/auth/sso/link/result/exchange.
+// only. The desktop SSO-link flow uses /api/auth/sso/link/result/exchange.
 func SSONonceExchange(
 	ctx context.Context,
 	httpCli *http.Client,
@@ -157,8 +157,9 @@ func (c *EntityClient) LinkSSO(
 	return result, nil
 }
 
-// LinkSSOProvider generates a keypair, optionally wraps with PIN via age,
-// and calls LinkSSO to register the SSO-custodied key with the cloud.
+// LinkSSOProvider generates a keypair, optionally wraps the private key with
+// PIN via age, and calls LinkSSO to register the SSO-custodied key with the
+// cloud.
 func (a *ProviderAccount) LinkSSOProvider(
 	ctx context.Context,
 	provider string,
@@ -178,7 +179,7 @@ func (a *ProviderAccount) LinkSSOProvider(
 		return errors.Wrap(err, "derive peer ID")
 	}
 
-	// Serialize private key to PEM.
+	// Serialize the private key to PEM.
 	pemData, err := keypem.MarshalPrivKeyPem(privKey)
 	if err != nil {
 		return errors.Wrap(err, "marshal PEM")

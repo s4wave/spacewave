@@ -5,7 +5,7 @@ import "github.com/s4wave/spacewave/net/hash"
 // RefArena hands out owned block references from three contiguous
 // allocations, so copying a page's n references costs three allocations
 // instead of 3n. The references share the arena's backing arrays and keep them
-// alive together; an arena suits a set that lives and dies as one, such as the
+// alive together. An arena suits a set that lives and dies as one, such as the
 // references of one decoded block.
 type RefArena struct {
 	refs    []BlockRef

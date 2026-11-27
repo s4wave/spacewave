@@ -146,8 +146,9 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 
 // TestPinnedManifestMissingIsProven fails a pinned load as missing only when
 // the host set is complete and the manifest at the root was read whole and
-// names a platform no host runs. A host set taken while the lookup is busy or
-// failing, or a root whose block cannot be read, stays a failure that may pass.
+// declares a platform no host runs. A host set taken while the lookup is
+// busy or failing, or a root whose block cannot be read, stays a failure
+// that may pass.
 func TestPinnedManifestMissingIsProven(t *testing.T) {
 	// Store a web-only build while only a native host is registered.
 	f := newPinnedFixture(t)

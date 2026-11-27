@@ -32,7 +32,8 @@ func TestUnsupportedCoordinatorReportsFallbackCapability(t *testing.T) {
 		t.Fatalf("unexpected object store id: %q", capability.ObjectStoreID)
 	}
 
-	// Confirm unsupported capability has no generation and names its fallback.
+	// Confirm unsupported capability has no generation and reports its
+	// fallback.
 	if capability.Generation != 0 {
 		t.Fatalf("unexpected generation: %d", capability.Generation)
 	}

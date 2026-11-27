@@ -163,7 +163,7 @@ export interface Dependency {
    */
   version?: string
   /**
-   * Direct is set when package.json names the package.
+   * Direct is set when package.json declares the package.
    */
   direct?: boolean
 }

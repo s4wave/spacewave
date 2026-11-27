@@ -16,7 +16,7 @@ import {
   WasiVmDownloadServiceClient,
 } from './wasivm_srpc.pb.js'
 
-// WasiVmTypeID is the object type identifier for WasiVm objects. Mirrors
+// WasiVmTypeID is the object type identifier for WasiVm objects. It mirrors
 // WasiVmTypeID in sdk/vm/wasivm.go.
 export const WasiVmTypeID = 'vm/wasivm'
 
@@ -27,17 +27,17 @@ export const CREATE_WASIVM_OP_ID = 'vm/wasivm/create'
 export const SET_WASIVM_STATE_OP_ID = 'vm/wasivm/set-state'
 
 // PRED_WASIVM_ROOTFS is the graph predicate linking a WasiVm to the UnixFS
-// object holding its root filesystem. Mirrors PredWasiVmRootfs in
+// object holding its root filesystem. It mirrors PredWasiVmRootfs in
 // sdk/vm/wasivm.go.
 export const PRED_WASIVM_ROOTFS = 'wasivm/rootfs'
 
 // PRED_WASIVM_IMAGE is the graph predicate linking a WasiVm to the
-// WasiVmImage it boots when it has no root filesystem of its own. Mirrors
+// WasiVmImage it boots when it has no root filesystem of its own. It mirrors
 // PredWasiVmImage in sdk/vm/wasivm.go.
 export const PRED_WASIVM_IMAGE = 'wasivm/image'
 
 // WasiVmImageTypeID is the object type identifier for WasiVmImage objects.
-// Mirrors WasiVmImageTypeID in sdk/vm/wasivm-image.go.
+// It mirrors WasiVmImageTypeID in sdk/vm/wasivm-image.go.
 export const WasiVmImageTypeID = 'vm/image/wasivm'
 
 // CREATE_WASIVM_IMAGE_OP_ID is the operation type ID for
@@ -45,12 +45,13 @@ export const WasiVmImageTypeID = 'vm/image/wasivm'
 export const CREATE_WASIVM_IMAGE_OP_ID = 'vm/image/wasivm/create'
 
 // PRED_WASIVM_IMAGE_ROOTFS is the graph predicate linking a WasiVmImage to
-// the UnixFS object holding its root filesystem. Mirrors
+// the UnixFS object holding its root filesystem. It mirrors
 // PredWasiVmImageRootfs in sdk/vm/wasivm-image.go.
 export const PRED_WASIVM_IMAGE_ROOTFS = 'wasivmimage/rootfs'
 
 // DEFAULT_WASIVM_INIT_PATH is the init program a WasiVm runs when its config
-// names none. Mirrors DefaultWasiVmInitPath in sdk/vm/wasivm.go.
+// selects no init program. It mirrors DefaultWasiVmInitPath in
+// sdk/vm/wasivm.go.
 export const DEFAULT_WASIVM_INIT_PATH = '/bin/sh'
 
 // WasiVmHandle is the typed resource of a WasiVm object.
@@ -79,7 +80,7 @@ export class WasiVmHandle extends Resource {
   // connectDisplay attaches to the display of the running VM. The stream
   // waits for the VM and the first display it brings up, X display 0 or a
   // Wayland client of its compositor, sends the whole screen, then each region
-  // that changes; input carries the viewer's pointer and keys back.
+  // that changes. Input carries the viewer's pointer and keys back.
   public connectDisplay(
     input: MessageStream<WasiVmDisplayInput>,
     abortSignal?: AbortSignal,
@@ -98,10 +99,11 @@ export class WasiVmHandle extends Resource {
   }
 
   // connectWindow pops one window of the running VM's Wayland display out to
-  // the viewer. The first input opens the window at the viewer's size; later
-  // ones resize it or carry the viewer's pointer and keys. The stream sends
-  // the window's frames as connectDisplay does and ends when the window
-  // closes; the window returns to the desktop when the viewer leaves.
+  // the viewer. The first input opens the window at the viewer's size.
+  // Subsequent inputs resize the window or carry the viewer's pointer and
+  // keys. The stream sends the window's frames as connectDisplay does and
+  // ends when the window closes. The window returns to the desktop when the
+  // viewer leaves.
   public connectWindow(
     input: MessageStream<WasiVmWindowInput>,
     abortSignal?: AbortSignal,

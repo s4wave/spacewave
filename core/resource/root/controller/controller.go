@@ -45,9 +45,9 @@ type Controller struct {
 	mux srpc.Mux
 	// rootResourceMux is the rpc mux for the root resource.
 	rootResourceMux srpc.Mux
-	// server is the rpc server
+	// server is the rpc server.
 	server *resource_server.ResourceServer
-	// rootResource is the root resource server
+	// rootResource is the root resource server.
 	rootResource *resource_root.CoreRootServer
 	// httpPathPrefix locates this installation beneath its host plugin HTTP route.
 	httpPathPrefix string
@@ -64,16 +64,16 @@ type Controller struct {
 	bindingRegistry *process_binding.BindingRegistry
 	// approvals holds the device's plugin decisions, shared with nested roots.
 	approvals *plugin_approval.Approvals
-	// commandsManager is the commands manager resource
+	// commandsManager is the commands manager resource.
 	commandsManager *resource_command.CommandsManager
 
-	// yieldBroker and listenerStatus are shared with the resource listener
-	// controller through the composition root; injected into the root
-	// resource after construction.
+	// yieldBroker is shared with the resource listener controller, as is
+	// listenerStatus, through the composition root. Both are injected into
+	// the root resource after construction.
 	yieldBroker    *yield_policy.Broker
 	listenerStatus *resource_listener.StatusBroker
 	// secretGrant admits granted plugins to their Space's Secrets, shared
-	// with nested roots; nil admits none.
+	// with nested roots. A nil secretGrant admits none.
 	secretGrant resource_root.PluginSecretGrant
 }
 

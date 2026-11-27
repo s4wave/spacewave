@@ -19,7 +19,7 @@ import (
 // one snapshot reads the state and, per block found, what Hidden reads.
 func (v *Volume) hideAbsent(ctx context.Context, refs []*block.BlockRef, exists []bool) error {
 	// A Volume without liveness, a Settled one, or one that cannot hide a
-	// block until it opens again has none.
+	// block until it opens again has no hidden blocks.
 	if !v.atomic || settledWord(v.settled.load()) || v.hidesNone.Load() {
 		return nil
 	}

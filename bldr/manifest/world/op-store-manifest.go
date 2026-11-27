@@ -14,8 +14,8 @@ import (
 
 // ExStoreManifestOp stores a manifest to an object key and links it from
 // linkObjKeys. A ManifestRef carrying a release authorization is stored as a
-// ManifestRef object, any other as a Manifest object. It applies no operation
-// when the World already holds both.
+// ManifestRef object, any other as a Manifest object. ExStoreManifestOp applies
+// no operation when the World already holds both.
 func ExStoreManifestOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -129,8 +129,8 @@ func (o *StoreManifestOp) ApplyWorldOp(
 	}
 
 	// Link each LinkObjectKey, noting the links this op adds. A graph quad
-	// does not revise the objects it names, so a scheduler watching its host
-	// object would otherwise miss a link to an already stored manifest.
+	// does not revise the objects it references, so a scheduler watching its
+	// host object would otherwise miss a link to an already stored manifest.
 	linked := make(map[string]bool, len(o.GetLinkObjectKeys()))
 	for _, objKey := range o.GetLinkObjectKeys() {
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), o.GetManifestRef().GetMeta().GetManifestId())
@@ -211,7 +211,7 @@ func (o *StoreManifestOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetManifestRef().GetManifestRef().GetRootRef()}
 }
 
-// PayloadRefsVersion identifies what GetPayloadRefs names.
+// PayloadRefsVersion identifies what GetPayloadRefs returns.
 func (o *StoreManifestOp) PayloadRefsVersion() uint32 {
 	return 1
 }

@@ -17,7 +17,7 @@ func UnmarshalWorker(ctx context.Context, bcs *block.Cursor) (*Worker, error) {
 	return block.UnmarshalBlock[Worker](ctx, bcs)
 }
 
-// Validate performs cursory checks of the Worker object.
+// Validate checks the Worker object cursorily.
 func (e *Worker) Validate() error {
 	if err := identity.ValidateEntityID(e.GetName()); err != nil {
 		return err

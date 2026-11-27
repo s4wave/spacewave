@@ -27,10 +27,10 @@ export function safeHref(url: string | undefined): string {
 }
 
 // normalizeUrlInput mirrors the WHATWG URL parser's input preprocessing so
-// scheme detection sees what the browser sees: it strips leading and trailing
-// C0 control or space characters and removes all ASCII tab and newline
-// characters (e.g. "java\tscript:" is parsed as "javascript:"). String.trim
-// is applied as well to drop other leading and trailing whitespace.
+// scheme detection sees what the browser sees: the function strips leading
+// and trailing C0 control or space characters and removes all ASCII tab and
+// newline characters (e.g. "java\tscript:" is parsed as "javascript:").
+// String.trim is applied as well to drop other leading and trailing whitespace.
 function normalizeUrlInput(url: string): string {
   let start = 0
   let end = url.length

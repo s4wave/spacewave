@@ -10,31 +10,32 @@ import (
 
 // Sample records one browser-local projected-image measurement.
 type Sample struct {
-	// ID uniquely identifies the sample within one engine run
+	// ID uniquely identifies the sample within one engine run.
 	ID string
-	// requestStartMs is the projected URL assignment time relative to sample start
+	// RequestStartMs is the projected URL assignment time relative to
+	// sample start.
 	RequestStartMs float64
-	// responseStartMs is the matching resource response start
+	// ResponseStartMs is the matching resource response start.
 	ResponseStartMs float64
-	// responseEndMs is the matching resource response end
+	// ResponseEndMs is the matching resource response end.
 	ResponseEndMs float64
-	// loadMs is the image load event time
+	// LoadMs is the image load event time.
 	LoadMs float64
-	// decodeMs is the image decode completion time
+	// DecodeMs is the image decode completion time.
 	DecodeMs float64
-	// frameMs is the first animation frame after decode
+	// FrameMs is the first animation frame after decode.
 	FrameMs float64
-	// displayReadyMs is the retained scalar and equals frameMs
+	// DisplayReadyMs is the retained scalar and equals frameMs.
 	DisplayReadyMs float64
-	// naturalWidth is the decoded image width
+	// NaturalWidth is the decoded image width.
 	NaturalWidth int
-	// naturalHeight is the decoded image height
+	// NaturalHeight is the decoded image height.
 	NaturalHeight int
-	// transferSize is the browser-reported transferred byte count
+	// TransferSize is the browser-reported transferred byte count.
 	TransferSize int64
-	// decodedBodySize is the browser-reported decoded body byte count
+	// DecodedBodySize is the browser-reported decoded body byte count.
 	DecodedBodySize int64
-	// traced reports whether diagnostic tracing was enabled
+	// Traced reports whether diagnostic tracing was enabled.
 	Traced bool
 }
 

@@ -56,7 +56,7 @@ func (s *releaseShape) Lookup(ctx context.Context, key string) ([]e2eharness.Gen
 		// A miss makes the caller rebuild, which is the expensive path and is
 		// impossible wherever no compiler is available. Report the identity
 		// being looked for alongside the generations that were present, since
-		// the two digests together name the input that differs.
+		// the two digests together identify the input that differs.
 		present, err := artifact.GenerationIDs(s.storeDir)
 		if err != nil {
 			return nil, err

@@ -185,7 +185,7 @@ func AnalyzeCjsExportsWithProvenance(codeRootPath, importPath string, nodePaths 
 	visited := make(map[requireItem]struct{})
 	requires := []requireItem{{path: entry, callMode: false}}
 	for len(requires) > 0 {
-		// Pop from queue.
+		// Pop a require item from the queue.
 		req := requires[len(requires)-1]
 		requires = requires[:len(requires)-1]
 		canonicalPath, canonicalErr := filepath.EvalSymlinks(req.path)
@@ -311,7 +311,8 @@ func verifyExports(names []string) *CjsExportsResult {
 // getJSONKeys reads a JSON file and returns the top-level object keys.
 func getJSONKeys(path string) ([]string, error) {
 	// Read the JSON module bytes for export discovery.
-	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
+	// #nosec G703: path is resolved from the package graph under analysis,
+	// not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

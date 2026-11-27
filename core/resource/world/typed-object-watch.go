@@ -49,7 +49,8 @@ type typedObjectWatch struct {
 }
 
 // typedObjectWatchLookup publishes only values from one directive instance.
-// Callback fields are guarded by the watch broadcast; references belong to its owner.
+// Callback fields are guarded by the watch broadcast. References belong to the
+// watch owner.
 type typedObjectWatchLookup struct {
 	// typeID identifies the demanded handler type.
 	typeID string
@@ -270,8 +271,8 @@ func (w *typedObjectWatch) run(ctx context.Context) (retErr error) {
 
 // observeWorld follows the object's record and type within the granted
 // mutable state or pinned snapshot. The object type is a graph quad on the
-// object, which does not revise the object, so the watch waits on a read set
-// holding the object's record and its type edge.
+// object. Changing the quad does not revise the object, so the watch waits on a
+// read set holding the object's record and its type edge.
 func (w *typedObjectWatch) observeWorld(ctx context.Context) error {
 	ws := w.resource.ws
 	for {
@@ -401,7 +402,8 @@ func (w *typedObjectWatch) releaseLookup() {
 // build constructs a factory outside lifecycle locks and discards late results.
 //
 // Each generation runs in its own goroutine so a factory which ignores
-// cancellation cannot delay its replacement; it cleans up after itself.
+// cancellation cannot delay its replacement. The generation cleans up after
+// itself.
 func (w *typedObjectWatch) build(generation *typedObjectWatchGeneration) {
 	// Invoke only this generation's factory against the exact granted state.
 	invoker, cleanup, err := generation.objectType.GetFactory()(generation.ctx, w.resource.le, w.resource.b, w.resource.engine, w.resource.ws, w.objectKey)

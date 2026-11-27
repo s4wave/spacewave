@@ -45,7 +45,7 @@ func (r *Submodule) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: the returned map does not include pending references (in a cursor).
 func (r *Submodule) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	if r == nil {
 		return nil, nil

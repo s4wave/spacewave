@@ -12,9 +12,10 @@ import (
 )
 
 // TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation checks that a
-// read-only graph lookup holds one storage read operation and a writable one
-// none, and that the graph tree opens only on its first use: an open, an
-// object read and a commit open none of it.
+// read-only graph lookup holds one storage read operation and a writable
+// graph lookup holds none, and that the graph tree opens only on its first
+// use: opening a World, reading an object and committing leave the graph tree
+// closed.
 func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 	// Open a background context and logger.
 	ctx := context.Background()

@@ -249,7 +249,7 @@ type lease struct {
 	leaseID string
 	done    chan struct{}
 
-	// mtx guards released and lossErr; done closes exactly once when either
+	// mtx guards released and lossErr. done closes exactly once when either
 	// released or lossErr transitions from its zero value.
 	mtx      sync.Mutex
 	released bool

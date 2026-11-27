@@ -23,7 +23,7 @@ func TestSharedObject(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// Name the test volume's peer.
+	// Identify the test volume's peer.
 	le := tb.Logger
 	vol := tb.Volume
 	peerID := vol.GetPeerID()

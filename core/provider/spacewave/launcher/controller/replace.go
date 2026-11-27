@@ -15,7 +15,7 @@ import (
 )
 
 // prepareAppUpdate returns the verified desktop artifact. Electron owns the
-// installed-app destination and exit; this daemon must remain running.
+// installed-app destination and exit. This daemon must remain running.
 func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
 	info := c.launcherInfoCtr.GetValue()
 	if info == nil {

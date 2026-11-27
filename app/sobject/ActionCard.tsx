@@ -2,14 +2,15 @@ import React from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-// ActionCard renders an interactive card with icon, label, and description.
+// ActionCardProps configures ActionCard to render an interactive card with
+// icon, label, and description.
 export interface ActionCardProps {
   icon: React.ReactNode
   label: string
   description: string
   onClick?: () => void
   variant?: 'default' | 'destructive'
-  // Tightens padding and drops the description for a narrow container.
+  // compact tightens padding and drops the description for a narrow container.
   compact?: boolean
 }
 

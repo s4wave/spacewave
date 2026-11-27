@@ -45,7 +45,7 @@ describe('resolvePrimaryEntry', () => {
   it('returns null for a tuple absent from the manifest', () => {
     const entry = resolvePrimaryEntry(
       { os: 'macos', arch: 'amd64' },
-      // Manifest containing only arm64 macOS.
+      // The manifest contains only arm64 macOS.
       [DOWNLOAD_MANIFEST[0]],
     )
     expect(entry).toBeNull()

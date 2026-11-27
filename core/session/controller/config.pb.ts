@@ -13,18 +13,18 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * SessionControllerId is the id for the session controller.
-   * Resolves LookupSessionController directives.
-   * Can be empty.
+   * The controller resolves LookupSessionController directives.
+   * The ID can be empty.
    */
   sessionControllerId?: string
   /**
    * VolumeId is the volume id to store data.
-   * If empty, defaults to the plugin host volume.
+   * If empty, the ID defaults to the plugin host volume.
    */
   volumeId?: string
   /**
    * ObjectStoreId is the object store id to store the session list.
-   * If empty, defaults to sessions/list.
+   * If empty, the ID defaults to sessions/list.
    */
   objectStoreId?: string
 }

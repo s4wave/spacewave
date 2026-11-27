@@ -93,7 +93,8 @@ func TestTransaction(t *testing.T) {
 			}
 		}
 
-		// Commit the KV roots sequentially; they share the transaction storage writer.
+		// Commit the KV roots sequentially because the roots share the transaction
+		// storage writer.
 		for _, want := range []struct {
 			objectKey, key, value string
 		}{

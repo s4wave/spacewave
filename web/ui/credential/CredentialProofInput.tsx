@@ -27,8 +27,8 @@ export const inputClass = cn(
 )
 
 // CredentialProofInput renders password + optional PEM file upload for
-// EntityCredential proof. Presentational only, all state managed by parent
-// or useCredentialProof hook.
+// EntityCredential proof. The component is presentational only, with all state
+// managed by the parent or useCredentialProof hook.
 export function CredentialProofInput({
   password,
   onPasswordChange,

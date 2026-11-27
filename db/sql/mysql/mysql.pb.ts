@@ -376,7 +376,7 @@ export interface TableSchemaColumn {
   extra?: string
   /**
    * GeneratedExpr is the generated column expression, encoded to a string.
-   * Empty unless the column is generated; a generated column has no default.
+   * Empty unless the column is generated. A generated column has no default.
    */
   generatedExpr?: string
   /**

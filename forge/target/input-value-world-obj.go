@@ -19,8 +19,8 @@ type ivWorldObject struct {
 
 // NewInputValueWorldObject constructs a new InputValueWorldObject from its
 // component values. Nil inline and world components are replaced with empty
-// ones. objs carries the resolved object state and err any resolution error;
-// Validate reports err until it is cleared.
+// ones. objs carries the resolved object state and err carries any resolution
+// error. Validate reports err until it is cleared.
 func NewInputValueWorldObject(
 	inline InputValueInline,
 	wrld InputValueWorld,

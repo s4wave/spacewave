@@ -11,17 +11,17 @@ import (
 
 // transportHandler handles callbacks from a transport.
 type transportHandler struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// tpt contains the transport
+	// tpt contains the transport.
 	tpt *promise.Promise[transport.Transport]
 
 	// authMtx guards authorizing.
 	authMtx sync.Mutex
-	// authorizing holds links whose peer is being authorized; a lost link
-	// leaves it so its authorization does not mount it.
+	// authorizing holds links whose peer is being authorized. A lost link
+	// leaves the map so its authorization does not mount the link.
 	authorizing map[link.Link]struct{}
 }
 
@@ -37,7 +37,8 @@ func newTransportHandler(ctx context.Context, c *Controller) *transportHandler {
 
 // HandleLinkEstablished is called by the transport when a link is established.
 // A configured peer authorizer runs off the transport's callback path, since
-// it may read account state; a refused link closes without mounting.
+// the authorizer may read account state. A refused link closes without
+// mounting.
 func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 	// Mount directly when every peer is admitted.
 	if h.c.authorizePeer == nil {
@@ -86,7 +87,7 @@ func (h *transportHandler) takeAuthorizing(lnk link.Link) bool {
 }
 
 // mountLink registers an admitted link with the controller. epoch is the
-// authorization epoch the admission read; a link admitted under an older
+// authorization epoch the admission read. A link admitted under an older
 // epoch is authorized again instead.
 func (h *transportHandler) mountLink(lnk link.Link, epoch uint64) {
 	// Capture link identity for registration and logging.

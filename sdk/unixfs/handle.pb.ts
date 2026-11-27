@@ -247,8 +247,8 @@ export interface HandleReadAtRequest {
   /**
    * Length is the number of bytes to read. A positive length may be capped by
    * the resource response limit. A length <= 0 reads the remaining file only if
-   * it fits in one response; large callers should GetSize and issue chunked
-   * positive-length ReadAt calls.
+   * the remaining file fits in one response. Large callers should GetSize
+   * and issue chunked positive-length ReadAt calls.
    */
   length?: bigint
 }
@@ -603,7 +603,7 @@ export interface HandleMknodRequest {
    */
   mode?: number
   /**
-   * CheckExist if true, returns error if entry already exists.
+   * CheckExist, if true, returns an error if the entry already exists.
    */
   checkExist?: boolean
 }
@@ -880,9 +880,10 @@ export interface HandleUploadTreeDirectory {
   mode?: number
   /**
    * ExpectMissing creates the directory only if the path holds nothing when
-   * the upload commits, checked in the commit's transaction; otherwise the
-   * upload ends in a conflict and nothing is committed. Unset, an existing
-   * directory at the path is reused and the entries under it merge into it.
+   * the upload commits, checked in the commit's transaction. Otherwise the
+   * upload ends in a conflict and nothing is committed. With ExpectMissing
+   * unset, an existing directory at the path is reused and the entries under
+   * the directory merge into the directory.
    */
   expectMissing?: boolean
 }
@@ -913,8 +914,8 @@ export interface HandleUploadTreeFileStart {
   totalSize?: bigint
   /**
    * Mode is the permissions of a file the upload creates, zero for the
-   * default. A file the path already holds keeps its stored mode, so an
-   * upload never undoes another writer's chmod.
+   * default permissions. A file the path already holds keeps its stored mode,
+   * so an upload never undoes another writer's chmod.
    */
   mode?: number
   /**
@@ -1070,8 +1071,8 @@ export const HandleUploadTreeFileVersion: MessageType<HandleUploadTreeFileVersio
   )
 
 /**
- * HandleUploadTreeConflict names the first entry whose path did not hold what
- * the upload expected.
+ * HandleUploadTreeConflict identifies the first entry whose path did not hold
+ * what the upload expected.
  *
  * @generated from message s4wave.unixfs.HandleUploadTreeConflict
  */
@@ -1150,7 +1151,7 @@ export interface HandleWatchFilesRequest {
   extensions?: string[]
   /**
    * Limit bounds the number of matched paths, taken in path order. Zero
-   * selects the server default.
+   * selects the server default limit.
    */
   limit?: number
 }

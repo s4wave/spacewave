@@ -13,9 +13,9 @@ import (
 
 // Ops implements TxOps with a KvtxOps service.
 type Ops struct {
-	// client is the service client
+	// client is the service client.
 	client kvtx_rpc.SRPCKvtxOpsClient
-	// released indicates if the operations have been released
+	// released indicates if the operations have been released.
 	released *atomic.Bool
 }
 

@@ -13,22 +13,22 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * PeerId is the peer ID to listen for incoming streams.
-   * Can be empty to accept any.
+   * PeerId can be empty to accept any peer ID.
    */
   peerId?: string
   /**
    * ProtocolId is the protocol ID to filter incoming streams.
-   * Cannot be empty.
+   * ProtocolId cannot be empty.
    */
   protocolId?: string
   /**
    * TargetPeerId is the destination peer ID to relay to.
-   * Cannot be empty.
+   * TargetPeerId cannot be empty.
    */
   targetPeerId?: string
   /**
    * TargetProtocolId is the destination protocol ID to relay to.
-   * If unset, uses protocol_id.
+   * If TargetProtocolId is unset, protocol_id is used.
    */
   targetProtocolId?: string
 }

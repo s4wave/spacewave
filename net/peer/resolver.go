@@ -6,13 +6,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
-// GetPeerResolver resolves the GetPeer directive
+// GetPeerResolver resolves the GetPeer directive.
 type GetPeerResolver struct {
 	directive GetPeer
 	peer      Peer
 }
 
-// NewGetPeerResolver constructs a new GetPeer resolver
+// NewGetPeerResolver constructs a new GetPeer resolver.
 func NewGetPeerResolver(
 	directive GetPeer,
 	peer Peer,

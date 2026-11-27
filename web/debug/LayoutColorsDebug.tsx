@@ -41,7 +41,7 @@ const SCHEMES: ColorScheme[] = [
       '--color-brand': 'oklch(0.673 0.224 6.5)',
       '--color-brand-highlight': 'oklch(0.72 0.18 6.5)',
       '--color-primary': 'oklch(0.673 0.224 6.5)',
-      // Backgrounds — achromatic
+      // Backgrounds: achromatic
       '--color-background': 'oklch(0.232 0 0)',
       '--color-background-dark': 'oklch(0.156 0 0)',
       '--color-background-card': 'oklch(0.22 0 0)',
@@ -51,7 +51,7 @@ const SCHEMES: ColorScheme[] = [
       '--color-background-tertiary': 'oklch(0.28 0 0)',
       '--color-background-deep': 'oklch(0.188 0 0)',
       '--color-editor-border': 'oklch(0.17 0 0)',
-      // Text — purple-warm white
+      // Text: purple-warm white
       '--color-foreground-alt': 'oklch(0.90 0.01 300)',
       '--color-text-primary': 'oklch(0.963 0.02 300)',
       '--color-text-secondary': 'oklch(0.765 0.008 295)',
@@ -63,7 +63,7 @@ const SCHEMES: ColorScheme[] = [
       '--color-editor-tab-text': 'oklch(0.624 0.007 295)',
       '--color-editor-tab-text-active': 'oklch(0.963 0.02 300)',
       '--color-editor-tab-text-unfocused': 'oklch(0.765 0.008 295)',
-      // Selection — faint purple (Monokai base2)
+      // Selection: faint purple (Monokai base2)
       '--color-ui-selected': 'oklch(0.279 0.001 295)',
       '--color-outliner-selected-highlight': 'oklch(0.26 0.001 295)',
       // File browser
@@ -136,7 +136,7 @@ const SCHEMES: ColorScheme[] = [
     description:
       'Neutral backgrounds + warm brand + purple-tinted text. Best of both.',
     vars: {
-      // Backgrounds — achromatic
+      // Backgrounds: achromatic
       '--color-background': 'oklch(0.232 0 0)',
       '--color-background-dark': 'oklch(0.156 0 0)',
       '--color-background-card': 'oklch(0.22 0 0)',
@@ -146,7 +146,7 @@ const SCHEMES: ColorScheme[] = [
       '--color-background-tertiary': 'oklch(0.28 0 0)',
       '--color-background-deep': 'oklch(0.188 0 0)',
       '--color-editor-border': 'oklch(0.17 0 0)',
-      // Text — subtle purple tint
+      // Text: subtle purple tint
       '--color-foreground-alt': 'oklch(0.90 0.01 300)',
       '--color-text-primary': 'oklch(0.963 0.02 300)',
       '--color-text-secondary': 'oklch(0.765 0.008 295)',
@@ -283,7 +283,7 @@ function DemoLayout({
 const noColorSchemeVars: Record<string, string> = {}
 
 // useColorSchemeVars scopes the debug palette to one preview surface. The
-// values are already CSS custom properties; assigning them through the DOM
+// values are already CSS custom properties. Assigning them through the DOM
 // keeps the palette data-driven without injecting ordinary inline styles.
 function useColorSchemeVars(vars: Record<string, string> = noColorSchemeVars) {
   return useCallback(

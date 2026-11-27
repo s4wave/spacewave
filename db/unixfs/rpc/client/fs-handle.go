@@ -10,7 +10,7 @@ import (
 // BuildFSHandle constructs a root fs handle from a FSCursor service.
 //
 // rctx is used as the root context for the rpc client
-// rctx must remain not-canceled during the duration of the lifetime of the FSHandle.
+// rctx must remain not canceled throughout the FSHandle's lifetime.
 func BuildFSHandle(rctx context.Context, fsCursorSvcClient unixfs_rpc.SRPCFSCursorServiceClient) (*unixfs.FSHandle, error) {
 	fsCursor := NewFSCursor(rctx, fsCursorSvcClient)
 	fs, err := unixfs.NewFSHandle(fsCursor)

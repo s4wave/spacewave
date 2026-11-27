@@ -20,18 +20,20 @@ import (
 // dropCountBlocks bounds the blocks one drop check counts, as in the copy.
 const dropCountBlocks = 1000
 
-// dropCountDepth is the most key segments a family name keeps.
+// dropCountDepth is the maximum number of key segments in a family name.
 const dropCountDepth = 8
 
 // dropCountClasses bounds the key families printed, largest first.
 const dropCountClasses = 60
 
 const (
-	// dropCountDropped names blocks a dropping copy omits because SQL holds them.
+	// dropCountDropped labels blocks a dropping copy omits because SQL
+	// holds them.
 	dropCountDropped = "blocks dropped: SQL holds"
-	// dropCountMarked names blocks retained because they have upload markers.
+	// dropCountMarked labels blocks retained because they have upload
+	// markers.
 	dropCountMarked = "blocks kept: upload marker"
-	// dropCountLacks names blocks retained because SQL does not hold them.
+	// dropCountLacks labels blocks retained because SQL does not hold them.
 	dropCountLacks = "blocks kept: SQL lacks"
 )
 
@@ -190,12 +192,12 @@ func countVolumeDrop(ctx context.Context, src string, drop *sqlDrop, out, w io.W
 	return nil
 }
 
-// dropCountClassOf names the family of a key outside the blocks: its first
-// byte when that is binary, as in the graph records, or else its segments
-// up to the last separator within dropCountDepth, so a key's own name never
-// splits a family.
+// dropCountClassOf returns the family of a key outside the blocks: its first
+// byte when that is binary, as in the graph records, or else its segments up to
+// the last separator within dropCountDepth, so a key's own name never splits a
+// family.
 func dropCountClassOf(key []byte) string {
-	// Name a graph record by its binary first byte.
+	// Classify a graph record by its binary first byte.
 	if len(key) != 0 && key[0] < 0x20 {
 		return formatVolumeKeyClass(key[:1])
 	}

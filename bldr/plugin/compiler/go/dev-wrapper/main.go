@@ -166,13 +166,12 @@ const (
 )
 
 func quote(word string, buf *bytes.Buffer) {
-	// We want to try to produce a "nice" output. As such, we will
-	// backslash-escape most characters, but if we encounter a space, or if we
-	// encounter an extra-special char (which doesn't work with
-	// backslash-escaping) we switch over to quoting the whole word. We do this
-	// with a space because it's typically easier for people to read multi-word
-	// arguments when quoted with a space rather than with ugly backslashes
-	// everywhere.
+	// quote tries to produce a "nice" output by backslash-escaping most
+	// characters, but switches to quoting the whole word for a space or an
+	// extra-special char (which doesn't work with backslash-escaping). The
+	// function quotes words containing a space because multi-word arguments
+	// quoted with a space are typically easier for people to read than
+	// arguments with ugly backslashes everywhere.
 	// Preserve the buffer boundary for resetting to whole-word quotes.
 	origLen := buf.Len()
 
@@ -212,9 +211,8 @@ func quote(word string, buf *bytes.Buffer) {
 	// Rebuild the argument in single-quoted mode after whitespace requires it.
 quote:
 	// quote mode
-	// Use single-quotes, but if we find a single-quote in the word, we need
-	// to terminate the string, emit an escaped quote, and start the string up
-	// again
+	// Use single-quotes, but if the word contains a single-quote, terminate
+	// the string, emit an escaped quote, and start the string up again.
 	inQuote := false
 	for len(word) > 0 {
 		i := strings.IndexRune(word, '\'')

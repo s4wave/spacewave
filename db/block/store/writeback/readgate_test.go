@@ -8,10 +8,10 @@ import (
 )
 
 // TestReadGateFollowsLoad raises the bound by fast reads up to the policy's
-// highest, halves it once per slow spell, keeps it at least one, admits no
-// more reads than the bound, and keeps a batch's reads within the bound.
+// highest bound, halves it once per slow spell, keeps it at least one, admits
+// no more reads than the bound, and keeps a batch's reads within the bound.
 func TestReadGateFollowsLoad(t *testing.T) {
-	// Fast reads raise the bound to the highest.
+	// Fast reads raise the bound to the highest bound.
 	ctx := context.Background()
 	g := newReadGate()
 	g.setPolicy(4, time.Millisecond)

@@ -58,14 +58,15 @@ type SRPCSpaceResourceServiceClient interface {
 	// FetchPluginRepository queues a Forge Job on a registered device that clones
 	// a public GitHub repository at depth one into this Space, or fetches its
 	// newest commit when the repository is already stored. The worktree stays on
-	// the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+	// the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
 	FetchPluginRepository(ctx context.Context, in *FetchPluginRepositoryRequest) (*FetchPluginRepositoryResponse, error)
 	// ValidatePluginRepository checks the commit a fetched plugin repository
 	// has checked out, before any of its code runs. Building the repository
 	// requires the same commit and an empty list of refusals.
 	ValidatePluginRepository(ctx context.Context, in *ValidatePluginRepositoryRequest) (*ValidatePluginRepositoryResponse, error)
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
-	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+	// The returned Resource serves bldr.frontend.Frontend. Release cancels the
+	// job.
 	OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
 	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
 	// sharing state reports the result.
@@ -90,7 +91,7 @@ type SRPCSpaceResourceServiceClient interface {
 	// group for.
 	ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
 	// LinkFolder links a folder on this device to a UnixFS directory of the
-	// Space: each file's Blob names chunks whose bytes stay in the file, and
+	// Space: each file's Blob references chunks whose bytes stay in the file, and
 	// this device serves them from the file. It streams progress after each
 	// batch of files publishes.
 	LinkFolder(ctx context.Context, in *LinkFolderRequest) (SRPCSpaceResourceService_LinkFolderClient, error)
@@ -580,14 +581,15 @@ type SRPCSpaceResourceServiceServer interface {
 	// FetchPluginRepository queues a Forge Job on a registered device that clones
 	// a public GitHub repository at depth one into this Space, or fetches its
 	// newest commit when the repository is already stored. The worktree stays on
-	// the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+	// the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
 	FetchPluginRepository(context.Context, *FetchPluginRepositoryRequest) (*FetchPluginRepositoryResponse, error)
 	// ValidatePluginRepository checks the commit a fetched plugin repository
 	// has checked out, before any of its code runs. Building the repository
 	// requires the same commit and an empty list of refusals.
 	ValidatePluginRepository(context.Context, *ValidatePluginRepositoryRequest) (*ValidatePluginRepositoryResponse, error)
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
-	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+	// The returned Resource serves bldr.frontend.Frontend. Release cancels the
+	// job.
 	OpenPluginFrontend(context.Context, *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
 	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
 	// sharing state reports the result.
@@ -612,7 +614,7 @@ type SRPCSpaceResourceServiceServer interface {
 	// group for.
 	ApproveSpaceChange(context.Context, *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
 	// LinkFolder links a folder on this device to a UnixFS directory of the
-	// Space: each file's Blob names chunks whose bytes stay in the file, and
+	// Space: each file's Blob references chunks whose bytes stay in the file, and
 	// this device serves them from the file. It streams progress after each
 	// batch of files publishes.
 	LinkFolder(*LinkFolderRequest, SRPCSpaceResourceService_LinkFolderStream) error

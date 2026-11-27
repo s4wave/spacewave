@@ -6,7 +6,7 @@ type ConversionState = {
   pathNew: boolean
 }
 
-// title names the conversion lifecycle.
+// title describes the conversion lifecycle.
 export const title = 'Convert an old database while keeping its original'
 
 // state distinguishes the installed copy from a newer source commit.
@@ -17,5 +17,5 @@ export const state = (v: ConversionState) =>
       : 'Installed stale copy'
     : v.pc
 
-// step names the source operation on every visible transition.
+// step identifies the source operation on every visible transition.
 export const step = (action: string) => action

@@ -4,7 +4,7 @@
 // Discovers .md files in app/blog/posts/, parses frontmatter,
 // compiles markdown, prerenders blog pages.
 //
-// Called from build.ts via buildBlog(ctx) with shared PrerenderContext,
+// Called from build.ts via buildBlog(ctx) with a shared PrerenderContext,
 // or standalone via: bun run app/blog/blog-build.ts [--dist-dir <path>] [--include-drafts]
 
 import { createElement } from 'react'
@@ -59,18 +59,20 @@ function discoverPosts(includeDrafts: boolean): BlogPost[] {
     const isDraft = fm.draft === true
     if (isDraft && !includeDrafts) continue
 
-    // Derive slug from filename: 2026-03-20-hello-world.md -> hello-world
+    // Derive the slug from the filename:
+    // 2026-03-20-hello-world.md -> hello-world
     const basename = file.replace(/\.md$/, '')
     const slug = basename.replace(/^\d{4}-\d{2}-\d{2}-/, '')
 
-    // Normalize date to YYYY-MM-DD string (gray-matter may parse as Date).
+    // Normalize the date to a YYYY-MM-DD string
+    // (gray-matter may parse as Date).
     const rawDate = fm.date as unknown
     const dateStr =
       rawDate instanceof Date
         ? rawDate.toISOString().slice(0, 10)
         : String(rawDate)
 
-    // Derive URL: /blog/YYYY/MM/slug
+    // Derive the URL: /blog/YYYY/MM/slug
     const dateParts = dateStr.split('-')
     const year = dateParts[0]
     const month = dateParts[1]
@@ -236,7 +238,7 @@ export async function buildBlog(
 
   const postListForHydration = posts.map(postToHydrationMeta)
 
-  // Prerender blog index.
+  // Prerender the blog index.
   ctx.log('[blog] Prerendering /blog...')
   const indexBody = await prerenderElement(
     createElement(BlogIndex, { posts }),

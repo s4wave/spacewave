@@ -19,7 +19,7 @@ import (
 // Budget: when a previously-unknown SO is mounted from a fresh session, HTTP
 // fan-out is bounded and classifiable. Counting middleware buckets requests
 // by the X-Alpha-Seed-Reason header and by URL path. Tighten the budget here
-// when a change removes an expected fetch; every tightening is
+// when a change removes an expected fetch. Every tightening is
 // intentional.
 //
 // Per-SO cold mount (warm verified-state cache):
@@ -33,7 +33,7 @@ import (
 // Account-level cold SO list bootstrap:
 //   - /api/sobject/list                   x1   list-bootstrap
 //
-// Rejoin and mailbox fan-out are covered by their own unit tests; this test
+// Rejoin and mailbox fan-out are covered by their own unit tests. This test
 // pins only the guaranteed per-SO fetches the cloudSOHost cold mount path
 // issues on its own.
 func TestColdMountBudget(t *testing.T) {

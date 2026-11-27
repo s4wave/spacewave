@@ -27,7 +27,7 @@ func (s *epollSet) poll(limit int) ([]epollEvent, []<-chan struct{}) {
 		return e.of.refs == 0
 	})
 
-	// Poll each entry until limit report.
+	// Poll each entry until limit entries report.
 	var events []epollEvent
 	var changes []<-chan struct{}
 	var reported, rest []*epollEntry

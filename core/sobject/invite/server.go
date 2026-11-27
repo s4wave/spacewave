@@ -30,9 +30,11 @@ func NewServer(le *logrus.Entry, h Handlers) *Server {
 	return &Server{le: le, h: h}
 }
 
-// Leave binds the transport to a departing identity before invoking the native owner.
+// Leave binds the transport to a departing identity before invoking the native
+// owner.
 func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
-	// A valid proof from another connection cannot be relayed as fresh caller authority.
+	// A valid proof from another connection cannot be relayed as fresh caller
+	// authority.
 	peers, err := request.Verify()
 	if err != nil {
 		return nil, err
@@ -42,7 +44,8 @@ func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*s
 		return nil, errors.New("leave stream does not match a departing identity")
 	}
 
-	// The mounted provider retains and mutates its own host for the complete operation.
+	// The mounted provider retains and mutates its own host for the complete
+	// operation.
 	if s.h.Leave == nil {
 		return nil, errors.New("voluntary departure is unavailable")
 	}
@@ -86,7 +89,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	}
 
 	// Hash the raw token to look up the on-chain invite.
-	// The invitee proves possession of the raw token; the on-chain state
+	// The invitee proves possession of the raw token. The on-chain state
 	// stores only the SHA256 hash.
 	tokenHashArr := sha256.Sum256(token)
 	tokenHash := tokenHashArr[:]
@@ -98,7 +101,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	}
 	streamPeerID := ms.GetPeerID()
 
-	// Verify both join responses; the stream peer must be their author.
+	// Verify both join responses. The stream peer must be their author.
 	redeemer, err := ValidateRedeemer(joinResp, req.GetStorageJoinResponse())
 	if err != nil {
 		return nil, err
@@ -227,7 +230,8 @@ func (s *Server) answerAccept(
 	}, nil
 }
 
-// readHeldConfigs reads this host's configuration of each Space the invite names.
+// readHeldConfigs reads this host's configuration of each Space the invite
+// selects.
 func (s *Server) readHeldConfigs(ctx context.Context, inv *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
 	// Without named Spaces or a reader there is nothing to read.
 	ids := inv.GetParticipantOf().GetSharedObjectIds()

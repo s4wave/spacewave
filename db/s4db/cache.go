@@ -18,8 +18,9 @@ type cacheItem struct {
 	key cacheKey
 	// data holds the block's bytes.
 	data []byte
-	// hits counts reads since insertion, capped at three; S3-FIFO promotes
-	// a small-queue item with any hits and keeps a main-queue item with some.
+	// hits counts reads since insertion, capped at three. S3-FIFO promotes
+	// a small-queue item with any hits and keeps a main-queue item with
+	// some.
 	hits uint8
 	// small reports that the item waits in the small queue.
 	small bool
@@ -42,7 +43,8 @@ type blockCache struct {
 	// small and main are the two FIFO queues, oldest first. A dropped run's
 	// items stay queued without their data, and eviction passes over them.
 	small, main []*cacheItem
-	// smallBytes is the bytes in small; it is kept at a tenth of the budget.
+	// smallBytes is the bytes in small. It is kept at a tenth of the
+	// budget.
 	smallBytes int64
 	// ghost remembers keys evicted from small, bounded to ghostMax.
 	ghost map[cacheKey]struct{}
@@ -100,7 +102,7 @@ func (c *blockCache) put(k cacheKey, data []byte) {
 		c.smallBytes += int64(len(data))
 	}
 
-	// Evict until within budget.
+	// Evict until the cache is within budget.
 	for c.bytes > c.budget {
 		if c.smallBytes > c.budget/10 && len(c.small) != 0 {
 			c.evictSmall()
@@ -118,7 +120,7 @@ func (c *blockCache) put(k cacheKey, data []byte) {
 // else dropped and remembered in the ghost set. The queue's vacated slot is
 // cleared, so the backing array does not keep a dropped block's bytes.
 func (c *blockCache) evictSmall() {
-	// Take the oldest, passing over a dropped run's item.
+	// Take the oldest small item, passing over a dropped run's item.
 	it := c.small[0]
 	c.small[0] = nil
 	c.small = c.small[1:]
@@ -140,8 +142,8 @@ func (c *blockCache) evictSmall() {
 // evictMain takes the oldest main item: reinserted with one fewer hit when
 // it was read, else dropped.
 func (c *blockCache) evictMain() {
-	// Take the oldest, passing over a dropped run's item and reinserting one
-	// that was read.
+	// Take the oldest main item, passing over a dropped run's item and
+	// reinserting one that was read.
 	it := c.main[0]
 	c.main[0] = nil
 	c.main = c.main[1:]

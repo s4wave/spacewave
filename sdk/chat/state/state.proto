@@ -7,7 +7,8 @@ option go_package = "github.com/s4wave/spacewave/sdk/chat/state;spacewave_chat_s
 
 // ChatReadPosition is a person's monotonic position in a channel's retained history.
 message ChatReadPosition {
-  // NextIndex is the first unread message index; zero means nothing has been read.
+  // NextIndex is the first unread message index. Zero means nothing has been
+  // read.
   uint64 next_index = 1;
   // UpdatedAt records when this position last advanced.
   .google.protobuf.Timestamp updated_at = 2;

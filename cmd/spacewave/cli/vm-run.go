@@ -18,7 +18,7 @@ import (
 	v86_wazero "github.com/s4wave/spacewave/forge/lib/v86/wazero"
 )
 
-// serialEscapePrefix is the qemu-style console escape lead byte (Ctrl-A); the
+// serialEscapePrefix is the qemu-style console escape lead byte (Ctrl-A). The
 // next byte selects an action, so Ctrl-A x quits and Ctrl-A Ctrl-A sends a
 // literal Ctrl-A to the guest.
 const serialEscapePrefix = 0x01
@@ -39,7 +39,8 @@ type v86RunArgs struct {
 	imageKey string
 	// bootArgs overrides the guest kernel command line.
 	bootArgs string
-	// memoryMb is the guest memory in MiB, or zero for the runtime default.
+	// memoryMb is the guest memory in MiB, or zero for the runtime default
+	// size.
 	memoryMb uint
 	// enableJIT enables the emulator's JIT compiler.
 	enableJIT bool
@@ -227,7 +228,7 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 }
 
 // serialEscapeReader forwards stdin to the guest while watching for the Ctrl-A
-// console escape. Ctrl-A x calls quit to stop the console; Ctrl-A Ctrl-A emits
+// console escape. Ctrl-A x calls quit to stop the console. Ctrl-A Ctrl-A emits
 // one literal Ctrl-A. Filtered output that overflows the caller buffer is held
 // in pending and served on the next read.
 type serialEscapeReader struct {

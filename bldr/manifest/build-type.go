@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BuildType defines if we are building a dev or release build.
+// BuildType defines whether a build is a dev or release build.
 type BuildType string
 
 const (

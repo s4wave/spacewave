@@ -30,7 +30,8 @@ import (
 )
 
 // TestSpacePluginBuildJob runs the Job created by the public RPC on a Worker
-// and checks that the retained result names the built platform and exact source.
+// and checks that the retained result records the built platform and exact
+// source.
 func TestSpacePluginBuildJob(t *testing.T) {
 	// Start a testbed with a build device.
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
@@ -65,7 +66,7 @@ func TestSpacePluginBuildJob(t *testing.T) {
 		t.Fatal("task omitted its builder result")
 	}
 
-	// The builder result names the built platform and the exact source.
+	// The builder result records the built platform and the exact source.
 	artifact := taskOutput(t, task, "manifest").GetWorldObjectSnapshot().GetRootRef()
 	artifactKey := bldr_manifest.NewManifestArtifactKey(artifact)
 	provenance, _, err := resultworld.LookupManifestBuildResult(ctx, tb.WorldState, artifactKey)

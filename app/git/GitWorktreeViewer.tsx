@@ -784,7 +784,7 @@ function GitWorktreeContent({
 }
 
 // GitWorktreeViewer renders a Git worktree object with repository metadata,
-// working directory browser, and magit-style changes view.
+// a working directory browser, and a magit-style changes view.
 export function GitWorktreeViewer(props: ObjectViewerComponentProps) {
   const controller = useGitWorktreeController(props)
 

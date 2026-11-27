@@ -168,7 +168,7 @@ describe('direct Rolldown/Oxc owner', () => {
     expect(result.diagnostics ?? []).toEqual([])
     const output = await fs.readFile(join(project.output, 'main.js'), 'utf8')
     expect(output).toContain('inject side effect')
-    // The emitted module carries a default export in either accepted shape.
+    // The emitted module has a default export in either accepted shape.
     const hasDefault =
       /\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}/.test(output) ||
       /\bexport\s+default\b/.test(output)

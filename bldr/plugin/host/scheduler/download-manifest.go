@@ -224,7 +224,7 @@ func (t *pluginInstance) waitForManifestCopyReady(
 // checkDownloadManifestCurrent verifies the context is still live and the
 // manifest is still the download routine's selected request, returning
 // context.Canceled for a replaced request. The routine is nil in
-// direct-executor tests that bypass selection; the equality check applies
+// direct-executor tests that bypass selection. The equality check applies
 // only when the routine exists.
 func (t *pluginInstance) checkDownloadManifestCurrent(
 	ctx context.Context,
@@ -245,7 +245,7 @@ func (t *pluginInstance) checkDownloadManifestCurrent(
 // execDownloadManifest copies manifest blocks from the source bucket to the
 // world bucket. It waits for the copy's readiness class, then runs the copy as
 // a background job and returns once the job is done. The job owns retry of a
-// failed copy; an error here is a rejected snapshot or a failed wait.
+// failed copy. An error here is a rejected snapshot or a failed wait.
 func (t *pluginInstance) execDownloadManifest(
 	ctx context.Context,
 	manifestSnapshot *bldr_manifest.ManifestSnapshot,
@@ -316,7 +316,7 @@ func (t *pluginInstance) execDownloadManifest(
 }
 
 // copyManifest runs one attempt of copying the manifest DAG into the World
-// bucket, storing its local reference, and syncing. The job key names the
+// bucket, storing its local reference, and syncing. The job key identifies the
 // plugin instance and manifest, so no other instance shares the attempt.
 func (t *pluginInstance) copyManifest(
 	ctx context.Context,
@@ -385,9 +385,10 @@ func (t *pluginInstance) copyManifest(
 	trace.Log(ctx, "source-bucket-id", src.GetOpArgs().GetBucketId())
 	le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
 
-	// Copy the manifest DAG: through the materializer plugin when configured,
-	// otherwise with the in-process copy engine. A failed RPC must not fall
-	// back to native copying; the scheduler routine owns retry.
+	// Copy the manifest DAG: through the materializer plugin when
+	// configured, otherwise with the in-process copy engine. A failed RPC
+	// must not fall back to native copying. The scheduler routine owns
+	// retry.
 	copyCtx, copyTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
 	copyCtx = block.WithReadAhead(copyCtx, materializerReadAhead)
 	trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
@@ -418,8 +419,8 @@ func (t *pluginInstance) copyManifest(
 	}
 	logObjectRefAccountingFields(ctx, "local-manifest", localRef)
 
-	// The request may have been replaced while the copy ran; publication
-	// applies only to the currently selected manifest.
+	// The request may have been replaced while the copy ran. Publication
+	// applies only to the selected manifest.
 	if err := t.checkDownloadManifestCurrent(ctx, manifestSnapshot); err != nil {
 		return err
 	}

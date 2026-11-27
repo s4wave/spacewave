@@ -15,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
-// Deployment names where one app's releases are published and how its
+// Deployment declares where one app's releases are published and how its
 // launchers mount them. The identifiers derive from ProjectID unless set, so a
 // publisher and its launchers agree.
 type Deployment struct {
@@ -69,7 +69,8 @@ func (d Deployment) HostConfigSet() (map[string]*configset_proto.ControllerConfi
 	}
 	d = d.withDefaults()
 
-	// Mount the World from the Space; its block store answers for the Space ID.
+	// Mount the World from the Space.
+	// Its block store answers for the Space ID.
 	confs := map[string]configset.ControllerConfig{
 		"release-world": configset.NewControllerConfig(1, &cdn_world_controller.Config{
 			EngineId:           d.EngineID,
@@ -78,8 +79,9 @@ func (d Deployment) HostConfigSet() (map[string]*configset_proto.ControllerConfi
 			RootPointerBaseUrl: d.RootPointerBaseURL,
 			CacheBlockStoreId:  d.CacheBlockStoreID,
 		}),
-		// Manifest refs name the local World's bucket, and refs the Space
-		// rewrites name the Space; both read the Space's store.
+		// Manifest refs reference the local World's bucket, and refs
+		// the Space rewrites reference the Space. Both read the Space's
+		// store.
 		"release-world-cdn-bucket": configset.NewControllerConfig(1, &block_store_bucket.Config{
 			BlockStoreId:  d.SpaceID,
 			BucketStoreId: d.SpaceID,

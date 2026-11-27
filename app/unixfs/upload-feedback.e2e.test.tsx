@@ -17,7 +17,7 @@ import { driveIntroConfig } from '@s4wave/app/wizard/intro.js'
 
 // recordingHandle stands in for a UnixFS handle. It records each entry's abort
 // signal so a test can prove the writes were, or were not, aborted. When
-// resolveUpload is false each upload never settles; when true each resolves and
+// resolveUpload is false each upload never settles. When true each resolves and
 // the manager fires the completion popover after both finish.
 function recordingHandle(resolveUpload: boolean): {
   handle: FSHandle

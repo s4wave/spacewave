@@ -105,7 +105,7 @@ func (e *testEnv) newStore(t *testing.T, enabled bool) *Store {
 	return s
 }
 
-// isMarked reports whether a marker names the block.
+// isMarked reports whether a marker records the block.
 func (e *testEnv) isMarked(t *testing.T, ref *block.BlockRef) bool {
 	// Look the block up in a read transaction.
 	t.Helper()
@@ -701,17 +701,17 @@ type holdingProxy struct {
 // HoldsRoots reports that the remote volume holds roots.
 func (holdingProxy) HoldsRoots() bool { return true }
 
-// PinRoot holds nothing; the test writes no roots.
+// PinRoot holds nothing because the test writes no roots.
 func (holdingProxy) PinRoot(context.Context, *block.BlockRef) (func(), error) {
 	return func() {}, nil
 }
 
-// OpenStage returns the proxy itself; the test opens no stage.
+// OpenStage returns the proxy itself because the test opens no stage.
 func (p holdingProxy) OpenStage(context.Context) (block.StoreOps, func(), error) {
 	return p, func() {}, nil
 }
 
-// ReleaseRoots releases nothing; the test opens no stage.
+// ReleaseRoots releases nothing because the test opens no stage.
 func (holdingProxy) ReleaseRoots(context.Context, []*block.BlockRef) error { return nil }
 
 // testRPCWritesRetainUploadMarkers writes through a block RPC proxy, which
@@ -821,9 +821,9 @@ func (l *locatingStore) PutBlockBatch(ctx context.Context, entries []*block.PutB
 }
 
 // TestUploadSkipsLocatedBlocks drains blocks another writer uploaded without
-// reading them, and tries to lose one: a block the index does not name, one
-// it names that the remote lacks, a lookup or a confirm that fails, and the
-// switch turned off all still upload.
+// reading them, and tries to lose one: a block the index does not list, one
+// the index lists that the remote lacks, a lookup or a confirmation that fails,
+// and the switch turned off all still upload.
 func TestUploadSkipsLocatedBlocks(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
@@ -870,8 +870,8 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 		t.Fatal("a marker stayed after the drain")
 	}
 
-	// A block the index names that the remote lacks, as a row naming a pack
-	// without the block does, uploads.
+	// A block the index lists that the remote lacks, as a row referring to
+	// a pack without the block does, uploads.
 	remote.puts = 0
 	wrongRow := put("wrong row")
 	remote.located[wrongRow.MarshalString()] = true
@@ -924,7 +924,7 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 
 // TestClearLocatedPassesTheBacklog clears a block another writer uploaded while
 // an older block waits at the head of the queue, then tries to lose either: a
-// block the index does not name, a failed lookup, the switch off and a remote
+// block the index does not list, a failed lookup, the switch off and a remote
 // that reclaims all leave their entries, the head still reads as not uploaded,
 // and eviction drops only the block the remote holds.
 func TestClearLocatedPassesTheBacklog(t *testing.T) {
@@ -954,7 +954,7 @@ func TestClearLocatedPassesTheBacklog(t *testing.T) {
 		}
 	}
 
-	// The head is an old block the remote lacks; the rest are newer.
+	// The head is an old block the remote lacks. The rest are newer.
 	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{}}
 	var on atomic.Bool
 	on.Store(true)
@@ -979,7 +979,7 @@ func TestClearLocatedPassesTheBacklog(t *testing.T) {
 	remote.err = nil
 	pending(3)
 
-	// Only the block the index names clears, past the head. A block with no
+	// Only the block the index lists clears, past the head. A block with no
 	// entry changes nothing, and neither does clearing twice.
 	clearRefs(remote, head, unnamed)
 	pending(3)

@@ -10,10 +10,10 @@ import (
 // Handle is one device file used as a positional file. Writes collect until
 // Sync, which issues them with the flush in one device call, so a caller that
 // writes many ranges and then syncs costs one round trip. Issue, Truncate and
-// Close issue collected writes unflushed, to keep device order; reads see
-// them without issuing. A failed device write keeps the collected writes for
-// the next call, so a write the caller saw succeed is never dropped.
-// A Handle satisfies bbolt's Storage.
+// Close issue collected writes unflushed, to keep device order. Reads see them
+// without issuing them. A failed device write keeps the collected writes for
+// the next call, so a write the caller saw succeed is never dropped. A Handle
+// satisfies bbolt's Storage.
 type Handle struct {
 	// ctx bounds every device call the handle makes.
 	ctx context.Context
@@ -162,7 +162,7 @@ func (h *Handle) Close() error {
 
 // issue sends the collected writes in one device call. With flush set it
 // makes the call even when nothing is collected. On failure it keeps the
-// writes; the device may hold any part of them, and sending them again in
+// writes. The device may hold any part of them, and sending them again in
 // order rewrites the same bytes.
 func (h *Handle) issue(flush bool) error {
 	if len(h.pending) == 0 && !flush {

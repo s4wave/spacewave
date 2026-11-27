@@ -46,14 +46,14 @@ var driveBenchCPUProfileCategories = []string{
 //   - cold: a fresh context boots the bundled worker runtime over a cold
 //     HTTP cache and empty OPFS Space state.
 //   - live: a second tab attaches while the cold tab keeps the runtime alive.
-//   - warm: a return visitor; the cold page is closed to terminate the
+//   - warm: a return visitor. The cold page is closed to terminate the
 //     runtime, then a fresh page in the same context reboots over the
 //     retained HTTP cache and OPFS Space state.
 //   - cache-hot: the asset cache stays warm but the OPFS Space state is cleared
 //     before the reboot, isolating asset-load cost from Space-data cost.
 //
 // The bench is opt-in via E2E_WASM_DRIVE_BENCH and requires the GoScript release
-// build; cache-hot additionally needs Chromium CDP storage control.
+// build. The cache-hot state additionally needs Chromium CDP storage control.
 func TestGoScriptDriveStartupBenchBundled(t *testing.T) {
 	// Require the bundled Drive benchmark opt-in and GoScript compiler.
 	if os.Getenv(driveBenchEnv) != "1" {
@@ -82,7 +82,7 @@ func TestGoScriptDriveStartupBenchBundled(t *testing.T) {
 		cell:         "cold-bundled",
 	})
 
-	// A second tab must reuse the live host; warm startup below measures a
+	// A second tab must reuse the live host. Warm startup below measures a
 	// different operation because closing every tab destroys that host.
 	livePage := testHarness.newPageInContext(t, benchCtx)
 	runBundledDriveBenchCell(t, livePage, bundledDriveBenchCellInput{
@@ -170,8 +170,9 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 	waitForQuickstartAppRoute(t, page)
 	routeAcceptedMs := browserNowMs(t, page)
 
-	// The first-run intro overlays the already-mounted viewer; the benchmark
-	// observes readiness without adding an interaction to the startup interval.
+	// The first-run intro overlays the already-mounted viewer. The
+	// benchmark observes readiness without adding an interaction to the
+	// startup interval.
 	if err := waitForDriveFrameReady(page, browserWaitMS); err != nil {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart frame-ready (%s): %v", in.cell, err)

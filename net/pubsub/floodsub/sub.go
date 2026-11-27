@@ -11,22 +11,22 @@ import (
 
 // subscription implements the pubsub subscription handle.
 type subscription struct {
-	// ctx is the context for publishing
+	// ctx is the context for publishing.
 	ctx context.Context
-	// relOnce guards release
+	// relOnce guards release.
 	relOnce sync.Once
-	// m is the floodsub instance
+	// m is the floodsub instance.
 	m *FloodSub
-	// channelID is the channel identifier
+	// channelID is the channel identifier.
 	channelID string
-	// privKey is the private key for the sub
+	// privKey is the private key for the sub.
 	privKey crypto.PrivKey
-	// peerID is the peer ID for the sub
+	// peerID is the peer ID for the sub.
 	peerID peer.ID
 
-	// mtx guards handlers
+	// mtx guards handlers.
 	mtx sync.Mutex
-	// handlers are the active handlers
+	// handlers are the active handlers.
 	handlers map[*subscriptionHandler]struct{}
 }
 

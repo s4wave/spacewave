@@ -2,8 +2,8 @@ package s4db
 
 import "io"
 
-// storage is the file holding a database. Reads and writes address bytes;
-// the durable flush, byte locks, and the watcher coordinate durability and
+// storage is the file holding a database. Reads and writes address bytes.
+// The durable flush, byte locks, and the watcher coordinate durability and
 // the processes sharing the file. The only ordering primitive is the durable
 // flush: recovery keeps the longest valid prefix of the log and verifies the
 // values of records written after the last mark, so no barrier is needed.

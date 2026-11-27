@@ -9,8 +9,8 @@ type ChangeSet struct {
 	Unknown bool
 	// Keys are the object keys that were set, deleted, renamed, or revised.
 	// A rename lists both the old and the new key. A revision that only
-	// follows a set or deleted quad naming the object is reported through
-	// Quads alone.
+	// follows a set or deleted quad referencing the object is reported
+	// through Quads alone.
 	Keys []string
 	// Quads are the graph quads that were set or deleted, each field spelled
 	// as the graph stores it.

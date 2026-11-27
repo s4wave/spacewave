@@ -46,7 +46,7 @@ func NewFsSetPermissionsOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsSetPermissionsOp) Validate() error {
 	if err := unixfs_block.ValidateSetPermissions(o.GetPaths(), o.GetPermissions()); err != nil {
 		return err

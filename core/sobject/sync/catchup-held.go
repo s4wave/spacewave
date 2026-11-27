@@ -9,13 +9,14 @@ import (
 )
 
 // A catch-up sends only the records the receiver lacks. The receiver's
-// history request names each record of the state it holds, its config,
+// history request references each record of the state it holds, its config,
 // checkpoint, key epochs, operations, positions and control messages, by
-// record hash. The sender omits each record the receiver named and says where
-// it goes back; the receiver puts its own copy there and checks the rebuilt
-// state against the advertised digest. A peer k operations behind receives
-// the k operations, a few runs and the state's small fields. A receiver that
-// holds nothing receives every record, so a full snapshot takes the same path.
+// record hash. The sender omits each record the receiver referenced and says
+// where the record goes back. The receiver puts its own copy there and checks
+// the rebuilt state against the advertised digest. A peer k operations behind
+// receives the k operations, a few runs and the state's small fields. A
+// receiver that holds nothing receives every record, so a full snapshot takes
+// the same path.
 //
 // A record hash is SHA-256 of the record's encoding, not its Hash: Hash covers
 // only Inner, so two copies of one operation with different signatures share
@@ -53,11 +54,11 @@ func recordHashes[T syncRecord](records []T) ([][]byte, error) {
 	return hashes, nil
 }
 
-// offerHeld names the records of state, the receiver's pinned state, in a
-// history request. When the names would not fit in one frame it names none,
-// and the sender sends every record.
+// offerHeld references the records of state, the receiver's pinned state, in
+// a history request. When the record hashes would not fit in one frame, the
+// request references none, and the sender sends every record.
 func offerHeld(state *sobject.SOState, request *SOSyncHistoryRequest) error {
-	// Name the singular records.
+	// Reference the singular records.
 	held := &SOSyncHeld{}
 	if config := state.GetConfig(); config != nil {
 		hash, err := recordHash(config)
@@ -74,7 +75,7 @@ func offerHeld(state *sobject.SOState, request *SOSyncHistoryRequest) error {
 		held.Checkpoint = hash[:]
 	}
 
-	// Name each list.
+	// Reference each list.
 	var err error
 	if held.KeyEpochs, err = recordHashes(state.GetKeyEpochs()); err != nil {
 		return err
@@ -89,7 +90,7 @@ func offerHeld(state *sobject.SOState, request *SOSyncHistoryRequest) error {
 		return err
 	}
 
-	// Offer nothing when the names exceed the frame budget.
+	// Offer nothing when the record hashes exceed the frame budget.
 	request.Held = held
 	if (&SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: request}}).SizeVT() > maxMessageSize {
 		request.Held = nil
@@ -97,8 +98,8 @@ func offerHeld(state *sobject.SOState, request *SOSyncHistoryRequest) error {
 	return nil
 }
 
-// omitHeld returns records without those the offer names, and the runs that
-// put them back.
+// omitHeld returns records without those the offer references, and the runs
+// that put them back.
 func omitHeld[T syncRecord](records []T, offer [][]byte) ([]T, []*SOSyncHeldRun, error) {
 	// A receiver that holds nothing receives every record.
 	if len(offer) == 0 {
@@ -112,7 +113,7 @@ func omitHeld[T syncRecord](records []T, offer [][]byte) ([]T, []*SOSyncHeldRun,
 	}
 
 	// Keep each record the receiver lacks, and extend or start a run for each
-	// it holds.
+	// record the receiver holds.
 	kept := make([]T, 0, len(records))
 	var runs []*SOSyncHeldRun
 	for i, record := range records {
@@ -211,7 +212,7 @@ func omitRequestHeld(state *sobject.SOState, request *SOSyncHistoryRequest, snap
 }
 
 // restoreRequestHeld puts the records snapshot omits back into state from
-// held, the state the request offered, or nil when it offered nothing.
+// held, the state the request offered, or nil when the request offered nothing.
 func restoreRequestHeld(state *sobject.SOState, held *sobject.SOState, snapshot *SOSyncSnapshot) error {
 	// Put back the singular records, which the snapshot must not also carry,
 	// as copies the state owns.

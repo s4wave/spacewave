@@ -10,11 +10,11 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// DefaultRetain is the revisions of each manifest platform a release keeps,
-// enough to roll back by reissue.
+// DefaultRetain is the number of revisions of each manifest platform a release
+// keeps, enough to roll back by reissue.
 const DefaultRetain = 3
 
-// platformKey names one manifest's builds for one platform.
+// platformKey selects one manifest's builds for one platform.
 type platformKey struct {
 	manifestID, buildType, platformID string
 }
@@ -42,7 +42,8 @@ func PruneManifests(ctx context.Context, ws world.WorldState, manifestKey string
 		return nil, manifestErrors[0]
 	}
 
-	// Unlink each manifest past the newest retain of its platform.
+	// Unlink each manifest past the newest retain revisions of its
+	// platform.
 	var pruned []string
 	for _, manifests := range groups {
 		kept := make(map[platformKey]int)
@@ -60,11 +61,12 @@ func PruneManifests(ctx context.Context, ws world.WorldState, manifestKey string
 	return pruned, nil
 }
 
-// ReissueManifest copies the stored manifest meta names to the manifest
-// store at manifestKey at a revision above the newest of its platform, and
-// returns the copy's meta. The copy shares the original's file trees.
+// ReissueManifest copies the stored manifest meta selects to the manifest
+// store at manifestKey at a revision above the newest revision of its
+// platform, and returns the copy's meta. The copy shares the original's file
+// trees.
 func ReissueManifest(ctx context.Context, ws world.WorldState, manifestKey string, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.ManifestMeta, error) {
-	// Find the revision to reissue and the platform's newest.
+	// Find the revision to reissue and the platform's newest revision.
 	groups, _, err := manifest_world.CollectManifests(ctx, ws, []string{meta.GetPlatformId()}, manifestKey)
 	if err != nil {
 		return nil, err

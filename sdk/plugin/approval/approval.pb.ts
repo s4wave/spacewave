@@ -14,7 +14,7 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
  */
 export enum PluginApprovalState {
   /**
-   * PluginApprovalState_UNKNOWN is no decision; the root does not run.
+   * PluginApprovalState_UNKNOWN is no decision. The root does not run.
    */
   PluginApprovalState_UNKNOWN = 0,
 
@@ -46,9 +46,9 @@ export const PluginApprovalState_Enum = /* @__PURE__ */ createEnumType(
 
 /**
  * PluginApproval is one device person's decision about one plugin manifest
- * root. It is stored in the device-local platform-account ObjectStore under
- * the session peer that decided it, never in a shared Space, so another
- * member of a Space cannot write it.
+ * root. The record is stored in the device-local platform-account ObjectStore
+ * under the session peer that made the decision, never in a shared Space, so
+ * another member of a Space cannot write the record.
  *
  * @generated from message s4wave.plugin.approval.PluginApproval
  */
@@ -58,8 +58,8 @@ export interface PluginApproval {
    */
   pluginId?: string
   /**
-   * ManifestRoot is the b58 hash of the manifest root the decision names. A
-   * new root of the same plugin has no decision until the person makes one.
+   * ManifestRoot is the b58 hash of the manifest root the decision references.
+   * A new root of the same plugin has no decision until the person makes one.
    */
   manifestRoot?: string
   /**

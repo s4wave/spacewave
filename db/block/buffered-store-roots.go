@@ -134,7 +134,7 @@ func (s *BufferedStore) acquirePins(ctx context.Context, pins []*bufferedPin) er
 }
 
 // OpenStage opens a stage on the destination. Reads go through this buffer, so
-// a staged build sees blocks still pending here; writes go to the stage.
+// a staged build sees blocks still pending here. Writes go to the stage.
 func (s *BufferedStore) OpenStage(ctx context.Context) (StoreOps, func(), error) {
 	stage, release, err := OpenStage(ctx, s.inner)
 	if err != nil {

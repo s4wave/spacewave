@@ -10,7 +10,7 @@ import (
 	os_image "github.com/s4wave/spacewave/os/image"
 )
 
-// pinnedSigners names the data Volume's copy of the accepted signers. Once
+// pinnedSigners selects the data Volume's copy of the accepted signers. Once
 // it exists, the card's signers file is never read again.
 const pinnedSigners = "pinned-signers"
 
@@ -19,7 +19,7 @@ const pinnedSigners = "pinned-signers"
 // directory on first boot. The copy is synced and renamed into place, so a
 // power cut leaves no pin or the whole pin.
 func PinSigners(card, data string) ([]peer.ID, error) {
-	// Return an existing pin; the card's signers no longer matter.
+	// Return an existing pin. The card's signers no longer matter.
 	path := filepath.Join(data, pinnedSigners)
 	pinned, err := os_image.ReadSigners(path)
 	if err == nil {

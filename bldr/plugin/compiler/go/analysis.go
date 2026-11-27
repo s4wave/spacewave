@@ -63,7 +63,7 @@ type Analysis struct {
 // factories gated on platform-specific tags (e.g. "//go:build !js") match
 // the target compile rather than the analysis host. Empty strings fall
 // back to linux/amd64. When enableImportedFactoryDiscovery is false,
-// factory discovery only uses the explicit packagePaths roots; imported
+// factory discovery only uses the explicit packagePaths roots, but imported
 // packages are still loaded for dependency and source analysis.
 func AnalyzePackages(
 	ctx context.Context,
@@ -245,7 +245,7 @@ func AnalyzePackages(
 		return nil, errors.New("expected at least one package to be loaded")
 	}
 
-	// Parse only discovery roots; dependency filenames already came from metadata.
+	// Parse only discovery roots because dependency filenames came from metadata.
 	typedPaths := make([]string, 0)
 	for pkgPath, pkg := range res.packages {
 		_, explicit := explicitFactoryPackagePaths[pkgPath]
@@ -512,7 +512,8 @@ func determineVarTypeWithReference[V any](
 	refTypeValue V, // Value to return if the type matches the reference type
 	errTag string, // Tag to include in error messages for context
 ) (V, error) {
-	// Aliases share identity with their targets; unrelated named structs do not.
+	// Aliases share identity with their targets, but unrelated named structs
+	// do not.
 	var empty V
 	if types.Identical(obj.Type(), refType) {
 		return refTypeValue, nil

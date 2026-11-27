@@ -84,8 +84,9 @@ function clampProgress(progress: number | undefined): number | undefined {
   return Math.max(0, Math.min(1, progress))
 }
 
-// withBrowserBootProgress normalizes the raw status: progress carries a 0..1
-// within-step download fraction (never a bar position); invalid values drop.
+// withBrowserBootProgress normalizes the raw status: progress is a 0..1
+// within-step download fraction (never a bar position). Invalid values are
+// dropped.
 export function withBrowserBootProgress(
   status: BrowserBootStatus,
 ): BrowserBootStatus {

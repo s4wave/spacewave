@@ -701,9 +701,9 @@ describe('CommandPalette', () => {
     })
     expect(selectAllNotPrevented).toBe(true)
 
-    // Backspace after select-all must not be intercepted; the old handler
-    // preventDefaulted it and sliced one character, so the selection delete
-    // removed only a single char instead of clearing the query.
+    // Backspace after select-all must not be intercepted. The old handler
+    // called preventDefault on it and sliced one character, so the selection
+    // delete removed only a single char instead of clearing the query.
     const backspaceNotPrevented = fireEvent.keyDown(input, { key: 'Backspace' })
     expect(backspaceNotPrevented).toBe(true)
 

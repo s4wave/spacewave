@@ -1,7 +1,7 @@
-// Unified loading primitive family. Adapters in app/loading/status/* produce
-// LoadingView values; the primitives here consume them. See
-// guides/alpha-ui-design-system.org "Loading" section for the four-state
-// contract and domain wrapper pattern.
+// The exports form a unified loading primitive family. Adapters in
+// app/loading/status/* produce LoadingView values. The primitives here consume
+// them. See guides/alpha-ui-design-system.org "Loading" section for the
+// four-state contract and domain wrapper pattern.
 
 export { LoadingCard } from './LoadingCard.js'
 export { LoadingInline, type LoadingInlineTone } from './LoadingInline.js'

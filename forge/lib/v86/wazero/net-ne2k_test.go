@@ -90,8 +90,9 @@ func TestNE2KRemoteDMAWordRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	host, dev := newNE2KTestDevice(t)
 
-	// Two 16-bit words; each data-port access must move two ring bytes through the
-	// DMA engine, the word transfer mode the Linux NE2000-PCI driver uses.
+	// Two 16-bit words: each data-port access must move two ring bytes
+	// through the DMA engine, the word transfer mode the Linux NE2000-PCI
+	// driver uses.
 	words := []uint16{0xbeef, 0x4221}
 	want := []byte{0xef, 0xbe, 0x21, 0x42}
 	addr := uint16(ne2kStartPage) << 8
@@ -187,8 +188,8 @@ func TestNE2KReceiveFrameRingAndIRQGating(t *testing.T) {
 		t.Fatalf("curpg = %#x, want %#x", dev.curpg, wantNext)
 	}
 
-	// BOUNDARY is the driver's read pointer; the device must not advance it on
-	// receive (lib8390 reads the next ring page as EN0_BOUNDARY+1).
+	// BOUNDARY is the driver's read pointer. The device must not advance it
+	// on receive (lib8390 reads the next ring page as EN0_BOUNDARY+1).
 	if dev.boundary != ne2kStartRXPage {
 		t.Fatalf("boundary = %#x, want unchanged %#x", dev.boundary, ne2kStartRXPage)
 	}
@@ -282,8 +283,9 @@ func TestNE2KReceiveFilterDropsOtherUnicast(t *testing.T) {
 // back through remote DMA exactly as ne2k_pci_get_8390_hdr does. It injects a short
 // (ARP-reply-sized) frame addressed to the byte-doubled PROM MAC the driver
 // programs into PAR0-5, asserting the header the driver reads (status RXOK, next
-// page, count) and the body match. This is the device-level proof that the live
-// guest's apt-over-net DNS/ARP round trip should not be rejected as rx_errors.
+// page, count) and the body match. This test is the device-level proof that
+// the live guest's apt-over-net DNS/ARP round trip should not be rejected as
+// rx_errors.
 func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 	// Create an NE2K device for the Linux driver receive sequence.
 	ctx := context.Background()
@@ -300,9 +302,9 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 		rxConfig    = enrxcrAB
 	)
 
-	// The driver reads the station address from the byte-doubled PROM and writes
-	// that doubled value into PAR0-5; the usermode stack therefore learns and
-	// addresses the doubled MAC, so the RX filter must match it.
+	// The driver reads the station address from the byte-doubled PROM and
+	// writes that doubled value into PAR0-5. The usermode stack therefore
+	// learns and addresses the doubled MAC, so the RX filter must match it.
 	driverMAC := [6]byte{0x02, 0x02, 0x22, 0x22, 0x15, 0x15}
 	host.writeIO(ctx, uint32(dev.port+e8390Cmd), crPage1Stop, 8)
 	for i, value := range driverMAC {
@@ -325,7 +327,8 @@ func TestNE2KDriverInitReceiveReadback(t *testing.T) {
 		t.Fatalf("after driver init curpg = %#x, want %#x", dev.curpg, rxStartPage)
 	}
 
-	// 42-byte ARP-reply-sized frame to the doubled MAC; gets padded to 60 in ring.
+	// Send a 42-byte ARP-reply-sized frame to the doubled MAC. The frame
+	// gets padded to 60 bytes in the ring.
 	frame := append([]byte{
 		0x02, 0x02, 0x22, 0x22, 0x15, 0x15, // dst: guest (doubled)
 		0x02, 0x22, 0x15, 0x00, 0x00, 0x02, // src: gateway

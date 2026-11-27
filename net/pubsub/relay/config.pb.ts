@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * PeerId is the peer ID to look up and use private key for.
+   * PeerId is the peer ID to look up and use the private key for.
    */
   peerId?: string
   /**

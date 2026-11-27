@@ -74,7 +74,7 @@ func (r *SessionResource) SetBackgroundPlugin(
 	}
 	meta.SetBackgroundPlugin(spaceID, pluginID, bp)
 
-	// Persist the metadata, which wakes the background keeper.
+	// Persist the metadata to wake the background keeper.
 	if err := sessionCtrl.UpdateSessionMetadata(ctx, ref, meta); err != nil {
 		return nil, errors.Wrap(err, "update session metadata")
 	}
@@ -83,7 +83,8 @@ func (r *SessionResource) SetBackgroundPlugin(
 
 // MountSpace mounts the body of a Space in this Session's list and returns a
 // SpaceResource configured like one an application mounts, so the Space plugin
-// runtimes they acquire are shared. Call release when done with the resource.
+// runtimes both resources acquire are shared. Call release when done with the
+// resource.
 func (r *SessionResource) MountSpace(
 	ctx context.Context,
 	spaceID string,

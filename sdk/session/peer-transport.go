@@ -37,7 +37,7 @@ type PeerTransport struct {
 
 // OpenPeerTransport opens the authenticated stream service for this session.
 // req may start a UDP transport and serve the Resource service to account
-// sessions; both stop on Release. A nil req opens the stream service only.
+// sessions. Both stop on Release. A nil req opens the stream service only.
 func (s *Session) OpenPeerTransport(ctx context.Context, req *AccessPeerTransportRequest) (*PeerTransport, error) {
 	// Request the session's authenticated peer transport resource.
 	if req == nil {

@@ -28,7 +28,7 @@ const openPackReaderLimit = 4
 //
 // The pack streams into a chunked blob as it arrives, so the writer holds a
 // few chunks, not the pack. Close indexes the stored blob by reading it back
-// and attaches the pack under its checksum; a writer that fails before Close
+// and attaches the pack under its checksum. A writer that fails before Close
 // leaves only unreferenced blocks in the transaction. Writes run on a builder
 // goroutine that owns the Store's transaction until Close returns, so the
 // caller must not use the Store between PackfileWriter and Close.
@@ -329,7 +329,7 @@ type storePackfileWriter struct {
 
 // storePackCacheEntry keeps an index while its data reader enters and leaves the LRU.
 type storePackCacheEntry struct {
-	// hash names the pack and its blobs.
+	// hash identifies the pack and its blobs.
 	hash plumbing.Hash
 	// idx remains available after the data reader is evicted.
 	idx *idxfile.MemoryIndex

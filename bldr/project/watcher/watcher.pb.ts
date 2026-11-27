@@ -15,7 +15,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * ConfigPath is the path to load the bldr.yaml configuration.
-   * If the path is empty, starts the project controller with a blank config.
+   * If the path is empty, the watcher starts the project controller with a
+   * blank config.
    */
   configPath?: string
   /**

@@ -19,9 +19,9 @@ import (
 
 // LaunchBrowser starts a Playwright-managed browser instance. The browser
 // process is shared across all test sessions. NewClean* helpers create a fresh
-// BrowserContext; NewRetainedState* helpers reuse the harness context.
+// BrowserContext. NewRetainedState* helpers reuse the harness context.
 //
-// Call this after Boot returns. Headless mode is the default; pass
+// Call this after Boot returns. Headless mode is the default. Pass
 // WithHeadless(false) at Boot time to see the browser.
 func (h *Harness) LaunchBrowser() error {
 	// Start Playwright.
@@ -156,7 +156,7 @@ func (h *Harness) newRetainedStateBrowserPage(s *TestSession) (playwright.Page, 
 }
 
 // newStorageContext keeps each fixture isolated while providing real durable
-// storage. WebKit's ephemeral contexts reject OPFS; its macOS persistent
+// storage. WebKit's ephemeral contexts reject OPFS. Its macOS persistent
 // profiles share OPFS by origin, so each fixture also owns a loopback origin.
 func (h *Harness) newStorageContext() (playwright.BrowserContext, string, error) {
 	// Prepare a WebKit profile and parse the app URL.

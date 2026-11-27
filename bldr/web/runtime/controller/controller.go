@@ -29,24 +29,24 @@ type Constructor func(
 // Controller implements a common bldr web runtime controller.
 // Tracks attached WebRuntime state and manages RPC calls in/out.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor Constructor
 
-	// runtimeID is the controller id to use
+	// runtimeID is the controller id to use.
 	runtimeID string
-	// runtimeVersion is the version
+	// runtimeVersion is the version.
 	runtimeVersion controller.Version
 
 	// bldrHTTP serves the /b/ frontend, package, and plugin file routes.
 	bldrHTTP *web_runtime_http.Handler
 
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// rt is the runtime
+	// rt is the runtime.
 	rt web_runtime.WebRuntime
 }
 
@@ -301,7 +301,7 @@ func (c *Controller) HandleWebDocument(wv web_document.WebDocument) {
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		c.rt = nil

@@ -12,7 +12,7 @@ import {
 
 const noop = () => {}
 
-// add is the press an empty record offers; a viewer's presses show only once
+// add is the press an empty record offers. A viewer's presses show only once
 // its record has arrived.
 const add: ViewerBarAction = {
   id: 'add',
@@ -49,7 +49,7 @@ const fixtures: Record<string, ViewerStatusProps> = {
 
 // ViewerStatusDebug renders a viewer's bar over ViewerStatus in one fixture
 // state, with the viewport as its pane, for the viewer sweep. The route's
-// state segment picks the fixture; an unknown or missing one shows waiting.
+// state segment picks the fixture. An unknown or missing one shows waiting.
 export function ViewerStatusDebug() {
   const { state: name } = useParams()
   const status = fixtures[name ?? ''] ?? fixtures.waiting

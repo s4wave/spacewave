@@ -31,16 +31,16 @@ type Store struct {
 	bucket []byte
 	// flusher makes ordered commits durable with a bolt flush.
 	flusher *kvtx.OrderedFlusher
-	// writers orders the write transactions ahead of bolt's own writer lock,
+	// writers orders write transactions ahead of bolt's own writer lock,
 	// so a transaction opened with block.WithBackground waits
 	// behind every foreground writer that is waiting. Bolt's lock grants
-	// waiters in no priority order, so without it a burst of background
-	// writes, such as cache fills or upload marker clears, queues ahead of a
-	// player's write.
+	// waiters in no priority order, so without writers a burst of
+	// background writes, such as cache fills or upload marker clears,
+	// queues ahead of a player's write.
 	writers csync.PrioMutex
 }
 
-// Priorities of Store.writers.
+// writerBackground is a Store.writers priority, as is writerForeground.
 const (
 	// writerBackground is the priority of write transactions opened with
 	// block.WithBackground.
@@ -89,8 +89,8 @@ func (s *Store) RefreshForCoordinationLock() error {
 }
 
 // NewTransaction returns a new transaction against the store.
-// Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Indicate write if the transaction will be writable.
+// Always call Discard() after using the transaction.
 //
 // A write transaction first takes the Store's writer turn, behind every
 // waiting foreground writer when ctx carries block.WithBackground,

@@ -28,7 +28,7 @@ type daemonIdleSnapshot struct {
 	stopping bool
 	// desktop indicates that the desktop shell holds the daemon.
 	desktop bool
-	// others names the holds a claim waits for, sorted, with a count suffix on
+	// others lists the holds a claim waits for, sorted, with a count suffix on
 	// repeated names. Only the claims fill it.
 	others []string
 }
@@ -216,7 +216,7 @@ func (t *daemonIdleTracker) setDesktop(hold *daemonServiceHold) {
 
 // claimDesktopQuit decides the final busy result while Electron can report it.
 // Only the identified requester and live desktop hold are excluded. A winning
-// claim fences later admission; teardown waits for the shell and RPC reply.
+// claim fences later admission. Teardown waits for the shell and RPC reply.
 func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daemonIdleSnapshot) {
 	// Take the tracker lock for the claim decision.
 	t.mu.Lock()
@@ -260,10 +260,12 @@ func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool, owner *daemonServ
 }
 
 // otherHoldsLocked returns the current state without the desktop hold and the
-// requester's connection and excluded service, naming the remaining holds
-// while mu is held. Service exclusion uses identity, never its display name.
+// requester's connection and excluded service, listing the remaining holds
+// while mu is held. Service exclusion uses identity, never the service's
+// display name.
 func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn, excluded *daemonServiceHold) daemonIdleSnapshot {
-	// Name the identified clients, then the connections admitted without one.
+	// Describe the identified clients, then the connections admitted without
+	// an identity.
 	snapshot := t.snapshotLocked()
 	names := make([]string, 0, snapshot.clients+snapshot.services)
 	for conn := range t.connections {
@@ -277,7 +279,7 @@ func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn, excluded *d
 		names = append(names, unnamedClient)
 	}
 
-	// Name the services other than the desktop shell and the claim owner.
+	// Describe the services other than the desktop shell and the claim owner.
 	for hold := range t.services {
 		if hold == t.desktop || hold == excluded {
 			snapshot.services--
@@ -359,7 +361,8 @@ func (t *daemonIdleTracker) armIdleLocked() {
 			return
 		}
 
-		// Claim expiry before invoking shutdown so admission cannot revive it.
+		// Claim expiry before invoking shutdown so admission cannot revive
+		// the daemon.
 		t.stopping = true
 		t.idleTimer = nil
 		t.publishLocked()

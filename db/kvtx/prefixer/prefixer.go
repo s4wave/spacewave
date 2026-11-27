@@ -19,7 +19,7 @@ func NewPrefixer(base kvtx.Store, prefix []byte) kvtx.Store {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// The caller must call Discard() after finishing with the transaction.
 func (p *Prefixer) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Open the base transaction before applying the key prefix.
 	btx, err := p.base.NewTransaction(ctx, write)

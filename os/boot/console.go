@@ -19,18 +19,18 @@ import (
 
 // RunConsole composes a verified read-only system image, a writable Data
 // filesystem and kernel mounts for one trusted serial shell in guest PID1.
-// Backing stores and init's runtime remain outside the served roots. First
-// boot creates the data Volume, and so its key, once the image verifies; it
+// Backing stores and init's runtime remain outside the served roots. First boot
+// creates the data Volume, and so its key, once the image verifies. RunConsole
 // never resets or migrates a store. Hosted probes keep their separate Run.
 // Native comparison access, when requested, exposes only /store/native-bench at
-// /tmp/native-bench; that existing private folder must not hold database files.
+// /tmp/native-bench. That existing private folder must not hold database files.
 // A request on requests, SIGTERM to reboot and any other signal to power off,
-// asks for ordered cleanup while healthy FUSE remains live; cancelling ctx
-// represents failure and disconnects FUSE before containment. The returned
-// Stop says how the machine should stop. A boot on trial returns Reboot on
-// any failure before the trial is accepted, and on its deadline, so the next
-// boot rolls back; a deadline passed before the shell starts restarts the
-// machine at once.
+// asks for ordered cleanup while healthy FUSE remains live. Cancelling ctx
+// represents failure and disconnects FUSE before containment. The returned Stop
+// says how the machine should stop. A boot on trial returns Reboot on any
+// failure before the trial is accepted, and on its deadline, so the next boot
+// rolls back. A deadline passed before the shell starts restarts the machine at
+// once.
 func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, config, terminal string, nativeBench bool) (stop Stop, retErr error) {
 	// Refuse hosted invocation before opening storage or changing any mount.
 	if os.Getpid() != 1 {
@@ -41,7 +41,8 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 	}
 	println("Starting console: opening system and data files.")
 
-	// Retain independent bootstrap paths; never remove a tree after failed unmount.
+	// Retain independent bootstrap paths. Never remove a tree after failed
+	// unmount.
 	base, err := os.MkdirTemp("/tmp", "spacewave-console-")
 	if err != nil {
 		return PowerOff, err
@@ -86,8 +87,8 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 		return PowerOff, err
 	}
 
-	// A trial's deadline runs from here, and a trial that fails before it
-	// settles reboots; its next boot rolls back.
+	// A trial's deadline runs from here, and a trial that fails before the
+	// trial settles reboots. The trial's next boot rolls back.
 	var trial *trialRun
 	if sel.OnTrial() {
 		trial = newTrialRun(sel.AcceptArgs(system))
@@ -149,7 +150,7 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 		println("SPACEWAVE_OS_BINDING role=config volume=" + configuration.VolumeID() + " object=" + dataRootKey)
 	}
 
-	// Watch both storage owners; neither may close below filesystem users.
+	// Watch both storage owners. Neither may close below filesystem users.
 	runCtx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	watchCtx, stopWatch := context.WithCancel(context.Background())
@@ -262,8 +263,9 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 		}
 	}
 
-	// The kernel's DHCP lease names the resolvers; the image's resolv.conf is
-	// only its mountpoint. A kernel without IP_PNP leaves the image's file.
+	// The kernel's DHCP lease records the resolvers. The image's
+	// resolv.conf is only its mountpoint. A kernel without IP_PNP leaves
+	// the image's file.
 	if err := bindResolver(rootPath, &kernelMounts); err != nil {
 		return PowerOff, errors.Join(errors.New("resolver /etc/resolv.conf"), err)
 	}
@@ -289,7 +291,8 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 	}
 	defer stopReady()
 
-	// Start only after helpers finish; from here one Wait4 authority owns children.
+	// Start only after helpers finish. From here one Wait4 authority owns
+	// children.
 	if err := context.Cause(runCtx); err != nil {
 		return PowerOff, err
 	}
@@ -318,7 +321,8 @@ func bindDaemon(system, data, rootPath string, kernelMounts *[]string) ([]string
 		return nil, errors.Join(errors.New("daemon state "+daemonStatePath), err)
 	}
 
-	// Lend the grant read-only; an enrolled Device keeps its own completion.
+	// Lend the grant read-only. An enrolled Device keeps its own
+	// completion.
 	args := []string{"enter-daemon", rootPath}
 	grant := filepath.Join(system, os_image.CardGrant)
 	if _, err := os.Stat(grant); errors.Is(err, os.ErrNotExist) {
@@ -338,7 +342,7 @@ const resolverCopy = "/resolv.conf"
 
 // bindResolver binds a copy of the kernel's DHCP lease over the image's
 // resolv.conf when both exist. The kernel writes the lease once, before init
-// starts, so the copy stays exact; procfs net entries are not bind sources.
+// starts, so the copy stays exact. Procfs net entries are not bind sources.
 func bindResolver(rootPath string, kernelMounts *[]string) error {
 	// Either file may be absent: an image without networking, or a kernel
 	// without IP_PNP.

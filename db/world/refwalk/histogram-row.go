@@ -15,7 +15,7 @@ const (
 
 // SizeClass returns the class of a block of size bytes: class i holds the
 // blocks of at most 256<<i bytes that are larger than the class below, and
-// the last class every block above 1 MiB.
+// the last class holds every block above 1 MiB.
 func SizeClass(size uint64) int {
 	class := bits.Len64(max(size, 1)-1) - smallestClassBits
 	return min(max(class, 0), SizeClasses-1)
@@ -49,8 +49,8 @@ type HistogramRow struct {
 	Blocks uint64
 	// Bytes is their stored size.
 	Bytes uint64
-	// Leaves is the number of blocks that name no other block: a type that
-	// holds no refs, or a decoded block whose refs are empty.
+	// Leaves is the number of blocks that reference no other block: a type
+	// that holds no refs, or a decoded block whose refs are empty.
 	Leaves uint64
 	// Sizes counts the blocks in each size class, as SizeClass assigns them.
 	Sizes [SizeClasses]uint64

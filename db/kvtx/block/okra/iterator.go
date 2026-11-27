@@ -356,7 +356,7 @@ func (i *Iterator) stepPage(reverse bool) bool {
 }
 
 // setCurrent positions the iterator on entry idx of the current leaf page,
-// and reports false, ending the iteration, when it is out of bounds.
+// and reports false, ending the iteration, when entry idx is out of bounds.
 func (i *Iterator) setCurrent(idx int) bool {
 	// Require a non-anchor entry within the iterator prefix bounds.
 	page := i.walk.leaf()
@@ -386,11 +386,11 @@ func (i *Iterator) inBounds(key []byte) bool {
 // iteratorWalk is an Iterator's path to its current leaf page, in one page
 // kind.
 type iteratorWalk interface {
-	// seek loads the path to the leaf page containing key. An empty key seeks
-	// the first leaf page, or the last when last is set.
+	// seek loads the path to the leaf page containing key. An empty key
+	// seeks the first leaf page, or the last leaf page when last is set.
 	seek(ctx context.Context, key []byte, last bool) error
-	// step loads the next leaf page, or the previous when reverse is set, and
-	// reports false at the end of the tree.
+	// step loads the next leaf page, or the previous leaf page when reverse
+	// is set, and reports false at the end of the tree.
 	step(ctx context.Context, reverse bool) (bool, error)
 	// leaf returns the current leaf page.
 	leaf() walkPage
@@ -421,13 +421,13 @@ type leafWalk[P walkPage, C any] struct {
 type readAhead[P walkPage] struct {
 	// page is the page whose children were read.
 	page P
-	// answers holds the children no read has taken, or nil when the batch read
-	// fewer than two.
+	// answers holds the children no read has taken, or nil when the batch
+	// read fewer than two children.
 	answers *block.BatchAnswers
 }
 
 // seek loads the path to the leaf page containing key. It reads nothing
-// ahead, so a seek that reads one entry costs only the lookup; the first step
+// ahead, so a seek that reads one entry costs only the lookup. The first step
 // reads the rest of the leaf's parent.
 func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error {
 	// Descend toward the key, or the first or last leaf without one.
@@ -473,9 +473,9 @@ func (w *leafWalk[P, C]) step(ctx context.Context, reverse bool) (bool, error) {
 }
 
 // enter reads ahead the children of page, at depth in the path, from index to
-// the end of the page in the scan's direction, unless it holds that page's
-// read-ahead already, and drops the read-ahead of the deeper pages the step
-// leaves.
+// the end of the page in the scan's direction, unless the walk holds that
+// page's read-ahead already, and drops the read-ahead of the deeper pages the
+// step leaves.
 func (w *leafWalk[P, C]) enter(ctx context.Context, depth int, page P, cursor C, index int) (context.Context, error) {
 	// A page the scan is still inside keeps its read-ahead.
 	if depth < len(w.ahead) && any(w.ahead[depth].page) == any(page) {

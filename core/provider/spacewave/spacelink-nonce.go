@@ -15,8 +15,9 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-// CheckSpaceLinkNonceFresh checks account-wide consumption without reserving it.
-// Cloud unavailability fails closed; a local cache cannot establish freshness.
+// CheckSpaceLinkNonceFresh checks account-wide consumption without reserving
+// consent.
+// Cloud unavailability fails closed. A local cache cannot establish freshness.
 func (a *ProviderAccount) CheckSpaceLinkNonceFresh(
 	ctx context.Context,
 	agentPeerID, nonce, payload []byte,
@@ -59,7 +60,7 @@ func (a *ProviderAccount) accessSpaceLinkNonce(
 		return err
 	}
 
-	// Resolve an existing signing Session; no cache-local fallback is safe.
+	// Resolve an existing signing Session. No cache-local fallback is safe.
 	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return err

@@ -28,10 +28,10 @@ type daemonUpdateHandoff struct {
 }
 
 // watchDaemonUpdate retains accepted intent beyond its short launcher RPC.
-// While an accepted update waits for other clients and services, it reports
-// them to the launcher and claims the handoff when they finish or the user
-// asks to restart now. A disposed launcher service is reacquired through its
-// bus owner directive.
+// While an accepted update waits for other clients and services, the watcher
+// reports them to the launcher and claims the handoff when they finish or the
+// user asks to restart now. A disposed launcher service is reacquired through
+// its bus owner directive.
 func watchDaemonUpdate(
 	ctx context.Context,
 	le *logrus.Entry,

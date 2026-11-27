@@ -119,7 +119,7 @@ describe('SqlTableViewViewer', () => {
     fakeTableView.metaError = new Error('view record unreadable')
     renderViewer()
 
-    // The grid stays, under the failure's notice and its Retry.
+    // The grid stays, under the failure's notice and its Retry button.
     await waitFor(() => expect(screen.getByText('ada')).toBeTruthy())
     expect(
       screen.getByText('Could not read the table view: view record unreadable'),

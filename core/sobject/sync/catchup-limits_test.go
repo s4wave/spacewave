@@ -38,7 +38,7 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 
-			// withTimeout ctx,cancel via context.
+			// Create ctx and cancel with context.WithTimeout.
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 			const soID = "catchup-budget"
@@ -48,7 +48,7 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 			remote := newAuthenticationPeer(t, soID, reader, initial)
 			left, right := net.Pipe()
 
-			// cleanup.
+			// Register the pipe cleanup.
 			t.Cleanup(func() { left.Close(); right.Close() })
 			done := make(chan error, 1)
 			go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
@@ -72,7 +72,8 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				// Entries are linked but untrusted; budget rejection precedes signature work.
+				// Entries are linked but untrusted. Budget
+				// rejection precedes signature work.
 				cursor := initial.Config.ConfigChainHash
 				changes := make([]*sobject.SOConfigChange, 0, test.count)
 				for i := range test.count {
@@ -136,13 +137,13 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 // TestCatchupRecoveryFencesTrailingSnapshot rejects further imports while its recovery response is blocked.
 func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	const soID = "catchup-terminal-snapshot"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 
-	// authenticationState initial.
+	// Build initial with authenticationState.
 	initial := authenticationState(t, soID, owner, reader)
 	local := newAuthenticationPeer(t, soID, owner, initial)
 	remote := newAuthenticationPeer(t, soID, reader, initial)
@@ -210,7 +211,8 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Observe the actual recovery write before admitting trailing input; the peer is not reading it yet.
+	// Observe the actual recovery write before admitting trailing input.
+	// The peer is not reading the recovery response yet.
 	for {
 		select {
 		case message := <-observed.messages:
@@ -350,7 +352,7 @@ func TestOversizedSnapshotEndsStreamAsTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Run both ends; the requester's observer reports a required recovery.
+	// Run both ends. The requester's observer reports a required recovery.
 	left, right := net.Pipe()
 	t.Cleanup(func() { left.Close(); right.Close() })
 	localDone, remoteDone := make(chan error, 1), make(chan error, 1)

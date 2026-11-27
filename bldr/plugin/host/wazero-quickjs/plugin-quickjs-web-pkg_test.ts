@@ -7,7 +7,8 @@ import { Counter } from '/b/pkg/@aptre/protobuf-es-lite/message.mjs'
 export default async function main(backendAPI: BackendAPI) {
   const counter = new Counter()
   if (counter.next() !== 1) throw new Error('web package module did not load')
-  // test that we can use the new AsyncDisposableStack w/ the Symbol polyfills
+  // Test that the plugin can use the new AsyncDisposableStack
+  // w/ the Symbol polyfills.
   await using __defer = new AsyncDisposableStack()
   __defer.defer(() => console.log('deferred function run'))
 

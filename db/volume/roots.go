@@ -42,7 +42,7 @@ type Roots interface {
 
 // RootProofs is the part of a Volume that keeps completion proofs: records
 // that the graph under a root is stored, which a graph copy reads to skip the
-// subtree. A proof holds nothing; the collector deletes it with its block.
+// subtree. A proof holds nothing, and the collector deletes it with its block.
 type RootProofs interface {
 	// HoldStageCompleteRoots reports which roots have a completion proof and
 	// makes the stage hold each of them in the same transaction.

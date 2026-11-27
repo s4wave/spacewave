@@ -30,11 +30,11 @@ service WebRuntime {
 
   // CreateWebDocument requests to create a new WebDocument.
   // Returns created: false if unable to create WebDocuments.
-  // This usually creates a new Tab or Window.
+  // The request usually creates a new Tab or Window.
   rpc CreateWebDocument(CreateWebDocumentRequest) returns (CreateWebDocumentResponse);
   // RemoveWebDocument requests to delete a WebDocument.
   // Returns created: false if unable to create WebDocuments.
-  // This usually creates a new Tab or Window.
+  // The request usually creates a new Tab or Window.
   rpc RemoveWebDocument(RemoveWebDocumentRequest) returns (RemoveWebDocumentResponse);
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   // Exposes the WebDocument service.
@@ -43,8 +43,9 @@ service WebRuntime {
 
   // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
   // Contacts the WebWorker via. the associated WebRuntimeClient.
-  // The WebWorker must have registered with the runtime for this to work.
-  // Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+  // The WebWorker must have registered with the runtime for the RPC to work.
+  // Note: WebWorkerRpc is on WebRuntime and not WebDocument for performance
+  // reasons (fewer context transfers).
   // Id is the webWorkerId.
   rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 
@@ -67,7 +68,7 @@ message WatchWebRuntimeStatusRequest {}
 
 // WebRuntimeStatus contains a snapshot of status for a Runtime instance.
 message WebRuntimeStatus {
-  // Snapshot indicates this is a full snapshot of the lists.
+  // Snapshot indicates the message is a full snapshot of the lists.
   bool snapshot = 1;
   // WebDocuments contains the list of web documents.
   repeated WebDocumentStatus web_documents = 2;
@@ -88,14 +89,15 @@ message WebDocumentStatus {
 
 // CreateWebDocumentRequest is a request to create a new web view.
 message CreateWebDocumentRequest {
-  // id is the identifier for the new WebDocument.
+  // Id is the identifier for the new WebDocument.
   string id = 1;
 }
 
 // CreateWebDocumentResponse is the response to the CreateWebDocument request.
 message CreateWebDocumentResponse {
   // Created indicates the WebDocument was created.
-  // If this is not set, assumes we cannot create WebDocuments.
+  // If Created is not set, the caller assumes the runtime cannot create
+  // WebDocuments.
   bool created = 1;
 }
 
@@ -108,7 +110,7 @@ message RemoveWebDocumentRequest {
 // RemoveWebDocumentResponse is the response to the RemoveWebDocument request.
 message RemoveWebDocumentResponse {
   // Removed indicates the WebDocument was removed.
-  // If this is not set, the document did not exist.
+  // If Removed is not set, the document did not exist.
   bool removed = 1;
 }
 
@@ -132,7 +134,7 @@ enum WebRuntimeClientType {
 
 // WebRenderer is the type of web renderer to use for native applications.
 enum WebRenderer {
-  // WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
+  // WEB_RENDERER_DEFAULT uses the default renderer (electron).
   WEB_RENDERER_DEFAULT = 0;
   // WEB_RENDERER_ELECTRON uses Electron as the native runtime.
   WEB_RENDERER_ELECTRON = 1;
@@ -142,7 +144,7 @@ enum WebRenderer {
 
 // WebRuntimeClientInit is a message sent by a client of a WebRuntime.
 message WebRuntimeClientInit {
-  // RuntimeId is the shared identifier for the Go Runtime instance.
+  // WebRuntimeId is the shared identifier for the Go Runtime instance.
   //
   // must be set
   string web_runtime_id = 1;

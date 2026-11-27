@@ -44,7 +44,7 @@ func (s *Session) Recv(ctx context.Context) ([]byte, error) {
 }
 
 // GetPresence returns the presence epoch of the remote peer and a channel
-// closed when it may have changed.
+// closed when the epoch may have changed.
 func (s *Session) GetPresence() (epoch uint64, changed <-chan struct{}) {
 	return s.ref.GetPresence()
 }

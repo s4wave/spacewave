@@ -11,10 +11,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// The files beside the database: the seed's progress, the end of each
-// acknowledged commit's results, and each commit's latency. Each line is
-// written once the commit it records returned, so a kill leaves at most a
-// commit that landed without its line, never a line without its commit.
+// seededPath, ackedPath and latencyPath name the files beside the database:
+// the seed's progress, the end of each acknowledged commit's results, and
+// each commit's latency. Each line is written once the commit it records
+// returned, so a kill leaves at most a commit that landed without its line,
+// never a line without its commit.
 func seededPath(path string) string { return path + ".seeded" }
 func ackedPath(path string) string  { return path + ".acked" }
 func latencyPath(path string) string {
@@ -38,7 +39,7 @@ func appendLine(path, line string) error {
 // lastInt returns the first field of the last line of the file at path as an
 // integer, or zero when the file is absent or empty.
 func lastInt(path string) (int, error) {
-	// Open the file; an absent one has no lines.
+	// Open the file. An absent one has no lines.
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return 0, nil

@@ -78,8 +78,8 @@ func (v *SOOperationVerifier) OperationSet(state *SOState) (*SOOperationSet, err
 		set.insert(key, inner)
 	}
 
-	// Resolve the sequence, verifying the positions not yet verified, and keep
-	// the operations and positions of this set for the next.
+	// Resolve the sequence, verifying the positions not yet verified, and
+	// keep the operations and positions of this set for the next set.
 	records := state.GetSequence()
 	sequences := make(map[string]verifiedSequence, len(records))
 	set.setSequence(state.GetConfig().GetSequencer(), records, func(record *SOSequence) (string, *SOSequenceInner, string, error) {
@@ -105,7 +105,7 @@ func (v *SOOperationVerifier) AdoptCheckpoint(state *SOState, next *SOCheckpoint
 }
 
 // keep adds each of ops to set and returns the ones set took, in order, in
-// the start of ops. An operation set covers or holds, or whose signature
+// the start of ops. An operation that set covers or holds, or whose signature
 // fails, is left out. It verifies only the operations the last set did not
 // hold unchanged, and leaves what the verifier remembers as it was. Verifying
 // may suspend under GoScript, so it filters with a plain loop.
@@ -140,7 +140,7 @@ func (v *SOOperationVerifier) verifyLocked(op *SOOperation) (string, *SOOperatio
 }
 
 // verifySequence returns the verified body and signer of record, reusing the
-// last set's for an unchanged position.
+// last set's body and signer for an unchanged position.
 func (v *SOOperationVerifier) verifySequence(record *SOSequence) (*SOSequenceInner, string, error) {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
@@ -149,9 +149,9 @@ func (v *SOOperationVerifier) verifySequence(record *SOSequence) (*SOSequenceInn
 }
 
 // verifySequenceLocked returns the hash, verified body and signer of record,
-// reusing the last set's for an unchanged position. The hash names only the
-// body, so a held position is reused only when its signature matches too. The
-// caller holds mtx.
+// reusing the last set's body and signer for an unchanged position. The hash
+// identifies only the body, so a held position is reused only when its
+// signature matches too. The caller holds mtx.
 func (v *SOOperationVerifier) verifySequenceLocked(record *SOSequence) (string, *SOSequenceInner, string, error) {
 	key := string(record.Hash())
 	if held, ok := v.sequences[key]; ok && held.record.EqualVT(record) {

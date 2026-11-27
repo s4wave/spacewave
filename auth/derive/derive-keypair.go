@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// deriveKeypairResolver resolves DeriveEntityKeypair directives
+// deriveKeypairResolver resolves DeriveEntityKeypair directives.
 type deriveKeypairResolver struct {
 	c   *Controller
 	ctx context.Context

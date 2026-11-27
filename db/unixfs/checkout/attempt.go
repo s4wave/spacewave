@@ -24,9 +24,9 @@ type attempt struct {
 	codec Codec
 }
 
-// checkout makes directory hold the files of parts, which check approves,
+// checkout makes directory hold the files of parts with check's approval,
 // sharing the worker of every caller in this process that asks for the same
-// directory and parts. what names the release in errors and the log, which
+// directory and parts. what identifies the release in errors and the log, which
 // records how long this caller waited.
 func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch, what, directory string, parts []*block.BlockRef, check func(staging string) error) error {
 	// Name the immutable content before joining its shared worker.
@@ -59,11 +59,12 @@ func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch,
 // a checkout an older engine wrote or one a program changed, and one check
 // rejects, such as a checkout holding a file the PC cannot read. Otherwise it
 // writes the files beside directory, reading the blocks the checkout being
-// replaced, or else the previous checkout beside it, shares from its files and those an
-// interrupted attempt fetched from the cache beside it, and moves them into
-// place at once. A failed or canceled attempt keeps the cache for the next.
+// replaced, or else the previous checkout beside it, shares from its files and
+// those an interrupted attempt fetched from the cache beside it, and moves
+// them into place at once. A failed or canceled attempt keeps the cache for
+// the next.
 // Each attempt logs one line with the time each phase took and the bytes
-// each kind of source served while fetching; assembly reads them again.
+// each kind of source served while fetching. Assembly reads the bytes again.
 func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]block.StoreOps, func()), what, directory string, parts []*block.BlockRef, check func(staging string) error, report func(Progress), yield func(context.Context) error) (err error) {
 	// Time each phase, and log the attempt when it ends.
 	clock := newPhaseClock()
@@ -168,7 +169,7 @@ func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]blo
 
 // write writes the files of every part into staging, reading their blocks
 // from blocks, and fails once they stop arriving. yield holds a remote read
-// while a foreground checkout needs the network; a held read does not count
+// while a foreground checkout needs the network. A held read does not count
 // as stalled.
 func (s *attempt) write(ctx context.Context, blocks *sources, parts []*block.BlockRef, staging string, progress func(Progress), yield func(context.Context) error) error {
 	// Give up once nothing arrives for stallTimeout, so a source that

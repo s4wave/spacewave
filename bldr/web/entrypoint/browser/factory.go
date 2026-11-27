@@ -17,7 +17,7 @@ import (
 
 // Factory constructs a Browser runtime controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

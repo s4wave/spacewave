@@ -72,12 +72,12 @@ func peerFailCause(err error) peerCause {
 	}
 }
 
-// peerRefused reports whether err proves that the peers cannot serve the
-// block: every failure it carries is a peer's own error answer, beside the
+// peerRefused reports whether err proves that the peers cannot serve the block:
+// every failure it carries is a peer's own error answer, beside the
 // block.ErrUnavailable that wraps them. A failed exchange, a closed session or
-// a timeout from any peer leaves it unproven, since that peer may hold it. A
-// denial leaves it unproven too: it speaks of the requester's access, which a
-// grant changes, not of the block.
+// a timeout from any peer leaves the refusal unproven, since that peer may hold
+// the block. A denial leaves the refusal unproven too: the denial speaks of the
+// requester's access, which a grant changes, not of the block.
 func peerRefused(err error) bool {
 	// Walk err's tree: every leaf must be the wrapper or a refusal, and one
 	// must be a refusal.
@@ -107,7 +107,7 @@ func peerRefused(err error) bool {
 	return walk(err) && refused
 }
 
-// peerSiteDepth bounds the stack walk that names a failed read's reader.
+// peerSiteDepth bounds the stack walk that identifies a failed read's reader.
 const peerSiteDepth = 64
 
 // peerFailSeen holds the refs whose failed peer read this process has
@@ -127,10 +127,10 @@ var mainModule = sync.OnceValue(func() string {
 // warnPeerFailed warns the first time this process fails a peer read of ref
 // while its caller waited. The warning carries the ref, the cause and two
 // function names from the reader's stack: site, the innermost frame in the
-// binary's main module, which names the application code that asked, and
-// root, the outermost frame walked, which names the goroutine the
-// read ran in. It runs only on the failure path, and walks the stack only for
-// a block's first failure.
+// binary's main module, which identifies the application code that asked, and
+// root, the outermost frame walked, which identifies the goroutine the read ran
+// in. warnPeerFailed runs only on the failure path, and walks the stack only
+// for a block's first failure.
 func warnPeerFailed(le *logrus.Entry, ref *block.BlockRef, cause peerCause) {
 	key := ref.MarshalString()
 	if !peerFailSeen.add(key) {
@@ -170,8 +170,8 @@ func readerSite() (site, root string) {
 	}
 }
 
-// inModule reports whether the function fn is in the module whose path is
-// mod, which holds the binary's package main as well as mod's own packages.
+// inModule reports whether the function fn is in the module whose path is mod,
+// which holds the binary's package main as well as mod's own packages.
 func inModule(fn, mod string) bool {
 	// Accept package main, then any package under mod.
 	if strings.HasPrefix(fn, "main.") {

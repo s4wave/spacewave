@@ -50,9 +50,9 @@ func TestGoScriptDriveAccountDeleteRemovesVolume(t *testing.T) {
 	}
 
 	// The volumes after deletion must be a strict subset of those before: other
-	// volumes may legitimately survive, but the account's must be gone and
-	// nothing new may appear. DeleteAccount is the only storage mutation
-	// between the two snapshots.
+	// volumes may legitimately survive, but the account's volumes must be
+	// gone and nothing new may appear. DeleteAccount is the only storage
+	// mutation between the two snapshots.
 	after := listBrowserVolumes(t, page)
 	for _, v := range after {
 		if !slices.Contains(before, v) {

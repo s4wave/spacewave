@@ -38,7 +38,7 @@ type registries struct {
 	// nodeType holds plugin Flowgraph compilers.
 	nodeType *resource_flowgraph_registry.RegistryResource
 	// quickstart holds Quickstarts and runs their seed handlers with the bus
-	// of the installation that created it.
+	// of the installation that created the registry.
 	quickstart *resource_quickstart_registry.QuickstartRegistryResource
 	// objectWizard holds object creation wizards.
 	objectWizard *s4wave_wizard.WizardRegistryResource

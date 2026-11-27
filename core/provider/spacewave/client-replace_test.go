@@ -11,7 +11,7 @@ import (
 )
 
 // TestSyncReplaceDataBindsRetirement verifies the public replacement API
-// uploads the complete body and names the superseded catalog entries in the
+// uploads the complete body and lists the superseded catalog entries in the
 // session-signed push request.
 func TestSyncReplaceDataBindsRetirement(t *testing.T) {
 	// Serve the push protocol.

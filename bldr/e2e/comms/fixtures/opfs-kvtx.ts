@@ -1,8 +1,8 @@
-// opfs-kvtx.ts - OPFS kvtx.Store verification fixture.
+// opfs-kvtx.ts: OPFS kvtx.Store verification fixture.
 //
-// Pure-JS smoke that exercises the kvtx wire layout against OPFS:
+// Pure-JS smoke test that exercises the kvtx wire layout against OPFS:
 // WebLock transactions, read/write/delete, prefix scan, iteration, and
-// crash recovery via .pending marker.
+// crash recovery via a .pending marker.
 
 declare global {
   interface Window {
@@ -143,7 +143,7 @@ async function run() {
 
     // --- Iteration 1+2: Read and Write transactions ---
 
-    // Write two entries using WebLock exclusive
+    // Write two entries using an exclusive WebLock.
     const key1 = new Uint8Array([0x01, 0x02, 0x03])
     const val1 = new Uint8Array([0x41, 0x42, 0x43]) // "ABC"
     const key2 = new Uint8Array([0x01, 0x02, 0x04])
@@ -159,7 +159,7 @@ async function run() {
     )
     results.writeTx = true
 
-    // Read back with shared lock
+    // Read the entries back with a shared lock.
     let readOk = true
     await navigator.locks.request('kvtx-test', { mode: 'shared' }, async () => {
       const r1 = await readEntry(testDir, key1)
@@ -172,7 +172,7 @@ async function run() {
         errors.push('read key2 mismatch')
         readOk = false
       }
-      // Read non-existent key
+      // Read a non-existent key.
       const r3 = await readEntry(testDir, new Uint8Array([0xff]))
       if (r3 !== null) {
         errors.push('read missing key should be null')
@@ -226,7 +226,7 @@ async function run() {
       await writeEntry(scanDir, key, val)
     }
 
-    // Scan prefix 0xaa - should get 3 entries
+    // Scan prefix 0xaa: the scan should get 3 entries.
     const aaPrefix = hexEncode(new Uint8Array([0xaa]))
     const allKeys = await listAllKeys(scanDir)
     const aaKeys = allKeys.filter((k) => k.startsWith(aaPrefix))
@@ -237,7 +237,7 @@ async function run() {
 
     // --- Iteration 5: ScanPrefixKeys, Size ---
 
-    // ScanPrefixKeys: same as ScanPrefix but keys only
+    // ScanPrefixKeys: scan as ScanPrefix does but return only keys.
     const bbPrefix = hexEncode(new Uint8Array([0xbb]))
     const bbKeys = allKeys.filter((k) => k.startsWith(bbPrefix))
     if (bbKeys.length !== 2) {
@@ -275,13 +275,13 @@ async function run() {
       { create: true },
     )
 
-    // Simulate a crashed write: leave .pending marker
+    // Simulate a crashed write: leave a .pending marker.
     const pendingFh = await crashDir.getFileHandle('.pending', { create: true })
     const pw = await pendingFh.createWritable()
     await pw.write(new Uint8Array([0x31]))
     await pw.close()
 
-    // Write a partial entry (simulating what commit started)
+    // Write a partial entry (simulating what the commit started).
     await writeEntry(
       crashDir,
       new Uint8Array([0xcc, 0x01]),
@@ -305,10 +305,10 @@ async function run() {
     try {
       await crashDir.removeEntry('.pending')
     } catch {
-      // already gone
+      // The .pending marker is already gone.
     }
 
-    // Verify marker is gone
+    // Verify the marker is gone.
     let markerGone = false
     try {
       await crashDir.getFileHandle('.pending')

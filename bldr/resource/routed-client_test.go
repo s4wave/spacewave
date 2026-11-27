@@ -192,7 +192,7 @@ func TestRoutedInvoker_RemoveMux(t *testing.T) {
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(5, inv)
 
-	// Verify it works before removal.
+	// Verify the route works before removal.
 	found, err := ri.InvokeMethod("5/svc", "m", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -518,7 +518,7 @@ func TestRoutedRoundtrip(t *testing.T) {
 	ri.SetMux(99, inv)
 
 	// Simulate what NewRoutedClient produces being consumed by RoutedInvoker.
-	// The client prefixes "99/" to the service ID; the invoker strips it.
+	// The client prefixes "99/" to the service ID, and the invoker strips it.
 	prefixed := "99/" + "my.Package.Service"
 	found, err := ri.InvokeMethod(prefixed, "Execute", nil)
 	if err != nil {

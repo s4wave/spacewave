@@ -68,7 +68,7 @@ func (s *GraphSettings) graphOptions() (graph.Options, error) {
 // this call changed the World. Expects rmtx to be locked.
 //
 // The first call records the change in the graph store and later calls
-// continue it; a different change in progress is an error. Each call is a
+// continue it. A different change in progress is an error. Each call is a
 // function of the World and its arguments only, so every replay of the same
 // calls reaches the same World.
 func (t *WorldState) StepGraphSettings(ctx context.Context, target *GraphSettings, max int) (done, changed bool, err error) {
@@ -121,7 +121,7 @@ func (t *WorldState) StepGraphSettings(ctx context.Context, target *GraphSetting
 		return false, false, err
 	}
 
-	// Record the graph's new layout in the root, which opens it next time.
+	// Record the graph's new layout in the root for the next graph opening.
 	r, err := t.GetRoot(ctx)
 	if err != nil {
 		return false, false, err

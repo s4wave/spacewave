@@ -66,7 +66,7 @@ func (p *failOnceICEProvider) ICEConfig(context.Context) (*webrtc.WebRtcConfig, 
 
 // TestTransportRetriesFailedConstruction verifies that a session that could
 // not be constructed does not spend the presence epoch. p0's first credential
-// fetch fails while p2 stays present and does not dial; p0 links after a pause
+// fetch fails while p2 stays present and does not dial. p0 links after a pause
 // instead of waiting for p2 to rejoin.
 func TestTransportRetriesFailedConstruction(t *testing.T) {
 	// Count transport log messages by transport address.

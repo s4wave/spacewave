@@ -167,8 +167,9 @@ func mutateTypedWatchObject(t *testing.T, ws world.WorldState, key, typeID strin
 	}
 }
 
-// register attaches a real handler and transfers its prepared generation to the caller.
-// The caller releases the returned reference; the fixture retains the registration child.
+// register attaches a real handler and transfers its prepared generation to the
+// caller. The caller releases the returned reference, and the fixture retains
+// the registration child.
 func (f *typedWatchFixture) register(t *testing.T, typeID, label, scope string, handler *typedWatchHandler) resource_client.ResourceRef {
 	// Attach the handler's real ResourceService to the registry caller.
 	t.Helper()

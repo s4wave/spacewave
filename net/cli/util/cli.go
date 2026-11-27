@@ -9,9 +9,9 @@ import (
 
 // UtilArgs contains the utility arguments and functions.
 type UtilArgs struct {
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
 
 	// FilePath is the file path to operate on.

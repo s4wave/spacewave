@@ -59,8 +59,9 @@ type CliBusImpl struct {
 }
 
 // BuildCliBus opens the shared project state for a native CLI daemon, with
-// each Volume config the storage builds passed through configureVolume, nil
-// for none. The caller must hold the state-root lease until Release finishes.
+// each Volume config the storage builds passed through configureVolume. A nil
+// configureVolume skips configuration. The caller must hold the state-root
+// lease until Release finishes.
 func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot string, configureVolume storage.ConfigureVolumeFunc) (*CliBusImpl, error) {
 	// Cancel bus work before releasing controller and storage references.
 	ctx, ctxCancel := context.WithCancel(rctx)

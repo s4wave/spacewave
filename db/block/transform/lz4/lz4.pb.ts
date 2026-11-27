@@ -51,7 +51,7 @@ export const BlockSize_Enum = /* @__PURE__ */ createEnumType(
 export interface Config {
   /**
    * BlockSize defines the maximum size of compressed blocks.
-   * Defaults to 4MB.
+   * The block size defaults to 4MB.
    */
   blockSize?: BlockSize
   /**
@@ -60,7 +60,7 @@ export interface Config {
   blockChecksum?: boolean
   /**
    * DisableChecksum disables all blocks or content checksum.
-   * Default=false.
+   * The default value is false.
    */
   disableChecksum?: boolean
   /**

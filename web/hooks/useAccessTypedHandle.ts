@@ -8,8 +8,8 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // typedHandleOptions retries the access when the server or the connection
-// releases the handle. It is shared so the release listener is subscribed
-// once per handle instead of once per render.
+// releases the handle. The options are shared so the release listener is
+// subscribed once per handle instead of once per render.
 const typedHandleOptions: UseResourceOptions<SDKResource> = {
   retryOnReleasedResource: {
     reasons: ['server-released', 'connection-lost'],

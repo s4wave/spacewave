@@ -15,15 +15,15 @@ import (
 // Controller implements the forwarding controller. The controller handles
 // HandleMountedStream directives by dialing a target multiaddress.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// dialMa is the dial multiaddr
+	// dialMa is the dial multiaddr.
 	dialMa ma.Multiaddr
-	// localPeerID is the peer ID to dial for
+	// localPeerID is the peer ID to dial for.
 	localPeerID peer.ID
 }
 
@@ -65,7 +65,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the forwarding controller.
 func (c *Controller) Execute(ctx context.Context) error {
-	// For forwarding, we just handle directives directly.
+	// The forwarding Controller handles directives directly.
 	return nil
 }
 

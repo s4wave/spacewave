@@ -90,7 +90,7 @@ describe('CanvasMinimap', () => {
       />,
     )
     const minimap = document.querySelector('.minimap-size') as HTMLElement
-    // We need to mock getBoundingClientRect for the click handler.
+    // Mock getBoundingClientRect for the click handler.
     minimap.getBoundingClientRect = () => ({
       left: 0,
       top: 0,

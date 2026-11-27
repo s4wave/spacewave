@@ -28,17 +28,17 @@ const ControllerID = "forge/pass"
 // Controller implements the Pass controller.
 // An Pass is an attempt to process a given Target with Executions.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the execution controller bus
+	// bus is the execution controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// objKey is the object key (from the config)
+	// objKey is the object key (from the config).
 	objKey string
-	// peerID is the parsed peer id
+	// peerID is the parsed peer id.
 	peerID peer.ID
-	// peerIDStr is the string peer id
+	// peerIDStr is the string peer id.
 	peerIDStr string
 
 	// watchExecStatesCh is pushed with the list of exec states to watch.

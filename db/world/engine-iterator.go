@@ -4,20 +4,20 @@ import "context"
 
 // engineObjectIterator implements ObjectIterator for a Engine.
 type engineObjectIterator struct {
-	// e is the engine
+	// e is the engine.
 	e Engine
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// prefix is the prefix to filter by
+	// prefix is the prefix to filter by.
 	prefix string
-	// reversed indicates if iteration is reversed
+	// reversed indicates if iteration is reversed.
 	reversed bool
 
-	// err is any error that occurred
+	// err is any error that occurred.
 	err error
-	// currKey is the current key if valid
+	// currKey is the current key if valid.
 	currKey string
-	// valid indicates if the iterator is valid
+	// valid indicates if the iterator is valid.
 	valid bool
 }
 
@@ -92,9 +92,10 @@ func (e *engineObjectIterator) Next() bool {
 				return iter.Err()
 			}
 
-			// Check if Seek already moved us past the current key
+			// Check if Seek already moved the iterator past the
+			// current key.
 			if iter.Key() == e.currKey {
-				// Still on same key, need to move past it
+				// The iterator is still on the same key: move past it.
 				if !iter.Next() {
 					return iter.Err()
 				}
@@ -108,7 +109,7 @@ func (e *engineObjectIterator) Next() bool {
 			return nil
 		}
 
-		// Need to move to first valid entry
+		// Move the iterator to the first valid entry.
 		if !iter.Next() {
 			return iter.Err()
 		}

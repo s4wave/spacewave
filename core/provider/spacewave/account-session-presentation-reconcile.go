@@ -165,7 +165,7 @@ func getSessionPresentationPeerIDs(
 		return nil, err
 	}
 
-	// Collect the peer ID of each presentation that names one.
+	// Collect each presentation's nonempty peer ID.
 	peerIDs := make([]string, 0, len(settings.GetSessionPresentations()))
 	for _, pres := range settings.GetSessionPresentations() {
 		peerID := pres.GetPeerId()
@@ -178,7 +178,7 @@ func getSessionPresentationPeerIDs(
 }
 
 // buildOrphanedSessionPresentationPeerIDs returns the presentation peer IDs
-// that name no live Session.
+// that reference no live Session.
 func buildOrphanedSessionPresentationPeerIDs(
 	presentationPeerIDs []string,
 	liveSessionPeerIDs []string,

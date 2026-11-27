@@ -8,7 +8,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 
 // MigrationPage renders a placeholder settings page for provider migration.
-// Shows the current provider type and a coming-soon message.
+// The page shows the current provider type and a coming-soon message.
 export function MigrationPage() {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)

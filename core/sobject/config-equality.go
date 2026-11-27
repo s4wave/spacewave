@@ -6,7 +6,7 @@ import (
 )
 
 // EqualSOConfigs compares every configuration field, ignoring participant order.
-// Membership is keyed by peer ID; its projection order carries no authority.
+// Membership is keyed by peer ID. Its projection order carries no authority.
 // Inputs are neither mutated nor validated. Signed encodings and chain hashes
 // retain their original order and must be verified separately.
 func EqualSOConfigs(a, b *SharedObjectConfig) bool {

@@ -15,8 +15,8 @@ import (
 // the directory's own path.
 const projectedMountName = "-"
 
-// isProjectedObject reports whether objectKey names an object of a projected
-// type.
+// isProjectedObject reports whether objectKey identifies an object of a
+// projected type.
 func isProjectedObject(ctx context.Context, ws world.WorldState, objectKey string) (bool, error) {
 	typeID, err := world_types.GetObjectType(ctx, ws, objectKey)
 	if err != nil {
@@ -53,7 +53,7 @@ func hasProjectedObject(ctx context.Context, ws world.WorldState, objectKey stri
 
 // listProjectedChildren returns the sorted names of the projected directory at
 // path: the next key segment of each projected object below it, and the mount
-// entry when path itself names a projected object.
+// entry when path itself identifies a projected object.
 //
 // It iterates only the keys below path, and skips the rest of a child's
 // subtree once the child is known.

@@ -26,11 +26,11 @@ type ProxyVolume struct {
 	*rpc_object_client.ObjectStore
 	coord.Coordinator
 
-	// client is the client to use
+	// client is the client to use.
 	client volume_rpc.SRPCProxyVolumeClient
-	// volInfo is the volume info
+	// volInfo is the volume info.
 	volInfo *volume.VolumeInfo
-	// volPeer is the parsed volume peer public key & id
+	// volPeer is the parsed volume peer public key & id.
 	volPeer peer.Peer
 	// holdsRoots caches whether the remote volume holds roots, read once.
 	holdsRoots func() bool
@@ -149,7 +149,7 @@ func (v *ProxyVolume) Close() error {
 }
 
 // Delete closes the volume and removes the backing store.
-// ProxyVolume does not own a backing store, so this is a no-op.
+// ProxyVolume does not own a backing store, so Delete is a no-op.
 func (v *ProxyVolume) Delete() error {
 	return nil
 }

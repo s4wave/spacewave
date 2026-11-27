@@ -33,17 +33,17 @@ export function createWatchableDebugInfo(initial: ResourceDebugInfo = {}) {
 export abstract class Resource {
   constructor(public readonly resourceRef: ClientResourceRef) {}
 
-  // Get the resource ID
+  // id returns the resource ID.
   public get id() {
     return this.resourceRef.resourceId
   }
 
-  // Get the underlying SRPC client for making RPC calls
+  // client returns the underlying SRPC client for making RPC calls.
   public get client() {
     return this.resourceRef.client
   }
 
-  // Check if the resource has been released
+  // released reports whether the resource has been released.
   public get released() {
     return this.resourceRef.released
   }
@@ -53,7 +53,7 @@ export abstract class Resource {
     this.resourceRef.release()
   }
 
-  // dispose releases the resource.
+  // [Symbol.dispose] releases the resource.
   // usage: using myResource = new MyResource()
   // the resource will be disposed when the scope is disposed.
   [Symbol.dispose]() {

@@ -11,15 +11,15 @@ type state struct {
 	m *manifest
 	// mem holds the changes since the last flush.
 	mem *memtable
-	// flushed is the last commit the runs hold; memtable entries at or below
-	// it were dropped.
+	// flushed is the last commit the runs hold. Memtable entries at or
+	// below it were dropped.
 	flushed uint64
 	// replay locates the first record after flushed, where an open rebuilds
-	// the memtable from; the superblock a job publishes carries it.
+	// the memtable from. The superblock a job publishes carries replay.
 	replay logPoint
 	// logChunks are the chunks holding the records after flushed, in log
 	// order, ending with the chunk holding pos. A flush makes the chunks
-	// before the one holding its replay point pending; the rest stay, since
+	// before the one holding its replay point pending. The rest stay, since
 	// the superblock it produces replays them.
 	logChunks []uint64
 	// inSuper is the last record whose effect on the manifest the superblock
@@ -42,7 +42,7 @@ type state struct {
 	// logBytes counts the log bytes since the last flush record this handle
 	// applied, which an open would replay into the memtable.
 	logBytes int64
-	// refs counts the snapshots reading the state; publish sets it.
+	// refs counts the snapshots reading the state. publish sets refs.
 	refs *refCount
 }
 
@@ -296,8 +296,9 @@ func (st *state) apply(r *record, budget int64) {
 		// reclaim once its handle is gone.
 		st.reserve(r.chunks, r.writer)
 	case kindFlush:
-		// The run holds the memtable through r.through; the old manifest and
-		// the log chunks before the replay point are pending.
+		// The run holds the memtable through r.through. The old
+		// manifest and the log chunks before the replay point are
+		// pending.
 		m.addRuns(r.runs, r.mchunks, r.seq)
 		st.flush(r, budget, true)
 	case kindMerge:
@@ -313,8 +314,8 @@ func (st *state) apply(r *record, budget int64) {
 		// state that reads them and recovery no longer can.
 		m.table.mark(r.chunks, chunkEntry{})
 	case kindTruncate:
-		// The table ends at r.next; the writer truncated the file in the
-		// record's lock span.
+		// The table ends at r.next. The writer truncated the file in
+		// the record's lock span.
 		if r.next < m.table.end() {
 			m.table.truncate(r.next)
 		}
@@ -332,7 +333,7 @@ func (st *state) link(r *record) {
 
 // flush drops the memtable through a flush record's commit and moves the
 // replay point to the record's. The log chunks before the one holding the
-// replay point leave the log; with table set they become pending from this
+// replay point leave the log. With table set they become pending from this
 // record, since the superblock it produces no longer replays them.
 func (st *state) flush(r *record, budget int64, table bool) {
 	// Drop the flushed entries and move the replay point.
@@ -343,7 +344,8 @@ func (st *state) flush(r *record, budget int64, table bool) {
 
 	// Cut the log chunks before the replay point's chunk. The chunk is in
 	// the chain, since the record's snapshot was taken at or after the
-	// previous replay point; a chain that lacks it keeps every chunk.
+	// previous replay point. A chain that lacks the chunk keeps every
+	// chunk.
 	keep := chunkOf(r.replay.pos)
 	i := slices.Index(st.logChunks, keep)
 	if i < 0 {
@@ -396,7 +398,7 @@ func (m *manifest) retireRuns(ids []uint64, seq uint64) {
 	}
 }
 
-// seal makes the value chunks a sealed record seq names pending from that
+// seal makes the value chunks a sealed record seq lists pending from that
 // record, and closes the open chunk among them.
 func (m *manifest) seal(chunks []uint64, seq uint64) {
 	for _, c := range chunks {
@@ -421,7 +423,7 @@ func (st *state) applyCommit(r *record, table bool) {
 	}
 
 	// Record each change in the memtable and its value bytes in the table,
-	// then the frees, which name whole entries, headers included.
+	// then the frees, which reference whole entries, headers included.
 	st.applyOps(r.ops, r.seq, table)
 	if table {
 		m.table.freeValues(r.frees)
@@ -434,9 +436,10 @@ func (st *state) applyOps(ops []op, seq uint64, table bool) {
 	for _, o := range ops {
 		v := o.val
 		if v.kind == valueMoved {
-			// The cleaner checked under the writer lock that the key still
-			// held the reference it read, so every replayer applies the
-			// move; the kind only keeps it out of the flows.
+			// The cleaner checked under the writer lock that the
+			// key still held the reference it read, so every
+			// replayer applies the move. The kind only keeps the
+			// move out of the flows.
 			v.kind = valueRef
 		}
 		if v.isRef() && table {

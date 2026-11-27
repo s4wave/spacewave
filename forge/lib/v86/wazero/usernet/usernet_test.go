@@ -341,7 +341,8 @@ func TestTCPConnectEchoCloseThroughHost(t *testing.T) {
 
 // TestNilLoggerCloseErrorNoPanic proves a nil le passed to New does not panic on
 // the host-socket error paths. This logrus fork does not nil-guard Entry
-// methods, so le.WithError(...).Debug(...) on a nil entry would dereference nil;
+// methods, so le.WithError(...).Debug(...) on a nil entry would dereference
+// nil.
 // New must substitute a usable entry.
 func TestNilLoggerCloseErrorNoPanic(t *testing.T) {
 	// Create a Stack with a nil logger and host sockets that fail to close.

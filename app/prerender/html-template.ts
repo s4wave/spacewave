@@ -22,8 +22,9 @@ interface PageHtmlOptions {
   iconUrl: string
   // importMapScripts is the bldr shell's import map block, copied verbatim.
   importMapScripts?: string
-  // When false, omits data-prerendered from bldr-root so the bldr
-  // entrypoint uses createRoot instead of hydrateRoot.
+  // prerendered controls data-prerendered on bldr-root. When false, the
+  // attribute is omitted so the bldr entrypoint uses createRoot instead of
+  // hydrateRoot.
   prerendered?: boolean
 }
 
@@ -37,7 +38,7 @@ function escapeHtml(text: string): string {
 }
 
 // buildPageHtml builds the complete HTML document for a pre-rendered page,
-// including the funnel beacon. Every page names its canonical URL and link
+// including the funnel beacon. Every page declares its canonical URL and link
 // preview image.
 export function buildPageHtml(opts: PageHtmlOptions): string {
   const title = escapeHtml(opts.title)

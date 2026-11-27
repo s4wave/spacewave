@@ -8,7 +8,7 @@ import type { Output, Query, Schema } from '../../sdk/sync/schema.js'
 
 // createSyncContext creates typed React bindings for one sync application schema.
 // The schema argument binds collection names and validator output types at compile
-// time; it carries no runtime state. SyncProvider supplies an already-connected
+// time. It carries no runtime state. SyncProvider supplies an already-connected
 // Database and never opens, retries, or closes it: the connection lifecycle stays
 // with the caller that owns the db.
 export function createSyncContext<S extends Schema>(_schema: S) {
@@ -40,7 +40,7 @@ export function createSyncContext<S extends Schema>(_schema: S) {
   // useCollection streams the named collection and returns its latest
   // SubscriptionState. The subscription restarts only when db, name, or the
   // query prefix changes, so inline query objects do not resubscribe per render.
-  // Unmount aborts this watch's signal; the stream itself publishes stale and
+  // Unmount aborts this watch's signal. The stream itself publishes stale and
   // error transitions from the db's own reconnect handling.
   function useCollection<K extends keyof S['collections'] & string>(
     name: K,

@@ -4,8 +4,8 @@
 // A quad is two empty keys: an out key under its subject and an in key under
 // its object. There is no log, posting list, reference count or counter. A
 // node lives while it has an edge, and a predicate or label node is pinned,
-// since no range of its own shows whether a quad still names it. Every lookup
-// pins a subject or an object; the store has no predicate-first or
+// since no range of its own shows whether a quad still uses it. Every lookup
+// pins a subject or an object. The store has no predicate-first or
 // label-first range, and answers those directions with a scan of every out key.
 package kvtx_cayley_nodegraph
 
@@ -32,7 +32,7 @@ var ErrMissingNextID = errors.New("node graph: tree holds nodes but no next ID")
 
 // QuadStore is a node graph quad store over one transaction.
 //
-// Concurrent calls are safe only for readers; one writer at a time calls
+// Concurrent calls are safe only for readers. One writer at a time calls
 // ApplyDeltas, as the World serializes its writers.
 type QuadStore struct {
 	// tx holds the graph keys, including this transaction's held writes.
@@ -47,8 +47,8 @@ type QuadStore struct {
 	pinned map[uint64]struct{}
 
 	// undo holds the inverse of each write of the running ApplyDeltas call,
-	// in order, and undoPins the nodes it marked pinned; only the one writer
-	// touches them.
+	// in order, and undoPins holds the nodes the call marked pinned. Only
+	// the one writer touches them.
 	undo     []undoEntry
 	undoPins []uint64
 }
@@ -95,7 +95,7 @@ func asNodeID(ref graph.Ref) (uint64, bool) {
 
 // lookupID returns the ID of a value's text, or 0 when it has none.
 func (qs *QuadStore) lookupID(ctx context.Context, text string) (uint64, error) {
-	// Read the ID map entry; a missing one is no node.
+	// Read the ID map entry. A missing entry means no node.
 	data, found, err := qs.tx.Get(ctx, valueKey(text))
 	if err != nil || !found {
 		return 0, err
@@ -111,7 +111,7 @@ func (qs *QuadStore) lookupID(ctx context.Context, text string) (uint64, error) 
 
 // readMeta reads a node's meta, or nil when the node does not exist.
 func (qs *QuadStore) readMeta(ctx context.Context, id uint64) (*NodeMeta, error) {
-	// Read the meta key; a missing one is no node.
+	// Read the meta key. A missing key means no node.
 	data, found, err := qs.tx.Get(ctx, metaKey(id))
 	if err != nil || !found {
 		return nil, err
@@ -125,7 +125,7 @@ func (qs *QuadStore) readMeta(ctx context.Context, id uint64) (*NodeMeta, error)
 	return meta, nil
 }
 
-// ValueOf returns the reference of a value, or nil when no quad names it.
+// ValueOf returns the reference of a value, or nil when no quad uses it.
 func (qs *QuadStore) ValueOf(ctx context.Context, v quad.Value) (graph.Ref, error) {
 	if v == nil {
 		return nil, nil
@@ -204,9 +204,9 @@ func (qs *QuadStore) QuadIterator(ctx context.Context, d quad.Direction, ref gra
 
 // QuadIteratorSize returns the number of quads that have ref in direction d.
 //
-// A subject or object range is counted up to sizeProbeLimit and reported
-// exact below it; unlike the shapes' Stats, which the planner calls while
-// choosing a plan, this is a direct question a caller pays for once. The store
+// A subject or object range is counted up to sizeProbeLimit and reported exact
+// below it. Unlike the shapes' Stats, which the planner calls while choosing a
+// plan, this size query is a direct question a caller pays for once. The store
 // has no predicate-first or label-first range, so those directions report an
 // inexact World-sized estimate, which keeps the optimizer on a pinned endpoint.
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, ref graph.Ref) (refs.Size, error) {

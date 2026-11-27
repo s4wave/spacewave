@@ -111,7 +111,7 @@ if (address && typeof address !== 'string') {
 // Repeated shutdown signals share one close operation.
 let closing: Promise<void> | undefined
 
-/** close releases sync connections and storage, then the HTTP server we supplied. */
+/** close releases sync connections and storage, then the supplied HTTP server. */
 function close(): Promise<void> {
   closing ??= (async () => {
     await server.close()

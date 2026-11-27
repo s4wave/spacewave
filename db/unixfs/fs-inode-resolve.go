@@ -8,15 +8,15 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
-// if the callback returns ErrReleased, the operation will be retried
-// caller must NOT hold rmtx
+// accessInode retries the operation if the callback returns ErrReleased.
+// caller must NOT hold rmtx.
 // cb is called with rmtx UNLOCKED!
-// cb may be nil
+// cb may be nil.
 func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 	// Track inode release errors while resolving its operations.
 	var lastErr error
 	handleErr := func(err error) error {
-		// if this isn't a ErrReleased, return it immediately.
+		// if err isn't ErrReleased, return err immediately.
 		if err != unixfs_errors.ErrReleased {
 			return err
 		}
@@ -30,7 +30,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			err = i.parent.relErr
 		}
 
-		// if this isn't a ErrReleased, return it immediately.
+		// if err isn't ErrReleased, return err immediately.
 		if err != unixfs_errors.ErrReleased {
 			return err
 		}
@@ -91,9 +91,9 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 
 // resolveOps resolves the inode operations.
 // low-level op used by accessInode, use accessInode instead.
-// caller must NOT hold rmtx
-// returns with rmtx UNLOCKED
-// may return errors
+// caller must NOT hold rmtx.
+// returns with rmtx UNLOCKED.
+// may return errors.
 func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 	// lock rmtx
 	rel, err := i.rmtx.Lock(ctx, true)
@@ -115,7 +115,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 		}
 	}
 
-	// we need to fetch fsOps.
+	// Fetch fsOps.
 	// check if there is an existing fetch op and subscribe to it if so
 	fsWait := i.fsWait
 	if fsWait != nil {
@@ -143,7 +143,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 		}
 	}
 
-	// we will perform the lookup
+	// Perform the lookup
 	fsWait = make(chan struct{})
 	i.fsWait = fsWait
 
@@ -160,15 +160,15 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 	return nil, nil, nil
 }
 
-// resolveOpsRoutine is a separate goroutine to resolve the fsOps.
-// rmtx must be held by caller
-// returns with rmtx UNLOCKED
-// should be called only by resolveOps
+// resolveOpsRoutineLocked is a separate goroutine to resolve the fsOps.
+// rmtx must be held by caller.
+// returns with rmtx UNLOCKED.
+// should be called only by resolveOps.
 func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struct{}, rel func()) {
 	// Retain the parent location and publish completion of this resolution.
 	iparent, iname := i.parent, i.name
 
-	// when returning indicate we finished our work
+	// when returning indicate the resolution finished
 	defer close(fsWait)
 
 	// note: rmtx is already locked by the caller.
@@ -205,7 +205,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	// unlock rmtx
 	rel()
 
-	// we may need to try this several times.
+	// Resolving the fsOps may take several tries.
 	var fsOps FSCursorOps
 	var err error
 	for {
@@ -237,7 +237,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 				// error fetching parent cursors.
 				// a canceled caller learns nothing about the inode: leave it
 				// for the next caller to resolve.
-				// otherwise lock rmtx and release this + all children
+				// otherwise lock rmtx and release this inode + all children
 				if ctx.Err() != nil {
 					releaseCreated()
 					return
@@ -285,7 +285,8 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 					break
 				}
 
-				// note: don't set the elem to nil here since we don't lock rmtx.
+				// note: don't set the elem to nil here since this walk does not lock
+				// rmtx.
 				cursorStack[len(cursorStack)-1] = nil
 				cursorStack = cursorStack[:len(cursorStack)-1]
 				continue
@@ -295,12 +296,12 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 			break
 		}
 
-		// if we ran into an error, exit now.
+		// if resolution returned an error, exit now.
 		if err != nil {
 			break
 		}
 
-		// if fsOps is set and not released, we are done.
+		// if fsOps is set and not released, resolution is done.
 		if fsOps != nil && !fsOps.CheckReleased() {
 			break
 		}
@@ -310,8 +311,8 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	}
 
 	// A caller canceled mid-resolution learns nothing about the inode: release
-	// the cursors this attempt created and leave it for the next caller to
-	// resolve. Publishing the cancellation would fail every later access.
+	// the cursors this attempt created and leave the inode for the next caller
+	// to resolve. Publishing the cancellation would fail every later access.
 	if err != nil && ctx.Err() != nil {
 		releaseCreated()
 		return
@@ -321,7 +322,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	rel, relErr := i.rmtx.Lock(ctx, true)
 	if relErr != nil {
 		// context canceled
-		// make sure we don't leak cursors
+		// Release the created cursors to prevent leaks.
 		releaseCreated()
 		return
 	}

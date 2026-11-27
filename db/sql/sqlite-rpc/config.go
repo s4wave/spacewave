@@ -12,7 +12,7 @@ import (
 // Config classifies SQLite bridge errors for the existing KV transaction owner.
 type Config struct{}
 
-// DriverName identifies the bridge; instance-bound callers use OpenStore.
+// DriverName identifies the bridge. Instance-bound callers use OpenStore.
 func (Config) DriverName() string { return "sqlite-rpc" }
 
 // OpenDSN preserves the database path supplied to its bridge.

@@ -165,8 +165,8 @@ func TestListGraphEdgeBucketsResumesAfter(t *testing.T) {
 		t.Fatalf("after without predicate: got %v", err)
 	}
 
-	// Resuming after an endpoint no quad names reports it gone, as the
-	// node graph pager does.
+	// Resuming after an endpoint no quad references reports the endpoint
+	// gone, as the node graph pager does.
 	_, err = graph.ListGraphEdgeBuckets(ctx, &world.GraphEdgeBucketQuery{
 		OriginObjectKeys: []string{"origin"}, Predicate: "<rel>", LimitPerOrigin: 1, After: "target-gone",
 	})

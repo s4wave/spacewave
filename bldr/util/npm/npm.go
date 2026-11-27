@@ -78,7 +78,7 @@ func bunMinimumReleaseAgeArg() []string {
 // If not, downloads bun to stateDir and returns that path.
 // If stateDir is empty and bun is not in PATH, returns an error.
 func ResolveBunPath(ctx context.Context, le *logrus.Entry, stateDir string) (string, error) {
-	// If stateDir is empty, just use system PATH
+	// If stateDir is empty, use system PATH
 	if stateDir == "" {
 		return oexec.LookPath("bun")
 	}

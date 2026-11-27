@@ -13,20 +13,20 @@ import (
 type storeTx struct {
 	// BlockTx is the underlying block tx.
 	kvtx.BlockTx
-	// rel indicates if this tx is released
+	// rel indicates if this tx is released.
 	rel atomic.Uint32
-	// st is the store
+	// st is the store.
 	st *Store
 	// writeTx is the write transaction.
-	// if nil, this is a read-only transaction
+	// if nil, this tx is a read-only transaction.
 	writeTx kvtx.BlockTx
 	// writeBtx is the write block transaction.
-	// nil if writeTx is nil
+	// nil if writeTx is nil.
 	writeBtx *block.Transaction
 }
 
 // newStoreTx constructs a new store tx.
-// writxTx and btx are nil if read-only
+// writeTx and btx are nil for a read-only tx.
 func (s *Store) newStoreTx(writeTx kvtx.BlockTx, btx *block.Transaction) *storeTx {
 	tx := writeTx
 	if tx == nil {
@@ -109,7 +109,7 @@ func (s *storeTx) Discard() {
 	}
 }
 
-// release releases the tx
+// release releases the tx.
 func (s *storeTx) release() bool {
 	rel := s.rel.Swap(1)
 	return rel != 1

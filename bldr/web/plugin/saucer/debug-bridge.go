@@ -128,7 +128,7 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 	d.le.Info("yamux stream opened, writing request")
 	defer stream.Close()
 
-	// Marshal EvalJSRequest protobuf.
+	// Marshal the EvalJSRequest protobuf.
 	req := &EvalJSRequest{Code: wrapped}
 	reqData, err := req.MarshalVT()
 	if err != nil {
@@ -138,7 +138,7 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 		return "", errors.Errorf("request too large: %s bytes (max %s)", strconv.Itoa(len(reqData)), strconv.Itoa(int(MaxFrameSize)))
 	}
 
-	// Write length-prefixed protobuf request.
+	// Write the length-prefixed protobuf request.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(reqData))) // #nosec G115 -- bounded by MaxFrameSize check above
 	if _, err := stream.Write(lenBuf); err != nil {
@@ -149,7 +149,7 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 	}
 	d.le.Info("request written, reading response")
 
-	// Read length-prefixed protobuf response from C++.
+	// Read the length-prefixed protobuf response from C++.
 	if _, err := io.ReadFull(stream, lenBuf); err != nil {
 		return "", errors.Wrap(err, "read response length")
 	}
@@ -187,7 +187,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 	sockDir := filepath.Join(workdir, ".bldr")
 	sockPath := filepath.Join(sockDir, debugSocketName)
 
-	// Remove stale socket.
+	// Remove the stale socket.
 	_ = os.Remove(sockPath)
 
 	// Open the protected debug listener and remove its socket on exit.
@@ -201,7 +201,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 	}()
 	le.Infof("debug bridge listening on %s", sockPath)
 
-	// Close listener when context is canceled.
+	// Close the listener when the context is canceled.
 	go func() {
 		<-ctx.Done()
 		lis.Close()

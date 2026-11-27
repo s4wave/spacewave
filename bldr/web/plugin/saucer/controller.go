@@ -139,8 +139,10 @@ func (r *Controller) Execute(ctx context.Context) error {
 			// Create the DocumentManager to handle document lifecycle.
 			docMgr := NewDocumentManager(le)
 
-			// Create a local SRPC mux with DocumentManager as the WebRuntime service.
-			// This allows Remote to call WatchWebRuntimeStatus/WebDocumentRpc on the DocumentManager.
+			// Create a local SRPC mux with DocumentManager as the
+			// WebRuntime service. This registration allows Remote
+			// to call WatchWebRuntimeStatus/WebDocumentRpc on the
+			// DocumentManager.
 			mux := srpc.NewMux()
 			if err := web_runtime.SRPCRegisterWebRuntime(mux, docMgr); err != nil {
 				return nil, err

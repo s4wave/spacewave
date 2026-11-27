@@ -379,9 +379,10 @@ func TestCursorRefusalRulePreservesPositions(t *testing.T) {
 	}
 }
 
-// TestCursorRerunSurvivesRestart replays an old cursor through a missing handler.
-// A changed World invalidates successful successors; the non-idempotent revision
-// increment must survive exactly once beside member and deterministic refusals.
+// TestCursorRerunSurvivesRestart replays an old cursor through a missing
+// handler. A changed World invalidates successful successors. The
+// non-idempotent revision increment must survive exactly once beside member and
+// deterministic refusals.
 func TestCursorRerunSurvivesRestart(t *testing.T) {
 	// Build a transaction that creates an object and needs the plugin handler.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -554,9 +555,10 @@ func TestCursorRerunSurvivesRestart(t *testing.T) {
 	}
 
 	// Die between the replay's overflow puts and the cursor save. Under a
-	// one-byte bound every page goes to the epoch's stage and every position
-	// starts a save; a save already running skips them, and ending the
-	// adapter then ends the stage unsaved, as a lapsed lease does.
+	// one-byte bound every page goes to the epoch's stage and every
+	// position starts a save, but a save already running skips those
+	// positions, and ending the adapter then ends the stage unsaved, as a
+	// lapsed lease does.
 	all := append(slices.Clone(ops), w.createOp("late1"), w.createOp("late2"))
 	keys := []string{"k1", "recovered", "after", "member", "late1", "late2", "late3"}
 	replayAll := func(phase string) *InnerState {

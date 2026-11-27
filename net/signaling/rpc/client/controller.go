@@ -25,23 +25,23 @@ const ControllerID = "bifrost/signaling/rpc/client"
 
 // Controller is the signaling client controller.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// rpcClient is the stream srpc client
+	// rpcClient is the stream srpc client.
 	rpcClient stream_srpc_client.Client
-	// srv is the service client
+	// srv is the service client.
 	srv signaling_rpc.SRPCSignalingClient
-	// sessionTrackers contains a mapping from peer id to ongoing session
+	// sessionTrackers contains a mapping from peer id to ongoing session.
 	// peer id is encoded as string
 	sessionTrackers *keyed.KeyedRefCount[string, *sessionTracker]
 	// listenSessions is a list of sessions that were initiated by remote peers.
 	// NOTE: managed by the callback from the client listen handler ONLY.
 	listenSessions map[string]*keyed.KeyedRef[string, *sessionTracker]
-	// client is the signaling client
+	// client is the signaling client.
 	// nil until resolved by Execute
 	client *ccontainer.CContainer[*Client]
 }
@@ -83,7 +83,8 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 		client:         ccontainer.NewCContainer[*Client](nil),
 	}
 
-	// The session tracker starts when we want a session with a remote peer.
+	// The session tracker starts when the controller wants a session
+	// with a remote peer.
 	c.sessionTrackers = keyed.NewKeyedRefCount[string, *sessionTracker](
 		c.newSessionTracker,
 		keyed.WithExitLogger[string, *sessionTracker](le),
@@ -102,7 +103,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Validate asserts that this won't return an error.
+	// Validate asserts that ParsePeerID won't return an error.
 	localPeerID, err := c.conf.ParsePeerID()
 	if err != nil {
 		return err

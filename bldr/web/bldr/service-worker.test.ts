@@ -986,7 +986,7 @@ describe('service worker fetch release cache routing', () => {
     'returns the fresh module body after retrying a classified runtime-unavailable 503: %s',
     async (path, sourceKind) => {
       // mockReset clears queued mockResolvedValueOnce entries that a previous
-      // failing case left unconsumed; clearAllMocks does not reset queues.
+      // failing case left unconsumed. clearAllMocks does not reset queues.
       vi.mocked(proxyFetch).mockReset()
       const body = 'export const child = "fresh"\n'
       vi.mocked(proxyFetch)
@@ -1047,7 +1047,7 @@ describe('service worker fetch release cache routing', () => {
 
   it('returns 503 after retrying a persistent runtime-unavailable timeout', async () => {
     // mockReset clears queued mockResolvedValueOnce entries that a previous
-    // failing case left unconsumed; clearAllMocks does not reset queues.
+    // failing case left unconsumed. clearAllMocks does not reset queues.
     vi.mocked(proxyFetch).mockReset()
     vi.mocked(proxyFetch).mockImplementation(
       async () =>
@@ -1077,7 +1077,7 @@ describe('service worker fetch release cache routing', () => {
     const realNow = Date.now()
     let clockCalls = 0
     // The first three Date.now reads set the deadline, clamp the first
-    // attempt, and pass the first retry guard below the deadline; the next
+    // attempt, and pass the first retry guard below the deadline. The next
     // loop-top read is past the deadline, so no second attempt may start.
     const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => {
       clockCalls += 1
@@ -1133,7 +1133,7 @@ describe('service worker fetch release cache routing', () => {
     vi.mocked(proxyFetch).mockReset()
     const controller = new AbortController()
     // The request carries the controller's signal, so aborting the
-    // controller cancels the in-flight request; the proxy observes the
+    // controller cancels the in-flight request. The proxy observes the
     // canceled attempt and returns a fresh timeout response.
     vi.mocked(proxyFetch).mockImplementation(() => {
       controller.abort()
@@ -1535,7 +1535,7 @@ describe('service worker fetch release cache routing', () => {
     expect(await (await swFetch(cold.ev)).text()).toBe(body)
     await Promise.all(cold.waitUntilPromises)
 
-    // Another announced root does not invalidate files its path pins.
+    // Another announced root does not invalidate files the manifest path pins.
     await announcePluginRoot('spacewave-core', '4next')
     vi.mocked(proxyFetch).mockClear()
     const warm = await swFetch(buildClientFetchEvent(path, 'client-a').ev)
@@ -1765,7 +1765,7 @@ describe('service worker fetch release cache routing', () => {
     expect(await cached?.text()).toBe(warmBody)
 
     // Simulate a ServiceWorker restart without deleting CacheStorage. The
-    // persisted root must not reactivate; the request proxies to the runtime,
+    // persisted root must not reactivate. The request proxies to the runtime,
     // which serves its current root.
     resetServiceWorkerTestState()
     vi.mocked(proxyFetch).mockClear()
@@ -1889,7 +1889,7 @@ describe('service worker fetch release cache routing', () => {
       }),
     )
 
-    // The retry re-resolves to the new active root; a second transition while
+    // The retry re-resolves to the new active root. A second transition while
     // that attempt is in flight fails the request with the classified code.
     await vi.waitFor(() => expect(proxyFetch).toHaveBeenCalledTimes(2))
     await announcePluginRoot('spacewave-app', '4abc')
@@ -2071,7 +2071,7 @@ describe('service worker fetch release cache routing', () => {
 
 describe('parseDevFrontendSession', () => {
   it('returns the session of a module path and null otherwise', () => {
-    // Session module paths name a session; other Bldr paths do not.
+    // Session module paths identify a session. Other Bldr paths do not.
     expect(parseDevFrontendSession('/b/fe/sess1/src/a.ts')).toBe('sess1')
     expect(parseDevFrontendSession('/b/fe/sess1/')).toBeNull()
     expect(parseDevFrontendSession('/b/fe/rpc/c2Vydg/a.ts')).toBeNull()

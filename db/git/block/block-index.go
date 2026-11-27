@@ -10,7 +10,7 @@ func (i *Index) IsNil() bool {
 	return i == nil
 }
 
-// Validate performs cursory validation of the Index.
+// Validate validates the Index cursorily.
 func (i *Index) Validate() error {
 	for idx, ent := range i.GetEntries() {
 		if err := ent.Validate(); err != nil {

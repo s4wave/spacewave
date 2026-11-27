@@ -201,7 +201,8 @@ func inspectAppConnector(ctx context.Context, object *ObjectDescriptor) (*Inspec
 }
 
 func inspectAppSnapshot(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
-	// A snapshot holds fetched bodies and references nothing; require a decodable payload.
+	// A snapshot holds fetched bodies and references nothing. Require a
+	// decodable payload.
 	if _, err := world.LookupObjectBody[s4wave_appconnector.AppSnapshot](ctx, object.World, object.ObjectKey); err != nil {
 		return nil, errors.Wrap(err, "decode AppSnapshot payload")
 	}
@@ -265,9 +266,9 @@ func flowgraphRunKeyFields(run *s4wave_flowgraph.FlowgraphRun) []*string {
 	return fields
 }
 
-// flowgraphArrivalKeyFields returns the object key an arrival's source names:
-// a Task key for a Task output and a World object key for an event. A start
-// arrival names none.
+// flowgraphArrivalKeyFields returns the object key an arrival's source
+// references: a Task key for a Task output and a World object key for an event.
+// A start arrival references no object key.
 func flowgraphArrivalKeyFields(arrival *s4wave_flowgraph.FlowgraphArrival) []*string {
 	if output := arrival.GetTaskOutput(); output != nil {
 		return []*string{&output.TaskKey}
@@ -474,8 +475,8 @@ func inspectTerminalPayload(terminal *s4wave_terminal.Terminal) (*Inspection, er
 
 // inspectCapabilityPayload collects the references of an object served by a
 // Device capability: the Device and, when the capability is a placed Flowgraph
-// node, the Flowgraph it names. Any other capability ID is disclosed as an
-// external reference.
+// node, the Flowgraph the capability ID references. Any other capability ID is
+// disclosed as an external reference.
 func inspectCapabilityPayload(deviceObjectKey, capabilityID string) *Inspection {
 	// Reference the Device the capability runs on.
 	out := &Inspection{}
@@ -504,7 +505,7 @@ func remapCapability(mapping *IdentityMap, deviceObjectKey, capabilityID *string
 		return err
 	}
 
-	// Remap the Flowgraph named by a placed node's capability ID.
+	// Remap the Flowgraph referenced by a placed node's capability ID.
 	if flowgraphKey, nodeID, ok := s4wave_flowgraph.ParseNodeCapabilityID(*capabilityID); ok {
 		flowgraphKey, err = remapObjectKey(mapping, flowgraphKey)
 		if err != nil {
@@ -902,7 +903,7 @@ func rewriteSecret(ctx context.Context, object *ObjectDescriptor, mapping *Ident
 		secret.NestedSharedObjectId = mapped
 	}
 
-	// Remap the nested SharedObject identity the ref names, which readers
+	// Remap the nested SharedObject identity the ref references, which readers
 	// and delete mount, with the same mapping as the id field.
 	if prr := secret.GetRef().GetProviderResourceRef(); prr.GetId() != "" {
 		mapped := mapping.NestedSharedObjects[prr.GetId()]
@@ -1408,7 +1409,8 @@ func decodeKV(ctx context.Context, object *ObjectDescriptor) (*kvtx_block.KeyVal
 	switch payload.GetImplType() {
 	case kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL, kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA:
 		// Both implementations permit an empty root for a newly initialized
-		// store; the decoded enum still proves this is a real KV payload.
+		// store. The decoded enum still proves this payload is a real KV
+		// payload.
 	default:
 		return nil, errors.New("KV store payload has unknown implementation")
 	}

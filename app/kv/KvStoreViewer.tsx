@@ -24,15 +24,15 @@ import type { KvKeyRow } from './kv-viewer.js'
 
 export { KvStoreTypeID }
 
-// MutationError is a failed write and the key it was for; null for a create.
+// MutationError is a failed write and its key, with a null key for a create.
 interface MutationError {
   key: string | null
   message: string
 }
 
-// PaneEvent moves the right pane: create opens the create form; select is a
-// change to the list's selection, carrying how many keys it now names; close
-// is Cancel.
+// PaneEvent moves the right pane: create opens the create form. select is a
+// change to the list's selection, carrying how many keys the list selects.
+// close is Cancel.
 type PaneEvent =
   | { type: 'create' }
   | { type: 'select'; keys: number }
@@ -41,7 +41,7 @@ type PaneEvent =
 // creatingAfter is whether the right pane shows the create form after event.
 // The form opens on an empty selection. Selecting one key closes it, since that
 // key's detail takes the pane, so the form never waits behind a selected key
-// to return when the selection empties; its draft is dropped then. Selecting
+// to return when the selection empties. The draft is dropped then. Selecting
 // several keys or none leaves the pane to the form and keeps its draft.
 function creatingAfter(creating: boolean, event: PaneEvent): boolean {
   switch (event.type) {
@@ -84,12 +84,13 @@ export function KvStoreViewer({
     [],
   )
 
-  // The prefix filter, the create form, and the last failed write.
+  // Track the prefix filter, the create form, and the last failed write.
   const [prefix, setPrefix] = useState('')
   const [creating, paneEvent] = useReducer(creatingAfter, false)
   const [mutationError, setMutationError] = useState<MutationError | null>(null)
 
-  // The key list's selection and sort; the detail shows the one selected key.
+  // Track the key list's selection and sort. The detail shows the one selected
+  // key.
   const listState = useListState(null, 'kvKeys', {
     sortKey: 'key',
     sortDirection: 'asc',
@@ -99,13 +100,13 @@ export function KvStoreViewer({
     list.selectedIds?.length === 1 ? list.selectedIds[0] : null
 
   // updateSelection is the list update every change goes through, the table's
-  // and the viewer's own. Selecting one key gives the pane to its detail, which
-  // closes the create form and drops the last write error, since the editor it
-  // belonged to is gone. The list's update runs its function before it
-  // returns.
+  // and the viewer's own. Selecting one key gives the pane to its detail.
+  // The selection closes the create form and drops the last write error, since
+  // the editor the error belonged to is gone. The list's update runs its
+  // function before the update returns.
   const updateSelection = useCallback<ListUpdate>(
     (update) => {
-      // Apply the change, noting how many keys a new selection names.
+      // Apply the change, noting how many keys a new selection selects.
       let keys: number | null = null
       updateList((state) => {
         const next = update(state)
@@ -138,12 +139,12 @@ export function KvStoreViewer({
   // rows are the keys read, none until the first read arrives.
   const rows = useMemo(() => keysResource.value ?? [], [keysResource.value])
 
-  // arrived is true once a read of the keys has succeeded; New Key shows only
+  // arrived is true once a read of the keys has succeeded. New Key shows only
   // then, as a viewer's presses act on a record that has arrived.
   const arrived =
     !keysResource.error && !(keysResource.loading && rows.length === 0)
 
-  // The keys the prefix leaves, as table rows; the table sorts them.
+  // Build table rows from the keys the prefix leaves. The table sorts the rows.
   const visibleRows = useMemo(
     () =>
       rows
@@ -158,7 +159,7 @@ export function KvStoreViewer({
     [visibleRows, selectedKey],
   )
 
-  // The write error the pane shows: the selected key's, or the create's when
+  // Show the write error for the selected key, or for the create form when
   // no key is selected.
   const errorKey = selectedRow?.label ?? null
   const shownError =
@@ -173,9 +174,9 @@ export function KvStoreViewer({
 
   // runMutation applies a write for key, null for a create, then reloads the
   // key list so the watched list reconciles. A failure surfaces inline beside
-  // that key and returns false; the reload rolls back any optimistic list
-  // state that did not actually persist. It never throws, so callers finalize
-  // selection only on success.
+  // that key and returns false. The reload rolls back any optimistic list
+  // state that did not actually persist. runMutation never throws, so callers
+  // finalize selection only on success.
   const runMutation = useCallback(
     async (
       key: string | null,
@@ -199,7 +200,7 @@ export function KvStoreViewer({
     [handle.value, keysResource],
   )
 
-  // handleCreate writes a new key and selects it, which closes the form.
+  // handleCreate writes a new key and selects it to close the form.
   const handleCreate = useCallback(
     async (key: Uint8Array, value: Uint8Array) => {
       const ok = await runMutation(null, (kv) =>

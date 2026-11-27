@@ -121,7 +121,7 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 // batchingResourceUpdate times the entire public Resource operation, and records
 // construction and Commit separately. Setup and exact readback are outside the
 // complete-update timer. Physical counts come from the s4db commit sequence,
-// not logical wrappers; a record that starts a log chunk counts once more.
+// not logical wrappers. A record that starts a log chunk counts once more.
 func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int) (time.Duration, time.Duration, time.Duration, uint64, uint64, uint32) {
 	// Open the Resource World transaction and begin complete-update timing.
 	t.Helper()

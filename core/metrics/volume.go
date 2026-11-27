@@ -10,10 +10,10 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// volumeLabel names the volume of a volume metric.
+// volumeLabel identifies the volume of a volume metric.
 const volumeLabel = "volume"
 
-// The descriptors of the volume health metrics.
+// volumeGCPhaseDesc and the following variables describe volume health metrics.
 var (
 	volumeGCPhaseDesc = prometheus.NewDesc(
 		"spacewave_volume_gc_phase",
@@ -90,14 +90,14 @@ var (
 		"Longest a commit waited on the volume's storage background work, such as a background step holding the writer, since the volume opened.",
 		[]string{volumeLabel}, nil,
 	)
-	// The not-held counters count, per Land and not per distinct block, each
-	// block a root move that requires its blocks held landed over while the
-	// volume observed rather than refused: a block with a zero count record,
-	// one stored without a child list, or one missing. With frees off they
-	// mostly count trees whose holds netted to zero, which are stored whole;
-	// they also count a missing block, a hole frees did not cause, and a
-	// block re-held less than the grace period ago, whose new holder has not
-	// netted yet.
+	// volumeNotHeldRootBlocksDesc describes how the not-held counters count,
+	// per Land and not per distinct block, each block a root move that requires
+	// its blocks held landed over while the volume observed rather than
+	// refused: a block with a zero count record, one stored without a child
+	// list, or one missing. With frees off the counters mostly count trees
+	// whose holds netted to zero, which are stored whole. The counters also
+	// count a missing block, a hole frees did not cause, and a block re-held
+	// less than the grace period ago, whose new holder has not netted yet.
 	volumeNotHeldRootBlocksDesc = prometheus.NewDesc(
 		"spacewave_volume_not_held_root_blocks_total",
 		"Root blocks not held that root moves requiring their blocks held landed over while the volume observed, counted per move, since it opened.",

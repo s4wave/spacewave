@@ -27,7 +27,10 @@ export interface AppMigrationContext<S extends Schema> extends MutationContext<
   S,
   Principal
 > {
-  /** previous exposes bounded original records; parse unknown values with the old schema. */
+  /**
+   * previous exposes bounded original records. Parse unknown values with the
+   * old schema.
+   */
   readonly previous: QueryContext<Schema>
 }
 
@@ -47,7 +50,8 @@ export type AppMutation<S extends Schema> = {
 
 /**
  * defineApp binds typed handlers to a browser-safe schema. Importing a definition
- * opens no storage or connection; hosts bind it to an authorized World instance.
+ * opens no storage or connection. Hosts bind the definition to an authorized
+ * World instance.
  * Validators may be any Standard Schema v1 implementation, including Zod.
  * Handlers remain functions in the bundled module and are never serialized.
  */

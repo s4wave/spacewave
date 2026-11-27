@@ -181,7 +181,7 @@ func TestSqlQueryInitializeWorldOpCreateOnce(t *testing.T) {
 	}
 	assertQueryRoot(t, ctx, tb.WorldState, queryKey, "SELECT 1")
 
-	// A second initialize-only op is refused and keeps the first root.
+	// A second initialize-only op is refused. The first root is preserved.
 	secondRef := writeQueryRootRef(t, ctx, stage, &s4wave_sql_query.Query{SqlText: "SELECT 2"})
 	_, err = s4wave_sql_query_world.NewSqlQueryInitializeRootOp(queryKey, secondRef).
 		ApplyWorldObjectOp(ctx, nil, obj, "")

@@ -109,8 +109,9 @@ func LookupForgeWorkerAvailability(
 
 // WatchDeviceAvailability emits the initial availability and each changed
 // derivation until cancellation or a callback error. ws must be a live World
-// state, not a fixed read transaction. World changes wake the watch; the only
-// clock is a deadline timer at the current owner lease expiry. It writes nothing.
+// state, not a fixed read transaction. World changes wake the watch. The only
+// clock is a deadline timer at the current owner lease expiry. It writes
+// nothing.
 func WatchDeviceAvailability(ctx context.Context, ws world.WorldState, deviceObjectKey string, cb func(DeviceAvailability) error) error {
 	// Retain the previous derivation so unrelated World changes emit no update.
 	var previous DeviceAvailability
@@ -133,8 +134,9 @@ func WatchDeviceAvailability(ctx context.Context, ws world.WorldState, deviceObj
 			initial = false
 		}
 
-		// Wait for a write or the known expiry, replacing the deadline on renewal.
-		// A callback may cross the expiry; a past deadline must still wake us.
+		// Wait for a write or the known expiry, replacing the deadline
+		// on renewal. A callback may cross the expiry. A past deadline
+		// must still wake the watch.
 		waitCtx := ctx
 		cancel := func() {}
 		if availability.State != DeviceUnavailable {
@@ -153,8 +155,8 @@ func WatchDeviceAvailability(ctx context.Context, ws world.WorldState, deviceObj
 
 // SelectForgeWorkerCapability resolves one enrolled Device to its selectable
 // Forge Worker capability using the existing typed selection APIs. Device
-// selection changes the Worker that runs the same manifest; it never creates
-// a Device-specific session path or a second scheduler.
+// selection changes the Worker that runs the same manifest. Selection never
+// creates a Device-specific session path or a second scheduler.
 func SelectForgeWorkerCapability(dev *s4wave_device.Device) *s4wave_device.DeviceCapability {
 	if dev == nil || !dev.IsSelectable() {
 		return nil

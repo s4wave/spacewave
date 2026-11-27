@@ -21,7 +21,7 @@ func makeBridgePort(t *testing.T) js.Value {
 }
 
 // TestRemoteDriverInstallPortSwapGeneration proves only a genuine port swap
-// advances the swap generation and drops the stale handle id space; the first
+// advances the swap generation and drops the stale handle id space. The first
 // install and a same-port reinstall do not.
 func TestRemoteDriverInstallPortSwapGeneration(t *testing.T) {
 	p1 := makeBridgePort(t)

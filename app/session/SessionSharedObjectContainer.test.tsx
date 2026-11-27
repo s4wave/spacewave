@@ -259,7 +259,7 @@ describe('SessionSharedObjectContainer', () => {
     mockUseParams.mockReturnValue({ sharedObjectId: SPACE_ID })
     mockUseParentPaths.mockReturnValue([])
     setWatchMocks({ spacesList: [] }, null)
-    // The SharedObject mount is in flight; a settled null means not found.
+    // The SharedObject mount is in flight. A settled null means not found.
     setResourceMocks(
       {
         value: null,

@@ -43,7 +43,7 @@ func TestBrowserE2E(t *testing.T) {
 	// Report the browser test server address.
 	t.Logf("browser test server started on port %d", port)
 
-	// Set up initial layout model for tests
+	// Set up the initial layout model for tests
 	initialModel := &s4wave_layout.LayoutModel{
 		Layout: &s4wave_layout.RowDef{
 			Id: "root",
@@ -65,9 +65,10 @@ func TestBrowserE2E(t *testing.T) {
 	}
 	server.SetLayoutModel(initialModel)
 
-	// Run vitest browser tests with the server port
-	// Only run layout-related tests - the backend tests require full TestbedResourceService
-	// which is provided by core/e2e/browser tests instead.
+	// Run vitest browser tests with the server port.
+	// Only run layout-related tests because the backend tests require
+	// the full TestbedResourceService provided by core/e2e/browser tests
+	// instead.
 	projectRoot := findProjectRoot(t)
 	cmd := exec.CommandContext(ctx, "bun", "vitest", "--config=vitest.browser.config.ts", "--run", "web/layout/")
 	cmd.Dir = projectRoot

@@ -149,7 +149,7 @@ func TestServeDaemonListenerShutdownAckCompletesBeforeDrain(t *testing.T) {
 		t.Fatalf("dial: %v", err)
 	}
 
-	// RequestShutdown reads the acknowledgement and a clean stream close; a
+	// RequestShutdown reads the acknowledgement and a clean stream close. A
 	// reset here is the regressed behavior. The requester then closes its
 	// connection, mirroring runStop's deferred close, so the daemon drains.
 	if err := listener_control.RequestShutdown(t.Context(), conn); err != nil {

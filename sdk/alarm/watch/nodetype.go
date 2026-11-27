@@ -16,16 +16,17 @@ import (
 // writes as its object.
 const NodeTypeID = "alarm/watch"
 
-// The parameters of an Alarm watch node.
+// Alarm watch node parameters configure the watch.
 const (
-	// ParamFunction names the function/pure object that decides the Alarm.
+	// ParamFunction selects the function/pure object that decides the
+	// Alarm.
 	ParamFunction = "function"
 	// ParamHold is how long the condition must hold before the Alarm fires,
 	// as a Go duration such as "2m".
 	ParamHold = "hold"
 	// ParamTitle is the Alarm's title.
 	ParamTitle = "title"
-	// ParamSource names the object whose resource answers the queries.
+	// ParamSource selects the object whose resource answers the queries.
 	ParamSource = "source"
 	// ParamQueryPrefix prefixes each named query: "query.up" holds the
 	// expression of the query named "up".
@@ -44,7 +45,8 @@ func (NodeType) GetDisplayName() string {
 	return "Alarm Watch"
 }
 
-// GetPorts returns no ports, since the watch names its inputs in parameters.
+// GetPorts returns no ports, since the watch specifies its inputs in
+// parameters.
 func (NodeType) GetPorts() []*s4wave_flowgraph.FlowgraphPort {
 	return nil
 }

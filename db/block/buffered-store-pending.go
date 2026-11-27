@@ -15,7 +15,8 @@ type PendingBatch struct {
 	Drained bool
 	// complete resolves the borrow with the publication result.
 	complete func(error)
-	// completed records that Complete already ran; further calls are no-ops.
+	// completed records that Complete already ran.
+	// Further calls are no-ops.
 	completed bool
 }
 

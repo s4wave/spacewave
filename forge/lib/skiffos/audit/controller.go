@@ -22,28 +22,28 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/skiffos/audit"
 
-// InputBuild names the input holding the Repo the build consumes.
+// InputBuild selects the input holding the Repo the build consumes.
 const InputBuild = "build"
 
-// InputUpstream names the input holding the fetched SkiffOS Repo.
+// InputUpstream selects the input holding the fetched SkiffOS Repo.
 const InputUpstream = "upstream"
 
-// InputBuildroot names the input holding the fetched Buildroot fork's Repo.
+// InputBuildroot selects the input holding the fetched Buildroot fork's Repo.
 const InputBuildroot = "buildroot"
 
-// OutputReport names the output holding the Report, a blob of its protobuf JSON
-// that ReadReport decodes. JSON keeps it short text a person gate shows inline.
+// OutputReport selects the output holding the Report, a blob of its protobuf
+// JSON that ReadReport decodes. JSON is short text a person gate shows inline.
 const OutputReport = "report"
 
 // Controller audits one build's SkiffOS source.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the build, upstream and buildroot inputs.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 

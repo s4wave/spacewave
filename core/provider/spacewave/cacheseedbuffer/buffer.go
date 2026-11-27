@@ -21,7 +21,7 @@ type Entry struct {
 	// TimestampMs is the unix timestamp in milliseconds when the request was
 	// recorded (at dispatch time, not completion).
 	TimestampMs int64
-	// Reason is the seed-reason header value; empty if the request was not
+	// Reason is the seed-reason header value. Empty if the request was not
 	// tagged.
 	Reason seedreason.Reason
 	// Path is the URL path the request was sent to.
@@ -98,7 +98,7 @@ func (b *Buffer) Capacity() int {
 // Subscribe returns a snapshot of the current buffer plus a channel that
 // receives future appends. The caller must invoke the returned release function
 // to remove its subscription and close the channel. The channel has a small
-// buffer; if a slow consumer falls behind, newer entries are dropped rather
+// buffer. If a slow consumer falls behind, newer entries are dropped rather
 // than blocking the producer.
 func (b *Buffer) Subscribe() (snapshot []Entry, updates <-chan Entry, release func()) {
 	var seq uint64

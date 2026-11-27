@@ -52,7 +52,8 @@ func BuildQuicConfig(opts *Opts) *quic.Config {
 
 	// Build the QUIC configuration from the resolved limits.
 	return &quic.Config{
-		// We don't use datagrams (yet), but this is necessary for WebTransport
+		// Enable datagrams unless the options disable them. Unreliable message
+		// streams use them, and WebTransport requires them.
 		EnableDatagrams:         !opts.GetDisableDatagrams(),
 		KeepAlivePeriod:         keepAlivePeriod,
 		DisablePathMTUDiscovery: opts.GetDisablePathMtuDiscovery(),

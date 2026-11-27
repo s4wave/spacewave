@@ -17,7 +17,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the Pass object to attach to.
-   * If not exists, waits for it to exist.
+   * If the Pass object does not exist, the controller waits for the object.
    *
    * Executions are created at <object-key>/execution/<object-rev>/<replica>
    */

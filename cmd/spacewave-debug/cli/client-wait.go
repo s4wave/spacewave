@@ -25,7 +25,8 @@ func (a *ClientArgs) RunWait(c *cli.Context) error {
 			w.WriteString(" ready\n")
 			return nil
 		}
-		// Reset cached client so next iteration retries the socket.
+		// Reset the cached client so the next iteration retries
+		// the socket.
 		a.client = nil
 		a.conn = nil
 		select {

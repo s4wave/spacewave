@@ -17,12 +17,12 @@ import (
 // FSHandle is an open handle to a location in a FSTree.
 // The handle may be released if the location ceases to exist.
 type FSHandle struct {
-	// isReleased indicates if this is released.
+	// isReleased indicates if the FSHandle is released.
 	isReleased atomic.Bool
-	// inode is the underlying inode
+	// inode is the underlying inode.
 	// this field changes only if the inode was moved to a different cursor path.
 	inode atomic.Pointer[fsInode]
-	// relCbs is an atomic last-in-first-out set of callbacks
+	// relCbs is an atomic last-in-first-out set of callbacks.
 	relCbs cqueue.AtomicLIFO[func()]
 }
 
@@ -36,9 +36,11 @@ func NewFSHandle(cursor FSCursor) (*FSHandle, error) {
 	return inode.addReferenceLocked(true)
 }
 
-// NewFSHandleWithPrefix constructs a new FSHandle with a FSCursor and follows a prefix.
+// NewFSHandleWithPrefix constructs a new FSHandle with a FSCursor and follows a
+// prefix.
 //
-// if mkdirPath is set, we will attempt to mkdir all elements of prefixPath.
+// if mkdirPath is set, NewFSHandleWithPrefix tries to mkdir all elements
+// of prefixPath.
 func NewFSHandleWithPrefix(
 	ctx context.Context,
 	cursor FSCursor,
@@ -58,7 +60,7 @@ func NewFSHandleWithPrefix(
 	}
 
 	// Create the requested prefix directories.
-	// if we should mkdirPath, ensure the prefix exists first.
+	// if mkdirPath is set, ensure the prefix exists first.
 	if mkdirPath {
 		err = rootHandle.MkdirAll(
 			ctx,
@@ -88,7 +90,7 @@ func (h *FSHandle) GetName() string {
 	return h.i().name
 }
 
-// CheckReleased checks if released without locking anything.
+// CheckReleased checks if the handle is released without locking anything.
 func (h *FSHandle) CheckReleased() bool {
 	return h.isReleased.Load()
 }
@@ -153,7 +155,7 @@ func (h *FSHandle) AccessOps(ctx context.Context, cb func(cursor FSCursor, ops F
 }
 
 // GetOps resolves and returns the FSCursor and FSCursorOps once.
-// Note: you may want to use AccessOps for the ErrReleased retry logic.
+// Note: callers may want to use AccessOps for the ErrReleased retry logic.
 // Note: do not call Release() on the returned FSCursorOps object.
 func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 	var cursor FSCursor
@@ -217,7 +219,7 @@ func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 }
 
 // GetSize returns the size of the inode (in bytes), including buffered writes.
-// Usually applicable only if this is a FILE.
+// Usually applicable only if the node is a FILE.
 func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 	// Read the extent of buffered writes.
 	inode := h.i()
@@ -237,7 +239,7 @@ func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 }
 
 // GetOptimalWriteSize returns the optimal write size for the node.
-// Usually applicable only if this is a FILE.
+// Usually applicable only if the node is a FILE.
 func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 	var size int64
 	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
@@ -315,10 +317,10 @@ func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64
 //
 // Contiguous writes smaller than the file's optimal write size are buffered
 // at the inode, as in a page cache, and may return before they commit. Every
-// handle at the inode reads them. Sync and Release commit them; an idle
+// handle at the inode reads them. Sync and Release commit them. An idle
 // writer's buffer commits after a short delay, and a failure of that commit
 // is returned by the next operation on the inode.
-// If this isn't a file node, returns ErrNotFile.
+// If the node isn't a file node, returns ErrNotFile.
 func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	return h.i().writeAt(ctx, offset, data, ts)
 }
@@ -424,7 +426,7 @@ func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHa
 
 	// Traverse each non-empty path component.
 	for i, pathPart := range pathParts {
-		// these should not be given but handle it anyway
+		// these path components should not be given but handle them anyway
 		if pathPart == "." || pathPart == "" {
 			continue
 		}
@@ -464,7 +466,7 @@ func (h *FSHandle) LookupPathPtsHandles(ctx context.Context, pathParts []string)
 
 	// Traverse the path while retaining each resolved handle.
 	for i, pathPart := range pathParts {
-		// these should not be given but handle it anyway
+		// these path components should not be given but handle them anyway
 		if pathPart == "." || pathPart == "" {
 			continue
 		}
@@ -549,7 +551,7 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 		dirHandle.Release()
 		dirHandle = dh
 		if err == nil {
-			// check it is a dir
+			// check the entry is a dir
 			var nt FSCursorNodeType
 			nt, err = dirHandle.GetNodeType(ctx)
 			if err == nil && !nt.GetIsDirectory() {
@@ -570,8 +572,8 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 	return nil
 }
 
-// MkdirLookup performs a lookup for a directory in the handle, creates it if it doesn't exist,
-// then looks up again and returns the new handle.
+// MkdirLookup looks up a directory in the handle, creates the directory if
+// the directory does not exist, then looks up again and returns the new handle.
 func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
 	// Resolve or create the requested directory entry.
 	dir, err := h.Lookup(ctx, name)
@@ -589,7 +591,7 @@ func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMod
 		return nil, err
 	}
 
-	// Check if it's a directory
+	// Check if the entry is a directory
 	nt, err := dir.GetNodeType(ctx)
 	if err != nil {
 		dir.Release()
@@ -702,13 +704,13 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 	return h.i().accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
 		// access destination inode
 		return dest.i().accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
-			// Attempt to perform optimized copy from src -> dest.
+			// Try the optimized copy from src -> dest.
 			done, err := srcOps.CopyTo(ctx, destOps, destName, ts)
 			if err != nil || done {
 				return err
 			}
 
-			// Attempt to perform optimized copy from dest <- src.
+			// Try the optimized copy from dest <- src.
 			done, err = destOps.CopyFrom(ctx, destName, srcOps, ts)
 			if err != nil || done {
 				return err
@@ -767,7 +769,8 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			}
 		}
 
-		// to prevent deadlock, if we can't lock, unlock both and try locking the opposite order
+		// To prevent deadlock, if the second lock is unavailable, unlock both
+		// and try locking in the opposite order.
 		relSrcLoc, err = srcLoc.rmtx.Lock(ctx, true)
 		if err != nil {
 			return err
@@ -801,7 +804,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			return err
 		}
 
-		// if either of them are currently resolving fsOps, wait
+		// if either inode is resolving fsOps, wait
 		srcLocWait := srcLoc.fsWait
 		if srcLocWait != nil {
 			select {
@@ -848,7 +851,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			// release the destination loc for now
 			relDestParent()
 
-			// we will perform the lookup
+			// Perform the lookup
 			fsWait := make(chan struct{})
 			srcLoc.fsWait = fsWait
 
@@ -862,7 +865,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			// release the src loc for now
 			relSrcLoc()
 
-			// we will perform the lookup
+			// Perform the lookup
 			fsWait := make(chan struct{})
 			destParent.fsWait = fsWait
 
@@ -876,7 +879,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		lockedNodes[destParent] = relDestParent
 
 		// lock their children as well
-		// note: we always lock in parent -> child order
+		// note: the locks are always taken in parent -> child order
 		nodStk := []*fsInode{srcLoc, destParent}
 		for len(nodStk) != 0 {
 			// pop 1 from nodStk
@@ -905,13 +908,13 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			}
 		}
 
-		// if the nodes were released while we were doing the above, retry.
+		// if the nodes were released during the steps above, retry.
 		if fsOpsSrc.CheckReleased() || fsOpsDest.CheckReleased() {
 			relLockedNodes()
 			continue
 		}
 
-		// Attempt to perform optimized move from src -> dest.
+		// Try the optimized move from src -> dest.
 		done, err := fsOpsSrc.MoveTo(ctx, fsOpsDest, destName, ts)
 		if err != nil {
 			return err
@@ -920,7 +923,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			break
 		}
 
-		// Attempt to perform optimized move from dest <- src.
+		// Try the optimized move from dest <- src.
 		done, err = fsOpsDest.MoveFrom(ctx, destName, fsOpsSrc, ts)
 		if err != nil {
 			return err
@@ -929,7 +932,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			break
 		}
 
-		// No optimized path exists; cross-location moves return an error.
+		// No optimized path exists, so cross-location moves return an error.
 		return unixfs_errors.ErrCrossFsRename
 	}
 
@@ -950,7 +953,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		}
 	}
 
-	// destination parent was released; nothing further we can do from here.
+	// destination parent was released: nothing further can be done from here.
 	if destParent.checkReleased() {
 		destParent.releaseLocked(unixfs_errors.ErrReleased)
 		return unixfs_errors.ErrReleased

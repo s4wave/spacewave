@@ -80,8 +80,9 @@ export interface SecretPayload {
   /**
    * OwnerSpaceId is the Space that owns this payload. The payload's first
    * state sets it and no later write can change it, so a writer of another
-   * Space cannot have its Secret delete remove this payload. Empty on a
-   * payload created outside a Space, which a Secret delete always keeps.
+   * Space cannot have its Secret delete remove this payload. OwnerSpaceId is
+   * empty on a payload created outside a Space. A Secret delete always keeps
+   * such a payload.
    */
   ownerSpaceId?: string
 }

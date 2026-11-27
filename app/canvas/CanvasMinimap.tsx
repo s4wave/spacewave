@@ -86,7 +86,7 @@ export function CanvasMinimap({
     [bounds.minX, bounds.minY, minimapScale],
   )
 
-  // Viewport rectangle in minimap space.
+  // Compute the viewport rectangle in minimap space.
   const vpRect = useMemo(() => {
     const vpLeft = -viewport.x / viewport.scale
     const vpTop = -viewport.y / viewport.scale

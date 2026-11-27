@@ -14,7 +14,7 @@ func NewChunkIndex(chunks []*Chunk) *ChunkIndex {
 }
 
 // UnmarshalChunkIndex unmarshals a chunk index from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalChunkIndex(ctx context.Context, bcs *block.Cursor) (*ChunkIndex, error) {
 	return block.UnmarshalBlock[ChunkIndex](ctx, bcs)
 }

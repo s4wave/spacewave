@@ -35,7 +35,7 @@ func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
 }
 
 // NewFactory constructs the component factory. A process that owns a listener
-// injects its shared broker through WithListenerStatusBroker; a hosted plugin
+// injects its shared broker through WithListenerStatusBroker. A hosted plugin
 // owns none and projects the runtime without listener status.
 func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 	return bus.NewBusControllerFactory(

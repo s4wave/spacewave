@@ -14,7 +14,8 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-// PasskeyPrfOutputSize is the WebAuthn PRF output length, which keys AES-256-GCM.
+// PasskeyPrfOutputSize is the length of the WebAuthn PRF output used to key
+// AES-256-GCM.
 const PasskeyPrfOutputSize = 32
 
 // pinScryptWorkFactor is the age scrypt work factor for PIN-wrapped entity keys.

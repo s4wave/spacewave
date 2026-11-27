@@ -87,7 +87,8 @@ function DownloadCliPage() {
 
 // STATIC_ROUTES maps pathnames to components for prerender and Startup.
 // Paths must match STATIC_ROUTES in web/router/static-routes.ts.
-// '/' is omitted here -- the root path uses a dual landing + loading template.
+// '/' is omitted here because the root path uses a dual landing + loading
+// template.
 export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/landing', component: Landing, metadata: landingMetadata },
   { path: '/landing/drive', component: LandingDrive, metadata: driveMetadata },

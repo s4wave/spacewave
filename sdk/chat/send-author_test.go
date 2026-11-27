@@ -32,7 +32,8 @@ func TestChatResourceSendAuthor(t *testing.T) {
 		}
 	}
 
-	// Verify each message names its author and keeps the sender's peer and person.
+	// Verify each message records its author and keeps the sender's peer and
+	// person.
 	history, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)

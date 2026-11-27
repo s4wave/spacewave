@@ -8,12 +8,12 @@ import (
 // ConnAddrBase is the base type for ConnAddr.
 type ConnAddrBase interface {
 	// Read can be made to time out and return an error after a fixed
-	// time limit; see SetDeadline and SetReadDeadline.
+	// time limit. See SetDeadline and SetReadDeadline.
 	Read(b []byte) (n int, err error)
 
 	// Write writes data to the connection.
 	// Write can be made to time out and return an error after a fixed
-	// time limit; see SetDeadline and SetWriteDeadline.
+	// time limit. See SetDeadline and SetWriteDeadline.
 	Write(b []byte) (n int, err error)
 
 	// Close closes the connection.
@@ -32,8 +32,9 @@ type ConnAddrBase interface {
 	//
 	// If the deadline is exceeded a call to Read or Write or to other
 	// I/O methods will return an error that wraps os.ErrDeadlineExceeded.
-	// This can be tested using errors.Is(err, os.ErrDeadlineExceeded).
-	// The error's Timeout method will return true, but note that there
+	// The deadline error can be tested using
+	// errors.Is(err, os.ErrDeadlineExceeded).
+	// The error's Timeout method will return true, but there
 	// are other possible errors for which the Timeout method will
 	// return true even if the deadline has not been exceeded.
 	//

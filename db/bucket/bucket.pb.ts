@@ -21,7 +21,7 @@ export interface Config {
   id?: string
   /**
    * Rev is the configuration rev.
-   * increment by 1 on modification
+   * Increment Rev by 1 on modification.
    */
   rev?: number
   /**
@@ -68,14 +68,14 @@ export const BucketInfo: MessageType<BucketInfo> =
  */
 export interface LookupConfig {
   /**
-   * Disble indicates we should not service cross-volume calls against this
-   * bucket.
+   * Disable indicates that cross-volume calls against this bucket should not
+   * be serviced.
    */
   disable?: boolean
   /**
    * Controller contains the lookup controller configuration.
-   * If unset, will default to the node-default lookup controller.
-   * If disabled, this field will be ignored.
+   * If Controller is unset, the node-default lookup controller is used.
+   * If lookup is disabled, Controller is ignored.
    */
   controller?: ControllerConfig
 }
@@ -118,7 +118,7 @@ export interface ApplyBucketConfigResult {
   updated?: boolean
   /**
    * Error contains any error applying the value.
-   * Note: all other values might be empty if this is set.
+   * Note: all other values might be empty if Error is set.
    */
   error?: string
 }
@@ -152,13 +152,14 @@ export interface ObjectRef {
   rootRef?: BlockRef
   /**
    * BucketId is the bucket id, if switching buckets.
-   * May be empty to indicate same bucket.
+   * BucketId may be empty to indicate the same bucket.
    */
   bucketId?: string
   /**
    * TransformConfRef is the transformation configuration block ref.
-   * Must be encoded with the same transformation config as the parent.
-   * May be empty to indicate same conf as parent.
+   * TransformConfRef must be encoded with the same transformation config
+   * as the parent. An empty TransformConfRef indicates the same conf as
+   * the parent.
    */
   transformConfRef?: BlockRef
   /**
@@ -187,7 +188,7 @@ export interface BucketOpArgs {
   bucketId?: string
   /**
    * VolumeId is the volume ID to operate on.
-   * If empty, will use the lookup controller.
+   * If VolumeId is empty, the lookup controller is used.
    */
   volumeId?: string
 }

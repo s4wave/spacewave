@@ -59,9 +59,9 @@ const (
 	// batch stores only through a copied entry. Land cannot tell which, so a
 	// repeat lands only if it stores the child again, from content.
 	NotHeldChild
-	// NotHeldPut is a block the batch gives birth to and gives no holder: no
-	// root moves onto it, no block the batch stores names it, and its count
-	// records no holder from before.
+	// NotHeldPut is a block the batch gives birth to and gives no holder:
+	// no root moves onto it, no block the batch stores references it, and
+	// its count records no holder from before.
 	NotHeldPut
 )
 
@@ -75,14 +75,14 @@ const (
 // A block is stored, in the liveness sense, while its child list exists. An
 // entry whose block has no child list is born: Land writes its list. A born
 // block has one holder implied by its record, which is the first holder this
-// transaction gives it: a born parent in the batch that names it, or a root
-// that moves onto it. Every further holder is an up: a child of a born block
-// that the batch does not store, a root moving onto a block stored before,
-// and the second and later holders of a born block. Every root moving off a
-// block is a down, and so is the implied holder of a born block no holder in
-// the batch names: such a put is garbage once its down ages past the grace
-// period, unless a later Land holds the block first, which a writer must do
-// within the grace period.
+// transaction gives it: a born parent in the batch that references it, or a
+// root that moves onto it. Every further holder is an up: a child of a born
+// block that the batch does not store, a root moving onto a block stored
+// before, and the second and later holders of a born block. Every root moving
+// off a block is a down, and so is the implied holder of a born block no holder
+// in the batch references: such a put is garbage once its down ages past the
+// grace period, unless a later Land holds the block first, which a writer must
+// do within the grace period.
 //
 // A put of a stored block, one whose list exists, holds it as a born put
 // does: an up now and a down for that implied holder, so the block lives at
@@ -96,9 +96,9 @@ const (
 // not netted yet. It dequeues only a block it also gives an up, which nets
 // later and lifts the count off zero.
 //
-// A root's Previous must match the block the name holds, or Land writes
-// nothing and returns block.ErrRootMoved. A root must name a block the store
-// holds or the batch stores. A root that names a lease and a block moves only
+// A root's Previous must match the block the name holds, or Land writes nothing
+// and returns block.ErrRootMoved. A root must reference a block the store holds
+// or the batch stores. A root that references a lease and a block moves only
 // while the lease is live at now, or Land writes nothing and returns
 // ErrLeaseLapsed, so no root joins a lease the collector may be releasing.
 //
@@ -106,42 +106,41 @@ const (
 // and count, so a cache that evicts a live block leaves a hole the collector
 // steps over, and only the collector frees.
 //
-// A block's place in the graph is its child list record, not its bytes. A
-// put that finds the list without the bytes, such as a block a cache evicted,
+// A block's place in the graph is its child list record, not its bytes. A put
+// that finds the list without the bytes, such as a block a cache evicted,
 // counts the block as already stored: it stores the bytes and holds it as
-// above. A block the store lost together with its list is a hole whose
-// parents' lists still name it and whose children's counts still include it.
-// The audit records each hole it finds under a live root and restores its
-// count from the holders it found, and a put of a recorded hole counts it as
-// stored too: Land writes its list back, and its children gain no holder. A
-// put of an unrecorded hole counts it as a new block the batch gives no
-// holder, so it keeps the block only through an invariant the adoption sets:
-// a block without a child list counts one holder more than its namers.
-// Turning frees on recounts (SetFrees), which restores that for every hole,
-// so a hole lost while frees were off survives its put. A block lost with
-// its list after that recount and put again before any audit records it is
-// the residual window: the put leaves it one holder short, the collector
-// frees it once the put ages past the grace period while its parents still
-// name it, and an audit before then reports the undercount. A restore of
-// lost blocks therefore audits first, as the payload restore does, or opens
-// the Volume once with frees off, so frees turn on again through the
-// recount.
+// above. A block the store lost together with its list is a hole whose parents'
+// lists still reference it and whose children's counts still include it. The
+// audit records each hole it finds under a live root and restores its count
+// from the holders it found, and a put of a recorded hole counts it as stored
+// too: Land writes its list back, and its children gain no holder. A put of an
+// unrecorded hole counts it as a new block the batch gives no holder, so it
+// keeps the block only through an invariant the adoption sets: a block without
+// a child list counts one holder more than its namers. Turning frees on
+// recounts (SetFrees), which restores that for every hole, so a hole lost while
+// frees were off survives its put. A block lost with its list after that
+// recount and put again before any audit records it is the residual window: the
+// put leaves it one holder short, the collector frees it once the put ages past
+// the grace period while its parents still reference it, and an audit before
+// then reports the undercount. A restore of lost blocks therefore audits first,
+// as the payload restore does, or opens the Volume once with frees off, so
+// frees turn on again through the recount.
 //
 // While the Volume's old generation is Open, Land keeps the settle's front
-// invariant, as settle.go describes: it pushes onto the front each child a
-// born block names outside the batch, and each block a root moves onto, when
+// invariant, as settle.go describes: it pushes onto the front each child a born
+// block references outside the batch, and each block a root moves onto, when
 // its list is unverified. A put of a stored block whose list is unverified
 // writes the union of the list and the put's refs, marked, since a list may
-// lack a child and naming one more only keeps a block longer, takes the block
-// off the run and the front, and pushes its unverified children; a refilled
-// hole does the same with the list it writes back. A list that gains a child
-// logs no holder for it, so on an adopted Volume Land records that the counts
-// owe a recount, which the flip reads. It refuses a hold onto a block the
-// free parked with an AbsentError, and a put of one gives birth to it again,
-// as Records.repark describes. While Sweeping, Land refuses a hold onto an
-// unmarked block with an AbsentError, and a put of one gives birth to it
-// again, as Records.rebirth describes: its old list's children outside the
-// run lose the holder it gave them, through downs.
+// lack a child and referencing one more only keeps a block longer, takes the
+// block off the run and the front, and pushes its unverified children. A
+// refilled hole does the same with the list it writes back. A list that gains a
+// child logs no holder for it, so on an adopted Volume Land records that the
+// counts owe a recount, which the flip reads. It refuses a hold onto a block
+// the free parked with an AbsentError, and a put of one gives birth to it
+// again, as Records.repark describes. While Sweeping, Land refuses a hold onto
+// an unmarked block with an AbsentError, and a put of one gives birth to it
+// again, as Records.rebirth describes: its old list's children outside the run
+// lose the holder it gave them, through downs.
 //
 // A list is marked only from refs the writer read from content: an entry
 // with RefsKnown. Another entry is copied: its refs came from a source's
@@ -173,14 +172,13 @@ const (
 //     Records.reopen, and is then born as in invariant 2: from the commit
 //     on every free parks until a walk decodes the block.
 //
-// A Volume that is not adopted keeps no logs: Land writes the child lists
-// and roots and appends nothing, and an adoption counts every holder from
-// them. An adopting or adopted Volume refuses a block that names a child
-// whose bytes it holds without a child list, and a root onto such a block,
-// because the children that block names would hold nothing. While an
-// adoption counts the Volume, Land also marks each block it gives birth to
-// and records the block each root it moves held when the adoption began, as
-// Adopt reads.
+// A Volume that is not adopted keeps no logs: Land writes the child lists and
+// roots and appends nothing, and an adoption counts every holder from them. An
+// adopting or adopted Volume refuses a block that references a child whose
+// bytes it holds without a child list, and a root onto such a block, because
+// the children that block references would hold nothing. While an adoption
+// counts the Volume, Land also marks each block it gives birth to and records
+// the block each root it moves held when the adoption began, as Adopt reads.
 //
 // Cost per call: the state record and, when an entry has no list, the
 // holes-clear mark, one point read; one batched read of the entries' child list
@@ -237,8 +235,9 @@ func Land(
 		}
 	}
 
-	// Name the blocks the roots move onto, whose counts the puts' count batch
-	// reads, then store the entries and find the blocks they give birth to.
+	// Record the blocks the roots move onto, whose counts the puts' count
+	// batch reads, then store the entries and find the blocks they give
+	// birth to.
 	if l.logs {
 		for _, move := range moves {
 			for _, root := range move.Roots {
@@ -260,7 +259,7 @@ func Land(
 		}
 	}
 
-	// Mark the unverified lists of the stored blocks it puts again.
+	// Mark the unverified lists of the stored blocks the Land puts again.
 	if l.gen == Generation_GENERATION_OPEN {
 		for _, entry := range l.stored {
 			if err := l.markStored(ctx, entry); err != nil {
@@ -312,7 +311,7 @@ type bornBlock struct {
 	// counted reports that its count records holders from before the put.
 	counted bool
 	// reput reports that the store held its bytes without a child list, so
-	// holders the store cannot see may name it.
+	// holders the store cannot see may reference it.
 	reput bool
 	// reborn reports that the block was unmarked, so the put gives birth to
 	// it again.
@@ -355,7 +354,7 @@ type lander struct {
 	// now is the Land's time in Unix milliseconds, against which a root's
 	// lease must be live.
 	now int64
-	// leases caches whether each lease a root names is live at now.
+	// leases caches whether each lease a root references is live at now.
 	leases map[string]bool
 	// touched maps the block keys of the entries already stored, each held
 	// as a born put is, to the last entry that put it.
@@ -384,7 +383,7 @@ type stageHeld = func(ctx context.Context, ref *block.BlockRef) (bool, error)
 // the block it holds, and returns the block each root holds.
 func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.NamedRoot) ([]*block.BlockRef, error) {
 	// A change that moves one root name twice is refused whole, before
-	// anything lands; the name set keeps the check linear in the roots.
+	// anything lands. The name set keeps the check linear in the roots.
 	held := make([]*block.BlockRef, len(roots))
 	names := make(map[string]struct{}, len(roots))
 	for i, root := range roots {
@@ -451,7 +450,8 @@ var ErrSweeping = errors.Wrap(block.ErrRefsUnknown, "the volume is sweeping")
 // putEntries stores the entries' bytes and the child lists of the blocks
 // they give birth to, and evicts the tombstones' bytes.
 func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Name each entry and sort its block: stored, a refilled hole, or born.
+	// Build each entry's ref and sort its block: stored, a refilled hole,
+	// or born.
 	var holds *zeroHolds
 	if l.logs {
 		holds = &l.holds
@@ -630,7 +630,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	return existed, nil
 }
 
-// putKind is what the liveness records hold for a block a put names.
+// putKind is what the liveness records hold for a block a put references.
 type putKind int
 
 const (
@@ -638,8 +638,8 @@ const (
 	putBorn putKind = iota
 	// putCounted is a block without a child list whose count outlived it
 	// with holders, as when the store lost its bytes and list while a
-	// parent still names it: the put gives birth to it, and the count holds
-	// it.
+	// parent still references it: the put gives birth to it, and the count
+	// holds it.
 	putCounted
 	// putStored is a block with a child list, stored already.
 	putStored
@@ -659,20 +659,20 @@ const (
 	putParked
 )
 
-// classifyPuts checks and names each put entry, building an empty ref from
-// its data, and calls fn, in entry order, with the first entry of each block
-// the entries put and what the records hold for it, skipping nil entries and
-// tombstones. It reads the blocks' child lists in one batch, whether the
-// Volume records any hole once, at the first block without a child list, and
-// a block's hole record only when one does, so a put into a Volume without a
-// hole, the usual case, reads no hole record per block; then the counts of
-// the blocks without a list in one batch. Until the generation is Settled it
-// reads whether each listed block is hidden, as Records.Hidden describes.
+// classifyPuts checks each put entry and fills an empty ref from its data, and
+// calls fn, in entry order, with the first entry of each block the entries put
+// and what the records hold for it, skipping nil entries and tombstones. It
+// reads the blocks' child lists in one batch, whether the Volume records any
+// hole once, at the first block without a child list, and a block's hole record
+// only when one does, so a put into a Volume without a hole, the usual case,
+// reads no hole record per block, then the counts of the blocks without a list
+// in one batch. Until the generation is Settled it reads whether each listed
+// block is hidden, as Records.Hidden describes.
 //
-// When holds is set, the same count batch reads the count of each block
-// outside the batch a born block or a refilled hole names or a root moves
-// onto, and of each block the batch stores again, and holds.zeros records
-// each at zero, so Land dequeues them with no read of its own.
+// When holds is set, the same count batch reads the count of each block outside
+// the batch a born block or a refilled hole references or a root moves onto,
+// and of each block the batch stores again, and holds.zeros records each at
+// zero, so Land dequeues them with no read of its own.
 func classifyPuts(
 	ctx context.Context,
 	rec *Records,
@@ -681,7 +681,7 @@ func classifyPuts(
 	holds *zeroHolds,
 	fn func(entry *block.PutBatchEntry, kind putKind) error,
 ) error {
-	// Check and name each entry, once per block.
+	// Check each entry and build its ref, once per block.
 	seen := make(map[string]struct{}, len(entries))
 	puts := make([]*block.PutBatchEntry, 0, len(entries))
 	keys := make([][]byte, 0, len(entries))
@@ -709,7 +709,7 @@ func classifyPuts(
 	}
 
 	// A Land that only moves roots still reads its roots' counts below, so
-	// it dequeues a block at zero that a root now holds; the free proves no
+	// it dequeues a block at zero that a root now holds. The free proves no
 	// late holder by that queue entry.
 	if len(puts) == 0 && (holds == nil || len(holds.roots) == 0) {
 		return nil
@@ -808,14 +808,14 @@ type zeroHolds struct {
 	zeros map[string]uint64
 }
 
-// gather returns the count record keys the Land reads for holds: of each
-// child outside the batch a born put or a refill names, each root target
-// outside the batch, and each block the batch stores again, a refilled hole
-// among them. kinds holds each put's kind, with the blocks whose counts are
-// not read yet still putBorn, which is born like every kind their counts can
-// give. A key named twice is read twice, which costs less than a map to find
-// it. The keys share one allocation, built from each child's hash with no
-// block key of its own.
+// gather returns the count record keys the Land reads for holds: of each child
+// outside the batch a born put or a refill references, each root target outside
+// the batch, and each block the batch stores again, a refilled hole among them.
+// kinds holds each put's kind, with the blocks whose counts are not read yet
+// still putBorn, which is born like every kind their counts can give. A key
+// named twice is read twice, which costs less than a map to find it. The keys
+// share one allocation, built from each child's hash with no block key of its
+// own.
 func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]byte, kinds []putKind, seen map[string]struct{}) [][]byte {
 	// Without holds, nothing.
 	if h == nil {
@@ -903,19 +903,18 @@ func (h *zeroHolds) note(rec *Records, held, values [][]byte, found []bool) erro
 	return nil
 }
 
-// unlistedPut returns what a put of a block with neither a child list, a
-// hole record nor an empty run entry does, from its count record value. It
-// keeps this invariant: a put leaves no record that lets the collector free
-// or sweep the block it stores without a later release. Two records can
-// outlive a lost list and do so. An empty run entry while Sweeping is one,
-// since the sweep deletes every block it names whatever the block's list or
-// count, so classifyPuts gives an unmarked block birth again, as
-// Records.rebirth describes, whatever its count. A zero count is the other,
-// left when the store lost a Dead block's list while its count, queue entry,
-// front entry, parked key and run entry outlived it, so the put reparks such
-// a block, as Records.repark describes. Neither takes an extra holder for
-// bytes stored without a list, since the block's count recorded what holds
-// it.
+// unlistedPut returns what a put of a block with neither a child list, a hole
+// record nor an empty run entry does, from its count record value. It keeps
+// this invariant: a put leaves no record that lets the collector free or sweep
+// the block it stores without a later release. Two records can outlive a lost
+// list and do so. An empty run entry while Sweeping is one, since the sweep
+// deletes every block it references whatever the block's list or count, so
+// classifyPuts gives an unmarked block birth again, as Records.rebirth
+// describes, whatever its count. A zero count is the other, left when the store
+// lost a Dead block's list while its count, queue entry, front entry, parked
+// key and run entry outlived it, so the put reparks such a block, as
+// Records.repark describes. Neither takes an extra holder for bytes stored
+// without a list, since the block's count recorded what holds it.
 func unlistedPut(count []byte, found bool) (putKind, error) {
 	// A block with no count is born, and one with holders is born held.
 	if !found {
@@ -973,10 +972,10 @@ func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) ([]*bl
 	return children, r.markedYoung(ctx, key, packChildren(nil, children), nil)
 }
 
-// adoptCounted reports whether the adoption state names has counted the
-// child list of the block at key: the count passes the lists in key order
-// after the roots, and its cursor moves in the transaction that counts them,
-// so a Land's transaction reads exactly which lists it holds.
+// adoptCounted reports whether the adoption that state records has counted the
+// child list of the block at key: the count passes the lists in key order after
+// the roots, and its cursor moves in the transaction that counts them, so a
+// Land's transaction reads exactly which lists it holds.
 func adoptCounted(state *LivenessState, key []byte) bool {
 	cur := state.GetAdoptCursor()
 	switch cur.GetPhase() {
@@ -1011,9 +1010,9 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 	}
 
 	// A gained child lacks the holder the list now gives it. While
-	// adopting, the count reads the union where it has not passed the
-	// list, and the put logs the holder where it has; otherwise the counts
-	// owe a recount.
+	// adopting, the count reads the union where it has not passed the list,
+	// and the put logs the holder where it has. Otherwise the counts owe a
+	// recount.
 	switch {
 	case !gained || !l.logs:
 	case !l.adopting:
@@ -1033,10 +1032,10 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 // list in one more.
 func (l *lander) holdChildren(ctx context.Context) error {
 	// Give each child the batch stores its batch holder, and gather each
-	// naming of the others: each gains its child a holder, one up, when
-	// the Volume keeps the logs. A child two blocks name is read twice in
-	// the batch, which costs less than a map to find it.
-	// The keys share one buffer: a born child's key is dropped from it.
+	// naming of the others: each gains its child a holder, one up, when the
+	// Volume keeps the logs. A child two blocks reference is read twice in
+	// the batch, which costs less than a map to find it. The keys share one
+	// buffer: a born child's key is dropped from it.
 	n, size := 0, 0
 	for _, b := range l.order {
 		n += len(b.children)
@@ -1083,16 +1082,16 @@ func (l *lander) holdChildren(ctx context.Context) error {
 	return l.requireListed(ctx, outside, listed)
 }
 
-// holdRefilled checks the holds a refilled hole gives children, its child
-// list, as holdOutside checks a born block's: a child outside the batch that
-// the generation hides refuses the Land with an AbsentError, so the writer
-// puts it again. The hole's holder is one the child's count lacked, so the
-// free may have parked the child while Open, and the flip unmarks a parked
-// block before the up this Land logs can net; a child the flip left unmarked
-// is the sweep's. A child the batch gives birth to is stored by this Land.
-// A Settled Volume hides nothing and a partial Land counts a hidden child as
-// an absent one, as PutHold.Partial describes, so they read nothing;
-// otherwise it reads the children's lists in one batch.
+// holdRefilled checks the holds a refilled hole gives children, its child list,
+// as holdOutside checks a born block's: a child outside the batch that the
+// generation hides refuses the Land with an AbsentError, so the writer puts it
+// again. The hole's holder is one the child's count lacked, so the free may
+// have parked the child while Open, and the flip unmarks a parked block before
+// the up this Land logs can net. A child the flip left unmarked is the sweep's.
+// A child the batch gives birth to is stored by this Land. A Settled Volume
+// hides nothing and a partial Land counts a hidden child as an absent one, as
+// PutHold.Partial describes, so holdRefilled reads nothing. Otherwise
+// holdRefilled reads the children's lists in one batch.
 func (l *lander) holdRefilled(ctx context.Context, children []*block.BlockRef) error {
 	// Nothing is hidden while Settled, and a partial Land refuses no hidden
 	// child.
@@ -1186,11 +1185,11 @@ func (l *lander) holdListed(ctx context.Context, ref *block.BlockRef, key []byte
 	return l.rec.addFront(ctx, key)
 }
 
-// requireListed refuses the first of refs listed reports without a child
-// list whose bytes the store holds: the children it names would hold
-// nothing. A block the store lacks, such as a child stored after its
-// parent, passes; its holders count from its birth. It reads the unlisted
-// blocks' bytes in one batch, and nothing when every one is listed.
+// requireListed refuses the first of refs listed reports without a child list
+// whose bytes the store holds: the children it references would hold nothing. A
+// block the store lacks, such as a child stored after its parent, passes. Its
+// holders count from its birth. It reads the unlisted blocks' bytes in one
+// batch, and nothing when every one is listed.
 func (l *lander) requireListed(ctx context.Context, refs []*block.BlockRef, listed []bool) error {
 	// Gather the unlisted blocks, and read their bytes in one batch.
 	var unlisted []*block.BlockRef
@@ -1217,7 +1216,7 @@ func (l *lander) requireListed(ctx context.Context, refs []*block.BlockRef, list
 // moveRoot moves one named root from held to root.Ref, counting the holder it
 // adds and the one it removes.
 func (l *lander) moveRoot(ctx context.Context, bucketID string, root block.NamedRoot, held *block.BlockRef) error {
-	// A root that keeps its block changes no holder; it only moves its
+	// A root that keeps its block changes no holder and only moves its
 	// lease.
 	entry := &RootEntry{Ref: BlockKey(root.Ref), Lease: root.Lease}
 	if root.Ref.GetEmpty() {
@@ -1276,8 +1275,9 @@ func (l *lander) holdRoot(ctx context.Context, root block.NamedRoot) error {
 		return nil
 	}
 
-	// A block stored without a child list may be named only while the Volume
-	// keeps no logs; a block the store lacks never.
+	// A block stored without a child list may be referenced only while the
+	// Volume keeps no logs. A block the store lacks may never be
+	// referenced.
 	found, err := l.blocks.GetBlockExists(ctx, root.Ref)
 	if err != nil {
 		return err
@@ -1346,8 +1346,8 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 // collector freed:
 //
 //  1. It reads Records.Held, never GetHolders: GetHolders reports one holder
-//     for a block with no count record, missing ones included. Held refuses
-//     a missing block, one without a child list, and one at zero holders. A
+//     for a block with no count record, missing ones included. Held refuses a
+//     missing block, one without a child list, and one at zero holders. A
 //     stored block at zero still holds its children until it is freed, so a
 //     boundary child under it reads Held; once the collector frees the
 //     block, and then its children, none has a list and the move is
@@ -1391,8 +1391,8 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 //     refused unless its own stage root remains.
 //  4. A root that keeps its block checks nothing: the name holds the block.
 //  5. Observing never fails the Land: the check only reads, and a check that
-//     errors or is cancelled counts nothing, and the Land proceeds as with
-//     the check off; only HeldEnforce returns the error.
+//     errors or is cancelled counts nothing, and the Land proceeds as with the
+//     check off. Only HeldEnforce returns the error.
 //
 // Cost: nothing for a block the batch stores; one child list and one count
 // record read for each distinct boundary block, and staged's reads for one
@@ -1563,7 +1563,7 @@ func (l *lander) dequeue(ctx context.Context, key []byte) error {
 	return l.rec.tx.Delete(ctx, l.rec.queueKey(ripe, key))
 }
 
-// SameRef reports whether a and b name the same block, or are both empty.
+// SameRef reports whether a and b reference the same block, or are both empty.
 func SameRef(a, b *block.BlockRef) bool {
 	if a.GetEmpty() || b.GetEmpty() {
 		return a.GetEmpty() == b.GetEmpty()

@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// keypairEncContext is the enc context for signing a EntityKeypair
+// keypairEncContext is the enc context for signing a EntityKeypair.
 const keypairEncContext = "identity sign EntityKeypair 2024-06-05T06:48:39.309679Z"
 
 // AppendKeypair adds a keypair to the set.

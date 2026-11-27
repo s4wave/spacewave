@@ -69,9 +69,10 @@ func checkImageTools(t *testing.T, root *Root, expected []byte) {
 	}
 }
 
-// checkMissingTool removes an actually read tool descendant from a disposable copy.
 // readToolPrefix reads the first n bytes of the image's BusyBox, logging the
 // blocks a first-page probe needs on the root's access logger.
+// checkMissingTool removes an actually read tool descendant from a disposable
+// copy.
 func readToolPrefix(t *testing.T, ctx context.Context, r *Root, n int) {
 	t.Helper()
 	file, err := unixfs_iofs.NewFS(ctx, r.Handle()).Open("bin/busybox")
@@ -85,7 +86,8 @@ func readToolPrefix(t *testing.T, ctx context.Context, r *Root, n int) {
 }
 
 func checkMissingTool(t *testing.T, original string, descendant *block.BlockRef, prefix []byte) {
-	// Copy only this closed disposable database; keep the source adversaries separate.
+	// Copy only this closed disposable database. Keep the source
+	// adversaries separate.
 	t.Helper()
 	ctx := t.Context()
 	dir := t.TempDir()
@@ -122,7 +124,8 @@ func checkMissingTool(t *testing.T, original string, descendant *block.BlockRef,
 		t.Fatalf("tool adversary damaged the selected root: %v", err)
 	}
 
-	// A first-page probe still succeeds; only a complete tool read finds this loss.
+	// A first-page probe still succeeds. Only a complete tool read finds
+	// this loss.
 	file, err := unixfs_iofs.NewFS(ctx, root.Handle()).Open("bin/busybox")
 	if err != nil {
 		t.Fatal(err)

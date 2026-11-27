@@ -22,7 +22,7 @@ message Source {
   repeated PackSource packs = 6;
 }
 
-// PackTier names where a captured pack directory came from.
+// PackTier identifies where a captured pack directory came from.
 enum PackTier {
   // PACK_TIER_UNKNOWN is an invalid declaration.
   PACK_TIER_UNKNOWN = 0;
@@ -34,7 +34,7 @@ enum PackTier {
 
 // PackSource declares one immutable directory of captured packs.
 message PackSource {
-  // Path selects the directory; its entries are read in name order.
+  // Path selects the directory. Its entries are read in name order.
   string path = 1;
   // Tier selects which file names hold packs and how each is read.
   PackTier tier = 2;
@@ -64,7 +64,8 @@ message WitnessInput {
   bytes checkpoint_key = 5;
 }
 
-// Phase is the durable scratch lifecycle; every non-counted result is provisional.
+// Phase is the durable scratch lifecycle.
+// Every non-counted result is provisional.
 enum Phase {
   // PHASE_UNKNOWN is invalid persisted state.
   PHASE_UNKNOWN = 0;
@@ -229,7 +230,8 @@ message Counts {
   uint64 corrupt_values = 21;
 }
 
-// Node is a disk-backed traversal item; interpretation identity includes its context.
+// Node is a disk-backed traversal item.
+// Interpretation identity includes its context.
 message Node {
   // Ref identifies the stored bytes.
   .block.BlockRef ref = 1;

@@ -23,13 +23,13 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 		return nil
 	}
 
-	// Cold-start gate: if the hydrated verified cache shows our local peer
+	// Cold-start gate: if the hydrated verified cache shows the local peer
 	// already holds a grant in the current key epoch, the entity is enrolled
 	// and rejoin would just reissue the same enrollment. Skip the entire
 	// recovery path to avoid GET /recovery-envelope, GET
 	// /recovery-entity-keypairs, and POST /config-state on every cold mount.
-	// A stale cache (key rotation that excluded us between mounts) is
-	// recovered on the next config-chain re-verify, which still rotates the
+	// A stale cache (key rotation that excluded the local peer between mounts)
+	// is recovered on the next config-chain re-verify, which still rotates the
 	// host into the new participant set.
 	if peerEnrolledInCurrentEpoch(so.host.GetKeyEpochs(), so.localPid.String()) {
 		if epoch := currentEpochWithFallback(so.host.getCachedState(), so.host.GetKeyEpochs()); epoch != nil {
@@ -215,7 +215,8 @@ func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 	cli *SessionClient,
 	currentEpoch uint64,
 ) (*sobject.SOEntityRecoveryMaterial, error) {
-	// Load the cached envelope; it serves only for this entity at currentEpoch.
+	// Load the cached envelope. It serves only for this entity at
+	// currentEpoch.
 	cachedEnv, err := t.a.loadRecoveryEnvelopeCache(ctx, soID)
 	if err != nil {
 		t.a.le.WithError(err).WithField("sobject-id", soID).
@@ -235,7 +236,7 @@ func (t *sobjectTracker) resolveRejoinRecoveryMaterial(
 		// Cached envelope failed to decrypt: clear it and fall through to a
 		// fresh fetch on this attempt rather than waiting for the outer
 		// maxWriteRetries loop. The failure is exceptional (key rotation
-		// between mounts, corrupted persisted bytes); reclassify in-line.
+		// between mounts, corrupted persisted bytes). Reclassify in-line.
 		if delErr := t.a.deleteRecoveryEnvelopeCache(ctx, soID); delErr != nil {
 			t.a.le.WithError(delErr).WithField("sobject-id", soID).
 				Warn("failed to clear stale recovery envelope cache")
@@ -286,7 +287,7 @@ func (t *sobjectTracker) decryptRecoveryEnvelope(
 
 // persistOwnRecoveryEnvelope stores the local entity's freshly built recovery
 // envelope so subsequent mounts of soID hit the cache. Failures are warned and
-// not propagated; the cache is opportunistic.
+// not propagated. The cache is opportunistic.
 func (t *sobjectTracker) persistOwnRecoveryEnvelope(
 	ctx context.Context,
 	soID string,

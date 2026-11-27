@@ -46,7 +46,7 @@ export { DashboardTypeID }
 
 // PromDashboardViewer shows a prom/dashboard object under its Alarm strip.
 // The plugin that answers its queries runs only on desktop Devices, so the
-// viewer follows whether the plugin serves the object here; the strip reads
+// viewer follows whether the plugin serves the object here. The strip reads
 // the World and shows everywhere.
 export function PromDashboardViewer(props: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(props.objectInfo)
@@ -70,9 +70,10 @@ export function PromDashboardViewer(props: ObjectViewerComponentProps) {
 }
 
 // DashboardHandle follows whether the metrics plugin serves the Dashboard
-// here and shows it when it does. Past its reconnect backoff the watch fails;
-// the Dashboard it last served stays mounted under the failure, so an open
-// editor keeps its draft, and writes wait for the next handle.
+// here and shows it when the plugin does. Past its reconnect backoff the
+// watch fails. The Dashboard the watch last served stays mounted under the
+// failure, so an open editor keeps its draft, and writes wait for the next
+// handle.
 function DashboardHandle({
   objectInfo,
   worldState,
@@ -198,9 +199,9 @@ function DashboardBody({
   const nowMs = useClock(clockPeriodMs)
 
   // Follow the Dashboard and the Space's targets. A lost handle fails both
-  // watches over their last records, and their Retry watches the handle;
-  // they stay failed over them while it reloads, until the next handle's
-  // watches yield.
+  // watches over their last records, and their Retry watches the handle.
+  // Both watches stay failed over those records while the handle reloads,
+  // until the next handle's watches yield.
   const dashResource = useMemo(
     () =>
       resourceOf({
@@ -324,10 +325,11 @@ function DashboardBody({
     </div>
   )
 
-  // renderStatus renders the Dashboard's read state until it and its targets
-  // arrive, flush with the pane under its header. The body needs both
-  // records, so a failure of either replaces it until both arrived; after
-  // that the failure is a notice above the kept records.
+  // renderStatus renders the Dashboard's read state until the Dashboard and
+  // its targets arrive, flush with the pane under the Dashboard's header. The
+  // body needs both records, so a failure of either replaces the body until
+  // both arrive. After both arrive, the failure is a notice above the kept
+  // records.
   function renderStatus() {
     if (dashValue && targetsValue) return null
     if (failure) return <ViewerStatus {...failure} />

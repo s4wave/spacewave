@@ -1,7 +1,7 @@
-// Package webrtc_relay hands a signed-in session short-lived TURN credentials from
-// the app server holding the provider account.
+// Package webrtc_relay hands a signed-in session short-lived TURN credentials
+// from the app server holding the provider account.
 //
-// The server answers each session through an Issuer; the provider token stays
+// The server answers each session through an Issuer. The provider token stays
 // in the server's configuration. The client runs a Controller for its session
 // peer, which resolves LookupICEProvider with credentials fetched for each new
 // connection and keeps none of them.

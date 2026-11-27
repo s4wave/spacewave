@@ -30,7 +30,7 @@ type Client struct {
 	pipeID   string
 	rootDir  string
 
-	// exited closes once the helper process is reaped; waitErr is then set.
+	// exited closes once the helper process is reaped. waitErr is then set.
 	exited  chan struct{}
 	waitErr error
 

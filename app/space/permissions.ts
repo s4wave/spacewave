@@ -14,7 +14,7 @@ export function canRenameSpace(
   return false
 }
 
-// canDeleteSpaceObject returns true when the current session can apply object mutations.
+// canDeleteSpaceObject returns true when the current session can mutate objects.
 export function canDeleteSpaceObject(
   providerId: string | undefined,
   viewerRole: SOParticipantRole | undefined,

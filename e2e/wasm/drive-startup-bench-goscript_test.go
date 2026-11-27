@@ -24,7 +24,7 @@ import (
 //
 //   - cold: a fresh context, empty browser storage, and a dedicated WASM
 //     process that boots over a cold HTTP cache and empty Space state.
-//   - warm: a return visitor; the page is replaced in the same context, so a
+//   - warm: a return visitor. The page is replaced in the same context, so a
 //     fresh worker boots over the retained HTTP cache and OPFS Space state.
 //   - cache-hot: the asset cache stays warm but the OPFS Space state is cleared
 //     before the reboot, isolating asset-load cost from Space-data cost.
@@ -110,7 +110,7 @@ func TestGoScriptDriveStartupBench(t *testing.T) {
 // driveBenchCellInput carries the per-cell identity and the wall-clock origin a
 // cell measures milestones against.
 type driveBenchCellInput struct {
-	// runStamp names this benchmark run.
+	// runStamp identifies this benchmark run.
 	runStamp string
 	// navStart is the origin for navigation milestones.
 	navStart time.Time
@@ -120,7 +120,7 @@ type driveBenchCellInput struct {
 	buildMode string
 	// runtimeState identifies the cold or warm worker state.
 	runtimeState string
-	// cell names this measurement cell.
+	// cell identifies this measurement cell.
 	cell string
 }
 
@@ -387,7 +387,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 
 	// nodeInfo retains the subsystem attributed to one sampled frame.
 	type nodeInfo struct {
-		// bucket names the frame's report subsystem.
+		// bucket identifies the frame's report subsystem.
 		bucket string
 	}
 	nodes := make(map[int64]nodeInfo, len(nodesRaw))
@@ -737,7 +737,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 		}
 	}
 
-	// Tasks that began but never ended still count by type; their duration is
+	// Tasks that began but never ended still count by type. Their duration is
 	// unknown, so they contribute count only.
 	for _, ot := range open {
 		aggFor(ot.typ).count++

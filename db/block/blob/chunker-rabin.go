@@ -8,22 +8,22 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// defRabinPol is the default rabin polynomial
+// defRabinPol is the default rabin polynomial.
 //
-// To have deterministic chunking we need to use the same polynomial every time.
-// Previous versions of the code randomized the polynomial every time. But it's
-// better to have deterministic writes than randomize some aspect of the
-// chunking every time you write. Randomizing leads to having completely
-// different chunks even if we write the same file twice.
+// Deterministic chunking requires the same polynomial every time.
+// The default avoids the per-write polynomial randomization of previous
+// versions because deterministic writes are preferable to randomizing some
+// aspect of chunking on every write. Randomizing produces completely different
+// chunks even if the caller writes the same file twice.
 //
 // There are three options: use constant size chunks, or use a global constant
 // rabin polynomial, or set the polynomial in the options and use the same when
-// encoding in the future. The default is now to use this constant.
+// encoding in the future. The default is to use this constant.
 const defRabinPol = chunker.Pol(16983672372569473)
 
 // buildChunkIndexRabin builds the rabin-chunked block index.
 // appends if there are already chunks, recording them with chunks
-// returns new total size and error
+// returns the new total size and error.
 func buildChunkIndexRabin(
 	ctx context.Context,
 	rdr io.Reader,
@@ -86,7 +86,7 @@ func buildChunkIndexRabin(
 
 	// Cut the remaining reader bytes into indexed Rabin chunks.
 	for {
-		// note: we have to allocate 1 buffer per chunk here.
+		// note: the chunker must allocate 1 buffer per chunk here.
 		nchk, err := chk.Next(nil)
 		if err != nil {
 			if err == io.EOF {

@@ -113,7 +113,7 @@ export const FSCursorServiceDefinition = {
     },
     /**
      * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-     * This is a Fire and Forget RPC which will return instantly.
+     * ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
      *
      * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
      */
@@ -290,7 +290,8 @@ export const FSCursorServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+     * OpsCopyTo copies a dirent inode to another inode with an optimized
+     * operation.
      *
      * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
      */
@@ -301,7 +302,7 @@ export const FSCursorServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * OpsCopyFrom performs an optimized copy from another inode.
+     * OpsCopyFrom copies from another inode with an optimized operation.
      *
      * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
      */
@@ -312,7 +313,7 @@ export const FSCursorServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * OpsMoveTo performs an atomic and optimized move to another inode.
+     * OpsMoveTo moves to another inode with an atomic, optimized operation.
      *
      * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
      */
@@ -323,7 +324,7 @@ export const FSCursorServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * OpsMoveFrom performs an atomic and optimized move from another inode.
+     * OpsMoveFrom moves from another inode with an atomic, optimized operation.
      *
      * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
      */
@@ -394,7 +395,7 @@ export interface FSCursorService {
 
   /**
    * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-   * This is a Fire and Forget RPC which will return instantly.
+   * ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
    */
@@ -555,7 +556,8 @@ export interface FSCursorService {
   ): Promise<OpsReadlinkResponse>
 
   /**
-   * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+   * OpsCopyTo copies a dirent inode to another inode with an optimized
+   * operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
    */
@@ -565,7 +567,7 @@ export interface FSCursorService {
   ): Promise<OpsCopyToResponse>
 
   /**
-   * OpsCopyFrom performs an optimized copy from another inode.
+   * OpsCopyFrom copies from another inode with an optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
    */
@@ -575,7 +577,7 @@ export interface FSCursorService {
   ): Promise<OpsCopyFromResponse>
 
   /**
-   * OpsMoveTo performs an atomic and optimized move to another inode.
+   * OpsMoveTo moves to another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
    */
@@ -585,7 +587,7 @@ export interface FSCursorService {
   ): Promise<OpsMoveToResponse>
 
   /**
-   * OpsMoveFrom performs an atomic and optimized move from another inode.
+   * OpsMoveFrom moves from another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
    */
@@ -655,7 +657,7 @@ export interface FSCursorServiceHandler {
 
   /**
    * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-   * This is a Fire and Forget RPC which will return instantly.
+   * ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
    */
@@ -832,7 +834,8 @@ export interface FSCursorServiceHandler {
   ): Promise<OpsReadlinkResponse>
 
   /**
-   * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+   * OpsCopyTo copies a dirent inode to another inode with an optimized
+   * operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
    */
@@ -843,7 +846,7 @@ export interface FSCursorServiceHandler {
   ): Promise<OpsCopyToResponse>
 
   /**
-   * OpsCopyFrom performs an optimized copy from another inode.
+   * OpsCopyFrom copies from another inode with an optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
    */
@@ -854,7 +857,7 @@ export interface FSCursorServiceHandler {
   ): Promise<OpsCopyFromResponse>
 
   /**
-   * OpsMoveTo performs an atomic and optimized move to another inode.
+   * OpsMoveTo moves to another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
    */
@@ -865,7 +868,7 @@ export interface FSCursorServiceHandler {
   ): Promise<OpsMoveToResponse>
 
   /**
-   * OpsMoveFrom performs an atomic and optimized move from another inode.
+   * OpsMoveFrom moves from another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
    */
@@ -983,7 +986,7 @@ export class FSCursorServiceClient implements FSCursorService {
 
   /**
    * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-   * This is a Fire and Forget RPC which will return instantly.
+   * ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
    */
@@ -1287,7 +1290,8 @@ export class FSCursorServiceClient implements FSCursorService {
   }
 
   /**
-   * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+   * OpsCopyTo copies a dirent inode to another inode with an optimized
+   * operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
    */
@@ -1306,7 +1310,7 @@ export class FSCursorServiceClient implements FSCursorService {
   }
 
   /**
-   * OpsCopyFrom performs an optimized copy from another inode.
+   * OpsCopyFrom copies from another inode with an optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
    */
@@ -1325,7 +1329,7 @@ export class FSCursorServiceClient implements FSCursorService {
   }
 
   /**
-   * OpsMoveTo performs an atomic and optimized move to another inode.
+   * OpsMoveTo moves to another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
    */
@@ -1344,7 +1348,7 @@ export class FSCursorServiceClient implements FSCursorService {
   }
 
   /**
-   * OpsMoveFrom performs an atomic and optimized move from another inode.
+   * OpsMoveFrom moves from another inode with an atomic, optimized operation.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
    */

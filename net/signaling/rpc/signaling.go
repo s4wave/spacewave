@@ -56,8 +56,9 @@ func (r *SessionRequest) Validate() error {
 
 // Validate validates the Session response.
 //
-// NOTE: this checks the signature but not which peer the signature is from.
-// Be sure to additionally check the origin of the signature is what you expect.
+// NOTE: Validate checks the signature but not which peer the signature
+// is from. The caller must also check that the signature has the expected
+// origin.
 func (r *SessionResponse) Validate() error {
 	switch b := r.GetBody().(type) {
 	case *SessionResponse_Opened:

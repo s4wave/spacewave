@@ -89,7 +89,7 @@ func FindStandingRun(ctx context.Context, ws world.WorldState, flowgraphKey stri
 
 // StartRun creates a run of a Flowgraph's current revision. The run gets a new
 // Job assigned to the Cluster, and each Step without connected inputs gets a
-// start arrival. Call it in a write transaction; the run controller for runKey
+// start arrival. Call it in a write transaction. The run controller for runKey
 // starts the Steps.
 func StartRun(
 	ctx context.Context,
@@ -158,7 +158,7 @@ func StartRun(
 // Step the run paused at gets fresh bound counters, and arrivals the current
 // graph no longer accepts are dropped. Call it in a write transaction.
 func ResumeRun(ctx context.Context, ws world.WorldState, runKey string) error {
-	// Read the run; only a paused run resumes.
+	// Read the run. Only a paused run resumes.
 	obj, run, _, err := readRun(ctx, ws, runKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {

@@ -22,7 +22,7 @@ export function throwTypedObjectError(
   if (response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND) {
     throw new Error('object not found')
   }
-  // Any other code is a failure this build cannot name; access never
+  // Any other code is a failure this build cannot name. Access never
   // succeeds on one.
   if (response.errorCode) throw new WorldOperationError(response.errorCode)
 }

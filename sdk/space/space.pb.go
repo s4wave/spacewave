@@ -183,7 +183,7 @@ type BuildSpacePluginRequest struct {
 	DeviceKey string `protobuf:"bytes,2,opt,name=device_key,json=deviceKey,proto3" json:"deviceKey,omitempty"`
 	// ManifestId selects the plugin manifest in the project.
 	ManifestId string `protobuf:"bytes,3,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
-	// ConfigPath is relative to the source directory; empty selects bldr.yaml.
+	// ConfigPath is relative to the source directory. Empty selects bldr.yaml.
 	// A plugin repository source must leave it empty.
 	ConfigPath string `protobuf:"bytes,4,opt,name=config_path,json=configPath,proto3" json:"configPath,omitempty"`
 	// ClusterKey is the Forge Cluster that receives the build Job. It must
@@ -201,8 +201,8 @@ type BuildSpacePluginRequest struct {
 	// Ignored by OpenPluginFrontend.
 	MemoryBytes uint64 `protobuf:"varint,8,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
 	// Commit is the reviewed commit of a plugin repository source. The build is
-	// refused unless the repository's worktree still has it checked out and it
-	// passes validation. Required for a plugin repository source.
+	// refused unless the repository's worktree still has the commit checked out
+	// and the commit passes validation. Required for a plugin repository source.
 	Commit string `protobuf:"bytes,9,opt,name=commit,proto3" json:"commit,omitempty"`
 }
 
@@ -1519,7 +1519,7 @@ type SpacePluginStatus struct {
 	// PluginId is the manifest ID of the plugin.
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 	// Loaded indicates whether the plugin is currently running. Kept for older
-	// consumers; State is the app-facing lifecycle owner.
+	// consumers. State is the app-facing lifecycle owner.
 	Loaded bool `protobuf:"varint,3,opt,name=loaded,proto3" json:"loaded,omitempty"`
 	// Description is a short description from the plugin manifest metadata.
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
@@ -1530,18 +1530,19 @@ type SpacePluginStatus struct {
 	// RetryCount is reserved for future scheduler retry projection.
 	RetryCount uint32 `protobuf:"varint,7,opt,name=retry_count,json=retryCount,proto3" json:"retryCount,omitempty"`
 	// ManifestRef is the content ref of the manifest the plugin host selected to
-	// run, which names its build exactly. Empty until a manifest is selected.
+	// run. The content ref identifies the build exactly. Empty until a manifest
+	// is selected.
 	ManifestRef string `protobuf:"bytes,8,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
 	// Account reports that the plugin comes from the account plugin list rather
 	// than the Space settings, so the Space cannot remove it.
 	Account bool `protobuf:"varint,9,opt,name=account,proto3" json:"account,omitempty"`
-	// ManifestRev is the build rev of the manifest named by ManifestRef.
+	// ManifestRev is the build rev of the manifest referenced by ManifestRef.
 	ManifestRev uint64 `protobuf:"varint,10,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
 	// RunningManifestRef is the content ref of the manifest the admitted
 	// execution runs. It differs from ManifestRef until the selected manifest
 	// is live. Empty while no execution is admitted.
 	RunningManifestRef string `protobuf:"bytes,11,opt,name=running_manifest_ref,json=runningManifestRef,proto3" json:"runningManifestRef,omitempty"`
-	// RunningManifestRev is the build rev of the manifest named by
+	// RunningManifestRev is the build rev of the manifest referenced by
 	// RunningManifestRef.
 	RunningManifestRev uint64 `protobuf:"varint,12,opt,name=running_manifest_rev,json=runningManifestRev,proto3" json:"runningManifestRev,omitempty"`
 	// Swap is the scheduler's state for the move from the running manifest to
@@ -1680,7 +1681,7 @@ func (x *AddSpacePluginResponse) Reset() {
 
 func (*AddSpacePluginResponse) ProtoMessage() {}
 
-// ImportSpacePluginRequest names a plugin to copy from another mounted Space.
+// ImportSpacePluginRequest selects a plugin to copy from another mounted Space.
 type ImportSpacePluginRequest struct {
 	unknownFields []byte
 	// SourceSpaceResourceId is the caller's resource ID of the mounted source Space.
@@ -1778,7 +1779,7 @@ type SetSpaceSequencerResponse struct {
 	// Changed is false when the chosen sequencer already ordered the edits.
 	Changed bool `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
 	// AwaitingGroup is true when the viewer agreed to the change under group
-	// control, and it applies once the group decides it.
+	// control, and the change applies once the group decides it.
 	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
@@ -1806,7 +1807,7 @@ func (x *SetSpaceSequencerResponse) GetAwaitingGroup() bool {
 type SetSpaceRosterRequest struct {
 	unknownFields []byte
 	// DroppedPeerIds are the writers to drop. Every other writer is on the
-	// roster; an empty list returns every dropped writer to it.
+	// roster. An empty list returns every dropped writer to the roster.
 	DroppedPeerIds []string `protobuf:"bytes,1,rep,name=dropped_peer_ids,json=droppedPeerIds,proto3" json:"droppedPeerIds,omitempty"`
 }
 
@@ -1829,7 +1830,7 @@ type SetSpaceRosterResponse struct {
 	// Changed is false when the roster already dropped exactly those writers.
 	Changed bool `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
 	// AwaitingGroup is true when the viewer agreed to the change under group
-	// control, and it applies once the group decides it.
+	// control, and the change applies once the group decides it.
 	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
@@ -1952,7 +1953,7 @@ func (x *ResetFolderRootRequest) GetFolder() string {
 	return ""
 }
 
-// ResetFolderRootResponse names the file systems recorded before and now.
+// ResetFolderRootResponse reports the file systems recorded before and now.
 type ResetFolderRootResponse struct {
 	unknownFields []byte
 	// Previous is the identity of the file system recorded before, 0 when none
@@ -2068,7 +2069,7 @@ func (x *SetSpaceControlRequest) GetControl() SpaceControl {
 type SetSpaceControlResponse struct {
 	unknownFields []byte
 	// AwaitingGroup is true when the viewer agreed to the change under group
-	// control, and it applies once the group decides it.
+	// control, and the change applies once the group decides it.
 	AwaitingGroup bool `protobuf:"varint,1,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
 }
 
@@ -2165,7 +2166,7 @@ func (x *SetProcessBindingResponse) Reset() {
 
 func (*SetProcessBindingResponse) ProtoMessage() {}
 
-// RestartSpacePluginRequest names the plugin to restart.
+// RestartSpacePluginRequest selects the plugin to restart.
 type RestartSpacePluginRequest struct {
 	unknownFields []byte
 	// PluginId is the plugin manifest ID.

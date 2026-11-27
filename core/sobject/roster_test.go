@@ -67,8 +67,8 @@ func TestRosterDropAndReturn(t *testing.T) {
 	}
 	writeTestOp(t, state, keys[0], "a3")
 
-	// Both late edits name the trimmed a1 and still land above the
-	// checkpoint. C's applies; D's does not.
+	// Both late edits reference the trimmed a1 and still land above the
+	// checkpoint. C's applies, but D's does not.
 	for _, op := range []*SOOperation{lateC, lateD} {
 		if _, err := state.AddOperation(mockSharedObjectID, op); err != nil {
 			t.Fatal(err)
@@ -123,7 +123,7 @@ func TestRosterDropAndReturn(t *testing.T) {
 // itself or a member that built on its latest edit, and keeps a dropped device
 // until it builds on that edit.
 func TestNextRosterDropped(t *testing.T) {
-	// Owner A and writers B and C. B answers A's first edit; C is offline.
+	// Owner A and writers B and C. B answers A's first edit. C is offline.
 	peers := createMockPeers(t, 3)
 	keys := mustPrivKeys(t, peers)
 	state, _ := newTestSOState(t, peers)
@@ -182,7 +182,7 @@ func TestNextRosterDropped(t *testing.T) {
 // operations predate the checkpointer's stays dropped while the checkpointer
 // has written nothing above the checkpoint.
 func TestNextRosterDroppedKeepsStaleDevice(t *testing.T) {
-	// Owner A has written nothing; dropped writer B wrote once and left.
+	// Owner A has written nothing. Dropped writer B wrote once and left.
 	peers := createMockPeers(t, 2)
 	keys := mustPrivKeys(t, peers)
 	state, _ := newTestSOState(t, peers)

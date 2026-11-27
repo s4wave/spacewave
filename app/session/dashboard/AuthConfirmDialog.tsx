@@ -52,7 +52,7 @@ export interface AuthConfirmDialogProps {
   confirmLabel?: React.ReactNode
   // intent describes the protected account action being authorized.
   intent: AccountEscalationIntent
-  // receives the resolved credential.
+  // onConfirm receives the resolved credential.
   onConfirm: (credential: AuthCredential) => Promise<void>
   // account enables multi-sig unlock when threshold > 0.
   account?: Resource<Account>

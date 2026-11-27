@@ -22,8 +22,8 @@ Bun.serve({
     return new Response(file, {
       headers: {
         'Content-Type': types[ext] ?? 'application/octet-stream',
-        // Cross-origin isolation not strictly needed for these tests
-        // but included for consistency with other prototypes.
+        // Cross-origin isolation is not strictly needed for these tests
+        // but is included for consistency with other prototypes.
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp',
       },

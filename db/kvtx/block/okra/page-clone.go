@@ -3,8 +3,9 @@ package kvtx_block_okra
 // clonePageEntries gives a new page independent, mutable entries while packing
 // their headers and byte fields into page-local allocations. Rebuilt pages must
 // not share Entry objects, inline blobs or refs: retained cursors may still read
-// or update the old page. This replaces allocation layout, not CloneVT semantics
-// or the durable encoding. Call only with the new page's private pointer slice.
+// or update the old page. This cloning replaces allocation layout, not CloneVT
+// semantics or the durable encoding. Call only with the new page's private
+// pointer slice.
 func clonePageEntries(entries []*Entry) {
 	// Size one backing allocation for every entry's byte fields.
 	bytesNeeded := 0

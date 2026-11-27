@@ -21,7 +21,8 @@ type claimRaceEngine struct {
 
 // NewTransaction wraps writes while preserving the testbed's commit semantics.
 func (e *claimRaceEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
-	// Wrap only write transactions; watches still read the real World directly.
+	// Wrap only write transactions. Watches still read the real World
+	// directly.
 	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil || !write {
 		return tx, err

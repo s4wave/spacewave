@@ -105,7 +105,7 @@ func (c *Controller) ownsBlockStore() bool {
 // newBlockStore builds the Release World block read path.
 //
 // With supplied_block_store_id set the reads traverse that bus block store and
-// no CDN transport is opened here; the root pointer is still fetched so the
+// no CDN transport is opened here. The root pointer is still fetched so the
 // mount can build its world head.
 func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockStore, func(), error) {
 	// Both read paths re-fetch the root pointer at the configured age.

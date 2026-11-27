@@ -18,7 +18,8 @@ export interface ChangePasswordDialogProps {
   account: Resource<Account>
 }
 
-// ChangePasswordDialog prompts for current and new password, then calls ChangePassword RPC.
+// ChangePasswordDialog prompts for the current and new passwords, then calls
+// the ChangePassword RPC.
 export function ChangePasswordDialog({
   open,
   onOpenChange,

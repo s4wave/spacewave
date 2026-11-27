@@ -38,7 +38,7 @@ func StoreDomainInfo(
 	})
 }
 
-// Validate performs cursory validation of the operation.
+// Validate checks the operation cursorily.
 // Should not block.
 func (o *DomainInfoUpdateOp) Validate() error {
 	if err := o.GetDomainInfoRef().Validate(); err != nil {

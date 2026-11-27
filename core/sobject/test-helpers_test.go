@@ -41,7 +41,7 @@ func linkAt(state *SOState, priv crypto.PrivKey, nonce uint64) *SOOperationLink 
 		link.ConfigHash = mockConfigHash
 	}
 
-	// Move the link to nonce, naming a predecessor after the first.
+	// Move the link to nonce, recording a predecessor after the first.
 	if nonce == link.Nonce {
 		return link
 	}
@@ -100,7 +100,7 @@ func mustMarshalVT[T interface{ MarshalVT() ([]byte, error) }](
 // WRITER for the others when roles ends early. Key epoch 0 is granted to every
 // reader. It also returns the genesis config change.
 func newTestSOState(t testing.TB, peers []peer.Peer, roles ...SOParticipantRole) (*SOState, *SOConfigChange) {
-	// Name each peer with its role.
+	// Assign each peer its role.
 	t.Helper()
 	participants := make([]*SOParticipantConfig, len(peers))
 	for i, p := range peers {
@@ -194,7 +194,7 @@ func writeTestOp(t *testing.T, state *SOState, priv crypto.PrivKey, data string)
 		}
 	}
 
-	// Sign at the author's next link and add it.
+	// Sign at the author's next link and add the operation.
 	peerID, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)

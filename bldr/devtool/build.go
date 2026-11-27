@@ -115,7 +115,8 @@ func (d *DevtoolBus) holdBuild(
 ) error {
 	var exported string
 	for {
-		// Read the World's position before checking it, so no change is missed.
+		// Read the World's position before checking the roots, so no change
+		// is missed.
 		seqno, err := d.worldState.GetSeqno(ctx)
 		if err != nil {
 			return err
@@ -154,7 +155,7 @@ func (d *DevtoolBus) exportChanged(
 	manifestIDs []string,
 	prev string,
 ) (string, error) {
-	// Collect the latest set of each manifest and the roots they name.
+	// Collect the latest set of each manifest and the roots the sets reference.
 	var refs []*bldr_manifest.ManifestRef
 	var roots strings.Builder
 	for _, id := range manifestIDs {
@@ -172,7 +173,7 @@ func (d *DevtoolBus) exportChanged(
 		return prev, nil
 	}
 
-	// Write the export and name each manifest it holds.
+	// Write the export and log each manifest it holds.
 	if err := devtool_store.ExportManifestSets(ctx, le, d.worldState, refs, exportDir); err != nil {
 		return prev, err
 	}

@@ -12,11 +12,12 @@ import (
 // when its options set no bound.
 const defaultMaxPendingBytes = 64 << 20
 
-// keepStagedEnv names the environment variable that, set to 1, makes the
-// stages a Space World's writers open keep their pages in memory, as before
-// they stored them at once. The adopting write that names a staged tree then
-// stores the whole tree under the writer's turn, so every other writer waits
-// for it; the switch exists only to go back if storing at once misbehaves.
+// keepStagedEnv holds the environment variable's name. Set to 1, the variable
+// makes the stages a Space World's writers open keep their pages in memory,
+// restoring the behavior before immediate storage. The adopting write that
+// references a staged tree then stores the whole tree under the writer's
+// turn, so every other writer waits for that store. The switch exists only to
+// restore that behavior if storing at once misbehaves.
 const keepStagedEnv = "SPACEWAVE_KEEP_STAGED"
 
 // keepStaged reports whether staged pages are kept, read once at start.
@@ -47,7 +48,8 @@ type AdapterOptions struct {
 	// Verbose logs every operation's outcome.
 	Verbose bool
 	// ReaderPinDelay sets how long a replaced head a reader still holds
-	// waits before the engine pins it, or is nil for the engine's default.
+	// waits before the engine pins it, or is nil for the engine's default
+	// delay.
 	ReaderPinDelay *time.Duration
 
 	// transient replays without holding roots or saving the cursor, for a

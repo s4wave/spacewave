@@ -13,9 +13,9 @@ import (
 type Tx struct {
 	// WorldState is the world state logger.
 	*WorldState
-	// Tx is the underlying Tx object.
+	// tx is the underlying Tx object.
 	tx world.Tx
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 
 	discardOnce atomic.Bool

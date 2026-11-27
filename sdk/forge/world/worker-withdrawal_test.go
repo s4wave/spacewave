@@ -159,7 +159,8 @@ type workerHarness struct {
 	cards []*s4wave_device.GraphicsCard
 }
 
-// Worker and Cluster object keys of the harness.
+// harnessWorkerKey and harnessClusterKey are the harness's Worker and Cluster
+// object keys.
 const harnessWorkerKey, harnessClusterKey = "worker/1", "cluster/1"
 
 // newWorkerHarness creates the Worker and the Cluster that places Jobs on it.
@@ -403,7 +404,7 @@ func TestForgeWorkerWithdrawalDrainsAndHoldsNewJobs(t *testing.T) {
 }
 
 // restartedAdmission forwards Docker reservations to the admission of the
-// current Worker execution, as a restarted daemon registers its own.
+// current Worker execution, as a restarted daemon registers its own admission.
 type restartedAdmission struct {
 	current atomic.Pointer[WorkerAdmission]
 }

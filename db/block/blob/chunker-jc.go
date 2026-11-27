@@ -10,7 +10,7 @@ import (
 
 // buildChunkIndexJC builds the jc-chunked block index.
 // appends if there are already chunks, recording them with chunks
-// returns new total size and error
+// returns the new total size and error.
 func buildChunkIndexJC(
 	ctx context.Context,
 	rdr io.Reader,

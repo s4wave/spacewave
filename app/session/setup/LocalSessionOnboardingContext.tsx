@@ -34,7 +34,8 @@ export interface LocalSessionOnboardingContextValue {
   onboarding: LocalSessionOnboardingState
   loading: boolean
   // available is true once the onboarding state has been read from the
-  // session. A bound web listener denies state access, so it stays false there.
+  // session. A bound web listener denies state access, so available stays false
+  // for that listener.
   available: boolean
   metadataLoaded: boolean
   providerChoiceComplete: boolean

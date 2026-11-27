@@ -76,7 +76,7 @@ func (c *trackedConn) wait(ctx context.Context) error {
 	}
 }
 
-// describe names the connection to a person waiting on it.
+// describe identifies the connection to a person waiting on it.
 func (c *trackedConn) describe() string {
 	if c.peer == "" {
 		return unnamedClient
@@ -84,8 +84,8 @@ func (c *trackedConn) describe() string {
 	return c.peer
 }
 
-// profileLabel names the connection in CPU profiles as "name:pid", so a profile
-// can tell apart several processes running the same executable.
+// profileLabel identifies the connection in CPU profiles as "name:pid", so a
+// profile can tell apart several processes running the same executable.
 func (c *trackedConn) profileLabel() string {
 	return c.describe() + ":" + strconv.Itoa(c.pid)
 }

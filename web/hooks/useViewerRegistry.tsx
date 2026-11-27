@@ -87,7 +87,7 @@ function useDynamicViewers(
 // getViewersForType filters a viewer list by type ID, returning type-specific
 // viewers followed by prefix-matched viewers, then wildcard viewers. An empty
 // typeID is a valid input (objects exist in the world graph without a type
-// quad); only wildcard viewers match it.
+// quad). Only wildcard viewers match it.
 export function getViewersForType(
   typeID: string,
   viewers: ObjectViewerComponent[],
@@ -111,8 +111,9 @@ export function getViewersForType(
   return [...exact, ...prefix, ...wildcard]
 }
 
-// viewerRegistrationToComponent converts a ViewerRegistration to an ObjectViewerComponent.
-// Uses React.lazy to dynamically load the viewer module from the script path.
+// viewerRegistrationToComponent converts a ViewerRegistration to an
+// ObjectViewerComponent. The function uses React.lazy to dynamically load the
+// viewer module from the script path.
 export function viewerRegistrationToComponent(
   reg: ViewerRegistration,
 ): ObjectViewerComponent | null {

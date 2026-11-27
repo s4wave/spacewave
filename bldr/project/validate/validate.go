@@ -28,14 +28,14 @@ const evaluateTimeout = 10 * time.Second
 // project can use.
 const evaluateMemory = 256 << 20
 
-// buildConfigPrefixes name root files that Vite or PostCSS load and run as
+// buildConfigPrefixes select root files that Vite or PostCSS load and run as
 // code during the build.
 var buildConfigPrefixes = []string{"vite.config.", "postcss.config.", ".postcssrc"}
 
 // Validate checks the untrusted Bldr project at the root of fsys before any of
 // its code runs. It evaluates bldr.star as Starlark that reads only fsys and
-// reads package.json and bun.lock. Each rule the project breaks is a refusal;
-// an error means the check itself could not complete.
+// reads package.json and bun.lock. Each rule the project breaks is a refusal.
+// An error means the check itself could not complete.
 func Validate(ctx context.Context, fsys fs.FS) (*Validation, error) {
 	_, validation, err := ValidateProject(ctx, fsys)
 	return validation, err

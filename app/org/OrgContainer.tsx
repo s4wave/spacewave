@@ -57,7 +57,7 @@ export function useOrgContainerState(): OrgContainerState {
 
 // OrgContainer wraps organization routes in a BottomBarLevel, providing the
 // org button in the bottom bar and OrganizationDetails as the overlay panel.
-// Mirrors the SessionContainer pattern for sessions.
+// OrgContainer mirrors the SessionContainer pattern for sessions.
 export function OrgContainer() {
   const params = useParams()
   const orgId = params.orgId ?? ''

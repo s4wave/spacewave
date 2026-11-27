@@ -35,14 +35,14 @@ type ResourceRef interface {
 // Client manages one immutable remote ResourceClient generation.
 // It serializes lifecycle controls and reference-counts each remote resource.
 type Client struct {
-	// ctx ends when the generation retires
+	// ctx ends when the generation retires.
 	ctx context.Context
-	// cancel retires the generation transport
+	// cancel retires the generation transport.
 	cancel context.CancelFunc
 	// attachCtx scopes client-published resource operations.
 	attachCtx    context.Context
 	cancelAttach context.CancelFunc
-	// service opens ResourceRpc and ResourceAttach streams
+	// service opens ResourceRpc and ResourceAttach streams.
 	service resource.SRPCResourceServiceClient
 	// done closes after the ResourceClient response stream has ended.
 	done chan struct{}
@@ -222,17 +222,17 @@ type attachSession struct {
 
 // attachResult carries the outcome of one attach request.
 type attachResult struct {
-	// resourceID is the server-assigned resource id on success
+	// resourceID is the server-assigned resource id on success.
 	resourceID uint32
-	// err is the attach failure
+	// err is the attach failure.
 	err error
 }
 
 // pendingAttach tracks one in-flight attach request.
 type pendingAttach struct {
-	// ch carries the eventual attach result
+	// ch carries the eventual attach result.
 	ch chan attachResult
-	// canceled indicates the caller returned before AddAck arrived
+	// canceled indicates the caller returned before AddAck arrived.
 	canceled bool
 	// resolved indicates AddAck arrived before the caller selected a result.
 	resolved bool
@@ -242,14 +242,14 @@ type pendingAttach struct {
 
 // attachSendRequest is one serialized stream send.
 type attachSendRequest struct {
-	// req is the attach request to send
+	// req is the attach request to send.
 	req *resource.ResourceAttachRequest
-	// errCh receives the send result
+	// errCh receives the send result.
 	errCh chan error
 }
 
 // AttachRawInvoker provides a leaf callback mux that server-side handlers can
-// invoke. Raw invokers are not resource trees; handlers should use
+// invoke. Raw invokers are not resource trees. Handlers should use
 // GetAttachedResource for this shape.
 func (c *Client) AttachRawInvoker(
 	ctx context.Context,
@@ -356,13 +356,13 @@ func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
 
 // openAttachSession opens a new attach session for the client.
 func (c *Client) openAttachSession() (*attachSession, error) {
-	// Open ResourceAttach bidi stream.
+	// Open the ResourceAttach bidi stream.
 	strm, err := c.service.ResourceAttach(c.attachCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Send session-only Init.
+	// Send the session-only Init.
 	err = strm.Send(&resource.ResourceAttachRequest{
 		Body: &resource.ResourceAttachRequest_Init{
 			Init: &resource.ResourceAttachInit{
@@ -374,7 +374,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		return nil, err
 	}
 
-	// Read session Ack.
+	// Read the session Ack.
 	ackPkt, err := strm.Recv()
 	if err != nil {
 		return nil, err

@@ -79,7 +79,7 @@ export const WasiVmSceneFrameButtonKind_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface WasiVmConfig {
   /**
-   * InitPath is the init program in the rootfs. Empty runs /bin/sh.
+   * InitPath is the init program in the rootfs. An empty InitPath runs /bin/sh.
    */
   initPath?: string
   /**
@@ -202,8 +202,8 @@ export const CreateWasiVmOp: MessageType<CreateWasiVmOp> =
 
 /**
  * WasiVmImage is a root filesystem published for WasiVMs. The object carries
- * metadata; the filesystem is linked through the wasivmimage/rootfs edge, or
- * read from the published image named by cdn_source.
+ * metadata. The filesystem is linked through the wasivmimage/rootfs edge, or
+ * read from the published image referenced by cdn_source.
  *
  * @generated from message s4wave.vm.WasiVmImage
  */
@@ -230,7 +230,8 @@ export interface WasiVmImage {
   createdAt?: Date
   /**
    * CdnSource locates the published image whose root filesystem this image
-   * reads lazily. Unset when the image has its own wasivmimage/rootfs edge.
+   * reads lazily. CdnSource is unset when the image has its own
+   * wasivmimage/rootfs edge.
    *
    * Links (via graph edges, not proto fields):
    *   wasivmimage/rootfs  -> UnixFS object (root filesystem)
@@ -269,7 +270,7 @@ export interface CreateWasiVmImageOp {
    */
   image?: WasiVmImage
   /**
-   * Timestamp is the creation timestamp. Stored on the block as CreatedAt.
+   * Timestamp is the creation timestamp, stored on the block as CreatedAt.
    */
   timestamp?: Date
 }
@@ -349,7 +350,7 @@ export interface CreateWasiVmPackageOp {
    */
   package?: WasiVmPackage
   /**
-   * Timestamp is the creation timestamp. Stored on the block as CreatedAt.
+   * Timestamp is the creation timestamp, stored on the block as CreatedAt.
    */
   timestamp?: Date
 }
@@ -480,7 +481,7 @@ export interface WasiVmWindow {
    */
   title?: string
   /**
-   * AppId names the client's application, or is empty.
+   * AppId identifies the client's application, or is empty.
    */
   appId?: string
   /**
@@ -704,8 +705,8 @@ export interface WasiVmSceneFrame {
    */
   buttons?: WasiVmSceneFrameButton[]
   /**
-   * MinY is the least top edge of the root a move of the window allows,
-   * which keeps the title bar in the area the panels leave.
+   * MinY is the least top edge of the root a move of the window allows.
+   * This limit keeps the title bar in the area the panels leave.
    */
   minY?: number
 }
@@ -776,7 +777,7 @@ export const WasiVmSceneFrameButton: MessageType<WasiVmSceneFrameButton> =
  */
 export interface WasiVmSceneGrab {
   /**
-   * Move is the window move in progress, or unset when none is.
+   * Move is the window move in progress, or unset when no move is in progress.
    */
   move?: WasiVmSceneMove
 }
@@ -790,9 +791,9 @@ export const WasiVmSceneGrab: MessageType<WasiVmSceneGrab> =
 /**
  * WasiVmSceneMove is a window move. Until the grab ends, the root sits at
  * (x, y) plus the pointer's travel since the press, in units, with its top
- * at least min_y. The compositor places it by this rule from each pointer
- * event, so a viewer applying it to its own pointer shows the same position
- * without waiting for the roots.
+ * at least min_y. The compositor places the root by this rule from each
+ * pointer event, so a viewer applying the rule to its own pointer shows the
+ * same position without waiting for the roots.
  *
  * @generated from message s4wave.vm.WasiVmSceneMove
  */
@@ -818,7 +819,7 @@ export interface WasiVmSceneMove {
    */
   y?: number
   /**
-   * MinY is the least top edge the root may move to, which keeps the
+   * MinY is the least top edge the root may move to. This limit keeps the
    * window's title in the area the panels leave.
    */
   minY?: number
@@ -853,12 +854,12 @@ export interface WasiVmSceneScreen {
    */
   height?: number
   /**
-   * Scale is the screen pixels a side per unit; zero means one.
+   * Scale is the screen pixels a side per unit. Zero means one.
    */
   scale?: number
   /**
    * Background is the color behind the layers, as red, green, blue and
-   * alpha bytes from the most significant.
+   * alpha bytes from the most significant byte.
    */
   background?: number
 }

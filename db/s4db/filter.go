@@ -44,7 +44,7 @@ func (f *filter) probe(key []byte) (*atomic.Uint64, uint64) {
 }
 
 // add records key. Concurrent readers may see its bits before the commit
-// that added it; they read a later commit's key, which no reader of an
+// that added it. They read a later commit's key, which no reader of an
 // earlier state looks for.
 func (f *filter) add(key []byte) {
 	w, mask := f.probe(key)

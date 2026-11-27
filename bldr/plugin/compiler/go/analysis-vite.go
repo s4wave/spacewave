@@ -31,7 +31,7 @@ type ViteDirective struct {
 	// If unset, uses "default".
 	BundleID string
 	// ViteConfigPaths are the vite config paths options.
-	// Note that all BuildOptions for the same BundleID are merged.
+	// All BuildOptions for the same BundleID are merged.
 	ViteConfigPaths []string
 	// EntrypointPath is the entrypoint path for vite.
 	// This is the positional argument that doesn't start with a flag.

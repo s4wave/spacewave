@@ -13,8 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// aptPackageIndexChecksumHexSizes maps the checksum algorithms the Debian
-// Packages index requires to their hex digest lengths; order is fixed.
+// The package index checksum variables define the algorithms the Debian
+// Packages index requires: aptPackageIndexChecksumHexSizes maps them to their
+// hex digest lengths, and aptPackageIndexChecksumOrder fixes their order.
 var (
 	aptPackageIndexChecksumHexSizes = map[string]int{
 		"md5": 32, "sha1": 40, "sha256": 64,

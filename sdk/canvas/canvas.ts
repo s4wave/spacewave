@@ -85,7 +85,7 @@ export interface ICanvasHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose enables use with a 'using' statement.
   [Symbol.dispose](): void
 }
 

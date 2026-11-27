@@ -13,7 +13,7 @@ import (
 // GraphStream is the per-block record of a copy, stored as objects beside the
 // packs: one GraphRecords object per pack. A collector seeds from it without
 // reading a pack. Objects have random names, so concurrent uploads and a
-// resumed copy never collide; a block written twice has two records.
+// resumed copy never collide. A block written twice has two records.
 type GraphStream struct {
 	// objects holds the stream.
 	objects block_store_s3.ObjectStore

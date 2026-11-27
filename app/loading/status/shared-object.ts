@@ -8,8 +8,8 @@ import type { LoadingState, LoadingView } from '@s4wave/web/ui/loading/types.js'
 
 // toSharedObjectView maps a SharedObjectHealth snapshot onto a LoadingView.
 // LOADING -> 'active' (work in progress), READY -> 'synced', DEGRADED /
-// CLOSED / UNKNOWN -> 'error'. The remediation hint becomes the detail line;
-// the raw error message populates the error box when present.
+// CLOSED / UNKNOWN -> 'error'. The remediation hint becomes the detail line.
+// The raw error message populates the error box when present.
 export function toSharedObjectView(
   health: SharedObjectHealth | null,
   options: { onRetry?: () => void; onCancel?: () => void } = {},

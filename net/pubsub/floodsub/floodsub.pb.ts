@@ -37,7 +37,7 @@ export interface Packet {
    */
   subscriptions?: SubscriptionOpts[]
   /**
-   * Publish contains messages we are publishing.
+   * Publish contains messages the router is publishing.
    */
   publish?: SignedMsg[]
 }
@@ -55,7 +55,7 @@ export const Packet: MessageType<Packet> =
  */
 export interface SubscriptionOpts {
   /**
-   * Subscribe indicates if we are subscribing to this channel ID.
+   * Subscribe indicates if the peer is subscribing to this channel ID.
    */
   subscribe?: boolean
   /**

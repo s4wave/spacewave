@@ -66,7 +66,7 @@ func addBindingTestForgeWorkerHost(t *testing.T, ctx context.Context, tb *testbe
 type bindingTestBody struct {
 	// engine is the mounted Space World.
 	engine world.Engine
-	// engineID names that World to the plugin runtime.
+	// engineID identifies that World to the plugin runtime.
 	engineID string
 	// ref identifies the mounted Space.
 	ref *sobject.SharedObjectRef

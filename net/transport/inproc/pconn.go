@@ -7,26 +7,26 @@ import (
 	"time"
 )
 
-// packetConn implements net.PacketConn
+// packetConn implements net.PacketConn.
 type packetConn struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// ctxCancel is the context canceler
+	// ctxCancel is the context canceler.
 	ctxCancel context.CancelFunc
-	// localAddr is the local address
+	// localAddr is the local address.
 	localAddr net.Addr
 
 	rd time.Time // read deadline
 	wd time.Time // write deadline
 
-	// packetCh is the packet channel
+	// packetCh is the packet channel.
 	packetCh chan *incPacket
-	// writer is the writer
+	// writer is the writer.
 	// if the remote is unknown will return AddrError
 	writer func(ctx context.Context, p []byte, addr net.Addr) (int, error)
 }
 
-// newPacketConn constructs a new packet conn
+// newPacketConn constructs a new packet conn.
 func newPacketConn(
 	rctx context.Context,
 	localAddr net.Addr,
@@ -43,7 +43,7 @@ func newPacketConn(
 	}
 }
 
-// incPacket is an incoming packet
+// incPacket is an incoming packet.
 type incPacket struct {
 	addr net.Addr
 	data []byte
@@ -57,8 +57,8 @@ type incPacket struct {
 // and any error encountered. Callers should always process
 // the n > 0 bytes returned before considering the error err.
 // ReadFrom can be made to time out and return
-// an Error with Timeout() == true after a fixed time limit;
-// see SetDeadline and SetReadDeadline.
+// an Error with Timeout() == true after a fixed time limit.
+// See SetDeadline and SetReadDeadline.
 func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	// Apply the configured read deadline to the packet context.
 	deadline := c.rd
@@ -103,8 +103,8 @@ func (c *packetConn) HandlePacket(ctx context.Context, p []byte, addr net.Addr) 
 
 // WriteTo writes a packet with payload p to addr.
 // WriteTo can be made to time out and return
-// an Error with Timeout() == true after a fixed time limit;
-// see SetDeadline and SetWriteDeadline.
+// an Error with Timeout() == true after a fixed time limit.
+// See SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (c *packetConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	// Apply the configured write deadline to the packet context.

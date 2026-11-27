@@ -736,7 +736,8 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 	}, ch, nil
 }
 
-// resolveBillingAccountID returns the requested billing account ID or falls back to the account default.
+// resolveBillingAccountID returns the requested billing account ID or falls
+// back to the account's default billing account ID.
 func (r *SpacewaveSessionResource) resolveBillingAccountID(
 	ctx context.Context,
 	requestedBillingID string,
@@ -1044,7 +1045,7 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 		return nil, errors.Errorf("invite max uses must not be negative: %d", req.GetMaxUses())
 	}
 
-	// Mirror to local org SO.
+	// Mirror the invite to the local org SO.
 	var inviteType s4wave_org.OrgInviteType
 	switch req.GetType() {
 	case "code":
@@ -1850,7 +1851,7 @@ func (r *SpacewaveSessionResource) JoinOrganization(
 	}
 	r.refreshOrganizationCaches(ctx, info.GetId(), true)
 
-	// Mirror join to local org SO.
+	// Mirror the join to the local org SO.
 	r.queueOrgUpdateOp(ctx, info.GetId(), &s4wave_org.UpdateOrgOp{
 		OrgObjectKey: s4wave_org.OrgObjectKey,
 		Body: &s4wave_org.UpdateOrgOp_JoinViaInvite{
@@ -2384,8 +2385,8 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 		return nil, errors.New("no participant peers found for account")
 	}
 
-	// Remove every participant peer in one config change, or agree to under
-	// group control, and report each peer.
+	// Remove every participant peer in one config change, or agree to removal
+	// under group control, and report each peer.
 	revInfo := &sobject.SORevocationInfo{
 		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_OWNER_REMOVED,
 	}
@@ -2749,7 +2750,7 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 //
 //  1. Owner: SessionResource.CreateSpaceInvite signs an SOInviteMessage with
 //     the owner's session key via InviteHost.CreateSOInviteOp. The caller
-//     keeps the signed message and its token in memory; the SOInvite, which
+//     keeps the signed message and its token in memory. The SOInvite, which
 //     holds only the token hash, is appended to the SO config chain.
 //
 //  2. Owner: for spacewave-backed sessions, RegisterInviteCode publishes a
@@ -2758,7 +2759,7 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 //
 //  3. Joiner: LookupInviteCode below resolves a short code to the original
 //     SOInviteMessage. The joiner submits a join request to the Space's cloud
-//     mailbox with the token and a signed join response; the cloud checks
+//     mailbox with the token and a signed join response. The cloud checks
 //     them against the SOInvite in the config chain. The owner applies the
 //     enrollment via ProcessMailboxEntry.
 //
@@ -2766,7 +2767,7 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 //
 //   - Local (spacewave package): builds and signs the SOInviteMessage,
 //     verifies the message, drives mailbox processing, and applies invite
-//     mutations to the SO config chain. These actions are authoritative; the
+//     mutations to the SO config chain. These actions are authoritative. The
 //     cloud cannot forge them.
 //   - Cloud: stores the short codes and the mailbox. Codes expire, and losing
 //     one never compromises the invite state in the config chain. A failed

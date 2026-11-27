@@ -30,7 +30,7 @@ describe('Resources SDK with Real Backend E2E', () => {
   let abortController: AbortController
 
   beforeAll(async () => {
-    // Get the test server port from environment
+    // Get the test server port from the environment
     let port: number
     try {
       port = getTestServerPort()
@@ -63,7 +63,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('connects to the backend via WebSocket', () => {
     if (!client) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     expect(client.isConnected()).toBe(true)
@@ -71,7 +71,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('accesses root resource and creates Root', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     // Access the root resource
@@ -85,7 +85,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('looks up the local provider', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     using rootRef = await resourceClient.accessRootResource()
@@ -103,7 +103,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('creates a local provider account', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     using rootRef = await resourceClient.accessRootResource()
@@ -120,7 +120,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('mounts a session and gets session info', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     await using stack = new AsyncDisposableStack()
@@ -128,7 +128,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     using rootRef = await resourceClient.accessRootResource()
     const root = new Root(rootRef)
 
-    // Create account and mount session
+    // Create an account and mount a session
     using localProvider = await root.lookupProvider('local')
     const lp = new LocalProvider(localProvider.resourceRef)
     const accountResp = await lp.createAccount(abortController.signal)
@@ -147,7 +147,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('creates a space within a session', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     await using stack = new AsyncDisposableStack()
@@ -155,7 +155,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     using rootRef = await resourceClient.accessRootResource()
     const root = new Root(rootRef)
 
-    // Create account and mount session
+    // Create an account and mount a session
     using localProvider = await root.lookupProvider('local')
     const lp = new LocalProvider(localProvider.resourceRef)
     const accountResp = await lp.createAccount(abortController.signal)
@@ -177,7 +177,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('mounts a shared object', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     await using stack = new AsyncDisposableStack()
@@ -185,7 +185,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     using rootRef = await resourceClient.accessRootResource()
     const root = new Root(rootRef)
 
-    // Create account, mount session, create space
+    // Create an account, mount a session, and create a space
     console.log('creating local provider account...')
     using localProvider = await root.lookupProvider('local')
     const lp = new LocalProvider(localProvider.resourceRef)
@@ -219,7 +219,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('mounts a shared object body', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     await using stack = new AsyncDisposableStack()
@@ -227,7 +227,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     using rootRef = await resourceClient.accessRootResource()
     const root = new Root(rootRef)
 
-    // Create account, mount session, create space
+    // Create an account, mount a session, and create a space
     using localProvider = await root.lookupProvider('local')
     const lp = new LocalProvider(localProvider.resourceRef)
     const accountResp = await lp.createAccount(abortController.signal)
@@ -264,7 +264,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('accesses space world state', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     await using stack = new AsyncDisposableStack()
@@ -272,7 +272,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     using rootRef = await resourceClient.accessRootResource()
     const root = new Root(rootRef)
 
-    // Create account, mount session, create space
+    // Create an account, mount a session, and create a space
     using localProvider = await root.lookupProvider('local')
     const lp = new LocalProvider(localProvider.resourceRef)
     const accountResp = await lp.createAccount(abortController.signal)
@@ -302,7 +302,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     )
     stack.defer(() => spaceSoBody[Symbol.dispose]())
 
-    // Create Space from body
+    // Create Space from the body
     const space = new Space(spaceSoBody.resourceRef.createRef(spaceSoBody.id))
     stack.defer(() => space[Symbol.dispose]())
 
@@ -320,7 +320,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('accesses state atom from root', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     using rootRef = await resourceClient.accessRootResource()
@@ -332,7 +332,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     console.log('accessed state atom')
     expect(stateAtom).not.toBeNull()
 
-    // Get initial state (should be empty or default)
+    // Get the initial state (should be empty or the default state)
     console.log('getting initial state...')
     const initialState = await stateAtom.getState()
     console.log('got initial state')
@@ -341,7 +341,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('runs repeated ObjectLayout NavigateTab ops through the real backend critical path', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     using rootRef = await resourceClient.accessRootResource()
@@ -352,7 +352,7 @@ describe('Resources SDK with Real Backend E2E', () => {
 
   it('computes and validates hashes', async () => {
     if (!client || !resourceClient) {
-      return // Skip if no server
+      return // Skip if no server is running
     }
 
     using rootRef = await resourceClient.accessRootResource()
@@ -371,7 +371,7 @@ describe('Resources SDK with Real Backend E2E', () => {
     console.log('validated hash')
     expect(validation.valid).toBe(true)
 
-    // Marshal and parse hash
+    // Marshal and parse the hash
     console.log('marshaling hash...')
     const hashStr = await root.marshalHash(hash, abortController.signal)
     console.log('marshaled hash')

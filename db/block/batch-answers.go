@@ -12,7 +12,7 @@ type batchAnswersContextKey struct{}
 // BatchAnswers holds the answers of a batch read until the reads that follow
 // take them, as BatchLoad describes. A walk that reads the blocks over several
 // calls, such as an iterator reading a page's children one step at a time,
-// holds it and attaches it to each call's context with Context; dropping it
+// holds it and attaches it to each call's context with Context. Dropping it
 // drops the answers no read took.
 type BatchAnswers struct {
 	// mtx guards answers.

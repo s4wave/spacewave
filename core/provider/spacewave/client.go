@@ -44,7 +44,8 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 
 type cloudError = clouderror.Error
 
-// IsCloudErrorStatus returns true when err is a cloud error with the given HTTP status.
+// IsCloudErrorStatus returns true when err is a cloud error with the given HTTP
+// status.
 func IsCloudErrorStatus(err error, statusCode int) bool {
 	return clouderror.IsStatus(err, statusCode)
 }
@@ -66,7 +67,8 @@ type syncPushPack struct {
 	replacedPackIDs []string
 }
 
-// signedHeaders is the list of headers that are signed when present on a request.
+// signedHeaders is the list of headers that are signed when present on a
+// request.
 var signedHeaders = []string{
 	"content-type",
 	"x-block-count",
@@ -79,11 +81,11 @@ type SigningFunc func(ctx context.Context, payload []byte) ([]byte, error)
 
 // SignedHTTPClient is the base layer for Ed25519-signed HTTP requests.
 type SignedHTTPClient struct {
-	// httpCli is the underlying HTTP client
+	// httpCli is the underlying HTTP client.
 	httpCli *http.Client
-	// baseURL is the API base URL
+	// baseURL is the API base URL.
 	baseURL string
-	// envPfx is the environment prefix for signed payloads
+	// envPfx is the environment prefix for signed payloads.
 	envPfx string
 	// signer holds the revocable signing capability for this client.
 	signer *SessionSigner
@@ -95,7 +97,8 @@ func (c *SignedHTTPClient) signRequest(req *http.Request, body []byte) error {
 	return c.signRequestPrecomputed(req, h[:], int64(len(body)))
 }
 
-// signRequestPrecomputed signs an HTTP request using a pre-computed body hash and content length.
+// signRequestPrecomputed signs an HTTP request using a pre-computed body hash
+// and content length.
 func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []byte, contentLength int64) error {
 	// Refuse to sign without a key or an external signer.
 	if !c.signer.CanSign() {
@@ -125,7 +128,8 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 	bodyHashHex := hex.EncodeToString(bodyHash)
 
 	// Build the signing payload proto and serialize to binary.
-	// Proto binary serialization is deterministic - both Go and TS produce identical bytes.
+	// Proto binary serialization is deterministic: both Go and TS produce
+	// identical bytes.
 	payload := &api.SigningPayload{
 		EnvPrefix:     c.envPfx,
 		Method:        req.Method,
@@ -166,7 +170,7 @@ const (
 
 // Do signs and executes an HTTP request. The Cloud rejects a rate_limited
 // request before acting on it, so Do resends it after the delay the Cloud
-// names, up to rateLimitRetries times while that delay is within
+// specifies, up to rateLimitRetries times while that delay is within
 // rateLimitMaxWait. Otherwise, or when the request context ends during the
 // delay, the 429 response is returned to the caller.
 func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
@@ -197,7 +201,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 			return resp, err
 		}
 
-		// Return the response unless it names a short rate limit delay.
+		// Return the response unless it specifies a short rate limit delay.
 		delay, err := rateLimitDelay(resp)
 		if err != nil {
 			return nil, err
@@ -216,7 +220,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	}
 }
 
-// rateLimitDelay returns the delay a retryable rate_limited response names,
+// rateLimitDelay returns the delay a retryable rate_limited response specifies,
 // or zero for any other response. It restores resp.Body for the caller.
 func rateLimitDelay(resp *http.Response) (time.Duration, error) {
 	// Read the body and restore it for the caller.
@@ -410,7 +414,7 @@ func (c *SignedHTTPClient) sendMultiSig(ctx context.Context, method, reqPath str
 		return nil, clouderror.ParseResponse(resp, respBody)
 	}
 
-	// Decode the action response; an empty body carries no result.
+	// Decode the action response. An empty body carries no result.
 	out := &api.MultiSigActionResponse{}
 	if err := out.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal multi-sig response")

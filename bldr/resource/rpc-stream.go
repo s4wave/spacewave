@@ -129,7 +129,7 @@ func HandleResourceRpc(stream ResourceRpcStream, lookup func(context.Context, ui
 		}
 	}
 
-	// A route close cancels active methods; Wait drains them before returning.
+	// A route close cancels active methods. Wait drains them before returning.
 	server.HandleStreamClose(err)
 	err = server.Wait(context.WithoutCancel(stream.Context()))
 	if errors.Is(err, context.Canceled) && ctx.Err() == nil {

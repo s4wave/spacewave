@@ -132,7 +132,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	defer diRef.Release()
 	objStore := objStoreHandle.GetObjectStore()
 
-	// Derive storage key from volume peer key.
+	// Derive the storage key from the volume peer key.
 	volPeer, err := t.a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "get volume peer")
@@ -146,7 +146,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		return errors.Wrap(err, "derive storage key")
 	}
 
-	// Check lock mode.
+	// Check the lock mode.
 	lockMode, err := session_lock.ReadLockMode(ctx, objStore, sessionID)
 	if err != nil {
 		return errors.Wrap(err, "read lock mode")
@@ -252,8 +252,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 
 	// Take a self-ref to keep the tracker alive even when all external
 	// refs are released (e.g., between CLI commands).
-	// This must happen before publishing sessionProm so callers cannot drop the
-	// last external ref in the small window before the tracker pins itself.
+	// The self-ref must be taken before publishing sessionProm so callers
+	// cannot drop the last external ref in the small window before the
+	// tracker pins itself.
 	selfRef, _, _ := t.a.sessions.AddKeyRef(t.id)
 	t.setPinnedRef(selfRef.Release)
 	t.sessionProm.SetResult(so, nil)

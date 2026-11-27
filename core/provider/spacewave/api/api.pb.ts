@@ -1862,7 +1862,7 @@ export const CheckoutResponse: MessageType<CheckoutResponse> =
 
 /**
  * BillingPortalRequest is the request body for POST /billing/:id/portal.
- * No fields; the billing account is identified by the URL parameter.
+ * No fields. The billing account is identified by the URL parameter.
  *
  * @generated from message provider.spacewave.api.BillingPortalRequest
  */
@@ -3138,7 +3138,7 @@ export const TransferResourceRequest: MessageType<TransferResourceRequest> =
 /**
  * AssignBillingAccountRequest is the request body for POST /api/billing/assign.
  * Binds a billing account to a principal (account or organization). The caller
- * must be the BA's created_by_account_id; for org targets the caller must also
+ * must be the BA's created_by_account_id. For org targets the caller must also
  * hold org:owner on the target org.
  *
  * @generated from message provider.spacewave.api.AssignBillingAccountRequest
@@ -3254,7 +3254,7 @@ export interface ManagedBillingAccount {
    */
   updatedAt?: bigint
   /**
-   * Assignees is the list of principals currently pointing at this BA
+   * Assignees is the list of principals pointing at this BA
    * (accounts.billing_account_id or organizations.billing_account_id).
    */
   assignees?: PrincipalAssignment[]
@@ -3296,7 +3296,7 @@ export interface PrincipalAssignment {
   ownerId?: string
   /**
    * DisplayName is the principal's display name. For accounts this may be
-   * empty; the caller typically renders their own account as "Personal".
+   * empty. The caller typically renders their own account as "Personal".
    */
   displayName?: string
 }
@@ -3321,8 +3321,8 @@ export const PrincipalAssignment: MessageType<PrincipalAssignment> =
  */
 export interface CreateBillingAccountRequest {
   /**
-   * DisplayName is the initial label for the billing account. Optional; the
-   * server falls back to a generic default when empty.
+   * DisplayName is the initial label for the billing account. Optional. The
+   * server falls back to a generic default label when DisplayName is empty.
    */
   displayName?: string
 }
@@ -3921,7 +3921,7 @@ export interface AccountStateResponse {
   emailVerified?: boolean
   /**
    * AccountSObjectBindings is the set of purpose-scoped account-owned shared
-   * object bindings currently reserved or ready in cloud state.
+   * object bindings reserved or ready in cloud state.
    */
   accountSobjectBindings?: AccountSObjectBinding[]
   /**
@@ -5297,7 +5297,7 @@ export interface DesktopSSOLinkResult {
   code?: string
   /**
    * Email is the OAuth provider display email, when available. Informational
-   * for UI and error surfaces only; account linking uses Provider + Code.
+   * for UI and error surfaces only. Account linking uses Provider + Code.
    */
   email?: string
 }
@@ -5936,7 +5936,7 @@ export const DesktopPasskeyRelayResult: MessageType<DesktopPasskeyRelayResult> =
 
 /**
  * DesktopPasskeyRelayResponse is the response body for POST
- * /auth/passkey/desktop/relay. Empty acknowledgement; the relay handler stores
+ * /auth/passkey/desktop/relay. Empty acknowledgement. The relay handler stores
  * the payload on the auth-session DO and returns success.
  *
  * @generated from message provider.spacewave.api.DesktopPasskeyRelayResponse
@@ -6881,7 +6881,7 @@ export const MultiSigActionResponse: MessageType<MultiSigActionResponse> =
 
 /**
  * UndoDeleteRequest is the request body for POST /api/account/undo-delete.
- * No fields; the action is identified by the authenticated session.
+ * No fields. The action is identified by the authenticated session.
  *
  * @generated from message provider.spacewave.api.UndoDeleteRequest
  */
@@ -6895,7 +6895,7 @@ export const UndoDeleteRequest: MessageType<UndoDeleteRequest> =
 
 /**
  * RegisterPasskeyOptionsRequest is the request body for
- * POST /api/auth/passkey/register/options. No fields; the request is
+ * POST /api/auth/passkey/register/options. No fields. The request is
  * identified by the authenticated session.
  *
  * @generated from message provider.spacewave.api.RegisterPasskeyOptionsRequest
@@ -6910,7 +6910,7 @@ export const RegisterPasskeyOptionsRequest: MessageType<RegisterPasskeyOptionsRe
 
 /**
  * SessionTicketRequest is the request body for POST /api/session/ticket.
- * No fields; the ticket is issued for the authenticated session.
+ * No fields. The ticket is issued for the authenticated session.
  *
  * @generated from message provider.spacewave.api.SessionTicketRequest
  */
@@ -6924,7 +6924,7 @@ export const SessionTicketRequest: MessageType<SessionTicketRequest> =
 
 /**
  * ReinitializeSObjectRequest is the request body for
- * POST /api/sobject/:id/reinitialize. No fields; the SObject is identified by
+ * POST /api/sobject/:id/reinitialize. No fields. The SObject is identified by
  * the URL parameter.
  *
  * @generated from message provider.spacewave.api.ReinitializeSObjectRequest
@@ -6939,7 +6939,7 @@ export const ReinitializeSObjectRequest: MessageType<ReinitializeSObjectRequest>
 
 /**
  * OrgDeleteRequest is the request body for POST /api/org/:orgId/delete.
- * No fields; the org is identified by the URL parameter.
+ * No fields. The org is identified by the URL parameter.
  *
  * @generated from message provider.spacewave.api.OrgDeleteRequest
  */
@@ -6971,7 +6971,7 @@ export const OrgDeleteResponse: MessageType<OrgDeleteResponse> =
 
 /**
  * OrgLeaveRequest is the request body for POST /api/org/:orgId/leave.
- * No fields; the org is identified by the URL parameter.
+ * No fields. The org is identified by the URL parameter.
  *
  * @generated from message provider.spacewave.api.OrgLeaveRequest
  */
@@ -7004,7 +7004,7 @@ export const OrgLeaveResponse: MessageType<OrgLeaveResponse> =
 /**
  * RemoveOrgMemberRequest is the request body for
  * DELETE /api/org/:orgId/member/:memberId.
- * No fields; both ids come from URL parameters.
+ * No fields. Both ids come from URL parameters.
  *
  * @generated from message provider.spacewave.api.RemoveOrgMemberRequest
  */
@@ -7038,7 +7038,7 @@ export const RemoveOrgMemberResponse: MessageType<RemoveOrgMemberResponse> =
 /**
  * CancelOrgInviteRequest is the request body for
  * DELETE /api/org/:orgId/invite/:inviteId.
- * No fields; both ids come from URL parameters.
+ * No fields. Both ids come from URL parameters.
  *
  * @generated from message provider.spacewave.api.CancelOrgInviteRequest
  */
@@ -7071,7 +7071,7 @@ export const CancelOrgInviteResponse: MessageType<CancelOrgInviteResponse> =
 
 /**
  * CancelBillingRequest is the request body for POST /api/billing/:baId/cancel.
- * No fields; the billing account is identified by the URL parameter.
+ * No fields. The billing account is identified by the URL parameter.
  *
  * @generated from message provider.spacewave.api.CancelBillingRequest
  */
@@ -7104,7 +7104,7 @@ export const CancelBillingResponse: MessageType<CancelBillingResponse> =
 /**
  * ReactivateBillingRequest is the request body for
  * POST /api/billing/:baId/reactivate.
- * No fields; the billing account is identified by the URL parameter.
+ * No fields. The billing account is identified by the URL parameter.
  *
  * @generated from message provider.spacewave.api.ReactivateBillingRequest
  */
@@ -7535,7 +7535,7 @@ export interface GetFriendDmResponse {
    */
   ownerAccountId?: string
   /**
-   * OwnerType is the owner kind; always "account".
+   * OwnerType is the owner kind and is always "account".
    */
   ownerType?: string
   /**

@@ -33,7 +33,7 @@ func (e *PackReader) fetchSpans(ctx context.Context, start, end int64) ([]*span,
 // fetchRange drives a transport fetch to cover off, bounded by readEnd.
 //
 // It returns an immutable span covering off or an error. The span stays readable
-// after cache eviction; callers consume it without a second cache lookup.
+// after cache eviction, so callers consume it without a second cache lookup.
 // Concurrent callers for overlapping offsets fold onto the same in-flight
 // fetch via the loading map, guaranteeing one transport call per uncovered
 // span. Transport work belongs to the PackReader, so canceling the caller
@@ -154,7 +154,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span,
 
 // startFetch runs one transport request under the PackReader lifetime, in the
 // read class of load. The gate admits a background fetch after foreground
-// fetches unless promote closes first; the transport serves a refill or
+// fetches unless promote closes first. The transport serves a refill or
 // background fetch after interactive reads until promote closes.
 func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate, promote <-chan struct{}) {
 	startOwnerWork(func() {
@@ -182,7 +182,7 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate,
 		var writeback func()
 		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			// A closed reader drops the response; otherwise cache the span.
+			// A closed reader drops the response. Otherwise, cache the span.
 			budget = e.budget
 			if e.closed {
 				sp = nil
@@ -263,8 +263,8 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 
 	// Adapt the current window against measured goodput: if the last fetch
 	// completed in dt, the window that would hit the target request rate is
-	// lastBytes * targetInterval / dt. Downward moves apply immediately;
-	// upward moves smooth toward the target.
+	// lastBytes * targetInterval / dt. Downward moves apply immediately.
+	// Upward moves smooth toward the target.
 	windowSize := e.currentWindow
 	if (!e.sparseReads || sparseLocal) && e.lastFetchBytes > 0 && !e.lastFetchAt.IsZero() {
 		dt := time.Since(e.lastFetchAt)
@@ -562,8 +562,8 @@ func (e *PackReader) oldestEvictableLocked() *span {
 }
 
 // evictOldestSpan removes the reader's oldest evictable span. A closed reader
-// keeps its spans until its jobs drain, so it leaves the span ring instead;
-// either way the sweep never returns to a reader with nothing to give.
+// keeps its spans until its jobs drain, so it leaves the span ring instead.
+// Either way the sweep never returns to a reader with nothing to give.
 func (e *PackReader) evictOldestSpan() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s := e.oldestEvictableLocked()

@@ -7,13 +7,14 @@ import "github.com/s4wave/spacewave/db/block/block.proto";
 // DeployManifestsMessage is the bidirectional message for manifest-set deployment.
 message DeployManifestsMessage {
   oneof body {
-    // DeployManifestsRequest starts one complete manifest-set deployment.
+    // Request is the DeployManifestsRequest that starts one complete
+    // manifest-set deployment.
     DeployManifestsRequest request = 1;
     // BlockRequest asks the client for one content-addressed block.
     BlockRequest block_request = 2;
     // BlockResponse returns the requested block or reports it missing.
     BlockResponse block_response = 3;
-    // DeployManifestsResult reports the deployment outcome.
+    // Result is the DeployManifestsResult that reports the deployment outcome.
     DeployManifestsResult result = 4;
   }
 }

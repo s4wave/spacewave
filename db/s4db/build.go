@@ -148,8 +148,9 @@ func (b *builder) finish(opts Options) error {
 	}
 
 	// Place every run at the lowest level whose capacity holds them, and
-	// name the runs by index. The runs of a record are seq*16+i, so the file
-	// starts at the sequence that keeps the next record's ids above these.
+	// assign run IDs by index. The runs of a record are seq*16+i, so the
+	// file starts at the sequence that keeps the next record's ids above
+	// these.
 	level, capacity := uint8(1), int64(runTarget*levelRatio)
 	for capacity < b.runWritten {
 		level++
@@ -231,7 +232,7 @@ type valueChunkWriter struct {
 }
 
 // put writes val under key and returns its reference: into its own chunks
-// when the entry exceeds one, else into the open chunk, replaced when the
+// when the entry exceeds one chunk, else into the open chunk, replaced when the
 // entry does not fit.
 func (w *valueChunkWriter) put(key, val []byte) (ref, error) {
 	// An entry longer than a chunk takes a run of whole chunks.

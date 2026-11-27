@@ -17,7 +17,7 @@ func (c *Config) Validate() error {
 }
 
 // DetermineSocketPath returns the configured socket path. An explicit path
-// takes precedence; otherwise the socket lives under the project storage
+// takes precedence. Otherwise the socket lives under the project storage
 // root, which the invocation's state path scopes when present.
 func (c *Config) DetermineSocketPath() (string, error) {
 

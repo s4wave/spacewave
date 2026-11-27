@@ -374,7 +374,7 @@ function useDisplayController() {
   const space = useKioskSpace(sessionResource)
   const { sharedObjectId, spaceWorldResource } = space
 
-  // Retry the outermost failed mount; the mounts keyed under it follow. With
+  // Retry the outermost failed mount. The mounts keyed under it follow. With
   // no failure, reload the session list to look for a session again.
   const retryDisplay = useCallback(() => {
     const target =
@@ -660,7 +660,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
     return <DisplayStatusCard {...(status ?? SPACE_LOADING_STATUS)} />
   }
 
-  // A failed read claims nothing about the object; the kept entry, if any,
+  // A failed read claims nothing about the object. The kept entry, if any,
   // still opens it under the failure's notice.
   if (objectEntryResource.error && !objectEntry) {
     return (

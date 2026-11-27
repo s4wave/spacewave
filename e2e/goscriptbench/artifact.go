@@ -8,17 +8,18 @@ const artifactSchemaVersion = 2
 
 // Artifact is one engine's untraced scalar result.
 type Artifact struct {
-	// schemaVersion identifies the artifact format
+	// SchemaVersion identifies the artifact format.
 	SchemaVersion int
-	// metadata identifies the engine, fixture, revisions, and state boundary
+	// Metadata identifies the engine, fixture, revisions, and state
+	// boundary.
 	Metadata RunMetadata
-	// sampling records fixed population sizes and summary method
+	// Sampling records fixed population sizes and summary method.
 	Sampling SamplingPolicy
-	// warmup is the complete row excluded from the scalar population
+	// Warmup is the complete row excluded from the scalar population.
 	Warmup Sample
-	// samples are the retained source rows in execution order
+	// Samples are the retained source rows in execution order.
 	Samples []Sample
-	// summary is derived only from samples
+	// Summary is derived only from samples.
 	Summary Summary
 }
 

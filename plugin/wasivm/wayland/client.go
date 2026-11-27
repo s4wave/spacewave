@@ -12,7 +12,7 @@ import (
 // errFailed ends a client after a protocol error event.
 var errFailed = errors.New("protocol error")
 
-// maxClientID is the highest object id a client allocates; the server's ids
+// maxClientID is the highest object id a client allocates. The server's ids
 // start above it.
 const maxClientID = 0xfeffffff
 
@@ -21,7 +21,8 @@ const maxClientID = 0xfeffffff
 type resource struct {
 	// id is the object's id.
 	id uint32
-	// version is the bound version, which bounds the events it receives.
+	// version is the bound version, which bounds the events the object
+	// receives.
 	version uint32
 }
 

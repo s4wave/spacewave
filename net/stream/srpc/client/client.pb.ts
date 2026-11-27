@@ -18,21 +18,21 @@ export interface Config {
   serverPeerIds?: string[]
   /**
    * PerServerBackoff is the server peer error backoff configuration.
-   * Can be empty.
+   * PerServerBackoff can be empty.
    */
   perServerBackoff?: Backoff
   /**
    * SrcPeerId is the source peer id to contact from.
-   * Can be empty.
+   * SrcPeerId can be empty.
    */
   srcPeerId?: string
   /**
-   * TransportId restricts which transport we can dial out from.
+   * TransportId restricts which transport the client can dial out from.
    */
   transportId?: bigint
   /**
    * TimeoutDur sets the per-server establish timeout.
-   * If unset, no timeout.
+   * If TimeoutDur is unset, no timeout applies.
    * Example: 15s
    */
   timeoutDur?: string

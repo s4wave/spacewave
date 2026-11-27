@@ -366,7 +366,8 @@ func TestUnixSocketRightsDropped(t *testing.T) {
 	}
 	_ = p.sysClose(r)
 
-	// A control buffer with room for one of two keeps the first.
+	// A control buffer with room for one of two descriptors keeps the
+	// first descriptor.
 	r, w = pipeTest(t, p, mem)
 	sendRightsTest(t, p, mem, a, "y", w, r)
 	_ = p.sysClose(w)
@@ -495,7 +496,7 @@ func TestSocketPeerCred(t *testing.T) {
 		t.Fatalf("accept = %#x", server)
 	}
 
-	// Each end sees the other's, whoever asks.
+	// Each end sees the other's credentials, whoever asks.
 	if got, errno := peerCredTest(t, p, mem, client); errno != 0 || got != (ucred{20, 3000, 300}) {
 		t.Fatalf("client SO_PEERCRED = %v, %#x, want {20 3000 300}", got, errno)
 	}

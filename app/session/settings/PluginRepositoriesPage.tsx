@@ -27,20 +27,21 @@ import {
 } from './plugin-repositories.js'
 import { PluginRepositorySheet } from './PluginRepositorySheet.js'
 
-// A build asks its Worker for this much capacity: one core and 2 GiB.
+// BUILD_MILLI_CPU specifies the one core a build asks its Worker for, and
+// BUILD_MEMORY_BYTES specifies the 2 GiB of memory.
 const BUILD_MILLI_CPU = 1000n
 const BUILD_MEMORY_BYTES = 2n << 30n
 
 /**
  * PluginRepositoriesPage adds GitHub repositories to the account's developer
  * Space, checks them for newer commits, and builds a reviewed commit. Each
- * fetch and build runs as a Forge Job on a Device of that Space; the list
+ * fetch and build runs as a Forge Job on a Device of that Space. The list
  * re-reads its commits on each World revision.
  */
 export function PluginRepositoriesPage() {
   // Read the developer Space's Devices and repositories on each revision.
   // Past its reconnect backoff the watch fails and keeps its last read,
-  // drawn under the error line; only a live read claims no Devices.
+  // drawn under the error line. Only a live read claims no Devices.
   const navigate = useNavigate()
   const { spaceResource, worldResource } = useDeveloperSpace()
   const inventory = useWorldQuery(worldResource, readPluginRepositories, [])
@@ -277,7 +278,7 @@ function usePluginRepositoryJobs(
   const running =
     submitted != null && !(complete && (watched?.last || failError))
 
-  // Queue Jobs through submit; the Task watch above reports their progress.
+  // Queue Jobs through submit. The Task watch above reports their progress.
   const submit = useCallback(
     async (
       action: Submitted['action'],
@@ -459,7 +460,7 @@ function shortCommit(hash: string): string {
 
 /**
  * PluginRepositoryRow shows one repository's pinned and fetched commits, and
- * offers a review of the pinned commit before it builds.
+ * offers a review of the pinned commit before building the commit.
  */
 function PluginRepositoryRow({
   repository,

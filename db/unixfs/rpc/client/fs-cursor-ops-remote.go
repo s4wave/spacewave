@@ -22,16 +22,16 @@ type remoteFSCursorOps struct {
 
 	// FSCursorNodeType indicates the type of dirent.
 	unixfs.FSCursorNodeType
-	// name is the name of the dirent
+	// name is the name of the dirent.
 	name string
-	// nodeType is the original node type of the dirent
+	// nodeType is the original node type of the dirent.
 	nodeType unixfs_block.NodeType
 	// optimalWriteSize is a cached value for optimal write size.
 	// if zero the check will be run again.
 	optimalWriteSize atomic.Int64
 }
 
-// newRemoteFSCursorOps constructs a new remoteFSCursorOps
+// newRemoteFSCursorOps constructs a new remoteFSCursorOps.
 func newRemoteFSCursorOps(
 	c *remoteFSCursor,
 	handleID uint64,
@@ -295,8 +295,8 @@ func (o *remoteFSCursorOps) WriteAt(ctx context.Context, offset int64, data []by
 	}
 
 	// NOTE: what if len(data) > max packet size for srpc?
-	// we may want to enforce a size limit here & send multiple WriteAt packets.
-	// or, alternatively return a written length from WriteAt (in case we write less).
+	// WriteAt may need to enforce a size limit here & send multiple
+	// WriteAt packets, or return a written length if WriteAt writes less.
 
 	// Write the remote file range with the supplied modification timestamp.
 	tts := timestamp.ToTimestamp(ts)
@@ -527,7 +527,7 @@ func (o *remoteFSCursorOps) Readlink(ctx context.Context, name string) ([]string
 	return tgtPath.GetNodes(), tgtPath.GetAbsolute(), nil
 }
 
-// CopyTo performs an optimized copy of an dirent inode to another inode.
+// CopyTo copies a dirent inode to another inode with optimization.
 // If the src is a directory, this should be a recursive copy.
 // Callers should still check CopyFrom even if CopyTo is not implemented.
 // Returns false, nil if optimized copy to the target is not implemented.
@@ -543,7 +543,8 @@ func (o *remoteFSCursorOps) CopyTo(
 	}
 
 	// the target dir handle must also be a remote ops from the same client for
-	// CopyTo to make sense. otherwise we will return false for optimized copy.
+	// CopyTo to make sense. otherwise CopyTo returns false for
+	// optimized copy.
 	tgtOpsHandle, ok := tgtDir.(*remoteFSCursorOps)
 	if !ok || tgtOpsHandle == nil || tgtOpsHandle.c.c != o.c.c || tgtOpsHandle.CheckReleased() {
 		return false, nil
@@ -561,8 +562,8 @@ func (o *remoteFSCursorOps) CopyTo(
 		err = res.GetUnixfsError().ToGoError()
 	}
 	if err != nil {
-		// Expire both the source and target ops since we can't distinguish which
-		// cursor caused the error.
+		// Expire both the source and target ops since the client can't
+		// distinguish which cursor caused the error.
 		tgtOpsHandle.handleErr(err, true)
 		o.handleErr(err, true)
 		return false, err
@@ -571,7 +572,7 @@ func (o *remoteFSCursorOps) CopyTo(
 	return res.GetDone(), nil
 }
 
-// CopyFrom performs an optimized copy from another inode.
+// CopyFrom copies from another inode with optimization.
 // If the src is a directory, this should be a recursive copy.
 // Callers should still check CopyTo even if CopyFrom is not implemented.
 // Returns false, nil if optimized copy from the target is not implemented.
@@ -587,7 +588,8 @@ func (o *remoteFSCursorOps) CopyFrom(
 	}
 
 	// the target dir handle must also be a remote ops from the same client for
-	// CopyFrom to make sense. otherwise we will return false for optimized copy.
+	// CopyFrom to make sense. otherwise CopyFrom returns false for
+	// optimized copy.
 	srcOpsHandle, ok := srcCursorOps.(*remoteFSCursorOps)
 	if !ok || srcOpsHandle == nil || srcOpsHandle.c.c != o.c.c || srcOpsHandle.CheckReleased() {
 		return false, nil
@@ -605,8 +607,8 @@ func (o *remoteFSCursorOps) CopyFrom(
 		err = res.GetUnixfsError().ToGoError()
 	}
 	if err != nil {
-		// Expire both the source and target ops since we can't distinguish which
-		// cursor caused the error.
+		// Expire both the source and target ops since the client can't
+		// distinguish which cursor caused the error.
 		srcOpsHandle.handleErr(err, true)
 		o.handleErr(err, true)
 		return false, err
@@ -615,7 +617,7 @@ func (o *remoteFSCursorOps) CopyFrom(
 	return res.GetDone(), nil
 }
 
-// MoveTo performs an atomic and optimized move to another inode.
+// MoveTo moves to another inode atomically and with optimization.
 // If the src is a directory, this should be a recursive copy.
 // Callers should still check MoveFrom even if MoveTo is not implemented.
 //
@@ -635,7 +637,8 @@ func (o *remoteFSCursorOps) MoveTo(
 	}
 
 	// the target dir handle must also be a remote ops from the same client for
-	// MoveTo to make sense. otherwise we will return false for optimized move.
+	// MoveTo to make sense. otherwise MoveTo returns false for
+	// optimized move.
 	tgtOpsHandle, ok := tgtCursorOps.(*remoteFSCursorOps)
 	if !ok || tgtOpsHandle == nil || tgtOpsHandle.c.c != o.c.c || tgtOpsHandle.CheckReleased() {
 		return false, nil
@@ -653,8 +656,8 @@ func (o *remoteFSCursorOps) MoveTo(
 		err = res.GetUnixfsError().ToGoError()
 	}
 	if err != nil {
-		// Expire both the source and target ops since we can't distinguish which
-		// cursor caused the error.
+		// Expire both the source and target ops since the client can't
+		// distinguish which cursor caused the error.
 		tgtOpsHandle.handleErr(err, true)
 		o.handleErr(err, true)
 		return false, err
@@ -663,7 +666,7 @@ func (o *remoteFSCursorOps) MoveTo(
 	return res.GetDone(), nil
 }
 
-// MoveFrom performs an atomic and optimized move from another inode.
+// MoveFrom moves from another inode atomically and with optimization.
 // If the src is a directory, this should be a recursive copy.
 // Callers should still check MoveTo even if MoveFrom is not implemented.
 //
@@ -683,7 +686,8 @@ func (o *remoteFSCursorOps) MoveFrom(
 	}
 
 	// the target dir handle must also be a remote ops from the same client for
-	// MoveFrom to make sense. otherwise we will return false for optimized move.
+	// MoveFrom to make sense. otherwise MoveFrom returns false for
+	// optimized move.
 	srcOpsHandle, ok := srcCursorOps.(*remoteFSCursorOps)
 	if !ok || srcOpsHandle == nil || srcOpsHandle.c.c != o.c.c || srcOpsHandle.CheckReleased() {
 		return false, nil
@@ -701,8 +705,8 @@ func (o *remoteFSCursorOps) MoveFrom(
 		err = res.GetUnixfsError().ToGoError()
 	}
 	if err != nil {
-		// Expire both the source and target ops since we can't distinguish which
-		// cursor caused the error.
+		// Expire both the source and target ops since the client can't
+		// distinguish which cursor caused the error.
 		srcOpsHandle.handleErr(err, true)
 		o.handleErr(err, true)
 		return false, err
@@ -801,7 +805,8 @@ func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, n
 
 // handleErr handles when an operations function returns an error.
 func (o *remoteFSCursorOps) handleErr(err error, lock bool) {
-	// mark the ops as released if we return ErrReleased.
+	// mark the ops as released if the operations function returns
+	// ErrReleased.
 	if err == unixfs_errors.ErrReleased {
 		if lock {
 			o.c.c.mtx.Lock()

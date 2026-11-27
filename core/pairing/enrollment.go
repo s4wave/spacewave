@@ -185,7 +185,7 @@ func accountOffer(offer *AccountOffer) *AccountOffer {
 }
 
 // maxLabelRunes bounds the label another client sends. The label is shown on
-// the approval screen and stored for the Session it enrolls.
+// the approval screen and stored for the enrolled Session.
 const maxLabelRunes = 64
 
 // cleanLabel reduces a label from another client to printable text of at most
@@ -203,7 +203,7 @@ func cleanLabel(label string) string {
 	return label
 }
 
-// defaultMachineName names this client when the caller gave no label.
+// defaultMachineName returns this client's name when the caller gave no label.
 func defaultMachineName() string {
 	name, _ := os.Hostname()
 	if name == "" || name == "js" {

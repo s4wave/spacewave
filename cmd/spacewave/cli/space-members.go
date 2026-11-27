@@ -136,8 +136,8 @@ func newSpaceMembersRemoveCommand(statePath *string, sessionIdx *uint) *cli.Comm
 				return err
 			}
 
-			// Cut the listed members' operations when asked; the cloud path
-			// below has no cut.
+			// Cut the listed members' operations when asked. The
+			// cloud path below has no cut.
 			cut := c.IsSet("admit-through")
 			if dryRun && !cut {
 				return errors.New("--dry-run needs --admit-through")
@@ -201,7 +201,7 @@ func newSpaceMembersRemoveCommand(statePath *string, sessionIdx *uint) *cli.Comm
 }
 
 // readSpaceMembers mounts the selected session and returns the sharing state of
-// the Space spaceArg names.
+// the Space spaceArg selects.
 func readSpaceMembers(
 	ctx context.Context,
 	c *cli.Context,
@@ -309,7 +309,8 @@ func memberPeerIDs(
 	members []*s4wave_space.SpaceParticipantInfo,
 	names []string,
 ) (peerIDs, accountIDs []string, err error) {
-	// Index only requested identities; a command naming nobody needs no scan.
+	// Index only requested identities. A command selecting nobody needs
+	// no scan.
 	if len(names) == 0 {
 		return nil, nil, nil
 	}

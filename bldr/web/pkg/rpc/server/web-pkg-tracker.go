@@ -11,7 +11,7 @@ import (
 
 // webPkgTracker tracks a LookupWebPkg directive and service.
 type webPkgTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
 	// webPkgID is the web pkg identifier.
 	webPkgID string
@@ -36,7 +36,7 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 	le := t.c.le.WithField("web-pkg-id", webPkgID)
 	le.Debug("starting web pkg tracker")
 
-	// we need to resolve the web pkg to construct the server.
+	// Resolve the web pkg to construct the server.
 	valCh, di, valRef, err := bus.ExecOneOffWatchCh[web_pkg.LookupWebPkgValue](
 		ctx,
 		t.c.bus,
@@ -48,7 +48,7 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 	}
 	defer valRef.Release()
 
-	// if the directive becomes idle we will set the srvPromise value to nil.
+	// Set the srvPromise value to nil if the directive becomes idle.
 	errCh := make(chan error, 1)
 	di.AddIdleCallback(func(isIdle bool, errs []error) {
 		if !isIdle {

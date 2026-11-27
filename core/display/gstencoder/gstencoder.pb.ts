@@ -12,8 +12,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Capture {
   /**
-   * PipewireNodeId names a portal node on the remote inherited as descriptor 3.
-   * Zero selects the synthetic test pattern and requires no inherited descriptor.
+   * PipewireNodeId selects a portal node on the remote inherited as descriptor
+   * 3. Zero selects the synthetic test pattern and requires no inherited
+   * descriptor.
    */
   pipewireNodeId?: number
 }

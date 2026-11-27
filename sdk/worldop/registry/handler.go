@@ -63,7 +63,7 @@ func (h *Handler) ApplyWorldOp(ctx context.Context, req *ApplyWorldOpRequest) (*
 }
 
 // ApplyWorldObjectOp applies an operation to the attached object state, which
-// must be the object the request names.
+// must be the object the request references.
 func (h *Handler) ApplyWorldObjectOp(ctx context.Context, req *ApplyWorldObjectOpRequest) (*ApplyWorldObjectOpResponse, error) {
 	// Decode the operation and its sender.
 	op, sender, err := h.decode(ctx, req.GetOperationTypeId(), req.GetOpData(), req.GetSender())
@@ -174,5 +174,5 @@ func splitRejection(err error) (code, msg string, rest error) {
 	return "", "", err
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ SRPCWorldOpHandlerServiceServer = (*Handler)(nil)

@@ -91,7 +91,8 @@ func TestBufferedStoreDrainReachableThroughWrittenParent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The child reached through the written parent persists; the stray does not.
+	// The child reached through the written parent persists.
+	// The stray does not.
 	if found, err := inner.GetBlockExists(ctx, child); err != nil || !found {
 		t.Fatalf("child behind written parent: found=%v err=%v", found, err)
 	}

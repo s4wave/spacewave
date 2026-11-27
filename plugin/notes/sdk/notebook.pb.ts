@@ -16,7 +16,7 @@ import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
  */
 export enum NotebookEditOutcome {
   /**
-   * NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome; no producer sets it.
+   * NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome. No producer sets it.
    */
   UNKNOWN = 0,
 
@@ -28,7 +28,7 @@ export enum NotebookEditOutcome {
 
   /**
    * NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
-   * the caller saw, so nothing was written; the caller refreshes instead of
+   * the caller saw, so nothing was written. The caller refreshes instead of
    * resending. The op's own conflict rejection produces it.
    */
   CHANGED = 2,
@@ -117,7 +117,7 @@ export const AddSourceRequest: MessageType<AddSourceRequest> =
  */
 export interface AddSourceResponse {
   /**
-   * Outcome is what became of the edit; an add never reports changed.
+   * Outcome is what became of the edit. An add never reports changed.
    */
   outcome?: NotebookEditOutcome
 }
@@ -139,8 +139,8 @@ export interface RemoveSourceRequest {
    */
   index?: number
   /**
-   * Source is the source the caller saw at index; the remove applies only
-   * while the stored source at index equals it.
+   * Source is the source the caller saw at index. The remove applies only
+   * while the stored source at index equals source.
    */
   source?: NotebookSource
 }
@@ -183,8 +183,8 @@ export interface ReorderSourcesRequest {
    */
   order?: number[]
   /**
-   * Sources is the source list the caller saw; the reorder applies only
-   * while the stored list equals it.
+   * Sources is the source list the caller saw. The reorder applies only
+   * while the stored list equals sources.
    */
   sources?: NotebookSource[]
 }

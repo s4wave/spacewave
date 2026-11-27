@@ -19,8 +19,8 @@ func openBrowser(rawURL string) error {
 		return exec.Command("xdg-open", rawURL).Start()
 	case "windows":
 		// rundll32 passes rawURL to url.dll's FileProtocolHandler as a single
-		// argument; it does not shell-interpret the value. Avoid cmd /c start,
-		// which treats the URL as command line input.
+		// argument. rundll32 does not shell-interpret the value. Avoid
+		// cmd /c start, which treats the URL as command line input.
 		return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", rawURL).Start()
 	default:
 		return errors.Errorf("unsupported platform: %s", runtime.GOOS)

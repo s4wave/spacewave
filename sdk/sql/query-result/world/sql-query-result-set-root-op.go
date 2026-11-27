@@ -18,7 +18,7 @@ func NewSqlQueryResultSetRootOp(objectKey string, rootRef *bucket.ObjectRef) *Sq
 	return &SqlQueryResultSetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone()}
 }
 
-// Validate performs cursory checks on the operation.
+// Validate checks the operation cursorily.
 func (o *SqlQueryResultSetRootOp) Validate() error {
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey

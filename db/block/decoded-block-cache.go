@@ -51,7 +51,7 @@ type DecodedBlockShareable interface {
 // DecodedBlockReadShareable marks a block type that reads and cursor traversal
 // never mutate in place, but whose writers change a loaded instance before
 // handing it back to the cursor. Read-only transactions take the cached
-// instance without a clone; other transactions take a private copy.
+// instance without a clone, but other transactions take a private copy.
 type DecodedBlockReadShareable interface {
 	// SharesDecodedBlockWithReaders marks the type as shareable with readers.
 	SharesDecodedBlockWithReaders()
@@ -69,7 +69,7 @@ const decodedBlockCacheEntryOverheadCost int64 = 256
 
 // decodedBlockCacheStripes is the number of ref invalidation epochs per
 // scope. InvalidateRef advances the stripe its ref hashes to, so other refs in
-// that stripe miss once; the fixed array bounds invalidation state.
+// that stripe miss once. The fixed array bounds invalidation state.
 const decodedBlockCacheStripes = 4096
 
 // sharedDecodedBlockPool is the process-wide pool behind NewDecodedBlockCache.
@@ -97,7 +97,7 @@ func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, erro
 
 // DecodedBlockCache is one owner's scope in a decoded-block pool. Keys carry
 // the scope prefix, so owners never see each other's blocks. Each entry
-// records the invalidation epochs current when it was stored; Lookup treats an
+// records the invalidation epochs current when it was stored. Lookup treats an
 // entry with an outdated epoch as a miss, and stale entries age out of the
 // pool's queues.
 type DecodedBlockCache struct {
@@ -106,7 +106,7 @@ type DecodedBlockCache struct {
 	// ownsPool is set when Close must clear pool.
 	ownsPool bool
 	// id identifies this scope among every scope in the process, so an entry
-	// or token naming it never names a scope of another pool.
+	// or token identifying it never identifies a scope of another pool.
 	id uint64
 	// scope prefixes every key of this owner: id in base 36 and a slash.
 	scope string
@@ -156,9 +156,10 @@ type decodedBlockCacheStoreToken struct {
 }
 
 // SetSharedDecodedBlockCacheMaxCost sets the budget of the process-wide pool
-// behind NewDecodedBlockCache. The default suits a desktop; a server with
-// memory to spare can hold a larger working set. Lowering the budget evicts
-// entries from each shard at its next store. A non-positive budget is ignored.
+// behind NewDecodedBlockCache. The default budget suits a desktop. A server
+// with memory to spare can hold a larger working set. Lowering the budget
+// evicts entries from each shard at its next store. A non-positive budget is
+// ignored.
 //
 // The value is also the limit of SharedReadCacheBudget, so it bounds the
 // decoded pool together with the resident pack bytes of every store that
@@ -577,7 +578,7 @@ func decodedBlockCacheStoreTokenFromContext(ctx context.Context, refKey string) 
 }
 
 // storeDecodedBlock stores the block in the context's caches. The read mark
-// admits it to the shared pool only when a durable store served it; otherwise
+// admits it to the shared pool only when a durable store served it. Otherwise
 // only the read operation's front cache keeps it.
 func storeDecodedBlock(
 	ctx context.Context,

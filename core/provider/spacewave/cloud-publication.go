@@ -92,8 +92,9 @@ func (h *cloudSOHost) pendingPublication() *api.PendingSOPublication {
 
 // publishCheckpoint sends only work captured before the corresponding block
 // fence. Newer local writes keep their own obligation through acknowledgment.
-// sentAt is when sent was snapshotted: the work left pending arrived after it,
-// so it becomes that work's first pending time, which never delays it.
+// sentAt is when sent was snapshotted: the work left pending arrived after
+// sentAt, so sentAt becomes that work's first pending time, which never delays
+// the pending work.
 func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication, sentAt time.Time) error {
 	// A nil publication has nothing to send.
 	if sent == nil {
@@ -282,7 +283,7 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	// Publish each host's checkpoint after its blocks are durable.
 	// Invariant: a checkpoint is published only when every block it reaches
 	// is on the remote, except the chunks of linked files, which the linked
-	// lane uploads on its own while their files serve them; a store that
+	// lane uploads on its own while their files serve them. A store that
 	// holds a corrupt dirty block publishes nothing new while it holds that
 	// block, and says so.
 	if held != 0 {

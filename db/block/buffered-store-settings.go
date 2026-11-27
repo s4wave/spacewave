@@ -1,6 +1,8 @@
 package block
 
-// defaultBufferedStore* are the defaults applied when a setting is unset.
+// defaultBufferedStoreMaxPendingEntries, defaultBufferedStoreMaxPendingBytes
+// and defaultBufferedStoreMaxPendingMetadataBytes are the defaults applied when
+// a setting is unset.
 const (
 	defaultBufferedStoreMaxPendingEntries       = 4096
 	defaultBufferedStoreMaxPendingBytes         = 64 << 20

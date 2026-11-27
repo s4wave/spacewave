@@ -14,15 +14,15 @@ import (
 
 // RemoteWebDocument implements the Document page APIs for the runtime.
 type RemoteWebDocument struct {
-	// ctx is the context for the RemoteWebDocument
+	// ctx is the context for the RemoteWebDocument.
 	ctx context.Context
-	// ctxCancel cancels ctx
+	// ctxCancel cancels ctx.
 	ctxCancel context.CancelFunc
-	// r is the remote
+	// r is the remote.
 	r *Remote
-	// id is the identifier for the webdocument
+	// id is the identifier for the webdocument.
 	id string
-	// permanent indicates the web document cannot be closed
+	// permanent indicates the web document cannot be closed.
 	permanent bool
 	// openStream is the open stream func.
 	openStream srpc.OpenStreamFunc
@@ -34,7 +34,7 @@ type RemoteWebDocument struct {
 
 // NewRemoteWebDocument constructs a new remote WebDocument handle.
 //
-// if permanent, this web document is the primary and cannot be closed
+// if permanent, this web document is the primary and cannot be closed.
 func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent bool) (*RemoteWebDocument, error) {
 	// Retain the document identity and runtime stream opener.
 	openStream := r.GetWebDocumentOpenStream(id)

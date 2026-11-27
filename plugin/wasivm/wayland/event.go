@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 )
 
-// event encodes one event: a header naming the object and opcode, then the
+// event encodes one event: a header recording the object and opcode, then the
 // arguments, each padded to four bytes.
 type event struct {
 	// buf holds the header and the arguments written so far.
@@ -35,7 +35,7 @@ func (e *event) fixed(v int32) *event {
 	return e.int(v * 256)
 }
 
-// array appends an array: its length, then its bytes padded to four.
+// array appends an array: its length, then its bytes padded to four bytes.
 func (e *event) array(b []byte) *event {
 	e.uint(uint32(len(b))) //nolint:gosec // events are far below 4 GiB.
 	e.buf = append(e.buf, b...)

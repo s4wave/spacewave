@@ -67,7 +67,7 @@ var blockedCodes = map[string]bool{
 // PackReplacementConflictCode rejects a pack replacement or trash request
 // whose packs are missing, superseded, claimed by another replacement, or not
 // in the state the request expects. Retrying the
-// same replacement cannot succeed; the client must pull and plan again.
+// same replacement cannot succeed. The client must pull and plan again.
 const PackReplacementConflictCode = "pack_replacement_conflict"
 
 // permanentCodes is the union of unauthCodes, deletedCodes, blockedCodes, and
@@ -225,7 +225,7 @@ func IsAccessGated(err error) bool {
 }
 
 // IsLimitReached checks if a cloud error refuses an upload because the
-// account reached its storage or spending limit. The upload holds until the
+// account reached its storage or spending limit. The upload waits until the
 // account state changes, as when the limit is raised, instead of retrying.
 func IsLimitReached(err error) bool {
 	var ce *Error

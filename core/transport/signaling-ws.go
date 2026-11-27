@@ -209,7 +209,7 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 	})
 	client.SetContext(ctx)
 
-	// Detect a broken socket and return it to the controller retry loop.
+	// Detect a broken socket and return the error to the controller retry loop.
 	// Protocol pings do not wake a hibernated server.
 	connErr := make(chan error, 2)
 	go func() {

@@ -34,15 +34,16 @@ export interface Config {
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
    * create a new private key if one is not present in the store at startup. If
-   * no key is in the store at startup and this is true, returns an error.
+   * no key is in the store at startup and this is true, the controller returns
+   * an error.
    */
   noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
-   * storage if it generates one. This results in an ephemeral volume peer
-   * identity if there is no key present in the store already.
+   * storage if it generates one. Skipping the write results in an ephemeral
+   * volume peer identity if there is no key present in the store already.
    *
-   * Has no effect if the store has a peer private key.
+   * NoWriteKey has no effect if the store has a peer private key.
    */
   noWriteKey?: boolean
 }

@@ -54,7 +54,7 @@ func (a *AttachMuxDataRwc) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Close is a no-op; the stream lifecycle is managed by the caller.
+// Close is a no-op because the stream lifecycle is managed by the caller.
 func (a *AttachMuxDataRwc) Close() error {
 	return nil
 }

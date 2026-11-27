@@ -19,7 +19,7 @@ func TestAlphaStarCompleteness(t *testing.T) {
 	}
 	conf := starResult.Config
 
-	// Verify project
+	// Verify the project id.
 	if conf.GetId() != "spacewave" {
 		t.Errorf("project id: got %q, want 'spacewave'", conf.GetId())
 	}

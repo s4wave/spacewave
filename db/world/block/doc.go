@@ -12,13 +12,13 @@
 // without reading the whole history.
 //
 // The Engine publishes each head as an immutable snapshot that readers pin
-// without its lock; a reader keeps the storage of the head it pinned after a
+// without its lock. A reader keeps the storage of the head it pinned after a
 // newer head replaces it. A write transaction holds the Authority's turn
 // until its commit is admitted, then releases it so the next writer builds
 // on the admitted candidate while this one waits for the decision. The
 // engine installs a head only once the Authority has accepted it and it is
-// durable; heads other writers commit arrive through the Authority's head
+// durable. Heads other writers commit arrive through the Authority's head
 // watch. Close releases
-// the engine's cursors and transactions; Retire also ends its transactions
+// the engine's cursors and transactions. Retire also ends its transactions
 // with ErrEngineRetired, a supersession, so callers rerun on the successor.
 package world_block

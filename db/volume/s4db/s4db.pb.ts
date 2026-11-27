@@ -46,13 +46,14 @@ export interface Config {
   storeConfig?: Config$3
   /**
    * CacheBytes bounds the s4db block cache of decoded run blocks, index
-   * partitions and filters. Zero selects the s4db default.
+   * partitions and filters. Zero selects the s4db default cache size.
    */
   cacheBytes?: bigint
   /**
    * ReserveBytes is the free disk below which the volume refuses new writes
    * while reads, collection and deletes continue. Zero selects the disk one
-   * collection needs before it frees any; a negative value keeps no reserve.
+   * collection needs before freeing any disk space. A negative value keeps no
+   * reserve.
    */
   reserveBytes?: bigint
   /**

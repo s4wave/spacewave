@@ -24,14 +24,15 @@ type Daemon struct {
 	// staticResolver is the static controller factory resolver.
 	staticResolver *static.Resolver
 
-	// nodePriv is the primary node private key
+	// nodePriv is the primary node private key.
 	nodePriv crypto.PrivKey
-	// nodePeerID is the primary node ID
+	// nodePeerID is the primary node ID.
 	nodePeerID peer.ID
-	// nodePeerIDString is the node peer ID as a b58 address
+	// nodePeerIDString is the node peer ID as a b58 address.
 	nodePeerIDString string
 
-	// closeCbs are funcs to call when we close the daemon
+	// closeCbs holds the node controller reference's release func. No close
+	// path calls it yet.
 	closeCbs []func()
 }
 

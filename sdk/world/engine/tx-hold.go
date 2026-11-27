@@ -11,14 +11,15 @@ import (
 
 // slowWriteHold is the time a write transaction may stay open, from
 // NewTransaction to its Commit or Discard, before the client logs its opener.
-// The server holds the World writer for that whole span. Tests set it.
+// The server holds the World writer for that whole span. Tests set
+// slowWriteHold.
 var slowWriteHold = 10 * time.Second
 
-// openerFrames is the number of caller frames a slow write names.
+// openerFrames is the number of caller frames a slow write logs.
 const openerFrames = 6
 
-// worldPackages are the function name prefixes skipped when naming an opener,
-// so the log starts at the code that asked for the write.
+// worldPackages are the function name prefixes skipped when identifying an
+// opener, so the log starts at the code that asked for the write.
 var worldPackages = []string{
 	"github.com/s4wave/spacewave/sdk/world.",
 	"github.com/s4wave/spacewave/sdk/world/engine.",
@@ -27,7 +28,7 @@ var worldPackages = []string{
 
 // writeHold records where and when a write transaction opened. The server
 // holds the World writer from open to finish, and its slow-commit log cannot
-// see the client's code, so the client names it.
+// see the client's code, so the client logs the opener.
 type writeHold struct {
 	// opened is when NewTransaction returned the writer.
 	opened time.Time
@@ -59,10 +60,10 @@ func (h *writeHold) finish(outcome string) {
 	}).Warn("slow World write transaction")
 }
 
-// opener names the first openerFrames frames outside the World packages,
+// opener lists the first openerFrames frames outside the World packages,
 // innermost first, as function:line separated by " < ".
 func (h *writeHold) opener() string {
-	// Name frames until openerFrames are named or the stack ends.
+	// List frames until openerFrames are listed or the stack ends.
 	var b strings.Builder
 	named := 0
 	frames := runtime.CallersFrames(h.callers)

@@ -7,13 +7,13 @@ import { WebDocument } from './web-document.js'
 import { WebView } from './WebView.js'
 
 export interface IBldrRootProps {
-  // webDocument is the external bldr WebDocument handle
-  // if unset, constructs a default WebDocument
+  // webDocument is the external bldr WebDocument handle.
+  // If unset, BldrRoot constructs a default WebDocument.
   webDocument?: BldrWebDocument
   // children is the set of react children components.
   children?: React.ReactNode
   // webDocumentOpts are options to pass to WebDocument.
-  // ignored if webDocument is set
+  // The options are ignored if webDocument is set.
   webDocumentOpts?: WebDocumentOptions
   // disableRootWebView disables the default root web view.
   disableRootWebView?: boolean

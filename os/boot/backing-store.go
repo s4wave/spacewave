@@ -25,14 +25,15 @@ type btrfsVolArgs struct {
 
 // PrepareBackingStore loads at most sixteen matching, dependency-ordered kernel
 // modules from this experiment's initramfs, then optionally mounts /dev/vda.
-// Module files are kernel content; this path never invokes another executable.
+// Module files are kernel content. This path never invokes another executable.
 func PrepareBackingStore(persistent, configuration bool) error {
 	// A configuration disk is attached only alongside the persistent system.
 	if configuration && !persistent {
 		return errors.New("configuration requires persistent backing")
 	}
 
-	// Packaging prefixes modules with their dependency order; ReadDir sorts them.
+	// Packaging prefixes modules with their dependency order. ReadDir sorts
+	// them.
 	modules, err := os.ReadDir("/modules")
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -55,7 +56,8 @@ func PrepareBackingStore(persistent, configuration bool) error {
 		}
 	}
 
-	// FUSE may be built into the kernel; persistent boots also need virtio/Btrfs.
+	// FUSE may be built into the kernel. Persistent boots also need
+	// virtio/Btrfs.
 	if _, err := os.Stat("/dev/fuse"); err != nil {
 		return err
 	}
@@ -89,7 +91,7 @@ func PrepareBackingStore(persistent, configuration bool) error {
 // growBackingStore grows the Btrfs filesystem mounted at path to fill its
 // device, so an image written at its content's size fills the disk it was
 // installed on. A filesystem that already fills its device is unchanged, so
-// every boot runs it.
+// every boot runs growBackingStore.
 func growBackingStore(path string) error {
 	// Resize the mounted filesystem's first device to its maximum.
 	dir, err := os.Open(path)

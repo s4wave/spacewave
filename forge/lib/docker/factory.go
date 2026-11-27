@@ -10,7 +10,7 @@ import (
 
 // Factory constructs a docker controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 	// admission belongs to the Worker that registered this factory.
 	admission Admission

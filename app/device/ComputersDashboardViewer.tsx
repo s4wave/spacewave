@@ -63,15 +63,16 @@ export function ComputersDashboardViewer({
     [],
   )
 
-  // A failed read keeps the inventory it last read under its notice; with
-  // none kept the notice alone claims nothing about the Space's computers.
+  // A failed read keeps the last read inventory under the failure notice.
+  // With no inventory kept, the notice alone claims nothing about the Space's
+  // computers.
   const computers = resourceContent(computersResource)
   const devices = computers?.devices ?? noKeys
   const hosts = computers?.hosts ?? noKeys
   const seededAddDeviceWizardKey = computers?.wizards[0] ?? ''
   const canCreateAddDeviceWizard = visibleWizardTypeSet.has(DeviceTypeID)
   // Until the World answers, a click could not tell a seeded wizard apart from
-  // none and would create a duplicate.
+  // an absent wizard and would create a duplicate.
   const canAddDevice =
     !!computers && (!!seededAddDeviceWizardKey || canCreateAddDeviceWizard)
   const [opening, setOpening] = useState(false)

@@ -224,8 +224,8 @@ func TestReconciler(t *testing.T) {
 			capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
 	})
 
-	// Remove the connection from the TCP Port and require its node available
-	// while the other connection keeps running.
+	// Remove the connection from the TCP Port and require its node to be
+	// available while the other connection keeps running.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			RemoveConnectionIds: []string{"out"},
@@ -490,8 +490,8 @@ func TestReconciler(t *testing.T) {
 	createWorkers(t, ctx, engine, "", map[string]crypto.PubKey{"worker/orphan": selfKey.GetPublic()})
 
 	// Place a Forge Worker for the Worker outside a Cluster and one for the
-	// Worker of another peer. Require both rejected with their rule and no
-	// declaration for the plugin.
+	// Worker of another peer. Require both to be rejected with their rule
+	// and no declaration for the plugin.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
@@ -601,7 +601,7 @@ func TestReconcilersPerSpace(t *testing.T) {
 }
 
 // countingEngine counts the transactions a Reconciler opens on a World and
-// shows when it watches for the next revision.
+// shows when the Reconciler watches for the next revision.
 type countingEngine struct {
 	// Engine is the counted World.
 	world.Engine
@@ -1011,8 +1011,9 @@ func forgeWorkerDeclaration(workerKey string) *s4wave_device.ForgeWorkerDeclarat
 }
 
 // createWorkers creates a Worker at each key of workerPubs that acts as the
-// peer of its public key, and assigns it to the Cluster at clusterKey, which it
-// creates first. An empty clusterKey leaves the Workers outside every Cluster.
+// peer of its public key, and assigns the Worker to the Cluster at clusterKey.
+// createWorkers creates the Cluster first. An empty clusterKey leaves the
+// Workers outside every Cluster.
 func createWorkers(t *testing.T, ctx context.Context, engine world.Engine, clusterKey string, workerPubs map[string]crypto.PubKey) {
 	// Report failures at the caller.
 	t.Helper()

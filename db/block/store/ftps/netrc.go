@@ -18,7 +18,7 @@ type Login struct {
 // ReadNetrc returns every login of machine host in the netrc file at path, in
 // file order, or the default entry's login when no machine entry matches. A
 // server that limits connections per user takes one login per entry to
-// multiply its connections. Errors name the file and host, never the
+// multiply its connections. Errors identify the file and host, never the
 // credentials. Macro definitions are not supported.
 func ReadNetrc(path, host string) ([]Login, error) {
 	// Read the netrc file.

@@ -17,7 +17,7 @@ export interface AuthScreenLayoutProps extends React.ComponentPropsWithRef<'div'
 // AuthScreenLayout renders the shared auth page shell with container-aware
 // intro and form placement. Its root is the auth size container the
 // auth-short variants query, so it must get its height from its parent, as a
-// flex item does, never from its content; it scrolls what does not fit.
+// flex item does, never from its content. The root scrolls what does not fit.
 export function AuthScreenLayout({
   intro,
   topLeft,

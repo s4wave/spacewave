@@ -15,7 +15,8 @@ export function downloadPemFile(
   URL.revokeObjectURL(url)
 }
 
-// downloadURL triggers a browser download for a URL.
+// maxBlobDownloadBytes caps the blob size for downloadURL, which triggers a
+// browser download for a URL.
 const maxBlobDownloadBytes = 64 * 1024 * 1024
 
 export async function downloadURL(url: string, filename = ''): Promise<void> {

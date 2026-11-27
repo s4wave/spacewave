@@ -108,7 +108,7 @@ func (a *ProviderAccount) SetSelfEnrollmentSkippedGenerationKey(key string) {
 }
 
 // GetIDs returns the shared object IDs needing self-enrollment. A nil summary
-// has none; its getters answer the zero value, as protobuf getters do.
+// has none. Its getters answer the zero value, as protobuf getters do.
 func (s *SelfEnrollmentSummary) GetIDs() []string {
 	if s == nil {
 		return nil
@@ -332,7 +332,7 @@ func (a *ProviderAccount) isSelfEnrollmentExcludedSharedObject(
 }
 
 // buildSelfEnrollmentGenerationKey hashes ids and sessionPeerID into the key
-// identifying one pending set, or returns empty when ids is empty.
+// identifying one pending set, or returns an empty string when ids is empty.
 func buildSelfEnrollmentGenerationKey(ids []string, sessionPeerID peer.ID) string {
 	// Hash each ID and the session peer into a generation key.
 	if len(ids) == 0 {

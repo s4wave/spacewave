@@ -47,7 +47,7 @@ type rootPointerLoad struct {
 }
 
 // NewCdnBlockStore constructs a new CdnBlockStore. The pointer is fetched
-// lazily on the first read; pass a pre-populated pointer via SetPointer if
+// lazily on the first read. Pass a pre-populated pointer via SetPointer if
 // the caller already has one.
 func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	// Validate CDN configuration and select dependencies.
@@ -89,7 +89,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	}, nil
 }
 
-// GetID returns the block store id; CDN block stores use the Space ULID
+// GetID returns the block store id. CDN block stores use the Space ULID
 // verbatim because the mount is 1:1 with a Space.
 func (s *CdnBlockStore) GetID() string {
 	return s.opts.SpaceID
@@ -267,7 +267,7 @@ func (s *CdnBlockStore) Sync(_ context.Context) (bool, error) {
 	return true, nil
 }
 
-// Pointer returns the currently-cached root pointer without triggering a
+// Pointer returns the cached root pointer without triggering a
 // refresh. Returns nil if no pointer has been fetched yet.
 func (s *CdnBlockStore) Pointer() *cdn.CdnRootPointer {
 	var ptr *cdn.CdnRootPointer

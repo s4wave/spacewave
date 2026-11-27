@@ -84,8 +84,8 @@ func (s *SOHost) CreateSOInviteOp(
 
 // CreateInvite creates a new invite on the shared object via a signed config
 // chain entry. The invite is appended to SOState.invites. The config itself
-// does not change; the chain entry records the authorized operation.
-// Invite identity is checked against the checkpoint held under the provider lock.
+// does not change. The chain entry records the authorized operation. Invite
+// identity is checked against the checkpoint held under the provider lock.
 func (s *SOHost) CreateInvite(
 	ctx context.Context,
 	signerPrivKey crypto.PrivKey,
@@ -122,7 +122,7 @@ func (s *SOHost) RevokeInvite(
 	signerPrivKey crypto.PrivKey,
 	inviteID string,
 ) error {
-	// Name the invite.
+	// Require an invite ID.
 	if inviteID == "" {
 		return errors.New("invite_id is required")
 	}
@@ -151,7 +151,7 @@ func (s *SOHost) IncrementInviteUses(
 	signerPrivKey crypto.PrivKey,
 	inviteID string,
 ) error {
-	// Name the invite.
+	// Require an invite ID.
 	if inviteID == "" {
 		return errors.New("invite_id is required")
 	}
@@ -171,9 +171,8 @@ func (s *SOHost) IncrementInviteUses(
 	})
 }
 
-// ValidateInviteUsable checks whether an invite is currently usable.
-// Returns nil if the invite can accept another use, which is also what
-// makes it open to a new peer.
+// ValidateInviteUsable checks whether an invite is usable. Returns nil if the
+// invite can accept another use, so the invite is also open to a new peer.
 func ValidateInviteUsable(inv *SOInvite) error {
 	if err := validateInviteLive(inv); err != nil {
 		return err
@@ -184,9 +183,10 @@ func ValidateInviteUsable(inv *SOInvite) error {
 	return nil
 }
 
-// ValidateInviteRedeemable checks whether peerID may redeem an invite now: a
-// targeted invite admits only the peer it names, and every invite must be live
-// and below its max_uses. A peer InviteEnrolled reports skips this check.
+// ValidateInviteRedeemable checks whether peerID may redeem an invite: a
+// targeted invite admits only the peer the invite selects, and every invite
+// must be live and below its max_uses. A peer InviteEnrolled reports skips this
+// check.
 func ValidateInviteRedeemable(inv *SOInvite, peerID string) error {
 	if target := inv.GetTargetPeerId(); target != "" && peerID != target {
 		return errors.New("invite is targeted to a different peer")
@@ -234,7 +234,8 @@ const (
 // An invite without conditions admits everyone. A participant_of invite admits
 // a peer that participates in one of the named Spaces in held, the host's own
 // configuration of each Space it holds. An approval_required invite queues
-// every redemption it does not admit; otherwise the redemption is refused.
+// every redemption the invite does not admit. Otherwise the redemption is
+// refused.
 func RedeemInvite(inv *SOInvite, peerID string, held map[string]*SharedObjectConfig) InviteRedemption {
 	// An invite without conditions admits everyone.
 	participation := inv.GetParticipantOf()
@@ -251,7 +252,8 @@ func RedeemInvite(inv *SOInvite, peerID string, held map[string]*SharedObjectCon
 		return InviteRedemptionAdmit
 	}
 
-	// Approval queues everyone else; without it they are refused.
+	// Approval queues everyone else. Without approval, those peers are
+	// refused.
 	if inv.GetApprovalRequired() {
 		return InviteRedemptionQueue
 	}

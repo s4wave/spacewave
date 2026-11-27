@@ -54,7 +54,7 @@ func (t *Track) Subscribe(
 	t.mtx.Lock()
 	if t.stopped {
 		t.mtx.Unlock()
-		// Close just cancels the sender's context.
+		// Close only cancels the sender's context.
 		_ = sender.Close()
 		return nil, io.EOF
 	}
@@ -86,7 +86,7 @@ func (t *Track) Run(ctx context.Context) (err error) {
 
 		// Cancel the writers without holding the track lock.
 		for _, sender := range senders {
-			// Close just cancels the sender's context.
+			// Close only cancels the sender's context.
 			_ = sender.Close()
 		}
 

@@ -25,7 +25,7 @@ async function main() {
     }
     config.build.outDir = outputDir
 
-    // Create empty web package references map for this build
+    // Create an empty web package references map for this build
     const webPkgRefs = new Map<
       string,
       { root: string; subPaths: Set<string> }
@@ -40,7 +40,7 @@ async function main() {
 
     console.log('\n=== DEBUG OUTPUT ===\n')
 
-    // Check first chunk for moduleIds and modules
+    // Check the first chunk for moduleIds and modules
     const outputs = Array.isArray(viteOutput) ? viteOutput : [viteOutput]
     const firstChunk = outputs[0]?.output.find((o) => o.type === 'chunk')
 

@@ -27,13 +27,13 @@ export default async function main(
   using _objState = await worldState.createObject('e2e-test-completed', {})
   console.log('created completion marker object')
 
-  // get the object back to verify
+  // get the object back to verify creation
   using objState2 = await worldState.getObject('e2e-test-completed')
   if (!objState2) {
     throw new Error('failed to retrieve completion marker object')
   }
   console.log('successfully retrieved completion marker object')
 
-  // done
+  // The test is done.
   console.log('testbed e2e test completed successfully')
 }

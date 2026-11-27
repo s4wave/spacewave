@@ -27,7 +27,7 @@ function recordingReport(reportId: string): BootReport {
 }
 
 // releaseAll seals every tracked holder so each acquired Web Lock resolves
-// its hold callback even when an assertion failed mid-test; IndexedDB record
+// its hold callback even when an assertion failed mid-test. IndexedDB record
 // deletion alone cannot release a lock.
 async function releaseAll(
   holders: BootReportStoreHandle[],
@@ -73,7 +73,7 @@ describe('BootReport durability in a real browser', () => {
       __swBootReport?: BootReport
     }
     // The inline buffer already holds the usable mark, so the collector
-    // seals during construction - before the lazy store open can finish.
+    // seals during construction, before the lazy store open can finish.
     globals.__swStartupMarks = [
       {
         name: 'spacewave.startup.boot.started',

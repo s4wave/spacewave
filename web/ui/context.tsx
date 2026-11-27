@@ -10,7 +10,10 @@ function contextUsage(used: number, limit: number) {
   return { shown, percent }
 }
 
-/** Context renders used context as a meter. A zero limit is empty, not an error. */
+/**
+ * Context renders used context as a meter. A zero limit gives an empty meter,
+ * not an error.
+ */
 function Context({
   used,
   limit,

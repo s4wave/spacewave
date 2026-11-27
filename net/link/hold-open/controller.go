@@ -21,14 +21,14 @@ const ControllerID = "bifrost/link/hold-open"
 // Controller is the greedy Link hold-open controller.
 // It adds a reference to all EstablishLink directives with at least one Link.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 
-	// mtx guards cleanupRefs
+	// mtx guards cleanupRefs.
 	mtx sync.Mutex
-	// cleanupRefs are released when the controller is closed
+	// cleanupRefs are released when the controller is closed.
 	cleanupRefs []directive.Reference
 }
 

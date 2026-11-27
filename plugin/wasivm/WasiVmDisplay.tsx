@@ -224,7 +224,7 @@ export function WasiVmDisplay({
 
     // Give the scene each pointer position and button change sent, and
     // redraw when a window moves with it, without waiting for the
-    // compositor. A first press on a title bar starts the move here; after
+    // compositor. A first press on a title bar starts the move here. After
     // the release, the move holds until the compositor shows the result or
     // settleMs passes.
     let held = 0
@@ -251,7 +251,7 @@ export function WasiVmDisplay({
     }
 
     // Open a renderer. A lost GPU device is reopened once and every
-    // texture uploaded again from the scene; a second loss fails the
+    // texture uploaded again from the scene. A second loss fails the
     // display, and Retry draws with Canvas 2D on a new canvas.
     const open = async (onLost: () => void) => {
       // Keep the renderer only while the effect lasts.
@@ -350,7 +350,8 @@ export function WasiVmDisplay({
       ((e.clientY - rect.top) * height * scale) / rect.height,
     )
 
-    // Send it, and move a grabbed window there on the next frame.
+    // Send the pointer position and buttons, and move a grabbed window
+    // there on the next frame.
     const buttons = xButtons(e.buttons) | extra
     send({ case: 'pointer', value: { x, y, buttons } })
     pointRef.current?.(x, y, buttons)

@@ -36,7 +36,7 @@ const (
 	permissionPath = "/org/freedesktop/impl/portal/PermissionStore"
 	// permissionTable is KDE's table for preauthorized remote-desktop apps.
 	permissionTable = "kde-authorized"
-	// permissionID names the remote-desktop row in that table.
+	// permissionID identifies the remote-desktop row in that table.
 	permissionID = "remote-desktop"
 	// startDeadline bounds Start if KDE falls back to a consent dialog.
 	startDeadline = 4 * time.Second

@@ -15,7 +15,8 @@ type Result struct {
 	// sync, put, put-batch, and get-block.
 	Latency map[Op][]time.Duration
 	// CommitErrors counts commits the target rejected. A replay that commits
-	// transactions the recording interleaved may conflict where it did not.
+	// transactions the recording interleaved may conflict where the
+	// recording did not.
 	CommitErrors int
 	// OrderedCommits counts commits made with write ordering only.
 	OrderedCommits int

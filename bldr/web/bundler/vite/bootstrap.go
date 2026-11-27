@@ -88,7 +88,8 @@ func linkServiceNodeModules(ctx context.Context, le *logrus.Entry, stateDir, bld
 	target := filepath.Join(depsRoot, "node_modules")
 	link := filepath.Join(outputRoot, "node_modules")
 
-	// Keep a correct link and replace a stale one; refuse to touch a real directory.
+	// Keep a correct link and replace a stale one. Refuse to touch a real
+	// directory.
 	if info, err := os.Lstat(link); err == nil {
 		if info.Mode()&os.ModeSymlink == 0 {
 			return nil

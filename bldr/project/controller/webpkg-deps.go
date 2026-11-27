@@ -111,7 +111,7 @@ type compilerConfig interface {
 }
 
 // unmarshalBuilderConfig decodes builder config bytes as JSON or binary
-// VT based on the leading byte; an empty payload is a no-op. Failures are
+// VT based on the leading byte. An empty payload is a no-op. Failures are
 // logged, not returned: dep resolution is best effort.
 func unmarshalBuilderConfig(le *logrus.Entry, manifestID, compilerName string, configData []byte, conf compilerConfig) error {
 	// Empty config data leaves the compiler config untouched.

@@ -63,10 +63,10 @@ enum DeviceCapabilityState {
   DEVICE_CAPABILITY_STATE_GRANT_BLOCKED = 3;
   // DEVICE_CAPABILITY_STATE_AVAILABLE means the capability can be used.
   DEVICE_CAPABILITY_STATE_AVAILABLE = 4;
-  // DEVICE_CAPABILITY_STATE_ACTIVE means the capability currently has active work.
+  // DEVICE_CAPABILITY_STATE_ACTIVE means the capability has active work.
   DEVICE_CAPABILITY_STATE_ACTIVE = 5;
   // DEVICE_CAPABILITY_STATE_REJECTED means the daemon declined or failed to run the
-  // capability; Detail carries the reason.
+  // capability. Detail carries the reason.
   DEVICE_CAPABILITY_STATE_REJECTED = 6;
 }
 
@@ -84,9 +84,11 @@ enum DeviceCapabilityLocalState {
 enum DeviceCapabilityGrantState {
   // DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
   DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN = 0;
-  // DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+  // DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy allows the
+  // capability.
   DEVICE_CAPABILITY_GRANT_STATE_ALLOWED = 1;
-  // DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+  // DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy blocks the
+  // capability.
   DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2;
 }
 
@@ -173,7 +175,7 @@ message DeviceCheckoutRootCapability {
   // SelectionRef is the durable selector for this root: the ID of the
   // capability that advertises it.
   string selection_ref = 3;
-  // Access is the read/write mode currently exposed by the Device policy.
+  // Access is the read/write mode exposed by the Device policy.
   DeviceCheckoutRootAccess access = 4;
   // ReadAvailable reports whether the linked filesystem owner may be opened for reads.
   bool read_available = 5;
@@ -181,8 +183,8 @@ message DeviceCheckoutRootCapability {
   bool write_available = 6;
 }
 
-// GraphicsCardVendor names the maker of a graphics card, which decides the
-// device nodes and drivers a container needs.
+// GraphicsCardVendor identifies the maker of a graphics card. The maker decides
+// the device nodes and drivers a container needs.
 enum GraphicsCardVendor {
   // GRAPHICS_CARD_VENDOR_UNKNOWN is the zero value and never valid on a
   // declared card.
@@ -213,7 +215,7 @@ message GraphicsCard {
 message GraphicsCardRequest {
   // Count is the number of whole cards requested.
   uint32 count = 1;
-  // Vendor limits the request to one maker; UNKNOWN accepts any vendor.
+  // Vendor limits the request to one maker. UNKNOWN accepts any vendor.
   GraphicsCardVendor vendor = 2;
   // MinMemoryBytes is the least dedicated memory each card must have.
   uint64 min_memory_bytes = 3;
@@ -348,7 +350,8 @@ message ReportDeviceStatusResponse {
 
 // AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
 message AccessCheckoutRootRequest {
-  // Name is the checkout-root selector. Empty selects the first readable root.
+  // Name is the checkout-root selector. An empty Name selects the first
+  // readable root.
   string name = 1;
   // Write requests a write-capable filesystem handle.
   bool write = 2;

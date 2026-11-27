@@ -18,7 +18,8 @@ import (
 // TestPostCheckpointFollowsAuthoritativeState covers a destination whose CDN
 // pointer has not caught up with its current checkpoint.
 func TestPostCheckpointFollowsAuthoritativeState(t *testing.T) {
-	// Sign with disposable test material; publication never generates identities.
+	// Sign with disposable test material. Publication never generates
+	// identities.
 	key, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)

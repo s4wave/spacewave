@@ -121,11 +121,11 @@ func TestPluginDemandLoadsOnlyDemandedPlugins(t *testing.T) {
 	}
 }
 
-// TestHostedSpaceLoadsWorldManifests checks that a Space hosted in a plugin,
-// whose loads go to a host that cannot read its World, names the World's
-// admitted manifest in each unpinned load, keeps it while a newer manifest
-// waits for approval, replaces it once the newer one is allowed, and sends a
-// plain load for a plugin with no manifest there.
+// TestHostedSpaceLoadsWorldManifests checks that a Space hosted in a plugin
+// specifies the World's admitted manifest in each unpinned load sent to a host
+// that cannot read the Space's World. The Space keeps the manifest while a
+// newer manifest waits for approval, replaces the manifest once the newer one
+// is allowed, and sends a plain load for a plugin with no manifest there.
 func TestHostedSpaceLoadsWorldManifests(t *testing.T) {
 	// Bound the test and start the hosted Space with the device's approvals.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -171,7 +171,7 @@ func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
 	ref := h.storeManifest(ctx, t, "test/manifests/first", 1)
 	keys := artifactKeys([]*bldr_manifest.ManifestRef{ref})
 
-	// With no approval, the load reaching the host names no World root.
+	// With no approval, the load reaching the host specifies no World root.
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, nil)
 	if starts := h.loads.getStarts(pluginReadinessPluginID); starts != 1 {
@@ -181,7 +181,7 @@ func TestHostedSpaceLoadsOnlyAdmittedRoots(t *testing.T) {
 		t.Fatalf("unapproved root started %d times", starts)
 	}
 
-	// Allowing the root sends a load that names it.
+	// Allowing the root sends a load that specifies it.
 	h.setApproval(ctx, t, ref, s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED)
 	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, keys, 1)
 	h.loads.waitManifests(ctx, t, pluginReadinessPluginID, keys)
@@ -257,14 +257,14 @@ func TestHostedSpaceReplayFallsBackUntilRootAllowed(t *testing.T) {
 	}
 
 	// The plugin's World manifest is stored before replay asks, so the
-	// Space's admission gate asks AdmitPluginRoot for its root the first time
-	// a pass selects it. When that ask adds a new directive, the bus calls
-	// the recorder's handler before AddDirective returns; when it joins an
-	// equivalent directive already on the bus, the handler is not called
-	// again, but it was called when that earlier directive was added. Either
-	// way the recorded ask precedes the pass's load, so a root the Space never
-	// selected, such as after a failed read of its hosted manifests, shows as
-	// no ask before the plain load.
+	// Space's admission gate asks AdmitPluginRoot for its root the first
+	// time a pass selects it. When that ask adds a new directive, the bus
+	// calls the recorder's handler before AddDirective returns. When the
+	// ask joins an equivalent directive already on the bus, the handler is
+	// not called again, but it was called when that earlier directive was
+	// added. Either way the recorded ask precedes the pass's load, so a
+	// root the Space never selected, such as after a failed read of its
+	// hosted manifests, shows as no ask before the plain load.
 	h.loads.waitStarts(ctx, t, pluginReadinessPluginID, nil, 1)
 	h.loads.wait(ctx, t, []string{"absent", pluginReadinessPluginID})
 	askedAt, askedOk, startedAt, _ := h.loads.getOrder(pluginReadinessPluginID, manifestRoot(ref), nil)
@@ -310,7 +310,8 @@ type hostedSpace struct {
 
 // startHostedSpace starts a Space hosted on a testbed bus that holds the
 // device's approvals, listing the readiness plugin and one with no manifest.
-// Its host checks named roots against those approvals, as the scheduler does.
+// Its host checks specified roots against those approvals, as the scheduler
+// does.
 func startHostedSpace(ctx context.Context, t *testing.T) *hostedSpace {
 	t.Helper()
 	return startHostedSpaceWith(ctx, t, []string{"absent", pluginReadinessPluginID}, true)
@@ -318,8 +319,8 @@ func startHostedSpace(ctx context.Context, t *testing.T) *hostedSpace {
 
 // startHostedSpaceWith starts a Space listing listed, hosted on a testbed bus
 // that holds the device's approvals. With admit, the recorded host holds each
-// load that names roots until AdmitPluginRoot admits one, as a host scheduler
-// does.
+// load that specifies roots until AdmitPluginRoot admits one, as a host
+// scheduler does.
 func startHostedSpaceWith(ctx context.Context, t *testing.T, listed []string, admit bool, opts ...FactoryOption) *hostedSpace {
 	t.Helper()
 	tb, err := testbed.Default(ctx)
@@ -406,9 +407,9 @@ func (h *hostedSpace) setApproval(ctx context.Context, t *testing.T, ref *bldr_m
 
 // loadRecorder resolves every LoadPlugin directive and records which plugins
 // have a live load. With admit set it also stands in for a host scheduler: a
-// load naming roots waits for AdmitPluginRoot on admit before it goes live,
-// and its status shows PluginSwapAwaitingApproval meanwhile, and it then
-// runs only the admitted ones. It also records the order in which each
+// load specifying roots waits for AdmitPluginRoot on admit before it goes live,
+// and its status shows PluginSwapAwaitingApproval meanwhile, and it then runs
+// only the admitted ones. It also records the order in which each
 // AdmitPluginRoot is asked and each load starts.
 type loadRecorder struct {
 	// admit is the bus answering AdmitPluginRoot, or nil to admit every load.
@@ -431,10 +432,11 @@ type loadRecorder struct {
 	// startsOf counts the loads started by loadKey of plugin ID and the
 	// artifact keys the load runs.
 	startsOf map[string]int
-	// manifests is the artifact keys the last started load of each plugin ID
-	// names.
+	// manifests is the artifact keys the last started load of each plugin
+	// ID specifies.
 	manifests map[string][]string
-	// peers is the admission peer the last load of each plugin ID names.
+	// peers is the admission peer the last load of each plugin ID
+	// specifies.
 	peers map[string]string
 	// awaiting is the instance key of each plugin awaiting admission.
 	awaiting map[string]string
@@ -457,7 +459,7 @@ func newLoadRecorder() *loadRecorder {
 	}
 }
 
-// getPeer returns the admission peer the last load of pluginID names.
+// getPeer returns the admission peer the last load of pluginID specifies.
 func (r *loadRecorder) getPeer(pluginID string) string {
 	var peer string
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -466,7 +468,8 @@ func (r *loadRecorder) getPeer(pluginID string) string {
 	return peer
 }
 
-// waitLookups waits until exactly want LookupPluginScheduler resolvers live.
+// waitLookups waits until exactly want LookupPluginScheduler resolvers are
+// live.
 func (r *loadRecorder) waitLookups(ctx context.Context, t *testing.T, want int) {
 	t.Helper()
 	for {
@@ -520,7 +523,7 @@ func (r *loadRecorder) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.Pl
 	return r.status
 }
 
-// wait waits until exactly want have a live load.
+// wait waits until exactly the plugins in want have a live load.
 func (r *loadRecorder) wait(ctx context.Context, t *testing.T, want []string) {
 	t.Helper()
 	for {
@@ -609,7 +612,7 @@ func (r *loadRecorder) waitStarts(ctx context.Context, t *testing.T, pluginID st
 	}
 }
 
-// waitManifests waits until the last load of pluginID names exactly want.
+// waitManifests waits until the last load of pluginID specifies exactly want.
 func (r *loadRecorder) waitManifests(ctx context.Context, t *testing.T, pluginID string, want []string) {
 	t.Helper()
 	for {
@@ -679,10 +682,10 @@ func (r *loadRecorder) HandleDirective(
 		}), nil)
 	}
 	// Record each admission ask. The bus calls every handler before
-	// AddDirective returns when it adds a new directive, so an ask is recorded
-	// before its asker goes on. An ask equivalent to a directive already on
-	// the bus only references it and calls no handler; its first ask was
-	// recorded when that directive was added.
+	// AddDirective returns when it adds a new directive, so an ask is
+	// recorded before its asker goes on. An ask equivalent to a directive
+	// already on the bus only references that directive and calls no
+	// handler. Its first ask was recorded when that directive was added.
 	if admit, ok := inst.GetDirective().(bldr_plugin.AdmitPluginRoot); ok {
 		key := rootKey(admit.AdmitPluginRootPluginID(), admit.AdmitPluginRootManifestRoot())
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -700,12 +703,13 @@ func (r *loadRecorder) HandleDirective(
 	}
 	pluginID := load.LoadPluginID()
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
-		// Hold a load naming roots until one is admitted for its peer, then
-		// run only the admitted ones. The resolver of a directive the Space
-		// already withdrew can still begin, with its context ended, and still
-		// read an admission another asker holds; it records nothing, since
-		// that load never reached the host, so each record checks ctx under
-		// the lock the withdrawal is ordered before.
+		// Hold a load specifying roots until one is admitted for its
+		// peer, then run only the admitted ones. The resolver of a
+		// directive the Space already withdrew can still begin, with
+		// its context ended, and still read an admission another asker
+		// holds. The resolver records nothing, since that load never
+		// reached the host, so each record checks ctx under the lock
+		// the withdrawal is ordered before.
 		refs, peerID := load.LoadPluginManifests(), load.LoadPluginPeerID()
 		if r.admit != nil && len(refs) != 0 {
 			var withdrawn bool

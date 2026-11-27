@@ -111,7 +111,7 @@ function decodeLZ4(config?: Uint8Array): { detail: string; tooltip: string } {
           break
       }
     } catch {
-      // fall back to defaults
+      // fall back to the default block size and compression level
     }
   }
   const parts = [`Block: ${blockSize}`]
@@ -135,7 +135,7 @@ function decodeGzip(config?: Uint8Array): { detail: string; tooltip: string } {
           ? 'Default'
           : `Level ${decoded.compressionLevel}`
     } catch {
-      // fall back to defaults
+      // fall back to the default compression mode
     }
   }
   return {
@@ -224,7 +224,8 @@ export interface TransformConfigDisplayProps {
   info: TransformInfo
 }
 
-// TransformConfigDisplay renders transform pipeline info as an integrated card with rows.
+// TransformConfigDisplay renders transform pipeline info as an integrated
+// card with rows.
 export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
   const steps = useMemo(() => (info.steps ?? []).map(parseStep), [info.steps])
   const encryptionStep = steps.find((s) => s.isEncryption)

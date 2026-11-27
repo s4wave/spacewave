@@ -211,7 +211,7 @@ func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig
 // replay's wait while replay waits, since its caller chose op from the
 // installed head.
 func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
-	// Queue it unless replay is not caught up.
+	// Queue the operation if replay is caught up.
 	data, err := op.MarshalVT()
 	if err != nil {
 		return err

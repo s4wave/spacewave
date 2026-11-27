@@ -12,7 +12,7 @@ type Canvas = {
 export const title = 'Canvas viewer: handle, state watch and edits'
 
 export const state = (v: Canvas) => {
-  // Until a canvas arrives, the wait or the failure takes the body; queued
+  // Until a canvas arrives, the wait or the failure takes the body. Queued
   // edits wait off the stage for the next canvas.
   const queued = v.pending ? ', edits queued' : ''
   if (!v.kept) {
@@ -20,8 +20,8 @@ export const state = (v: Canvas) => {
     if (v.watch === 'failed') return 'Could not read, Retry shown' + queued
     return 'Loading the canvas' + queued
   }
-  // A failed source draws its notice over the kept canvas, which makes no
-  // empty claim; a source reading again draws a line.
+  // A failed source draws its notice over the kept canvas without showing an
+  // empty hint. A source reading again draws a line.
   const failed =
     v.handle === 'failed'
       ? ', Could not open notice, Retry shown'
@@ -47,7 +47,7 @@ export const step = (action: string, from: Canvas, to: Canvas) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // Each action names the edge it draws.
+  // Each action selects the label for the edge it draws.
   if (action === 'HandleOpen') return 'handle opens'
   if (action === 'HandleFail') return 'handle fails'
   if (action === 'HandleReload') return 'handle reloads'

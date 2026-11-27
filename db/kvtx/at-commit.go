@@ -23,7 +23,7 @@ type AtCommitTxOps interface {
 // otherwise runs it at once, which is the same when tx holds the writer
 // from its start. Either way the transaction commits as if fn ran at its
 // commit point. The body must not read a key fn writes after deferring it,
-// since a deferred fn has not run yet; fn should prefetch nothing, and the
+// since a deferred fn has not run yet. fn should prefetch nothing, and the
 // body should prefetch the keys fn reads that may be cold, so the writer does
 // not wait on the disk.
 func AtCommit(ctx context.Context, tx Tx, fn func(ctx context.Context, tx Tx) error) error {

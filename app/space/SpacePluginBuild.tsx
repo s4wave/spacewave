@@ -31,7 +31,8 @@ interface SubmittedBuild {
   taskKey: string
 }
 
-// The build asks its Worker for this much capacity: one core and 2 GiB.
+// BUILD_MILLI_CPU sets the build's Worker CPU request to one core. The build
+// also requests 2 GiB of memory.
 const BUILD_MILLI_CPU = 1000n
 const BUILD_MEMORY_BYTES = 2n << 30n
 
@@ -82,7 +83,8 @@ function useBuildChoices(
 
 /**
  * useSpacePluginBuild queues a pinned build for the selections and watches its
- * task. The watch releases on panel close; an immutable build keeps running.
+ * task. The watch releases on panel close, but an immutable build keeps
+ * running.
  */
 function useSpacePluginBuild(
   space: Space,
@@ -258,7 +260,8 @@ function BuildPanel({
   space: Space
   context: SpaceContainerContextValue
 }) {
-  // Selections remain personal; source and build state come from the open World.
+  // Selections remain personal. Source and build state come from the open
+  // World.
   const id = useId()
   const { spaceWorldResource, navigateToObjects } = context
   const { sources, devices, choicesError, choicesRetry } =

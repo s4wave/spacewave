@@ -13,12 +13,12 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * Better uses the "better" s2 mode.
-   * This is slightly slower.
+   * The better mode is slightly slower.
    */
   better?: boolean
   /**
    * Best uses the "best" s2 mode.
-   * This is very much slower than better.
+   * The best mode is very much slower than better.
    */
   best?: boolean
   /**

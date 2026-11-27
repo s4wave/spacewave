@@ -262,7 +262,7 @@ func newFileHasher() *fileHasher {
 
 // matches reports whether the file at want's path has want's content.
 func (h *fileHasher) matches(want *File) bool {
-	// Compare sizes first, which rejects most changed files without a read.
+	// Compare sizes first to reject most changed files without a read.
 	if cached, ok := h.files[want.GetPath()]; ok {
 		return cached.GetSize() == want.GetSize() && bytes.Equal(cached.GetSha256(), want.GetSha256())
 	}

@@ -10,8 +10,8 @@ interface ResourceViewOptions {
 }
 
 // toResourceView is the catch-all adapter for SDK Resources that only
-// distinguish loading / loaded / error. Pass title + optional detail hints;
-// the adapter handles state transitions. When the resource is loaded the
+// distinguish loading / loaded / error. Pass title + optional detail hints.
+// The adapter handles state transitions. When the resource is loaded the
 // view is 'synced' so the primitive unmounts naturally at the call site
 // (callers typically short-circuit and render the loaded UI instead).
 export function toResourceView<T>(

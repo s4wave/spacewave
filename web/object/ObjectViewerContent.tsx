@@ -59,8 +59,8 @@ function pluginsSettled(state: SpaceContentsState | null): boolean {
 }
 
 // MissingViewerCard explains why no viewer is mounted and offers the raw object
-// viewer when it is installed. While a Space plugin is still loading, it shows
-// the loading state, since that plugin may register the viewer.
+// viewer when it is installed. While a Space plugin is still loading, the card
+// shows the loading state, since that plugin may register the viewer.
 function MissingViewerCard({
   objectInfo,
   spaceContents,

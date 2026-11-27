@@ -24,7 +24,8 @@ export enum State {
 
   /**
    * ExecutionState_PENDING is the state before the execution starts.
-   * Transitions to RUNNING when the assigned peer acks exec start.
+   * ExecutionState_PENDING transitions to RUNNING when the assigned peer acks
+   * exec start.
    */
   ExecutionState_PENDING = 1,
 
@@ -35,7 +36,7 @@ export enum State {
 
   /**
    * ExecutionState_COMPLETE is the terminal state of the execution.
-   * This includes both success and failure termination states.
+   * This state includes both success and failure termination states.
    */
   ExecutionState_COMPLETE = 3,
 
@@ -69,13 +70,13 @@ export interface Execution {
   executionState?: State
   /**
    * PeerId is the identifier of the peer assigned to the execution.
-   * Can be empty.
+   * PeerId can be empty.
    */
   peerId?: string
   /**
    * Timestamp is the time the parent object (usually Pass) was created.
-   * Used as a reference timestamp to make all ops deterministic.
-   * Must be set & is not updated.
+   * Timestamp is used as a reference timestamp to make all ops deterministic.
+   * Timestamp must be set and is not updated.
    */
   timestamp?: Date
   /**
@@ -93,7 +94,7 @@ export interface Execution {
   result?: Result
   /**
    * LogEntries contains log output from the execution.
-   * Appended while the execution is RUNNING or CANCELING.
+   * LogEntries are appended while the execution is RUNNING or CANCELING.
    */
   logEntries?: LogEntry[]
   /**
@@ -101,8 +102,9 @@ export interface Execution {
    */
   claim?: Claim
   /**
-   * Waiting names what blocks this Execution before its work starts, such as
-   * a plugin load or Worker capacity. It is unset once nothing blocks it.
+   * Waiting records what blocks this Execution before its work starts, such as
+   * a plugin load or Worker capacity. Waiting is unset once nothing blocks the
+   * Execution.
    */
   waiting?: Waiting
   /**
@@ -144,8 +146,9 @@ export interface Claim {
   epoch?: bigint
   /**
    * LeaseExpiresAt is when the claim stops being live unless its holder renews
-   * it. Once it has passed, a peer that observed the expiry may reclaim the
-   * Execution, which advances the epoch and fences the previous holder.
+   * the lease. Once LeaseExpiresAt has passed, a peer that observed the expiry
+   * may reclaim the Execution. Reclaiming advances the epoch and fences the
+   * previous holder.
    */
   leaseExpiresAt?: Date
 }
@@ -195,7 +198,7 @@ export const LogEntry: MessageType<LogEntry> =
 export interface Spec {
   /**
    * PeerId is the identifier of the peer assigned to the execution.
-   * Can be empty.
+   * PeerId can be empty.
    */
   peerId?: string
   /**
@@ -205,7 +208,7 @@ export interface Spec {
   valueSet?: ValueSet
   /**
    * TargetRef is the target to run in the Execution.
-   * Overrides "target" field if set.
+   * TargetRef overrides the "target" field if set.
    */
   targetRef?: BlockRef
 }

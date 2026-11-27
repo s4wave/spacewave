@@ -11,7 +11,7 @@ func UnmarshalComputersDashboard(ctx context.Context, bcs *block.Cursor) (*Compu
 	return block.UnmarshalBlock[ComputersDashboard](ctx, bcs)
 }
 
-// Validate performs cursory checks on the ComputersDashboard.
+// Validate checks the ComputersDashboard cursorily.
 func (d *ComputersDashboard) Validate() error {
 	return nil
 }

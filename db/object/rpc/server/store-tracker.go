@@ -10,12 +10,12 @@ import (
 
 // kvtxStoreTracker tracks a kvtx.Store.
 type kvtxStoreTracker struct {
-	// s is the parent store
+	// s is the parent store.
 	s *ObjectStore
 	// objectStoreID is the object store identifier.
 	objectStoreID string
 	// storeCtr contains the proxy object store
-	// set when the store is ready to use
+	// set when the store is ready to use.
 	storeCtr *promise.PromiseContainer[*rpc_kvtx_server.Store]
 }
 

@@ -50,7 +50,8 @@ message VolumeHealth {
   // LiveValueBytes is the length of the live values the storage holds.
   uint64 live_value_bytes = 5;
   // FreeDiskBytes is the space free to this process on the storage's file
-  // system. Zero when the storage cannot tell, which SizesKnown reports.
+  // system. Zero when the storage cannot tell. SizesKnown reports whether
+  // the storage can tell.
   uint64 free_disk_bytes = 6;
   // SizesKnown reports that the storage measured the sizes above.
   bool sizes_known = 7;

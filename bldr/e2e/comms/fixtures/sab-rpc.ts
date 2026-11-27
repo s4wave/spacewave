@@ -1,4 +1,4 @@
-// sab-rpc.ts - StarPC echo RPC over a SAB pair between two DedicatedWorkers.
+// sab-rpc.ts: StarPC echo RPC over a SAB pair between two DedicatedWorkers.
 //
 // Creates a bounded SAB pair, spawns a server worker and a client worker.
 // Server runs the StarPC echo service. Client calls Echo through

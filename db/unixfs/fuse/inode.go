@@ -22,7 +22,7 @@ import (
 // All requests types embed a Header, meaning that the method can inspect
 // req.Pid, req.Uid, and req.Gid as necessary to implement permission checking.
 //
-// Manages deduplicating child inodes. Inodes are cleared when their reference
+// Inode deduplicates child inodes. Inodes are cleared when their reference
 // is released.
 type Inode struct {
 	h        *unixfs.FSHandle
@@ -117,8 +117,8 @@ func (i *Inode) Lookup(
 }
 
 // lookupNodeByName looks up a child node by name.
-// deduplicates child concurrently
-// attr can be nil
+// Deduplicates child inodes concurrently.
+// attr can be nil.
 func (i *Inode) lookupNodeByName(
 	ctx context.Context,
 	name string,
@@ -308,7 +308,7 @@ func (i *Inode) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 	}
 	_ = toDir
 
-	// open a handle for the inode we want to move
+	// open a handle for the inode to move
 	mvNode, err := i.h.Lookup(ctx, req.OldName)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
@@ -356,8 +356,7 @@ func (i *Inode) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 
 // Setattr sets the standard metadata for the receiver.
 //
-// Note, this is also used to communicate changes in the size of
-// the file, outside of Writes.
+// Setattr also communicates changes in the size of the file, outside of Writes.
 //
 // req.Valid is a bitmask of what fields are actually being set.
 // For example, the method should not change the mode of the file
@@ -473,13 +472,13 @@ func (i *Inode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return nil
 }
 
-// Forget about this node. This node will not receive further
+// Forget forgets this node. This node will not receive further
 // method calls.
 //
 // Forget is not necessarily seen on unmount, as all nodes are
 // implicitly forgotten as part of the unmount.
 func (i *Inode) Forget() {
-	// Do this in a separate goroutine to avoid locking fuse.
+	// Release the inode in a separate goroutine to avoid locking fuse.
 	go i.releaseRecursive()
 }
 
@@ -528,10 +527,10 @@ var (
 	// _ fs.NodeGetattrer is unnecessary: the FUSE library will fill values from Attr().
 
 	// Methods returning Node should take care to return the same Node when the
-	// result is logically the same instance. Without this, each Node will get a
-	// new NodeID, causing spurious cache invalidations, extra lookups and
-	// aliasing anomalies. This may not matter for a simple, read-only
-	// filesystem.
+	// result is logically the same instance. Without Node reuse, each Node
+	// will get a new NodeID, causing spurious cache invalidations, extra
+	// lookups and aliasing anomalies. These effects may not matter for a
+	// simple, read-only filesystem.
 	_ fs.Node = (*Inode)(nil)
 
 	_ fs.NodeRemover         = (*Inode)(nil)

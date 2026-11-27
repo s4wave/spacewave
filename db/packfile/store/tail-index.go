@@ -49,8 +49,9 @@ type tailIndex struct {
 // A tail is valid exactly when the parsed index accepts it: go-kvfile accepts
 // the layout, every entry reads and decodes, the count is blockCount, and
 // validateIndexEntries accepts the entries. Each entry is decoded by both the
-// in-place decoder and kvfile's own, so a lookup returns what the parsed
-// index holds for the key by construction; any disagreement rejects the tail.
+// in-place decoder and kvfile's own decoder, so a lookup returns what the
+// parsed index holds for the key by construction. Any disagreement rejects
+// the tail.
 func newTailIndex(tail []byte, size uint64, blockCount uint64) (*tailIndex, error) {
 	// Let go-kvfile validate the layout, as the parsed index does.
 	reader, err := kvfile.BuildReaderWithIndexTail(tail, size)
@@ -63,8 +64,9 @@ func newTailIndex(tail []byte, size uint64, blockCount uint64) (*tailIndex, erro
 	if blockCount > math.MaxUint32 || blockCount > uint64(math.MaxInt) {
 		return nil, errors.Errorf("index entry count %d overflows the index", blockCount)
 	}
-	// go-kvfile accepts an empty tail as a pack with no entries; it has no
-	// count word, so there is no table to locate.
+
+	// go-kvfile accepts an empty tail as a pack with no entries. Such a tail
+	// has no count word, so there is no table to locate.
 	if len(tail) == 0 {
 		return &tailIndex{}, nil
 	}
@@ -181,7 +183,7 @@ func (t *tailIndex) rawEntry(i int) ([]byte, uint64, error) {
 }
 
 // entry returns the key, offset and size of entry i below count. The tail was
-// validated, so a read cannot fail; an entry that cannot be read reads as
+// validated, so a read cannot fail. An entry that cannot be read reads as
 // empty and is never matched.
 func (t *tailIndex) entry(i int) ([]byte, uint64, uint64) {
 	raw, _, err := t.rawEntry(i)
@@ -332,7 +334,7 @@ func decodeIndexEntry(b []byte) (key []byte, off, size uint64, err error) {
 }
 
 // indexChecker validates index entries one at a time, in key order, against the
-// pack: strictly increasing block keys, keys that name a block hash, and
+// pack: strictly increasing block keys, keys that encode a block hash, and
 // payloads that end before the index tail.
 type indexChecker struct {
 	// tailStart is the pack offset where the index tail begins.

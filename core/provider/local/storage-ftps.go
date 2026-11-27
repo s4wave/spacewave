@@ -26,7 +26,7 @@ var errCheckListed = errors.New("listed")
 // connections.
 type packServer interface {
 	block_store_s3.ObjectStore
-	// Close closes the connections; a later call connects again.
+	// Close closes the connections. A later call connects again.
 	Close()
 }
 
@@ -82,7 +82,7 @@ func buildFTPSClient(le *logrus.Entry, location *account_settings.FtpsLocation, 
 
 // ftpsLinger is how long a short upload batch waits for more blocks. A
 // location keeps every packfile, so a short batch written early stays a small
-// packfile for good; waiting lets a trickle of writes fill one.
+// packfile for good. Waiting lets a trickle of writes fill one.
 const ftpsLinger = time.Hour
 
 // ftpsMergeLinger is how long a short upload batch waits for more blocks when
@@ -125,7 +125,7 @@ func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocati
 }
 
 // CheckFTPSLocation logs in to an FTPS or SFTP location and lists its prefix,
-// which writes nothing into the packfile directory.
+// a check that writes nothing into the packfile directory.
 func CheckFTPSLocation(ctx context.Context, location *account_settings.FtpsLocation) *block_store_s3.CheckResult {
 	client, err := buildFTPSClient(logrus.NewEntry(logrus.StandardLogger()), location, nil)
 	if err == nil {

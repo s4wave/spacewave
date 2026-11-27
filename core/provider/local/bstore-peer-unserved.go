@@ -5,14 +5,15 @@ import (
 	"time"
 )
 
-// peerUnservedFor is how long a block the peers refused is answered
-// unavailable without asking them again. A peer that answers a block with its
-// own lookup error, rather than with a miss, has a tier of its own that cannot
-// read it, and a read that asks again waits out the whole peer read bound
-// before it fails the same way. A failed exchange is never remembered. Ten minutes outlasts the reconnects of
-// a page left open and an old owner's restart, so a reader that keeps coming
-// back fails at once instead of waiting each time, and still short enough
-// that a block a peer regains is served within ten minutes of its return.
+// peerUnservedFor is how long a block the peers refused is answered unavailable
+// without asking them again. A peer that answers a block with its own lookup
+// error, rather than with a miss, has a tier of its own that cannot read it,
+// and a read that asks again waits out the whole peer read bound before it
+// fails the same way. A failed exchange is never remembered. Ten minutes
+// outlasts the reconnects of a page left open and an old owner's restart, so a
+// reader that keeps coming back fails at once instead of waiting each time, and
+// ten minutes is still short enough that a block a peer regains is served
+// within ten minutes of its return.
 const peerUnservedFor = 10 * time.Minute
 
 // unservedRefs remembers the refs the peers refused, as peerRefused proves,

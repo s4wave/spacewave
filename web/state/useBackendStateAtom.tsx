@@ -27,7 +27,7 @@ export type BackendStateAtomValue<T> = {
   loading: boolean
   // available is true once the backend atom has been read. It stays false
   // while loading and when the accessor yields no atom, such as when the
-  // runtime denies state access; value is then the default.
+  // runtime denies state access. The value is then the default value.
   available: boolean
   setValue: (update: T | ((prev: T) => T)) => void
 }
@@ -57,7 +57,8 @@ export function writeStateAtom(stateAtom: StateAtom, stateJson: string): void {
   })
 }
 
-// useBackendStateAtom provides access to a single backend-persisted state atom.
+// useBackendStateAtomValue provides access to a single backend-persisted
+// state atom.
 // The storeId identifies the atom (derived from namespace + key).
 // Values are superjson-encoded for Date/Map/Set support.
 // When the backend atom is still loading, updates are kept locally and flushed

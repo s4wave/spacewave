@@ -13,8 +13,8 @@ import (
 // placed store's high mark while it runs, without a settings change: the
 // eviction loop runs a pass at once, and again at the next change though its
 // last pass fell short and left it waiting out evictShortWait. A placement
-// change keeps the marks over it, and clearing them restores the
-// placement's.
+// change keeps the marks over it, and clearing them restores the placement's
+// marks.
 func TestResidentMarksApplyLive(t *testing.T) {
 	// Place the store with no resident budget and wait for its upload.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -60,7 +60,7 @@ func TestResidentMarksApplyLive(t *testing.T) {
 		return status.Policy.ResidentHigh == 1 && status.EvictedBytes == childSize && status.ResidentBytes() == rootSize
 	})
 
-	// The short pass left the loop waiting out evictShortWait; a change of
+	// The short pass left the loop waiting out evictShortWait. A change of
 	// the marks runs the next pass at once.
 	p.acc.SetResidentMarks(ResidentMarks{HighBytes: 2})
 	waitPass("changing the marks after a short pass")
@@ -92,7 +92,8 @@ func TestResidentMarksApplyLive(t *testing.T) {
 		return status.Policy.Settle == 30*time.Minute && status.Policy.ResidentHigh == 2
 	})
 
-	// Clearing the marks restores the placement's, which evict nothing.
+	// Clearing the marks restores the placement's marks, which evict
+	// nothing.
 	p.acc.SetResidentMarks(ResidentMarks{})
 	p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.ResidentHigh == 0 && status.Policy.ResidentLow == 0 && status.Policy.Settle == 30*time.Minute

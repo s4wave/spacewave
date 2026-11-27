@@ -10,7 +10,7 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
-// cameraDeviceParameter names the local capture device on a camera node.
+// cameraDeviceParameter identifies the local capture device on a camera node.
 const cameraDeviceParameter = "device"
 
 // camera serves a camera track on the Device that runs the node.

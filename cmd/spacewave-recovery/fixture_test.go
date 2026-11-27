@@ -310,7 +310,7 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 	return result
 }
 
-// sqliteDriver names the registered SQLite driver of this build.
+// sqliteDriver returns the registered SQLite driver of this build.
 func sqliteDriver() string {
 	if slices.Contains(sql.Drivers(), "sqlite") {
 		return "sqlite"

@@ -128,10 +128,10 @@ export const WasiVmDisplayServiceDefinition = {
      * Display streams the screen's scene and carries input back. Once the
      * guest brings up a display, an X server on display 0 or a Wayland client,
      * the VM sends the whole scene, then each change. The viewer sends pointer
-     * and key input, and reports each update it draws; the VM runs at most two
+     * and key input, and reports each update it draws. The VM runs at most two
      * updates ahead of those reports, so a slow viewer gets fewer updates, each
-     * covering every change since the last, instead of a growing queue. The
-     * stream ends when the display closes.
+     * covering every change since the last update, instead of a growing queue.
+     * The stream ends when the display closes.
      *
      * @generated from rpc s4wave.vm.WasiVmDisplayService.Display
      */
@@ -155,11 +155,11 @@ export const WasiVmDisplayServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
-     * Window shows one Wayland window in a viewer of its own, sized to it. The
-     * first input opens the window, which leaves the desktop; the rest resize
-     * it or carry the viewer's input, as Display's do, in window pixels. The
-     * stream ends when the window closes, and the window returns to the
-     * desktop once no viewer shows it.
+     * Window shows one Wayland window in a viewer of its own, sized to the
+     * viewer. The first input opens the window, which leaves the desktop. The
+     * remaining inputs resize the window or carry the viewer's input, as
+     * Display's inputs do, in window pixels. The stream ends when the window
+     * closes, and the window returns to the desktop once no viewer shows it.
      *
      * @generated from rpc s4wave.vm.WasiVmDisplayService.Window
      */
@@ -183,10 +183,10 @@ export interface WasiVmDisplayService {
    * Display streams the screen's scene and carries input back. Once the
    * guest brings up a display, an X server on display 0 or a Wayland client,
    * the VM sends the whole scene, then each change. The viewer sends pointer
-   * and key input, and reports each update it draws; the VM runs at most two
+   * and key input, and reports each update it draws. The VM runs at most two
    * updates ahead of those reports, so a slow viewer gets fewer updates, each
-   * covering every change since the last, instead of a growing queue. The
-   * stream ends when the display closes.
+   * covering every change since the last update, instead of a growing queue.
+   * The stream ends when the display closes.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Display
    */
@@ -208,11 +208,11 @@ export interface WasiVmDisplayService {
   ): MessageStream<WasiVmWindowList>
 
   /**
-   * Window shows one Wayland window in a viewer of its own, sized to it. The
-   * first input opens the window, which leaves the desktop; the rest resize
-   * it or carry the viewer's input, as Display's do, in window pixels. The
-   * stream ends when the window closes, and the window returns to the
-   * desktop once no viewer shows it.
+   * Window shows one Wayland window in a viewer of its own, sized to the
+   * viewer. The first input opens the window, which leaves the desktop. The
+   * remaining inputs resize the window or carry the viewer's input, as
+   * Display's inputs do, in window pixels. The stream ends when the window
+   * closes, and the window returns to the desktop once no viewer shows it.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Window
    */
@@ -233,10 +233,10 @@ export interface WasiVmDisplayServiceHandler {
    * Display streams the screen's scene and carries input back. Once the
    * guest brings up a display, an X server on display 0 or a Wayland client,
    * the VM sends the whole scene, then each change. The viewer sends pointer
-   * and key input, and reports each update it draws; the VM runs at most two
+   * and key input, and reports each update it draws. The VM runs at most two
    * updates ahead of those reports, so a slow viewer gets fewer updates, each
-   * covering every change since the last, instead of a growing queue. The
-   * stream ends when the display closes.
+   * covering every change since the last update, instead of a growing queue.
+   * The stream ends when the display closes.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Display
    */
@@ -260,11 +260,11 @@ export interface WasiVmDisplayServiceHandler {
   ): MessageStream<WasiVmWindowList>
 
   /**
-   * Window shows one Wayland window in a viewer of its own, sized to it. The
-   * first input opens the window, which leaves the desktop; the rest resize
-   * it or carry the viewer's input, as Display's do, in window pixels. The
-   * stream ends when the window closes, and the window returns to the
-   * desktop once no viewer shows it.
+   * Window shows one Wayland window in a viewer of its own, sized to the
+   * viewer. The first input opens the window, which leaves the desktop. The
+   * remaining inputs resize the window or carry the viewer's input, as
+   * Display's inputs do, in window pixels. The stream ends when the window
+   * closes, and the window returns to the desktop once no viewer shows it.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Window
    */
@@ -292,10 +292,10 @@ export class WasiVmDisplayServiceClient implements WasiVmDisplayService {
    * Display streams the screen's scene and carries input back. Once the
    * guest brings up a display, an X server on display 0 or a Wayland client,
    * the VM sends the whole scene, then each change. The viewer sends pointer
-   * and key input, and reports each update it draws; the VM runs at most two
+   * and key input, and reports each update it draws. The VM runs at most two
    * updates ahead of those reports, so a slow viewer gets fewer updates, each
-   * covering every change since the last, instead of a growing queue. The
-   * stream ends when the display closes.
+   * covering every change since the last update, instead of a growing queue.
+   * The stream ends when the display closes.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Display
    */
@@ -334,11 +334,11 @@ export class WasiVmDisplayServiceClient implements WasiVmDisplayService {
   }
 
   /**
-   * Window shows one Wayland window in a viewer of its own, sized to it. The
-   * first input opens the window, which leaves the desktop; the rest resize
-   * it or carry the viewer's input, as Display's do, in window pixels. The
-   * stream ends when the window closes, and the window returns to the
-   * desktop once no viewer shows it.
+   * Window shows one Wayland window in a viewer of its own, sized to the
+   * viewer. The first input opens the window, which leaves the desktop. The
+   * remaining inputs resize the window or carry the viewer's input, as
+   * Display's inputs do, in window pixels. The stream ends when the window
+   * closes, and the window returns to the desktop once no viewer shows it.
    *
    * @generated from rpc s4wave.vm.WasiVmDisplayService.Window
    */

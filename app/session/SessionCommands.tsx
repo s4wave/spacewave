@@ -19,7 +19,8 @@ import {
 } from '@s4wave/sdk/session/session.pb.js'
 
 // SessionCommands registers session-scoped commands that need access
-// to the Session context (space list, etc). Returns null (no UI).
+// to the Session context (space list, etc). SessionCommands returns null
+// (no UI).
 export function SessionCommands() {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)

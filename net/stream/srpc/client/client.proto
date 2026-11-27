@@ -8,15 +8,15 @@ message Config {
   // ServerPeerIds are the static list of peer IDs to contact.
   repeated string server_peer_ids = 1;
   // PerServerBackoff is the server peer error backoff configuration.
-  // Can be empty.
+  // PerServerBackoff can be empty.
   .backoff.Backoff per_server_backoff = 2;
   // SrcPeerId is the source peer id to contact from.
-  // Can be empty.
+  // SrcPeerId can be empty.
   string src_peer_id = 3;
-  // TransportId restricts which transport we can dial out from.
+  // TransportId restricts which transport the client can dial out from.
   uint64 transport_id = 4;
   // TimeoutDur sets the per-server establish timeout.
-  // If unset, no timeout.
+  // If TimeoutDur is unset, no timeout applies.
   // Example: 15s
   string timeout_dur = 5;
 }

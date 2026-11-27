@@ -19,7 +19,7 @@ type HandleWebView interface {
 	HandleWebView() WebView
 }
 
-// handleWebView implements HandleWebView
+// handleWebView implements HandleWebView.
 type handleWebView struct {
 	webView WebView
 }
@@ -91,7 +91,7 @@ func (d *handleWebView) Validate() error {
 	return nil
 }
 
-// GetValueHandleWebViewOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *handleWebView) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -107,7 +107,7 @@ func (d *handleWebView) GetName() string {
 	return "HandleWebView"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *handleWebView) GetDebugVals() directive.DebugValues {

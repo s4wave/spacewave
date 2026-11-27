@@ -137,7 +137,8 @@ func (t *worldTransaction) Commit(ctx context.Context) error {
 	}
 
 	// Fence the enclosing World before reporting the KV commit durable. All KV
-	// bytes and metadata share its object root; discard never publishes that root.
+	// bytes and metadata share its object root. Discard never publishes that
+	// root.
 	_, err = t.engine.Sync(ctx)
 	return err
 }

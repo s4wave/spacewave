@@ -8,8 +8,9 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// TestTxBatchClearBucketID checks that a replicated batch names object roots
-// in the writer's bucket without its bucket ID, and keeps foreign buckets.
+// TestTxBatchClearBucketID checks that a replicated batch references object
+// roots in the writer's bucket without its bucket ID, and keeps foreign
+// buckets.
 func TestTxBatchClearBucketID(t *testing.T) {
 	// Build roots in the writer's bucket and in a foreign bucket.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("device"))

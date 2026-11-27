@@ -104,7 +104,7 @@ export const Event: MessageType<Event> =
  */
 export interface SendRequest {
   /**
-   * SessionId identifies the compiler environment; stale sessions are rejected.
+   * SessionId identifies the compiler environment. Stale sessions are rejected.
    */
   sessionId?: string
   /**

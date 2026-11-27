@@ -13,13 +13,13 @@ import (
 // recordMagic is the "PAH1" marker in its on-disk little-endian byte order.
 const recordMagic = "1HAP"
 
-// recordHeaderLen is the bytes of magic and bodyLen.
+// recordHeaderLen is the number of bytes of magic and bodyLen.
 const recordHeaderLen = 8
 
-// recordFixedBody is the bytes of end, dataLen and dataCRC.
+// recordFixedBody is the number of bytes of end, dataLen and dataCRC.
 const recordFixedBody = 20
 
-// recordTrailerLen is the bytes of recCRC.
+// recordTrailerLen is the number of bytes of recCRC.
 const recordTrailerLen = 4
 
 // skipRecordLen is the encoded length of the record that seals a damaged gap.
@@ -184,7 +184,7 @@ func parseRecord(rec []byte, start, total int64) ([]entry, int, int, uint32, int
 		return nil, 0, 0, 0, 0, errBadRecord
 	}
 
-	// A recovery record names a damaged extent and carries no values.
+	// A recovery record records a damaged extent and carries no values.
 	if bodyLen == recordFixedBody+1 && rec[recordHeaderLen+recordFixedBody] == 0 {
 		return nil, 0, 0, 0, int64(end), errSkippedRecord //nolint:gosec // end is bounded by the pack.
 	}

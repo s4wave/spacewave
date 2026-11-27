@@ -95,7 +95,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// ByteSliceToTx converts a byte slice block a Tx.
+// ByteSliceToTx converts a byte slice block to a Tx.
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {

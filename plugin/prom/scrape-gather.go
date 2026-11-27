@@ -33,7 +33,7 @@ func gatherSource(gather gatherFunc) scrapeSource {
 }
 
 // familySamples appends the float samples of mf to out. A summary adds its
-// quantiles, _sum and _count; a histogram adds its cumulative _bucket series,
+// quantiles, _sum and _count. A histogram adds its cumulative _bucket series,
 // including +Inf, with _sum and _count. Native histogram buckets are skipped.
 func familySamples(out []scrapeSample, mf *io_prometheus_client.MetricFamily) []scrapeSample {
 	name := mf.GetName()

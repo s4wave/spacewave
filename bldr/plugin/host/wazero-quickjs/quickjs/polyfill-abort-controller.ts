@@ -137,7 +137,7 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
       }
     }
 
-    // Make AbortSignal a proper constructor
+    // [Symbol.hasInstance] makes AbortSignal a proper constructor.
     static [Symbol.hasInstance](instance: any): boolean {
       return (
         typeof instance === 'object' &&
@@ -146,7 +146,7 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
       )
     }
 
-    // Internal method to trigger abort
+    // _abort triggers abort internally.
     _abort(reason?: any): void {
       if (this._aborted) return
 

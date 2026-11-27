@@ -253,7 +253,8 @@ func (c *recordingFetchManifestBuilder) GetSupportedPlatforms() []string {
 	return nil
 }
 
-// A web package consumer references its provider only by package ID, so its
+// TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone checks that a web
+// package consumer references its provider only by package ID, so the consumer
 // build neither starts nor waits for the provider build. The plugin host loads
 // the provider from the recorded dependency.
 func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {

@@ -17,7 +17,7 @@ const (
 	controlInvalid
 )
 
-// roundTimer names one timeout of a round: the step it ends.
+// roundTimer identifies one timeout of a round: the step it ends.
 type roundTimer struct {
 	// step is the step the timeout ends: PROPOSAL, PREVOTE or PRECOMMIT.
 	step SOControlMessageType
@@ -74,7 +74,7 @@ type roundTally struct {
 	rounds map[uint32]map[string]struct{}
 }
 
-// roundVote names the votes of one type in one round, for one value hash.
+// roundVote identifies the votes of one type in one round, for one value hash.
 type roundVote struct {
 	typ   SOControlMessageType
 	round uint32
@@ -295,8 +295,8 @@ func stepRound(in *roundInput) *roundOutput {
 		return out
 	}
 
-	// Precommit a proposal with a polka, which locks it, or nil on a nil
-	// polka or when the prevote timeout passed.
+	// Precommit a proposal with a polka, locking the proposal, or nil on
+	// a nil polka or when the prevote timeout passed.
 	if !has(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PRECOMMIT, r) {
 		if proposal != nil && t.quorum(SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE, r, proposal.GetValueHash()) &&
 			in.valid(proposal.GetKind(), proposal.GetValue()) == controlValid {

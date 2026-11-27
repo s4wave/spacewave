@@ -48,8 +48,8 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 		// refused is false for an error that must arrive as an RPC error.
 		refused bool
 		is      func(error) bool
-		// old commits as a client built before DURABILITY_UNKNOWN, naming
-		// no known_error_code.
+		// old commits as a client built before DURABILITY_UNKNOWN,
+		// sending no known_error_code.
 		old bool
 	}{
 		{"superseded", errors.Join(errors.New("head moved to seqno 3"), world.ErrSuperseded), true, world.IsSuperseded, false},
@@ -65,8 +65,8 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 			return errors.Is(err, world.ErrDurabilityUnknown) && !world.IsSuperseded(err)
 		}, false},
 		// A client that does not decode the code reads errors by their text,
-		// so it gets the sentinel's text alone, naming no supersession it
-		// might read as a write to send again.
+		// so it gets the sentinel's text alone, mentioning no
+		// supersession the client might read as a write to send again.
 		{"durability unknown to an old client", errors.Join(world.ErrDurabilityUnknown, world.ErrSuperseded), false, func(err error) bool {
 			return err.Error() == world.ErrDurabilityUnknown.Error()
 		}, true},
@@ -90,8 +90,8 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 				t.Fatalf("old Commit method = %v with %d discards, want an error and none", oldErr, refused.discards)
 			}
 
-			// A refusal arrives by type, reading as the server's error; any
-			// other failure arrives as an RPC error.
+			// A refusal arrives by type, reading as the server's
+			// error. Any other failure arrives as an RPC error.
 			if c.old {
 				err = rpc.ExecCall(ctx, s4wave_world.SRPCTxResourceServiceServiceID, "CommitTx", &s4wave_world.CommitRequest{}, &s4wave_world.CommitResponse{})
 			} else {

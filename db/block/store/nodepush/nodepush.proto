@@ -25,76 +25,77 @@ message Message {
 
 // Push is the blocks of one publication.
 message Push {
-  // id names the push on this connection.
+  // Id identifies the push on this connection.
   uint64 id = 1;
-  // blocks are the blocks to hold.
+  // Blocks are the blocks to hold.
   repeated Block blocks = 2;
-  // sum is the SHA-256 of every block's key and data, in order.
+  // Sum is the SHA-256 of every block's key and data, in order.
   bytes sum = 3;
 }
 
 // Block is one stored block.
 message Block {
-  // key is the block's pack key.
+  // Key is the block's pack key.
   bytes key = 1;
-  // data is the block's stored bytes.
+  // Data is the block's stored bytes.
   bytes data = 2;
 }
 
 // Flushed answers a Push the node holds on its disk.
 message Flushed {
-  // id is the Push's id.
+  // Id is the Push's id.
   uint64 id = 1;
 }
 
 // Refused answers a Push the node did not take, such as one whose sum did not
 // match. The local store keeps the blocks queued for its own upload.
 message Refused {
-  // id is the Push's id.
+  // Id is the Push's id.
   uint64 id = 1;
-  // reason says why, for the log.
+  // Reason says why the node refused the Push, for the log.
   string reason = 2;
 }
 
 // PackReport says the remote holds a pack. It is everything the local store
-// needs to find the pack's blocks there, since it never lists the remote.
+// needs to find the pack's blocks there, since the local store never lists
+// the remote.
 message PackReport {
-  // pack_id is the pack's name on the remote.
+  // PackId is the pack's name on the remote.
   string pack_id = 1;
-  // entry is the encoded packfile entry.
+  // Entry is the encoded packfile entry.
   bytes entry = 2;
-  // keys are the pack's block keys.
+  // Keys are the pack's block keys.
   repeated bytes keys = 3;
 }
 
 // PackApplied acknowledges a PackReport.
 message PackApplied {
-  // pack_id is the reported pack's name.
+  // PackId is the reported pack's name.
   string pack_id = 1;
-  // failed says the local store could not apply it yet, so the node tries
-  // again later rather than waiting out the report's turn.
+  // Failed says the local store could not apply the report yet, so the node
+  // tries again later rather than waiting out the report's turn.
   bool failed = 2;
 }
 
 // Read asks for a byte range of a pack the node may hold on its disk.
 message Read {
-  // id names the read on this connection.
+  // Id identifies the read on this connection.
   uint64 id = 1;
-  // pack_id is the pack's name.
+  // PackId is the pack's name.
   string pack_id = 2;
-  // off is the offset of the range.
+  // Off is the offset of the range.
   int64 off = 3;
-  // length is the length of the range.
+  // Length is the length of the range.
   uint32 length = 4;
 }
 
 // ReadData answers a Read.
 message ReadData {
-  // id is the Read's id.
+  // Id is the Read's id.
   uint64 id = 1;
-  // data holds the range, shorter when the pack ends first.
+  // Data holds the range, shorter when the pack ends first.
   bytes data = 2;
-  // miss says the node lacks the pack. It fills it in the background, and the
-  // local store reads the remote meanwhile.
+  // Miss says the node lacks the pack. The node fills the pack in the
+  // background, and the local store reads the remote meanwhile.
   bool miss = 3;
 }

@@ -9,8 +9,8 @@ import (
 
 // workerStreams opens RPC streams to one web worker and ends the open ones
 // when the worker is gone. The web runtime routes a stream by worker ID and
-// holds it until a worker with that ID answers, so without this a call made
-// to a worker that exited waits forever.
+// holds it until a worker with that ID answers, so without workerStreams a
+// call made to a worker that exited waits forever.
 type workerStreams struct {
 	// open opens a stream through the web runtime.
 	open srpc.OpenStreamFunc
@@ -19,7 +19,7 @@ type workerStreams struct {
 	mtx sync.Mutex
 	// streams holds the streams opened and not yet closed.
 	streams map[*workerStream]struct{}
-	// closed is set once the execution ends; later opens fail with it.
+	// closed is set once the execution ends. Later opens fail with closed.
 	closed error
 }
 

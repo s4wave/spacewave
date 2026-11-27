@@ -6,7 +6,7 @@ import "github.com/s4wave/spacewave/net/hash/hash.proto";
 // Config is the configuration for the kvtx store.
 message Config {
   // HashType is the hash type to use for block refs.
-  // If unset (0 value) will use the Spacewave default (SHA256).
+  // If unset (0 value), HashType uses the Spacewave default (SHA256).
   .hash.HashType hash_type = 2;
   // Every block read is verified against its ref.
   reserved 3;
@@ -15,46 +15,49 @@ message Config {
   // current, and frees nothing. The Volume stores whether frees were on at
   // its last writable open. An open that turns them on returns the Volume to
   // unadopted and adopts it again in the background, and nothing frees until
-  // that recount finishes; an open with them off clears the stored switch,
-  // so the next switch-on recounts again. A state write by a build older than the
-  // switch also reads as frees off, so the next switch-on recounts after it.
-  // Turn frees off with this switch, never with an older build, which may
-  // not read the lists this one writes. The default stays off, and spacewave
-  // serve turns it on only for the Volumes its --collector-frees flag names.
-  // A Volume frees only after a rehearsal on a restored copy of it, covering
-  // the switch-on recount, has shown the collector frees no live block, and
-  // after its owner approves. On a Volume whose child lists an older format
-  // left unverified, the frees first settle the old generation: they free
-  // nothing until every such list is verified, and a block they hold back
-  // stays readable and is stored again by its next put.
+  // that recount finishes. An open with them off clears the stored switch, so
+  // the next switch-on recounts again. A state write by a build older than
+  // the switch also reads as frees off, so the next switch-on recounts after
+  // it. Turn frees off with this switch, never with an older build, which may
+  // not read the lists this build writes. The default leaves frees off, and
+  // spacewave serve turns frees on only for the Volumes its --collector-frees
+  // flag selects. A Volume frees only after a rehearsal has shown the
+  // collector frees no live block and after its owner approves. The rehearsal
+  // runs on a restored copy of the Volume and covers the switch-on recount.
+  // On a Volume whose child lists an older format left unverified, the frees
+  // first settle the old generation: they free nothing until every such list
+  // is verified, and a block they hold back stays readable and is stored
+  // again by its next put.
   bool collector_frees = 7;
   // CollectorGraceDur is how old a down page must be before the
   // collector nets it, as a Go duration such as "15m". It must exceed the
   // time a reader takes to pin a head it saw and the lease of a leased root.
-  // Empty uses the collector's default of 15 minutes.
+  // An empty value uses the collector's default of 15 minutes.
   string collector_grace_dur = 8;
   // RootHeldCheck is what the Volume does with a root move that requires its
-  // blocks held when a block it reaches is not.
+  // blocks held when a block it reaches is unheld.
   RootHeldCheck root_held_check = 9;
   // StageOneTransaction lands each batch a stage puts in one transaction, as
   // the Volume did before it landed them in slices, and on the browser's
   // paylog store admits background writers in arrival order with the
-  // foreground ones, as it did before it ordered writers by class. Off, the
-  // default, a batch lands in consecutive transactions bounded in entries and
-  // time, each in its caller's class. The in-memory store's admission, reads
-  // that never wait for a writer and background writers behind foreground
-  // ones, is outside this switch: Bolt and SQLite always admitted that way,
-  // and it changes only when a transaction runs, not what it reads or
-  // writes. This switch goes back to the old landing without a build; remove
-  // it once slicing has run in production.
+  // foreground ones, as the store did before it ordered writers by class.
+  // With the switch off (the default setting), a batch lands in consecutive
+  // transactions bounded in entries and time, each in its caller's class. The
+  // in-memory store's admission is outside this switch: reads never wait for
+  // a writer, and background writers wait behind foreground ones. Bolt and
+  // SQLite always admitted that way, and the switch changes only when a
+  // transaction runs, not what it reads or writes. This switch goes back to
+  // the old landing without a build. Remove the switch once slicing has run
+  // in production.
   bool stage_one_transaction = 11;
-  // RefuseFormatUpgrade refuses a writable open of a store that holds data
-  // at an older format, failing it with volume.ErrFormatUpgradeRefused and
+  // RefuseFormatUpgrade refuses a writable open of a store that holds data at
+  // an older format, failing it with volume.ErrFormatUpgradeRefused and
   // leaving the store as it was, instead of upgrading it: an upgrade is one
   // way, and a development build may write a format no release reads. An
   // empty store and a store at the current format open as before. The default
-  // upgrades; only the spacewave development CLI sets it, unless the operator
-  // passes --upgrade-format or SPACEWAVE_UPGRADE_FORMAT=1.
+  // upgrades the format. Only the spacewave development CLI sets this field,
+  // unless the operator passes --upgrade-format or
+  // SPACEWAVE_UPGRADE_FORMAT=1.
   bool refuse_format_upgrade = 12;
 
   // reserved: 1 mqueue_config
@@ -65,7 +68,7 @@ message Config {
 }
 
 // RootHeldCheck is what a Volume does with a root move that requires its
-// blocks held when a block it reaches is not. The check changes nothing the
+// blocks held when a block it reaches is unheld. The check changes nothing the
 // collector frees.
 enum RootHeldCheck {
   // ROOT_HELD_CHECK_UNKNOWN, the unset default, refuses the move while

@@ -24,7 +24,7 @@ import (
 // its bucket ID and transform configuration set explicitly.
 //
 // skipSubtreeExists skips a block ref tree if the block already existed in the
-// target storage. This assumes that a block existing in storage implies that
+// target storage. Pruning assumes that a block existing in storage implies that
 // all blocks it references have also already been stored.
 //
 // cb is an optional callback to call with each block before copying.

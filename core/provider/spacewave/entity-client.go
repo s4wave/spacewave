@@ -158,7 +158,7 @@ func (c *EntityClient) RegisterSessionDirectWithResponse(ctx context.Context, se
 }
 
 // RegisterSessionWithRequest registers a session using the generated Cloud
-// request shape. Existing callers should leave Type unset for USER defaults;
+// request shape. Existing callers should leave Type unset for USER defaults.
 // SpaceLink approval can set APP/DEVICE type, label, and future request fields
 // without adding another positional helper.
 func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.RegisterSessionRequest, turnstileToken string) (*api.RegisterSessionResponse, error) {

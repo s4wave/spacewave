@@ -66,7 +66,7 @@ func TestInitUnixFSDemo(t *testing.T) {
 		TransformConf: xfrmConf,
 	}
 
-	// initialize world engine
+	// initialize the world engine
 	busEngine, worldCtrlRef, err := world.StartEngine(
 		ctx,
 		tb.Bus,
@@ -85,14 +85,14 @@ func TestInitUnixFSDemo(t *testing.T) {
 	}
 	defer worldCtrlRef.Release()
 
-	// provide op handlers to bus
+	// provide op handlers to the bus
 	opc := world.NewLookupOpController("test-unixfs-demo-ops", engineID, world.NewSchema(InitUnixfsDemoTypes).LookupOp)
 	_, err = tb.Bus.AddController(ctx, opc, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// uses short-lived engine txs to implement world state
+	// ws uses short-lived engine txs to implement world state
 	ws := world.NewEngineWorldState(busEngine, true)
 
 	// Select the sender, object key, and timestamp for demo initialization.
@@ -109,7 +109,7 @@ func TestInitUnixFSDemo(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// verify the filesystem was created with expected structure
+	// verify the filesystem was created with the expected structure
 	rootFSCursor, err := unixfs_world.FollowUnixfsRef(ctx, le, ws, &unixfs_world.UnixfsRef{ObjectKey: objKey}, sender, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -120,7 +120,7 @@ func TestInitUnixFSDemo(t *testing.T) {
 	}
 	defer fsh.Release()
 
-	// wrap in billy filesystem for testing
+	// wrap the filesystem handle in a billy filesystem for testing
 	fs := unixfs_billy.NewBillyFilesystem(ctx, fsh, "", ts)
 
 	// verify hello.txt exists and has correct content

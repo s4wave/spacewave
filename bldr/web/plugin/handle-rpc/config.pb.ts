@@ -8,9 +8,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures the web plugin to forward RPC services to another plugin.
- * Loads webPluginId with LoadPlugin and uses the RPC client.
+ * The controller loads webPluginId with LoadPlugin and uses the RPC client.
  * webPluginId should correspond to a bldr/web/plugin plugin.
- * Resolves the LookupRpcService directive on the web plugin bus.
+ * The web plugin resolves the LookupRpcService directive on the web plugin bus.
  *
  * @generated from message bldr.web.plugin.handle_rpc.Config
  */
@@ -25,17 +25,17 @@ export interface Config {
   handlePluginId?: string
   /**
    * ServiceIdRe is the regex of service IDs to forward.
-   * If empty, will forward any.
+   * If empty, the web plugin forwards any service ID.
    */
   serviceIdRe?: string
   /**
    * ServerIdRe is the regex of server IDs to forward for.
-   * If empty, will forward any.
+   * If empty, the web plugin forwards for any server ID.
    */
   serverIdRe?: string
   /**
    * Backoff is the backoff config for calling the RPC service.
-   * If unset, defaults to reasonable defaults.
+   * Backoff uses reasonable defaults when unset.
    */
   backoff?: Backoff
 }

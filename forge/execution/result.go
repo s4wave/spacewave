@@ -41,7 +41,7 @@ func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete in
 }
 
 // ComputeExecutionOutputs computes the outputs shared by a set of executions.
-// Every execution's outputs must be valid and equal; filter failed executions
+// Every execution's outputs must be valid and equal. Filter failed executions
 // with FilterExecutionOutputs first. Returns nil for an empty set.
 func ComputeExecutionOutputs(
 	outputs []*forge_target.Output,

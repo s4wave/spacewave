@@ -111,12 +111,12 @@ func (r *v86Resource) acquireHomeMount(ctx context.Context) (func(), error) {
 // Execute reconciles desired VM state with the instanced runtime plugin.
 //
 // It exposes generation-fenced v86fs and runtime-status routes before loading
-// the plugin. The plugin reports BOOTING, READY, ERROR, or STOPPED; only the
+// the plugin. The plugin reports BOOTING, READY, ERROR, or STOPPED. Only the
 // accepted report committed to World becomes the observed state and process
 // status. Mount or plugin-load failure is committed as ERROR.
 //
-// Reacts to SetV86StateOp by waiting on the object's revision via WaitRev;
-// every transition updates desired state and wakes the handler.
+// Reacts to SetV86StateOp by waiting on the object's revision via WaitRev.
+// Every transition updates desired state and wakes the handler.
 func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream) error {
 	// Use the execution stream context for runtime reconciliation.
 	ctx := stream.Context()
@@ -667,9 +667,9 @@ func (i v86fsRuntimeRouteInvoker) InvokeMethod(serviceID, methodID string, strm 
 	return ok, err
 }
 
-// verifyBootMounts confirms the assets required before v86 can start resolve
-// through the V86Image or override edges before the plugin is loaded. Any
-// failure here is treated as an ERROR state for the handler.
+// verifyBootMounts confirms that the required assets resolve through the
+// V86Image or override edges before v86 can start and before the plugin is
+// loaded. Any failure here is treated as an ERROR state for the handler.
 func (r *v86Resource) verifyBootMounts(ctx context.Context) error {
 	for _, mountName := range []string{"", "wasm", "seabios", "vgabios", "kernel"} {
 		fsh, err := r.mounts.resolve(ctx, mountName)

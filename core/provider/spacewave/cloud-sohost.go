@@ -36,7 +36,7 @@ type cloudSOHostHooks struct {
 	stateObserved func(*sobject.SOState)
 }
 
-// cloudSOHost implements the shared object state management via the wsTracker.
+// cloudSOHost manages the shared object state via the wsTracker.
 type cloudSOHost struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -211,7 +211,7 @@ func newCloudSOHost(
 		return sobject.NewSOStateLock(initialState, writeFn, relLock), nil
 	}
 
-	// Pass nil context; SetContext called in Execute.
+	// Pass nil context. SetContext called in Execute.
 	h.soHost = sobject.NewSOHost(nil, watchFn, lockFn, soID, &sobject.SOHostSyncFuncs{Lock: h.peerImportLock, History: h.readConfigHistory, Entry: h.readConfigEntry})
 	return h
 }
@@ -337,8 +337,8 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 }
 
 // ensureInitialState populates stateCtr once before read/write/watch paths run.
-// If stateCtr already holds a value from an earlier mount-time seed, it reuses
-// that snapshot instead of issuing another HTTP GET.
+// If stateCtr already holds a value from an earlier mount-time seed,
+// ensureInitialState reuses that snapshot instead of issuing another HTTP GET.
 func (h *cloudSOHost) ensureInitialState(ctx context.Context, reason SeedReason) error {
 	// Reuse an accepted snapshot or join the existing cold-seed request.
 	if h.stateCtr.GetValue() != nil {
@@ -429,7 +429,7 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 	}
 
 	// Apply a delta above the held cursor as an inline update does, and
-	// fetch the full snapshot only when it cannot apply.
+	// fetch the full snapshot only when the delta cannot apply.
 	if msg.GetDelta() != nil && since > 0 {
 		err := h.handleStateDelta(ctx, msg)
 		if err == nil {
@@ -461,7 +461,8 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 	// Verify the response under its authenticated configuration history.
 	embeddedChainSynced := h.syncEmbeddedConfigChain(ctx, state, configChain)
 	if err := h.verifyPulledState(state); err != nil {
-		// A matching head cannot recover an invalid snapshot by fetching more history.
+		// With a matching head, fetching more history cannot recover
+		// an invalid snapshot.
 		if !errors.Is(err, errSOConfigChainChanged) {
 			h.noteInitialStateRejection(
 				errors.Wrapf(
@@ -496,7 +497,8 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 	defer release()
 
 	// An inline update or local configuration write can advance state while
-	// this HTTP response is in flight; the host then already holds newer state.
+	// this HTTP response is in flight. The host then already holds newer
+	// state.
 	if err := h.verifyChangeLogSeqno(lastSeqno); err != nil {
 		return nil
 	}
@@ -621,7 +623,7 @@ func (h *cloudSOHost) verifyChangeLogSeqno(snapshotSeqno uint64) error {
 	return nil
 }
 
-// verifyPulledState performs client-side verification on a pulled SOState.
+// verifyPulledState verifies a pulled SOState on the client.
 // Checks config chain hash continuity and checkpoint authority.
 func (h *cloudSOHost) verifyPulledState(state *sobject.SOState) error {
 	var held *sobject.SOState
@@ -648,8 +650,9 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 	})
 
 	// D3/D4: Reject state if its config chain hash differs from the last
-	// verified hash. This prevents a malicious server from injecting a
-	// participant list that was never verified through the config chain.
+	// verified hash. This hash check prevents a malicious server from
+	// injecting a participant list that was never verified through the
+	// config chain.
 	// On first mount (lastConfigChainHash unset), skip this check and let
 	// the config chain verifier establish trust.
 	configHash := state.GetConfig().GetConfigChainHash()
@@ -679,7 +682,7 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 
 	// Every signature verifies, and the verified participants authorize each
 	// checkpoint and grant this host has not adopted yet. Replay authorizes
-	// operations under the config each names.
+	// operations under the config each references.
 	if err := state.Validate(h.soID); err != nil {
 		return err
 	}
@@ -744,10 +747,10 @@ func (h *cloudSOHost) refreshBlockManifestForNonce(ctx context.Context, nonce ui
 
 // handleStateDelta applies the snapshot or delta of an SOStateMessage, from
 // the inline state backlog or a state pull. Snapshots replace stateCtr after
-// verifyPulledState succeeds; deltas are applied entry-by-entry against a
+// verifyPulledState succeeds. Deltas are applied entry-by-entry against a
 // clone of the cached state and committed atomically with the new lastSeqno.
 // Returns an error when the delta cannot be applied (gap, decode failure, or
-// verification failure); the caller may fall back to an HTTP pull.
+// verification failure). The caller may fall back to an HTTP pull.
 func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMessage) error {
 	// Serialize the complete inline acceptance with cloud and peer publications.
 	release, err := h.acceptMu.Lock(ctx)
@@ -1039,8 +1042,8 @@ func (h *cloudSOHost) applyConfigMutation(
 	}
 
 	// A completed server request may race a peer import or the config chain
-	// verifier, which may already hold this entry and its successors. Never
-	// regress held authority.
+	// verifier. Either may already hold this entry and its successors.
+	// Never regress held authority.
 	retained, err := h.readConfigEntry(ctx, h.soID, newHash)
 	if err != nil {
 		return err
@@ -1188,7 +1191,7 @@ func (h *cloudSOHost) handleConfigChanged(ctx context.Context) {
 // syncConfigChainSingleflight runs syncConfigChain behind chainSeed so the
 // pullState inline recovery and the configChangedRoutine handler share one
 // in-flight /config-chain fetch and observe the same outcome. Both callers
-// drive verification toward the latest hash on the cached SOState; collisions
+// drive verification toward the latest hash on the cached SOState. Collisions
 // across slightly different hashes are benign because the next config_changed
 // signal will trigger another sync if the verifier is still behind.
 func (h *cloudSOHost) syncConfigChainSingleflight(ctx context.Context, newHash []byte) error {
@@ -1380,9 +1383,9 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	}
 
 	// A peer that may sign grants replaces the key a removed reader holds.
-	// Every such peer computes this from the verified chain and the epochs, so
-	// a peer that loses a concurrent rotation sees the new epoch on its next
-	// pull and stops.
+	// Every such peer computes the need for rotation from the verified
+	// chain and the epochs, so a peer that loses a concurrent rotation sees
+	// the new epoch on its next pull and stops.
 	mayGrant := localIsOwner || latestConfig.VotingWeight(localPeerIDStr) != 0
 	if mayGrant && sobject.NeedsKeyRotation(entries, resp.GetKeyEpochs()) {
 		h.rotateKeyOnRevocation(ctx, latestConfig)
@@ -1433,7 +1436,7 @@ func (h *cloudSOHost) syncConfigChainResponse(
 
 // rotateKeyOnRevocation grants a new transform key to the readers of cfg as
 // the epoch after the held ones, and posts it. Old epochs stay on the server
-// so remaining readers can decrypt history; a removed reader cannot decrypt
+// so remaining readers can decrypt history. A removed reader cannot decrypt
 // content written under the new key. When another peer posts the same epoch
 // first, the server refuses this one and the next pull adopts the other.
 func (h *cloudSOHost) rotateKeyOnRevocation(ctx context.Context, cfg *sobject.SharedObjectConfig) {

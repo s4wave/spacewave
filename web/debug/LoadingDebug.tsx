@@ -11,7 +11,7 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 // LoadingDebug renders candidate "unified loading" primitives in one gallery.
-// All primitives are inline in this file; none are extracted to web/ui/ yet.
+// All primitives are inline in this file. None are extracted to web/ui/ yet.
 // Once the visual treatment is approved, primitives move to web/ui/loading/.
 export function LoadingDebug() {
   const navigate = useNavigate()

@@ -31,11 +31,12 @@ const participantObjectBindingContext = "spacewave participant object storage bi
 const participantObjectFetchTimeout = 15 * time.Second
 
 // FetchParticipantObject exports a checkpoint of a held object to a Session
-// that participates in it. It adds the Session's proven storage identity at
-// the Session's role, as an invite join adds both identities, so the
-// requesting volume can hold and sync the object.
+// that participates in it. FetchParticipantObject adds the Session's proven
+// storage identity at the Session's role, as an invite join adds both
+// identities, so the requesting volume can hold and sync the object.
 func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *ParticipantObjectRequest) (*pairing.SharedObject, error) {
-	// Resolve the calling Session and the listed object it names.
+	// Resolve the calling Session and the listed object the request
+	// references.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
@@ -73,9 +74,9 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 		return nil, errors.New("calling Session is not a reader of the object")
 	}
 
-	// Add the storage identity at the Session's role. It writes for the
-	// Session, which never builds on the checkpointer's edits, so the Session
-	// leaves the trimming roster.
+	// Add the storage identity at the Session's role. The storage identity
+	// writes for the Session, which never builds on the checkpointer's
+	// edits, so the Session leaves the trimming roster.
 	if state.GetConfig().GetParticipantRole(storage.String()) == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
 		owner, err := a.vol.GetPeer(ctx, true)
 		if err != nil {

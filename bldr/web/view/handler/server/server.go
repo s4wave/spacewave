@@ -18,7 +18,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "bldr/web/view/handler/server"
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -64,7 +64,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	return nil, nil
 }
 
-// lookupRpcServiceResolver resolves the LookupRpcService directive
+// lookupRpcServiceResolver resolves the LookupRpcService directive.
 type lookupRpcServiceResolver struct {
 	c                       *Controller
 	accessWebViewsServiceID string
@@ -82,11 +82,11 @@ func (c *Controller) resolveLookupRpcService(
 		return nil, nil
 	}
 
-	// this logic determines who to call for AccessWebView service.
+	// Determine who to call for the AccessWebView service.
 	// the server ID is in two formats:
 	//  - plugin-host/{server-id}
 	//  - plugin/{plugin-id}/{server-id}
-	// depending on the format we can add a prefix to the service id
+	// Depending on the format, add a prefix to the service id:
 	//  - plugin/{plugin-id}/{service-id}
 	//  - plugin-host/{service-id}
 	var targetServiceID string

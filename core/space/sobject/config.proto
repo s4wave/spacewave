@@ -2,7 +2,8 @@ syntax = "proto3";
 package space.sobject;
 
 // Config configures the space shared object controller.
-// Handles MountSharedObjectBody directives by starting the sobject/world controller.
+// The controller handles MountSharedObjectBody directives by starting the
+// sobject/world controller.
 message Config {
   // Verbose logs all operation results as debug messages.
   bool verbose = 1;

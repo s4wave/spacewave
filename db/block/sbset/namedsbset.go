@@ -38,7 +38,7 @@ type NamedSubBlockSet struct {
 
 // NewNamedSubBlockSet constructs a new NamedSubBlockSet from a slice pointer.
 //
-// also contains an optional block cursor
+// also contains an optional block cursor.
 func NewNamedSubBlockSet(sl NamedSubBlockContainer, bcs *block.Cursor) *NamedSubBlockSet {
 	return &NamedSubBlockSet{sl: sl, bcs: bcs}
 }
@@ -247,7 +247,7 @@ func (r *NamedSubBlockSet) LookupByNameCaseInsensitive(name string) (NamedSubBlo
 //
 // Returns bcs located at old named sub-block.
 // Returns nil, nil, false if not found.
-// Returns old table header, cursor, true if found
+// Returns old table header, cursor, true if found.
 func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Cursor, bool) {
 	// Locate the named sub-block to remove and preserve its cursor.
 	idx, oldv, ok := r.LookupIndexByName(name)

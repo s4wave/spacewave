@@ -531,7 +531,7 @@ func TestMysqlStoredColumnExpressions(t *testing.T) {
 	}
 }
 
-// TestMysqlInlineText reads text and bytes stored inline in the row block,
+// TestMysqlTextValues reads text and bytes stored inline in the row block,
 // which decode without a cursor, up to just under the raw blob limit.
 func TestMysqlTextValues(t *testing.T) {
 	// Open a test database and store short, empty, inline and chunked values.

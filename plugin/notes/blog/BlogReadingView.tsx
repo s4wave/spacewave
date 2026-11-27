@@ -51,7 +51,8 @@ export function BlogReadingView({
     return Array.from(tags).sort()
   }, [posts])
 
-  // A tag press filters by that tag, or clears the filter when it is active.
+  // A tag press filters by that tag, or clears the filter when that tag is
+  // active.
   const handleSelectTag = useCallback((tag: string) => {
     setTagFilter((prev) => (prev === tag ? null : tag))
   }, [])
@@ -66,14 +67,14 @@ export function BlogReadingView({
     onSelectPost(null)
   }, [onSelectPost])
 
-  // Only a published post opens; a draft or a removed post shows the list.
+  // Only a published post opens. A draft or a removed post shows the list.
   const selectedPublishedPost =
     selectedPost &&
     publishedPosts.some((post) => post.name === selectedPost.name)
       ? selectedPost
       : null
 
-  // Post view mode: show selected published post.
+  // Post view mode: show the selected published post.
   if (selectedPublishedPost) {
     const idx = publishedPosts.findIndex(
       (p) => p.name === selectedPublishedPost.name,

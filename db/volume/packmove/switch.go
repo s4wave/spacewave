@@ -15,11 +15,11 @@ import (
 // and walks the block range by key alone: no packed block's value is read.
 //
 // It keeps the value of every block outside the World. A World block the log
-// did not commit, because it was written after Pack passed its key or in a
-// pack that never committed, is copied with its value and a fresh upload
-// marker under cfg.WritebackPrefix, so the write-back uploader sends it to the
-// bucket later; a block the log recorded as bad is copied without one. The
-// source's own records under the prefix are left out. Source is never written.
+// did not commit, because it was written after Pack passed its key or in a pack
+// that never committed, is copied with its value and a fresh upload marker
+// under cfg.WritebackPrefix, so the write-back uploader sends it to the bucket
+// later. A block the log recorded as bad is copied without one. The source's
+// own records under the prefix are left out. Source is never written.
 func Switch(ctx context.Context, cfg SwitchConfig) (SwitchResult, error) {
 	// Refuse a prefix that would leave out every key.
 	if len(cfg.WritebackPrefix) == 0 {

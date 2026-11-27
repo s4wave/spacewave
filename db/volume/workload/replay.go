@@ -27,7 +27,7 @@ type Target interface {
 const headSuffix = "/host"
 
 // Replay replays a recorded workload against a Target. Values and block
-// payloads are regenerated from their recorded lengths; a block keeps one
+// payloads are regenerated from their recorded lengths. A block keeps one
 // deterministic payload, so its replay reference is stable across operations
 // even though it differs from the recorded one.
 type Replay struct {
@@ -96,7 +96,7 @@ func NewReplay(records []Record) (*Replay, error) {
 	}
 	r.values = randomBytes([]byte("values"), maxValue)
 
-	// Seed what the workload finds before it writes it.
+	// Seed the values and blocks the workload finds before writing them.
 	written := make(map[string]bool)
 	writtenBlocks := make(map[string]bool)
 	prefixes := make(map[uint64][]byte)
@@ -141,7 +141,7 @@ func NewReplay(records []Record) (*Replay, error) {
 		}
 	}
 
-	// Regenerate every remaining block the workload names.
+	// Regenerate every remaining block the workload references.
 	for _, rec := range records {
 		switch rec.Op {
 		case OpPut, OpTombstone, OpRm, OpGetBlock, OpStatBlock, OpBlockExists:
@@ -437,8 +437,8 @@ func (run *replayRun) commit(ctx context.Context, tx kvtx.Tx, head bool) error {
 	return kvtx.CommitOrdered(ctx, tx)
 }
 
-// tx returns the open transaction id. A transaction the trace began inside
-// opens here as a write transaction, which serves every operation it records.
+// tx returns the open transaction for id. A transaction the trace began inside
+// opens here as a write transaction that serves every recorded operation.
 func (run *replayRun) tx(ctx context.Context, id uint64) (kvtx.Tx, error) {
 	// Reuse the transaction already opened for the recorded ID.
 	if tx := run.txs[id]; tx != nil {

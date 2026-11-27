@@ -34,7 +34,7 @@ func (r *RootDb) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// GetBlockRefs does not include pending references (in a cursor).
 func (r *RootDb) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	// Omit the database root reference when its block is empty.
 	rr := r.GetRef()

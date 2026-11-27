@@ -34,7 +34,7 @@ func NewLease(le *logrus.Entry, expiry time.Time, duration time.Duration, renew 
 // Execute runs and drains operation under the committed lease. A failed or
 // blocked renewal cannot delay cancellation past expiry minus ClaimClockSkew.
 // Losing the lease returns nil so a routine does not restart the same claim.
-// Execute joins renewal before returning; renew must honor its context.
+// Execute joins renewal before returning. renew must honor its context.
 func (l *Lease) Execute(rctx context.Context, operation func(context.Context) error) error {
 	// Fence execution before the published expiry, including on reconstruction.
 	deadline := l.expiry.Add(-forge_execution.ClaimClockSkew)

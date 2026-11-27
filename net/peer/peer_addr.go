@@ -19,7 +19,8 @@ func (a *NetAddr) Network() string {
 	return "bifrost"
 }
 
-// String form of address (for example, "192.0.2.1:25", "[2001:db8::1]:80").
+// String returns the address string (for example, "192.0.2.1:25",
+// "[2001:db8::1]:80").
 func (a *NetAddr) String() string {
 	return a.pid.String()
 }

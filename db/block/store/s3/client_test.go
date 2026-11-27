@@ -217,7 +217,7 @@ func TestInteractiveReadPassesBackgroundFlood(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Release the flood; every read succeeds.
+	// Release the flood so every read succeeds.
 	close(hold)
 	for range flood {
 		if err := <-done; err != nil {
@@ -401,7 +401,7 @@ func waitQueued(t *testing.T, g *RequestGate, ok func(GateState) bool) {
 		if time.Now().After(deadline) {
 			t.Fatalf("gate state %+v never matched", st)
 		}
-		// Queue lengths have no watch; the test polls them briefly.
+		// Queue lengths have no watch, so the test polls them briefly.
 		time.Sleep(5 * time.Millisecond)
 	}
 }
@@ -423,7 +423,7 @@ func TestCheckBucketDeletesStaleProbes(t *testing.T) {
 		t.Fatalf("check = %v: %s", result.GetOutcome(), result.GetDetail())
 	}
 
-	// Assert the usage excludes the stale probe and it was deleted.
+	// Assert the usage excludes the stale probe and the probe was deleted.
 	if result.GetUsage().GetObjects() != 1 || result.GetUsage().GetBytes() != 10 {
 		t.Fatalf("usage = %v; want 1 object of 10 bytes", result.GetUsage())
 	}
@@ -494,7 +494,7 @@ func TestSharedFetchRisesAndOutlivesLeader(t *testing.T) {
 	}()
 	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedUrgent == 1 && st.QueuedBackground == 0 })
 
-	// The leader leaves; the fetch still completes for the follower.
+	// The leader leaves, but the fetch still completes for the follower.
 	cancelLeader()
 	if err := <-leader; !errors.Is(err, context.Canceled) {
 		t.Fatalf("leader err = %v; want its own cancel", err)

@@ -123,7 +123,7 @@ export class DedicatedWorkerHostOwner {
     })
 
     void navigator.locks.query().then((snapshot) => {
-      // A grant can beat the query; only a still-pending role can attach to
+      // A grant can beat the query, so only a still-pending role can attach to
       // the already-held standing lock.
       if (this.role !== 'pending') {
         return
@@ -178,7 +178,7 @@ export class DedicatedWorkerHostOwner {
 
   // fail ends this document's term after the runtime it hosted or attached to
   // failed. A host returns its lease, so call fail only after the dead runtime
-  // worker is ended and holds no storage handles; an attached or pending
+  // worker is ended and holds no storage handles. An attached or pending
   // document withdraws its queued request.
   public fail(reason: string): void {
     if (this.closed || this.role === 'failed') {

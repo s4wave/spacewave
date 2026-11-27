@@ -44,7 +44,7 @@ interface SpinnerProps {
 }
 
 // Spinner renders the atomic animated loading indicator used across the app.
-// Inherits text color from the parent so container state colors apply.
+// Spinner inherits text color from the parent so container state colors apply.
 export function Spinner({ size = 'md', variant, className }: SpinnerProps) {
   return (
     <LuLoader

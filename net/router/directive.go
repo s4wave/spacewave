@@ -13,11 +13,11 @@ type DiscoverRoutes interface {
 	// Directive indicates DiscoverRoutes is a directive.
 	directive.Directive
 
-	// DiscoverRoutesLocalPeerID returns the local peer ID we are
-	// routing from.
+	// DiscoverRoutesLocalPeerID returns the local peer ID routing
+	// originates from.
 	DiscoverRoutesLocalPeerID() peer.ID
-	// DiscoverRoutesRemotePeerID returns the remote peer ID we are
-	// attempting to route to.
+	// DiscoverRoutesRemotePeerID returns the remote peer ID routing
+	// attempts to reach.
 	DiscoverRoutesRemotePeerID() peer.ID
 }
 
@@ -115,5 +115,5 @@ func (d *DiscoverRoutesWithPeerIDs) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ DiscoverRoutes = (*DiscoverRoutesWithPeerIDs)(nil)

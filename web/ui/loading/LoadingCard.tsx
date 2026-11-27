@@ -68,9 +68,9 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
   )
 }
 
-// LoadingCard is the primary loading surface. Glass card with an size-8 icon
+// LoadingCard is the primary loading surface. The glass card has a size-8 icon
 // box, title, detail, optional progress, rate pills, last-activity footer,
-// error box, and retry / cancel buttons. Four states: loading / active /
+// error box, and retry / cancel buttons. The four states are loading / active /
 // synced / error.
 export function LoadingCard({ view, className }: LoadingCardProps) {
   return (

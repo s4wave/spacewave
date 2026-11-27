@@ -1,15 +1,16 @@
-// Package plugin_admit answers a plugin host's AdmitPluginRoot asks through
-// the plugin that owns the device's plugin approvals.
+// Package bldr_plugin_admit answers a plugin host's AdmitPluginRoot asks
+// through the plugin that owns the device's plugin approvals.
 //
 // Invariant: the host runs a root only when the trust set or this device's
-// approvals, asked through their owner, admit it for the installation peer;
-// while the owner is not running or has not answered, the load shows checking
-// approval and runs nothing. The host never copies the approvals or reads
-// their store: it holds a value only while the owner's stream says admitted.
+// approvals, asked through their owner, admit the root for the installation
+// peer. While the owner is not running or has not answered, the load shows
+// checking approval and runs nothing. The host never copies the approvals or
+// reads their store: it holds a value only while the owner's stream says
+// admitted.
 //
 // The host constructs the Controller in code, with the owner fixed from its
 // own build facts, never from a config, so a config set cannot start a second
-// one that names another plugin as the owner. Only a host whose owner runs
+// one that selects another plugin as the owner. Only a host whose owner runs
 // as a separate plugin needs one: the dist entrypoint and the native and
 // browser devtools. spacewave serve builds none, because its approvals
 // controller runs on the serve bus itself and answers AdmitPluginRoot there.
@@ -33,9 +34,9 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller resolves AdmitPluginRoot by asking the approvals' owner plugin.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the plugin host bus
+	// bus is the plugin host bus.
 	bus bus.Bus
 	// ownerID is the plugin that owns the approvals and serves
 	// PluginRootAdmission. Its own roots are never asked about.
@@ -43,7 +44,7 @@ type Controller struct {
 }
 
 // NewController constructs the controller asking ownerID. The host calls it
-// in code at each entrypoint; there is no factory.
+// in code at each entrypoint. There is no factory.
 func NewController(le *logrus.Entry, b bus.Bus, ownerID string) *Controller {
 	return &Controller{le: le, bus: b, ownerID: ownerID}
 }

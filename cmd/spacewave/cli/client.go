@@ -65,7 +65,7 @@ type sdkClient struct {
 	resClient *resource_client.Client
 	// root is the adopted root resource reference.
 	root *s4wave_root.Root
-	// shared owns native transport cleanup; nil for in-process clients.
+	// shared owns native transport cleanup. nil for in-process clients.
 	shared *daemon.Client
 	// release frees what carries a remote client: its peer transport, Session
 	// and local daemon client. Nil for local clients.
@@ -381,7 +381,7 @@ func discoverProjectLocalStatePath() (string, bool) {
 
 // statePathUserSet reports whether --state-path was explicitly provided
 // via a CLI flag or environment variable on any context in the lineage.
-// When false, the shared default applies.
+// When false, the shared default state path applies.
 func statePathUserSet(c *cli.Context) bool {
 	_, set := lineageFlagSet(c, "state-path")
 	return set
@@ -428,8 +428,8 @@ func lineageFlagSet(c *cli.Context, name string) (value string, set bool) {
 //
 // When --state-path was not explicitly set, dev workflows with a live
 // daemon socket in cwd/.spacewave or git-root/.spacewave take precedence
-// over the shared default. Explicit --state-path values skip project
-// discovery and use relative-path resolution as before.
+// over the shared default state path. Explicit --state-path values skip
+// project discovery and use relative-path resolution as before.
 func resolveStatePathFromContext(c *cli.Context, fallback string) (string, error) {
 	if !statePathUserSet(c) {
 		if discovered, ok := discoverProjectLocalStatePath(); ok {
@@ -638,8 +638,8 @@ func (m *objectMount) resourceEndError() error {
 
 // mountObjectChain connects to the daemon and mounts session -> space ->
 // world engine -> typed object for the URI. When resolveObjectKey is nil,
-// uri.objectKey is used verbatim; otherwise it resolves the key against
-// the mounted World engine. The caller releases the mount.
+// uri.objectKey is used verbatim. Otherwise resolveObjectKey resolves the key
+// against the mounted World engine. The caller releases the mount.
 func mountObjectChain(
 	c *cli.Context,
 	statePath string,
@@ -652,7 +652,7 @@ func mountObjectChain(
 		return nil, err
 	}
 
-	// Mount the chain, closing the client if it fails.
+	// Mount the chain, closing the client if mounting fails.
 	obj, err := s4wave_mount.MountObject(c.Context, client.resClient, client.root, s4wave_mount.Target{
 		SessionIdx:       uri.sessionIdx,
 		Space:            uri.spaceID,
@@ -789,7 +789,8 @@ func (c *sdkClient) stopWebListener(ctx context.Context, id string) (bool, error
 	return stopped, errors.Wrap(err, "stop web listener")
 }
 
-// openResource adopts a resource's RPC client; the caller releases it on success.
+// openResource adopts a resource's RPC client, and the caller releases it on
+// success.
 // A failed adoption releases its reference before returning.
 func (c *sdkClient) openResource(id uint32) (srpc.Client, func(), error) {
 	ref := c.resClient.CreateResourceReference(id)

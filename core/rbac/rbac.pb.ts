@@ -32,11 +32,11 @@ export const RbacScope_Enum = /* @__PURE__ */ createEnumType('rbac.RbacScope', [
  */
 export interface RbacRule {
   /**
-   * resource_type is the type of resource this rule applies to.
+   * ResourceType is the type of resource this rule applies to.
    */
   resourceType?: string
   /**
-   * verbs is the list of allowed verbs (or "*" for all).
+   * Verbs is the list of allowed verbs (or "*" for all).
    */
   verbs?: string[]
 }
@@ -54,19 +54,19 @@ export const RbacRule: MessageType<RbacRule> =
  */
 export interface RbacRole {
   /**
-   * id is the unique identifier for this role.
+   * Id is the unique identifier for this role.
    */
   id?: string
   /**
-   * display_name is the human-readable name.
+   * DisplayName is the human-readable name.
    */
   displayName?: string
   /**
-   * rules is the list of permission rules in this role.
+   * Rules is the list of permission rules in this role.
    */
   rules?: RbacRule[]
   /**
-   * builtin indicates this role is system-defined.
+   * Builtin indicates this role is system-defined.
    */
   builtin?: boolean
 }
@@ -86,27 +86,27 @@ export const RbacRole: MessageType<RbacRole> =
  */
 export interface RbacRoleBinding {
   /**
-   * id is the unique identifier for this binding.
+   * Id is the unique identifier for this binding.
    */
   id?: string
   /**
-   * role_id is the role being bound.
+   * RoleId is the role being bound.
    */
   roleId?: string
   /**
-   * subject_id is the account receiving the role.
+   * SubjectId is the account receiving the role.
    */
   subjectId?: string
   /**
-   * scope is the scope level of this binding.
+   * Scope is the scope level of this binding.
    */
   scope?: RbacScope
   /**
-   * scope_id is the target ID for org/resource scope (empty for platform).
+   * ScopeId is the target ID for org/resource scope (empty for platform).
    */
   scopeId?: string
   /**
-   * created_at is the creation timestamp in milliseconds.
+   * CreatedAt is the creation timestamp in milliseconds.
    */
   createdAt?: bigint
 }
@@ -131,11 +131,11 @@ export const RbacRoleBinding: MessageType<RbacRoleBinding> =
  */
 export interface RbacConfig {
   /**
-   * roles is the list of roles.
+   * Roles is the list of roles.
    */
   roles?: RbacRole[]
   /**
-   * bindings is the list of role bindings.
+   * Bindings is the list of role bindings.
    */
   bindings?: RbacRoleBinding[]
 }

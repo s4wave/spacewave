@@ -121,7 +121,10 @@ export function deviceCapabilityCanWriteCheckoutRoot(
   )
 }
 
-/** hasCheckoutRootLink reports whether the root names a Device protocol or a World object. */
+/**
+ * hasCheckoutRootLink reports whether the root references a Device protocol or
+ * a World object.
+ */
 function hasCheckoutRootLink(
   capability: DeviceCapability | undefined,
 ): boolean {
@@ -198,7 +201,7 @@ export interface IDeviceHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose supports the 'using' statement.
   [Symbol.dispose](): void
 }
 

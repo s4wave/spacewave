@@ -33,25 +33,26 @@ import (
 
 // viteBundlerTracker is a running Vite compiler instance.
 type viteBundlerTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// key is the vite compiler key
+	// key is the vite compiler key.
 	key viteBundlerKey
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// instancePromiseCtr contains the vite compiler rpc instance or any error running it
+	// instancePromiseCtr contains the vite compiler rpc instance or any error
+	// running the instance.
 	instancePromiseCtr *promise.PromiseContainer[bldr_vite.SRPCViteBundlerClient]
 }
 
 // viteBundlerKey is a composite key for identifying a Vite bundler instance.
 type viteBundlerKey struct {
-	// distPath is the root path to the dist sources
+	// distPath is the root path to the dist sources.
 	distPath string
-	// sourcePath is the root path of the source code
+	// sourcePath is the root path of the source code.
 	sourcePath string
-	// workingPath is the path to the working directory
+	// workingPath is the path to the working directory.
 	workingPath string
-	// bundleID is the ID of the Vite bundle
+	// bundleID is the ID of the Vite bundle.
 	bundleID string
 	// sqlSchema is the SQL schema served to the process as DATABASE_URL.
 	// Empty when the bundle has no schema.
@@ -108,7 +109,8 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		pipeUuidBin[:],
 	)
 	// Include a unique instance suffix to prevent race conditions when restarting.
-	// Without this, the old instance's cleanup could delete the new instance's pipe file.
+	// Without this suffix, the old instance's cleanup could delete the new
+	// instance's pipe file.
 
 	// Add a unique instance suffix to the pipe name.
 	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
@@ -424,7 +426,7 @@ func BuildViteBundle(
 
 	// All shared imports keep the provider's module identity, including excluded
 	// packages. The compiler filters excluded refs before building or registering
-	// packages; omitting them here instead bundles a second copy of their state.
+	// packages. Omitting them here instead bundles a second copy of their state.
 	extWebPkgs := bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(webPkgs))
 	if viteBundleMeta.GetBundleWebPkgs() {
 		extWebPkgs = nil
@@ -457,7 +459,8 @@ func BuildViteBundle(
 	}
 
 	// Add source files to the list
-	// This is also set even if success=false for watching for changes
+	// sourceFilesList is also set even if success=false for watching for
+	// changes
 	sourceFilesList = append(sourceFilesList, buildResp.GetInputFiles()...)
 
 	// le.Debugf("vite result: %v", buildResp.String())

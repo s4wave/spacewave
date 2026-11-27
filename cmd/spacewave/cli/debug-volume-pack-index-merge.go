@@ -58,7 +58,7 @@ func mergePackIndex(ctx context.Context, from, into, worldStore string, w io.Wri
 	defer dst.Close()
 
 	// Read the source's index rows through snapshots of the file itself, so
-	// the stable reader can refresh it and see a torn read.
+	// the stable reader can refresh the snapshots and see a torn read.
 	prefix := block_store_s3.PackIndexPrefix(worldStore)
 	read := func(ctx context.Context, fn func(tx kvtx.Tx) error) error {
 		return packmove.ReadStable(ctx, src, func(tx kvtx.Tx) error {

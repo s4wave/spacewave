@@ -10,7 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// FibbonaciHeap is an implementation of a db backed Fibbonaci heap.
+// FibbonaciHeap implements a db backed Fibbonaci heap.
 type FibbonaciHeap struct {
 	db kvtx.Store
 }
@@ -42,7 +42,7 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 		case entryPriority == priority:
 			return nil
 		case entryPriority > priority:
-			// decrease key - faster than dequeue + requeue
+			// decrease key: faster than dequeue + requeue
 			return h.decreaseEntry(ctx, tx, key, entry, priority)
 		}
 
@@ -240,8 +240,9 @@ func (h *FibbonaciHeap) Delete(ctx context.Context, key []byte) (rerr error) {
 }
 
 // Merge merges b into a, enqueuing any keys that do not exist already.
-// As a consequence of the operation, any elements already existing in A are removed from B.
-// This can be used as a one-time UNIQ operation.
+// As a consequence of the operation, any elements already existing in A are
+// removed from B.
+// The merge can be used as a one-time UNIQ operation.
 
 // dequeueMinEntry dequeues the min entry and returns it.
 func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []byte, error) {
@@ -434,7 +435,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 
 			maxTPrev.Next = maxT.GetNext()
 
-			// Make it a singleton so that we can merge it
+			// Make maxT a singleton so mergeLists can merge it
 			maxT.Prev = maxTKey
 			maxT.Next = maxTKey
 
@@ -563,7 +564,7 @@ func (h *FibbonaciHeap) cutEntry(ctx context.Context, tx *tx, key []byte, entry 
 		prev.Next = entry.GetNext()
 	}
 
-	// Rewrite pointer if this is the representative child node
+	// Rewrite pointer if entry is the representative child node
 	if bytes.Equal(parent.GetChild(), key) {
 		if !bytes.Equal(entry.GetNext(), key) {
 			parent.Child = entry.GetNext()

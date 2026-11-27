@@ -7,7 +7,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures the space shared object controller.
- * Handles MountSharedObjectBody directives by starting the sobject/world controller.
+ * The controller handles MountSharedObjectBody directives by starting the
+ * sobject/world controller.
  *
  * @generated from message space.sobject.Config
  */

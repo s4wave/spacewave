@@ -19,7 +19,8 @@ export function SpacePluginObjects({
   manifestId: string
   onCreated: (objectKey: string) => void
 }) {
-  // Discovery follows the installation; execution uses the mounted Space capability.
+  // Discovery follows the installation. Execution uses the mounted Space
+  // capability.
   const rootResource = RootContext.useContext()
   const root = rootResource.value
   const { spaceState } = SpaceContainerContext.useContext()
@@ -28,7 +29,8 @@ export function SpacePluginObjects({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
-  // Cancellation ends observation; the accepted Quickstart operation stays atomic.
+  // Cancellation ends observation. The accepted Quickstart operation stays
+  // atomic.
   async function create(quickstartId: string) {
     if (!root || pending || signal.aborted) return
     setPending(true)

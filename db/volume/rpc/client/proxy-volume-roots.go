@@ -69,8 +69,8 @@ func (v *ProxyVolume) ListBucketRoots(ctx context.Context, bucketID, prefix stri
 
 // SetBucketRoots stores entries and moves the roots of a bucket in one
 // transaction of the remote volume. Entries beyond rootBatchBytes are put
-// first, as a multi-batch writer's, and the remote collector's grace keeps
-// them until the move that holds them lands.
+// first, as a multi-batch writer's entries are put, and the remote
+// collector's grace keeps them until the move that holds them lands.
 func (v *ProxyVolume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	// Put the entries that do not fit with the move, children first.
 	tail, size := len(entries), 0
@@ -84,7 +84,7 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, bucketID string, entri
 		}
 	}
 
-	// Move the roots with the rest.
+	// Move the roots with the remaining entries.
 	req := &volume_rpc.SetBucketRootsRequest{BucketId: bucketID, Entries: volume_rpc.NewPutBatchEntries(entries[tail:])}
 	for _, root := range roots {
 		req.Roots = append(req.Roots, volume_rpc.NewNamedRoot(root))

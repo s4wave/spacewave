@@ -118,7 +118,7 @@ func (a *runArgs) Run(c *cli.Context) error {
 
 // runKernel starts a kernel on a new runtime, calls run and closes both.
 func runKernel(ctx context.Context, cfg *kernel.Config, run func(k *kernel.Kernel) error) error {
-	// Start the kernel; it serves the runtime alone.
+	// Start the kernel. It serves the runtime alone.
 	rt := native.New(ctx)
 	defer rt.Close(ctx)
 	k, err := kernel.New(ctx, rt, cfg)

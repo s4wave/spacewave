@@ -218,9 +218,10 @@ func failWebLockOp(opID uint32, err error) {
 	webLockMu.Unlock()
 }
 
-// Exported WebLock callbacks must not block or allocate: they run from
-// JavaScript back into TinyGo only to publish primitive completion. The
-// original Go caller owns waiting and error construction.
+// tinygoWebLockResolve must not block or allocate, as with the other exported
+// WebLock callbacks: they run from JavaScript back into TinyGo only to publish
+// primitive completion. The original Go caller owns waiting and error
+// construction.
 //
 //export BLDR_OPFS_WEB_LOCK_RESOLVE
 func tinygoWebLockResolve(opID uint32, releaseID uint32, acquired uint32) {

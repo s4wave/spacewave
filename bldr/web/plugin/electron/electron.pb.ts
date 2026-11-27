@@ -231,20 +231,22 @@ export interface Config {
   electronPath?: string
   /**
    * WorkdirPath is the path to the working directory to use.
-   * If unset, defaults to the current working directory of the process.
+   * If unset, WorkdirPath defaults to the current working directory of the
+   * process.
    */
   workdirPath?: string
   /**
    * RendererPath is the path to the renderer bundle.
-   * Must be one of the accepted Electron path types.
+   * RendererPath must be one of the accepted Electron path types.
    * Ex: http://, file://, path to directory, path to index.js
    * Relative paths must be relative to workdir_path.
    */
   rendererPath?: string
   /**
    * WebRuntimeId is the value to use for the runtime uuid.
-   * Used for the Unix pipe paths and for the BroadcastChannel ids.
-   * Should be unique against other running Electron instances.
+   * WebRuntimeId is used for the Unix pipe paths and for the BroadcastChannel
+   * ids. WebRuntimeId should be unique against other running Electron
+   * instances.
    */
   webRuntimeId?: string
   /**

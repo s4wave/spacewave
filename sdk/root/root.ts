@@ -304,7 +304,7 @@ export class Root extends Resource {
   }
 
   // getSessionMetadata returns metadata for a session by index.
-  // Does not require the session to be mounted.
+  // The session does not need to be mounted.
   public async getSessionMetadata(
     sessionIdx: number,
     abortSignal?: AbortSignal,

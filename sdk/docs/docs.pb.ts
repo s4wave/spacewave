@@ -9,7 +9,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 /**
  * Documentation is a world object representing a documentation site.
  * Content is sourced from a UnixFS directory (markdown files) linked via
- * the doc/source graph edge. Optionally linked to a GitRepo for versioning.
+ * the doc/source graph edge. Documentation is optionally linked to a GitRepo
+ * for versioning.
  *
  * @generated from message s4wave.docs.Documentation
  */

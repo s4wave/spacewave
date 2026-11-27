@@ -42,7 +42,7 @@ export interface LookupRpcServiceResponse {
    */
   idle?: boolean
   /**
-   * Exists indicates we found the service on the remote.
+   * Exists indicates the service was found on the remote.
    */
   exists?: boolean
   /**

@@ -8,7 +8,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * ForgeDashboard is a unified control panel linking to Forge entities in a
- * Space. Links to Forge entities via dashboard/forge-ref graph edges.
+ * Space. The dashboard links to Forge entities via dashboard/forge-ref graph
+ * edges.
  *
  * @generated from message s4wave.forge.dashboard.ForgeDashboard
  */
@@ -89,7 +90,7 @@ export const LinkForgeDashboardOp: MessageType<LinkForgeDashboardOp> =
 
 /**
  * InitForgeQuickstartOp creates a complete Forge environment:
- * ObjectLayout with dashboard tab, cluster, sample job with tasks, and
+ * an ObjectLayout with a dashboard tab, a cluster, a sample job with tasks, and
  * optionally a worker linked to the session peer.
  *
  * @generated from message s4wave.forge.dashboard.InitForgeQuickstartOp
@@ -117,12 +118,12 @@ export interface InitForgeQuickstartOp {
   timestamp?: Date
   /**
    * WorkerKey is the object key for the session worker.
-   * If empty, no worker is created.
+   * If WorkerKey is empty, no worker is created.
    */
   workerKey?: string
   /**
    * SessionPeerId is the peer ID of the creating session.
-   * Used to link the worker to the session's keypair.
+   * SessionPeerId is used to link the worker to the session's keypair.
    */
   sessionPeerId?: string
 }

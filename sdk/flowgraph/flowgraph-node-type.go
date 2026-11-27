@@ -31,9 +31,9 @@ type FlowgraphNodeType interface {
 // that shows each kind and checkout root name, and rejects the rest.
 type FlowgraphNodeCapability interface {
 	// GetCapability returns the capability the node shows: its kind, label,
-	// link, policy and checkout root. The Device sets the ID and the state. It
-	// returns an error to reject the node, such as when the object the link
-	// names is not in ws.
+	// link, policy and checkout root. The Device sets the ID and the state.
+	// GetCapability returns an error to reject the node, such as when the
+	// object the link references is not in ws.
 	GetCapability(ctx context.Context, ws world.WorldState, node *PlacedFlowgraphNode) (*s4wave_device.DeviceCapability, error)
 }
 

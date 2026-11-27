@@ -59,11 +59,12 @@ var (
 	// effects, when a store cannot commit blocks with their ownership in one
 	// transaction.
 	ErrAtomicCommitUnsupported = errors.New("atomic commit unsupported")
-	// ErrPendingTombstone is returned by a PendingStore put of a tombstone: a
-	// kept block may be named by any kept World, so none is deleted by a put.
+	// ErrPendingTombstone is returned by a PendingStore put of a tombstone:
+	// a kept block may be referenced by any kept World, so none is deleted
+	// by a put.
 	ErrPendingTombstone = errors.New("block: a pending store refuses tombstones")
 	// ErrStageReleased rejects a write through a stage that was released or
-	// reaped, which can no longer own the blocks.
+	// reaped and can no longer own the blocks.
 	ErrStageReleased = errors.New("block: stage released")
 )
 
@@ -75,8 +76,8 @@ func IsNotAvailable(err error) bool {
 	return errors.Is(err, ErrNotFound) || errors.Is(err, ErrUnavailable)
 }
 
-// NotFoundError returns ErrNotFound naming ref, so a log of the failure says
-// which block is missing. errors.Is still matches ErrNotFound.
+// NotFoundError returns ErrNotFound identifying ref, so a log of the failure
+// says which block is missing. errors.Is still matches ErrNotFound.
 func NotFoundError(ref *BlockRef) error {
 	return fmt.Errorf("%w: %s", ErrNotFound, ref.MarshalString())
 }
@@ -89,9 +90,9 @@ func NotFoundError(ref *BlockRef) error {
 type CorruptError struct {
 	// Ref is the block read.
 	Ref *BlockRef
-	// StoreID names the store that served the bytes, such as a Volume ID or a
-	// remote's address. A store that does not know its name leaves it empty for
-	// the layer above that does.
+	// StoreID identifies the store that served the bytes, such as a Volume
+	// ID or a remote's address. A store that does not know its name leaves
+	// it empty for the layer above that does.
 	StoreID string
 }
 
@@ -110,7 +111,7 @@ func (e *CorruptError) Unwrap() error {
 }
 
 // VerifyRead checks the bytes a store read for ref, returning a CorruptError
-// naming storeID when they do not hash to ref.
+// identifying storeID when the bytes do not hash to ref.
 func VerifyRead(ref *BlockRef, data []byte, storeID string) error {
 	if err := ref.Validate(false); err != nil {
 		return err

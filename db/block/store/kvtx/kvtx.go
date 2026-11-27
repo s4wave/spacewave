@@ -160,7 +160,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // another where the store reports the transaction full. Blocks are
 // independent, so a batch split across transactions is safe. Reports whether
 // each block was stored before the write, from the same Exists read the write
-// makes. The transactions read without the writer lock, as PutBlock's do; a
+// makes. The transactions read without the writer lock, as PutBlock's do. A
 // tombstone reads nothing, so it never conflicts.
 func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the batch.
@@ -545,7 +545,7 @@ type putBlockBatchOp struct {
 }
 
 // applyPutBlockBatchOp writes one prepared op unless its block is stored.
-// Returns whether the block was stored before the write; a tombstone is false.
+// Returns whether the block was stored before the write. A tombstone is false.
 func applyPutBlockBatchOp(ctx context.Context, tx kvtx.Tx, op putBlockBatchOp) (bool, error) {
 	if op.tombstone {
 		return false, tx.Delete(ctx, op.key)

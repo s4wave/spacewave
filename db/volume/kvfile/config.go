@@ -9,7 +9,7 @@ import (
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID
 
-// This is a cursory validation to see if the values "look correct."
+// Validate checks cursorily whether the values "look correct."
 func (c *Config) Validate() error {
 	if err := c.GetKvKeyOpts().Validate(); err != nil {
 		return err

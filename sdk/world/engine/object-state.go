@@ -161,7 +161,7 @@ func (os *SDKObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	return resp.Rev, nil
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified rev.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev.

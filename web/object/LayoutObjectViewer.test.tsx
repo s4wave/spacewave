@@ -323,7 +323,7 @@ describe('LayoutObjectViewer', () => {
       />,
     )
 
-    // The failure names the cause and its Retry reads again.
+    // The failure states the cause and its Retry reads again.
     expect(
       screen.getByText('Could not read the layout: not a layout'),
     ).toBeDefined()

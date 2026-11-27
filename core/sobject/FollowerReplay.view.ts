@@ -7,7 +7,7 @@ type Follower = {
   restarts: number
 }
 
-// title names the chart.
+// title identifies the chart.
 export const title = 'A follower replays the operations above the checkpoint'
 
 // state says how far behind the order the follower shows.

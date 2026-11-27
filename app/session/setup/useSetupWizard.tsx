@@ -12,7 +12,7 @@ import type { LocalSessionOnboardingContextValue } from '@s4wave/app/session/set
 export type SetupWizardState = ReturnType<typeof useSetupWizard>
 
 // useSetupWizard provides shared state and handlers for the setup wizard.
-// Used by both CloudSetupWizard and LocalSetupWizard.
+// Both CloudSetupWizard and LocalSetupWizard use the hook.
 export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)

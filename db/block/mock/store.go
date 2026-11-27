@@ -10,7 +10,7 @@ import (
 
 // NewMockStore constructs a new mock bucket for testing.
 //
-// hashType is the hash type to use, 0 for default.
+// hashType is the hash type to use, 0 for the default hash type.
 func NewMockStore(hashType hash.HashType) block.StoreOps {
 	return block_store_kvtx.NewDurableKVTxBlock(
 		store_kvkey.NewDefaultKVKey(),

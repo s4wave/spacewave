@@ -66,7 +66,7 @@ func (s *SpacewaveProviderResource) CreateAccount(
 	}
 	turnstileToken := req.GetTurnstileToken()
 
-	// Extract password from credential oneof.
+	// Extract the password from the credential oneof.
 	var password string
 	switch cred := req.GetCredential().(type) {
 	case *s4wave_provider_spacewave.CreateAccountRequest_Password:
@@ -101,7 +101,7 @@ func (s *SpacewaveProviderResource) CreateAccount(
 	return &s4wave_provider_spacewave.CreateAccountResponse{SessionListEntry: listEntry}, nil
 }
 
-// LoginAccount attempts to log in to an existing account without creating one.
+// LoginAccount tries to log in to an existing account without creating one.
 // Returns a result oneof: session on success, is_new_account if the account
 // does not exist, or error_code if the credentials are wrong.
 func (s *SpacewaveProviderResource) LoginAccount(
@@ -115,7 +115,7 @@ func (s *SpacewaveProviderResource) LoginAccount(
 	}
 	turnstileToken := req.GetTurnstileToken()
 
-	// Derive keypair based on credential type.
+	// Derive the keypair based on the credential type.
 	var privKey crypto.PrivKey
 	switch cred := req.GetCredential().(type) {
 	case *s4wave_provider_spacewave.LoginAccountRequest_Password:
@@ -687,7 +687,8 @@ func (s *SpacewaveProviderResource) SSOCodeExchange(
 	}, nil
 }
 
-// PrepareBrowserSSO creates the verifier and ephemeral device key retained by one browser flow.
+// PrepareBrowserSSO creates the verifier and ephemeral device key retained by
+// one browser flow.
 func (s *SpacewaveProviderResource) PrepareBrowserSSO(
 	_ context.Context,
 	_ *s4wave_provider_spacewave.PrepareBrowserSSORequest,
@@ -960,7 +961,8 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 		return &s4wave_provider_spacewave.GetLinkedCloudSessionResponse{Found: false}, nil
 	}
 
-	// Check if the local session has any SharedObjects (empty = safe to skip migration).
+	// Check if the local session has any SharedObjects (an empty session
+	// can safely skip migration).
 	localEmpty := true
 	if localProviderID != "" {
 		volID := provider_local.StorageVolumeID(localProviderID, localAccountID)
@@ -990,7 +992,8 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 		}
 	}
 
-	// Walk session list for a spacewave session with the matching account ID.
+	// Walk the session list for a spacewave session with the matching
+	// account ID.
 	for _, entry := range sessions {
 		provRef := entry.GetSessionRef().GetProviderResourceRef()
 		if provRef.GetProviderId() != "spacewave" {
@@ -1046,7 +1049,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	entityID := req.GetEntityId()
 	turnstileToken := req.GetTurnstileToken()
 
-	// Derive entity keypair from the credential.
+	// Derive the entity keypair from the credential.
 	var entityPriv crypto.PrivKey
 	switch cred := req.GetCredential().(type) {
 	case *s4wave_provider_spacewave.ReauthenticateSessionRequest_Password:
@@ -1083,7 +1086,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		return nil, errors.Wrap(err, "derive entity peer id")
 	}
 
-	// Verify credentials with cloud by registering a probe session.
+	// Verify credentials with the cloud by registering a probe session.
 	entityCli := provider_spacewave.NewEntityClientDirect(
 		s.provider.GetHTTPClient(),
 		s.provider.GetEndpoint(),
@@ -1100,7 +1103,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	bootstrapRef := s.provider.RetainEntityKeyBootstrap(accountID, entityPriv, entityPeerID)
 	defer bootstrapRef.Release()
 
-	// Access the provider account to perform key rotation.
+	// Access the provider account to rotate the key.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
 		ctx, s.b,
 		provRef.GetProviderId(),
@@ -1146,7 +1149,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	defer diRef.Release()
 	objStore := objStoreHandle.GetObjectStore()
 
-	// Derive storage key from volume peer key.
+	// Derive the storage key from the volume peer key.
 	volPeer, err := swAcc.GetVolume().GetPeer(ctx, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "get volume peer")
@@ -1192,7 +1195,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	// Replace SessionClient on the ProviderAccount with the new key.
 	swAcc.ReplaceSessionClient(sessionID, sessionPriv, sessionPeerID)
 
-	// Clear UNAUTHENTICATED status and trigger a fresh fetch.
+	// Clear the UNAUTHENTICATED status and trigger a fresh fetch.
 	swAcc.SetAccountStatus(provider.ProviderAccountStatus_ProviderAccountStatus_READY)
 	swAcc.BumpLocalEpoch()
 

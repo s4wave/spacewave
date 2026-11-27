@@ -35,7 +35,7 @@ const h = vi.hoisted(() => ({
   executeWorldBatch: vi.fn(),
   engineRelease: vi.fn(),
   // world maps each object key in the seed test's Space to its type, '' when
-  // untyped; seedWrites lists every seed write in the order it was made.
+  // untyped. seedWrites lists every seed write in the order it was made.
   world: new Map<string, string>(),
   seedWrites: [] as string[],
   rootRef: undefined as unknown as TestRef,
@@ -244,8 +244,9 @@ vi.mock('@s4wave/sdk/world/engine.js', () => ({
   },
 }))
 
-// The seed writes act on h.world the way the World does: a create or a UnixFS
-// init on a key that exists fails, and a UnixFS init sets the UnixFS type.
+// createSeedObject applies seed writes to h.world the way the World does:
+// a create or a UnixFS init on a key that exists fails, and a UnixFS init
+// sets the UnixFS type.
 function createSeedObject(key: string, kind: string, typeId = '') {
   if (h.world.has(key)) throw new Error('object already exists: ' + key)
   h.world.set(key, typeId)
@@ -997,7 +998,8 @@ describe('notes quickstart seed', () => {
     applyBatchesThroughOpHandler()
 
     // A blog op stored before applySeed decided seeds succeeded over any
-    // object at its companion notebook key and kept it; its replay must too.
+    // object at its companion notebook key and kept that object. Its replay
+    // must also succeed and keep that object.
     for (const foundType of ['notes/notebook', 'notes/docs', '']) {
       h.world.clear()
       h.seedWrites.length = 0

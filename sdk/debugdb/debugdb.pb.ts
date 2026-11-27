@@ -115,12 +115,12 @@ export const StartBenchmarkResponse: MessageType<StartBenchmarkResponse> =
 export interface BenchmarkConfig {
   /**
    * DurationSeconds is the total benchmark duration target in seconds.
-   * Each suite gets a proportional share. Defaults to 10.
+   * Each suite gets a proportional share. DurationSeconds defaults to 10.
    */
   durationSeconds?: number
   /**
    * BlockSizes is the list of block sizes to test in bytes.
-   * Defaults to [256, 1024, 4096, 16384, 65536].
+   * BlockSizes defaults to [256, 1024, 4096, 16384, 65536].
    */
   blockSizes?: number[]
   /**
@@ -333,7 +333,7 @@ export interface BenchmarkMetric {
   maxMs?: number
   /**
    * Samples contains raw timing samples when count < 1000.
-   * Empty for high-count metrics to keep response compact.
+   * Samples is empty for high-count metrics to keep the response compact.
    */
   samples?: number[]
 }

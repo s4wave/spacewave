@@ -74,5 +74,5 @@ func storageInfo() *s4wave_debugdb.StorageInfo {
 	}
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ s4wave_debugdb.SRPCDebugDbResourceServiceServer = (*DebugDbResource)(nil)

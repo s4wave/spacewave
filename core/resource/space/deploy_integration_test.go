@@ -559,7 +559,7 @@ func TestDeployManifestsInTransactionFenceRejectsWrongHost(t *testing.T) {
 
 // TestDeployManifestsFromExport deploys a build's export, as space deploy --db
 // does, into a fresh Space: the Space holds the manifest at its rev and every
-// block the manifest names, byte for byte. An export missing one block is
+// block the manifest references, byte for byte. An export missing one block is
 // refused whole and leaves the Space without the manifest.
 func TestDeployManifestsFromExport(t *testing.T) {
 	// Export a manifest with dist and assets trees.
@@ -575,7 +575,8 @@ func TestDeployManifestsFromExport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Open the export as space deploy --db does and list the blocks it names.
+	// Open the export as space deploy --db does and list the blocks the
+	// export references.
 	exportVol, refs := openExport(t, ctx, le, dir, built)
 	exported, exportedRefs := readManifestGraph(t, ctx, le, exportBucket(exportVol), root)
 	if len(exported) < 5 {
@@ -583,7 +584,7 @@ func TestDeployManifestsFromExport(t *testing.T) {
 	}
 
 	// Serve the export without one block below the manifest, as an export
-	// that lost it would; its deploy fails and the Space holds no manifest.
+	// that lost it would. Its deploy fails and the Space holds no manifest.
 	// The Volume frees blocks only through its collector, so the test hides
 	// the block instead of removing it.
 	damaged := &missingBlockStore{StoreOps: exportVol, missing: exportedRefs[len(exportedRefs)-1].MarshalString()}
@@ -610,7 +611,7 @@ func TestDeployManifestsFromExport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Read the manifest back at its rev, then every block it names.
+	// Read the manifest back at its rev, then every block it references.
 	ws2 := world.NewEngineWorldState(eng2, false)
 	got, _, err := bldr_manifest_world.CollectManifestsForManifestID(ctx, ws2, "gizmo-core", nil, "plugin-host")
 	if err != nil {

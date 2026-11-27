@@ -21,13 +21,13 @@ type BusBridgeFilter func(ctx context.Context, di directive.Instance) ([]directi
 // The directives can be filtered or transformed by an attached function.
 // If the filter is not set, the controller passes through all directives.
 type BusBridge struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// info contains the controller info
+	// info contains the controller info.
 	info *controller.Info
-	// filter is the filter callback
+	// filter is the filter callback.
 	filter BusBridgeFilter
 }
 
@@ -57,7 +57,9 @@ func (b *BusBridge) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns resolver(s). If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns
+// resolver(s).
+// Otherwise, HandleDirective returns nil.
 // It is safe to add a reference to the directive during this call.
 // The passed context is canceled when the directive instance expires.
 // NOTE: the passed context is not canceled when the handler is removed.
@@ -83,7 +85,7 @@ func (b *BusBridge) HandleDirective(ctx context.Context, di directive.Instance) 
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (b *BusBridge) Close() error {
 	return nil
 }

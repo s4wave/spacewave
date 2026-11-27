@@ -12,7 +12,7 @@ import { usePairingWatch } from './usePairingWatch.js'
 
 // extractDirectOfferPayload extracts the raw b58 offer payload from a QR-decoded
 // string. The QR may encode a full URL (https://spacewave.app/#/pair/<payload>)
-// or just the raw payload. Returns the payload either way.
+// or just the raw payload. The function returns the payload either way.
 function extractDirectOfferPayload(decoded: string): string {
   const match = decoded.match(/#\/pair\/(.+)/)
   if (match) return match[1]
@@ -60,7 +60,7 @@ export function DirectAnswerStep({
     return true
   }
 
-  // Watch pairing status for peer connection after answer is shared.
+  // Watch pairing status for a peer connection after the answer is shared.
   usePairingWatch({
     session,
     enabled: !!answerPayload,

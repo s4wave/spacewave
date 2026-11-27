@@ -41,9 +41,9 @@ export const Adoption_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * Generation is how far a Volume has settled the blocks an older store
- * format left, whose child lists may lack a child the block names. Each
- * state is one value; nothing else of the settle remains once it is Settled.
+ * Generation is how far a Volume has settled the blocks an older store format
+ * left, whose child lists may lack a child the block references. Each state is
+ * one value. Nothing else of the settle remains once it is Settled.
  *
  * @generated from enum block.gc.Generation
  */
@@ -158,7 +158,7 @@ export interface LivenessState {
    */
   adoption?: Adoption
   /**
-   * AdoptionRun names the adoption that marked the Volume adopting, or the
+   * AdoptionRun identifies the adoption that marked the Volume adopting, or the
    * one that abandoned it. Each transaction of an adoption refuses to write
    * unless the Volume is still in its run, so a run another superseded writes
    * nothing more.
@@ -176,12 +176,12 @@ export interface LivenessState {
    */
   release?: Release
   /**
-   * Frees is whether the collector's frees were on at the last writable
-   * open, or at the birth of an empty Volume. The write that turns it on
-   * also returns the Volume to unadopted, so an adoption counts every holder
-   * again before the first free; a writable open with frees off clears it,
-   * so the next switch-on counts again (SetFrees). It reads as off unless
-   * frees_mark matches the record.
+   * Frees is whether the collector's frees were on at the last writable open,
+   * or at the birth of an empty Volume. The write that turns it on also returns
+   * the Volume to unadopted, so an adoption counts every holder again before
+   * the first free. A writable open with frees off clears it, so the next
+   * switch-on counts again (SetFrees). It reads as off unless frees_mark
+   * matches the record.
    */
   frees?: boolean
   /**
@@ -224,8 +224,8 @@ export interface LivenessState {
    * AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
    * milliseconds. A block the adoption settles may be a head a reader saw
    * before the mark, whose move off it the dropped logs carried, so the
-   * collector frees, pops and flips nothing until Grace has passed since
-   * this time. Only Adopt's mark transaction writes it.
+   * collector frees, pops and flips nothing until Grace has passed since this
+   * time. Only Adopt's mark transaction writes it.
    */
   adoptAtUnixMilli?: bigint
   /**
@@ -237,10 +237,10 @@ export interface LivenessState {
    */
   obsoleteKinds?: Uint8Array
   /**
-   * AdoptCursor is how far the adoption in progress has counted, set only
-   * while the Volume is adopting. Each slice of the count writes it in the
-   * transaction that writes the slice's counts, so a run that takes the
-   * Volume over continues strictly after the last key it names.
+   * AdoptCursor is how far the adoption in progress has counted, set only while
+   * the Volume is adopting. Each slice of the count writes it in the
+   * transaction that writes the slice's counts, so a run that takes the Volume
+   * over continues strictly after the last key the cursor records.
    */
   adoptCursor?: AdoptCursor
   /**
@@ -312,10 +312,10 @@ export interface AdoptCursor {
    */
   unknown?: bigint
   /**
-   * Run is the adoption run that wrote the cursor. A run takes the cursor
-   * over only when it names the run the state names in the same
-   * transaction: a build without the cursor carries it through a claim of
-   * its own as an unknown field, and its counts are not the cursor's.
+   * Run is the adoption run that wrote the cursor. A run takes the cursor over
+   * only when the cursor records the run the state records in the same
+   * transaction: a build without the cursor carries it through a claim of its
+   * own as an unknown field, and its counts are not the cursor's.
    */
   run?: string
 }
@@ -333,11 +333,11 @@ export const AdoptCursor: MessageType<AdoptCursor> =
   ])
 
 /**
- * Release is the release of the children of a freed block whose child list
- * is longer than one collector slice moves. The slice that frees the block
- * moves the list to release pages; each later slice drops the next
- * children's holders by one and moves Next in the same transaction, and the
- * last deletes the pages and clears the release.
+ * Release is the release of the children of a freed block whose child list is
+ * longer than one collector slice moves. The slice that frees the block moves
+ * the list to release pages. Each later slice drops the next children's holders
+ * by one and moves Next in the same transaction, and the last deletes the pages
+ * and clears the release.
  *
  * @generated from message block.gc.Release
  */
@@ -351,7 +351,7 @@ export interface Release {
    */
   next?: bigint
   /**
-   * Children is how many children the list names.
+   * Children is how many children the list contains.
    */
   children?: bigint
 }

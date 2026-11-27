@@ -20,7 +20,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "object/peer"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -31,7 +31,7 @@ type Controller struct {
 	*bus.BusController[*Config]
 	peerCtr *ccontainer.CContainer[peer.Peer]
 	peerRc  *refcount.RefCount[peer.Peer]
-	// xfrm transforms the stored value, may be nil if empty
+	// xfrm transforms the stored value, may be nil if empty.
 	xfrm *block_transform.Transformer
 }
 
@@ -110,7 +110,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 				}
 			}
 
-			// Otherwise we need to resolve the Peer to check, so return a resolver.
+			// Otherwise resolve the Peer to check, so return a resolver.
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (peer.GetPeerValue, func(), error) {
 				// Acquire the resolved peer reference for this constrained directive.
 				rPeer, relPeer, err := c.ResolvePeer(ctx, released)
@@ -238,7 +238,7 @@ func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Pee
 	}
 	defer scrub.Scrub(data)
 
-	// transform if needed
+	// transform the data if needed
 	if c.xfrm != nil {
 		data, err = c.xfrm.EncodeBlock(data)
 		if err != nil {
@@ -247,12 +247,12 @@ func (c *Controller) resolvePeer(ctx context.Context, released func()) (peer.Pee
 		defer scrub.Scrub(data)
 	}
 
-	// store
+	// store the key record
 	if err := ktx.Set(ctx, key, data); err != nil {
 		return nil, nil, err
 	}
 
-	// commit
+	// commit the transaction
 	if err := ktx.Commit(ctx); err != nil {
 		return nil, nil, err
 	}

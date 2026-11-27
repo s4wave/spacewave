@@ -48,7 +48,7 @@ function LandingWithSessionCheck() {
     [resource.value?.sessions],
   )
 
-  // Find the preferred local session when both local and cloud exist.
+  // Find the preferred local session when both local and cloud sessions exist.
   const preferredLocalIdx = useMemo(() => {
     const entries = metaResource.value
     if (!entries || entries.length < 2) return null
@@ -110,7 +110,7 @@ function LandingWithSessionCheck() {
     return <NavigatePath to={'/u/' + preferredLocalIdx + '/'} replace />
   }
 
-  // Still loading metadata for the preference check.
+  // Session metadata is still loading for the preference check.
   if (metaResource.loading) {
     return (
       <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">

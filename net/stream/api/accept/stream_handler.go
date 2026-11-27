@@ -12,11 +12,11 @@ import (
 
 // MountedStreamHandler implements the mounted stream handler.
 type MountedStreamHandler struct {
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
 	// rpcCh supplies one waiting RPC per accepted stream.
 	rpcCh <-chan *queuedRPC
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
 }
 

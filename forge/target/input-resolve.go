@@ -11,8 +11,9 @@ import (
 )
 
 // ResolveInputMap resolves Target inputs and returns their release function and
-// unresolved inputs. Input values supply aliases and scheduler-provided values;
-// other inputs resolve afresh so retained values cannot satisfy missing sources.
+// unresolved inputs. Input values supply aliases and scheduler-provided values.
+// Other inputs resolve afresh so retained values cannot satisfy missing
+// sources.
 // ResolveTaskOutput supplies the Task package's completed-output reader.
 func ResolveInputMap(
 	ctx context.Context,

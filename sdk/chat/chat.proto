@@ -27,8 +27,9 @@ message ChatChannel {
   map<string, ChatReadPosition> read_positions = 5;
   // CreatorPeerId is the peer identity that created the channel.
   string creator_peer_id = 6;
-  // EncryptionAlgorithm is the channel encryption policy. Empty allows plaintext;
-  // once enabled it cannot change. Annotations and state changes remain public.
+  // EncryptionAlgorithm is the channel encryption policy.
+  // Empty allows plaintext. Once enabled the algorithm cannot change.
+  // Annotations and state changes remain public.
   string encryption_algorithm = 7;
   // ThreadHeadKey starts the activity-ordered thread-summary list.
   string thread_head_key = 8;
@@ -116,8 +117,9 @@ message CreateChatChannelOp {
   string topic = 3;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 4;
-  // EncryptionAlgorithm initializes the channel encryption policy. Empty allows plaintext;
-  // once enabled it cannot change. Annotations and state changes remain public.
+  // EncryptionAlgorithm initializes the channel encryption policy.
+  // Empty allows plaintext. Once enabled the algorithm cannot change.
+  // Annotations and state changes remain public.
   string encryption_algorithm = 5;
   // InitialState is appended atomically in order with the channel creation timestamp.
   repeated ChatStateChange initial_state = 6;

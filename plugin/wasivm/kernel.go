@@ -18,16 +18,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// The Wayland compositor's screen size in pixels.
+// screenWidth and screenHeight define the Wayland compositor's screen size in
+// pixels.
 const screenWidth, screenHeight = 1024, 768
 
 // startKernel boots the kernel for one run on the root filesystem rootfs,
-// taking ownership of it. An in-memory upper layer holds the run's writes, so each run
-// starts from the unchanged root filesystem. It returns the run's console once
-// the kernel is booting. The kernel runs until ctx is canceled, init exits or
-// the system halts or restarts, then releases its resources, ends the console,
-// and calls exited with whether the system restarted and the error that
-// ended the run, or nil when it ended normally.
+// taking ownership of it. An in-memory upper layer holds the run's writes, so
+// each run starts from the unchanged root filesystem. startKernel returns the
+// run's console once the kernel is booting. The kernel runs until ctx is
+// canceled, init exits or the system halts or restarts, then releases its
+// resources, ends the console, and calls exited with whether the system
+// restarted and the error that ended the run, or nil when it ended normally.
 func startKernel(
 	ctx context.Context,
 	le *logrus.Entry,

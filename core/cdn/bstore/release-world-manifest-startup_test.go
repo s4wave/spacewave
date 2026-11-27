@@ -25,8 +25,9 @@ const (
 	releaseWorldManifestProbeBaseURLEnv = "SPACEWAVE_RELEASE_WORLD_CDN_BASE_URL"
 	releaseWorldManifestProbeSpaceIDEnv = "SPACEWAVE_RELEASE_WORLD_CDN_SPACE_ID"
 
-	// One initial tail per observed pack leaves a small payload allowance. This
-	// is deliberately RED for the observed 177-range startup shape.
+	// releaseWorldColdRangeBudget allows one initial tail per observed pack
+	// plus a small payload allowance. The budget is deliberately RED for
+	// the observed 177-range startup shape.
 	releaseWorldColdRangeBudget uint64 = 64
 )
 

@@ -41,20 +41,21 @@ const webWorkerServerIDPrefix = "web-worker/"
 //
 // Invariant: no call that originated in a plugin outside the host's set
 // reaches another plugin's root client. The rule is an allow list keyed on the
-// plugin the server ID names, and it fails closed:
+// plugin the server ID identifies, and the rule fails closed:
 //
-//   - "plugin/<X>" passes only with X in hostPluginIDs; "plugin/<X>/<sub>" is
+//   - "plugin/<X>" passes only with X in hostPluginIDs. "plugin/<X>/<sub>" is
 //     refused.
 //   - "web-worker/plugin/<X>" and "web-worker/plugin/<X>/<key>" pass only with
-//     X in hostPluginIDs; any other "web-worker/" ID is refused.
-//   - Any other server ID passes: the host names its own calls ("",
+//     X in hostPluginIDs. Any other "web-worker/" ID is refused.
+//   - Any other server ID passes: the host identifies its own calls ("",
 //     "plugin-host/<id>"), and "web-view/<id>" carries no owning plugin, while
 //     the app's own views need plugin roots.
 //
 // Limit: where the web runtime runs (a browser, an Electron renderer, devtool
-// web) a worker's or view's ID is the connecting script's own claim, so this
-// stops a plugin that names itself honestly, not a script that claims a host
-// plugin's ID or a view's. Only native plugin processes get host-assigned IDs.
+// web) a worker's or view's ID is the connecting script's own claim, so the
+// check stops a plugin that identifies itself honestly, not a script that
+// claims a host plugin's ID or a view's. Only native plugin processes get
+// host-assigned IDs.
 func MayReachPluginRoot(serverID string, hostPluginIDs []string) bool {
 	if workerID, ok := strings.CutPrefix(serverID, webWorkerServerIDPrefix); ok {
 		pluginID, ok := strings.CutPrefix(workerID, PluginServerIDPrefix)
@@ -68,7 +69,7 @@ func MayReachPluginRoot(serverID string, hostPluginIDs []string) bool {
 	return slices.Contains(hostPluginIDs, pluginID)
 }
 
-// IsWebWorkerServerID reports whether serverID names a web worker's calls.
+// IsWebWorkerServerID reports whether serverID identifies a web worker's calls.
 func IsWebWorkerServerID(serverID string) bool {
 	return strings.HasPrefix(serverID, webWorkerServerIDPrefix)
 }

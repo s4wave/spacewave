@@ -8,7 +8,7 @@ type ViewerSide = {
 
 export const title = 'Side column and Details: the facts by pane width'
 
-// column names what the pane's left edge draws.
+// column returns what the pane's left edge draws.
 const column = (v: ViewerSide) => {
   if (v.width !== 'wide') return 'none'
   return v.side === 'open' ? 'facts, Collapse' : 'rail, Expand'

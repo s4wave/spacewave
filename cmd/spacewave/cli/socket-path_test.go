@@ -62,7 +62,7 @@ func TestEffectiveSocketPathFlagBeatsEnv(t *testing.T) {
 }
 
 // TestEffectiveSocketPathUnsetReturnsFallback asserts absent flag and
-// env yield the caller-provided fallback (empty by convention).
+// env values yield the caller-provided fallback (empty by convention).
 func TestEffectiveSocketPathUnsetReturnsFallback(t *testing.T) {
 	clearSocketPathEnv(t)
 
@@ -73,7 +73,7 @@ func TestEffectiveSocketPathUnsetReturnsFallback(t *testing.T) {
 }
 
 // TestServeSocketPathUsesExplicitListener proves serve does not replace an
-// exact socket path with the state-local default.
+// exact socket path with the state-local default socket path.
 func TestServeSocketPathUsesExplicitListener(t *testing.T) {
 	// Clear the socket-path environment and choose an explicit socket.
 	clearSocketPathEnv(t)
@@ -132,7 +132,7 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 		return nil, nil
 	}
 
-	// Require the dial error to name the socket and the desktop app.
+	// Require the dial error to identify the socket and the desktop app.
 	_, err := connectDaemonAtSocket(context.Background(), "/tmp/desktop.sock")
 	if err == nil {
 		t.Fatal("expected dial failure error")

@@ -29,7 +29,7 @@ func (i *Tree) IsNil() bool {
 	return i == nil
 }
 
-// Validate performs cursory validation of the tree.
+// Validate validates the tree cursorily.
 func (i *Tree) Validate() error {
 	for idx, ent := range i.GetEntries() {
 		if err := ent.Validate(); err != nil {

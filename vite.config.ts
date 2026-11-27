@@ -53,7 +53,7 @@ export default defineConfig({
   build: {
     assetsInlineLimit: 2048,
     rolldownOptions: {
-      // This is overridden by bldr, but useful for "vite build" testing.
+      // The input is overridden by bldr, but useful for "vite build" testing.
       input: {
         app: resolve(__dirname, './app/App.tsx'),
       },

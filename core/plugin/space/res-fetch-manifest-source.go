@@ -11,9 +11,9 @@ import (
 )
 
 // resolveSourceFetchManifest relays a listed manifest request to the parent
-// bus. The parent directive exists only while the Space lists the plugin. It
-// adds a value only when the parent supplies manifests, so an empty parent
-// never masks the Space World resolver. Each root the parent supplies is
+// bus. The parent directive exists only while the Space lists the plugin. The
+// resolver adds a value only when the parent supplies manifests, so an empty
+// parent never masks the Space World resolver. Each root the parent supplies is
 // recorded as trusted: the parent serves only the release and the development
 // build, never a Space World.
 func (c *Controller) resolveSourceFetchManifest(
@@ -89,7 +89,7 @@ func (c *Controller) resolveSourceFetchManifest(
 }
 
 // getManifestSourceListing snapshots the parent source and whether the Space
-// lists the plugin. A listing is what the Space demands; whether the plugin
+// lists the plugin. A listing is what the Space demands. Whether the plugin
 // may run is the device's AdmitPluginRoot decision.
 func (c *Controller) getManifestSourceListing(manifestID string) (bus.Bus, bool, <-chan struct{}) {
 	// Snapshot the parent source, listing, and wait channel under the lock.
@@ -105,8 +105,9 @@ func (c *Controller) getManifestSourceListing(manifestID string) (bus.Bus, bool,
 }
 
 // addSourceRoots records the manifest roots the parent source supplied for
-// pluginID. Roots are only added: each names immutable content the release or
-// the development build supplied, which stays true after the parent drops it.
+// pluginID. Roots are only added: each identifies immutable content the release
+// or the development build supplied. That provenance stays true after the
+// parent drops the root.
 func (c *Controller) addSourceRoots(pluginID string, refs []*manifest.ManifestRef) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		added := false

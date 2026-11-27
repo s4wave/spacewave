@@ -50,8 +50,8 @@ message ChatEnvelope {
   // Data is the protocol's exact bytes, bounded to 64 KiB.
   bytes data = 2;
   // RedactedData is the protocol's form of the message after redaction, bounded
-  // to 64 KiB. Redacting the message replaces Data with it and clears it; empty
-  // leaves no bytes.
+  // to 64 KiB. Redacting the message replaces Data with RedactedData and clears
+  // RedactedData. An empty RedactedData leaves no bytes.
   bytes redacted_data = 3;
   // Prelude holds, in order, at most 16 events the protocol requires before this
   // one, such as the sender's admission to the conversation. Each carries only

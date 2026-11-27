@@ -262,7 +262,7 @@ func TestBillyFS_FileRoundtrip(t *testing.T) {
 }
 
 // TestBillyFS_ReadFromShortReads copies a reader that returns one byte per
-// Read, which ReadFrom gathers into full writes.
+// Read. ReadFrom gathers the bytes into full writes.
 func TestBillyFS_ReadFromShortReads(t *testing.T) {
 	// Copy the content into a new file.
 	billyFS, _ := newTestBillyFS(t)
@@ -619,8 +619,8 @@ func TestBillyFS_LstatSymlink(t *testing.T) {
 
 // TestBillyFS_GitStatusSymlink tests that go-git's worktree.Status() reports
 // a clean status after checking out a commit that contains symlinks into a
-// BillyFS-backed worktree. This reproduces the production bug where all
-// symlinks showed as Modified after checkout.
+// BillyFS-backed worktree. The test guards against all symlinks appearing as
+// Modified after checkout in production.
 func TestBillyFS_GitStatusSymlink(t *testing.T) {
 	// Create a BillyFS backed by memfs for the worktree.
 	wtBfs := memfs.New()
@@ -722,7 +722,7 @@ func TestBillyFS_GitStatusSymlink(t *testing.T) {
 
 	// Now simulate what happens in production: open the repo again with
 	// a fresh BillyFS pointing to the same underlying storage, and check
-	// status. This tests the Lstat/Readlink round-trip.
+	// status. Reopening tests the Lstat/Readlink round-trip.
 	fsc2 := unixfs_billy.NewBillyFSCursor(wtBfs, "")
 	t.Cleanup(fsc2.Release)
 	fsh2, err := unixfs.NewFSHandle(fsc2)

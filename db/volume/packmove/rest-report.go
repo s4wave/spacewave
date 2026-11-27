@@ -1,7 +1,8 @@
 package packmove
 
 // RestReport counts the keys outside the volume's block range, which Switch
-// copies whole, so it sizes the new file apart from the blocks it keeps.
+// copies whole, so the report sizes the new file apart from the blocks
+// Switch keeps.
 type RestReport struct {
 	// Keys is the number of keys counted.
 	Keys uint64

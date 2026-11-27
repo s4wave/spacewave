@@ -9,14 +9,14 @@ import (
 
 // FSHandleCursor implements a FSCursor attached to a FSHandle.
 type FSHandleCursor struct {
-	// released indicates this FSHandleCursor was released
+	// released indicates this FSHandleCursor was released.
 	released atomic.Bool
-	// handle is the FSHandle
+	// handle is the FSHandle.
 	handle *FSHandle
-	// releaseHandle indicates we should release the FSHandle when released.
+	// releaseHandle indicates Release should release the FSHandle.
 	releaseHandle bool
-	// relFunc is the function to call when released
-	// may be nil
+	// relFunc is the function to call when released.
+	// relFunc may be nil.
 	relFunc func()
 }
 
@@ -58,7 +58,7 @@ func (f *FSHandleCursor) GetCursorOps(ctx context.Context) (FSCursorOps, error) 
 }
 
 // Release releases the filesystem cursor.
-// note: locks rmtx. must NOT be locked when calling
+// note: locks rmtx. must NOT be locked when calling.
 func (f *FSHandleCursor) Release() {
 	if !f.released.Swap(true) && f.releaseHandle {
 		f.handle.Release()

@@ -8,7 +8,7 @@ import (
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
-// TestSharingSequencer checks how the sharing state names the appointed
+// TestSharingSequencer checks how the sharing state describes the appointed
 // sequencer to the viewer.
 func TestSharingSequencer(t *testing.T) {
 	// The viewer and one other member device share a Space.

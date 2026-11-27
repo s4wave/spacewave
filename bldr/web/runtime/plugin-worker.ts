@@ -20,9 +20,9 @@ export const PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS = 5000
 // own OPFS storage, and a SharedWorker scope cannot call
 // navigator.storage.getDirectory() (Chrome throws SecurityError). In B/C the
 // plugin's storage routes through the engine runtime worker, which owns the
-// SharedWorker OPFS bridge for the shared engine; requesting a second bridge
+// SharedWorker OPFS bridge for the shared engine. Requesting a second bridge
 // from a B/C plugin worker only blocks native plugin startup on a document that
-// is already tearing down, so the plugin must skip it.
+// is already tearing down, so the plugin must skip the second bridge request.
 function shouldRequestOpfsBridge(
   workerCommsDetect?: WorkerCommsDetectResult,
 ): boolean {
@@ -123,7 +123,8 @@ export class PluginWorker {
     this.armWorkerLock()
 
     if (checkSharedWorker(global)) {
-      // If this is a SharedWorker, handle the "connect" event when a WebDocument connects.
+      // If the worker is a SharedWorker, handle the "connect" event when a
+      // WebDocument connects.
       global.addEventListener('connect', (ev) => {
         // With a shared worker, "connect" is fired when "new SharedWorker" is called.
         // The port passed with the event is connected to the sharedWorker.port on the WebDocument.
@@ -141,7 +142,7 @@ export class PluginWorker {
         port.start()
       })
     } else {
-      // Otherwise this must be a DedicatedWorker.
+      // Otherwise the worker must be a DedicatedWorker.
       global.addEventListener('message', this.handleWorkerMessage.bind(this))
     }
   }
@@ -149,7 +150,7 @@ export class PluginWorker {
   // onWebDocumentsExhausted observes a transient zero-WebDocument window.
   private async onWebDocumentsExhausted() {
     // A page reload can detach the old WebDocument before the replacement
-    // attaches; re-adoptable workers must let WebDocumentTracker's
+    // attaches, so re-adoptable workers must let WebDocumentTracker's
     // next-document waiter resume the in-flight open. Genuine orphan teardown
     // stays with the worker liveness lock and browser worker reclamation.
     console.log(
@@ -310,7 +311,7 @@ export class PluginWorker {
   // refreshOpfsBridge re-hosts the OPFS bridge after the host WebDocument was
   // removed or its bridge worker died. Swapping the port closes the prior
   // OpfsBridgeClient, which rejects in-flight Go requests, and installs a fresh
-  // worker; the volume controller remounts on the resulting stale-handle error.
+  // worker. The volume controller remounts on the resulting stale-handle error.
   private refreshOpfsBridge() {
     if (!this.shouldMaintainOpfsBridge || this.shuttingDown) {
       return

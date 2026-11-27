@@ -316,7 +316,7 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 }
 
 // TestDoResendsRateLimitedRequest checks that a rate_limited response is
-// resent with the same body after the delay the Cloud names.
+// resent with the same body after the delay the Cloud specifies.
 func TestDoResendsRateLimitedRequest(t *testing.T) {
 	// Encode the Cloud's rate limit response.
 	errResp := &api.ErrorResponse{
@@ -471,7 +471,7 @@ func TestGetAdminJSONKeepsPathBelowAdmin(t *testing.T) {
 		t.Fatalf("request URI: got %q, want %q", got, want)
 	}
 
-	// Reject paths that escape the admin routes or name another host.
+	// Reject paths that escape the admin routes or reference another host.
 	for _, requestPath := range []string{"../session", "accounts/../../x", "%2e%2e/x", "//evil.example/api/admin", "https://evil.example/"} {
 		if _, err := cli.GetAdminJSON(context.Background(), requestPath); err == nil {
 			t.Fatalf("GetAdminJSON(%q): expected error", requestPath)
@@ -715,8 +715,8 @@ func TestRegisterAccount_Success(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_MissingAccountID verifies RegisterAccount returns error
-// when response has no account_id.
+// TestRegisterAccount_MissingAccountID verifies RegisterAccount returns an
+// error when the response has no account_id.
 func TestRegisterAccount_MissingAccountID(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -739,7 +739,7 @@ func TestRegisterAccount_MissingAccountID(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_NoPrivateKey verifies RegisterAccount returns error
+// TestRegisterAccount_NoPrivateKey verifies RegisterAccount returns an error
 // without a key.
 func TestRegisterAccount_NoPrivateKey(t *testing.T) {
 	_, pid := generateTestKeypair(t)
@@ -759,7 +759,7 @@ func TestRegisterAccount_NoPrivateKey(t *testing.T) {
 	}
 }
 
-// TestRegisterAccount_ServerError verifies RegisterAccount returns error for
+// TestRegisterAccount_ServerError verifies RegisterAccount returns an error for
 // server failures.
 func TestRegisterAccount_ServerError(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
@@ -1349,7 +1349,8 @@ func TestSessionClientSeedReason(t *testing.T) {
 			reason: SeedReasonReconnect,
 			call: func(t *testing.T, cli *SessionClient) error {
 				_, err := cli.GetSessionTicket(context.Background())
-				// Accept any outcome; we only care about the header tagging.
+				// Accept any outcome. TestSessionClientSeedReason only checks
+				// header tagging.
 				_ = err
 				return nil
 			},
@@ -1358,7 +1359,7 @@ func TestSessionClientSeedReason(t *testing.T) {
 			name:   "SyncPull",
 			reason: SeedReasonColdSeed,
 			call: func(t *testing.T, cli *SessionClient) error {
-				// The stub body is not a catalog page; only the header matters.
+				// The stub body is not a catalog page. Only the header matters.
 				_, _ = cli.SyncPull(context.Background(), "res-1", 0)
 				return nil
 			},
@@ -1415,7 +1416,8 @@ func TestSessionClientSeedReason(t *testing.T) {
 			reason: SeedReasonRejoin,
 			call: func(t *testing.T, cli *SessionClient) error {
 				_, err := cli.GetSORecoveryEnvelope(context.Background(), "so-1")
-				// 500 without a valid body surfaces as unmarshal-ish errors; tolerate any error.
+				// 500 without a valid body surfaces as unmarshal-ish errors.
+				// Tolerate any error.
 				_ = err
 				return nil
 			},

@@ -39,7 +39,7 @@ message PutResponse {
   // Some stores may always return false for this.
   bool exists = 2;
   // Err contains any error putting the ref.
-  // If empty, the ref must not be nil, op succeeded.
+  // If empty, the ref must not be nil and the operation succeeded.
   string err = 3;
 }
 
@@ -53,7 +53,7 @@ message GetResponse {
   // If empty, not_found or data must be set.
   string err = 3;
   // Refs are the block's outgoing refs when the request asked for refs and
-  // refs_known is set. Empty with refs_known set means a leaf.
+  // refs_known is set. Empty Refs with refs_known set means a leaf.
   repeated .block.BlockRef refs = 4;
   // RefsKnown indicates the store recorded the block's outgoing refs.
   bool refs_known = 5;

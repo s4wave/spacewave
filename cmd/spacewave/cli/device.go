@@ -67,7 +67,7 @@ type deviceSetupRecord struct {
 	Label string `json:"label,omitempty"`
 	// RequestedRole is the Space role the ticket requests.
 	RequestedRole string `json:"requestedRole,omitempty"`
-	// TargetHint names the Space the operator intends to link.
+	// TargetHint identifies the Space the operator intends to link.
 	TargetHint string `json:"targetHint,omitempty"`
 	// CompletionMode is how the completion reaches the Device.
 	CompletionMode string `json:"completionMode,omitempty"`
@@ -98,7 +98,7 @@ type deviceSetupRecord struct {
 }
 
 // deviceStatusOutput reports the daemon and the setup record. Fields shared
-// with deviceSetupRecord mean the same; the completion is never reported.
+// with deviceSetupRecord mean the same. The completion is never reported.
 type deviceStatusOutput struct {
 	// DaemonStatus is the daemon's state.
 	DaemonStatus string `json:"daemonStatus"`
@@ -114,7 +114,7 @@ type deviceStatusOutput struct {
 	Label string `json:"label,omitempty"`
 	// RequestedRole is the Space role the ticket requests.
 	RequestedRole string `json:"requestedRole,omitempty"`
-	// TargetHint names the Space the operator intends to link.
+	// TargetHint identifies the Space the operator intends to link.
 	TargetHint string `json:"targetHint,omitempty"`
 	// CompletionMode is how the completion reaches the Device.
 	CompletionMode string `json:"completionMode,omitempty"`
@@ -758,7 +758,7 @@ func applySuccessfulDeviceCompletion(
 }
 
 // applyLocalDeviceCompletion imports a local SpaceLink completion. The local
-// completion carries a targeted invite instead of a cloud account ID; the
+// completion carries a targeted invite instead of a cloud account ID. The
 // Device creates its own local session from its durable key when the
 // enrollment is activated.
 func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, now time.Time) (*deviceSetupRecord, error) {
@@ -870,8 +870,9 @@ func openDeviceSession(
 
 // openLocalDeviceSession activates a local SpaceLink enrollment: the daemon's
 // local provider creates or reopens the Device's own session from its durable
-// key and joins the target Space through the one-use targeted invite. It then
-// waits for the joined World to accept the Device object.
+// key and joins the target Space through the one-use targeted invite.
+// openLocalDeviceSession then waits for the joined World to accept the Device
+// object.
 func openLocalDeviceSession(
 	ctx context.Context,
 	client *sdkClient,
@@ -898,11 +899,11 @@ func openLocalDeviceSession(
 
 // projectDeviceEnrollment writes the session-ready Device object for an
 // activated record and persists the result. onBlocked, when set, reports each
-// failed write while the projection waits for the World to advance; without it
-// the first failure returns. A failed first projection persists the record as
-// imported with its reason; a failed repair of a projected record changes
-// nothing. The result is not persisted when another completion replaced the
-// record during the projection.
+// failed write while the projection waits for the World to advance. Without
+// onBlocked, the first failure returns. A failed first projection persists the
+// record as imported with its reason. A failed repair of a projected record
+// changes nothing. The result is not persisted when another completion
+// replaced the record during the projection.
 func projectDeviceEnrollment(
 	ctx context.Context,
 	client *sdkClient,
@@ -1112,7 +1113,8 @@ func upsertLinkedDeviceObject(
 // World snapshot when another writer advances the SharedObject root. When
 // onBlocked is set, every other failed write is reported and retried once the
 // World advances past the revision it was attempted against, such as after a
-// block the replay waits for arrives. Without onBlocked it returns the error.
+// block the replay waits for arrives. Without onBlocked, the function returns
+// the error.
 func upsertLinkedDeviceObjectInWorld(
 	ctx context.Context,
 	engine world.Engine,

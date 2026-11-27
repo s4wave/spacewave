@@ -46,7 +46,7 @@ export interface Envelope {
   keypairs?: EnvelopeKeypair[]
   /**
    * Contents is an optional plaintext description of what the envelope contains.
-   * Application-specific; not used in the unlock process.
+   * Application-specific. Not used in the unlock process.
    */
   contents?: Uint8Array
 }

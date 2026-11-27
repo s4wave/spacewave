@@ -22,10 +22,10 @@ const typeGraphLookupLimit uint32 = 1_000_000
 
 // ObjectTypeLister lists objects by type without requiring a Cayley handle.
 type ObjectTypeLister interface {
-	// ListObjectsWithType returns a page of distinct keys in graph-index order,
-	// strictly after startAfter. A non-zero limit bounds the page; more implies
-	// a non-empty page with another page available. Exactly-once traversal
-	// requires an unchanged World across pages.
+	// ListObjectsWithType returns a page of distinct keys in graph-index
+	// order, strictly after startAfter. A non-zero limit bounds the page.
+	// more implies a non-empty page with another page available.
+	// Exactly-once traversal requires an unchanged World across pages.
 	ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error)
 }
 
@@ -96,7 +96,7 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 
 // CheckObjectType asserts that the object key exists and has the given type.
 // A missing or other type is a *world.OpRefusedError, the World's answer for
-// key; an error reading the type is returned as is.
+// key. An error reading the type is returned as is.
 func CheckObjectType(ctx context.Context, ws world.WorldState, key, typeID string) error {
 	// Read the type, then refuse a missing object or another type.
 	objType, err := GetObjectType(ctx, ws, key)
@@ -150,12 +150,13 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 	return ws.SetGraphQuad(ctx, nextQuad)
 }
 
-// EnsureTypeExists creates the object representing the type ID if it doesn't exist.
+// EnsureTypeExists creates the object representing the type ID if it doesn't
+// exist.
 //
 // The world state answers HasObject from transaction-local knowledge when it
 // can, so repeated calls with the same type within one transaction avoid
-// re-reading the type object. Creating the object only when HasObject reports it
-// absent is safe under the single-writer transaction discipline; concurrent
+// re-reading the type object. Creating the object only when HasObject reports
+// it absent is safe under the single-writer transaction discipline. Concurrent
 // creation is not a concern within one transaction.
 func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) error {
 	// Check whether the World already contains the type object.

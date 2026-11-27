@@ -32,7 +32,7 @@ type FolderRootChangedError struct {
 	Missing bool
 }
 
-// Error names the folder and both identities.
+// Error describes the folder and both identities.
 func (e *FolderRootChangedError) Error() string {
 	if e.Missing {
 		return fmt.Sprintf("%s: %s is missing; it was linked on file system %d", ErrFolderRootChanged, e.Folder, e.Recorded)

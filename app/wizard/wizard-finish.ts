@@ -17,9 +17,9 @@ import {
   WorldErrorCode,
 } from '@s4wave/sdk/world/world.pb.js'
 
-// WizardRef names a wizard object in a Space World and the peer that writes
-// as the session. A useWizardState result satisfies it, and creation code
-// that runs outside React builds one from its request.
+// WizardRef identifies a wizard object in a Space World and the peer that
+// writes as the session. A useWizardState result satisfies it, and creation
+// code that runs outside React builds one from its request.
 export interface WizardRef {
   spaceWorld: EngineWorldState
   objectKey: string
@@ -27,8 +27,8 @@ export interface WizardRef {
 }
 
 // WizardMutation is one write a wizard's Finish or Cancel applies. op applies
-// a World operation as the session peer; link sets the graph quad from one
-// object to another under predicate, an IRI; delete removes an object and its
+// a World operation as the session peer. link sets the graph quad from one
+// object to another under predicate, an IRI. delete removes an object and its
 // quads, and fails the whole list with WizardGoneError when the object is
 // gone. Each is plain data, so the list crosses to the World as one request.
 export type WizardMutation =
@@ -46,8 +46,9 @@ export type WizardMutation =
 // the create with WizardGoneError.
 //
 // signal cancels the list before it is sent, so an abort before then lands
-// nothing. The batch itself does not take it: once it is sent, its result is
-// the outcome, so an abort can never report a Finish that landed as failed.
+// nothing. The batch itself does not take signal: once the list is sent, its
+// result is the outcome, so an abort can never report a Finish that landed as
+// failed.
 export async function applyWizardMutations(
   world: EngineWorldState,
   sender: string,
@@ -58,8 +59,8 @@ export async function applyWizardMutations(
   const response = await world
     .getEngine()
     .executeWorldBatch(mutations.map((m) => wizardWorldMutation(sender, m)))
-  // A delete or link refused for a missing object names the wizard: a list
-  // links only from the wizard to an object it creates earlier in the list.
+  // A delete or link refused for a missing object refers to the wizard: a
+  // list links only from the wizard to an object the list creates earlier.
   const refused = mutations[response.failedIndex ?? 0]
   if (
     response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND &&
@@ -121,15 +122,15 @@ export class WizardInputError extends Error {
 }
 
 // wizardRemoval lists the writes that remove a wizard: a Space index that
-// names it moves to indexPath, or is cleared when indexPath is empty, then
-// the wizard is deleted. The index op always goes in the list and expects the
-// wizard's key, so the World decides inside the transaction: it moves an
-// index that names the wizard and leaves any other index, without error. No
-// client read of the index is involved, so a settings watch that has not
-// loaded or lags cannot leave the index naming a deleted wizard. The delete
-// expects the wizard, so a wizard another tab finished or cancelled refuses
-// the whole list rather than creating a second object or reporting a second
-// ending, even for a Finish that creates nothing.
+// points to the wizard moves to indexPath, or is cleared when indexPath is
+// empty, then the wizard is deleted. The index op always goes in the list and
+// expects the wizard's key, so the World decides inside the transaction: it
+// moves an index that points to the wizard and leaves any other index, without
+// error. No client read of the index is involved, so a settings watch that has
+// not loaded or lags cannot leave the index pointing to a deleted wizard. The
+// delete expects the wizard, so a wizard another tab finished or cancelled
+// refuses the whole list rather than creating a second object or reporting a
+// second ending, even for a Finish that creates nothing.
 function wizardRemoval(wizard: WizardRef, indexPath: string): WizardMutation[] {
   return [
     {
@@ -159,7 +160,8 @@ export interface WizardFinishPlan {
 }
 
 // WizardFinishTarget is what a Finish made: the object to open, the path a
-// Space index naming the wizard moves to, and the name a success notice uses.
+// Space index pointing to the wizard moves to, and the name a success notice
+// uses.
 export interface WizardFinishTarget {
   openKey: string
   indexPath: string
@@ -168,14 +170,14 @@ export interface WizardFinishTarget {
 
 // finishWizard applies a prepared Finish as one list: the creates, the
 // ending, the index move and the wizard delete. The wizard exists until the
-// list commits and its target exists only once it has, so a failure leaves
-// the wizard, the index and the person's draft as they were, and Retry runs it
-// all again. Every Finish, including one that creates nothing, refuses with
-// WizardGoneError once the wizard is gone.
+// list commits and its target exists only once the list has committed, so a
+// failure leaves the wizard, the index and the person's draft as they were,
+// and Retry runs it all again. Every Finish, including one that creates
+// nothing, refuses with WizardGoneError once the wizard is gone.
 //
 // The ending records target.openKey in the World with the wizard's removal,
 // so whoever sees the wizard gone, this tab after a lost reply or a reload,
-// or any other tab, reads whether it finished and as what.
+// or any other tab, reads whether the wizard finished and as what.
 export async function finishWizard(
   wizard: WizardRef,
   plan: WizardFinishPlan,
@@ -223,8 +225,8 @@ export async function finishLanded(
 }
 
 // cancelWizard removes a wizard without creating anything: a Space index
-// that names it moves to indexPath, or is cleared. A wizard already gone,
-// because another tab finished or cancelled it, refuses with
+// that points to the wizard moves to indexPath, or is cleared. A wizard already
+// gone, because another tab finished or cancelled it, refuses with
 // WizardGoneError, so a Cancel never succeeds beside a Finish.
 export async function cancelWizard(
   wizard: WizardRef,
@@ -241,19 +243,20 @@ export async function cancelWizard(
 
 // WizardFinishState is the Finish control's state, from WizardFinish.tla.
 // idle offers Finish, with the message of a press whose input was refused,
-// before anything was written or by the operation itself; finishing applies
-// the list; failed says what failed and offers Retry, which prepares and
-// applies the whole list again; unsupported means the plugin behind the list
+// before anything was written or by the operation itself. finishing applies
+// the list. failed says what failed and offers Retry, which prepares and
+// applies the whole list again. unsupported means the plugin behind the list
 // has no build for this device, so no press here can finish and the wizard
-// offers only its delete and Back; done means this press removed the wizard
-// and its target opens; gone means the wizard was removed outside this press,
-// and WizardGone reads from the World whether it finished, and as what, or
-// was deleted.
+// offers only its delete and Back. done means this press removed the wizard
+// and its target opens. gone means the wizard was removed outside this press,
+// and WizardGone reads from the World whether the wizard finished, and as
+// what, or was deleted.
 //
 // A failed list may have committed with its reply lost. The press checks the
-// recorded ending before it shows failed, and a later Retry is refused as gone
-// and checks it again; a failed press the watch then sees gone shows gone,
-// where the ending names the object it made.
+// recorded ending before the press shows failed, and a later Retry is refused
+// as gone and checks the ending again. When the watch then sees the wizard
+// gone after a failed press, the view shows gone, where the ending records the
+// object the press made.
 export type WizardFinishState =
   | { status: 'idle'; message?: string }
   | { status: 'finishing' }
@@ -297,10 +300,10 @@ export function wizardFinishView(
 }
 
 // refusedFinishState is the state a press that threw ends in: idle with the
-// message for an input the person can fix, which the operation's own
-// rejection is too, since the same list fails the same way; gone for a wizard
-// removed outside this press; unsupported for a plugin with no build for this
-// device; and failed with Retry for anything else.
+// message for an input the person can fix. The operation's own rejection also
+// ends in idle, since the same list fails the same way. The press ends in gone
+// for a wizard removed outside this press, in unsupported for a plugin with
+// no build for this device, and in failed with Retry for anything else.
 function refusedFinishState(err: unknown): WizardFinishState {
   if (
     err instanceof WizardInputError ||
@@ -325,7 +328,7 @@ export interface UseWizardFinishResult {
   // checks the input, reads what the writes need and builds the plan, then
   // the plan applies as one list. A WizardInputError from prepare returns the
   // press to idle with its message. onDone runs once the wizard is
-  // gone, unless the wizard unmounted while the press ran. It resolves with
+  // gone, unless the wizard unmounted while the press ran. finish resolves with
   // the state the press ended in, or undefined when a press was already
   // running.
   finish: (
@@ -339,7 +342,7 @@ export interface UseWizardFinishResult {
 export function useWizardFinish(
   wizard: WizardRef & { wizardGone?: boolean },
 ): UseWizardFinishResult {
-  // The control's own state, and whether a press is running.
+  // Track the control's own state and whether a press is running.
   const [state, dispatch] = useReducer(wizardFinishReducer, {
     status: 'idle',
   })

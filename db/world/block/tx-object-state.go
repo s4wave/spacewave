@@ -12,11 +12,11 @@ import (
 // TxObjectState is an Object attached to a Tx.
 // Concurrent safe guarded by rmtx on the Tx.
 type TxObjectState struct {
-	// tx is the transaction
+	// tx is the transaction.
 	tx *Tx
-	// key is the object key
+	// key is the object key.
 	key string
-	// o is the object
+	// o is the object.
 	o world.ObjectState
 }
 
@@ -98,7 +98,7 @@ func (t *TxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	})
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified revision.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev. Only a change to this object's key wakes the wait.

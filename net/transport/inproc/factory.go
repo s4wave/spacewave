@@ -14,7 +14,7 @@ import (
 
 // Factory constructs a Inproc transport.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

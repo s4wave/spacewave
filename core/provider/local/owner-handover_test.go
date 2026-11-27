@@ -69,7 +69,8 @@ func TestNativeOwnerHandoverRestart(t *testing.T) {
 	owner.ForgetP2PPeers()
 	object, _ = mountOwned(ctx, t, owner, ref)
 
-	// It reads handing over, with itself departing and the successor owning.
+	// The owner reads handing over, with itself departing and the successor
+	// owning.
 	// The state snapshot is published after the host state it follows, so a
 	// read right after the remount can still hold the config before the leave.
 	snap := waitSnapshotSeqno(ctx, t, object, left.GetConfig().GetConfigChainSeqno())
@@ -124,7 +125,7 @@ func waitSnapshotSeqno(ctx context.Context, t *testing.T, object *provider_local
 	}
 	defer release()
 
-	// Wait for one at seqno.
+	// Wait for a state snapshot at seqno.
 	snap, err := snaps.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
 		if snap == nil {
 			return false, nil

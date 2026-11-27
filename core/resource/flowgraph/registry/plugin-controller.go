@@ -17,8 +17,8 @@ import (
 var pluginControllerVersion = controller.MustParseVersion("0.0.1")
 
 // pluginConfig carries a plugin config's encoded bytes through the host bus,
-// which has no Go type for it, bound to the registration whose plugin compiled
-// it. The plugin decodes the bytes.
+// which has no Go type for the config, bound to the registration whose plugin
+// compiled the config. The plugin decodes the bytes.
 type pluginConfig struct {
 	// configID is the plugin config ID.
 	configID string
@@ -33,7 +33,7 @@ func (c *pluginConfig) GetConfigID() string {
 	return c.configID
 }
 
-// Validate accepts any bytes; the plugin validates the decoded config.
+// Validate accepts any bytes because the plugin validates the decoded config.
 func (c *pluginConfig) Validate() error {
 	return nil
 }
@@ -133,7 +133,8 @@ func (f *pluginFactory) Construct(ctx context.Context, conf config.Config, _ con
 		return nil, err
 	}
 
-	// Wait for the plugin to run it; the stream's error explains a failure.
+	// Wait for the plugin to run the controller.
+	// The stream's error explains a failure.
 	for {
 		resp, err := strm.Recv()
 		if err != nil {
@@ -185,7 +186,7 @@ func (c *pluginController) Execute(ctx context.Context) error {
 	}
 }
 
-// HandleDirective resolves nothing; the plugin controller resolves on its bus.
+// HandleDirective resolves nothing. The plugin controller resolves on its bus.
 func (c *pluginController) HandleDirective(context.Context, directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil
 }

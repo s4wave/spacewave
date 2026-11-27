@@ -7,38 +7,39 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures the rpc volume server.
- * Provides the AccessVolumes RPC service.
- * Accesses volumes with LookupVolume and other directives.
+ * Config provides the AccessVolumes RPC service.
+ * Config accesses volumes with LookupVolume and other directives.
  *
  * @generated from message volume.rpc.server.Config
  */
 export interface Config {
   /**
    * ServiceId is the service id to listen on.
-   * Usually a prefix with: rpc.volume.AccessVolumes
-   * Cannot be empty.
+   * ServiceId is usually a prefix with rpc.volume.AccessVolumes.
+   * ServiceId cannot be empty.
    */
   serviceId?: string
   /**
    * VolumeIdRe is a regex string to match volume IDs.
-   * Set to '.*' to match all volumes.
-   * ignored if empty.
+   * Set VolumeIdRe to '.*' to match all volumes.
+   * VolumeIdRe is ignored if empty.
    */
   volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
-   * If the value is in this list, overrides volume_id_re.
-   * ignored if empty.
+   * If the volume ID is in this list, VolumeIdList overrides volume_id_re.
+   * VolumeIdList is ignored if empty.
    */
   volumeIdList?: string[]
   /**
    * ExposePrivateKey enables callers to fetch the private key for the volume.
-   * Defaults to false.
+   * ExposePrivateKey defaults to false.
    */
   exposePrivateKey?: boolean
   /**
-   * ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
-   * If empty string, defaults to 1s (1 second).
+   * ReleaseDelay is a delay duration to wait before releasing an unreferenced
+   * volume.
+   * If ReleaseDelay is an empty string, the delay defaults to 1s (1 second).
    */
   releaseDelay?: string
 }

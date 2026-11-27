@@ -5,13 +5,13 @@ import { BldrContext, IBldrContext } from './bldr-context.js'
 import { DebugInfo } from './DebugInfo.js'
 
 interface IWebDocumentProps {
-  // children contains optional child DOM of the app container
+  // children contains optional child DOM of the app container.
   children?: React.ReactNode
   // webDocument is the external bldr WebDocument handle.
-  // if unset, constructs a default WebDocument.
+  // If unset, WebDocument constructs a default WebDocument.
   webDocument?: BldrWebDocument
   // webDocumentOpts are options to pass to WebDocument.
-  // ignored if webDocument is set
+  // The options are ignored if webDocument is set.
   webDocumentOpts?: WebDocumentOptions
   // showDebugInfo shows debug information about the WebDocument.
   showDebugInfo?: boolean

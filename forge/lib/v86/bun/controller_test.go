@@ -215,7 +215,7 @@ func TestOutputMountViaSRPC(t *testing.T) {
 }
 
 // seedUnixFSTree creates a UnixFS tree with a test file and returns its BlockRef.
-// This simulates a forge input providing a UnixFS tree for mounting.
+// The seeded tree simulates a forge input providing a UnixFS tree for mounting.
 func seedUnixFSTree(t *testing.T, ctx context.Context, cs *bucket_lookup.Cursor, filename string, content []byte) *block.BlockRef {
 	// Attribute UnixFS seed failures to the calling test.
 	t.Helper()
@@ -529,8 +529,8 @@ func TestOutputInputChain(t *testing.T) {
 // TestOutputInputChainViaSRPC tests the two-stage pipeline over the v86fs
 // SRPC protocol. Stage A writes files through SRPC (simulating VM guest
 // writes). Stage B reads those files through SRPC (simulating VM guest
-// reads from an input mount). This is the full data path a real v86 task
-// chain would exercise.
+// reads from an input mount). The SRPC pipeline is the full data path a real
+// v86 task chain would exercise.
 func TestOutputInputChainViaSRPC(t *testing.T) {
 	// Prepare the two-stage SRPC test context and logger.
 	ctx := context.Background()

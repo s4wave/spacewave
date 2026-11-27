@@ -36,7 +36,7 @@ func (w *workerDeclarationWatch) Recv() (*s4wave_device.ForgeWorkerDeclaration, 
 		return nil, "", nil
 	}
 
-	// No later declaration exists; wait for Close or cancellation.
+	// No later declaration exists. Wait for Close or cancellation.
 	<-w.ctx.Done()
 	return nil, "", w.ctx.Err()
 }

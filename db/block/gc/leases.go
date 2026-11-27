@@ -20,10 +20,10 @@ import (
 // once its record holds the expiry zero, and ended once the record is gone.
 // The records keep these invariants:
 //
-//  1. A root names a lease only while the lease's record exists: Land writes
-//     a root onto a lease only while the lease is live, in the transaction
-//     that reads it so, and the collector deletes a lease's record only in
-//     the slice that finds no root under it.
+//  1. A root references a lease only while the lease's record exists: Land
+//     writes a root onto a lease only while the lease is live, in the
+//     transaction that reads it so, and the collector deletes a lease's record
+//     only in the slice that finds no root under it.
 //  2. A released lease never lives again: the collector marks a lapsed
 //     lease released, expiry zero, in the transaction that reads it lapsed
 //     and releases its first root, so the mark precedes every root the
@@ -39,9 +39,9 @@ import (
 //     the index records left.
 //  5. A renewal writes the one lease record, and the release of a lease
 //     writes per root what releasing the root by hand would, in slices.
-//  6. A lease ID names one lease for good: each is a new ULID, so a process
-//     that starts again, or whose lease lapsed while it stalled, holds its
-//     roots under a new lease and never inherits a lease that lapsed.
+//  6. A lease ID identifies one lease for good: each is a new ULID, so a
+//     process that starts again, or whose lease lapsed while it stalled, holds
+//     its roots under a new lease and never inherits a lease that lapsed.
 
 // ErrLeaseLapsed is returned by Land for a move onto a lease that is not
 // live: its expiry passed, the collector released it, or it never existed.
@@ -75,13 +75,12 @@ func (r *Records) StartLease(ctx context.Context, id string, expires int64) erro
 	return r.setLease(ctx, id, expires)
 }
 
-// RenewLease moves the expiry of the lease id to expires, in Unix
-// milliseconds, when the lease is live at now, and reports whether it was.
-// It never renews a released lease, whose roots the collector may be
-// releasing, nor one lapsed at the caller's now; the holder starts a new
-// lease instead. A caller whose now lags may renew a lease the collector's
-// clock finds lapsed, which is safe until the collector marks it released.
-// Cost: one point read and one write.
+// RenewLease moves the expiry of the lease id to expires, in Unix milliseconds,
+// when the lease is live at now, and reports whether it was. It never renews a
+// released lease, whose roots the collector may be releasing, nor one lapsed at
+// the caller's now. The holder starts a new lease instead. A caller whose now
+// lags may renew a lease the collector's clock finds lapsed, which is safe
+// until the collector marks it released. Cost: one point read and one write.
 func (r *Records) RenewLease(ctx context.Context, id string, now, expires int64) (bool, error) {
 	live, err := r.LeaseLive(ctx, id, now)
 	if err != nil || !live {
@@ -144,7 +143,7 @@ func (r *Records) LapsedLeases(ctx context.Context, from string, now int64, limi
 			return err == nil, err
 		}
 
-		// Keep a lapsed one, up to the limit.
+		// Keep a lapsed lease, up to the limit.
 		out = append(out, LapsedLease{ID: string(key), Expires: expires})
 		return len(out) < limit, nil
 	})
@@ -180,8 +179,8 @@ func (r *Records) EndLease(ctx context.Context, id string) error {
 	return r.tx.Delete(ctx, r.key(kindLease, []byte(id)))
 }
 
-// moveLeaseRoot moves the lease index record of the root named name in
-// bucketID from the lease its stored entry names to lease, none for empty.
+// moveLeaseRoot moves the lease index record of the root named name in bucketID
+// from the lease its stored entry references to lease, none for empty.
 func (r *Records) moveLeaseRoot(ctx context.Context, bucketID, name, lease string) error {
 	// Read the stored lease.
 	old, err := r.GetRoot(ctx, bucketID, name)
@@ -205,8 +204,8 @@ func (r *Records) moveLeaseRoot(ctx context.Context, bucketID, name, lease strin
 	return r.tx.Set(ctx, r.leaseRootKey(lease, bucketID, name), nil)
 }
 
-// deleteLeaseRoot deletes the index record of the root named name in
-// bucketID under the lease id, one whose root no longer names the lease.
+// deleteLeaseRoot deletes the index record of the root named name in bucketID
+// under the lease id, one whose root no longer references the lease.
 func (r *Records) deleteLeaseRoot(ctx context.Context, id, bucketID, name string) error {
 	return r.tx.Delete(ctx, r.leaseRootKey(id, bucketID, name))
 }
@@ -236,12 +235,12 @@ func (r *Records) leaseRootKey(id, bucketID, name string) []byte {
 // slice starts a lease of its own, so a rerun after a crash never revives a
 // carried lease that a collector already released.
 //
-// The upgrade runs at open, before this process holds a root. Only s4db
-// refuses it while another process shares the store, and only through a
-// check made before the open, which another process may race. SQLite, which
-// several processes share through its file lock, and redis refuse nothing,
-// so there an old process may still hold carried roots; the carried expiry
-// keeps them for it until it would have lapsed.
+// The upgrade runs at open, before this process holds a root. Only s4db refuses
+// it while another process shares the store, and only through a check made
+// before the open, which another process may race. SQLite, which several
+// processes share through its file lock, and redis refuse nothing, so there an
+// old process may still hold carried roots. The carried expiry keeps them for
+// it until it would have lapsed.
 //
 // The rewrite takes each entry whole, so the retired expiry field goes with
 // the record. It moves no holder: each root keeps its block. It returns

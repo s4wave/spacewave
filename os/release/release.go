@@ -16,7 +16,7 @@ import (
 )
 
 // NewRelease returns the release of the image that signed authorizes, after
-// checking that signed names a complete image reference. It does not check
+// checking that signed holds a complete image reference. It does not check
 // the signature, which only the pins of a Device can judge.
 func NewRelease(signed *peer.SignedMsg) (*Release, error) {
 	r := &Release{Authorization: signed}
@@ -26,7 +26,7 @@ func NewRelease(signed *peer.SignedMsg) (*Release, error) {
 	return r, nil
 }
 
-// Image returns the image reference the authorization names, unverified.
+// Image returns the image reference the authorization holds, unverified.
 func (r *Release) Image() (*bucket.ObjectRef, error) {
 	// Decode the signed body as an image reference.
 	if r.GetAuthorization() == nil {
@@ -47,7 +47,7 @@ func (r *Release) Image() (*bucket.ObjectRef, error) {
 // WriteRelease stores r as the release key, creating the object when it is
 // missing. Every os/system node that binds key moves its Device to r's image.
 func WriteRelease(ctx context.Context, ws world.WorldState, key string, r *Release) error {
-	// Refuse a release that names no image.
+	// Refuse a release that references no image.
 	if _, err := r.Image(); err != nil {
 		return err
 	}

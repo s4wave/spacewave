@@ -35,7 +35,7 @@ func (d *Dirent) Validate() error {
 }
 
 // FollowNodeRef follows the inode reference.
-// returns nil, bcs, nil if not found
+// returns nil, bcs, nil if not found.
 func (d *Dirent) FollowNodeRef(ctx context.Context, bcs *block.Cursor) (*FSNode, *block.Cursor, error) {
 	subRef := bcs.FollowRef(2, d.GetNodeRef())
 	fn, err := FetchCheckFSNode(ctx, subRef, d.GetNodeType())
@@ -47,8 +47,9 @@ func (d *Dirent) FollowNodeRef(ctx context.Context, bcs *block.Cursor) (*FSNode,
 func (d *Dirent) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 2:
-		// Block transaction workers own ptr; Dirent owns the protobuf ref it
-		// marshals, so never retain the transaction-owned object.
+		// Block transaction workers own ptr. Dirent owns the protobuf
+		// ref it marshals, so never retain the transaction-owned
+		// object.
 		d.NodeRef = ptr.Clone()
 	}
 	return nil
@@ -56,7 +57,7 @@ func (d *Dirent) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// The map does not include pending references (in a cursor).
 func (d *Dirent) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
 	m[2] = d.GetNodeRef()

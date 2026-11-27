@@ -10,7 +10,7 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
-// remoteShellEntry names the one entry a Remote Shell compiles to.
+// remoteShellEntry identifies the one entry a Remote Shell compiles to.
 const remoteShellEntry = "shell"
 
 // remoteShell serves the remote shell of its Device to the peers of the

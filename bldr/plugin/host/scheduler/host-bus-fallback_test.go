@@ -188,7 +188,7 @@ func TestHostBusFallbackDefaultDeny(t *testing.T) {
 		hostSvc, storageVol, spacewave_launcher.SRPCLauncherServiceID,
 	})
 
-	// Each plugin call names its own target, so no load is shared.
+	// Each plugin call selects its own target, so no load is shared.
 	escapes := []struct{ name, serviceID, pluginSvc string }{
 		{"i1 another plugin by service ID", "", "probe.Svc"},
 		{"i2 plugin-host passthrough", bldr_plugin.HostServiceIDPrefix + hostSvc, ""},
@@ -213,8 +213,8 @@ func TestHostBusFallbackDefaultDeny(t *testing.T) {
 			got := bed.call(ctx, caller.pluginID, caller.binding, serviceID)
 			t.Logf("%s, %s: %s", caller.name, esc.name, got)
 
-			// A plugin load stays at the caller's binding; anything else on
-			// the bus is reached only by a host plugin.
+			// A plugin load stays at the caller's binding. Anything
+			// else on the bus is reached only by a host plugin.
 			var ok bool
 			switch {
 			case esc.pluginSvc != "":
@@ -268,7 +268,8 @@ func TestHostBusFallbackAllowsOwnSpaceWorld(t *testing.T) {
 		}
 	}
 
-	// The registered PluginHost answers it with its own binding.
+	// The registered PluginHost answers the Space A plugin with the
+	// plugin's own binding.
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	mux, rel := bed.sched.buildPluginMux(ctx, "space-plugin", nil, nil, nil, nil, nil, nil, nil, false, false, "space-a")
@@ -330,13 +331,13 @@ func accessClient(client srpc.Client, accessServiceID, serviceID, serverID strin
 // is refused at once and reaches no host bus service and loads no plugin as
 // core, while a service core itself serves still answers. The web plugin's
 // forwarder carries the old unanchored "web-view/.*" pattern a target built
-// before the anchored one sends; a "web-view/" server ID another plugin or the
-// host names through it is refused at once, while the web plugin's own web
-// view still reaches core, also by core's plugin service ID, which a third
-// plugin's forwarder takes and refuses to relay. Core, the third plugin and
-// the web plugin run in process with the real entrypoint controller and root
-// mux, each on its own bus, with its host client bound to the scheduler's mux
-// for it.
+// before the anchored one sends. A "web-view/" server ID another plugin or the
+// host specifies through the forwarder is refused at once, while the web
+// plugin's own web view still reaches core, also by core's plugin service ID,
+// which a third plugin's forwarder takes and refuses to relay. Core, the third
+// plugin and the web plugin run in process with the real entrypoint controller
+// and root mux, each on its own bus, with its host client bound to the
+// scheduler's mux for it.
 func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -346,10 +347,10 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// The app bus serves a host-only probe; core's bus serves its own. The web
-	// plugin forwards its web views' calls to core, as HandleRpcViaPlugin does
-	// for the Go compiler's handle-rpc config.
-	// A third plugin with a web frontend also takes the web plugin's web view
+	// The app bus serves a host-only probe. Core's bus serves its own. The
+	// web plugin forwards its web views' calls to core, as
+	// HandleRpcViaPlugin does for the Go compiler's handle-rpc config. A
+	// third plugin with a web frontend also takes the web plugin's web view
 	// calls, as the Go compiler's handle-rpc config makes every such plugin
 	// do, and refuses to relay those meant for core.
 	const corePluginID, webPluginID, debugPluginID = "spacewave-core", "web", "spacewave-debug"
@@ -415,7 +416,8 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 			if tc.wrap != nil {
 				c = tc.wrap(client)
 			}
-			// Each caller names its own plugin, so no load is shared.
+			// Each caller selects its own plugin, so no load is
+			// shared.
 			serviceID := tc.serviceID
 			if serviceID == "" {
 				serviceID = via(corePluginID, via("other-"+strconv.Itoa(i), "probe.Svc"))
@@ -425,10 +427,11 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 		rel()
 	}
 
-	// The host's own calls: a web view of the web plugin still reaches core,
-	// promptly, though the third plugin's forwarder fails its share of the
-	// lookup; and a root mux names a "web-view/" server ID as the host's, so neither
-	// core nor the web plugin's forwarder relays it.
+	// The host's own calls: a web view of the web plugin still reaches
+	// core, promptly, though the third plugin's forwarder fails its share
+	// of the lookup. A root mux specifies a "web-view/" server ID as the
+	// host's, so neither core nor the web plugin's forwarder relays the
+	// call.
 	webView := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux(bifrost_rpc.NewInvoker(webBus, web_view.WebViewServerID("1"), true)))))
 	bed.expect(t, "web plugin's own web view", bed.timedExec(ctx, webView, coreSvc), shipped)
 	bed.expect(t, "web plugin's own web view, by core's plugin service ID", bed.timedExec(ctx, webView, via(corePluginID, coreSvc)), shipped)
@@ -439,8 +442,8 @@ func TestHostBusFallbackHostPluginRelaysNothing(t *testing.T) {
 }
 
 // serverProbe answers LookupRpcService for one service ID with an error that
-// names its bus and the server ID the lookup came under. When callers is set,
-// it also sends the PluginCaller each call arrives with, nil for none.
+// identifies its bus and the server ID the lookup came under. When callers
+// is set, it also sends the PluginCaller each call arrives with, nil for none.
 type serverProbe struct {
 	bus, id string
 	callers chan<- *bldr_plugin.PluginCaller
@@ -598,7 +601,7 @@ func TestHostBusWebPluginRelaysNothing(t *testing.T) {
 			t.Errorf("%s, another plugin directly: got %s, want %s", caller.name, loaded, want)
 		}
 
-		// F1: core's service named through the web plugin.
+		// F1: core's service referenced through the web plugin.
 		bed.expectNotHost(t, caller.name+", core through the web plugin", bed.timedExec(ctx, client, via(webPluginID, coreCall)))
 
 		// The nested variant: a PluginRpc to the browser host through the web
@@ -646,7 +649,7 @@ func (bed *fallbackBed) timedExec(ctx context.Context, client srpc.Client, servi
 }
 
 // expect checks one relay test outcome. A relayed call must be refused with
-// ErrRelayRefused well before exec's deadline; a shipped call must reach core.
+// ErrRelayRefused well before exec's deadline. A shipped call must reach core.
 func (bed *fallbackBed) expect(t *testing.T, name string, r timedResult, want string) {
 	t.Logf("%s: %s (%s)", name, r.got, r.took.Round(time.Millisecond))
 	switch want {
@@ -664,9 +667,9 @@ func (bed *fallbackBed) expect(t *testing.T, name string, r timedResult, want st
 // TestHostBusWebWorkerRelaysNothing checks a plugin outside the host set cannot
 // reach spacewave-core's root mux from its web worker, which looks up services
 // on the host bus as "web-worker/plugin/<X>[/<key>]". A lookup of core's
-// service under the attacker's worker ID, or under a worker ID that names no
-// plugin, is refused at once; a host plugin's worker and a web view still
-// reach core.
+// service under the attacker's worker ID, or under a worker ID that
+// identifies no plugin, is refused at once. A host plugin's worker and a web
+// view still reach core.
 func TestHostBusWebWorkerRelaysNothing(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())

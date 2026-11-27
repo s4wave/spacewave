@@ -11,8 +11,9 @@ export interface DragRect {
 }
 
 // SelectionFocus indicates whether the selection is content-focused or
-// border-focused. Content-focused passes keyboard events to embedded
-// content. Border-focused routes them to the canvas movement system.
+// border-focused. A content-focused selection passes keyboard events to
+// embedded content. A border-focused selection routes them to the canvas
+// movement system.
 export type SelectionFocus = 'content' | 'border'
 
 // UseCanvasSelectionResult is the return type of useCanvasSelection.
@@ -60,9 +61,10 @@ export function useCanvasSelection(): UseCanvasSelectionResult {
   const selectWithFocus = useCallback(
     (id: string, shift: boolean, f: SelectionFocus) => {
       setSelectedNodeIds((prev) => {
-        // Return the same reference when selection wouldn't change. This
-        // prevents unnecessary re-renders that destroy DOM elements between
-        // the first and second click, breaking native dblclick generation.
+        // Return the same reference when selection wouldn't change. Reusing
+        // the reference prevents unnecessary re-renders that destroy DOM
+        // elements between the first and second click, breaking native dblclick
+        // generation.
         if (!shift && prev.size === 1 && prev.has(id)) return prev
         const next = new Set(shift ? prev : undefined)
         if (prev.has(id) && shift) {

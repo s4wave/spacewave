@@ -21,25 +21,26 @@ type CommitFn func(nref *bucket.ObjectRef) error
 
 // Store is a block graph backed kvtx store.
 type Store struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// wmtx ensures only one write transaction is active at a time
+	// wmtx ensures only one write transaction is active at a time.
 	wmtx *semaphore.Weighted
-	// rmtx locks the read-only world instance field & root field & read/writeTx
+	// rmtx locks the read-only world instance field & root field &
+	// read/writeTx.
 	rmtx sync.RWMutex
 	// baseRoot is the base root cursor to use.
 	// the root cursor is derived with FollowRef from this cursor.
 	baseRoot *bucket_lookup.Cursor
-	// root is the root cursor in use
+	// root is the root cursor in use.
 	root *bucket_lookup.Cursor
-	// readTx is the current read-only world instance
+	// readTx is the current read-only world instance.
 	readTx kvtx.BlockTx
-	// writeTx is the current write tx
+	// writeTx is the current write tx.
 	// canceled if the state changes mid-write
-	// note: may not be set to nil when canceled
+	// note: may not be set to nil when canceled.
 	writeTx *storeTx
 	// commitFn is a function to be called just before a commit is confirmed.
-	// can be nil
+	// can be nil.
 	commitFn CommitFn
 }
 
@@ -85,16 +86,16 @@ func (s *Store) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	return s.NewKvtxBlockTransaction(ctx, write)
 }
 
 // NewKvtxBlockTransaction returns a new kvtx block transaction.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 func (s *Store) NewKvtxBlockTransaction(ctx context.Context, write bool) (kvtx.BlockTx, error) {
-	// writeTx is nil if it's a read-only tx
+	// writeTx is nil for a read-only tx
 	if !write {
 		s.rmtx.Lock()
 		defer s.rmtx.Unlock()
@@ -153,7 +154,7 @@ func (s *Store) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) err
 }
 
 // buildBlockTx builds a new kvtx block transaction.
-// expects caller to hold rmtx
+// expects caller to hold rmtx.
 func (s *Store) buildBlockTx(ctx context.Context, write bool) (kvtx.BlockTx, *block.Transaction, error) {
 	// Build the selected KV backend over the root block transaction.
 	btx, bcs := s.root.BuildTransaction(nil)
@@ -167,9 +168,10 @@ func (s *Store) buildBlockTx(ctx context.Context, write bool) (kvtx.BlockTx, *bl
 	return mtx, btx, nil
 }
 
-// updateReadWriteTxns updates the readTx and cancels writeTx if the state changed
+// updateReadWriteTxns updates the readTx and cancels writeTx if the state
+// changed.
 // expects caller to hold rmtx lock
-// the state has been affected only if nil is returned
+// the state has been affected only if nil is returned.
 func (s *Store) updateReadWriteTxns(ctx context.Context) error {
 	// If no changes have occurred...
 	if s.readTx != nil &&

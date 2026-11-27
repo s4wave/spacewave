@@ -421,7 +421,8 @@ func (r *ChatResource) commitMessage(ctx context.Context, req *spacewave_chat_rp
 		return nil, ErrChatAuthorIdentityRequired
 	}
 
-	// Prepare the intent locally; shared replay assigns its final history position.
+	// Prepare the intent locally. Shared replay assigns its final history
+	// position.
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
@@ -578,7 +579,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		if err != nil && !errors.Is(err, world.ErrObjectNotFound) {
 			return nil, err
 		}
-		// Any sender may deliver an envelope; the first accepted copy stands.
+		// Any sender may deliver an envelope. The first accepted copy
+		// stands.
 		if prior != nil && req.GetEnvelope() != nil {
 			if prior.GetEnvelope().GetId() != req.GetEnvelope().GetId() {
 				return nil, errors.New("chat envelope conflicts with its accepted message")
@@ -587,7 +589,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		}
 		if prior != nil {
 			personID := prior.GetPersonId()
-			// A redacted body no longer matches its retry; the accepted identity still does.
+			// A redacted body no longer matches its retry, but the
+			// accepted identity still matches.
 			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || prior.GetAuthor() != req.GetAuthor() || !req.GetReuseAcceptedTransaction() && prior.GetRedactedByKey() == "" && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
 				return nil, errors.New("chat send transaction conflicts with its accepted message")
 			}
@@ -595,7 +598,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		}
 	}
 
-	// Resolve relationships only for new writes; accepted retries retain their original targets.
+	// Resolve relationships only for new writes. Accepted retries retain
+	// their original targets.
 	relation := content.GetCiphertext().GetRelation()
 	eventRelation := content.GetEvent().GetRelation()
 	for _, key := range []string{relation.GetTargetKey(), relation.GetReplyToKey(), eventRelation.GetTargetKey(), eventRelation.GetReplyToKey(), content.GetAnnotation().GetTargetKey(), content.GetRedaction().GetTargetKey()} {
@@ -673,7 +677,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		Envelope:     req.GetEnvelope().CloneVT(),
 	}
 
-	// Strip the body when a redaction named its envelope before it arrived.
+	// Strip the body when a redaction identified its envelope before it
+	// arrived.
 	if req.GetEnvelope() != nil {
 		if err := applyPendingRedaction(ctx, wtx, r.objectKey, msgKey, msg); err != nil {
 			return nil, err
@@ -715,7 +720,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		}
 	}
 
-	// Replace only the current-state edge; earlier messages remain in history.
+	// Replace only the current-state edge. Earlier messages remain in
+	// history.
 	if state != nil {
 		for _, edge := range priorState {
 			if err := wtx.DeleteGraphQuad(ctx, edge); err != nil {
@@ -730,7 +736,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		return nil, err
 	}
 
-	// The first redaction strips the target body in place; its history position remains.
+	// The first redaction strips the target body in place. The target's
+	// history position remains.
 	// A target not held yet is stripped when it arrives.
 	targetKey := content.GetRedaction().GetTargetKey()
 	if redactsPending {
@@ -750,10 +757,11 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 // resolveRedactionTarget returns the message a redaction removes, or reports
 // that the target is not held yet. A person redacts their own message bodies.
 // A Space owner, or a redaction carrying its protocol's envelope, may redact
-// any message body, including one named by its envelope before it arrives.
+// any message body, including one identified by its envelope before it arrives.
 // State and redactions are permanent history.
 func (r *ChatResource) resolveRedactionTarget(ctx context.Context, ws world.WorldState, redaction *ChatRedaction, enveloped bool) (*ChatMessage, bool, error) {
-	// A target named by its envelope ID is stored under that envelope's key.
+	// A target identified by its envelope ID is stored under that
+	// envelope's key.
 	targetKey := redaction.GetTargetKey()
 	moderated := r.owner || enveloped
 	if envelopeID := redaction.GetTargetEnvelopeId(); envelopeID != "" {
@@ -789,8 +797,8 @@ func (r *ChatResource) resolveRedactionTarget(ctx context.Context, ws world.Worl
 }
 
 // applyPendingRedaction strips the body of a message arriving under
-// envelopeKey when a redaction named it earlier. State and redactions stay
-// intact. The pending records are consumed either way.
+// envelopeKey when a redaction identified the key earlier. State and redactions
+// stay intact. The pending records are consumed either way.
 func applyPendingRedaction(ctx context.Context, ws world.WorldState, channelKey, envelopeKey string, message *ChatMessage) error {
 	// Read and consume the redactions waiting for this envelope.
 	pending, err := ws.LookupGraphQuads(ctx, NewChatPendingRedactionQuad(channelKey, "", envelopeKey), 0)
@@ -1022,7 +1030,7 @@ func validateAuthor(author string) error {
 // applyReadPosition advances the receipt of one accepted person, or of an
 // author reading for the person, in the replay transaction.
 // A nil threadRootKey advances the whole-channel position and drops the timeline
-// positions it subsumes; otherwise only that timeline advances.
+// positions it subsumes. Otherwise only that timeline advances.
 func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, author string, nextIndex uint64, threadRootKey *string, timestamp *timestamppb.Timestamp) error {
 	// Validate the receipt against the channel history and thread root.
 	channel, err := world.LookupObjectBody[ChatChannel](ctx, tx, r.objectKey)
@@ -1327,8 +1335,10 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 	}, nil
 }
 
-// normalizeSendMessageContent validates one shared content value without decrypting it.
-// A detached message has none and returns nil.
+// normalizeSendMessageContent validates one shared content value without
+// decrypting it.
+// A detached message has no content, so normalizeSendMessageContent returns
+// nil.
 func normalizeSendMessageContent(req *spacewave_chat_rpc.SendMessageRequest) (*ChatMessageContent, error) {
 	// A detached message carries no content.
 	content := req.GetContent()

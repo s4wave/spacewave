@@ -115,7 +115,7 @@ func graphEdgeBucketFilters(query *GraphEdgeBucketQuery, buckets []*GraphEdgeBuc
 // CollectGraphEdgeBuckets lists the query's edge buckets by fetching every
 // matching edge of each origin direction, then ordering them by quad text,
 // filtering past After and truncating to the page. Its cost grows with each
-// origin's edges; an EdgePager reads only the page.
+// origin's edges. An EdgePager reads only the page.
 func CollectGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
 	// Require a bounded graph edge query.
 	if query == nil {

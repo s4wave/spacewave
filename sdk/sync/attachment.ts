@@ -71,7 +71,10 @@ export class AppAttachment<S extends Schema>
     })
   }
 
-  /** collection exposes snapshot reads; all writes use named application operations. */
+  /**
+   * collection exposes snapshot reads. All writes use named application
+   * operations.
+   */
   collection<K extends keyof S['collections'] & string>(name: K) {
     const { get, scan } = this.access.collection(name)
     return { get, scan }
@@ -275,9 +278,11 @@ export async function createAppInstance<S extends Schema>(
 }
 
 /**
- * upgradeAppInstance accepts an explicit revision change and returns a new attachment.
+ * upgradeAppInstance accepts an explicit revision change and returns a new
+ * attachment.
  * The source binding is a concurrency precondition. Retry with the same binding
- * and request ID after uncertainty; existing attachments report a version conflict.
+ * and request ID after uncertainty. Existing attachments report a version
+ * conflict.
  */
 export async function upgradeAppInstance<S extends Schema>(
   app: AppDefinition<S>,
@@ -339,7 +344,8 @@ async function acceptAppOperation(
       )
     }
     // The Space is catching up to the order it held when it opened, so it
-    // took no write; reads go on and the sync status shows what it waits for.
+    // took no write. Reads go on and the sync status shows what the Space
+    // waits for.
     if (response.errorCode === WorldErrorCode.REPLAY_WAITS) {
       throw new SyncError(
         'UNAVAILABLE',
@@ -360,9 +366,10 @@ async function acceptAppOperation(
         response.rejectionMessage ?? 'Application operation was rejected',
       )
     }
-    // Any other code is a refusal this build cannot name. It throws here,
-    // never reaching the sync below, and the catch reports it as uncertain,
-    // so the caller retries the same request.
+    // Any other code is a refusal this build cannot identify.
+    // throwOperationError throws here, never reaching the sync below, and the
+    // catch reports the refusal as uncertain, so the caller retries the same
+    // request.
     throwOperationError(response)
     if (response.sysErr) {
       throw new SyncError(

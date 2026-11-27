@@ -83,7 +83,8 @@ func NewController(
 		claimID = uniqueID
 	}
 
-	// Resolve the claim lease, falling back to the default when it is invalid.
+	// Resolve the claim lease, falling back to the default lease when it is
+	// invalid.
 	claimLease, err := conf.ParseClaimLease()
 	if err != nil {
 		claimLease = forge_execution.DefaultClaimLease
@@ -217,7 +218,7 @@ func (c *Controller) processExecutionState(
 		return nil, nil, true, nil
 	}
 
-	// unmarshal Execution state + build read cursor
+	// Unmarshal Execution state and build a read cursor.
 	var exState *forge_execution.Execution
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
@@ -245,7 +246,7 @@ func (c *Controller) processExecutionState(
 		}
 	}
 
-	// check if completed
+	// Check whether the Execution is complete.
 	currState := exState.GetExecutionState()
 	if currState == forge_execution.State_ExecutionState_CANCELING {
 		c.cancel()
@@ -364,7 +365,7 @@ func (c *Controller) processExecutionState(
 
 // CheckExecControllerConfig checks if the controller config is OK to execute.
 func (c *Controller) CheckExecControllerConfig(ctx context.Context, conf config.Config) error {
-	// no-op - allow all
+	// Do nothing and allow all controller configs.
 	return nil
 }
 

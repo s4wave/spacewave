@@ -136,7 +136,7 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 		defer apiRef.Release()
 	}
 
-	// Construct config set.
+	// Construct the config set.
 	confSet := configset.ConfigSet{}
 
 	// Load the floodsub controller.

@@ -11,9 +11,10 @@ import (
 )
 
 // workerUser returns the Worker's own user and group, with the group of each
-// mapped host device added. A container that writes outputs runs as it, so
-// the files it leaves belong to the Worker that stores and removes them, and
-// it reaches a device such as /dev/kvm through the device's group.
+// mapped host device added. A container that writes outputs runs as that user
+// and those groups, so the files the container leaves belong to the Worker
+// that stores and removes them, and the container reaches a device such as
+// /dev/kvm through the device's group.
 func workerUser(devices []string) (*ContainerUser, error) {
 	// Start from this process's user and primary group.
 	user := &ContainerUser{UID: os.Getuid(), GID: os.Getgid()}

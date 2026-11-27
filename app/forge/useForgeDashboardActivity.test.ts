@@ -219,7 +219,7 @@ describe('forgeDashboardSource', () => {
       body: { case: 'interestAck', value: { version: 1n, afterSeqno: seqno } },
     })
 
-    // The retype commits only the type quad: no key names notes/b.
+    // The retype commits only the type quad: no key refers to notes/b.
     types['notes/b'] = 'forge/job'
     seqno++
     push?.({

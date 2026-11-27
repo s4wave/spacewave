@@ -18,7 +18,7 @@ export interface Config {
   /**
    * ForceDedicatedWorkers overrides the default SharedWorker mode to use
    * dedicated Workers instead. Useful for testing with Playwright which
-   * can capture console output from dedicated workers but not shared.
+   * can capture console output from dedicated workers but not shared workers.
    */
   forceDedicatedWorkers?: boolean
   /**

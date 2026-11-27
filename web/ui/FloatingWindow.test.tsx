@@ -6,7 +6,7 @@ import {
   type FloatingWindowState,
 } from './FloatingWindow.js'
 
-// Helper to create a default expanded state for tests.
+// makeState creates a default expanded state for tests.
 function makeState(
   overrides?: Partial<FloatingWindowState>,
 ): FloatingWindowState {
@@ -62,7 +62,7 @@ describe('FloatingWindowManagerProvider', () => {
     const zIndexA = getStyleNumber(winA, '--floating-window-z-index')
     const zIndexB = getStyleNumber(winB, '--floating-window-z-index')
 
-    // Both should have valid z-index values
+    // Both windows should have valid z-index values
     expect(zIndexA).toBeGreaterThanOrEqual(1000)
     expect(zIndexB).toBeGreaterThanOrEqual(1000)
     // Window B registered second, so it should have a higher z-index
@@ -390,7 +390,7 @@ describe('FloatingWindow', () => {
       </FloatingWindow>,
     )
 
-    // The header is the drag target - find it by the title text's grandparent
+    // The header is the drag target: find it by the title text's grandparent.
     const titleSpan = screen.getByText('Resettable')
     // The header div is the parent of the flex container that holds the title
     const header = titleSpan.closest('[class*="cursor-grab"]')
@@ -469,7 +469,7 @@ describe('FloatingWindowManagerProvider + FloatingWindow integration', () => {
     const w1 = screen.getByTestId('w1')
     const w2 = screen.getByTestId('w2')
 
-    // Both should have z-index set from the manager (base 1000)
+    // Both windows should have z-index set from the manager (base 1000)
     const z1 = getStyleNumber(w1, '--floating-window-z-index')
     const z2 = getStyleNumber(w2, '--floating-window-z-index')
 

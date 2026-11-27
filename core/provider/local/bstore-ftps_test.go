@@ -345,7 +345,8 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	}
 }
 
-// adoptedStore is a pack store whose pack a report names is already registered.
+// adoptedStore is a pack store whose pack a report references is already
+// registered.
 type adoptedStore struct {
 	*block_store_s3.PackStore
 }

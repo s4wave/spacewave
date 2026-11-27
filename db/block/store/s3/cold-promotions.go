@@ -24,11 +24,13 @@ import (
 )
 
 const (
-	// coldPromotionMagic names the manifest-bound, full-key format.
+	// coldPromotionMagic identifies the manifest-bound, full-key format.
 	coldPromotionMagic = "SWCPLOG2"
-	// coldPromotionHeaderBytes holds the magic and SHA-256 of the mount scope.
+	// coldPromotionHeaderBytes is the size of the magic and SHA-256 of the
+	// mount scope.
 	coldPromotionHeaderBytes = len(coldPromotionMagic) + sha256.Size
-	// coldPromotionBytes holds the full digest, compact extent and scoped CRC.
+	// coldPromotionBytes is the size of the full digest, compact extent and
+	// scoped CRC.
 	coldPromotionBytes = 48
 	// coldPromoteBatch bounds the number of records written in one sync step.
 	coldPromoteBatch = 64
@@ -44,7 +46,8 @@ type coldExtent struct {
 	size uint64
 }
 
-// flightKey names a complete range without using any shortened block identity.
+// flightKey identifies a complete range without using any shortened block
+// identity.
 func (e coldExtent) flightKey() string {
 	// Format the range as delimited unsigned integers.
 	return strconv.FormatUint(uint64(e.pack), 10) + ":" + strconv.FormatUint(e.off, 10) + ":" + strconv.FormatUint(e.size, 10)
@@ -56,7 +59,7 @@ type coldPromotion struct {
 	extent coldExtent
 	// dataSize is the decoded length, known only after body verification.
 	dataSize uint32
-	// digest names the full canonical wire key in the bound manifest.
+	// digest holds the full canonical wire key in the bound manifest.
 	digest [sha256.Size]byte
 	// verified means this mount has verified the body, not just recovered the key.
 	verified bool
@@ -67,7 +70,7 @@ type coldPromotion struct {
 type coldPromotions struct {
 	// store supplies the counters and error log.
 	store *ColdPackStore
-	// path names the dedicated, owned local log.
+	// path identifies the dedicated, owned local log.
 	path string
 	// cap is the maximum number of physical records, not the map size.
 	cap uint64
@@ -157,7 +160,8 @@ func (p *coldPromotions) offer(digest [sha256.Size]byte, extent coldExtent, size
 // Exclusive ownership and the byte cap apply even if two mounts are misconfigured
 // to use the same file. Recovery creates no SQLite state or sidecar file.
 func (p *coldPromotions) open(manifestFile string, catalog *coldPackCatalog) (*os.File, error) {
-	// Promotion may be disabled; never open or create its path in that case.
+	// Promotion may be disabled. Never open or create its path in that
+	// case.
 	if p.path == "" || p.cap == 0 {
 		return nil, nil
 	}
@@ -308,7 +312,7 @@ func encodeColdPromotion(dst []byte, rec coldPromotion, seed uint32) []byte {
 }
 
 // run appends batches with one fsync each and yields between batches. Only the
-// worker holds the log handle; reads and commits neither flush nor close it.
+// worker holds the log handle. Reads and commits neither flush nor close it.
 func (p *coldPromotions) run(ctx context.Context, f *os.File) {
 	// Release the exclusive log on shutdown or any write failure.
 	defer func() {
@@ -326,8 +330,9 @@ func (p *coldPromotions) run(ctx context.Context, f *os.File) {
 		case first = <-p.promoteCh:
 		}
 
-		// Append a short batch, stopping on a possible partial write. Recovery
-		// will resume at the valid CRC prefix; a later batch cannot bury a tear.
+		// Append a short batch, stopping on a possible partial write.
+		// Recovery resumes at the valid CRC prefix, and a later batch
+		// cannot bury a tear.
 		start := time.Now()
 		if err := p.appendBatch(f, first); err != nil {
 			p.store.warn(ctx, err, "append promoted cold log")
@@ -374,7 +379,8 @@ func (p *coldPromotions) appendBatch(f *os.File, first coldPromotion) error {
 		return nil
 	}
 
-	// One append and one fsync; nothing on the foreground path holds this file.
+	// One append and one fsync. Nothing on the foreground path holds this
+	// file.
 	if _, err := f.Write(data); err != nil {
 		return err
 	}

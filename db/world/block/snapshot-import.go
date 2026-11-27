@@ -23,7 +23,7 @@ import (
 const graphImportBatchSize = 8192
 
 // ImportSnapshot writes a new World from its complete contents and syncs it
-// into storage. Objects must arrive in strictly increasing key order; each body
+// into storage. Objects must arrive in strictly increasing key order. Each body
 // becomes the root block of its object in the storage bucket. Relationships
 // must be unique and join objects of the import. Revisions and the World
 // sequence match creating the same objects and relationships with ordinary
@@ -73,8 +73,8 @@ func ImportSnapshot(
 }
 
 // importFormat is the format an imported World takes: the format a World
-// engine creates when its config names none, the zero format. When that
-// default moves to NewestWorldFormat, this moves with it.
+// engine creates when its config selects none, the zero format. When that
+// default format moves to NewestWorldFormat, importFormat moves with it.
 const importFormat = WorldFormat_WORLD_FORMAT_CAYLEY_KV
 
 // importWorld builds the World blocks of an import and returns its root. The
@@ -86,8 +86,8 @@ func importWorld(
 	objects iter.Seq2[string, block.Block],
 	quads []world.GraphQuad,
 ) (*block.BlockRef, error) {
-	// Validate every relationship and collect the objects it names, so the
-	// object pass can confirm each exists.
+	// Validate every relationship and collect the objects it references, so
+	// the object pass can confirm each exists.
 	for _, q := range quads {
 		if _, err := world.GraphQuadToCayleyQuad(q, true); err != nil {
 			return nil, err
@@ -140,9 +140,11 @@ func importWorld(
 				bodyErr = errors.Wrapf(bodyErr, "write object %s", key)
 				return
 			}
-			// Number the objects in import order. The import's history
-			// starts after its last change, so these need only precede that
-			// seqno; they do not match a replay of the source World.
+			// Number the objects in import order. The import's
+			// history starts after its last change, so the object
+			// sequence numbers need only precede that seqno. The
+			// object sequence numbers do not match a replay of the
+			// source World.
 			count++
 			obj := NewObject(key, ref)
 			obj.ModSeqno = count
@@ -185,7 +187,7 @@ func importWorld(
 }
 
 // buildGraphIndex applies unique relationships to an in-memory Cayley index.
-// Bounded batches keep Cayley's per-call delta indexes small; each batch
+// Bounded batches keep Cayley's per-call delta indexes small. Each batch
 // resolves the nodes written by the batches before it.
 func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTreeMap[[]byte], error) {
 	// Trace the graph index build.

@@ -63,7 +63,7 @@ type raceAnswer[T any] struct {
 // pauses, raceAlternates asks alternates beside it, in order, each once: an
 // alternate starts only once the one before it answered without a hit, and
 // only while the backend is paused. An alternate's hit, as hit reports it,
-// answers and cancels primary; once every alternate missed, primary answers.
+// answers and cancels primary. Once every alternate missed, primary answers.
 // With the backend never paused, only primary runs.
 //
 // primary runs in its own goroutine under a context that ends when
@@ -137,7 +137,7 @@ type pausedReads struct {
 	block.StoreOps
 	// pause watches the backend's pause.
 	pause backendPause
-	// alternates read a block from another source; nil is a miss.
+	// alternates read a block from another source. A nil block is a miss.
 	alternates []readAlternate
 }
 
@@ -171,7 +171,7 @@ func readSource(src block_store.StoreSource) readAlternate {
 	}
 }
 
-// BeginReadOperation scopes the chain; the alternates read unscoped.
+// BeginReadOperation scopes the chain. The alternates read unscoped.
 func (r *pausedReads) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	scoped, release, err := r.StoreOps.BeginReadOperation(ctx)
 	if err != nil {

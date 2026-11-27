@@ -648,7 +648,7 @@ func requireNewObject(ctx context.Context, tx world.WorldState, key, what string
 
 // setVMState requests a run state for the VM vmKey with the state operation of
 // its VM type. A start first approves the VM's process binding, which has the
-// Space run the VM; the approval outlasts a stop, so the runner commits it.
+// Space run the VM. The approval outlasts a stop, so the runner commits it.
 func setVMState(
 	c *cli.Context,
 	statePath string,

@@ -52,25 +52,25 @@ type spaceFence struct {
 // Invariants. The fence decides what a reclaim pass may delete, so it keeps
 // every block it is unsure of:
 //
-//  1. It returns only after every participant that could write when the
-//     fence was placed answered that fence. A device the trimming roster
-//     dropped still answers: it may still upload or reference blocks.
-//  2. Only an answer naming this pass's fence counts. A root set answering an
-//     earlier fence says nothing of what the device holds now.
+//  1. It returns only after every participant that could write when the fence
+//     was placed answered that fence. A device the trimming roster dropped
+//     still answers: it may still upload or reference blocks.
+//  2. Only an answer identifying this pass's fence counts. A root set answering
+//     an earlier fence says nothing of what the device holds now.
 //  3. A device answers after every operation it started before it saw the
-//     fence, through its operation queue, so its answer covers each block
-//     such an operation names. A device that joined after the fence was
-//     placed started its uploads after the backend listed its catalog, which
-//     the backend does before it asks for the fence, so the pass does not
-//     judge them and need not wait for it.
-//  4. An answer lists every root the device holds in the Space's bucket:
-//     the adapter's roots, reader pins and stages.
+//     fence, through its operation queue, so its answer covers each block such
+//     an operation references. A device that joined after the fence was placed
+//     started its uploads after the backend listed its catalog, which the
+//     backend does before it asks for the fence, so the pass does not judge
+//     them and need not wait for it.
+//  4. An answer lists every root the device holds in the Space's bucket: the
+//     adapter's roots, reader pins and stages.
 //  5. A writer that does not answer within the timeout fails the pass, which
 //     then deletes nothing.
-//  6. No pass frees anything while frees are off: the Volume collector's
-//     Frees switch and the Spacewave pack reclaim switch (SetPackReclaim) are
-//     both off by default, so the fence answers but no backend deletes by it
-//     until an operator turns them on.
+//  6. No pass frees anything while frees are off: the Volume collector's Frees
+//     switch and the Spacewave pack reclaim switch (SetPackReclaim) are both
+//     off by default, so the fence answers but no backend deletes by it until
+//     an operator turns them on.
 func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.BlockRef, error) {
 	// Place the fence after this device's admitted operations, bypassing
 	// the write gate as enqueue says.
@@ -111,7 +111,7 @@ func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.Bl
 	return live, nil
 }
 
-// waitAnswers waits until every writer the fence names answered it and
+// waitAnswers waits until every writer the fence records answered it and
 // returns the union of their roots.
 func (a *Adapter) waitAnswers(ctx context.Context, fence []byte) ([]*block.BlockRef, error) {
 	// Collect the answers once every writer gave one.
@@ -149,21 +149,22 @@ func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.Bloc
 
 // copyAndHold copies the graph of each root from the kept pages and the copy
 // path into the SharedObject's block store with opts, under a stage that holds
-// each copied block until the named root name holds one block naming every
+// each copied block until the named root name holds one block listing every
 // root. It skips only the subtrees the stage holds, as block.StageCopy
 // describes, unless recheck reads every block again. The stage ends after the
 // root moved, so no copied block is unheld in between.
 //
 // The root moves on the kept pages' store, not through the kept pages, so the
-// copy leaves every kept page in memory. A copy's root releases what it held
-// at its next copy or pass, whether or not the adapter still reads it, so a
-// kept page the move took out of memory would be held by nothing once the copy
-// moved on. A live World's pages leave memory only under the replay base or a
+// copy leaves every kept page in memory. A copy's root releases what it held at
+// its next copy or pass, whether or not the adapter still reads it, so a kept
+// page the move took out of memory would be held by nothing once the copy moved
+// on. A live World's pages leave memory only under the replay base or a
 // history, whose trim keeps every live World.
 func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts block.GraphCopyOptions, recheck bool) error {
-	// Copy under a stage until the root holds them. The copy stays within this
-	// Device's Volume, so a block only a linked file here serves counts as
-	// present: the file is its copy, as the read path serves it.
+	// Copy under a stage until the root holds the copied blocks. The copy
+	// stays within this Device's Volume, so a block only a linked file here
+	// serves counts as present: the file is its copy, as the read path
+	// serves it.
 	opts.CountLinked = true
 	c, err := block.OpenStageCopy(ctx, a.so.GetBlockStore(), recheck)
 	if err != nil {

@@ -9,16 +9,16 @@ import (
 
 // FSDirEntry implements fs.DirEntry with a FSCursorDirent and associated FileInfo.
 type FSDirEntry struct {
-	// ent is the directory entry
+	// ent is the directory entry.
 	ent FSCursorDirent
-	// fileInfo is the file information
+	// fileInfo is the file information.
 	fileInfo fs.FileInfo
 }
 
 // NewFSDirEntry constructs a new directory entry from a unixfs.FSCursorDirent.
 //
-// fileInfo can be nil but will return ErrInfoUnavailable for
-// if fileInfo is nil permissions will be set to defaults.
+// fileInfo can be nil, but Info will return ErrInfoUnavailable.
+// If fileInfo is nil, permissions will be set to defaults.
 func NewFSDirEntry(ent FSCursorDirent, fileInfo fs.FileInfo) fs.DirEntry {
 	return &FSDirEntry{
 		ent:      ent,
@@ -53,7 +53,7 @@ func (e *FSDirEntry) Type() fs.FileMode {
 		}
 	}
 
-	// note: Type() expects just the Type() bits to be set
+	// note: Type() expects only the Type() bits to be set
 	typ := NodeTypeToMode(e.ent, defaultMode.Perm())
 	if typ == os.ModeIrregular {
 		return defaultMode.Type()

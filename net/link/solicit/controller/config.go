@@ -20,7 +20,7 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 	return config.EqualsConfig[*Config](c, c2)
 }
 
-// GetMaxHashesOrDefault returns the max hashes or the default.
+// GetMaxHashesOrDefault returns the max hashes or the default max hashes.
 func (c *Config) GetMaxHashesOrDefault() uint32 {
 	if mh := c.GetMaxHashes(); mh != 0 {
 		return mh

@@ -9,7 +9,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// ErrNotListedParticipant refuses a peer that no listed object admits as a
+// ErrNotListedParticipant indicates that no listed object admits the peer as a
 // reader.
 var ErrNotListedParticipant = errors.New("peer is not a participant of a listed shared object")
 
@@ -17,8 +17,8 @@ var ErrNotListedParticipant = errors.New("peer is not a participant of a listed 
 // MountSharedObject does.
 type MountListedObject func(ctx context.Context, ref *SharedObjectRef, released func()) (SharedObject, func(), error)
 
-// mountListedHost mounts the object ref names and returns its host, or a nil
-// host when the object holds no state here.
+// mountListedHost mounts the object ref identifies and returns its host, or a
+// nil host when the object holds no state here.
 func mountListedHost(ctx context.Context, mount MountListedObject, ref *SharedObjectRef) (*SOHost, func(), error) {
 	// Mount the object and keep it only when it holds a host here.
 	so, release, err := mount(ctx, ref, nil)
@@ -33,8 +33,8 @@ func mountListedHost(ctx context.Context, mount MountListedObject, ref *SharedOb
 	return holder.GetSOHost(), release, nil
 }
 
-// AuthorizeListedParticipant admits remote when the current config of an
-// object in list names it with a role that reads state. It asks each object's
+// AuthorizeListedParticipant admits remote when the current config of an object
+// in list admits remote with a role that reads state. It asks each object's
 // host rather than a copy of its participants. An object that fails to mount
 // admits nobody.
 func AuthorizeListedParticipant(ctx context.Context, list *SharedObjectList, mount MountListedObject, remote peer.ID) error {
@@ -62,7 +62,7 @@ func AuthorizeListedParticipant(ctx context.Context, list *SharedObjectList, mou
 // or ctx ends, and returns when ctx ends.
 func WatchListedParticipants(ctx context.Context, lists ccontainer.Watchable[*SharedObjectList], mount MountListedObject, changed func()) error {
 	for {
-		// Watch the config of each object the current list names.
+		// Watch the config of each object the current list contains.
 		list := lists.GetValue()
 		watchCtx, cancel := context.WithCancel(ctx)
 		var wg sync.WaitGroup

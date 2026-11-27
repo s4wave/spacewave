@@ -24,7 +24,7 @@ import {
 
 /**
  * SqliteBridge wraps sqlite.wasm with a starpc RPC service.
- * Runs in a dedicated Worker with OPFS persistence.
+ * The service runs in a dedicated Worker with OPFS persistence.
  *
  * @generated from service sql.sqlite_wasm.rpc.SqliteBridge
  */
@@ -66,7 +66,8 @@ export const SqliteBridgeDefinition = {
     },
     /**
      * Query executes a SELECT and streams rows back one at a time.
-     * First response contains column names. Subsequent responses each contain one row.
+     * The first response contains column names. Subsequent responses each
+     * contain one row.
      *
      * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Query
      */
@@ -92,7 +93,7 @@ export const SqliteBridgeDefinition = {
 
 /**
  * SqliteBridge wraps sqlite.wasm with a starpc RPC service.
- * Runs in a dedicated Worker with OPFS persistence.
+ * The service runs in a dedicated Worker with OPFS persistence.
  *
  * @generated from service sql.sqlite_wasm.rpc.SqliteBridge
  */
@@ -126,7 +127,8 @@ export interface SqliteBridge {
 
   /**
    * Query executes a SELECT and streams rows back one at a time.
-   * First response contains column names. Subsequent responses each contain one row.
+   * The first response contains column names. Subsequent responses each
+   * contain one row.
    *
    * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Query
    */
@@ -148,7 +150,7 @@ export interface SqliteBridge {
 
 /**
  * SqliteBridge wraps sqlite.wasm with a starpc RPC service.
- * Runs in a dedicated Worker with OPFS persistence.
+ * The service runs in a dedicated Worker with OPFS persistence.
  *
  * @generated from service sql.sqlite_wasm.rpc.SqliteBridge
  */
@@ -188,7 +190,8 @@ export interface SqliteBridgeHandler {
 
   /**
    * Query executes a SELECT and streams rows back one at a time.
-   * First response contains column names. Subsequent responses each contain one row.
+   * The first response contains column names. Subsequent responses each
+   * contain one row.
    *
    * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Query
    */
@@ -283,7 +286,8 @@ export class SqliteBridgeClient implements SqliteBridge {
 
   /**
    * Query executes a SELECT and streams rows back one at a time.
-   * First response contains column names. Subsequent responses each contain one row.
+   * The first response contains column names. Subsequent responses each
+   * contain one row.
    *
    * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Query
    */

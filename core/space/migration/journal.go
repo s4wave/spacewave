@@ -3,7 +3,7 @@ package space_migration
 import "github.com/pkg/errors"
 
 // NewMigrationJournal snapshots a complete immutable preview for durable
-// migration progress. Callers may persist the returned protobuf bytes; the
+// migration progress. Callers may persist the returned protobuf bytes. The
 // journal owns a deep clone and never aliases the planner's preview.
 func NewMigrationJournal(operationID string, preview *MigrationPreview, retentionUntilUnixSeconds uint64) (*MigrationJournal, error) {
 	// Require the operation identity and a valid immutable preview.

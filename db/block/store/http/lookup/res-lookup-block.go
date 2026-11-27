@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/dex"
 )
 
-// lookupBlockFromNetworkResolver resolves LookupBlockFromNetwork
+// lookupBlockFromNetworkResolver resolves LookupBlockFromNetwork.
 type lookupBlockFromNetworkResolver struct {
 	c *Controller
 	d dex.LookupBlockFromNetwork

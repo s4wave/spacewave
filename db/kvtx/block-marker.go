@@ -6,7 +6,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// BlockMark names one block a write stores.
+// BlockMark identifies one block a write stores.
 type BlockMark struct {
 	// Hash is the block hash.
 	Hash *hash.Hash

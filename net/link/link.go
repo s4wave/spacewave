@@ -8,7 +8,7 @@ import (
 // Link represents a one-hop connection between two peers.
 type Link interface {
 	// GetUUID identifies this physical connection. Separate connections must
-	// have distinct IDs; wrappers of the same connection retain its ID.
+	// have distinct IDs. Wrappers of the same connection retain its ID.
 	GetUUID() uint64
 	// GetTransportUUID returns the unique ID of the transport.
 	GetTransportUUID() uint64

@@ -120,8 +120,9 @@ function toSqlValue(v: unknown): SqlValue {
 }
 
 // Decoder turns a wire value into the value a mariadb connection returns
-// with Reylo's options: a BIGINT a bigint, other integers numbers, a DECIMAL
-// its text, a date or time its text, JSON parsed, and binary types bytes.
+// with Reylo's options: a BIGINT as a bigint, other integers as numbers, a
+// DECIMAL as its text, a date or time as its text, parsed JSON, and binary
+// types as bytes.
 type Decoder = (v: SqlValue | undefined) => unknown
 
 // columnDecoder returns the decoder for a column's MySQL type name.
@@ -173,7 +174,7 @@ function textOf(s: unknown): string | null {
 
 // dateText turns the engine's RFC 3339 time into MySQL's wall clock text: the
 // date alone for a DATE (scale -1), and otherwise the fraction padded to the
-// column's scale, which RFC 3339 trims of trailing zeros.
+// column's scale. RFC 3339 trims trailing zeros from the fraction.
 function dateText(s: unknown, scale: number): unknown {
   // Keep the wall clock text and normalize its fractional precision.
   if (typeof s !== 'string') return s

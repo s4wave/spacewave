@@ -18,9 +18,10 @@ import (
 // changes nothing.
 //
 // Invariant: a pack is registered only after its own index, read from the
-// bucket, shows exactly keys. Registering it tells the write-back that these
-// blocks are on the remote, which can drop the last local copy, so a report
-// that is wrong, or a pack that is not there, must leave the blocks queued.
+// bucket, shows exactly keys. Registering the pack tells the write-back that
+// these blocks are on the remote, so the write-back can drop the last local
+// copy. A report that is wrong, or a pack that is not there, must leave the
+// blocks queued.
 func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
 	_, err := s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
 		tail, err := s.verifyAdopted(ctx, entry, keys)
@@ -31,14 +32,15 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 
 // AdoptBucketPack registers a pack another writer uploaded under this store's
 // prefix when no copy of the pack is at hand to report its keys. The keys come
-// from the pack's own index, read once from the bucket, which also serves the
-// checks AdoptPack makes. Adopting a pack twice changes nothing.
+// from the pack's own index, read once from the bucket to serve the checks
+// AdoptPack makes. Adopting a pack twice changes nothing.
 //
 // Invariant: a pack is registered only once the bucket holds an object at its
 // key of exactly the entry's size, whose index lists exactly the entry's block
 // count of distinct keys, each of which the entry's bloom filter holds. The
 // keys come from the object itself, so the filter is what ties the object to
-// the entry: another pack of the same size and count at this key fails it.
+// the entry: another pack of the same size and count at this key fails the
+// filter check.
 //
 // registered is true only when this call verified the pack and registered it.
 // For a pack the store held already it is false and nothing is checked, so the
@@ -100,7 +102,8 @@ type objectStatter interface {
 // reads its index from the bucket and returns the keys it lists with the
 // index, or an error unless it lists exactly the entry's block count.
 func (s *PackStore) verifyBucketPack(ctx context.Context, entry *packfile.PackfileEntry) ([][]byte, []byte, error) {
-	// The object must be the size the entry names, which locates its index.
+	// The object must match the size the entry records. That size locates
+	// the object's index.
 	statter, ok := s.client.(objectStatter)
 	if !ok {
 		return nil, nil, errors.New("object store cannot report an object's size")
@@ -184,7 +187,7 @@ func (s *PackStore) verifyAdopted(ctx context.Context, entry *packfile.PackfileE
 	return tail, nil
 }
 
-// adoptedKey returns the bucket key of the pack entry names.
+// adoptedKey returns the bucket key of the pack entry identifies.
 func (s *PackStore) adoptedKey(entry *packfile.PackfileEntry) string {
 	return s.prefix + packDir + entry.GetId()
 }
@@ -201,8 +204,8 @@ func (s *PackStore) readAdoptedTail(ctx context.Context, entry *packfile.Packfil
 	return packfile.ReadIndexTail(ctx, entry.GetSizeBytes(), packfile.IndexTailReadSize(entry.GetBlockCount()), read)
 }
 
-// checkAdopted returns an error unless the index tail of the pack entry names
-// holds exactly keys, and as many as the entry's block count.
+// checkAdopted returns an error unless the pack identified by entry has an
+// index tail that holds exactly keys, and as many as the entry's block count.
 func checkAdopted(tail []byte, entry *packfile.PackfileEntry, keys [][]byte) error {
 	// Every key the pack holds must be reported, and every reported key held.
 	want := make(map[string]struct{}, len(keys))

@@ -76,7 +76,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
           fileName: 'assets/A-hash123.mjs',
           name: 'A',
           facadeModuleId: path.join(testDir, 'A.tsx'),
-          // This is the critical part: Rollup should include all transitively imported files
+          // Critical: Rollup should include all transitively imported files
           moduleIds: [
             path.join(testDir, 'A.tsx'),
             path.join(testDir, 'B.tsx'),
@@ -205,7 +205,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(entryA).toBeDefined()
       expect(entryD).toBeDefined()
 
-      // Both should track C.tsx
+      // Both entrypoints should track C.tsx
       expect(entryA!.inputs).toContain('C.tsx')
       expect(entryD!.inputs).toContain('C.tsx')
     })
@@ -275,7 +275,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       )
 
       expect(entryA).toBeDefined()
-      // Should include both direct and transitive CSS
+      // The CSS outputs should include both direct and transitive CSS
       expect(entryA!.outputs.css).toContain('assets/A-hash123.css')
       expect(entryA!.outputs.css).toContain('assets/B-hash456.css')
     })

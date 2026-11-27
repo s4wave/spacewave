@@ -22,7 +22,7 @@ const messageInboxSize = 64
 var ErrDatagramsUnsupported = errors.New("link does not support unreliable streams: quic datagrams are disabled")
 
 // messageStream is a MessageStream on a QUIC link. Its control stream is a
-// bidirectional QUIC stream; each message is one QUIC datagram carrying the
+// bidirectional QUIC stream. Each message is one QUIC datagram carrying the
 // control stream's ID as a varint prefix, as in RFC 9297.
 type messageStream struct {
 	// link carries the datagrams and registers this stream.
@@ -72,7 +72,7 @@ func (l *Link) newMessageStream(control *quic.Stream) (*messageStream, error) {
 	return s, nil
 }
 
-// receiveDatagrams delivers each datagram to the message stream it names
+// receiveDatagrams delivers each datagram to the message stream it selects
 // until the link closes. Datagrams for unknown streams are dropped: a message
 // may arrive before its stream is accepted or after it closes.
 func (l *Link) receiveDatagrams() {

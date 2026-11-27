@@ -14,7 +14,8 @@ import (
 )
 
 // AppStorage is a validated storage capability for a nested installation.
-// EphemeralID distinguishes privately owned Worlds; supplied engines remain caller-owned.
+// EphemeralID distinguishes privately owned Worlds.
+// Supplied engines remain caller-owned.
 type AppStorage struct {
 	// StorageID identifies the supplied storage.
 	StorageID string

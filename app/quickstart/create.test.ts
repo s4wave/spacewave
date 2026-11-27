@@ -77,7 +77,8 @@ const objectTypeRegistryMocks = vi.hoisted(() => ({
   WatchObjectTypes: vi.fn(),
 }))
 
-// SPACE_INSTANCE_KEY is the world engine id that scopes Space plugin registrations.
+// SPACE_INSTANCE_KEY is the world engine id that scopes Space plugin
+// registrations.
 const SPACE_INSTANCE_KEY = 'space/local/test-account/test-space'
 const getEngineInfo = () =>
   Promise.resolve({ engineInfo: { engineId: SPACE_INSTANCE_KEY } })
@@ -1137,8 +1138,9 @@ describe('quickstart create', () => {
     )
     expect(getSettingsIndexPath(applyWorldOp)).toBe('kv/store')
 
-    // A Drive whose guide upload failed is not indexed, so it stays unseeded;
-    // the retry keeps the filesystem, uploads the missing guide, then indexes.
+    // A Drive whose guide upload failed is not indexed, so it stays unseeded.
+    // The retry keeps the filesystem, uploads the missing guide, then indexes
+    // the Drive.
     const drive = buildQuickstartWorld()
     fsHandleMocks.uploadFile.mockRejectedValueOnce(new Error('upload failed'))
     await expect(createDrive(drive.world as never)).rejects.toThrow(
@@ -1539,7 +1541,7 @@ to try first.
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('space', { spaceWorld: world } as never)
-      // The plain Space only ensures its settings exist; it sets no index.
+      // The plain Space only ensures its settings exist. It sets no index.
       expect(getAddedPluginIds(applyWorldOp)).toEqual([[]])
       expect(
         applyWorldOp.mock.calls.some(
@@ -1693,7 +1695,7 @@ to try first.
       'spacewave-app',
     ])
 
-    // One batch adds the plugin and sets the index path; the World merges
+    // One batch adds the plugin and sets the index path. The World merges
     // both into the stored settings, so the client reads nothing first.
     expect(world.getObject).not.toHaveBeenCalled()
     expect(executeWorldBatch).toHaveBeenCalledTimes(1)
@@ -1804,7 +1806,7 @@ to try first.
       undefined,
     )
 
-    // The ops and the settings land as one batch; no client transaction is
+    // The ops and the settings land as one batch, so no client transaction is
     // opened.
     expect(executeWorldBatch).toHaveBeenCalledTimes(1)
     expect(executeWorldBatch.mock.calls[0]?.[0]).toHaveLength(3)

@@ -19,7 +19,8 @@ export interface SpacewaveSessionRoutesOptions {
 
 // spacewaveSessionRoutes returns spacewave-specific route elements (plan,
 // billing, upgrade, email verification) for use inside SessionContainer's
-// Routes. Returns an array of Route elements that collectRoutes can flatten.
+// Routes. The function returns an array of Route elements that collectRoutes
+// can flatten.
 export function spacewaveSessionRoutes(
   metadata?: SessionMetadata,
   options: SpacewaveSessionRoutesOptions = { fallbackPath: '../' },

@@ -220,8 +220,8 @@ type causePeers struct {
 	blk   *block.StoredBlock
 }
 
-// The failure modes of causePeers, each shaped as the solicit store returns
-// it.
+// The failure modes of causePeers are each shaped as the solicit store
+// returns the failure.
 const (
 	// causeServe serves the block.
 	causeServe int32 = iota
@@ -285,8 +285,8 @@ func TestPeerReadFailCauses(t *testing.T) {
 			want := &block.StoredBlock{Data: []byte("served")}
 			peers := &causePeers{blk: want}
 			src := newPeerMissSource(logrus.NewEntry(logger), func() block.StoreOps { return peers }, nil, &p.peerReads)
-			// Name a block no earlier run in this process failed: the
-			// process warns of each block's first failure only.
+			// Build a block no earlier run in this process failed:
+			// the process warns of each block's first failure only.
 			ref, err := block.BuildBlockRef(fmt.Appendf(nil, "%s %d", t.Name(), time.Now().UnixNano()), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -340,7 +340,7 @@ func TestPeerReadFailCauses(t *testing.T) {
 }
 
 // TestPeerFailOnceBounded checks that the once-per-block set forgets its
-// oldest ref past seenRefsCap, and that site names only main module frames.
+// oldest ref past seenRefsCap, and that site selects only main module frames.
 func TestPeerFailOnceBounded(t *testing.T) {
 	s := newSeenRefs()
 	for i := range seenRefsCap + 1 {

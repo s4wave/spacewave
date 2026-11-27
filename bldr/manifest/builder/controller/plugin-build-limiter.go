@@ -20,7 +20,7 @@ const (
 
 // PluginBuildLimiter bounds concurrent whole-plugin builds within one builder
 // controller factory. Plugin builds hold a slot while awaiting subordinate
-// bundler manifests; only plugin compiler configs acquire slots, so those
+// bundler manifests. Only plugin compiler configs acquire slots, so those
 // dependencies never contend for the same capacity.
 type PluginBuildLimiter struct {
 	semaphore *semaphore.Weighted

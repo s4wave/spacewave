@@ -29,7 +29,7 @@ func ReadWorldBlock[T any, PT block.Ptr[T]](
 }
 
 // WatchWorldObject streams re-reads of one world object after each revision.
-// read runs once per revision against the object handle; emit runs after each
+// read runs once per revision against the object handle. emit runs after each
 // read with changed reporting whether the value differs (EqualVT) from the
 // previous revision. The watch ends when ctx is canceled.
 func WatchWorldObject[T watchValue[T]](

@@ -4,8 +4,8 @@ package filelock
 
 import "os"
 
-// lockFilesSupported reports that this platform has no advisory file locks;
-// keyed scopes fall back to in-memory exclusion.
+// lockFilesSupported reports that this platform has no advisory file locks,
+// so keyed scopes fall back to in-memory exclusion.
 const lockFilesSupported = false
 
 // tryLockFile takes the exclusive advisory lock on file without waiting.

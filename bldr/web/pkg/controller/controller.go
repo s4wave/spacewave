@@ -15,7 +15,7 @@ import (
 //
 // release is a function to call if the web pkg is released.
 // return nil, nil, nil for not found.
-// return a release function if necessary
+// return a release function if necessary.
 //
 // func(ctx context.Context, webPkgID string, release func()) (web_pkg.LookupWebPkgValue, func(), error)
 type WebPkgGetter = directive.KeyedGetterFunc[string, web_pkg.LookupWebPkgValue]
@@ -25,11 +25,11 @@ type WebPkgGetter = directive.KeyedGetterFunc[string, web_pkg.LookupWebPkgValue]
 // Wraps a getter function and resolves LookupWebPkg.
 // Can be used with the static web pkg implementation.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// getter is the web pkg getter
+	// getter is the web pkg getter.
 	getter WebPkgGetter
 	// webPkgIds is the list of web package ids.
 	// if empty, passes all web pkg ids to the getter.

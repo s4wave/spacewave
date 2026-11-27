@@ -17,7 +17,7 @@ export interface EvalJSRequest {
   code?: string
   /**
    * Url is a URL to import as an ES module (alternative to code).
-   * Set by the bridge service; the default export is used as the result.
+   * Url is set by the bridge service. The default export is used as the result.
    */
   url?: string
   /**

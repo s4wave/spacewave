@@ -4,7 +4,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// testDriverSharedObject is a SharedObject that only names its local peer,
+// testDriverSharedObject is a SharedObject that only identifies its local peer,
 // for a BodyDriver stepped directly.
 type testDriverSharedObject struct {
 	// SharedObject is nil: any other method panics.

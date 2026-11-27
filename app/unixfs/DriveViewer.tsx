@@ -56,7 +56,7 @@ export function DriveViewer({
 function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
   const { currentPath, entries, onNewFolder, onOpen, onUploadFiles } = props
   const [dismissed, setDismissed] = useState(false)
-  // The intro wizard draws its own first-run callouts over this Drive; standing
+  // The intro wizard draws its own first-run callouts over this Drive. Standing
   // the welcome header down keeps one first-run guidance surface per state
   // instead of doubling the wizard's "Add files" callout with these actions.
   const introPresenting = useIntroWizardPresentation()

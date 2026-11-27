@@ -39,8 +39,8 @@ const pluginOpDeadline = world.WriteBudgetLength
 
 // pluginLoadDeadline bounds the plugin load PrepareApply waits on before the
 // writer. A cold load fetches and starts the plugin's executable, which can
-// legitimately outlast pluginOpDeadline; it holds no writer, so only the
-// caller waits. A load that has not finished by then reports the plugin
+// legitimately outlast pluginOpDeadline. The load holds no writer, so only
+// the caller waits. A load that has not finished by then reports the plugin
 // unavailable rather than leaving the caller waiting on a load that hangs.
 const pluginLoadDeadline = 30 * time.Second
 
@@ -64,8 +64,8 @@ type WorldOpRegistryBridgeController struct {
 type BridgeOption func(*WorldOpRegistryBridgeController)
 
 // WithPluginLoadDeadline sets how long PrepareApply waits for an operation's
-// plugin to load before it reports the plugin unavailable. The default is
-// pluginLoadDeadline.
+// plugin to load before PrepareApply reports the plugin unavailable. The
+// default deadline is pluginLoadDeadline.
 func WithPluginLoadDeadline(d time.Duration) BridgeOption {
 	return func(c *WorldOpRegistryBridgeController) {
 		c.loadDeadline = d
@@ -113,7 +113,7 @@ func (c *WorldOpRegistryBridgeController) HandleDirective(ctx context.Context, d
 		return nil, nil
 	}
 
-	// Proxy the operation to the pinned executable it names.
+	// Proxy the operation to the pinned executable it selects.
 	engineID := dir.LookupWorldOpEngineID()
 	pluginID, manifestRoot, handlerID, pinned := s4wave_worldop_registry.ParsePinnedOperationID(opTypeID)
 	if pinned {
@@ -205,9 +205,11 @@ type bridgeOperation struct {
 	opTypeID string
 	// handlerID is the plugin-local operation name, separate from accepted code identity.
 	handlerID string
-	// instanceKey is the plugin instance serving reg, empty for a global one.
+	// instanceKey is the plugin instance serving reg, empty for a global
+	// registration.
 	instanceKey string
-	// manifestRoot pins the executable; empty uses a registered native/legacy handler.
+	// manifestRoot pins the executable. An empty root uses a registered
+	// native/legacy handler.
 	manifestRoot string
 	opData       []byte
 	// loadDeadline bounds the plugin load in PrepareApply.
@@ -256,13 +258,13 @@ func (o *bridgeOperation) Validate() error {
 }
 
 // MarshalVT marshals the block to binary. The bridge holds the encoded op
-// bytes opaquely; the owning plugin defines the payload format.
+// bytes opaquely. The owning plugin defines the payload format.
 func (o *bridgeOperation) MarshalVT() ([]byte, error) {
 	return o.opData, nil
 }
 
 // UnmarshalVT unmarshals the block from binary. The engine decodes ops
-// from block storage through this path; the bytes stay opaque until the
+// from block storage through this path. The bytes stay opaque until the
 // plugin handler parses them.
 func (o *bridgeOperation) UnmarshalVT(data []byte) error {
 	o.opData = data
@@ -480,7 +482,7 @@ func (o *bridgeOperation) applyWorldObjectOp(
 // cold plugin load costs the caller time while other writers proceed. The load
 // must finish within loadDeadline, and the connection lives on ctx until
 // release. A load that misses the deadline, while ctx is live, returns a
-// world.PluginUnavailableError, and so does a load that fails; a pinned build
+// world.PluginUnavailableError, and so does a load that fails. A pinned build
 // proven to have no executable for this device returns a
 // world.PluginExecutableMissingError. No transaction is open yet, so nothing
 // was sent to apply.
@@ -546,9 +548,9 @@ func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, co
 }
 
 // callErr classifies an error from reaching, attaching to or calling the
-// plugin's handler; sent reports that the handler was already asked to apply.
+// plugin's handler. sent reports that the handler was already asked to apply.
 //
-// A refusal comes only from the handler's typed reply or the guard; any other
+// A refusal comes only from the handler's typed reply or the guard. Any other
 // failure to reach or run the handler is a wait, so every replica decides a
 // position alike. A call into a worker loses its error's type, so an error
 // that arrives as ctx ends counts as the ending's: the
@@ -583,7 +585,7 @@ func (o *bridgeOperation) callErr(ctx context.Context, err error, sent bool) err
 		}
 	}
 
-	// Keep a typed load error or a cancellation; anything else is a wait.
+	// Keep a typed load error or a cancellation. Anything else is a wait.
 	var unavailable *world.PluginUnavailableError
 	var missing *world.PluginExecutableMissingError
 	if errors.As(err, &unavailable) || errors.As(err, &missing) ||
@@ -619,7 +621,7 @@ func (o *bridgeOperation) validateWithService(
 // the executable at the pinned manifest root. A pinned build proven to have no
 // executable for this device returns a world.PluginExecutableMissingError,
 // which is final here. Any other failure while ctx is live returns a
-// world.PluginUnavailableError, which may pass; a failure after ctx ended
+// world.PluginUnavailableError, which may pass. A failure after ctx ended
 // returns as is.
 func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.PluginResources, error) {
 	// Connect to the pinned executable, or to the registering instance.
@@ -634,7 +636,8 @@ func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.Plu
 		return resources, nil
 	}
 
-	// Report a proven missing build as final, naming the root in the log.
+	// Report a proven missing build as final, recording the root in the
+	// log.
 	var missing *bldr_plugin.PinnedManifestMissingError
 	if errors.As(err, &missing) {
 		o.le.WithError(err).
@@ -649,7 +652,7 @@ func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.Plu
 		}
 	}
 
-	// Pass a cancellation through as itself; report any other failure, even
+	// Pass a cancellation through as itself. Report any other failure, even
 	// one that arrives as ctx ends, as one that may pass, so a replay waits
 	// instead of recording it.
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

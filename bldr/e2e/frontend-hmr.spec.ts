@@ -203,7 +203,8 @@ build("web", manifests=["web", "hmr-app"], targets=["browser"])
 
   /** close joins the fixture CLI and persists diagnostics before deleting data. */
   async close(reportPath: string): Promise<void> {
-    // End only the process started by this fixture; its pipe owns its compilers.
+    // End only the process started by this fixture.
+    // Its pipe owns its compilers.
     if (this.native?.exitCode === null && this.native.signalCode === null) {
       this.native.kill('SIGINT')
     }
@@ -251,7 +252,7 @@ async function observeEdit(
     })
   }, expected)
 
-  // Report edit-to-observed-update; startup and compositor paint are separate.
+  // Report edit-to-observed-update. Startup and compositor paint are separate.
   const started = performance.now()
   await writeFile(path, source)
   await page.evaluate(() => globalThis.__hmrObservation)

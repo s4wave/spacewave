@@ -1,20 +1,22 @@
 import { BootReport, BootReportState } from './report.pb.js'
 
-// The database contract is frozen at version 1: one `reports` object store
-// keyed reportId with state and sealedAt indexes. First deployment creates
-// version 1. Opening a database at an unknown or newer version fails closed:
+// bootReportDatabaseName identifies the database with a contract frozen at
+// version 1: one `reports` object store keyed by reportId with state and
+// sealedAt indexes. First deployment creates version 1. Opening a database
+// at an unknown or newer version fails closed:
 // the store refuses reads and writes and never deletes or resets anything.
 // Future shape changes bump the IndexedDB version and land an explicit
-// versionchange migration here; destructive reset is prohibited.
+// versionchange migration here. Destructive reset is prohibited.
 export const bootReportDatabaseName = 'bldr-boot-reports'
 export const bootReportDatabaseVersion = 1
 export const bootReportObjectName = 'reports'
 
-// Retention resolves OQ-1: keep the last retentionSealedLimit sealed reports
-// within retentionBodyBudgetBytes of encoded BootReport body bytes. RECORDING
+// retentionSealedLimit bounds retention per OQ-1: keep the last
+// retentionSealedLimit sealed reports within retentionBodyBudgetBytes of
+// encoded BootReport body bytes. RECORDING
 // reports and the newest FAILED report are never eviction candidates, but the
 // newest FAILED report counts toward both limits. v1 stores no attachments
-// (attachment budget 0); a later attachment phase must version-migrate.
+// (attachment budget 0). A later attachment phase must version-migrate.
 export const retentionSealedLimit = 100
 export const retentionBodyBudgetBytes = 10 << 20
 
@@ -36,7 +38,7 @@ interface IDBRequestLike<T> {
 }
 
 interface IDBTransactionLike {
-  // Error mirrors the native transaction error surfaced on abort.
+  // error mirrors the native transaction error surfaced on abort.
   readonly error?: Error | null
   objectStore(name: string): {
     get(key: string): IDBRequestLike<unknown>
@@ -50,7 +52,7 @@ interface IDBTransactionLike {
 }
 
 interface IDBDatabaseLike {
-  // Transaction mirrors the native IDBDatabase signature: the object store
+  // transaction mirrors the native IDBDatabase signature: the object store
   // name comes first, then the mode. The mode-only call asks the browser for
   // an object store literally named "readwrite" and fails there.
   transaction(
@@ -71,43 +73,43 @@ type LockManagerLike =
   | null
 
 export interface OpenBootReportStoreOptions {
-  // IdbFactory overrides the global IndexedDB factory for tests.
+  // idbFactory overrides the global IndexedDB factory for tests.
   idbFactory?: IDBFactoryLike | null
-  // Locks overrides the global Web Locks manager for tests. Null disables
+  // locks overrides the global Web Locks manager for tests. Null disables
   // locking and selects the conservative non-destructive recovery default.
   locks?: LockManagerLike
 }
 
 export interface BootReportStore {
-  // Put journals one report write through the serialized writer and resolves
+  // put journals one report write through the serialized writer and resolves
   // only after the IndexedDB transaction commits. It rejects on storage,
   // quota, or abort failure instead of dropping the write.
   put(report: BootReport): Promise<void>
-  // Get returns one persisted report by id.
+  // get returns one persisted report by id.
   get(reportId: string): Promise<BootReport | undefined>
-  // List returns every persisted report.
+  // list returns every persisted report.
   list(): Promise<BootReport[]>
-  // Delete removes one report by id.
+  // delete removes one report by id.
   delete(reportId: string): Promise<void>
-  // RecoverOnStartup aborts stale RECORDING reports whose crash released
+  // recoverOnStartup aborts stale RECORDING reports whose crash released
   // their Web Lock and leaves live concurrent boots untouched.
   recoverOnStartup(): Promise<void>
-  // HoldBootLock takes this tab's unique recording lock for one report and
+  // holdBootLock takes this tab's unique recording lock for one report and
   // keeps it until sealReport releases it after the terminal commit. It
   // resolves true only after the manager granted the lock to this document,
   // and false when the lock is held elsewhere, locking is unavailable, or
   // the request fails.
   holdBootLock(reportId: string): Promise<boolean>
-  // SealReport writes the complete sealed record in one atomic put and
+  // sealReport writes the complete sealed record in one atomic put and
   // releases the report's boot lock after the terminal commit.
   sealReport(
     report: BootReport,
     state: BootReportState,
     terminalErrorCode?: string,
   ): Promise<BootReport>
-  // ApplyRetention evicts sealed reports beyond the accepted limits after
-  // seal and returns the eviction count with reasons. Defaults are the
-  // accepted OQ-1 recommendation; overrides exist for focused tests.
+  // applyRetention evicts sealed reports beyond the accepted limits after
+  // seal and returns the eviction count with reasons. Default limits are the
+  // accepted OQ-1 recommendation. Overrides exist for focused tests.
   applyRetention(overrides?: {
     sealedLimit?: number
     bodyBudgetBytes?: number
@@ -147,8 +149,8 @@ function transactionDone(transaction: IDBTransactionLike): Promise<void> {
   })
 }
 
-// ProbeLock distinguishes a dead holder (the lock grants to us, so the
-// previous tab crashed or closed) from a live holder (the lock stays
+// probeLock distinguishes a dead holder (the lock grants to the caller, so
+// the previous tab crashed or closed) from a live holder (the lock stays
 // elsewhere, so another tab still owns the boot). An absent manager reports
 // unavailable and every caller takes the conservative non-destructive path.
 async function probeLock(
@@ -178,7 +180,7 @@ const heldBootLocks = new Map<string, () => void>()
 
 // externalHolders tracks report ids whose lock probe answered held-elsewhere
 // inside this document realm. A live foreign tab registered here is never
-// aborted by recovery; real cross-tab liveness is proven by the Web Lock
+// aborted by recovery. Real cross-tab liveness is proven by the Web Lock
 // itself when the realm differs.
 const externalHolders = new Set<string>()
 
@@ -252,7 +254,7 @@ export async function openBootReportStore(
           report.state === BootReportState.RECORDING &&
           !externalHolders.has(report.reportId ?? '')
         ) {
-          // A RECORDING report written while our own probe answers
+          // A RECORDING report written while this store's probe answers
           // held-elsewhere belongs to a live foreign tab: register it so a
           // same-realm recovery pass never aborts an active boot.
           const probe = await probeLock(
@@ -371,8 +373,8 @@ export async function openBootReportStore(
               },
             )
             ?.catch((cause: unknown) => {
-              // Drop the registration only when this request installed it;
-              // a failed contender must never release another holder's lock.
+              // Drop the registration only when this request installed it.
+              // A failed contender must never release another holder's lock.
               if (heldBootLocks.get(reportId) === release) {
                 heldBootLocks.delete(reportId)
               }

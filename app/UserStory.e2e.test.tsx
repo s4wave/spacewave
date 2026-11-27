@@ -54,9 +54,10 @@ describe('User Story: Create Drive and View File', () => {
     async ({ skip }) => {
       skip(!openStreamFunc, 'No backend available')
 
-      // Create mock BldrContext that provides our E2E WebSocket connection.
-      // AppAPI only uses webDocument.buildWebViewHostOpenStream() and webView.getUuid()
-      // so we only need to mock those methods. Cast through unknown to satisfy TypeScript.
+      // Create mock BldrContext that provides the E2E WebSocket connection.
+      // AppAPI only uses webDocument.buildWebViewHostOpenStream() and
+      // webView.getUuid(), so the test only needs to mock those methods.
+      // Cast through unknown to satisfy TypeScript.
       const mockBldrContext = {
         webDocument: {
           buildWebViewHostOpenStream: () => openStreamFunc!,
@@ -113,7 +114,7 @@ describe('User Story: Create Drive and View File', () => {
       ) as HTMLElement
       driveItem.click()
 
-      // Wait for quickstart to complete - URL should contain /u/ and /so/
+      // Wait for quickstart to complete: URL should contain /u/ and /so/
       await expect
         .poll(
           () => {

@@ -29,11 +29,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// pluginBuildTaskName names the single Task of a plugin build Job.
+// pluginBuildTaskName identifies the single Task of a plugin build Job.
 const pluginBuildTaskName = "build"
 
 // BuildSpacePlugin queues a plugin build as a Forge Job in the Space World.
-// The mounted session supplies the sender; the selected Device supplies the
+// The mounted session supplies the sender. The selected Device supplies the
 // Worker, peer, and native platform. Forge owns the Job after the commit, and a
 // successful build installs its artifact in the Space.
 func (r *SpaceResource) BuildSpacePlugin(ctx context.Context, req *s4wave_space.BuildSpacePluginRequest) (*s4wave_space.BuildSpacePluginResponse, error) {
@@ -227,7 +227,7 @@ func lookupDevice(ctx context.Context, tx world.WorldState, key string) (*s4wave
 }
 
 // buildPlatform validates the requested platform against the Device.
-// An empty request selects the Device's native platform; js is always allowed.
+// An empty request selects the Device's native platform. js is always allowed.
 func (s *pluginBuildSelection) buildPlatform(requested string) (string, error) {
 	// An empty request selects the Device's native platform.
 	native := s.device.NativePlatformID()
@@ -247,7 +247,7 @@ func (s *pluginBuildSelection) buildPlatform(requested string) (string, error) {
 
 // selectWorkerCluster finds the Cluster that will schedule a Job on the Worker.
 // The Cluster must contain the Worker. If none is requested, the Worker must
-// belong to exactly one.
+// belong to exactly one Cluster.
 func selectWorkerCluster(ctx context.Context, tx world.WorldState, workerKey, requested string) (string, error) {
 	// List the Clusters that contain the Worker.
 	clusters, err := forge_cluster.ListWorkerClusters(ctx, tx, workerKey)
@@ -255,7 +255,7 @@ func selectWorkerCluster(ctx context.Context, tx world.WorldState, workerKey, re
 		return "", err
 	}
 
-	// Use the requested Cluster or the Worker's only one.
+	// Use the requested Cluster or the Worker's only Cluster.
 	if requested != "" {
 		if !slices.Contains(clusters, requested) {
 			return "", errors.Errorf("worker %s is not linked to cluster %s", workerKey, requested)
@@ -270,14 +270,14 @@ func selectWorkerCluster(ctx context.Context, tx world.WorldState, workerKey, re
 
 // checkPluginBuildCapacity requires an explicit capacity request that the
 // Worker's observed totals can hold. A Worker that has not reported totals yet
-// admits the request; its own admission decides when it starts.
+// admits the request. The Worker's own admission decides when the Job starts.
 func checkPluginBuildCapacity(ctx context.Context, tx world.WorldState, workerKey string, milliCPU, memoryBytes uint64) error {
 	// Require an explicit request.
 	if milliCPU == 0 || memoryBytes == 0 {
 		return errors.New("milli_cpu and memory_bytes must be set")
 	}
 
-	// Compare it with the totals the Worker last reported.
+	// Compare the request with the totals the Worker last reported.
 	capacity, err := forge_runtime.LookupWorkerCapacity(ctx, tx, workerKey)
 	if errors.Is(err, forge_runtime.ErrWorkerNotObserved) {
 		return nil

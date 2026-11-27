@@ -10,8 +10,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// reconnectDelay bounds the wait between reads retried after a lost
-// connection.
+// reconnectDelayMin sets the minimum wait between reads retried after a lost
+// connection. reconnectDelayMax sets the maximum wait.
 const (
 	reconnectDelayMin = 25 * time.Millisecond
 	reconnectDelayMax = time.Second

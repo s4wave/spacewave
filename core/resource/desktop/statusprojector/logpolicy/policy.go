@@ -2,7 +2,7 @@ package logpolicy
 
 import desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 
-// Level names the severity used for a desktop tray projection log decision.
+// Level is the severity used for a desktop tray projection log decision.
 type Level uint8
 
 const (

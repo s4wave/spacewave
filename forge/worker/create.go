@@ -37,7 +37,7 @@ func CreateWorker(
 	return w.ApplyWorldOp(ctx, op, sender)
 }
 
-// Validate performs cursory validation of the operation.
+// Validate cursorily validates the operation.
 // Should not block.
 func (o *WorkerCreateOp) Validate() error {
 	if err := o.BuildWorker().Validate(); err != nil {

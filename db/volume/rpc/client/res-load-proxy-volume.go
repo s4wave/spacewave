@@ -11,11 +11,11 @@ import (
 // Exits once the proxy volume controller is fully running.
 // Does not directly resolve the directive.
 type LoadProxyVolumeResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
-	// volumeID is the volume identifier
+	// volumeID is the volume identifier.
 	volumeID string
 	// refAdded indicates the reference was already added.
 	refAdded atomic.Bool
@@ -50,7 +50,7 @@ func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive
 	})
 
 	// wait for the volume to be ready
-	// (note: only error it can return is context.Canceled)
+	// (note: the only error WaitValue can return is context.Canceled)
 	_, err := tracker.proxyVolCtr.WaitValue(ctx, nil)
 	return err
 }

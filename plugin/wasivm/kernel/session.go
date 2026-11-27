@@ -13,8 +13,8 @@ func (p *Process) sysSetsid() uint64 {
 }
 
 // sysSetpgid moves the process pid, p itself or a child of p, into the
-// process group pgid of p's session. Zero names p for pid and the target's
-// own PID for pgid, which starts a group.
+// process group pgid of p's session. Zero selects p for pid and the target's
+// own PID for pgid, starting a group.
 func (p *Process) sysSetpgid(pid, pgid int32) uint64 {
 	// Find the target.
 	if pid < 0 || pgid < 0 {
@@ -79,7 +79,7 @@ func (p *Process) lookupPID(pid int32) *Process {
 
 // sysTcgetpgrp returns the foreground process group of p's controlling
 // terminal on fd. Before any process sets one, every process is in the
-// foreground, so it is p's own.
+// foreground, so it is p's own process group.
 func (p *Process) sysTcgetpgrp(fd uint32) uint64 {
 	t := p.controllingFD(fd)
 	if t == nil {
@@ -89,8 +89,8 @@ func (p *Process) sysTcgetpgrp(fd uint32) uint64 {
 }
 
 // sysTcsetpgrp makes pgid the foreground process group of p's controlling
-// terminal on fd, which receives the signals of the terminal's control
-// characters.
+// terminal on fd. The foreground process group receives the signals of the
+// terminal's control characters.
 func (p *Process) sysTcsetpgrp(fd uint32, pgid int32) uint64 {
 	t := p.controllingFD(fd)
 	switch {

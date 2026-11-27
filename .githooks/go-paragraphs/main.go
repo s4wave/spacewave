@@ -78,7 +78,7 @@ func main() {
 
 // git runs a git command and returns its standard output. GO_PARAGRAPHS_INDEX,
 // when set, names the index it reads, such as the temporary one git commit -a
-// records; the hook passes it under its own name so that GIT_INDEX_FILE never
+// records. The hook passes it under its own name so that GIT_INDEX_FILE never
 // reaches a git that go run starts in another repository.
 func git(args ...string) (string, error) {
 	// Run git with its output captured.
@@ -267,7 +267,8 @@ func checkBody(fset *token.FileSet, endingAt map[int]*ast.CommentGroup, body *as
 			unitLine = fset.Position(leading.Pos()).Line
 		}
 
-		// A blank line before the unit starts a paragraph; a purpose comment without one is misplaced.
+		// A blank line before the unit starts a paragraph. A purpose comment
+		// without one is misplaced.
 		if unitLine > prevEnd+1 || len(paragraph) == 0 {
 			flush()
 			purpose = leading

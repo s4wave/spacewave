@@ -99,7 +99,8 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stage the release channel; launchers stage only roots the release key signed.
+	// Stage the release channel. Launchers stage only roots the release key
+	// signed.
 	releaseKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)

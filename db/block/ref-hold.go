@@ -40,11 +40,11 @@ func newRefKey(h *hash.Hash) (refKey, bool) {
 	return key, true
 }
 
-// refShardBits is the number of low slot bits naming a shard.
+// refShardBits is the number of low slot bits identifying a shard.
 const refShardBits = 6
 
-// refShards spreads the held table over locks, since every live view adds the
-// blocks it reads.
+// refShards is the number of locks over which the held table is spread, since
+// every live view adds the blocks it reads.
 const refShards = 1 << refShardBits
 
 // refShard is one shard of the held table: one slot per distinct held block,
@@ -124,7 +124,7 @@ func dec(slot uint32) {
 
 // Held reports whether a live hold holds the block with hash h.
 func Held(h *hash.Hash) bool {
-	// Look the key up in its shard; a slot exists while its count is nonzero.
+	// Look the key up in its shard. A slot exists while its count is nonzero.
 	key, ok := newRefKey(h)
 	if !ok {
 		return false
@@ -150,7 +150,7 @@ var refHoldIDs atomic.Uint64
 // A hold keeps only the slot ids of the held table it incremented, four bytes
 // per block, so a block read by many views takes one slot. Repeated reads of
 // a block by one hold count once unless another hold incremented the block in
-// between; the extra increment is undone with the rest.
+// between. The extra increment is undone with the rest.
 type RefHold struct {
 	s *refHoldState
 }
@@ -260,7 +260,7 @@ func (s *refHoldState) release() {
 	s.slots, s.kept = nil, nil
 	s.mtx.Unlock()
 
-	// Undo each increment; no add counts into a released hold.
+	// Undo each increment. No add counts into a released hold.
 	for _, slot := range slots {
 		dec(slot)
 	}

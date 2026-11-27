@@ -31,7 +31,7 @@ function useFocusRow(focused: boolean) {
   return ref
 }
 
-// ListRowProps are a List row's props plus the cells it draws. Other div
+// ListRowProps are a List row's props plus the cells the row draws. Other div
 // props, such as drag handlers, pass to the row.
 export interface ListRowProps<T>
   extends
@@ -40,7 +40,7 @@ export interface ListRowProps<T>
       HTMLAttributes<HTMLDivElement>,
       'children' | 'className' | 'style' | 'onContextMenu'
     > {
-  // children are the row's cells; the item id when absent.
+  // children are the row's cells, or the item id when children are absent.
   children?: ReactNode
   // dropTarget marks the row as where a dragged item would drop.
   dropTarget?: boolean

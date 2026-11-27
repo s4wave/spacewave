@@ -4,7 +4,7 @@ import "time"
 
 // TransferSnapshot reports payload traffic and current peers for this
 // controller. Counters exclude cached reads and protocol framing and last for
-// its lifetime.
+// the controller's lifetime.
 type TransferSnapshot struct {
 	// UploadedBytes counts block payload bytes sent to peers.
 	UploadedBytes uint64

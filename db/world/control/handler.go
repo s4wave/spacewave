@@ -41,13 +41,14 @@ func NewWaitForStateHandler(
 	}
 }
 
-// WaitForObjectRev waits for the object to exist equal at or greater than the given rev.
+// WaitForObjectRev waits for the object to exist equal at or greater than the
+// given rev.
 // If rev=0, waits for the object to exist at any rev.
 //
 // The returned object state is the caller's to own: release it with
 // world.ReleaseObjectState. The handle the watch loop hands its handler lives
-// for one iteration only, so this acquires a fresh one after the loop ends
-// rather than keeping the handler's.
+// for one iteration only, so WaitForObjectRev acquires a fresh one after the
+// loop ends rather than keeping the handler's.
 func WaitForObjectRev(
 	ctx context.Context,
 	le *logrus.Entry,

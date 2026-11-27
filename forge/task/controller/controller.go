@@ -29,23 +29,23 @@ const ControllerID = "forge/task"
 // Controller implements the Task controller.
 // An Task is an attempt to process a given Target with Pass.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the execution controller bus
+	// bus is the execution controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// objKey is the object key (from the config)
+	// objKey is the object key (from the config).
 	objKey string
-	// peerID is the parsed peer id
+	// peerID is the parsed peer id.
 	peerID peer.ID
-	// peerIDStr is the parsed peer id string
+	// peerIDStr is the parsed peer id string.
 	peerIDStr string
-	// objLoop is the object watcher loop
+	// objLoop is the object watcher loop.
 	// watches the task object
 	objLoop *world_control.WatchLoop
-	// passWatcher manages watching the latest task Pass
-	// the key is the object key of the pass
+	// passWatcher manages watching the latest task Pass.
+	// the key is the object key of the pass.
 	passWatcher *keyed.Keyed[string, *passTracker]
 	// inputObjectWatcher manages watching any input world objects.
 	// the key is the object key of the input world object.
@@ -155,7 +155,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 		return errors.Wrap(err, "lookup task")
 	}
 	if taskObj.GetTaskState() != forge_task.State_TaskState_RUNNING {
-		// task is not currently running, we have nothing to do.
+		// task is not running, so the controller has nothing to do.
 		return nil
 	}
 

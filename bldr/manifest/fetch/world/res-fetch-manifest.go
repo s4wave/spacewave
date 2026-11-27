@@ -42,8 +42,9 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	}
 
 	// The authority's own selection cannot wait for the authority to run. Idle
-	// lets the scheduler start its embedded or cached manifest; the authorized
-	// Release World manifest follows as a watched value once it runs.
+	// lets the scheduler start its embedded or cached manifest. The authorized
+	// Release World manifest follows as a watched value once the authority
+	// runs.
 	if r.dir.GetManifestId() == authorityPluginID {
 		handler.MarkIdle(true)
 	}

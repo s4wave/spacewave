@@ -78,7 +78,7 @@ func runDeviceUpdateProjection(
 	var retry <-chan time.Time
 	delay := time.Second
 	for {
-		// Wait for an update or for the pending one's retry.
+		// Wait for an update or for the pending update to retry.
 		select {
 		case <-ctx.Done():
 			return
@@ -87,7 +87,7 @@ func runDeviceUpdateProjection(
 		case <-retry:
 		}
 
-		// Write it, or retry later.
+		// Write the pending update, or retry after a backoff.
 		err := projectDeviceUpdate(ctx, statePath, client, pending, time.Now())
 		if err == nil {
 			pending, retry = nil, nil
@@ -181,7 +181,7 @@ func watchRevisionUpdates(ctx context.Context, le *logrus.Entry, b bus.Bus, upda
 			return
 		}
 
-		// The node stopped; watch for the next one after a backoff.
+		// The node stopped, so watch for the next node after a backoff.
 		le.WithError(err).Debug("os/system revision watch ended")
 		select {
 		case <-ctx.Done():
@@ -197,7 +197,7 @@ func watchRevisionUpdates(ctx context.Context, le *logrus.Entry, b bus.Bus, upda
 // Device object exists to project onto.
 var errDeviceNotReady = stderrors.New("device setup not ready")
 
-// projectDeviceUpdate writes the update onto the Device object setup names.
+// projectDeviceUpdate writes the update onto the Device object setup selects.
 func projectDeviceUpdate(
 	ctx context.Context,
 	statePath string,
@@ -281,7 +281,7 @@ func projectDeviceUpdate(
 }
 
 func deviceUpdateProjectionTarget(statePath string) (*deviceSetupRecord, bool, error) {
-	// Read a ready setup record with the fields projection needs.
+	// Read a ready setup record with the fields the projection needs.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		return nil, false, err

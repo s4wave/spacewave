@@ -33,7 +33,7 @@ func LoadProjectConfig(bldrRootPath string) (*bldr_project.ProjectConfig, error)
 		return nil, err
 	}
 
-	// merge test project config into root project config
+	// merge the test project config into the root project config
 	projectConfig := rootProjectConfig.CloneVT()
 	err = bldr_project.MergeProjectConfigs(projectConfig, testProjectConfig)
 	if err != nil {

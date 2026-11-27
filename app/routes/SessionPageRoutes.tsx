@@ -10,7 +10,8 @@ const LazySessionPages = lazy(async () => {
   return { default: SessionPages }
 })
 
-// SessionPageRoutes keeps informational pages and their loading state in the session frame.
+// SessionPageRoutes keeps informational pages and their loading state in the
+// session frame.
 export const SessionPageRoutes = SESSION_PAGE_PREFIXES.map((prefix) => (
   <Route key={prefix} path={`/${prefix}/*`}>
     <SessionFrame>

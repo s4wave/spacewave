@@ -18,7 +18,8 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
-// residentMagic opens a resident list file. A file without it reads as empty.
+// residentMagic is the opening marker of a resident list file. A file without
+// the marker reads as empty.
 const residentMagic = "spacewave fill cache resident list 1\n"
 
 // residentDir is the directory of the lists, inside the cache's directory.
@@ -31,8 +32,8 @@ const residentSlice = 1 << 14
 // file, and the read stops there.
 const residentKeyMax = 1 << 10
 
-// A resident list names the blocks a scope of the decoded-block pool held when
-// it was saved, so the next start can read them into the cache before its
+// A resident list records the blocks a scope of the decoded-block pool held
+// when it was saved, so the next start can read them into the cache before its
 // first views ask. It is a hint: a damaged, stale or missing list costs only
 // reads, since every listed block is read through the stores that verify it.
 // The lists live in the cache's directory beside the packs, one file per
@@ -86,9 +87,11 @@ func (c *Cache) SaveResident(ctx context.Context, scope string, refKeys iter.Seq
 // MissingResident reads scope's resident list and calls fn with each slice of
 // the listed refs the cache does not hold, sorted by key and without
 // duplicates, at most residentSlice at a time, and returns the number of refs
-// the list named, each counted once per slice it appears in. fn may keep the slice. A missing list calls fn with nothing,
+// the list recorded, each counted once per slice the ref appears in. fn may
+// keep the slice. A missing list calls fn with nothing,
 // and a damaged one ends at the damage. A failure to check the cache yields
-// the slice whole, as a miss would. Call it once the packs have loaded:
+// the slice whole, as a miss would. Call MissingResident once the packs have
+// loaded:
 // before then every ref reads as missing.
 func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) (int, error) {
 	// Open the list, reading a missing or foreign file as empty.

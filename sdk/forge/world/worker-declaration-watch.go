@@ -64,7 +64,8 @@ func (w *workerDeclarationWatch) Recv() (*s4wave_device.ForgeWorkerDeclaration, 
 	}
 	w.last = revision
 
-	// Decode it, treating a declaration with no Worker as none.
+	// Decode the declaration data, treating a declaration with no Worker as
+	// none.
 	declaration := &s4wave_device.ForgeWorkerDeclaration{}
 	if err := declaration.UnmarshalVT(data); err != nil {
 		return nil, "", errors.Wrap(err, "decode forge worker declaration")

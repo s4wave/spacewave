@@ -37,12 +37,12 @@ import { serveFixture } from './fixture-server.js'
 export interface Copy {
   state: string
   text: string
-  /** lines is the number of line boxes the text sets on; zero when the
+  /** lines is the number of line boxes the text sets on, or zero when the
    * state renders no copy. */
   lines: number
   /** fill is the last line's width as a share of the copy's box width. */
   fill: number
-  /** maxLines is the state's limit; zero when it has none. */
+  /** maxLines is the state's limit, or zero when the state has no limit. */
   maxLines: number
 }
 
@@ -80,7 +80,7 @@ export async function copyFit(
   entry: string,
   options: Options = {},
 ): Promise<Report> {
-  // Serve a fixture through the website's Vite configuration; open a page
+  // Serve a fixture through the website's Vite configuration, or open a page
   // directly.
   const fixture = entry.endsWith('.tsx')
   const served = fixture ? await serveFixture(entry) : undefined
@@ -171,7 +171,7 @@ function measure(trial?: { state: string; candidates: string[] }): Report {
 
   // boxWidth returns the content width the element's text can fill. An
   // inline element or a flex item that does not grow shrinks to its text, so
-  // its own width is always full; the box is then the nearest ancestor that
+  // its own width is always full. The box is then the nearest ancestor that
   // sets the width.
   function boxWidth(element: Element) {
     // Climb past every box that only wraps its text.
@@ -212,7 +212,7 @@ function measure(trial?: { state: string; candidates: string[] }): Report {
   const report: Report = { copies: [], rows: [] }
   for (const state of document.querySelectorAll<HTMLElement>('[data-state]')) {
     const selector = state.dataset.copy || '*'
-    // Copy is HTML text the page renders; a closed details body or an SVG
+    // Copy is HTML text the page renders. A closed details body or an SVG
     // shape is outside the view being measured.
     const elements = [...state.querySelectorAll(selector)].filter(
       (element) => element instanceof HTMLElement && element.checkVisibility(),
@@ -231,7 +231,7 @@ function measure(trial?: { state: string; candidates: string[] }): Report {
       continue
     }
 
-    // Measure every copy; a state with none still gets a row.
+    // Measure every copy. A state with none still gets a row.
     for (const element of elements) report.copies.push(copyOf(state, element))
     if (!elements.length) {
       report.copies.push({

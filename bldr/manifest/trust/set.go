@@ -21,11 +21,12 @@ type Root struct {
 
 // Set is an add-only set of trusted roots.
 //
-// A root never leaves the set. It names immutable content, and it entered for
-// a fact that stays true of that content: the binary embeds it, or a release
-// key the host trusted at the time signed it. A release pin change takes
-// effect for roots verified after it; a root verified earlier stays trusted
-// until the process exits, which bounds it by the page's lifetime.
+// A root never leaves the set. It identifies immutable content, and it entered
+// for a fact that stays true of that content: the binary embeds it, or a
+// release key the host trusted at the time signed it. A release pin change
+// takes effect for roots verified after the change. A root verified earlier
+// stays trusted until the process exits, so that trust is bounded by the page's
+// lifetime.
 type Set struct {
 	// bcast guards the fields below and wakes watchers on an add.
 	bcast broadcast.Broadcast
@@ -66,7 +67,7 @@ func (s *Set) Has(r Root) bool {
 
 // Watch calls cb with every root in the set, then with each batch of roots
 // added after, until ctx ends or cb returns an error. The first call may be
-// empty; later calls never are.
+// empty. Later calls never are.
 func (s *Set) Watch(ctx context.Context, cb func(added []Root) error) error {
 	var seen int
 	first := true

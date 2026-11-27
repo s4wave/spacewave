@@ -60,9 +60,10 @@ func CopyObjects(repo *git.Repository, gitDir string, hashes []string) error {
 	return copyShallow(repo, local, objs)
 }
 
-// localTips returns the hashes the local repository's refs and HEAD name.
+// localTips returns the hashes the local repository's refs and HEAD point to.
 func localTips(local *git.Repository) ([]plumbing.Hash, error) {
-	// Start from a detached HEAD, which no ref names, then add each ref.
+	// Start from a detached HEAD, which no ref points to, then add each
+	// ref.
 	var tips []plumbing.Hash
 	if head, err := local.Storer.Reference(plumbing.HEAD); err == nil && head.Type() == plumbing.HashReference {
 		tips = append(tips, head.Hash())

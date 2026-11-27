@@ -1,4 +1,4 @@
-// PathSeparator is the universally used path separator.
+// PATH_SEPARATOR is the universally used path separator.
 const PATH_SEPARATOR = '/'
 
 // cleanPath normalizes a path (equivalent to Go path.Clean).

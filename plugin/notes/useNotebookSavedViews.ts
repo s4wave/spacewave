@@ -169,7 +169,8 @@ export function useNotebookSavedViews(
     { error: operations.error, retry: fallbackRetry },
   ].find(({ error }) => error)
 
-  // Query results remain the sole shared state; first-save intent retains its retry ID.
+  // Query results remain the sole shared state. First-save intent retains its
+  // retry ID.
   return {
     views: views.status === 'current' ? views.value : [],
     loading:

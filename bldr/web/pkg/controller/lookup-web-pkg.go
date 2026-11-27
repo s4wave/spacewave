@@ -9,7 +9,7 @@ import (
 
 // resolveLookupWebPkg returns a resolver for looking up a volume.
 func (c *Controller) resolveLookupWebPkg(dir web_pkg.LookupWebPkg) (directive.Resolver, error) {
-	// check if we can immediately reject this directive
+	// Check if the controller can immediately reject this directive.
 	pkgID := dir.LookupWebPkgID()
 	if len(c.webPkgIds) != 0 {
 		if !slices.Contains(c.webPkgIds, pkgID) {

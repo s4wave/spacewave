@@ -181,9 +181,9 @@ func runAuthBackupGenerate(c *cli.Context, statePath string, sessionIdx uint32, 
 	return generateAndSaveBackupKey(c, statePath, sessionIdx, authPemFile, c.String("output"))
 }
 
-// generateAndSaveBackupKey performs the shared backup-key flow: prompt
-// credential, mount session, access account, call GenerateBackupKey, write
-// the PEM to outFile, and print a confirmation line. Used by both the
+// generateAndSaveBackupKey performs the shared backup-key flow: prompt for a
+// credential, mount the session, access the account, call GenerateBackupKey,
+// write the PEM to outFile, and print a confirmation line. Used by both the
 // auth backup generate and auth method add backup subcommands.
 func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, outFile string) error {
 	// Resolve the state path.
@@ -274,7 +274,7 @@ func resolveCredential(
 		}, nil
 	}
 
-	// Read the account's keypairs; unlocked keypairs sign in the daemon.
+	// Read the account's keypairs. Unlocked keypairs sign in the daemon.
 	strm, err := acct.WatchEntityKeypairs(ctx, &s4wave_account.WatchEntityKeypairsRequest{})
 	if err != nil {
 		return nil, errors.Wrap(err, "watch entity keypairs")
@@ -610,8 +610,8 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 
 // addAuthMethodFlow performs the shared connect/mount/access/add-auth-method
 // flow. The buildKeypair callback runs after the credential is collected and
-// WatchAccountInfo recv, and returns the keypair to register plus the success
-// message to write.
+// a WatchAccountInfo response is received, and returns the keypair to register
+// plus the success message to write.
 func addAuthMethodFlow(
 	c *cli.Context,
 	statePath string,
@@ -885,7 +885,7 @@ func runChangePassword(c *cli.Context, statePath string, sessionIdx uint32) erro
 // --- auth lock ---
 
 // newAuthLockCommand builds the auth lock command.
-// Bare invocation locks immediately. Subcommands configure mode.
+// A bare invocation locks immediately. Subcommands configure the lock mode.
 func newAuthLockCommand() *cli.Command {
 	var statePath string
 	var sessionIdx uint

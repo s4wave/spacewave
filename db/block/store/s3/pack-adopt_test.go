@@ -442,8 +442,8 @@ func (c *countingCache) ReadCached(_ context.Context, id string, off int64, leng
 
 // TestReadCacheNeverVouches gives a store a read cache that holds a pack the
 // bucket no longer has, and bytes that are wrong. Nothing about what the bucket
-// holds may come from it, and no bad answer may fail a read the bucket can
-// serve.
+// holds may come from the cache, and no bad answer may fail a read the bucket
+// can serve.
 func TestReadCacheNeverVouches(t *testing.T) {
 	// A store with a cache, and a block with an extent row in its index.
 	ctx := t.Context()
@@ -489,7 +489,7 @@ func TestReadCacheNeverVouches(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Existence and location never ask it.
+	// Existence and location never ask the cache.
 	if found, err := store.GetBlockExists(ctx, refs[0]); err != nil || !found {
 		t.Fatalf("exists = %v, %v", found, err)
 	}
@@ -596,7 +596,7 @@ func TestAdoptFailedIndexWrite(t *testing.T) {
 		t.Fatalf("failed pack counts as held: %v %v", held, err)
 	}
 
-	// The repeat registers it for real.
+	// The repeat registers the pack for real.
 	if err := local.AdoptPack(ctx, entry, keys); err != nil {
 		t.Fatal(err)
 	}

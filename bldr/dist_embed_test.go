@@ -11,8 +11,9 @@ import (
 )
 
 // distCompleteRoots are the source trees whose every production TypeScript
-// file ships in DistSources. dist.go names their files one by one, because an
-// embed pattern cannot exclude files and a glob would also embed their tests.
+// file ships in DistSources. dist.go declares their files one by one, because
+// an embed pattern cannot exclude files and a glob would also embed their
+// tests.
 var distCompleteRoots = []string{
 	"sdk/",
 	"web/bldr/",
@@ -47,7 +48,7 @@ func TestDistSourcesExcludeTests(t *testing.T) {
 }
 
 // TestDistEmbedPatternsCoverProductionSources checks that each complete root
-// embeds every production TypeScript file under the directories it names.
+// embeds every production TypeScript file under the directories it selects.
 func TestDistEmbedPatternsCoverProductionSources(t *testing.T) {
 	// Read dist.go, whose embed directives define production coverage.
 	distGo, err := os.ReadFile("dist.go")
@@ -101,7 +102,7 @@ func TestDistEmbedPatternsCoverProductionSources(t *testing.T) {
 }
 
 // distEmbedPatterns returns the go:embed patterns under the complete roots and
-// the source directories they name, in a stable order.
+// the source directories the patterns select, in a stable order.
 func distEmbedPatterns(t *testing.T, distGo string) ([]string, []string) {
 	// Attribute helper failures to the calling test.
 	t.Helper()
@@ -138,7 +139,8 @@ func distEmbedPatterns(t *testing.T, distGo string) ([]string, []string) {
 	return patterns, dirs
 }
 
-// distEmbedPatternMatches reports whether a pattern names or matches slashPath.
+// distEmbedPatternMatches reports whether a pattern equals or matches
+// slashPath.
 func distEmbedPatternMatches(t *testing.T, patterns []string, slashPath string) bool {
 	t.Helper()
 

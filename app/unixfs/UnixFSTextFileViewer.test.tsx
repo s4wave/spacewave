@@ -15,10 +15,11 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: { error: vi.fn(), info: vi.fn() },
 }))
 
-// handles.file is the file handle the mocked hook returns; replacing it makes
-// the viewer read the file again, as a new handle does. handles.disk is what a
-// new lookup under the root reads: the committed file, or a failure, at
-// handles.diskVersion when set and otherwise at its text's version.
+// handles contains handles.file, the file handle the mocked hook returns.
+// Replacing handles.file makes the viewer read the file again, as a new
+// handle does. handles.disk is what a new lookup under the root reads: the
+// committed file, or a failure, at handles.diskVersion when set and otherwise
+// at the disk text's version.
 const handles = vi.hoisted(() => ({
   file: {
     readAt: (() => {}) as (...args: unknown[]) => unknown,
@@ -37,7 +38,8 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
   }),
 }))
 
-// versionOf is the version a read of text reports: each text its own.
+// versionOf is the version a read of text reports: each text has its own
+// version.
 function versionOf(text: string): Uint8Array {
   return new TextEncoder().encode('v:' + text)
 }
@@ -61,7 +63,7 @@ function diskHolds(text: string | Error) {
   handles.disk = text
 }
 
-// uploadedText returns the bytes an upload call sent for its one file.
+// uploadedBytes returns the bytes an upload call sent for its one file.
 async function uploadedBytes(upload: ReturnType<typeof vi.fn>, call: number) {
   const entries = upload.mock.calls[call][0] as { stream: ReadableStream }[]
   return new Uint8Array(await new Response(entries[0].stream).arrayBuffer())
@@ -111,8 +113,8 @@ function lookupPath() {
   return Promise.resolve({ handle: { readAt, release: () => {} } })
 }
 
-// rootOf is a root handle with fields; a hold of it is the handle itself,
-// whose release counts the holds released.
+// rootOf is a root handle with fields. A hold of the root is the handle
+// itself, whose release counts the holds released.
 function rootOf(fields: Record<string, unknown>): FSHandle {
   const root = { ...fields, released: false, release: vi.fn() }
   return { ...root, hold: () => root } as unknown as FSHandle
@@ -175,7 +177,7 @@ describe('UnixFS text editing', () => {
       )
       await waitFor(() => expect(release).toHaveBeenCalledTimes(1))
 
-      // A refusal the closed viewer missed shows in a toast; a landed save
+      // A refusal the closed viewer missed shows in a toast, but a landed save
       // shows nothing.
       if (outcome === 'written') {
         expect(toast.error).not.toHaveBeenCalled()
@@ -191,7 +193,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('shows a landed save, keeps the draft through a failed save, and never resaves on reconnect', async () => {
-    // The first save lands; the second fails.
+    // The first save lands, but the second save fails.
     readsText('original')
     const upload = vi
       .fn()
@@ -215,8 +217,8 @@ describe('UnixFS text editing', () => {
     expect(entryOf(upload, 0)).toMatchObject({ wantVersion: true })
     expect(entryOf(upload, 0)).not.toHaveProperty('mode')
 
-    // The next Save expects the version the save wrote; it fails and keeps
-    // the draft, and Discard edits shows the landed text.
+    // The next Save expects the version the save wrote. The next Save fails
+    // and keeps the draft, and Discard edits shows the landed text.
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     typeInto('unsaved')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -275,8 +277,8 @@ describe('UnixFS text editing', () => {
     expect(screen.getByText('Read-only: a file in a commit')).toBeDefined()
   })
 
-  // A failed re-read used to replace the viewer with its failure, hiding an
-  // open draft.
+  // A failed re-read must keep an open draft visible rather than replace
+  // the viewer with the read failure.
   it('keeps a dirty draft in the same textarea when a re-read fails', async () => {
     // Open a dirty draft.
     readsText('original')
@@ -292,7 +294,7 @@ describe('UnixFS text editing', () => {
     readFails('stream closed')
     view.rerender(<UnixFSTextFileViewer rootHandle={root} path="/notes.md" />)
 
-    // One notice with Retry; the same textarea keeps the draft.
+    // One notice shows Retry, and the same textarea keeps the draft.
     const alerts = await screen.findAllByRole('alert')
     expect(alerts).toHaveLength(1)
     expect(alerts[0].textContent).toContain('stream closed')
@@ -314,7 +316,7 @@ describe('UnixFS text editing', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
     typeInto('mine')
 
-    // Another writer saves; the file is read again.
+    // Another writer saves, then the file is read again.
     readsText('theirs')
     view.rerender(<UnixFSTextFileViewer rootHandle={root} path="/notes.md" />)
 
@@ -327,7 +329,8 @@ describe('UnixFS text editing', () => {
       'mine',
     )
 
-    // Show theirs shows their text, and back.
+    // Show theirs shows the other writer's text, then Back to my edits returns
+    // to the draft.
     fireEvent.click(screen.getByRole('button', { name: 'Show theirs' }))
     expect(screen.getByLabelText('Their version').textContent).toBe('theirs')
     fireEvent.click(screen.getByRole('button', { name: 'Back to my edits' }))
@@ -339,7 +342,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('shows the change when the store refuses a plain Save', async () => {
-    // Open a dirty draft; another writer commits and no read has run yet.
+    // Open a dirty draft, then another writer commits before any read runs.
     readsText('original')
     const upload = vi.fn().mockResolvedValue({
       kind: 'conflict',
@@ -356,7 +359,7 @@ describe('UnixFS text editing', () => {
     typeInto('mine')
     diskHolds('theirs')
 
-    // The store refuses the write; the read back shows their version, with
+    // The store refuses the write, so the read back shows their version, with
     // Save over theirs, and the draft stays.
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByRole('button', { name: 'Save over theirs' })
@@ -370,7 +373,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('recreates a file another writer removed before a plain Save', async () => {
-    // Open a dirty draft; the file is removed elsewhere, so the store
+    // Open a dirty draft, then the file is removed elsewhere, so the store
     // refuses the version with no file at the path.
     readsText('original')
     const upload = vi
@@ -395,7 +398,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('offers Save over theirs and Read again when the read after a refusal fails', async () => {
-    // Open a dirty draft; the store refuses the save and the read back
+    // Open a dirty draft, then the store refuses the save and the read back
     // fails.
     readsText('original')
     const upload = vi.fn().mockResolvedValue({
@@ -413,7 +416,7 @@ describe('UnixFS text editing', () => {
     typeInto('mine')
     diskHolds(new Error('offline'))
 
-    // The save stops unwritten; the draft stays with Save over theirs, and
+    // The save stops unwritten, but the draft stays with Save over theirs, and
     // plain Save is gone.
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Could not read their version: offline.')
@@ -433,7 +436,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('saves next from the version a save wrote, past a read of the one before', async () => {
-    // Open a dirty draft; the save lands.
+    // Open a dirty draft, then the save lands.
     readsText('original')
     const upload = vi.fn().mockResolvedValue(writtenAt('mine'))
     const root = rootResource(upload)
@@ -445,7 +448,7 @@ describe('UnixFS text editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('mine')
 
-    // The file's own handle still reads the version the save replaced; the
+    // The file's own handle still reads the version the save replaced, but the
     // saved text stays.
     readsText('original')
     view.rerender(<UnixFSTextFileViewer rootHandle={root} path="/notes.md" />)
@@ -464,7 +467,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('says the text did not change when another writer changed only the file', async () => {
-    // Open a dirty draft; another writer changes the file's permissions, so
+    // Open a dirty draft. Another writer changes the file's permissions, so
     // its version moves while its text stays.
     readsText('original')
     const upload = vi
@@ -503,7 +506,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('keeps the draft when a landed save returns no version', async () => {
-    // The store commits the save but names no version it wrote.
+    // The store commits the save but returns no version it wrote.
     readsText('original')
     const upload = vi
       .fn()
@@ -528,7 +531,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('shows a save over theirs past their version read back before it', async () => {
-    // A plain save is refused; the read back of their version hangs.
+    // A plain save is refused, then the read back of their version hangs.
     readsText('original')
     const upload = vi
       .fn()
@@ -559,7 +562,7 @@ describe('UnixFS text editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Reading their version.')
 
-    // Save over theirs lands while the read runs; the read is aborted.
+    // Save over theirs lands while the read runs, so the read is aborted.
     fireEvent.click(screen.getByRole('button', { name: 'Save over theirs' }))
     await screen.findByText('mine')
     expect(backSignal?.aborted).toBe(true)
@@ -590,7 +593,7 @@ describe('UnixFS text editing', () => {
   })
 
   it('saves an edit to a CRLF file with a byte order mark as only that edit', async () => {
-    // A file with a byte order mark and CRLF lines, edited by one line.
+    // Edit a file with a byte order mark and CRLF lines by adding one line.
     const file = '\uFEFFfirst\r\nsecond\r\n'
     const saved = file + 'third\r\n'
     readsText(file)

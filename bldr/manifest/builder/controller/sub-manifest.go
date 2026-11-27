@@ -18,9 +18,9 @@ import (
 
 // subManifestBuilderTracker tracks a running sub-manifest build controller.
 type subManifestBuilderTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// subManifestID is the sub-manifest ID
+	// subManifestID is the sub-manifest ID.
 	subManifestID string
 	// build owns the child build routine and observed result state.
 	build *subManifestBuildOwner
@@ -39,18 +39,19 @@ func (c *Controller) newSubManifestBuilderTracker(subManifestID string) (keyed.R
 // execute executes the tracker.
 func (t *subManifestBuilderTracker) execute(ctx context.Context) error {
 	t.build.setContext(ctx)
-	<-ctx.Done() // necessary because Keyed cancels ctx after we return.
+	<-ctx.Done() // necessary because Keyed cancels ctx after the tracker returns.
 	return nil
 }
 
-// setManifestConfig updates the manifest config and clears the result if needed
-// returns an error if ManifestConfig != current, current was set, and a result was already returned
+// setManifestConfig updates the manifest config and clears the result if needed.
+// Returns an error if ManifestConfig != current, current was set, and a result
+// was already returned.
 func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func(string)) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
 	return t.build.setManifestConfig(manifestConf, restartFn)
 }
 
 // executeBuilderRoutine executes the builder directive with the config.
-// ctx is canceled if the config changes
+// ctx is canceled if the config changes.
 func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, manifestConfig *bldr_project.ManifestConfig) error {
 	// build a combined manifest id for the sub-manifest
 	subManifestID := t.subManifestID
@@ -74,7 +75,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 	// Build the sub-manifest builder config from the parent's config.
 	manifestBuilderConf := parentBuilderConfig.CloneVT()
 	manifestBuilderConf.ManifestMeta = meta
-	manifestBuilderConf.LinkObjectKeys = nil // TODO should we link this?
+	manifestBuilderConf.LinkObjectKeys = nil // TODO should the child link these keys?
 	manifestBuilderConf.WorkingPath = workingPath
 
 	// Reuse the parent's cached startup result for this sub-manifest.
@@ -93,7 +94,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 	)
 
 	// Run the sub-manifest builder and publish each build it finishes on the
-	// owner's promise. A watching build stays up through a failed build; a
+	// owner's promise. A watching build stays up through a failed build, but a
 	// finite build ends with its first failure.
 	watch := ctrlConf.GetWatch()
 	var buildErr error

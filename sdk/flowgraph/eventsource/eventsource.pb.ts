@@ -16,15 +16,15 @@ export interface SourceEvent {
    */
   eventId?: string
   /**
-   * Key is the key the source derives for the arrival, which selects a keyed
+   * Key is the key the source derives for the arrival. The key selects a keyed
    * Step activation. It is empty for an ordinary event, and for the Fixer
    * intake it is a Topic.
    */
   key?: string
   /**
    * PayloadObjectKey is the World object that carries the event's data. It is
-   * empty when the event has no payload, and the arrival then names the source
-   * object itself.
+   * empty when the event has no payload, and the arrival then references the
+   * source object itself.
    */
   payloadObjectKey?: string
   /**

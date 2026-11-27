@@ -8,7 +8,7 @@ import (
 // StagesMap is a sub-block representing a map from Stage to hash.
 type StagesMap struct {
 	alias block.AliasIdentityToken
-	// v is the pointer to the value
+	// v is the pointer to the value.
 	v *map[uint32]*hash.Hash
 }
 

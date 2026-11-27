@@ -18,8 +18,8 @@ const maxPtys = 256
 
 // pty is a pseudo-terminal: a master, which the program that opened
 // /dev/ptmx holds, and a slave terminal at /dev/pts/N. What the master writes
-// is the slave's input, and what programs write to the slave the master
-// reads. The kernel lock guards its fields.
+// is the slave's input, and the master reads what programs write to the
+// slave. The kernel lock guards its fields.
 type pty struct {
 	// index is N in /dev/pts/N.
 	index int

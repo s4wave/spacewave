@@ -61,7 +61,7 @@ describe('operation vectors', () => {
       () => false,
     )
 
-    // A valid operation has Go's hash; an invalid one is rejected.
+    // A valid operation has Go's hash. An invalid operation is rejected.
     expect(verified).toBe(v.hash !== '')
     if (verified) {
       expect(bytesToHex(hashSOOperationInner(op.inner!))).toBe(v.hash)
@@ -130,7 +130,7 @@ describe('checkpoint vectors', () => {
       () => false,
     )
 
-    // A valid checkpoint has Go's hash; an invalid one is rejected.
+    // A valid checkpoint has Go's hash. An invalid checkpoint is rejected.
     expect(verified).toBe(v.hash !== '')
     if (verified) {
       expect(bytesToHex(hashSOCheckpointInner(checkpoint.inner!))).toBe(v.hash)
@@ -159,7 +159,7 @@ describe('control message vectors', () => {
       () => null,
     )
 
-    // A valid message has Go's hash and voter; an invalid one is rejected.
+    // A valid message has Go's hash and voter. An invalid message is rejected.
     expect(inner?.peerId ?? '').toBe(v.peerId)
     if (inner) {
       expect(bytesToHex(hashSOControlMessageInner(msg.inner!))).toBe(v.hash)
@@ -176,7 +176,8 @@ describe('sequence vectors', () => {
       () => null,
     )
 
-    // A valid position has Go's hash and signer; an invalid one is rejected.
+    // A valid position has Go's hash and signer. An invalid position is
+    // rejected.
     expect(inner !== null).toBe(v.hash !== '')
     if (inner) {
       expect(bytesToHex(hashSOSequenceInner(record.inner!))).toBe(v.hash)

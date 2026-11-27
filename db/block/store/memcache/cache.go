@@ -22,8 +22,8 @@ import (
 const DefaultLimitBytes = 1 << 30
 
 // entryOverhead is the memory an entry takes beside its block's bytes: its
-// map slot, list element, key and refs header. It keeps a cache of many tiny
-// blocks inside its bound too.
+// map slot, list element, key and refs header. Counting the overhead keeps a
+// cache of many tiny blocks inside its bound too.
 const entryOverhead = 256
 
 // Cache is a bounded, least recently read set of copies of blocks a durable
@@ -64,7 +64,7 @@ type entry struct {
 	size int64
 }
 
-// New builds a cache bounded at limitBytes; zero or less uses
+// New builds a cache bounded at limitBytes. Zero or less uses
 // DefaultLimitBytes.
 func New(limitBytes int64) *Cache {
 	if limitBytes <= 0 {
@@ -106,7 +106,8 @@ func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.Store
 		return
 	}
 
-	// Keep it as the most recently read, unless it is held already.
+	// Keep the block as the most recently read, unless the cache already
+	// holds the block.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if el, ok := c.entries[key]; ok {
@@ -130,7 +131,7 @@ func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.Store
 
 // get returns a copy of the block held under ref, and marks it read.
 func (c *Cache) get(ref *block.BlockRef) *block.StoredBlock {
-	// Find it and mark it.
+	// Find the block and mark it read.
 	c.mtx.Lock()
 	el, ok := c.entries[cacheKey(ref)]
 	if !ok {

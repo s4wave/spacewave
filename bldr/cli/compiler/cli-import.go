@@ -11,7 +11,7 @@ type CliImport struct {
 }
 
 // ResolveComposePackage resolves a compose package path relative to the
-// project module. Empty stays empty.
+// project module. An empty package path stays empty.
 func ResolveComposePackage(pkg, rootModule string) string {
 	resolved, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths([]string{pkg}, rootModule)
 	return resolved[0]

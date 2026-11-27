@@ -429,8 +429,8 @@ func TestBranchNotTaken(t *testing.T) {
 		e.startRun()
 		e.startController()
 
-		// The direct decline completes with nothing waiting; the indirect one
-		// pauses at the join with its input kept.
+		// The direct decline completes with nothing waiting. The
+		// indirect decline pauses at the join with its input kept.
 		if !through {
 			run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE)
 			requireTrace(t, run, "gate.decline", "src.out")

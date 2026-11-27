@@ -37,7 +37,7 @@ type segmentRef struct {
 // one, within the transaction kv. A bucket is closed when it is before the
 // bucket of now+1, the earliest time a later commit can write. Segments are
 // grouped by the bucket of their earliest sample, so a merged segment can end
-// past its bucket but never overlaps the next. Running it again on a
+// past its bucket but never overlaps the next. Running maintain again on a
 // maintained tree changes nothing.
 func maintain(ctx context.Context, kv kvtx.Tx, now int64, retention time.Duration) error {
 	// Read every segment's range from its key.

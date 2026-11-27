@@ -49,7 +49,8 @@ func newGitFSCursorFromEntry(s storer.EncodedObjectStorer, entry *object.TreeEnt
 		tree, err := object.GetTree(s, entry.Hash)
 		if err != nil {
 			if entry.Mode == filemode.Submodule {
-				// submodule tree may not be available; treat as empty dir
+				// submodule tree may not be available,
+				// so treat it as an empty dir.
 				c.tree = &object.Tree{}
 				return c, nil
 			}
@@ -204,7 +205,7 @@ func (o *GitFSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 }
 
 // GetModTimestamp returns the modification timestamp.
-// Git trees do not have timestamps; returns zero time.
+// Git trees do not have timestamps, so GetModTimestamp returns zero time.
 func (o *GitFSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 	if o.CheckReleased() {
 		return time.Time{}, unixfs_errors.ErrReleased

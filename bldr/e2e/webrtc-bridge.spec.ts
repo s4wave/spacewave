@@ -1,4 +1,4 @@
-// webrtc-bridge.spec.ts - WebRTC bridge bootstrap verification.
+// webrtc-bridge.spec.ts: WebRTC bridge bootstrap verification.
 //
 // Runs against the full bldr dev server (bun run start:web:wasm).
 // Verifies that:

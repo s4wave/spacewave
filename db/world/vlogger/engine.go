@@ -13,7 +13,7 @@ type Engine struct {
 	txInc atomic.Uint64
 	// Engine is the underlying engine.
 	world.Engine
-	// le is the logger instance
+	// le is the logger instance.
 	le *logrus.Entry
 }
 
@@ -27,7 +27,7 @@ func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	// Open the World transaction with a logger for its transaction ID.

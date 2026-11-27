@@ -14,11 +14,11 @@ import (
 // FileSystem implements the HTTP filesystem.
 type FileSystem struct {
 	http.FileSystem
-	// ctx is the context to use for requests
+	// ctx is the context to use for requests.
 	ctx context.Context
-	// fs is the filesystem handle
+	// fs is the filesystem handle.
 	fs *unixfs.FSHandle
-	// prefix is the filesystem prefix for HTTP
+	// prefix is the filesystem prefix for HTTP.
 	prefix string
 }
 

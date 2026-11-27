@@ -8,9 +8,10 @@ import { useConnectionGeneration } from '@aptre/bldr-sdk/hooks/ResourcesContext.
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 
 /**
- * Hook to access and manage the root resource lifecycle with a specific client.
+ * useRootResourceWithClient accesses and manages the root resource lifecycle
+ * with a specific client.
  *
- * @param client - The ResourceClient instance to use
+ * @param client: The ResourceClient instance to use
  * @returns Resource object containing the Root resource
  *
  * @example
@@ -31,10 +32,11 @@ import { RootContext } from '@s4wave/web/contexts/contexts.js'
 export function useRootResourceWithClient(
   client: ResourceClient | null,
 ): Resource<Root> {
-  // Track connection generation so the root resource is re-created after reconnection.
-  // When the connection drops, all server-side resources are invalidated.
-  // This dep change cascades through the useResource parent tree,
-  // causing all downstream resources to be re-created with fresh IDs.
+  // Track connection generation so the root resource is re-created after
+  // reconnection. When the connection drops, all server-side resources are
+  // invalidated. The generation dependency change cascades through the
+  // useResource parent tree, causing all downstream resources to be re-created
+  // with fresh IDs.
   const generation = useConnectionGeneration(client)
 
   return useResource(
@@ -49,7 +51,7 @@ export function useRootResourceWithClient(
 }
 
 /**
- * Hook to access the root resource from RootContext.
+ * useRootResource accesses the root resource from RootContext.
  *
  * @returns Resource object containing the Root resource
  *

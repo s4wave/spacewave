@@ -11,14 +11,14 @@ import (
 
 // loadedBucketBlockStore contains state for a block store with a loaded bucket.
 type loadedBucketBlockStore struct {
-	// b is constant
+	// b is constant.
 	b *loadedBucket
-	// blockStoreID is constant
+	// blockStoreID is constant.
 	blockStoreID string
-	// le is constant after init
+	// le is constant after init.
 	le *logrus.Entry
 	// bh is the bucket handle
-	// guarded by b.mtx
+	// guarded by b.mtx.
 	bh bucket.BucketHandle
 }
 
@@ -96,7 +96,7 @@ func (l *loadedBucketBlockStore) HandleValueRemoved(_ directive.Instance, av dir
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
-// This will occur if Close() is called on the directive instance.
+// Disposal occurs if Close() is called on the directive instance.
 func (l *loadedBucketBlockStore) HandleInstanceDisposed(_ directive.Instance) {
 	l.b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		existed, reset := l.b.blockStores.ResetRoutine(l.blockStoreID, func(_ string, other *loadedBucketBlockStore) bool {

@@ -18,22 +18,22 @@ const upgradeFormatEnv = "SPACEWAVE_UPGRADE_FORMAT"
 // Volume with volume.ErrFormatUpgradeRefused unless the operator passes
 // --upgrade-format or sets SPACEWAVE_UPGRADE_FORMAT=1. The app, a
 // distribution entrypoint in dev and release builds, upgrades on its own,
-// since a person cannot pass it a flag. Serve applies it to every Volume its
-// bus opens, and the debug commands that write a stopped Volume to that
-// Volume. Nothing else sets the store's refusal, so every other opener
-// upgrades as before.
+// since a person cannot pass it a flag. Serve applies the refusal to every
+// Volume its bus opens. The debug commands that write a stopped Volume apply
+// the refusal to that Volume. Nothing else sets the store's refusal, so every
+// other opener upgrades as before.
 type FormatUpgrade struct {
 	// distribution reports whether a distribution entrypoint runs the
-	// process, nil for never. The entrypoint sets it after the commands are
-	// built, so it is read when a Volume opens.
+	// process, nil for never. The entrypoint sets distribution after the
+	// commands are built, so distribution is read when a Volume opens.
 	distribution func() bool
 	// allow is the operator's opt-in.
 	allow bool
 }
 
 // NewFormatUpgrade constructs a FormatUpgrade. distribution reports whether a
-// distribution entrypoint runs the process; nil treats it as the development
-// CLI.
+// distribution entrypoint runs the process. A nil distribution treats the
+// process as the development CLI.
 func NewFormatUpgrade(distribution func() bool) *FormatUpgrade {
 	return &FormatUpgrade{distribution: distribution}
 }
@@ -56,7 +56,7 @@ func (f *FormatUpgrade) Refuses() bool {
 	return !f.allow && (f.distribution == nil || !f.distribution())
 }
 
-// StoreConfig returns conf, nil for the default, with the refusal set.
+// StoreConfig returns conf, nil for the default config, with the refusal set.
 func (f *FormatUpgrade) StoreConfig(conf *store_kvtx.Config) *store_kvtx.Config {
 	conf = conf.CloneVT()
 	if conf == nil {

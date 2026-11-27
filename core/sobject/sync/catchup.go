@@ -19,7 +19,7 @@ import (
 // maxHistoryPageEntries bounds verification work in one history page.
 const maxHistoryPageEntries = 128
 
-// maxConfigHashSize bounds a config chain hash a peer names.
+// maxConfigHashSize bounds a config chain hash a peer references.
 const maxConfigHashSize = 128
 
 // catchupTimeout bounds a pinned advertisement and its request through acknowledgment.
@@ -46,7 +46,7 @@ type syncReceive struct {
 	// deadline includes history transfer, snapshot validation and persistence.
 	deadline time.Time
 	// held is the state whose records the request offered, pinned at head
-	// receipt, or nil when it offered none.
+	// receipt, or nil when the request offered none.
 	held *sobject.SOState
 }
 
@@ -104,9 +104,10 @@ func (s *SOSync) drainDenial(ctx context.Context, incoming <-chan syncIncoming, 
 	}
 }
 
-// synchronize owns head negotiation, bounded catch-up and continuing state updates.
-// One reader and one writer make simultaneous catch-up safe on unbuffered transports.
-// Only this loop owns requests and cursors; every worker is joined before return.
+// synchronize owns head negotiation, bounded catch-up and continuing state
+// updates. One reader and one writer make simultaneous catch-up safe on
+// unbuffered transports. Only this loop owns requests and cursors. Every
+// worker is joined before return.
 func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream_packet.Session, remoteID peer.ID) error {
 	// Retain the actual host watch for the complete stream lifetime.
 	states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
@@ -219,14 +220,16 @@ type syncExchange struct {
 	terminal error
 }
 
-// advance reads current authority, prepares output and handles one selected channel event.
-// Only synchronize calls it in production; its worker channels retain the existing ownership.
+// advance reads current authority, prepares output and handles one selected
+// channel event. Only synchronize calls advance in production. Its worker
+// channels retain the existing ownership.
 func (x *syncExchange) advance(
 	ctx context.Context, le *logrus.Entry, sess *stream_packet.Session,
 	states ccontainer.Watchable[*sobject.SOState], incoming <-chan syncIncoming,
 	outbound chan<- *SOSyncMessage, sent <-chan error, changed <-chan struct{}, timer *time.Timer,
 ) error {
-	// Controls precede response pages; a new head waits for the previous acknowledgment.
+	// Controls precede response pages. A new head waits for the previous
+	// acknowledgment.
 	current := states.GetValue()
 	if err := x.sync.authorizeParticipants(current, x.remoteID); err != nil {
 		_ = sendAccessDenied(sess)
@@ -457,7 +460,8 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 // writeMessages serializes frames under freshly observed participant authority.
 // Each frame waits until the local state it carries is durable.
 // The caller owns state retention, outbound/result channels and transport closure.
-// Cancellation interrupts channel waits; closing transport releases a blocked write.
+// Cancellation interrupts channel waits. Closing transport releases a blocked
+// write.
 // Failures are reported once unless cancellation wins the result-channel wait.
 func (s *SOSync) writeMessages(
 	ctx context.Context,
@@ -474,7 +478,8 @@ func (s *SOSync) writeMessages(
 		case <-ctx.Done():
 			return ctx.Err()
 		}
-		// The frame captured its state before this wait, so the wait covers it.
+		// The frame captured its state before this wait, so the wait
+		// covers that state.
 		err := s.authorizeParticipants(states.GetValue(), remoteID)
 		if err == nil {
 			err = s.soHost.WaitDurable(ctx)
@@ -523,8 +528,8 @@ func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, re
 		}
 	}
 
-	// Invitations are local capabilities; peers do not import them. The
-	// records the receiver holds stay behind, named by index.
+	// Invitations are local capabilities. Peers do not import them. The
+	// records the receiver holds stay behind, referenced by index.
 	snapshot := &SOSyncSnapshot{Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
 	state = state.Clone()
 	state.Invites = nil

@@ -17,7 +17,7 @@ const (
 	// DefChunkingMaxSize is the default chunk max size.
 	DefChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes
 	// DefRawHighWaterMark is the default high water mark for a raw blob.
-	// define this to be the max size of a single chunk
+	// define this to be the max size of a single chunk.
 	DefRawHighWaterMark = DefChunkingMaxSize
 	// DefRawAppendLimit is the largest raw blob an append extends in place.
 	// Each append rewrites the raw data, so a larger blob moves to chunks,
@@ -92,7 +92,7 @@ func BuildBlobWithBytes(ctx context.Context, data []byte, bcs *block.Cursor) (*B
 // Blocks will be written to the block transaction.
 // The new root Blob block will become the root of bcs.
 // Constructs a blob with an unknown size.
-// If you know the size ahead of time, use BuildBlob.
+// If the caller knows the size ahead of time, use BuildBlob.
 func BuildBlobWithReader(
 	ctx context.Context,
 	rdr io.Reader,
@@ -112,7 +112,7 @@ func BuildBlobWithReader(
 		return nil, err
 	}
 
-	// If we read less than high water mark, we can use a single block.
+	// Use one block if the reader returns less than the high water mark.
 	if nn < int64(hwm) { //nolint:gosec
 		recordMetric(ctx, Metric{
 			Stage:            "raw",

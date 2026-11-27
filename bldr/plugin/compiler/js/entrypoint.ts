@@ -26,19 +26,21 @@ import {
   HandleWebViewViaHandlersRequest,
 } from '../../../web/plugin/plugin.pb.js'
 
-// Defines the list of backend entrypoints to load.
+// __BLDR_BACKEND_ENTRYPOINTS__ defines the list of backend entrypoints to load.
 declare const __BLDR_BACKEND_ENTRYPOINTS__: BackendEntrypoint[] | undefined
 
-// Defines the list of frontend entrypoints.
+// __BLDR_FRONTEND_ENTRYPOINTS__ defines the list of frontend entrypoints.
 declare const __BLDR_FRONTEND_ENTRYPOINTS__: FrontendEntrypoint[] | undefined
 
-// Defines the set of config set to apply to the plugin host.
+// __BLDR_HOST_CONFIG_SET__ defines the config set to apply to the plugin host.
 declare const __BLDR_HOST_CONFIG_SET__: ConfigSet['configs'] | undefined
 
-// Defines the ID of the plugin serving the WebRuntime APIs.
+// __BLDR_WEB_PLUGIN_ID__ defines the ID of the plugin serving the WebRuntime
+// APIs.
 declare const __BLDR_WEB_PLUGIN_ID__: string | undefined
 
-// Defines the request to send to the web plugin to serve web pkgs.
+// __BLDR_HANDLE_WEB_PKGS__ defines the request to send to the web plugin to
+// serve web pkgs.
 //
 // handle_plugin_id is overridden at runtime.
 declare const __BLDR_HANDLE_WEB_PKGS__:
@@ -52,7 +54,7 @@ const quickJSPluginCapabilityReadyMarker =
 const quickJSPluginReadyMarker = '__BLDR_QUICKJS_PLUGIN_READY__'
 
 /**
- * Logs an error message and the full error object consistently.
+ * logError logs an error message and the full error object consistently.
  * @param message - The base error message.
  * @param error - The error object to log.
  */
@@ -167,7 +169,7 @@ function observeBackendEntrypointCompletion(
       console.debug(`Backend entrypoint finished: ${entrypointId}`)
     })
     .catch((error: unknown) => {
-      // A swap or shutdown aborts every entrypoint; that is not a failure.
+      // A swap or shutdown aborts every entrypoint. An abort is not a failure.
       if (abortSignal.aborted || isAbortError(error)) {
         console.debug(`Backend entrypoint aborted: ${entrypointId}`)
         return
@@ -178,13 +180,14 @@ function observeBackendEntrypointCompletion(
 }
 
 /**
- * Loads and executes a single backend entrypoint module.
+ * startBackendEntrypoint loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
  * @param backendAPI - The backend API object to pass to the entrypoint function.
  * @param abortSignal - The abort signal to pass to the entrypoint function.
  * @param loadModule - Imports the entrypoint's module.
  * @param onFailure - Receives a failure of the entrypoint after startup.
- * @returns A promise that resolves when the entrypoint function starts, or rejects on startup error.
+ * @returns A promise that resolves when the entrypoint function starts, or
+ * rejects on startup error.
  */
 export async function startBackendEntrypoint(
   entrypoint: BackendEntrypoint,
@@ -252,7 +255,7 @@ export async function startBackendEntrypoint(
 
 /**
  * loadBackendEntrypoints starts each configured backend module in order.
- * It resolves after startup, while module lifetimes continue until abort;
+ * It resolves after startup, while module lifetimes continue until abort.
  * onFailure receives the first module that fails after startup.
  */
 export async function loadBackendEntrypoints(
@@ -400,7 +403,7 @@ async function loadFrontendEntrypoints(
         webViewParentId: entrypoint.webViewParentId,
       })
 
-    // Check if empty and clone by serializing to json
+    // Check if the request is empty and clone by serializing to json.
     const setRenderModeRequestBin = entrypoint.setRenderMode
       ? SetRenderModeRequest.toBinary(entrypoint.setRenderMode)
       : null
@@ -437,7 +440,7 @@ async function loadFrontendEntrypoints(
       pushHandler({ case: 'setRenderMode', value: setRenderModeRequest })
     }
 
-    // Check if empty and clone by serializing to json
+    // Check if the request is empty and clone by serializing to json.
     const setHtmlLinksRequestBin = entrypoint.setHtmlLinks
       ? SetHtmlLinksRequest.toBinary(entrypoint.setHtmlLinks)
       : null
@@ -503,7 +506,8 @@ async function loadFrontendEntrypoints(
 }
 
 /**
- * Load the web plugin and the frontend entrypoints if any are configured.
+ * loadWebPlugin loads the web plugin and the frontend entrypoints if any are
+ * configured.
  */
 function loadWebPlugin(
   backendAPI: BackendAPI,
@@ -713,9 +717,9 @@ export function createPluginEntrypoint(configJSON: JsonValue) {
 
 /**
  * runPluginEntrypoint starts the plugin's configured capabilities and views.
- * Its startup resolves once they are ready; its done rejects with the first
- * failure after startup and otherwise stays pending until the plugin exits,
- * so the host can end the execution as failed.
+ * Its startup resolves once the capabilities and views are ready. Its done
+ * rejects with the first failure after startup and otherwise stays pending
+ * until the plugin exits, so the host can end the execution as failed.
  */
 function runPluginEntrypoint(
   backendAPI: BackendAPI,
@@ -808,9 +812,10 @@ async function startPluginEntrypoint(
   )
 
   // Once the backends have started, their RPC handler is set or never will
-  // be. Answer calls now rather than after the views are ready, which on
-  // QuickJS waits for a browser to attach: a swap's Activation.Check would
-  // otherwise wait on a worker that cannot answer until one does.
+  // be. Answer calls now rather than after the views are ready. On QuickJS,
+  // view readiness waits for a browser to attach: a swap's Activation.Check
+  // would otherwise wait on a worker that cannot answer until a browser
+  // attaches.
   void capabilityRegistrationReady.then(
     () => serveNotFoundUntilHandled(backendAPI),
     () => {},

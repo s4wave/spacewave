@@ -14,14 +14,15 @@ type Node struct {
 	// Ctor constructs the block's type, nil for an untyped block.
 	Ctor block.Ctor
 	// Untyped is why the walk has no type for the block, as Walker.Untyped
-	// names it, on a walk that scans such a block's bytes for its refs; a
-	// block below it carries the same reason. It is empty for a typed block.
+	// describes, on a walk that scans such a block's bytes for its refs. A
+	// block below it carries the same reason. Untyped is empty for a typed
+	// block.
 	Untyped string
 	// Xfrm decodes the stored bytes, nil for bytes stored as they are.
 	Xfrm block.Transformer
 	// Guess reports that the walker guessed the block's type, as PayloadNode
-	// does: it keeps the decode only when it is certain, as certain
-	// describes, and otherwise reads no refs and does not descend.
+	// does: the walker keeps the decode only when the block is certain, as
+	// certain describes, and otherwise reads no refs and does not descend.
 	Guess bool
 	// World is the World whose objects the block belongs to, read for their
 	// types. It is nil above any World.

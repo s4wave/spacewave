@@ -61,7 +61,7 @@ import {
   type SystemTone,
 } from './useSystemModel.js'
 
-// InspectorId names a full-size inspector: one per subsystem tile plus the
+// InspectorId identifies a full-size inspector: one per subsystem tile plus the
 // two devtools trees.
 type InspectorId = SubsystemId | 'resources' | 'atoms'
 
@@ -124,7 +124,7 @@ interface SystemStatusDashboardProps {
 }
 
 // SystemStatusDashboard is the system mission control overlay. Every
-// subsystem shows as a live tile under a one-line verdict; a tile opens its
+// subsystem shows as a live tile under a one-line verdict. A tile opens its
 // full inspector in place, and Escape returns to the tiles.
 export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   const ns = useStateNamespace(['system-status-dashboard'])
@@ -650,7 +650,7 @@ function SpacesTile({
   )
 }
 
-// SessionChip names one account session, marking the current one.
+// SessionChip labels one account session, marking the current one.
 function SessionChip({ sessionIndex }: { sessionIndex: number }) {
   const metadata = useSessionMetadata(sessionIndex)
   const current = useSessionIndex() === sessionIndex

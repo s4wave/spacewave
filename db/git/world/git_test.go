@@ -19,7 +19,7 @@ func TestGitClone(t *testing.T) {
 	ctx, le, ws, cleanup, sender := newGitWorldState(t)
 	defer cleanup()
 
-	// Name the repository, its worktree and workdir, and the operation time.
+	// Set the repository, worktree and workdir identifiers and operation time.
 	objKey := "test-git-repo"
 	worktreeKey := objKey + "/worktree"
 	workdirKey := "test-git-workdir"

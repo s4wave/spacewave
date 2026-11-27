@@ -60,7 +60,7 @@ func (p *nativeCorePlugin) Execute(ctx context.Context) error {
 func (p *nativeCorePlugin) HandleDirective(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case bldr_plugin.LoadPlugin:
-		// A load that selects exact manifests names an executable native core
+		// A load that selects exact manifests selects an executable native core
 		// does not have.
 		if d.LoadPluginID() != nativeCorePluginID || d.LoadPluginManifestRoot() != "" || len(d.LoadPluginManifests()) != 0 {
 			return nil, nil

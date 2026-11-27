@@ -304,7 +304,7 @@ func TestSymlink(t *testing.T) {
 		t.Fatal("symlink should not be file")
 	}
 
-	// readlink self
+	// Read the symlink's own target.
 	parts, isAbs, err := childOps.Readlink(ctx, "")
 	if err != nil {
 		t.Fatal(err)
@@ -416,7 +416,7 @@ func TestImplicitDirs(t *testing.T) {
 	ctx := context.Background()
 	b := newTarBuilder()
 
-	// file with no explicit parent dir entries
+	// Add a file with no explicit parent dir entries.
 	b.addFile("a/b/c/deep.txt", "deep content", 0o644)
 	ra := b.finish()
 
@@ -498,7 +498,7 @@ func TestPermissions(t *testing.T) {
 		t.Fatalf("README.md: expected 0644, got %o", perm.Perm())
 	}
 
-	// executable
+	// executable file
 	exec, _ := ops.Lookup(ctx, "build.sh")
 	defer exec.Release()
 	execOps, _ := exec.GetCursorOps(ctx)
@@ -544,7 +544,7 @@ func TestReadAtOffset(t *testing.T) {
 	defer child.Release()
 	childOps, _ := child.GetCursorOps(ctx)
 
-	// "# Hello World\n" -- skip "# "
+	// "# Hello World\n": skip "# "
 	buf := make([]byte, 100)
 	n, err := childOps.ReadAt(ctx, 2, buf)
 	if err != io.EOF {
@@ -1014,7 +1014,7 @@ func TestExactRead(t *testing.T) {
 		t.Fatalf("expected 5, got %d", n)
 	}
 
-	// at exact boundary, either nil or EOF is acceptable
+	// at the exact file boundary, either nil or EOF is acceptable
 	if err != nil && err != io.EOF {
 		t.Fatalf("expected nil or io.EOF, got %v", err)
 	}

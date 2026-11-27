@@ -31,12 +31,12 @@ import (
 // retiring the enclosing transaction or the connection.
 func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing.T) {
 
-	// context ctx.
+	// Get the test context ctx.
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 	defer tb.Release()
 
-	// setupCountingResourceClient client,server,cleanup.
+	// Get client, server and cleanup via setupCountingResourceClient.
 	client, server, cleanup := setupCountingResourceClient(ctx, t, tb)
 	defer cleanup()
 	root := client.AccessRootResource()
@@ -50,7 +50,7 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 		t.Fatal(err)
 	}
 
-	// createResourceReference ref via client.
+	// Create ref via client.CreateResourceReference.
 	ref := client.CreateResourceReference(created.GetResourceId())
 	engine, err := s4wave_world.NewEngine(client, ref)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 		t.Fatal(err)
 	}
 
-	// newTransaction outer,err via engine.
+	// Get outer and err via engine.NewTransaction.
 	outer, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -195,8 +195,8 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 }
 
 // TestRemoteGetObjectReleaseReturnsServerCountToBaseline proves the real
-// ResourceClient/ResourceServer value-only lookup seam left by the World
-// object-state release fix. A repeated remote GetObject acquires exactly one
+// ResourceClient/ResourceServer value-only lookup boundary for World
+// object-state handle release. A repeated remote GetObject acquires exactly one
 // server-side resource handle, and releasing the returned ObjectState returns
 // the owner-side handle count to its baseline every iteration.
 //
@@ -208,21 +208,21 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 // an iteration.
 func TestRemoteGetObjectReleaseReturnsServerCountToBaseline(t *testing.T) {
 
-	// background ctx via context.
+	// Get ctx via context.Background.
 	ctx := context.Background()
 
-	// Start tb,err via world_testbed.
+	// Start tb and get err via world_testbed.Default.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
-	// setupCountingResourceClient resClient,server,cleanup.
+	// Get resClient, server and cleanup via setupCountingResourceClient.
 	resClient, server, cleanup := setupCountingResourceClient(ctx, t, tb)
 	defer cleanup()
 
-	// accessRootResource rootRef via resClient.
+	// Get rootRef via resClient.AccessRootResource.
 	rootRef := resClient.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
@@ -230,7 +230,8 @@ func TestRemoteGetObjectReleaseReturnsServerCountToBaseline(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// newSRPCTestbedResourceServiceClient testbedClient via s4wave_testbed.
+	// Create testbedClient via
+	// s4wave_testbed.NewSRPCTestbedResourceServiceClient.
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(rootClient)
 	createWorldResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
@@ -271,7 +272,7 @@ func TestRemoteGetObjectReleaseReturnsServerCountToBaseline(t *testing.T) {
 	}
 	defer readTx.Release()
 
-	// countTrackedResources baseline via server.
+	// Get baseline via server.CountTrackedResources.
 	baseline := server.CountTrackedResources()
 
 	// Perform the action.
@@ -325,12 +326,12 @@ func setupCountingResourceClient(
 	tb *world_testbed.Testbed,
 ) (*resource_client.Client, *resource_server.ResourceServer, func()) {
 
-	// Construct logger via logrus.
+	// Construct the logger via logrus.
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
 
-	// pipe clientPipe,serverPipe via net.
+	// Get clientPipe and serverPipe via net.Pipe.
 	clientPipe, serverPipe := net.Pipe()
 	closePipes := func() {
 		if err := clientPipe.Close(); err != nil {
@@ -341,7 +342,7 @@ func setupCountingResourceClient(
 		}
 	}
 
-	// newMuxedConn clientMp,err via srpc.
+	// Get clientMp and err via srpc.NewMuxedConn.
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
 	if err != nil {
 		closePipes()
@@ -349,11 +350,11 @@ func setupCountingResourceClient(
 	}
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
-	// newMux mux via srpc.
+	// Create mux via srpc.NewMux.
 	mux := srpc.NewMux()
 	srpcServer := srpc.NewServer(mux)
 
-	// newTestbedResourceServer testbedResource via resource_testbed.
+	// Create testbedResource via resource_testbed.NewTestbedResourceServer.
 	testbedResource := resource_testbed.NewTestbedResourceServer(ctx, le, tb.Bus, tb.Volume.GetID(), tb.BucketId)
 	resourceServer := resource_server.NewResourceServer(testbedResource.GetMux())
 	if err := resourceServer.Register(mux); err != nil {
@@ -361,7 +362,7 @@ func setupCountingResourceClient(
 		t.Fatal(err.Error())
 	}
 
-	// newMuxedConn serverMp,err via srpc.
+	// Get serverMp and err via srpc.NewMuxedConn.
 	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
 	if err != nil {
 		closePipes()
@@ -376,7 +377,8 @@ func setupCountingResourceClient(
 		acceptErrCh <- srpcServer.AcceptMuxedConn(ctx, serverMp)
 	}()
 
-	// newSRPCResourceServiceClient resourceServiceClient via resource.
+	// Create resourceServiceClient via
+	// resource.NewSRPCResourceServiceClient.
 	resourceServiceClient := resource.NewSRPCResourceServiceClient(srpcClient)
 	resClient, err := resource_client.NewClient(ctx, resourceServiceClient)
 	if err != nil {

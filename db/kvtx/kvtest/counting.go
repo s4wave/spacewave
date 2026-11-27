@@ -39,7 +39,8 @@ func (s *CountingStore) Counts() Counts {
 	}
 }
 
-// ResetMax starts MaxWriteOps over, so it measures the calls made after it.
+// ResetMax starts MaxWriteOps over, so MaxWriteOps measures calls made after
+// the reset.
 func (s *CountingStore) ResetMax() {
 	s.maxWriteOps.Store(0)
 	s.maxWriteReadBytes.Store(0)

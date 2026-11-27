@@ -437,7 +437,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
     }
   }
 
-  // copyTo performs an optimized copy of an inode to another inode.
+  // copyTo copies an inode to another inode with optimization.
   async copyTo(
     tgtDir: FSCursorOps,
     tgtName: string,
@@ -476,7 +476,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
     return resp.done ?? false
   }
 
-  // copyFrom performs an optimized copy from another inode.
+  // copyFrom copies from another inode with optimization.
   async copyFrom(
     name: string,
     srcCursorOps: FSCursorOps,
@@ -515,7 +515,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
     return resp.done ?? false
   }
 
-  // moveTo performs an atomic and optimized move to another inode.
+  // moveTo moves to another inode atomically and with optimization.
   async moveTo(
     tgtCursorOps: FSCursorOps,
     tgtName: string,
@@ -554,7 +554,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
     return resp.done ?? false
   }
 
-  // moveFrom performs an atomic and optimized move from another inode.
+  // moveFrom moves from another inode atomically and with optimization.
   async moveFrom(
     name: string,
     srcCursorOps: FSCursorOps,

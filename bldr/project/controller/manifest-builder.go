@@ -36,19 +36,19 @@ const (
 
 // manifestBuilderTracker tracks a running manifest build controller.
 type manifestBuilderTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// conf is the manifest builder config
+	// conf is the manifest builder config.
 	conf *ManifestBuilderConfig
-	// manifestConf is the manifest config
+	// manifestConf is the manifest config.
 	manifestConf atomic.Pointer[bldr_project.ManifestConfig]
-	// remoteConf is the remote config
+	// remoteConf is the remote config.
 	remoteConf atomic.Pointer[bldr_project.RemoteConfig]
 	// resultPromiseCtr contains the result of the compilation.
 	resultPromiseCtr *promise.PromiseContainer[*ManifestBuilderResult]
-	// statusMtx guards status
+	// statusMtx guards status.
 	statusMtx sync.Mutex
-	// status is the latest build status
+	// status is the latest build status.
 	status ManifestBuilderStatus
 }
 
@@ -401,8 +401,9 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	)
 
 	// Run the builder controller and republish each build it finishes. A
-	// watching build stays up through a failed build, which the next source
-	// change rebuilds; a finite build ends with its first failure.
+	// watching build stays up through a failed build, and the next source
+	// change rebuilds the failed build. A finite build ends with its first
+	// failure.
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "starting builder controller", nil)
 	watch := ctrlConf.GetWatch()
 	var buildErr error

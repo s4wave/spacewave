@@ -151,7 +151,7 @@ func syncToBillyOnce(
 	type stackElem struct {
 		// fsHandle is the filesystem handle.
 		fsHandle *unixfs.FSHandle
-		// srcPath is the path in the source fs
+		// srcPath is the path in the source fs.
 		srcPath string
 		// outPath is the path in the output fs.
 		outPath string
@@ -208,10 +208,11 @@ func syncToBillyOnce(
 			}
 		}
 
-		// if directory
+		// if the source is a directory
 		if srcFileInfo.IsDir() {
 			// call MkdirAll to create the destination in case it doesn't exist.
-			// if !doWrite, we already checked that outPath exists above.
+			// if !doWrite, the check above established that
+			// outPath exists.
 			if doWrite {
 				if err := bfs.MkdirAll(outPath, srcFileInfo.Mode().Perm()); err != nil {
 					releaseElem(nelem)
@@ -307,12 +308,12 @@ func syncToBillyOnce(
 				)
 			}
 
-			// continue to next queued entry
+			// continue to the next queued entry
 			releaseElem(nelem)
 			continue
 		}
 
-		// destination is not a directory, or we are not writing.
+		// destination is not a directory, or the sync is not writing.
 		if !doWrite {
 			releaseElem(nelem)
 			continue
@@ -325,13 +326,14 @@ func syncToBillyOnce(
 
 		// all non-regular files other than symlinks are ignored
 		if (!srcFileIsRegular && !srcFileIsSymlink) ||
-			// if the destination doesn't support symlinks, skip it.
+			// if the destination doesn't support symlinks,
+			// skip the symlink.
 			(srcFileIsSymlink && !bfsSymlinkOk) {
 			releaseElem(nelem)
 			continue
 		}
 
-		// if symlink: read it
+		// if the source is a symlink: read the symlink
 		var srcFileSymlinkPath string
 		if srcFileIsSymlink {
 			linkPath, linkPathIsAbs, err := handle.Readlink(ctx, "")
@@ -342,14 +344,16 @@ func syncToBillyOnce(
 			srcFileSymlinkPath = unixfs.JoinPath(linkPath, linkPathIsAbs)
 		}
 
-		// if createTruncateFile is set, we will create the file, truncating
-		// existing contents, and do a full copy from src to destination.
+		// if createTruncateFile is set, the sync creates the file,
+		// truncating existing contents, and does a full copy from src
+		// to destination.
 		var createTruncateFile bool
 
-		// first: check if we can skip this file with heuristics.
+		// first: check if the sync can skip this file with heuristics.
 		// if the modification time is set on both source and destination,
 		// the modification time matches, and the file size matches,
-		// we can conclude the file is /most likely/ the same and skip it.
+		// the sync can conclude the file is /most likely/ the same
+		// and skip it.
 		var outFileInfo fs.FileInfo
 		var outStatErr error
 
@@ -372,7 +376,8 @@ func syncToBillyOnce(
 				// TODO: Chmod does not exist on billy.Filesystem nor osfs!
 				// bfs.Chmod(outPath, srcPerms)
 
-				// try to just fully truncate / overwrite the file instead.
+				// try to fully truncate / overwrite the file
+				// instead.
 				createTruncateFile = true
 			}
 

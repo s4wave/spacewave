@@ -49,10 +49,10 @@ export function useWatchTypedHandle<T extends SDKResource>(
 export type HeldTypedHandle<T> = {
   handle: T
   // live is set while handle is the watch's ready handle and not released.
-  // Otherwise it is the last ready handle, already released, as it is while
-  // the watch fails, reloads, or waits to reconnect still showing its ready
-  // state: the body reads it only through watches that report the loss, runs
-  // no query on it, and offers no write.
+  // Otherwise handle is the last ready handle, already released, as handle is
+  // while the watch fails, reloads, or waits to reconnect still showing its
+  // ready state: the body reads handle only through watches that report the
+  // loss, runs no query on handle, and offers no write.
   live: boolean
 }
 
@@ -96,7 +96,7 @@ export function useHeldTypedHandle<T>(
  * useLiveDeps returns deps while live, otherwise the deps of the last live
  * render, so a resource keyed on them runs no query on a held handle and
  * keeps its answer until the next handle arrives. A resource first mounted
- * while not live still runs once; its factory returns null then.
+ * while not live still runs once. Its factory returns null then.
  */
 export function useLiveDeps(
   live: boolean,

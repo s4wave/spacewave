@@ -221,7 +221,7 @@ func (a *flowgraphCreateArgs) BuildFlags() []cli.Flag {
 	})
 }
 
-// Run creates the Flowgraph named by the key argument.
+// Run creates the Flowgraph identified by the key argument.
 func (a *flowgraphCreateArgs) Run(c *cli.Context) error {
 	// Accept a full object key or a bare ID.
 	if c.NArg() != 1 {
@@ -513,7 +513,7 @@ func (a *flowgraphConnectArgs) BuildFlags() []cli.Flag {
 	)
 }
 
-// Run applies the connection named by the argument.
+// Run applies the connection identified by the argument.
 func (a *flowgraphConnectArgs) Run(c *cli.Context) error {
 	// Parse the connection ID and both endpoints.
 	if c.NArg() != 1 {
@@ -551,7 +551,7 @@ func buildFlowgraphDisconnectCommand() *cli.Command {
 		ArgsUsage: "<connection-id>...",
 		Flags:     args.BuildFlags(),
 		Action: func(c *cli.Context) error {
-			// Remove every named connection in one edit.
+			// Remove every specified connection in one edit.
 			if c.NArg() == 0 {
 				return errors.New("disconnect requires at least one <connection-id>")
 			}
@@ -610,7 +610,7 @@ func buildFlowgraphHistoryCommand() *cli.Command {
 
 // describeChange summarizes one revision.
 func describeChange(change *flowgraph.FlowgraphChange) string {
-	// Name the creation, or list a rename.
+	// Describe the creation, or list a rename.
 	edit := change.GetEdit()
 	var parts []string
 	switch {
@@ -644,7 +644,7 @@ func appendEdit(parts []string, label string, ids []string) []string {
 	return append(parts, label+" "+strings.Join(ids, ","))
 }
 
-// describeBindingState names a binding's state: BOUND, UNREGISTERED,
+// describeBindingState returns a binding's state: BOUND, UNREGISTERED,
 // UNAVAILABLE, or UNBOUND.
 func describeBindingState(binding *flowgraph.FlowgraphBinding) string {
 	if binding.GetObjectKey() == "" {
@@ -653,7 +653,7 @@ func describeBindingState(binding *flowgraph.FlowgraphBinding) string {
 	return strings.TrimPrefix(binding.GetState().String(), bindingStatePrefix)
 }
 
-// bindingStatePrefix starts the name of every FlowgraphBindingState.
+// bindingStatePrefix is the prefix of every FlowgraphBindingState name.
 const bindingStatePrefix = "FLOWGRAPH_BINDING_STATE_"
 
 // describePorts lists ports as direction name:type.
@@ -673,7 +673,7 @@ func describePorts(nodePorts []*flowgraph.FlowgraphPort) string {
 	return strings.Join(ports, ", ")
 }
 
-// describePlacement names the placement kind and destination.
+// describePlacement returns the placement kind and destination.
 func describePlacement(placement *flowgraph.FlowgraphPlacement) string {
 	switch placement.GetKind() {
 	case flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE:

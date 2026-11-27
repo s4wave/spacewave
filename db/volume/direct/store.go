@@ -83,7 +83,7 @@ func (s *Store) Close() error {
 
 // commit is the table's commit function. It writes ops and the pending
 // blocks in one record store call, durable unless ordered is set, and drops
-// the committed entries from pending; entries replaced meanwhile stay. With
+// the committed entries from pending. Entries replaced meanwhile stay. With
 // nothing to write it makes the earlier ordered commits durable unless ordered
 // is set.
 func (s *Store) commit(ctx context.Context, _ memtable.Snapshot, ops []memtable.Op, ordered bool) error {

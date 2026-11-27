@@ -53,7 +53,7 @@ type pendingEntry struct {
 	// changed ranges, which reads the old contents (FILE entries only).
 	replace bool
 	// remove removes the entry, and with a directory its subtree, instead of
-	// adding one; the other fields are unset.
+	// adding one. The other fields are unset.
 	remove bool
 }
 
@@ -141,10 +141,10 @@ func NewBatchFSWriter(
 }
 
 // AddFile records a regular file entry to be created under parentPath at
-// Commit time. The file blob is built eagerly into the writer's blob buffer;
-// only the blob ref and entry metadata are accumulated. Contents the file
+// Commit time. The file blob is built eagerly into the writer's blob buffer.
+// Only the blob ref and entry metadata are accumulated. Contents the file
 // node embeds are held as bytes instead, as the BatchFSWriter doc describes.
-// No parent directory mutation happens until Commit.
+// No parent directory changes until Commit.
 func (b *BatchFSWriter) AddFile(
 	ctx context.Context,
 	parentPath []string,
@@ -174,7 +174,8 @@ func (b *BatchFSWriter) AddFile(
 
 	// Keep contents the file node will embed as bytes, while the batch holds
 	// less than maxHeldFileBytes of them: a blob block built for them would
-	// never be named, and the stage would hold it until Commit returns.
+	// never be referenced, and the stage would hold the block until Commit
+	// returns.
 	// Build other contents as a blob in an isolated transaction whose writes
 	// stay in the blob buffer. The parent dir is NOT touched.
 	var blobRef *block.BlockRef
@@ -202,8 +203,8 @@ func (b *BatchFSWriter) AddFile(
 // AddFileBlob records a regular file entry whose contents are the blob build
 // returns, as AddFile records one built from a reader. build addresses the
 // contents with the World's transform xfrm and hash type and returns their
-// Blob; the writer stores only the Blob block, so the blocks it names must
-// already be readable, as the blocks of a linked file are.
+// Blob. The writer stores only the Blob block, so the blocks the Blob
+// references must already be readable, as the blocks of a linked file are.
 //
 // The entry replaces an existing file's node rather than overwriting the
 // ranges that differ, since that comparison reads the old contents, which a
@@ -235,7 +236,7 @@ func (b *BatchFSWriter) AddFileBlob(
 	}
 	size := int64(bl.GetTotalSize()) //nolint:gosec // a file's size is an int64.
 
-	// Write the Blob block into the blob buffer; an empty file has no blob.
+	// Write the Blob block into the blob buffer. An empty file has no blob.
 	var blobRef *block.BlockRef
 	if size != 0 {
 		btx, bcs := b.storage.BuildTransactionWithStore(nil, b.blobs)
@@ -381,7 +382,7 @@ func (b *BatchFSWriter) WantVersion(parentPath []string, name string) error {
 }
 
 // Versions returns, after Commit succeeded, the version of each file
-// WantVersion named, in that order. It reads them from the root the commit
+// WantVersion selected, in that order. It reads them from the root the commit
 // published, which no later writer changes, so each is the version that
 // commit gave its file whatever committed since.
 func (b *BatchFSWriter) Versions(ctx context.Context) ([]FileVersion, error) {
@@ -450,9 +451,9 @@ func (b *BatchFSWriter) AddDir(
 	})
 
 	// Eagerly create the pendingDir slot keyed by the child path so any
-	// subsequent child entry lands under a dir we know was explicitly
-	// declared, guarding against intermediate parents that never had an
-	// explicit AddDir.
+	// subsequent child entry lands under an explicitly declared dir,
+	// guarding against intermediate parents that never had an explicit
+	// AddDir.
 	childPath := make([]string, 0, len(parentPath)+1)
 	childPath = append(childPath, parentPath...)
 	childPath = append(childPath, name)
@@ -502,7 +503,7 @@ func (b *BatchFSWriter) AddSymlink(
 	pd.entries = append(pd.entries, pendingEntry{
 		name:     name,
 		nodeType: unixfs_block.NodeType_NodeType_SYMLINK,
-		// Symlink perms are not carried in the op today (see FsSymlinkOp).
+		// Symlink perms are not carried in the op (see FsSymlinkOp).
 		permissions: 0,
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		symlink:     sym,
@@ -515,14 +516,14 @@ func (b *BatchFSWriter) AddSymlink(
 // order so a parent directory exists in the FSTree before any of its children
 // are written. The buffered blob blocks are written once into the writer's
 // stage first, and each staged merge attempt builds through the same stage and
-// names them by reference.
+// references them.
 //
 // Invariants: the upload publishes all of its entries or none. An attempt
 // that lost the race to another writer merges again onto the new root and
 // checks every expectation there, so it never overwrites a write it did not
 // merge onto. The stage holds the staged blobs, and the staged merges that
-// name them, from staging until Commit returns, on every exit, including an
-// error and a cancelled context.
+// reference them, from staging until Commit returns, on every exit, including
+// an error and a cancelled context.
 func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	// Claim the BatchFSWriter commit and release its storage when it finishes.
 	if b.released {
@@ -562,7 +563,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	}
 
 	// Write the buffered blobs into the stage once, so no attempt writes them
-	// again; the stage holds them until releaseStorage.
+	// again. The stage holds them until releaseStorage.
 	if b.blobs != nil {
 		if err := b.blobs.Flush(ctx); err != nil {
 			return err
@@ -570,15 +571,16 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	}
 
 	// Merge onto the object root through the blob stage, so each put that
-	// names a blob releases the stage's root on it inside the upload's own
-	// commit, and the stage releases only the top of the tree.
+	// references a blob releases the stage's root on it inside the upload's
+	// own commit, and the stage releases only the top of the tree.
 	//
 	// Invariants: every blob stays held from its put until the published root
-	// names it or the stage is released, on every attempt and every exit. A
-	// lost attempt's directories stay in the stage until Commit returns and
-	// hold the blobs they named, so a retry never finds a blob unheld. The
-	// attempt under the writer builds through its transaction, and the stage
-	// keeps holding the blobs it has not released until Commit returns.
+	// references it or the stage is released, on every attempt and every
+	// exit. A lost attempt's directories stay in the stage until Commit
+	// returns and hold the blobs they referenced, so a retry never finds a
+	// blob unheld. The attempt under the writer builds through its
+	// transaction, and the stage keeps holding the blobs it has not released
+	// until Commit returns.
 	var build world.AccessWorldStateFunc
 	if b.storage != nil {
 		build = world.NewAccessWorldStateFunc(b.storage)
@@ -659,7 +661,7 @@ func (b *BatchFSWriter) sortedPendingDirs() []*pendingDir {
 }
 
 // mergePendingDir merges accumulated entries into the FSTree node at
-// pd.parentPath. Does not recurse; each pending child whose own accumulated
+// pd.parentPath. Does not recurse. Each pending child whose own accumulated
 // entries live in another pendingDir is handled in a separate mergePendingDir
 // invocation.
 func (b *BatchFSWriter) mergePendingDir(
@@ -777,8 +779,9 @@ func deleteResolvedDirSubtree(resolvedDirs map[string]*unixfs_block.FSTree, path
 
 // syncExistingFile replays the existing-file overwrite semantics used by the
 // per-op path: truncate the file to the incoming size, then compare and write
-// only mismatching chunks. This preserves the inode and its history-sensitive
-// file layout instead of recreating a fresh one-shot file node.
+// only mismatching chunks. The overwrite preserves the inode and its
+// history-sensitive file layout instead of recreating a fresh one-shot file
+// node.
 func (b *BatchFSWriter) syncExistingFile(
 	ctx context.Context,
 	root *unixfs_block.FSTree,
@@ -911,7 +914,7 @@ func writeEntryContents(ctx context.Context, root *unixfs_block.FSTree, path []s
 }
 
 // Release discards any accumulated state without committing. Safe to call
-// after Commit; after Release the writer rejects all further calls.
+// after Commit. After Release the writer rejects all further calls.
 //
 // Buffered blobs are dropped. Blobs the buffer already drained for capacity
 // are released with the writer's stage for block-store GC to reclaim.

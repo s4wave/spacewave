@@ -171,7 +171,7 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('shows an object deleted and re-created between two reads', async () => {
-    // The watch finds the object; any other read lands on the revision that
+    // The watch finds the object. Any other read lands on the revision that
     // deleted it, before the commit that re-creates it unchanged.
     h.exists = true
     const world = liveWorld(() => false)
@@ -302,7 +302,8 @@ describe('useObjectViewerSetup', () => {
     })
     expect(result.current.objectState.value?.getKey()).toBe(objectKey)
 
-    // The object is deleted before the watch reopens: it then shows missing.
+    // The object is deleted before the watch reopens: the watch then shows
+    // the object as missing.
     h.exists = false
     await waitFor(() => expect(result.current.objectState.loading).toBe(false))
     expect(result.current.objectState.value).toBeNull()

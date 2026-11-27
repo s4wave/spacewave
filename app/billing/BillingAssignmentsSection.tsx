@@ -42,7 +42,8 @@ export interface BillingAssignmentsSectionProps {
 
 // BillingAssignmentsSection lets the viewer assign the given billing account
 // to their personal account or an owned organization, and detach existing
-// assignments. Mirrors the controls rendered on the billing accounts list.
+// assignments. The section mirrors the controls rendered on the billing
+// accounts list.
 export function BillingAssignmentsSection({
   baId,
   managedBillingAccount,

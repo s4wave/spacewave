@@ -18,7 +18,8 @@ interface RouteTarget {
 
 type ResourceLike = { release?: () => void }
 
-// This helper is presentation-only. Lifecycle proofs must use real enrollment.
+// ActionArgs describes inputs to the presentation-only deviceQuickstartHelper.
+// Lifecycle proofs must use real enrollment.
 type ActionArgs = {
   action: 'seed-device'
   objectKey?: string

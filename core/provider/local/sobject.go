@@ -28,7 +28,7 @@ import (
 // listed generation or stored state is not the one the caller read: someone
 // wrote, deleted or created it again since. A mounted state write returns it
 // when the stored state is not the one the mount holds, such as after a
-// replace committed, and the mount then reloads the stored state; the caller
+// replace committed, and the mount then reloads the stored state. The caller
 // reads again and decides.
 var ErrStateChanged = errors.New("shared object state changed")
 
@@ -49,7 +49,7 @@ type SharedObject struct {
 	lsoHost *LocalSOHost
 	// objStore stores local shared object records.
 	objStore object.ObjectStore
-	// objStoreID names objStore in the account volume.
+	// objStoreID identifies objStore in the account volume.
 	objStoreID string
 	// localPriv authenticates the local participant.
 	localPriv crypto.PrivKey
@@ -120,7 +120,7 @@ type mountTransactions struct {
 }
 
 // NewTransaction checks the same mount before and after the store opens a
-// transaction. The first check avoids work for an ended mount; the second
+// transaction. The first check avoids work for an ended mount. The second
 // rejects a snapshot or writer opened after retirement.
 func (m mountTransactions) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Do not open the store for an ended mount.
@@ -148,7 +148,7 @@ type mountStore struct {
 }
 
 // NewTransaction refuses an ended mount. Writes also fail with
-// ErrSharedObjectNotFound when the state's token key is gone; the writer holds
+// ErrSharedObjectNotFound when the state's token key is gone. The writer holds
 // from open to commit or discard, so no delete can commit after that check.
 func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Validate the mount after pinning the snapshot or taking the writer.
@@ -337,18 +337,19 @@ func (a *ProviderAccount) buildSharedObjectTracker(sobjectID string) (keyed.Rout
 }
 
 // sobjectResult holds a tracker's mount result and health. Readers await and
-// watch it; only runs write it, each through the sobjectRun it takes at
-// start. Taking a run, and retire, move the generation on, which retires
-// every earlier run, so a write can come only from the newest run.
+// watch the result and health. Only runs write them, each through the
+// sobjectRun the run takes at start. Taking a run, and retire, move the
+// generation on, which retires every earlier run, so a write can come only from
+// the newest run.
 //
-// A restart chain can leave two runs of one object alive at once: keyed
-// starts a run once its predecessor exits, but a predecessor cancelled while
-// waiting exits at once, so the next run waits only on it, while the run
-// before that may still be tearing down. That older run is harmless. Its
-// handle is retired, so it publishes, clears and changes health nothing, and
-// its context is cancelled, so its state and store writes refuse: the state
-// lock and mountStore both check it. What it still does is release its own
-// block store and object store references.
+// A restart chain can leave two runs of one object alive at once: keyed starts
+// a run once its predecessor exits, but a predecessor cancelled while waiting
+// exits at once, so the next run waits only on it, while the run before that
+// may still be tearing down. That older run is harmless. Its handle is retired,
+// so it publishes, clears and changes health nothing, and its context is
+// cancelled, so its state and store writes refuse: the state lock and
+// mountStore both check it. What it still does is release its own block store
+// and object store references.
 type sobjectResult struct {
 	// mtx orders the generation with every write below.
 	mtx sync.Mutex
@@ -359,7 +360,7 @@ type sobjectResult struct {
 	awaitingState bool
 	// prom holds the newest run's mount result.
 	prom *promise.PromiseContainer[*SharedObject]
-	// so is the SharedObject prom holds, if any; reset ends its host.
+	// so is the SharedObject prom holds, if any. reset ends its host.
 	so *SharedObject
 	// health holds the newest run's health snapshot.
 	health *ccontainer.CContainer[*sobject.SharedObjectHealth]
@@ -368,13 +369,13 @@ type sobjectResult struct {
 }
 
 // sobjectRun is one run's write access to its tracker's sobjectResult. Every
-// method of a run a later one or a retire has replaced does nothing.
+// method does nothing if a later run or a retire has replaced the run.
 type sobjectRun struct {
 	// res is the result the run writes.
 	res *sobjectResult
 	// gen is the generation the run took at start.
 	gen uint64
-	// ctx is the run's context; a run publishes only while it is live.
+	// ctx is the run's context. A run publishes only while ctx is live.
 	ctx context.Context
 }
 
@@ -451,7 +452,8 @@ func (r *sobjectResult) start(ctx context.Context) (*sobjectRun, error) {
 }
 
 // lockForStart takes the result lock. A test can pause after a failed attempt
-// to take the same mutex so it can cancel the callback before it acquires it.
+// to take the same mutex so the test can cancel the callback before the
+// callback acquires the mutex.
 func (r *sobjectResult) lockForStart() {
 	// Only a test tries the lock first. Notify it without holding the lock.
 	if hook := r.testClaimWait; hook != nil {
@@ -467,7 +469,8 @@ func (r *sobjectResult) lockForStart() {
 // loading, so a waiter waits for the next run and a health watcher does not
 // see the retired run's health. restartSharedObject calls it before each
 // restart. A placeholder commit requires the current generation to be awaiting
-// state; deciding that and retiring it happen under the same lock.
+// state. Checking that requirement and retiring the generation happen under
+// the same lock.
 func (r *sobjectResult) retire(awaitingOnly bool) bool {
 	// A placeholder need not restart a run that will see or has loaded it.
 	r.mtx.Lock()
@@ -512,7 +515,7 @@ func (h *sobjectRun) setAwaitingState(awaiting bool) {
 }
 
 // publish sets the run's health and mount result while the run is current
-// and its context live.
+// and its context is live.
 func (h *sobjectRun) publish(health *sobject.SharedObjectHealth, so *SharedObject, err error) {
 	// Write only as the newest run, while its context is live.
 	h.res.mtx.Lock()
@@ -526,7 +529,7 @@ func (h *sobjectRun) publish(health *sobject.SharedObjectHealth, so *SharedObjec
 }
 
 // swapHealth applies fn to the health while the run is current and its
-// context live.
+// context is live.
 func (h *sobjectRun) swapHealth(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth) {
 	h.res.mtx.Lock()
 	defer h.res.mtx.Unlock()
@@ -537,7 +540,7 @@ func (h *sobjectRun) swapHealth(fn func(*sobject.SharedObjectHealth) *sobject.Sh
 }
 
 // end clears the run's published mount result as it exits, while the run is
-// current; its context has usually ended by then.
+// current. Its context has usually ended by then.
 func (h *sobjectRun) end() {
 	h.res.mtx.Lock()
 	defer h.res.mtx.Unlock()
@@ -705,7 +708,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	so.body.SetContext(ctx)
 
 	// A mounted local SharedObject is ready only after LocalSOHost publishes its
-	// first state snapshot; otherwise immediate callers can block on state reads.
+	// first state snapshot. Otherwise immediate callers can block on state reads.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- lsoHost.Execute(ctx)
@@ -823,10 +826,10 @@ func (a *ProviderAccount) createSharedObjectLocked(
 }
 
 // newListEntry returns the list entry that first lists an object in this
-// account. generation is the account catalog's for an install of a
-// cataloged lifetime; nil mints a new one. This is the only place a
-// generation is minted: every later write and publish reads it from the list.
-// See SharedObjectListEntry.Generation.
+// account. generation is the account catalog's generation for an install of a
+// cataloged lifetime. nil mints a new generation. newListEntry is the only
+// place a generation is minted: every later write and publish reads it from the
+// list. See SharedObjectListEntry.Generation.
 func newListEntry(ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, source string, generation *string) *sobject.SharedObjectListEntry {
 	entry := &sobject.SharedObjectListEntry{
 		Ref:    ref.CloneVT(),
@@ -1005,7 +1008,8 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 			}
 
 			// Read which layout holds the state, then the state when the
-			// selected layout holds it; with none, read whether it is listed.
+			// selected layout holds the state. With no stored state, read
+			// whether the object is listed.
 			stored, inLog, err := soStateInLog(ctx, tx, sharedObjectID)
 			if err != nil {
 				return err
@@ -1032,8 +1036,8 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 
 	// Convert a state stored in the other layout and validate the result in
 	// the same transaction. No mount of this process writes the other
-	// layout, so only a delete can race the conversion; it then finds
-	// nothing, and the mount's load finds no state.
+	// layout, so only a delete can race the conversion. The conversion then
+	// finds nothing, and the mount's load finds no state.
 	if convert {
 		return kvtx.RunTransaction(ctx, true,
 			func(ctx context.Context) (kvtx.Tx, error) {
@@ -1147,7 +1151,7 @@ func (a *ProviderAccount) reviveRefusedSharedObject(id string) {
 // stored. Every path that gives an object its first state uses it. Keys under
 // the prefix with no stored state belong to no object, so the step refuses
 // them with errStaleSOKeys rather than deleting an unbounded prefix in the
-// caller's transaction; the caller runs it through withClearedSOKeys.
+// caller's transaction. The caller runs the step through withClearedSOKeys.
 // The genesis is built here, outside the step, so a retried transaction
 // stores the same state rather than minting new key material.
 func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (func(context.Context, kvtx.Tx) error, error) {
@@ -1171,7 +1175,7 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 
 	// Store it with its history unless state is already stored.
 	return func(ctx context.Context, tx kvtx.Tx) error {
-		// Keep state already stored; refuse keys an earlier lifetime left.
+		// Keep state already stored and refuse keys an earlier lifetime left.
 		found, err := soStateStored(ctx, tx, id)
 		if err != nil || found {
 			return err
@@ -1252,7 +1256,7 @@ func readStoredSharedObjectList(ctx context.Context, tx kvtx.Tx) (*sobject.Share
 	return list, nil
 }
 
-// storedListsSharedObject reports whether the list stored in tx names id.
+// storedListsSharedObject reports whether the list stored in tx lists id.
 func storedListsSharedObject(ctx context.Context, tx kvtx.Tx, id string) (bool, error) {
 	list, err := readStoredSharedObjectList(ctx, tx)
 	if err != nil {

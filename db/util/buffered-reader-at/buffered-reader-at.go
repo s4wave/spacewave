@@ -11,33 +11,37 @@ import (
 // SliceReaderAt supports reading data at a larger range than the buffer provided to ReadAt.
 type SliceReaderAt interface {
 	// SliceReadAt reads a slice of data from the requested location.
-	// NOTE: the returned slice may start before or after the requested location and length.
-	// NOTE: this may return a completely different range than what you asked for!
+	// NOTE: the returned slice may start before or after the requested
+	// location and length.
+	// NOTE: SliceReadAt may return a completely different range than the
+	// caller requested.
 	SliceReadAt(offset, length int64) (dataOffset int64, data []byte, err error)
 }
 
-// BufferedReaderAt enhances io.ReaderAt with caching, page alignment, and concurrency.
+// BufferedReaderAt enhances io.ReaderAt with caching, page alignment, and
+// concurrency.
 //
-// TODO: implement time and size based cache eviction, memory budget
+// TODO: implement time and size based cache eviction, memory budget.
 type BufferedReaderAt struct {
 	reader   io.ReaderAt
 	pageSize int64
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx   sync.Mutex
 	cache []*cacheRange
 }
 
-// cacheRange represents a range of cached data
+// cacheRange represents a range of cached data.
 type cacheRange struct {
-	offset int64         // The start offset of the cache range
-	size   int64         // The size of the cache range
-	data   []byte        // The actual cached data
-	done   chan struct{} // A channel to signal the completion of the read operation
-	err    error         // Any error encountered during the read
+	offset int64         // offset is the start offset of the cache range.
+	size   int64         // size is the size of the cache range.
+	data   []byte        // data holds the actual cached data.
+	done   chan struct{} // done signals completion of the read operation.
+	err    error         // err holds any error encountered during the read.
 }
 
-// NewBufferedReaderAt creates a new BufferedReaderAt with the specified page size
+// NewBufferedReaderAt creates a new BufferedReaderAt with the specified page
+// size.
 func NewBufferedReaderAt(reader io.ReaderAt, pageSize int64) *BufferedReaderAt {
 	if pageSize <= 0 {
 		pageSize = 4096 // Default page size
@@ -49,7 +53,7 @@ func NewBufferedReaderAt(reader io.ReaderAt, pageSize int64) *BufferedReaderAt {
 	}
 }
 
-// alignOffset adjusts the offset to align with the previous page boundary
+// alignOffset adjusts the offset to align with the previous page boundary.
 func (br *BufferedReaderAt) alignOffset(offset int64) int64 {
 	return (offset / br.pageSize) * br.pageSize
 }
@@ -105,8 +109,10 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 			br.cache = slices.Insert(br.cache, insertIndex, matchedRange)
 
 			go func(nr *cacheRange) {
-				// If this is a DynamicReaderAt we can request the data and keep the entire result.
-				// For HTTP fetchers, this is used to handle status 200 when 206 is expected.
+				// If the reader is a DynamicReaderAt, request
+				// the data and keep the entire result.
+				// For HTTP fetchers, the full result handles
+				// status 200 when 206 is expected.
 				var data []byte
 				dataOffset := nr.offset
 				var readErr error
@@ -141,8 +147,10 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 
 				// Remove failed cache ranges or restore ordering after an offset shift.
 				if nr.err != nil || nr.size == 0 {
-					// Existing waiters receive this attempt's error; later reads
-					// retry the source instead of retaining a poisoned cache page.
+					// Existing waiters receive this
+					// attempt's error. Later reads retry
+					// the source instead of retaining a
+					// poisoned cache page.
 					idx := slices.Index(br.cache, nr)
 					if idx >= 0 {
 						br.cache = slices.Delete(br.cache, idx, idx+1)

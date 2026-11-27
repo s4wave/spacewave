@@ -10,7 +10,7 @@ export interface Options {
 }
 
 /**
- * An exception that is thrown when the process exits.
+ * WASIProcExit is an exception that is thrown when the process exits.
  **/
 export class WASIProcExit extends Error {
   constructor(public readonly code: number) {
@@ -29,7 +29,7 @@ export default class WASI {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wasiImport: Record<string, (...args: any[]) => any>
 
-  /// Start a WASI command
+  /// start starts a WASI command.
   start(instance: {
     exports: { memory: WebAssembly.Memory; _start: () => unknown }
   }) {
@@ -45,7 +45,7 @@ export default class WASI {
     }
   }
 
-  /// Initialize a WASI reactor
+  /// initialize initializes a WASI reactor.
   initialize(instance: {
     exports: { memory: WebAssembly.Memory; _initialize?: () => unknown }
   }) {
@@ -792,19 +792,19 @@ export default class WASI {
       },
 
       /**
-       * poll_oneoff - Poll for events on multiple subscriptions.
+       * poll_oneoff polls for events on multiple subscriptions.
        *
-       * This implementation supports:
-       * - Clock subscriptions (sleep) - uses Atomics.wait for blocking
+       * poll_oneoff supports:
+       * - Clock subscriptions (sleep), using Atomics.wait for blocking
        * - FD_READ subscriptions (poll for readable data)
        * - FD_WRITE subscriptions (poll for writeable)
        *
-       * For fd subscriptions, we call fd_poll() on the Fd object.
+       * For fd subscriptions, poll_oneoff calls fd_poll() on the Fd object.
        *
-       * When used with SAB-backed fds (SABPollableStdin, SABDevOut), this uses
-       * Atomics.wait for true blocking instead of busy-waiting. This is critical
-       * for split-worker architectures where a WASI module must block while
-       * waiting for I/O, allowing the async I/O worker to process data.
+       * With SAB-backed fds (SABPollableStdin, SABDevOut), poll_oneoff uses
+       * Atomics.wait for true blocking instead of busy-waiting. Blocking is
+       * critical for split-worker architectures where a WASI module must block
+       * while waiting for I/O, allowing the async I/O worker to process data.
        */
       poll_oneoff: (
         in_ptr: number,
@@ -897,7 +897,7 @@ export default class WASI {
           }
         }
 
-        // If no events are ready yet, we need to wait
+        // If no events are ready yet, wait.
         if (events.length === 0) {
           // Calculate timeout in milliseconds for Atomics.wait
           let timeoutMs: number | undefined
@@ -922,19 +922,19 @@ export default class WASI {
             }
           }
 
-          // If we still have no events, use Atomics.wait for true blocking
-          // This is a dummy wait that will time out, but it releases the thread
-          // to allow the async I/O worker to process data and wake us up
+          // If there are still no events, block on a timed Atomics.wait on a
+          // private dummy buffer, which nothing notifies, then check the file
+          // descriptors again.
           if (events.length === 0) {
             // Create a dummy SharedArrayBuffer for Atomics.wait if needed
-            // This allows proper blocking instead of busy-waiting
+            // The buffer allows proper blocking instead of busy-waiting.
             const waitBuffer = new Int32Array(new SharedArrayBuffer(4))
 
-            // Wait with timeout - this blocks the thread properly
-            // During this time, the async I/O worker can write to SAB and notify
+            // Wait up to timeoutMs, or 100 ms without a clock deadline, so the
+            // thread sleeps instead of spinning.
             const waitResult = Atomics.wait(waitBuffer, 0, 0, timeoutMs ?? 100)
 
-            // After waking (timeout or notify), check fds again
+            // After the wait times out, check the file descriptors again.
             for (const s of subscriptions) {
               if (
                 s.eventtype === wasi.EVENTTYPE_FD_READ ||
@@ -973,7 +973,7 @@ export default class WASI {
             }
 
             // If still no events after first wait, loop with shorter intervals
-            // This handles the case where SAB notification arrives between checks
+            // The loop handles SAB notifications that arrive between checks.
             let loopCount = 0
             while (events.length === 0 && loopCount < 10) {
               loopCount++

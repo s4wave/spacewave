@@ -29,8 +29,8 @@ func (h *controlStreamMountedHandler) HandleMountedStream(
 
 	// Track the mounted link when its establishment watcher has not added it.
 	if ls == nil {
-		// Link not yet tracked via EstablishLinkWithPeer watcher.
-		// Add it now from the mounted stream's link info.
+		// The EstablishLinkWithPeer watcher has not yet tracked the link.
+		// Add the link now from the mounted stream's link info.
 		h.c.addLink(lnk)
 
 		// Retrieve the newly tracked link state before starting its control session.

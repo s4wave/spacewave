@@ -1,7 +1,7 @@
 syntax = "proto3";
 package pubsub.api;
 
-// SubcribeRequest is a pubsub subscription request message.
+// SubscribeRequest is a pubsub subscription request message.
 message SubscribeRequest {
   // ChannelId is the channel id to subscribe to.
   // Must be sent before / with publish.
@@ -26,7 +26,7 @@ message PublishRequest {
   uint32 identifier = 2;
 }
 
-// SubcribeResponse is a pubsub subscription response message.
+// SubscribeResponse is a pubsub subscription response message.
 message SubscribeResponse {
   // IncomingMessage is an incoming message.
   IncomingMessage incoming_message = 1;
@@ -37,7 +37,7 @@ message SubscribeResponse {
   SubscriptionStatus subscription_status = 3;
 }
 
-// SubscripionStatus is the status of the subscription handle.
+// SubscriptionStatus is the status of the subscription handle.
 message SubscriptionStatus {
   // Subscribed indicates the subscription is established.
   bool subscribed = 1;

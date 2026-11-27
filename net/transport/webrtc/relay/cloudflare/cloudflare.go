@@ -36,11 +36,11 @@ type Issuer struct {
 	KeyID string
 	// APIToken is the TURN key's API token. It never leaves the server.
 	APIToken string
-	// Client sends the request; nil uses http.DefaultClient.
+	// Client sends the request. A nil Client uses http.DefaultClient.
 	Client *http.Client
-	// Endpoint overrides the API base URL; empty uses Endpoint.
+	// Endpoint overrides the API base URL. An empty URL uses Endpoint.
 	Endpoint string
-	// Now overrides the clock; nil uses time.Now.
+	// Now overrides the clock. A nil Now uses time.Now.
 	Now func() time.Time
 }
 
@@ -64,7 +64,7 @@ func (i *Issuer) Issue(ctx context.Context, _ peer.ID) (*webrtc_relay.Credential
 		now = time.Now
 	}
 
-	// Ask for one credential; the expiry counts from before the request.
+	// Ask for one credential. The expiry counts from before the request.
 	issuedAt := now()
 	body := `{"ttl":` + strconv.Itoa(int(Lifetime/time.Second)) + `}`
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
@@ -73,7 +73,7 @@ func (i *Issuer) Issue(ctx context.Context, _ peer.ID) (*webrtc_relay.Credential
 		return nil, webrtc_relay.ErrUnavailable
 	}
 
-	// Authenticate with the token; only this request carries it.
+	// Authenticate with the token. Only this request carries it.
 	req.Header.Set("Authorization", "Bearer "+i.APIToken)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
@@ -91,7 +91,8 @@ func (i *Issuer) Issue(ctx context.Context, _ peer.ID) (*webrtc_relay.Credential
 		return nil, webrtc_relay.ErrUnavailable
 	}
 
-	// Keep the servers as issued; the client keeps only the credentialed relays.
+	// Keep the servers as issued. The client keeps only the credentialed
+	// relays.
 	value, err := fastjson.ParseBytes(data)
 	if err != nil {
 		return nil, webrtc_relay.ErrUnavailable

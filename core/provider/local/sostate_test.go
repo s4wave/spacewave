@@ -18,7 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// It returns the state, its genesis config change and the owner key.
+// seedTestGenesisState returns the state, its genesis config change and the
+// owner key.
 func seedTestGenesisState(t *testing.T, store kvtx.Store) (*sobject.SOState, *sobject.SOConfigChange, crypto.PrivKey) {
 	// Build the genesis state of a new owner.
 	t.Helper()
@@ -179,7 +180,7 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 		t.Fatal("an uncommitted conversion changed the stored state")
 	}
 
-	// Convert to the log: the same ops, and no stray.
+	// Convert to the log: the same ops, and no stray op.
 	stateLayoutLog = true
 	if err := convert(true); err != nil {
 		t.Fatal(err)

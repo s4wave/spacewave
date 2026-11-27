@@ -95,7 +95,8 @@ type walk struct {
 func (w *walk) pageCount() int64 { return int64(len(w.trunks)) + int64(len(w.leaves)) }
 
 // walkFreelist walks the trunk chain. A strict walk returns the first fault
-// as an error; a tolerant walk records it in torn and returns what it read.
+// as an error. A tolerant walk records the fault in torn and returns what
+// the walk read.
 func walkFreelist(r io.ReaderAt, h header, tolerant bool) (*walk, error) {
 	// Size the freelist reader from the validated header.
 	w := &walk{}

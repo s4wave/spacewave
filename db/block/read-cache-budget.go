@@ -39,7 +39,7 @@ type ReadCacheMember interface {
 }
 
 // ReadCacheBudget is one byte budget shared by the resident read caches of a
-// process. The members' bytes are summed on demand; Reclaim brings the total
+// process. The members' bytes are summed on demand. Reclaim brings the total
 // back under the limit by evicting from the class furthest above its floor,
 // and never takes a class below its floor, so a busy class cannot starve the
 // other. A reader holding a block keeps it through its own reference, so
@@ -152,8 +152,9 @@ func (b *ReadCacheBudget) Reclaim() {
 		left := b.reclaimLocked()
 		b.reclaiming.Store(false)
 
-		// Run again only if bytes arrived after the pass; a pass that stopped
-		// because every class sits at its floor or is held would repeat itself.
+		// Run again only if bytes arrived after the pass, because a
+		// pass that stopped because every class sits at its floor or is
+		// held would repeat itself.
 		if b.Total() <= left {
 			return
 		}

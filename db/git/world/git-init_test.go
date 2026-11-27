@@ -10,10 +10,10 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
 
-// TestGitInitOpPayloadRefs checks a transaction applying an import names the
+// TestGitInitOpPayloadRefs checks a transaction applying an import records the
 // imported repository as its payload, so a Space holds the repository blocks
 // while the operation is above the checkpoint, and that a new repository
-// names none.
+// records none.
 func TestGitInitOpPayloadRefs(t *testing.T) {
 	ctx := context.Background()
 	lookupOp := func(_ context.Context, typeID string) (world.Operation, error) {

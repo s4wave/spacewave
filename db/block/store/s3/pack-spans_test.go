@@ -25,7 +25,7 @@ func putTree(ctx context.Context, t *testing.T, s *PackStore, depth, fanout int)
 	var batch []*block.PutBatchEntry
 	var build func(level, at int) *block.BlockRef
 	build = func(level, at int) *block.BlockRef {
-		// Build the children first, so the node can name them.
+		// Build the children first, so the node can reference them.
 		var refs []*block.BlockRef
 		if level < depth-1 {
 			for i := range fanout {

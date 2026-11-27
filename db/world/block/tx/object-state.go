@@ -12,11 +12,11 @@ import (
 
 // ObjectState is an Object attached to a WorldState.
 type ObjectState struct {
-	// w is the WorldState
+	// w is the WorldState.
 	w *WorldState
-	// key is the object key
+	// key is the object key.
 	key string
-	// o is the underlying object
+	// o is the underlying object.
 	o world.ObjectState
 }
 
@@ -30,8 +30,8 @@ func (t *ObjectState) Release() {
 	world.ReleaseObjectState(t.o)
 }
 
-// GetWorldState returns the World state that holds the object, which
-// records the operations applied through it.
+// GetWorldState returns the World state that holds the object and
+// records the operations applied through that state.
 func (t *ObjectState) GetWorldState() world.WorldState {
 	return t.w
 }
@@ -180,7 +180,7 @@ func (t *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	return orev, nil
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified rev.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev.

@@ -62,7 +62,7 @@ func verifiedSOHistoryKey(soID string, hash []byte) []byte {
 // writeVerifiedSOStateCache serializes verified SO cache state to the account
 // ObjectStore and retains changes in the same transaction. Changes already
 // retained are not written again. It knows no earlier write, so in the log
-// layout it replaces both state logs; a mount writes through
+// layout it replaces both state logs. A mount writes through
 // verifiedSOCacheWriter instead, which stores each write's delta.
 func (a *ProviderAccount) writeVerifiedSOStateCache(
 	ctx context.Context,
@@ -239,9 +239,9 @@ func writeVerifiedSOStateLog(
 }
 
 // verifiedSOCacheWriter persists one mount's verified SO cache. It remembers
-// what its last committed write stored in the logs, so each write stores
-// only its delta; after a failed write it forgets, and the next write
-// replaces the logs.
+// what its last committed write stored in the logs, so each write stores only
+// its delta. After a failed write it forgets, and the next write replaces the
+// logs.
 type verifiedSOCacheWriter struct {
 	// store is the account's ObjectStore.
 	store object.ObjectStore
@@ -392,12 +392,12 @@ func (a *ProviderAccount) deleteVerifiedSOStateCache(
 	return nil
 }
 
-// InvalidateVerifiedChain clears the persisted verified config-chain record
-// for soID so the next mount re-verifies from scratch via /config-chain.
-// Used by rejoin, recovery, and forced re-verification flows where the
-// previously trusted chain head is no longer authoritative. The live
-// cloudSOHost (if any) keeps its in-memory verified state for the
-// remainder of its session; only future mounts observe the cold cache.
+// InvalidateVerifiedChain clears the persisted verified config-chain record for
+// soID so the next mount re-verifies from scratch via /config-chain. Used by
+// rejoin, recovery, and forced re-verification flows where the previously
+// trusted chain head is no longer authoritative. The live cloudSOHost (if any)
+// keeps its in-memory verified state for the remainder of its session. Only
+// future mounts observe the cold cache.
 func (a *ProviderAccount) InvalidateVerifiedChain(ctx context.Context, soID string) error {
 	return a.deleteVerifiedSOStateCache(ctx, soID)
 }
@@ -453,8 +453,9 @@ func (a *ProviderAccount) loadVerifiedSOStateCacheFrom(
 			}
 			cache = next
 
-			// A record holding a state was written whole, so its logs are empty
-			// or stale; the first write clears or replaces them.
+			// A record holding a state was written whole, so its
+			// logs are empty or stale. The first write clears or
+			// replaces them.
 			if cache.GetPeerState() != nil || cache.GetCloudState() != nil {
 				return nil
 			}

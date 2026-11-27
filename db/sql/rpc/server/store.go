@@ -30,7 +30,7 @@ type txHandle struct {
 	// mux is the ops service mux for the transaction.
 	mux srpc.Mux
 
-	// mtx guards below fields.
+	// mtx guards the fields below.
 	mtx sync.Mutex
 	// closing indicates commit/discard has started.
 	closing bool
@@ -170,7 +170,8 @@ func (s *Store) SqlTransaction(strm sql_rpc.SRPCSql_SqlTransactionStream) error 
 		s.rmtx.Unlock()
 	}
 	defer func() {
-		// Remove the transaction route before closing operations and discarding it.
+		// Remove the transaction route before closing operations and
+		// discarding the transaction.
 		var handle *txHandle
 		if txID != "" {
 			s.rmtx.Lock()

@@ -66,8 +66,9 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 	client := srpc.NewClient(stream_srpc.NewOpenStreamFunc(transportBus, space_exec.PluginFrontendProtocol(id), sender, queued.peer, 0))
 	var forward srpc.Invoker = srpc.NewClientInvoker(client)
 	if sender == queued.peer {
-		// A device running this Session serves its compiler on the local bus;
-		// authenticated network transports deliberately reject self-dialing.
+		// A device running this Session serves its compiler on the
+		// local bus. Authenticated network transports deliberately
+		// reject self-dialing.
 		local := bifrost_rpc.NewInvoker(r.b, "space/plugin-frontend", true)
 		prefix := string(space_exec.PluginFrontendProtocol(id)) + "/"
 		forward = srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {

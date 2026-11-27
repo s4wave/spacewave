@@ -38,7 +38,7 @@ export enum DistConfigSource {
 
   /**
    * DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT means the config came from the
-   * default built into the launcher.
+   * default config built into the launcher.
    */
   EMBEDDED_DEFAULT = 4,
 
@@ -282,7 +282,7 @@ export const LauncherInfo: MessageType<LauncherInfo> =
  */
 export interface DaemonUpdateWait {
   /**
-   * OtherWork names the clients and services besides the desktop, sorted,
+   * OtherWork lists the clients and services besides the desktop, sorted,
    * with a count suffix on a repeated name.
    */
   otherWork?: string[]
@@ -314,7 +314,7 @@ export interface FetchStatus {
   fetching?: boolean
   /**
    * HasConfig is true once the launcher selected a non-empty DistConfig from
-   * storage, the package, the built-in default, or an endpoint.
+   * storage, the package, the built-in default config, or an endpoint.
    */
   hasConfig?: boolean
   /**
@@ -497,7 +497,7 @@ export interface ReportDaemonUpdateWaitRequest {
    */
   selection?: UpdateState
   /**
-   * OtherWork names the clients and services besides the desktop, sorted,
+   * OtherWork lists the clients and services besides the desktop, sorted,
    * with a count suffix on a repeated name.
    */
   otherWork?: string[]
@@ -687,7 +687,7 @@ export const WatchLauncherInfoRequest: MessageType<WatchLauncherInfoRequest> =
 export interface PushDistConfigRequest {
   /**
    * Body is the block of text containing the packedmsg.
-   * We will scan the body of message for a valid signed packedmsg.
+   * The message body is scanned for a valid signed packedmsg.
    */
   body?: string
 }

@@ -23,20 +23,19 @@ type Constructor func(
 // Controller implements a common bldr WebDocument controller.
 // Tracks attached WebDocument state and manages RPC calls in/out.
 type Controller struct {
-	// ctx is the controller context
-	// set in the execute() function
-	// ensure not used before execute sets it.
+	// ctx is the controller context, set in the execute() function.
+	// It must not be used before execute sets it.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 
-	// doc is the web document instance
+	// doc is the web document instance.
 	doc web_document.WebDocument
-	// webDocumentId is the controller id to use
+	// webDocumentId is the controller id to use.
 	webDocumentId string
-	// webDocumentVersion is the version
+	// webDocumentVersion is the version.
 	webDocumentVersion controller.Version
 }
 

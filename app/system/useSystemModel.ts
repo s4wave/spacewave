@@ -33,7 +33,7 @@ import {
 } from './useSystemStatus.js'
 import { buildDirectiveTree, type DirectiveTree } from './directiveTree.js'
 
-// SubsystemId names one tile of the system dashboard.
+// SubsystemId identifies one tile of the system dashboard.
 export type SubsystemId =
   | 'sync'
   | 'storage'
@@ -63,7 +63,7 @@ export interface SystemVerdict {
   items: AttentionItem[]
 }
 
-// PluginView joins a plugin host instance with the Space it serves and, for
+// PluginView is a plugin host instance with the Space it serves and, for
 // root host plugins, its retained manifest recovery and native package facts.
 export interface PluginView {
   key: string
@@ -73,7 +73,7 @@ export interface PluginView {
   // spaceId is the engine ID of the Space the instance serves, empty for
   // system plugins.
   spaceId: string
-  // host names the Space the instance serves, or the system.
+  // host identifies the Space the instance serves, or the system.
   host: string
   manifest?: PluginManifestRecoveryStatus
   nativePackage?: NativePackageRecoveryStatus
@@ -123,7 +123,7 @@ export interface SystemModelInputs {
 const storageQuotaWarningRatio = 0.9
 
 // useSystemModel composes every live system watch in the current session into
-// one SystemModel. Each source keeps its own subscription lifetime; the model
+// one SystemModel. Each source has its own subscription lifetime. The model
 // updates whenever any source pushes a new snapshot.
 export function useSystemModel(): SystemModel {
   const build = useAppBuildInfo()
@@ -243,7 +243,7 @@ function groupDirectives(resp: WatchDirectivesResponse): DirectiveGroup[] {
   )
 }
 
-// joinPlugins names the Space each plugin instance serves and attaches the
+// joinPlugins identifies the Space each plugin instance serves and attaches the
 // root host's manifest recovery and native package facts. Plugins are ordered
 // with system plugins first, then by Space name.
 function joinPlugins(
@@ -385,7 +385,7 @@ function collectAttention(
     })
   }
 
-  // Plugins with quarantined manifests or failed native packages.
+  // Report plugins with quarantined manifests or failed native packages.
   for (const plugin of plugins ?? []) {
     if (plugin.manifest?.quarantinedCandidateCount) {
       items.push({

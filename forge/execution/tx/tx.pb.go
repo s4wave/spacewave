@@ -269,8 +269,8 @@ func (x *TxSetWaiting) GetClaimId() string {
 type TxStart struct {
 	unknownFields []byte
 	// PeerId is the peer identifier to set as the executor.
-	// Must be the same as the sender of the transaction.
-	// Must match peer_id on the Execution if it's not empty.
+	// PeerId must be the same as the sender of the transaction.
+	// PeerId must match peer_id on the Execution if peer_id is not empty.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// ClaimId is the opaque identifier of the claiming controller instance.
 	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
@@ -421,15 +421,17 @@ type TxReclaim struct {
 	// ExpectedClaimEpoch prevents racing transfers from both succeeding.
 	ExpectedClaimEpoch uint64 `protobuf:"varint,3,opt,name=expected_claim_epoch,json=expectedClaimEpoch,proto3" json:"expectedClaimEpoch,omitempty"`
 	// ObservedAt is the time the sender observed the claim lease expired. The
-	// transaction applies only when the current lease expires at or before it.
+	// transaction applies only when the current lease expires at or before
+	// ObservedAt.
 	ObservedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observedAt,omitempty"`
 	// LeaseExpiresAt is the initial lease expiry of the new claim.
-	// Must be after observed_at.
+	// LeaseExpiresAt must be after observed_at.
 	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
 	// ExecutionObjectKey identifies the Execution to reclaim in a World operation.
 	ExecutionObjectKey string `protobuf:"bytes,6,opt,name=execution_object_key,json=executionObjectKey,proto3" json:"executionObjectKey,omitempty"`
-	// Placement selects the reclaiming Worker's custody. Required when replacing
-	// an existing placement; its peer must match PeerId and be linked to the Worker.
+	// Placement selects the reclaiming Worker's custody. Placement is required
+	// when replacing an existing placement. Placement's peer must match PeerId
+	// and be linked to the Worker.
 	Placement *worker.Placement `protobuf:"bytes,7,opt,name=placement,proto3" json:"placement,omitempty"`
 }
 

@@ -271,7 +271,7 @@ func (c *failingUpload) PostCheckpoint(context.Context, string, *sobject.SOCheck
 }
 
 // TestReleaseSignsNothingBeforeDurable fails a release at the upload and at a
-// manifest the World cannot check out; neither returns a signed selector.
+// manifest the World cannot check out. Neither returns a signed selector.
 func TestReleaseSignsNothingBeforeDurable(t *testing.T) {
 	// A failed upload returns before signing.
 	ctx := t.Context()
@@ -291,7 +291,7 @@ func TestReleaseSignsNothingBeforeDurable(t *testing.T) {
 		t.Fatalf("a failed upload released %v after %d uploads: %v", released, client.uploads, err)
 	}
 
-	// Add a platform whose manifest the World lacks; staging stops the
+	// Add a platform whose manifest the World lacks. Staging stops the
 	// release before any upload.
 	tx, err := w.Engine.NewTransaction(ctx, true)
 	if err != nil {

@@ -1,11 +1,11 @@
 // Package forge_target defines the Target, the immutable description of the
 // work a Task runs, and the ExecController contract that performs it.
 //
-// A Target names its inputs, its outputs and an Exec block that selects a
+// A Target declares its inputs, its outputs and an Exec block that selects a
 // controllerbus controller. Tasks, Passes and Executions refer to it by block
 // reference, so every replica of a Pass runs the same configuration. An Input
 // is an inline Value, an alias of another input, a World, an object in a World,
-// or a named output of a completed Task (InputType_TASK_OUTPUT); WatchChanges
+// or a named output of a completed Task (InputType_TASK_OUTPUT). WatchChanges
 // marks an input whose change restarts the Task. An Output is either mounted
 // from an exec output or given inline.
 //
@@ -57,7 +57,7 @@ func CreateTarget(
 	return state, ref, nil
 }
 
-// Validate performs cursory validation of the target.
+// Validate cursorily validates the target.
 func (t *Target) Validate() error {
 	// Require a Target before validating its fields.
 	if t == nil {

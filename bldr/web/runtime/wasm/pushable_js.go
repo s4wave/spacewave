@@ -94,5 +94,5 @@ func (w *PushablePacketWriter) Close() error {
 	return nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ srpc.PacketWriter = (*PushablePacketWriter)(nil)

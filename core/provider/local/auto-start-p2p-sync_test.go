@@ -106,7 +106,7 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	defer releaseRemote()
 	remotePeerID := remoteSess.GetPeerId().String()
 
-	// Create a space whose config names the remote Session as an owner.
+	// Create a space whose config lists the remote Session as an owner.
 	spaceRef, err := acc.CreateSharedObject(ctx, "auto-start-shared-space", &sobject.SharedObjectMeta{
 		BodyType: "space",
 	}, "", "")

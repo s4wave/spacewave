@@ -59,7 +59,7 @@ func (t *AVLTree) GetRootNodeRef() *bucket.ObjectRef {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// The caller must call Discard() after finishing with the transaction.
 func (t *AVLTree) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	return t.NewAVLTreeTransaction(ctx, write)
 }

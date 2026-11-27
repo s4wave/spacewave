@@ -114,8 +114,9 @@ export function EnterCodeStep({
       const message =
         err instanceof Error ? err.message : 'Failed to complete pairing'
       setError(pairingErrorMessage(message))
-      // Surface via toast too: a failed submit can re-render or navigate the
-      // settings pane away from this card before the inline error is seen.
+      // Surface the error via toast too: a failed submit can re-render or
+      // navigate the settings pane away from this card before the inline error
+      // is seen.
       toast.error(pairingErrorMessage(message))
     } finally {
       setLoading(false)

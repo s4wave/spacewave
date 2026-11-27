@@ -5,7 +5,8 @@
 // Two phases. While the app runs, fillReactDevGeneration copies the
 // development files the release carries beside its packages, checked against
 // the release's list, into the service worker's cache as one generation, and
-// the device setting records its version. At the next boot the shell's inline script reads that setting and binds React to
+// the device setting records its version. At the next boot the shell's inline
+// script reads that setting and binds React to
 // /b/react-dev/<version>/<production path> instead of the production path.
 // The service worker answers those URLs through ReactDevPicks: from the
 // generation, read whole on the document's first request, or with the
@@ -27,8 +28,8 @@ export const reactDevStorageKey = 'bldr-react-dev'
 // every release that pins the same React version.
 const pkgsDir = '/pkgs/'
 
-// markerName names the entry that marks a generation complete. The fill
-// writes it after every file, listing them.
+// markerName identifies the entry that marks a generation complete. The fill
+// writes the entry after every file, listing the files.
 const markerName = '.complete'
 
 // ReactDevSetting is the device setting for Development React.
@@ -36,7 +37,7 @@ export interface ReactDevSetting {
   // enabled is whether the person turned Development React on.
   enabled: boolean
   // version is the React version of the complete generation in the cache,
-  // or empty when none is.
+  // or empty when no complete generation is in the cache.
   version: string
 }
 
@@ -74,7 +75,7 @@ export interface ReactDevPath {
   version: string
   // prodPath is the production file the URL stands in for.
   prodPath: string
-  // file is the path below the release's package directory, which keys the
+  // file is the path below the release's package directory. The path keys the
   // file within a generation.
   file: string
 }
@@ -109,11 +110,11 @@ function generationURL(origin: string, version: string, file: string): string {
   ).href
 }
 
-// reactDevDir names the directory beside a release's pkgs/ that holds its
+// reactDevDir identifies the directory beside a release's pkgs/ that holds its
 // Development React build: pkgs/ with the same layout, and filesListName.
 const reactDevDir = 'react-dev/'
 
-// filesListName names the list of Development React files: a JSON object
+// filesListName identifies the list of Development React files: a JSON object
 // whose files field maps each path below pkgs/ to its hex SHA-256.
 const filesListName = 'files.json'
 
@@ -128,7 +129,7 @@ export interface ReactDevRelease {
 
 // readReactDevRelease reads the release's React version and Development React
 // source from the shell's import map template, or returns null in a shell
-// without one, which stays on production React.
+// without that template. Such a shell stays on production React.
 export function readReactDevRelease(doc: Document): ReactDevRelease | null {
   const data = doc.getElementById('bldr-import-map')
   const version = data?.getAttribute('data-react-version')
@@ -168,7 +169,8 @@ async function sha256Hex(blob: Blob): Promise<string> {
 // source directory into the cache, checking each against the release's list,
 // and marks the generation complete once every file is in place. A missing,
 // partial or altered source leaves no complete generation of that version and
-// keeps any other. Success removes the generations of other versions.
+// keeps any other generation. Success removes the generations of other
+// versions.
 export async function fillReactDevGeneration(
   storage: CacheStorage,
   origin: string,
@@ -268,8 +270,9 @@ export async function readReactDevGeneration(
 
 // ReactDevPicks holds the service worker's decision for each document: the
 // generation it serves development React from, or null for production. The
-// first request of a document decides and every later one reuses it, so a
-// generation that disappears mid-boot cannot split React from React DOM.
+// first request of a document decides and every later request reuses that
+// decision, so a generation that disappears mid-boot cannot split React from
+// React DOM.
 export class ReactDevPicks {
   private readonly picks = new Map<string, Promise<ReactDevGeneration | null>>()
 

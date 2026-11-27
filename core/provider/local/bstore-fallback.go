@@ -18,9 +18,9 @@ const fallbackFillSlots = 64
 // slot, and fallbackFillBudgetBytes the block data waiting in the queues of
 // every placed store of a Provider, so a restart in which many Spaces miss
 // their local stores at once queues no more than one would. A restart's
-// readers ask the old owner for a burst of blocks the local store lacks; a
-// block whose fill is dropped is asked of it again at its next read, and at
-// every start after.
+// readers ask the old owner for a burst of blocks the local store lacks. A
+// block whose fill is dropped is asked of the old owner again at its next
+// read, and at every start after.
 const (
 	fallbackFillQueueBlocks = 16384
 	fallbackFillBudgetBytes = 128 << 20
@@ -51,10 +51,10 @@ func (b *fillBudget) give(n int) {
 	b.queued.Add(-int64(n))
 }
 
-// readChains builds the read paths of a placed store: reads serve the blocks of
-// the local store, then the backend's packs, then cold packs, SQL, and peers
-// when those sources are available. Copies use the same lower tiers without
-// filling the local store.
+// readChains builds the read paths of a placed store: reads serve the blocks
+// of the local store, then the backend's packs, then cold packs, SQL, and
+// peers when those sources are available. Copies use the same lower tiers
+// without filling the local store.
 //
 // Each source fills the local store with its own function. A block read from
 // the backend refills the disk without a marker, as the backend holds it. A
@@ -65,12 +65,12 @@ func (b *fillBudget) give(n int) {
 // With a fill cache, reads ask it first, before the local store, and the
 // backend's reads go through it: a block read from the packs is copied into
 // the cache instead of the local store, and the next read finds it in the
-// cache without reading the Volume. The cache holds only copies of blocks the packs hold,
-// so nothing but a read of the packs fills it: not the fallback, which keeps
-// the marker path above, and not peers, which fill the local store as before.
-// The copy path never reads the cache.
+// cache without reading the Volume. The cache holds only copies of blocks the
+// packs hold, so nothing but a read of the packs fills it: not the fallback,
+// which keeps the marker path above, and not peers, which fill the local store
+// as before. The copy path never reads the cache.
 //
-// Copies read the linked files after every Volume tier and before peers; see
+// Copies read the linked files after every Volume tier and before peers. See
 // linkedThen. Reads find them in recorded, which serves them as local hits.
 //
 // With no fallback, reads and copies are the local store over the backend and
@@ -169,9 +169,9 @@ func peerReadsWithFill(local, peers block_store.StoreSource, fill block_store.Fi
 }
 
 // linkedThen returns the linked files over peers, for a copy that read every
-// Volume tier first: a block the files' copy tier serves reads as Linked, which a copy within
-// this Volume counts as present and a copy to another store writes. Without
-// linked files it returns peers.
+// Volume tier first: a block the files' copy tier serves reads as Linked. A
+// copy within this Volume counts that block as present and a copy to another
+// store writes that block. Without linked files linkedThen returns peers.
 func (p *placementState) linkedThen(peers block_store.StoreSource) block_store.StoreSource {
 	if p.fileSegments == nil {
 		return peers
@@ -183,10 +183,10 @@ func (p *placementState) linkedThen(peers block_store.StoreSource) block_store.S
 
 // withLinkedFiles returns local over the linked files, which fill nothing: a
 // linked file's block is served from the file, its only copy. A peer's serve
-// reads use it, so a member reads the owner's linked files; a copy reads the
-// files only after every Volume tier, see linkedThen. The files are read
-// through their copy tier, so a block they serve reads as Linked and the DEX
-// can answer a peer that asked for it linked, with no data.
+// reads use withLinkedFiles, so a member reads the owner's linked files. A
+// copy reads the files only after every Volume tier, see linkedThen. The files
+// are read through their copy tier, so a block they serve reads as Linked and
+// the DEX can answer a peer that asked for it linked, with no data.
 func (p *placementState) withLinkedFiles(local block.StoreOps) block.StoreOps {
 	if p.fileSegments == nil {
 		return local
@@ -241,7 +241,7 @@ func (p *placementState) withColdPacks(primary block.StoreOps) block.StoreOps {
 
 // packReads builds the reads of the local store over the backend. With a fill
 // cache, a backend hit is copied into the cache and not the local store, and
-// the cache is read first; see cacheFirst. Without one, a backend hit fills the
+// the cache is read first. See cacheFirst. Without one, a backend hit fills the
 // local store.
 func (p *placementState) packReads(recorded block.StoreOps, remote block_store.StoreSource) block.StoreOps {
 	// Read the front store, when registered, after the local store and before
@@ -270,10 +270,11 @@ func (p *placementState) cacheReads(remote block_store.StoreSource) block_store.
 
 // cacheFirst returns reads behind the fill cache's view, or reads alone
 // without a cache. The view holds only copies of blocks the packs hold, so
-// serving one before the local store serves the same bytes; a hit skips the
-// Volume's read and leaves no read record, which only lets local eviction drop
-// a copy the cache holds. The view is the cache's only read: cacheReads reads
-// the backend alone and fills the cache, so each read looks a block up once.
+// serving one before the local store serves the same bytes. A hit skips the
+// Volume's read and leaves no read record. That omission only lets local
+// eviction drop a copy the cache holds. The view is the cache's only read:
+// cacheReads reads the backend alone and fills the cache, so each read looks a
+// block up once.
 func (p *placementState) cacheFirst(reads block.StoreOps) block.StoreOps {
 	if p.cache == nil {
 		return reads
@@ -331,10 +332,11 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 //
 // A block the backend holds is the backend's, whichever source served it, as
 // when a backend read failed and the fallback answered, or a pack read missed
-// a block its row names. It fills as a backend hit does, without a marker, so
-// a block the backend holds never queues to upload again. Such a fill queues
-// for eviction, so backendPlaces must prove the block durable, not take a
-// bare index row's word; eviction checks the same proof before it drops it.
+// a block its row references. It fills as a backend hit does, without a
+// marker, so a block the backend holds never queues to upload again. Such a
+// fill queues for eviction, so backendPlaces must prove the block durable, not
+// take a bare index row's word. Eviction checks the same proof before dropping
+// the block.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
@@ -365,10 +367,10 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 // alone, with the proof eviction trusts to drop a last copy, so a fill while
 // the bucket fails still needs no upload. Any other backend must have its
 // local pack index place the block and its existence check, which probes the
-// packs' own indexes, confirm it: a bare row can name a pack that lacks the
-// block or one gone from the bucket, and a fill on the row's word alone would
-// queue for eviction a copy that may be the only one. A backend without an
-// index, one that reclaims blocks, a backend the placement left, an
+// packs' own indexes, confirm it: a bare row can reference a pack that lacks
+// the block or one gone from the bucket, and a fill on the row's word alone
+// would queue for eviction a copy that may be the only one. A backend without
+// an index, one that reclaims blocks, a backend the placement left, an
 // unconfirmed block, or a failed lookup reports false, so the block keeps its
 // marker: a block uploaded twice is only stored twice.
 func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef) bool {
@@ -490,7 +492,7 @@ func (f *fallbackFills) recordFailedFill() {
 }
 
 // start queues fill to run in the background, and starts a worker when a
-// slot is free; the workers run the queue in order, so a burst of fills waits
+// slot is free. The workers run the queue in order, so a burst of fills waits
 // for a slot rather than being dropped. A block already queued or filling is
 // not queued again, unless the new fill asserts refs the queued one does not:
 // it then replaces a waiting fill, or queues after a running one, since the
@@ -573,8 +575,8 @@ func (f *fallbackFills) drain() {
 		f.budget.give(len(job.stored.Data))
 		f.mtx.Unlock()
 
-		// Fill it, unless the mount ended; a dropped or failed fill leaves
-		// the block to its next read.
+		// Fill the block, unless the mount ended. A dropped or failed
+		// fill leaves the block to its next read.
 		ended := f.ctx.Err() != nil
 		var err error
 		if !ended {
@@ -750,7 +752,7 @@ func settleFallback(primaryErr error, stored *block.StoredBlock, err error) (*bl
 }
 
 // fallbackHit reads ref from the fallback and fills a hit, as a read racing a
-// paused backend asks it; see pausedReads. It returns nil on a miss.
+// paused backend asks the fallback. See pausedReads. It returns nil on a miss.
 func (r *fallbackReads) fallbackHit(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	return r.readHit(ctx, ref, true)
 }
@@ -844,7 +846,7 @@ func (r *fallbackReads) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 // GetBlockExistsBatch checks the sources for every ref, then asks the fallback
 // about the refs they did not confirm. While the backend is paused the
 // fallback is asked about every ref beside the sources and answers when it
-// confirms them all; a partial answer keeps the refs it confirmed, the
+// confirms them all. A partial answer keeps the refs it confirmed, the
 // sources answer the rest, and the fallback is not asked again.
 func (r *fallbackReads) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Check the sources, racing the fallback in a pause, and treat a failure
@@ -864,8 +866,8 @@ func (r *fallbackReads) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 		copy(out, res.v)
 	}
 
-	// Keep what the race's fallback answer confirmed; it answered for the
-	// fallback about every ref.
+	// Keep what the race's fallback answer confirmed. That answer covers
+	// every ref for the fallback.
 	if len(res.missed) != 0 && res.missed[0].err == nil {
 		for i, ok := range res.missed[0].v {
 			if i < len(out) {

@@ -66,8 +66,8 @@ func TestMain(m *testing.M) {
 }
 
 // runSharedDaemonFixture runs production serve with a durable StateAtom root.
-// Distribution mode uses the ordinary LoadPlugin Resource forwarding boundary;
-// the fixture core implementation is in-process to avoid building UI artifacts.
+// Distribution mode uses the ordinary LoadPlugin Resource forwarding boundary.
+// The fixture core implementation is in-process to avoid building UI artifacts.
 func runSharedDaemonFixture() error {
 	// Retain the same signal and bus release boundary as a native executable.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)

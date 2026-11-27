@@ -65,9 +65,9 @@ func NewCompiler(le *logrus.Entry, b bus.Bus, source *unixfs.FSHandle, dependenc
 	return &Compiler{le: le, bus: b, source: source, dependencies: dependencies, config: config}, nil
 }
 
-// NewRepositoryCompiler is the deferred compiler boundary for validated projects.
-// Each module becomes an asset; the host's Bldr entrypoint starts backend modules
-// and configures frontend views with the existing lifecycle.
+// NewRepositoryCompiler is the deferred compiler boundary for validated
+// projects. Each module becomes an asset. The host's Bldr entrypoint starts
+// backend modules and configures frontend views with the existing lifecycle.
 func NewRepositoryCompiler(ctx context.Context, le *logrus.Entry, b bus.Bus, source *unixfs.FSHandle, dependencies kvtx.TxOps, plugin *js.Config, maxExpandedSize int64) (builder.Controller, error) {
 	// Preserve the module order so entrypoint configuration and output paths agree.
 	conf := &Config{
@@ -270,7 +270,7 @@ func (c *Compiler) GetControllerInfo() *controller.Info {
 	return controller.NewInfo("bldr/plugin/compiler/esbuild", controller.MustParseVersion("0.0.1"), "block-backed JavaScript plugin compiler")
 }
 
-// Execute has no background work; BuildManifest controls compilation lifetime.
+// Execute has no background work. BuildManifest controls compilation lifetime.
 func (c *Compiler) Execute(ctx context.Context) error { return nil }
 
 // Close has no retained compiler resources to release.
@@ -332,7 +332,8 @@ func (c *Compiler) repositoryEntrypoint(assets billy.Filesystem) (string, error)
 	return `import {createPluginEntrypoint} from "@aptre/bldr/plugin-entrypoint"; export default createPluginEntrypoint(` + string(data) + ");", nil
 }
 
-// HandleDirective resolves no directives; the build system invokes BuildManifest.
+// HandleDirective resolves no directives. The build system invokes
+// BuildManifest.
 func (c *Compiler) HandleDirective(ctx context.Context, instance directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil
 }

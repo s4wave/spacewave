@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// WorldState names the job's state for object browsers, and a complete
+// WorldState returns the job's state for object browsers, and a complete
 // job's outcome.
 func (e *Job) WorldState() string {
 	switch s := e.GetJobState(); s {

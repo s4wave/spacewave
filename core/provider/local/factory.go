@@ -16,7 +16,7 @@ import (
 
 // Factory constructs the local provider.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 	// transportOptions configure each Session's independently owned transports.
 	transportOptions []transport.SessionTransportOption

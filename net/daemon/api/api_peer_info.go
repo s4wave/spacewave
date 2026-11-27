@@ -11,7 +11,7 @@ import (
 	peer_api "github.com/s4wave/spacewave/net/peer/api"
 )
 
-// GetPeerInfo returns the peer information
+// GetPeerInfo returns the peer information.
 func (a *API) GetPeerInfo(
 	ctx context.Context,
 	req *peer_api.GetPeerInfoRequest,

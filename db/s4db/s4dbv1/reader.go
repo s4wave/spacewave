@@ -31,7 +31,7 @@ type Reader struct {
 
 // Open opens the previous-format database at path read-only: the file is
 // opened only for reading and holds a shared lock on the engine's writer byte
-// until Close. Readers share the file; a process of the previous engine
+// until Close. Readers share the file. A process of the previous engine
 // cannot commit to it and an in-place conversion cannot replace it meanwhile.
 // It fails with ErrInUse when a writer or a conversion holds the file or
 // this process has it open, with ErrUnsupported when the file is not in the
@@ -44,7 +44,7 @@ func Open(path string) (*Reader, error) {
 // conversion, which replaces the file. It holds the engine's writer lock and
 // one reader slot until Close, so it fails with ErrInUse when any other
 // handle has the file open, readers included. Its descriptor is writable only
-// because a write lock needs one; the Reader still only reads.
+// because a write lock needs one. The Reader still only reads.
 func OpenExclusive(path string) (*Reader, error) {
 	return open(path, openSource, lockExclusive)
 }
@@ -168,8 +168,8 @@ func (r *Reader) overlay() (*btree.BTreeG[oentry], error) {
 
 // Get returns the value of key and whether the file holds it: the log after
 // the checkpoint decides when it changed the key, else the checkpointed
-// tree. The first Get or Stream replays that log; after it each Get reads
-// one page per tree level and the value's extent.
+// tree. The first Get or Stream replays that log. After that replay each Get
+// reads one page per tree level and the value's extent.
 func (r *Reader) Get(key []byte) ([]byte, bool, error) {
 	// Look in the log, then descend the tree.
 	ov, err := r.overlay()
@@ -210,7 +210,7 @@ func (r *Reader) Stream(ctx context.Context, fn func(key, value []byte) error) e
 	tw := newTreeWalk(r.r, r.sb.root)
 	tk, tv, tok := tw.next()
 
-	// Emit the smaller key of the two streams; at a tie the log wins.
+	// Emit the smaller key of the two streams. At a tie the log wins.
 	for n := 0; tok || ook; n++ {
 		if n%1024 == 0 && ctx.Err() != nil {
 			return ctx.Err()

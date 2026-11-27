@@ -24,7 +24,7 @@ func (c *Config) GetConfigID() string {
 	return ConfigID
 }
 
-// EqualsConfig checks if the config is equal to another.
+// EqualsConfig checks if the config is equal to another config.
 func (c *Config) EqualsConfig(other config.Config) bool {
 	ot, ok := other.(*Config)
 	if !ok {

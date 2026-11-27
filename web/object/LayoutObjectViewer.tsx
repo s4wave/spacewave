@@ -107,7 +107,7 @@ function useObjectLayoutController({
   worldState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  // Create namespace for persisting local state
+  // Create a namespace for persisting local state
   const namespace = useStateNamespace(['layout', objectKey])
 
   // Persist local layout state (selected tabs, active tabset, maximized tab)

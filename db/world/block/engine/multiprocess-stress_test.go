@@ -38,7 +38,8 @@ const (
 	multiProcessStressReadersEnv = "SPACEWAVE_WORLD_ENGINE_STRESS_READERS"
 
 	multiProcessStressObjectStoreID = "multi-process-world-head"
-	// multiProcessStressEngineID names the one World every process opens.
+	// multiProcessStressEngineID identifies the one World every process
+	// opens.
 	multiProcessStressEngineID = "stress"
 	multiProcessStressBucketID = "test-bucket"
 
@@ -209,8 +210,8 @@ func objectStoreCASCommand(t *testing.T, path, role string, id, iterations int) 
 	// Attribute ObjectStore CAS command failures to the calling test.
 	t.Helper()
 
-	// Re-exec the current test binary with a fixed selector; role data is passed
-	// through test-owned environment variables.
+	// Re-exec the current test binary with a fixed selector. Role data is
+	// passed through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
 		"-test.run=^TestObjectStoreMultiProcessCoordinationCAS$",
@@ -232,8 +233,8 @@ func worldEngineStressCommand(t *testing.T, path, role string, id, iterations in
 	// Attribute World stress command failures to the calling test.
 	t.Helper()
 
-	// Re-exec the current test binary with a fixed selector; role data is passed
-	// through test-owned environment variables.
+	// Re-exec the current test binary with a fixed selector. Role data is
+	// passed through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
 		"-test.run=^TestWorldEngineMultiProcessStress$",

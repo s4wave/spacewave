@@ -49,7 +49,7 @@ func (n *nodeReport) capability(applier *configApplier, waits *[]<-chan struct{}
 }
 
 // state folds the node's entries into one state. Any failed entry rejects the
-// node; the node is active once every entry's controller runs, or shows the
+// node. The node is active once every entry's controller runs, or shows the
 // status its running controllers show, a rejection first. It appends to waits
 // the change channel of each status read.
 func (n *nodeReport) state(applier *configApplier, waits *[]<-chan struct{}) (s4wave_device.DeviceCapabilityState, string) {

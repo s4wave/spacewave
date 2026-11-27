@@ -201,7 +201,7 @@ func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
 	}
 	waitRequested("unlisted-plugin")
 
-	// Release the demand and assert the requested IDs empty again.
+	// Release the demand and assert the requested IDs are empty again.
 	ref.Release()
 	waitRequested()
 }

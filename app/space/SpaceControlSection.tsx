@@ -28,7 +28,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 // SpaceControlSection shows who controls the Space, the owner or the group,
 // and the changes waiting for the group to agree. An owner hands control to
-// the group; under group control each voter asks for changes and agrees to
+// the group. Under group control each voter asks for changes and agrees to
 // the changes others asked for.
 export function SpaceControlSection() {
   const { spaceSharingState } = SpaceContainerContext.useContext()

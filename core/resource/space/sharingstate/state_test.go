@@ -248,7 +248,7 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 		t.Fatalf("revision snapshot = (%q, %d), want (config-2, 2)", second.ConfigChainHash, second.ConfigChainSeqno)
 	}
 
-	// Keep the loop alive long enough to observe the duplicate wakeup; a
+	// Keep the loop alive long enough to observe the duplicate wakeup. A
 	// third emission would violate suppression of equal source snapshots.
 	state.SetSOState(makeState("config-2", 2), nil)
 	select {
@@ -267,15 +267,16 @@ func TestWatchStateConfigRevisionEmitsAndDeduplicates(t *testing.T) {
 	}
 }
 
-// TestWatchStateOmitsDepartingPeers checks that a viewer whose leave the head
-// ownership transfer carries sees itself departed while the configuration
-// still lists it as owner.
+// TestWatchStateOmitsDepartingPeers checks that a viewer sees itself departed
+// while the head ownership transfer carries the viewer's leave and the
+// configuration still lists the viewer as owner.
 func TestWatchStateOmitsDepartingPeers(t *testing.T) {
 	// Bound the watch by the test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	// The viewer is an owner whose leave the head transfer carries.
+	// The viewer is an owner, and the head transfer carries the
+	// viewer's leave.
 	state := NewState(&sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{
@@ -425,7 +426,8 @@ func (w *gatedWatchable) WaitValueChange(
 	}
 }
 
-// awaitSignal receives from ch, failing the test by name if it never arrives.
+// awaitSignal receives from ch, failing the test by name if the signal never
+// arrives.
 //
 // Each caller's signal is produced by this test's own causation and lands in
 // microseconds, so the deadline is not a schedule assertion: it exists so an

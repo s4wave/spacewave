@@ -8,7 +8,7 @@ import type { RouteInfo, ViewMode } from './layout/route.js'
 
 // useGitNavigation encapsulates the shared toolbar navigation callbacks
 // for git viewers: back, forward, up, ref select, mode change, path change,
-// and file open. Parameterized by route state, effectiveRef, and an optional
+// and file open. The hook takes route state, effectiveRef, and an optional
 // workdir path for dual-mode worktree browsing.
 export function useGitNavigation(opts: {
   route: RouteInfo

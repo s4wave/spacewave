@@ -96,7 +96,7 @@ function useObjectState(
   )
 }
 
-// idleWorld opens no watch, for a source that names no World object.
+// idleWorld opens no watch, for a source that references no World object.
 const idleWorld: Resource<IWorldState> = resourceOf({
   value: null,
   loading: false,
@@ -114,7 +114,8 @@ interface UseObjectViewerSetupOptions {
 // Every object key is watched, whatever viewer shows it: the watch is the one
 // source of whether the object exists, its type and its failure, so every
 // viewer of a World object can tell missing from failed. With no key there
-// is no World object: nothing is watched and the type is the hint, or empty.
+// is no World object: nothing is watched and the type is the hint, or an
+// empty string.
 export function useObjectViewerSetup(
   worldState: Resource<IWorldState>,
   objectKey: string | undefined,

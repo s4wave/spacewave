@@ -22,13 +22,13 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller fetches plugins via the PluginFetch service on a loaded plugin.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// handler is the srpc fetch service handler
+	// handler is the srpc fetch service handler.
 	handler srpc.Handler
 }
 
@@ -91,7 +91,7 @@ func (c *Controller) HandleDirective(
 
 // InvokeMethod invokes the method matching the service & method ID.
 // Returns false, nil if not found.
-// If service string is empty, ignore it.
+// If the service string is empty, ignore the service string.
 func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	if serviceID != "" && serviceID != c.GetServiceID() {
 		return false, nil
@@ -135,7 +135,7 @@ func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

@@ -78,7 +78,7 @@ const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
 /**
  * ApplicationTransaction validates collections and stages receipts in a supplied
  * World snapshot or writer. The caller owns that WorldState and its acceptance.
- * Flush publishes KV roots into the supplied state; release frees only the KV
+ * Flush publishes KV roots into the supplied state. release frees only the KV
  * Resources this instance acquired. Neither method commits or releases the World.
  */
 export class ApplicationTransaction<S extends Schema, P extends Principal> {
@@ -202,7 +202,7 @@ export class ApplicationTransaction<S extends Schema, P extends Principal> {
               )
             }
 
-            // Stage the record; only the caller can accept the World transaction.
+            // Stage the record. Only the caller can accept the World transaction.
             this.trackWrite(bytes.length + encoded.length)
             await store.set(bytes, encoded, signal)
           },

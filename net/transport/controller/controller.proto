@@ -5,7 +5,7 @@ package transport.controller;
 // Prefixed by a uint32 length.
 // Max size: 100kb
 message StreamEstablish {
-  // ProtocolID is the protocol identifier string for the stream.
+  // ProtocolId is the protocol identifier string for the stream.
   string protocol_id = 1;
   // Unreliable marks a stream opened with OpenOpts.Unreliable. The stream
   // carries the establishment and becomes the message stream's control.

@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// holdOpenDur is the default hold open duration
+// holdOpenDur is the default hold open duration.
 var holdOpenDur = time.Second * 10
 
 // EstablishLinkWithPeer is a directive to establish a link with a peer.
@@ -102,5 +102,5 @@ func (d *establishLinkWithPeer) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ EstablishLinkWithPeer = (*establishLinkWithPeer)(nil)

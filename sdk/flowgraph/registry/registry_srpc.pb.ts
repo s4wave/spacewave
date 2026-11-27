@@ -140,7 +140,7 @@ export const NodeTypeResourceServiceDefinition = {
     },
     /**
      * ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-     * names the port protocol used as LookupRpcService's server ID.
+     * selects the port protocol used as LookupRpcService's server ID.
      *
      * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ServeRpc
      */
@@ -182,7 +182,7 @@ export interface NodeTypeResourceService {
 
   /**
    * ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-   * names the port protocol used as LookupRpcService's server ID.
+   * selects the port protocol used as LookupRpcService's server ID.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ServeRpc
    */
@@ -223,7 +223,7 @@ export interface NodeTypeResourceServiceHandler {
 
   /**
    * ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-   * names the port protocol used as LookupRpcService's server ID.
+   * selects the port protocol used as LookupRpcService's server ID.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ServeRpc
    */
@@ -288,7 +288,7 @@ export class NodeTypeResourceServiceClient implements NodeTypeResourceService {
 
   /**
    * ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-   * names the port protocol used as LookupRpcService's server ID.
+   * selects the port protocol used as LookupRpcService's server ID.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ServeRpc
    */

@@ -10,7 +10,8 @@ import (
 
 // FSCursor attaches a cursor to a UnixFS access function.
 //
-// When the cursor is resolved with GetProxyCursor we call and wait for the access func.
+// When the cursor is resolved with GetProxyCursor, the getter calls and waits
+// for the access func.
 type FSCursor = unixfs.FSCursorGetter
 
 // NewFSCursor constructs a new FSCursor with a world object ref.

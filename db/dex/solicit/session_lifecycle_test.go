@@ -1030,7 +1030,7 @@ func TestPickSessionPrefersFastest(t *testing.T) {
 		t.Fatalf("picks: fast %d slow %d fresh %d closed %d", picks[fast], picks[slow], picks[fresh], picks[closed])
 	}
 
-	// A lone open session takes every pick, and none open picks nil.
+	// A lone open session takes every pick, and no open sessions yield nil.
 	for range probeEvery * 2 {
 		if got := c.pickSession([]*peerSession{closed, slow}); got != slow {
 			t.Fatal("a lone open session was not picked")

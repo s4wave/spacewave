@@ -16,7 +16,8 @@ import (
 
 // TransferSource provides read access to a provider account for transfer.
 type TransferSource interface {
-	// GetOrigin returns the origin naming the source account, with no head.
+	// GetOrigin returns the origin identifying the source account, with no
+	// head.
 	GetOrigin() *TransferOrigin
 	// LeavesSharedObjects reports whether deleting a shared Space from the
 	// source removes only this account from it, leaving its other members
@@ -34,7 +35,8 @@ type TransferSource interface {
 }
 
 // CleanupSource handles post-merge cleanup of the source account.
-// This is separate from TransferSource to keep the read interface minimal.
+// CleanupSource is separate from TransferSource to keep the read interface
+// minimal.
 type CleanupSource interface {
 	// DeleteSharedObject deletes a shared object from the source account.
 	DeleteSharedObject(ctx context.Context, soID string) error

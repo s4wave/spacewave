@@ -9,7 +9,8 @@ import (
 
 // SyncXattrs applies extended attributes from the source UnixFS tree
 // to the files on disk at outPath. Call after Sync to preserve xattrs.
-// This is a separate pass because billy.Filesystem does not support xattrs.
+// SyncXattrs is a separate pass because billy.Filesystem does not support
+// xattrs.
 func SyncXattrs(
 	ctx context.Context,
 	outPath string,
@@ -47,7 +48,7 @@ func syncXattrsRecursive(
 		}
 	}
 
-	// If directory, recurse into children.
+	// If the node is a directory, recurse into its children.
 	fi, err := handle.GetFileInfo(ctx)
 	if err != nil {
 		return err

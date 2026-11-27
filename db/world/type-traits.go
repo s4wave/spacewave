@@ -5,8 +5,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// TitledBlock is an object body that names its object for listings. A type
-// whose body implements it shows that title in object browsers; a type
+// TitledBlock is an object body that provides its object's title for listings.
+// A type whose body implements it shows that title in object browsers. A type
 // without it shows the object key.
 type TitledBlock interface {
 	block.Block
@@ -14,9 +14,9 @@ type TitledBlock interface {
 	WorldTitle() string
 }
 
-// StatefulBlock is an object body that names its object's state for
+// StatefulBlock is an object body that declares its object's state for
 // listings, such as running, passed or failed. Object browsers show it beside
-// the title; a type without it shows no state.
+// the title. A type without it shows no state.
 type StatefulBlock interface {
 	block.Block
 	// WorldState returns the object's state in lower case, or empty for none.
@@ -43,7 +43,8 @@ type InternalBlock interface {
 type Measure struct {
 	// Name identifies the quantity across objects, such as "cost" or "tokens".
 	Name string
-	// Unit is how the sum reads, such as "usd"; empty counts the named things.
+	// Unit is how the sum reads, such as "usd". Empty counts the named
+	// things.
 	Unit string
 	// Value is the object's amount.
 	Value float64

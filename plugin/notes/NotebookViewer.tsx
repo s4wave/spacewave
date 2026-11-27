@@ -305,7 +305,7 @@ function SourceEditDialogs({
   )
 }
 
-// sourceLabel names a source in a sentence the way the sidebar shows it.
+// sourceLabel labels a source in a sentence the way the sidebar shows it.
 function sourceLabel(target: RemoveTarget | null): string {
   if (!target) return 'this source'
   return `“${target.source.name || `Source ${target.index + 1}`}”`

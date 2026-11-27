@@ -33,7 +33,7 @@ func IsReadOnly(state *api.AccountStateResponse) bool {
 
 // CloudMutationAllowed returns true when cached billing and lifecycle state
 // permit owner-side cloud mutations and owner-only reads. Unknown cached state
-// does not block; only known non-write-allowed snapshots short-circuit.
+// does not block. Only known non-write-allowed snapshots short-circuit.
 func CloudMutationAllowed(state *api.AccountStateResponse) bool {
 	if state == nil {
 		return true

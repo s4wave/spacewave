@@ -22,7 +22,7 @@ const (
 	// chunkManifest holds part of a manifest.
 	chunkManifest = 4
 	// chunkReserved was reserved by a background job and awaits its
-	// record; owner is the reserving slot.
+	// record. owner is the reserving slot.
 	chunkReserved = 5
 	// chunkPending was freed and waits until no slot pins a state that
 	// reads it and recovery can no longer read it.
@@ -54,23 +54,24 @@ type chunkEntry struct {
 // chunkKinds is the number of chunk kinds.
 const chunkKinds = chunkPending + 1
 
-// chunkPageLen is the entries in one page of a chunk table, 3 KiB of them.
+// chunkPageLen is the number of entries in one page of a chunk table, 3 KiB
+// of them.
 const chunkPageLen = 128
 
-// chunkDirLen is the pages in one directory of a chunk table, which covers
-// chunkDirSpan chunks, 16 GiB of file.
+// chunkDirLen is the number of pages in one directory of a chunk table, which
+// covers chunkDirSpan chunks, 16 GiB of file.
 const chunkDirLen = 128
 
-// chunkDirSpan is the chunks one directory covers.
+// chunkDirSpan is the number of chunks one directory covers.
 const chunkDirSpan = chunkPageLen * chunkDirLen
 
-// chunkTable tracks every chunk of the file. The writer owns it; a published
+// chunkTable tracks every chunk of the file. The writer owns it. A published
 // state holds an immutable copy.
 //
 // The entries sit in fixed pages under fixed directories that clones share:
 // a clone copies one pointer per directory, and a write copies only the
 // directory and page it changes, 4 KiB, never the whole table. A directory or
-// page belongs to the table whose gen it carries; a write to any other copies
+// page belongs to the table whose gen it carries. A write to any other copies
 // it first. A table is written only before it is published, so after clone
 // the source never changes.
 //
@@ -78,8 +79,8 @@ const chunkDirSpan = chunkPageLen * chunkDirLen
 // makes on every wake, such as the cleaner's slack and whether any chunk is
 // free or pending, read counters rather than the table.
 type chunkTable struct {
-	// dirs holds the pages, chunkDirLen to a directory; entries at or past n
-	// are free.
+	// dirs holds the pages, chunkDirLen to a directory. Entries at or past
+	// n are free.
 	dirs []*chunkDir
 	// n is the number of entries.
 	n uint64
@@ -172,7 +173,7 @@ func (t *chunkTable) tally(e chunkEntry, sign int64) {
 // and copying its directory and page when a clone shares them. The caller
 // removes the entry from the tally before changing it and adds it after.
 func (t *chunkTable) at(c uint64) *chunkEntry {
-	// Extend the table to c; the entries it adds are free.
+	// Extend the table to c. The entries it adds are free.
 	for uint64(len(t.dirs)) <= c/chunkDirSpan {
 		t.dirs = append(t.dirs, &chunkDir{gen: t.gen})
 	}
@@ -263,7 +264,7 @@ func (t *chunkTable) trimEnd(n uint64) uint64 {
 // table when none exists, and marks them kind with owner.
 func (t *chunkTable) alloc(n uint64, kind uint8, owner uint64) uint64 {
 	// Find the lowest free run of n chunks from the free hint, which moves
-	// up to the first free chunk the search meets; a table with no free
+	// up to the first free chunk the search meets. A table with no free
 	// chunk extends at once, and a free run at the end extends past it.
 	start, free := uint64(0), uint64(0)
 	first := t.end()
@@ -295,7 +296,7 @@ func (t *chunkTable) alloc(n uint64, kind uint8, owner uint64) uint64 {
 
 // useValue records n value bytes written at off by commit seq.
 func (t *chunkTable) useValue(off uint64, n uint32, seq uint64) {
-	// A value may span chunks; every chunk it touches is a value chunk.
+	// A value may span chunks. Every chunk it touches is a value chunk.
 	for c, end := chunkOf(off), chunkOf(off+uint64(n)-1); c <= end; c++ {
 		e := t.at(c)
 		t.tally(*e, -1)
@@ -309,7 +310,7 @@ func (t *chunkTable) useValue(off uint64, n uint32, seq uint64) {
 }
 
 // appendValue moves value chunk c's cursor past n bytes and returns the
-// offset of the first.
+// offset of the first byte.
 func (t *chunkTable) appendValue(c uint64, n uint32) uint64 {
 	// Advance the cursor, keeping the tally.
 	e := t.at(c)

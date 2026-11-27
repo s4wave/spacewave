@@ -7,7 +7,7 @@ import (
 )
 
 // nonceBlake3Context is the blake3 nonce constant.
-// don't change this
+// don't change nonceBlake3Context.
 const nonceBlake3Context = "aperturerobotics/hydra 2022-01-01 blockenc nonce v1."
 
 // DeriveNonceBlake3 derives a nonce using blake3 key derivation.

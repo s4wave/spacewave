@@ -913,8 +913,8 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiti
 // covers through the last head the watch handed out, so the next call starts
 // there with no unknown change although the skipped commits outnumber the
 // recorded heads. A member committed while the subscriber idles in the slot,
-// after the covered seqno and before the next call names it, arrives in that
-// call exactly once.
+// after the covered seqno and before the next call references it, arrives in
+// that call exactly once.
 func TestWatchIndexedChangesCovered(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -975,8 +975,8 @@ func TestWatchIndexedChangesCovered(t *testing.T) {
 	old := headSeqno(t, ctx, e)
 	expect(reports, old, "covered/old")
 
-	// Commit past the recorded heads without naming the old key, and wait
-	// until the watch handed out the last head.
+	// Commit past the recorded heads without referencing the old key, and
+	// wait until the watch handed out the last head.
 	for i := range changeWatchHeads + 2 {
 		createWatchTestObject(t, ctx, ws, "covered/skip-"+strconv.Itoa(i))
 	}
@@ -993,8 +993,9 @@ func TestWatchIndexedChangesCovered(t *testing.T) {
 		t.Fatalf("covered %d, want the head %d past the last report %d", covered, head, old)
 	}
 
-	// The member commits while the subscriber idles; the next call from the
-	// covered head names it and receives its commit once, then the next.
+	// The member commits while the subscriber idles. The next call from the
+	// covered head references the member and receives its commit once, then
+	// the next commit.
 	createWatchTestObject(t, ctx, ws, "covered/member")
 	member := headSeqno(t, ctx, e)
 	reports, stop = call(head, "covered/old", "covered/member")

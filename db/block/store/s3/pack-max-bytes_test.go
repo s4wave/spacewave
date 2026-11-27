@@ -11,7 +11,8 @@ import (
 
 // TestPackStoreMaxPackBytes checks a store with a raised ceiling: its batches
 // hold half the ceiling, it writes one packfile past the 63 MiB default, and
-// the blocks read back, while a store at the default refuses the same batch.
+// the blocks read back, while a store at the default ceiling refuses the same
+// batch.
 func TestPackStoreMaxPackBytes(t *testing.T) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
@@ -44,7 +45,8 @@ func TestPackStoreMaxPackBytes(t *testing.T) {
 		t.Fatal("default store wrote a packfile past its ceiling")
 	}
 
-	// The raised store writes one packfile past the default and reads it back.
+	// The raised store writes one packfile past the default ceiling and
+	// reads it back.
 	if _, err := big.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}

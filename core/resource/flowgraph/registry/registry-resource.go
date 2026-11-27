@@ -19,8 +19,8 @@ import (
 type RegistryResource struct {
 	// generations owns visibility of prepared plugin registrations.
 	generations *registration.Registry
-	// bcast is the generations' lock; it guards registrations and wakes node
-	// type lookups.
+	// bcast is the generations' lock. The lock guards registrations and
+	// wakes node type lookups.
 	bcast *broadcast.Broadcast
 	// nextID is the next registration ID, under bcast.
 	nextID uint32

@@ -19,9 +19,9 @@ const ControllerID = "bifrost/peer"
 // It implements peer.Peer as a controller.
 // It implements a "localhost" loopback transport for the peer.
 type Controller struct {
-	// Peer is the underlying peer
+	// Peer is the underlying peer.
 	peer.Peer
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
 }
 
@@ -69,7 +69,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// resolveGetPeer resolves the GetPeer directive
+// resolveGetPeer resolves the GetPeer directive.
 func (c *Controller) resolveGetPeer(d peer.GetPeer) []directive.Resolver {
 	res := peer.NewGetPeerResolver(d, c)
 	if res == nil {

@@ -15,8 +15,9 @@ import (
 const walkChunk = 512
 
 // OutsideWorld is the set of blocks a named root outside the World's block
-// store reaches: the account's settings and every other store. The volume's block range holds them with the World's blocks, so
-// Pack leaves them alone and Switch keeps their values.
+// store reaches: the account's settings and every other store. The volume's
+// block range holds them with the World's blocks, so Pack leaves them alone and
+// Switch keeps their values.
 //
 // The set errs toward keeping: a block that both the World and another root
 // reach is in it, and a block no root reaches is not.
@@ -104,11 +105,10 @@ func expandBlocks(ctx context.Context, tx kvtx.Tx, keys *store_kvkey.KVKey, refs
 }
 
 // FindOutsideWorld walks src from every named root outside the bucket
-// worldStoreID through child lists, and returns the blocks it reaches. The
-// walk reads src in short snapshots, so it runs beside a writer; a block
-// another process commits after the walk passed is missing from the set,
-// which Switch avoids by walking with the source closed by every other
-// process.
+// worldStoreID through child lists, and returns the blocks it reaches. The walk
+// reads src in short snapshots, so it runs beside a writer. A block another
+// process commits after the walk passed is missing from the set. Switch avoids
+// missing such blocks by walking with the source closed by every other process.
 func FindOutsideWorld(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, worldStoreID string) (*OutsideWorld, error) {
 	// Start from the roots outside the World's bucket.
 	w := &outsideWalk{

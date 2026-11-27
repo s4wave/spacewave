@@ -12,7 +12,7 @@ import (
 
 // storeBlockUpdate stores blk at the object key and applies the update
 // operation built from the stored ref. When an object already exists at
-// objKey the block replaces its root; otherwise the block is written to a
+// objKey the block replaces its root. Otherwise the block is written to a
 // fresh root. A stage holds the block until the operation adopts it.
 func storeBlockUpdate[T block.Block](
 	ctx context.Context,

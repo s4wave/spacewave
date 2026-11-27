@@ -2,12 +2,13 @@ import React from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-// InfoCard displays a titled card with an icon and content.
+// InfoCardProps are the props of InfoCard, which displays a titled card with
+// an icon and content.
 export interface InfoCardProps {
   icon?: React.ReactNode
   title?: string
   children: React.ReactNode
-  // Tightens card padding for a narrow container. Off by default.
+  // compact tightens card padding for a narrow container. Off by default.
   compact?: boolean
 }
 

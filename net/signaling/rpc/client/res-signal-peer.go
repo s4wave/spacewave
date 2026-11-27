@@ -63,8 +63,8 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 	var val signaling.SignalPeerValue = NewSessionWithRef(peerRef)
 	vid, accepted := handler.AddValue(val)
 	if !accepted {
-		// We must already have a signaling channel via some other approach.
-		// Drop this one.
+		// A signaling channel must already exist via some other
+		// approach. Drop this one.
 		peerRef.Release()
 		return nil
 	}

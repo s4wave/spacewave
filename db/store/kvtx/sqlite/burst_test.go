@@ -17,7 +17,7 @@ import (
 
 // TestSQLiteReadBurst measures read transactions while thousands run at once
 // on one file, as every client reconnecting after a restart reads. It runs
-// when SPACEWAVE_SQLITE_BURST_DB names the file, filled on first use.
+// when SPACEWAVE_SQLITE_BURST_DB selects the file, filled on first use.
 func TestSQLiteReadBurst(t *testing.T) {
 	path := os.Getenv("SPACEWAVE_SQLITE_BURST_DB")
 	if path == "" {

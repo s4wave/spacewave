@@ -148,7 +148,7 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 }
 
 // TestSecretPayloadAccessUsesSharedObjectGrants checks that only a peer granted
-// on the nested object reads the payload, and only until it is removed.
+// on the nested object reads the payload, and only until the peer is removed.
 func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	// Create a secret in a fresh provider.
 	ctx := t.Context()

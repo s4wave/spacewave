@@ -20,7 +20,7 @@ const ModeTypeMask =
     0x00200000) >>> // ModeCharDevice
   0
 
-// fsCursorNodeType is a static node type value.
+// StaticFSCursorNodeType is a static node type value.
 class StaticFSCursorNodeType implements FSCursorNodeType {
   private isDir: boolean
   private isFile: boolean

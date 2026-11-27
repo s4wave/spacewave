@@ -16,14 +16,14 @@ export function onGoScriptFatal(fail: (err: Error) => void): void {
   })
 }
 
-// RUNTIME_FAULT_ENV names the runtime environment variable that injects a
-// fault for end-to-end tests of the failed state. "goroutine-panic" starts a
-// goroutine that panics once the program has started, which ends the program
-// as a real escaped panic would.
+// RUNTIME_FAULT_ENV holds the name of the runtime environment variable that
+// injects a fault for end-to-end tests of the failed state. "goroutine-panic"
+// starts a goroutine that panics once the program has started. The panic ends
+// the program as a real escaped panic would.
 export const RUNTIME_FAULT_ENV = 'BLDR_RUNTIME_FAULT'
 
-// injectRuntimeFault applies the fault env names, if any. Call it just
-// before main starts; the fault fires after main's first synchronous run.
+// injectRuntimeFault applies the fault specified by env, if any. Call it just
+// before main starts. The fault fires after main's first synchronous run.
 export function injectRuntimeFault(
   env: Record<string, string> | undefined,
 ): void {

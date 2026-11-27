@@ -61,7 +61,7 @@ func (r *ViewerRegistryResource) GetMux() srpc.Invoker {
 }
 
 // normalizeViewerSurface resolves the requested surface to a concrete one.
-// UNKNOWN is rejected; callers must select a concrete surface.
+// UNKNOWN is rejected, so callers must select a concrete surface.
 func normalizeViewerSurface(
 	surface s4wave_viewer_registry.ViewerSurface,
 ) (s4wave_viewer_registry.ViewerSurface, error) {

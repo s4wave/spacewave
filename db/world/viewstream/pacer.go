@@ -14,11 +14,11 @@ import (
 // when the stream's actor wrote since the run it follows.
 type Pacer struct {
 	world.Engine
-	// owners records each actor's writes; nil for a replica's Store.
+	// owners records each actor's writes. Nil for a replica's Store.
 	owners *Writes
 	// actor is the application actor ID the stream acts for, or zero.
 	actor uint64
-	// pokes lets a change through at once when poked; nil for a stream
+	// pokes lets a change through at once when poked. Nil for a stream
 	// without them.
 	pokes *Pokes
 	// interval is the least time between the starts of two runs.
@@ -58,7 +58,7 @@ func (p *Pacer) WatchChanges(ctx context.Context, afterSeqno uint64, touches wor
 }
 
 // WatchIndexedChanges is WatchChanges over the World's indexed change feed,
-// so a change wakes only the views whose reads it names.
+// so a change wakes only the views whose reads the change identifies.
 func (p *Pacer) WatchIndexedChanges(ctx context.Context, afterSeqno uint64, interest *world.ChangeInterest, cb func(uint64, *world.ChangeSet) error) error {
 	p.watched(afterSeqno)
 	return world.WatchInterestedChanges(ctx, p.Engine, afterSeqno, interest, p.paced(ctx, cb))

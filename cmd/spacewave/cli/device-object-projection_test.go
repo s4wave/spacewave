@@ -190,7 +190,7 @@ func requireCommittedDevice(t *testing.T, ctx context.Context, engine world.Engi
 	}
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ world.Engine = (*staleDeviceEngine)(nil)
 	_ world.Engine = (*blockedDeviceEngine)(nil)

@@ -20,7 +20,7 @@ var errPluginCallerDenied = errors.New("not available to a plugin outside the ho
 
 // pluginCallerDenied lists the methods a plugin outside the host set may not
 // call on the root or on any Resource beneath it, keyed by service and method
-// ID. Each group names the class of state it protects.
+// ID. Each group describes the class of state it protects.
 var pluginCallerDenied = map[string]struct{}{
 	// Approvals: which plugins run for the person, in a session or a Space,
 	// and building or restarting a Space's plugins.
@@ -181,7 +181,8 @@ var pluginCallerDenied = map[string]struct{}{
 
 // pluginCallerSecretMethods are the denied methods that grant admits: a
 // plugin whose Space loaded it reads, creates and writes that Space's Secrets
-// when the Device grants it. Granting participants and deleting stay denied.
+// when the Device grants access. Granting participants and deleting stay
+// denied.
 var pluginCallerSecretMethods = map[string]struct{}{
 	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "CreateSecret"):       {},
 	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "ReadSecretPayload"):  {},
@@ -192,12 +193,12 @@ var pluginCallerSecretMethods = map[string]struct{}{
 // Resource service. It refuses the pluginCallerDenied methods to a call that
 // carries a PluginCaller outside the host set, on the root and on every
 // Resource beneath it. It admits the pluginCallerSecretMethods to a caller
-// whose binding is a Space when grant permits that plugin in that Space; a
+// whose binding is a Space when grant permits that plugin in that Space. A
 // nil grant permits none. The filter cannot see which Space a Resource
 // serves, so the Space Resource refuses a caller bound to another Space.
 //
-// A call with no PluginCaller passes. That is safe only because a plugin's
-// calls reach core through the target's PluginRpc, which the host stamps,
+// A call with no PluginCaller passes. That path is safe only because a plugin's
+// calls reach core through the target's PluginRpc, where the host stamps them,
 // while a plugin's root mux serves the host's calls alone. A path that lets a
 // plugin reach core without passing through PluginRpc would bypass this filter.
 func NewPluginCallerFilter(le *logrus.Entry, grant PluginSecretGrant) resource_server.InvokerFilter {

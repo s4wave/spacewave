@@ -41,7 +41,7 @@ type loadedBucket struct {
 type loadedBucketState struct {
 	// disposed indicates this loadedBucket instance is disposed.
 	disposed bool
-	// info contains the latest bucket information
+	// info contains the latest bucket information.
 	info *bucket.BucketInfo
 	// released closes when the bucket run that published this state exits. It
 	// never carries a value: ccontainer waits end when their error channel
@@ -243,7 +243,7 @@ func (b *loadedBucket) pushLookup(l bucket_lookup.Lookup) {
 }
 
 // execLookupController manages a lookup controller instance.
-// !bc.GetLookup().GetDisable asserted by caller
+// !bc.GetLookup().GetDisable asserted by caller.
 func (b *loadedBucket) execLookupController(
 	ctx context.Context,
 	bc *bucket.Config,

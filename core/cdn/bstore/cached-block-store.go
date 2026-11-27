@@ -39,7 +39,7 @@ type CachedBlockStoreOptions struct {
 	// Release is called when a looked-up cache dependency is disposed while
 	// the assembled store is still live. Callers whose store sits under a
 	// lifecycle owner pass their invalidation callback here. Callers that
-	// own the store for their whole lifetime may leave it nil; the bus
+	// own the store for their whole lifetime may leave Release nil. The bus
 	// references are still freed by the returned release function.
 	Release func()
 }

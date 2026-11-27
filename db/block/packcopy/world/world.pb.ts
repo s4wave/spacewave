@@ -17,7 +17,7 @@ import { BlockRef } from '../../block.pb.js'
  */
 export enum WalkPhase {
   /**
-   * WALK_PHASE_WORLD reads the World's trees and their okra pages; the
+   * WALK_PHASE_WORLD reads the World's trees and their okra pages. The
    * Objects wait for the listing.
    */
   WORLD = 0,
@@ -86,7 +86,7 @@ export interface WalkState {
    */
   phase?: WalkPhase
   /**
-   * Concurrency is the reads the walk keeps in flight.
+   * Concurrency is the number of reads the walk keeps in flight.
    */
   concurrency?: number
   /**
@@ -114,7 +114,7 @@ export interface WalkState {
    */
   entries?: bigint
   /**
-   * Ctors names the block types the saved types use, by Go type.
+   * Ctors lists the block types the saved types use, by Go type.
    */
   ctors?: string[]
   /**
@@ -143,8 +143,8 @@ export const WalkState: MessageType<WalkState> =
 
 /**
  * WalkType is a saved block type. A resume rebuilds it when this build knows
- * the type Ctor names; otherwise it reads the block's parent again and types
- * the block from the parent's decode.
+ * the type Ctor selects. Otherwise the resume reads the block's parent again
+ * and types the block from the parent's decode.
  *
  * @generated from message packcopy.world.WalkType
  */
@@ -205,10 +205,10 @@ export const WalkChunk: MessageType<WalkChunk> =
   )
 
 /**
- * WalkNode is a block the walk read that names a block in the frontier. A
- * resume reads it again only when a block it names has no saved type, and
- * decodes it by its own saved type, or the type its parent gives it, to type
- * its children.
+ * WalkNode is a block the walk read that references a block in the frontier. A
+ * resume reads the node again only when a block it references has no saved
+ * type, and decodes it by its own saved type, or the type its parent gives it,
+ * to type its children.
  *
  * @generated from message packcopy.world.WalkNode
  */
@@ -218,8 +218,8 @@ export interface WalkNode {
    */
   ref?: BlockRef
   /**
-   * Parent is the number of the node that named this one, counting from 1,
-   * or 0 for a pinned root or a node with a saved type.
+   * Parent is the number of the node that referenced this node, counting from
+   * 1, or 0 for a pinned root or a node with a saved type.
    */
   parent?: bigint
   /**
@@ -253,8 +253,8 @@ export interface WalkEntry {
    */
   ref?: BlockRef
   /**
-   * Parent is the number of the node that named this block, counting from 1,
-   * or 0 for a pinned root.
+   * Parent is the number of the node that referenced this block, counting from
+   * 1, or 0 for a pinned root.
    */
   parent?: bigint
   /**
@@ -286,7 +286,7 @@ export const WalkEntry: MessageType<WalkEntry> =
 
 /**
  * WalkStatus is the progress of a walk. A hole is a block the walk could not
- * read or could not learn the refs of; the walk records it and goes on.
+ * read or could not learn the refs of. The walk records the hole and goes on.
  *
  * @generated from message packcopy.world.WalkStatus
  */
@@ -306,7 +306,7 @@ export interface WalkStatus {
    */
   stage?: string
   /**
-   * Concurrency is the reads kept in flight.
+   * Concurrency is the number of reads kept in flight.
    */
   concurrency?: number
   /**
@@ -397,13 +397,13 @@ export interface WalkStatus {
    */
   keepHeld?: bigint
   /**
-   * KeepDeferred counts blocks not kept because every keep slot was busy;
-   * the next walk reads them again.
+   * KeepDeferred counts blocks not kept because every keep slot was busy.
+   * The next walk reads those blocks again.
    */
   keepDeferred?: bigint
   /**
    * PersistedAt is when the walk last saved its position, in Unix
-   * milliseconds; zero for a walk that saves none.
+   * milliseconds, or zero for a walk that saves no position.
    */
   persistedAt?: bigint
   /**

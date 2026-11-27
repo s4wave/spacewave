@@ -22,7 +22,7 @@ func NewWorldChangeSubBlockCtor(r **WorldChange) block.SubBlockCtor {
 }
 
 // UnmarshalWorldChange unmarshals a world change from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalWorldChange(ctx context.Context, bcs *block.Cursor) (*WorldChange, error) {
 	return block.UnmarshalBlock[WorldChange](ctx, bcs)
 }
@@ -53,7 +53,7 @@ func (w *WorldChange) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Pending references (in a cursor) are not included.
 func (w *WorldChange) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	// Return the transaction, object, and previous object refs.
 	m := make(map[uint32]*block.BlockRef, 4)

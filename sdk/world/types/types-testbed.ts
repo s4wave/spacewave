@@ -115,7 +115,7 @@ export default async function main(
   }
   console.log('verified untyped object returns empty string')
 
-  // Test 7: Error handling - empty type ID
+  // Test 7: Error handling: empty type ID
   console.log('test 7: testing error handling for empty type ID...')
   let emptyTypeThrew = false
   try {

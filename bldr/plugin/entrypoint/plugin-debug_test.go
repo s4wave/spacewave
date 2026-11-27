@@ -50,7 +50,7 @@ func TestServePluginDebugNamesProcessAndServesStacks(t *testing.T) {
 		return string(body)
 	}
 
-	// The identity names the plugin and its instance.
+	// The identity identifies the plugin and its instance.
 	identity := get("/debug/plugin")
 	for _, want := range []string{"plugin-id=glados-core\n", "instance-key=space-abc\n", "instance-id=inst1\n", "pid=" + strconv.Itoa(os.Getpid()) + "\n"} {
 		if !strings.Contains(identity, want) {

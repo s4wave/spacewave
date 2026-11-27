@@ -13,7 +13,7 @@ export interface RouteInfo {
   ref: string | null
   subpath: string
   commitHash: string | null
-  // line is the 1-based line a file route names with a #L<n> suffix, as
+  // line is the 1-based line a file route selects with a #L<n> suffix, as
   // GitHub does, so a link can open a file at one line.
   line?: number
 }

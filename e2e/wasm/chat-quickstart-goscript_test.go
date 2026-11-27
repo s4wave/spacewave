@@ -15,7 +15,7 @@ const chatQuickstartWaitMS = 240000
 // chatMessageInputSelector matches the composer textarea rendered by the Chat
 // viewer. The placeholder ends in a single ellipsis character, and a CSS
 // attribute selector compares exactly, so every query for this element shares
-// one owner rather than repeating a string that has already drifted once.
+// one owner to prevent the repeated string from drifting a second time.
 const chatMessageInputSelector = "textarea[placeholder=\"Type a message…\"]"
 
 func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {

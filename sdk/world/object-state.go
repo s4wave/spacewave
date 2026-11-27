@@ -150,7 +150,7 @@ func (os *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	return resp.Rev, nil
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified revision.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev.

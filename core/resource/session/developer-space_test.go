@@ -117,8 +117,8 @@ func ensureDeveloperSpaceTogether(ctx context.Context, t *testing.T, resources [
 	return ids
 }
 
-// requireOneDeveloperSpace fails unless every id names one Space, which is
-// the only Space on the account.
+// requireOneDeveloperSpace fails unless every id references one Space, which
+// is the only Space on the account.
 func requireOneDeveloperSpace(t *testing.T, acc *provider_local.ProviderAccount, ids []string) {
 	t.Helper()
 	for _, id := range ids {

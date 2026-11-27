@@ -5,8 +5,8 @@ import { accountStorageChoice } from '@s4wave/app/session/storage/storage-backen
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'
 
 interface NewSpaceStorageChoiceProps {
-  // value is a storage backend id, accountStorageChoice, or empty for the
-  // account's default.
+  // value is a storage backend id, accountStorageChoice, or an empty string
+  // for the account's default storage backend.
   value: string
   onChange: (value: string) => void
 }

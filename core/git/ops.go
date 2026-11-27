@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Validate performs cursory validation of the operation.
+// Validate checks the operation cursorily.
 func (o *CreateGitRepoWizardOp) Validate() error {
 	if o.GetObjectKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "object_key")

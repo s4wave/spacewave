@@ -134,7 +134,7 @@ describe('useCanvasMutationQueue', () => {
       result.current.enqueueEdgesAdd([edge])
     })
 
-    // Should not duplicate the edge.
+    // The queue should not duplicate the edge.
     expect(result.current.effectiveState.edges).toHaveLength(1)
   })
 
@@ -435,7 +435,7 @@ describe('useCanvasMutationQueue', () => {
       resolveSend!()
       await Promise.resolve()
     })
-    // Still pending until server state updates.
+    // The mutation stays pending until server state updates.
     expect(result.current.pending).toBe(1)
 
     // Server state updates (streaming).
@@ -558,7 +558,7 @@ describe('useCanvasMutationQueue', () => {
       await Promise.resolve()
     })
 
-    // Mutation removed, reverts to server state.
+    // The mutation is removed, reverting to server state.
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(10)
     expect(onError).toHaveBeenCalledOnce()
@@ -574,7 +574,7 @@ describe('useCanvasMutationQueue', () => {
       )
     })
 
-    // Should not enqueue when no send function.
+    // No mutation should be enqueued without a send function.
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(10)
   })

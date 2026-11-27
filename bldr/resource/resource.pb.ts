@@ -132,7 +132,7 @@ export const ResourceRpcAbandon: MessageType<ResourceRpcAbandon> =
 export interface ResourceClientRequest {
   /**
    * ControlId orders every lifecycle control within one immutable generation.
-   * Init uses zero; every later control increments the identifier by one.
+   * Init uses zero. Every later control increments the identifier by one.
    */
   controlId?: number
   /**

@@ -302,7 +302,7 @@ export function Tree<T>({
     [dispatch],
   )
 
-  // Scroll the focused row into view when the focus moves, which mounts it.
+  // Scroll the focused row into view when the focus moves, mounting the row.
   const listRef = useListRef(null)
   useEffect(() => {
     const index = rowsRef.current.findIndex(

@@ -27,7 +27,7 @@ func (t *countedTarget) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 
 // TestCopyHeldWithoutTargetReads checks that a pass over blocks the target
 // holds but no proof covers reads them from the sources, writes nothing, and
-// never reads the target; and that a held block no source serves is a missing
+// never reads the target. A held block no source serves is a missing
 // hole unless ReadTarget is set.
 func TestCopyHeldWithoutTargetReads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)

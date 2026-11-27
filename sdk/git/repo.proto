@@ -30,7 +30,7 @@ message RefInfo {
   string name = 1;
   // CommitHash is the hash of the commit this reference points to.
   string commit_hash = 2;
-  // IsHead is true if this is the HEAD ref.
+  // IsHead is true if the reference is the HEAD ref.
   bool is_head = 3;
 }
 
@@ -71,11 +71,11 @@ message ResolveRefRequest {
 
 // ResolveRefResponse is the response for ResolveRef.
 //
-// A full ref name (HEAD or refs/...) the repository does not hold sets
-// not_found and leaves the hashes empty. Every other failure, including a
-// failed storage read, is an RPC error, so a caller can retry it. An
-// abbreviated revision reports a missing name as an RPC error too, because
-// revision parsing cannot tell a missing name from a failed read.
+// When a full ref name (HEAD or refs/...) is absent from the repository, the
+// response sets not_found and leaves the hashes empty. Every other failure,
+// including a failed storage read, is an RPC error, so a caller can retry the
+// RPC. An abbreviated revision reports a missing name as an RPC error too,
+// because revision parsing cannot tell a missing name from a failed read.
 message ResolveRefResponse {
   // CommitHash is the resolved commit hash.
   string commit_hash = 1;
@@ -133,7 +133,7 @@ message LogRequest {
   string ref_name = 1;
   // Offset is the number of commits to skip.
   uint32 offset = 2;
-  // Limit is the maximum number of commits to return. Default 50.
+  // Limit is the maximum number of commits to return. The default limit is 50.
   uint32 limit = 3;
   // SinceRef filters to commits reachable from ref_name but not from since_ref.
   string since_ref = 4;
@@ -163,7 +163,7 @@ message GetCommitResponse {
 message GetDiffStatRequest {
   // RefA is the first ref (branch, tag, or commit hash).
   string ref_a = 1;
-  // RefB is the second ref. If empty, diffs against ref_a's parent.
+  // RefB is the second ref. If empty, the diff is against ref_a's parent.
   string ref_b = 2;
 }
 
@@ -181,7 +181,7 @@ message GetDiffStatResponse {
 message GetDiffPatchRequest {
   // RefA is the first ref (branch, tag, or commit hash).
   string ref_a = 1;
-  // RefB is the second ref. If empty, diffs against ref_a's parent.
+  // RefB is the second ref. If empty, the diff is against ref_a's parent.
   string ref_b = 2;
 }
 

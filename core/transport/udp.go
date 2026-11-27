@@ -22,7 +22,7 @@ import (
 type UDPConfig struct {
 	// ListenAddr is the host:port to listen on, or an ephemeral port when empty.
 	ListenAddr string
-	// Peers names the remote peers whose links mount, each with the host:port
+	// Peers holds the remote peers whose links mount, each with the host:port
 	// it listens on. A peer with an empty address is admitted when it dials
 	// in but is never dialed.
 	Peers map[peer.ID]string
@@ -34,7 +34,7 @@ type UDPConfig struct {
 // StartUDP runs a UDP transport under the Session's peer until ctx ends or the
 // current transport run stops. It dials each named peer that has an address
 // and holds its link while the transport runs.
-// Naming a peer, or the link authorizer admitting it, admits only its link:
+// Selecting a peer, or the link authorizer admitting it, admits only its link:
 // services that grant authority, such as those served with ServeAuthorized,
 // still apply AuthorizePeer to each stream.
 // StartUDP returns the bound local address once the socket is open.

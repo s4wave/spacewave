@@ -29,7 +29,7 @@ const replayCursorOperations = sobject.MinCheckpointOperations + 32
 // last, which replay computes again from the checkpoint if it needs them. The
 // driver goroutine calls it.
 func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
-	// Wait for enough positions or pages; a transient replay saves nothing.
+	// Wait for enough positions or pages. A transient replay saves nothing.
 	r := a.replay
 	full := a.pages.Full()
 	if a.opts.transient {
@@ -59,13 +59,14 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 // saveCursor holds the payloads above the checkpoint and encodes the replay
 // cursor, then, beside the driver's apply loop, adds the World after the last
 // position to the replay cursor root and writes the cursor record, so the
-// record never names an unheld World and the driver keeps applying while the
-// World's pages store. It starts the next epoch of the replay stage, and ends
-// the earlier ones once the record lands: until then they hold the pages of
-// the World it saves. When one of them stored a page, the Worlds before the
-// saved one may name a page only it held, so the floor moves up to the saved
-// World as the save starts. One save runs at a time; a save due while another
-// runs waits for the next position. The driver goroutine calls it.
+// record never references an unheld World and the driver keeps applying while
+// the World's pages store. It starts the next epoch of the replay stage, and
+// ends the earlier ones once the record lands: until then they hold the pages
+// of the World it saves. When one of them stored a page, the Worlds before the
+// saved one may reference a page only that epoch held, so the floor moves up
+// to the saved World as the save starts. One save runs at a time. A save due
+// while another runs waits for the next position. The driver goroutine calls
+// it.
 func (a *Adapter) saveCursor(ctx context.Context) error {
 	// Skip while a save runs.
 	if !a.cursorSaving.CompareAndSwap(false, true) {
@@ -88,7 +89,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		return err
 	}
 
-	// Hold the head World; a run that ended saves nothing more and opens no
+	// Hold the head World. A run that ended saves nothing more and opens no
 	// epoch, since it ends the stage once its background stores ended.
 	done, ok := a.startBackground(root)
 	if !ok {
@@ -204,8 +205,8 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 		return nil
 	}
 
-	// Keep each outcome's payloads as known only while its handlers name the
-	// same roots (invariant 6 of the payload hold).
+	// Keep each outcome's payloads as known only while its handlers declare
+	// the same roots (invariant 6 of the payload hold).
 	positions := make([]spacePosition, len(states))
 	for i, outcome := range cursor.GetOutcomes() {
 		positions[i] = spacePosition{
@@ -260,7 +261,7 @@ func (c *ReplayCursor) states() ([]*InnerState, bool) {
 // that followed prev. A World after the base differs from head only in its
 // root and retained roots, which the outcome records.
 func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerState {
-	// Name a changed root as head names its own.
+	// Record a changed root as head records its own.
 	ref := prev.GetHeadRef()
 	initializes := ref.GetEmpty() && outcome.GetReason() == "" && !head.GetHeadRef().GetEmpty()
 	if initializes || !refEqual(outcome.GetWorld(), ref.GetRootRef()) {
@@ -283,8 +284,8 @@ func sameRetained(a, b *InnerState) bool {
 	return slices.EqualFunc(a.GetRetainedRoots(), b.GetRetainedRoots(), (*RetainedRoot).EqualVT)
 }
 
-// reasonUnknownOperationType is the refusal rules before WAITS_FOR_UPGRADE
-// gave a WorldOp body they did not declare.
+// reasonUnknownOperationType is the reason refusal rules before
+// WAITS_FOR_UPGRADE gave a WorldOp body those rules did not declare.
 const reasonUnknownOperationType = "unknown operation type"
 
 // redecides reports whether a refusal saved for reason under rule may be a

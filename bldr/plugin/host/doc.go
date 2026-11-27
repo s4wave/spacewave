@@ -8,7 +8,7 @@
 // that tells apart a replacement starting before its predecessor stops. The
 // subpackages are the hosts themselves: process runs native executables,
 // wazero-quickjs runs JavaScript plugins natively, and web runs WebAssembly and
-// JavaScript plugins in browser workers through the WebRuntime; default
-// assembles the set for each runtime. The scheduler subpackage decides what
-// runs where.
+// JavaScript plugins in browser workers through the WebRuntime. The default
+// subpackage assembles the set for each runtime. The scheduler subpackage
+// decides what runs where.
 package plugin_host

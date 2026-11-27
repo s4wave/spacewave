@@ -21,11 +21,11 @@ type lockedObjectIterator struct {
 	// held is the state iterator a Tx holds open across steps.
 	held world.ObjectIterator
 
-	// err is any error that occurred
+	// err is any error that occurred.
 	err error
-	// currKey is the current key if valid
+	// currKey is the current key if valid.
 	currKey string
-	// valid indicates if the iterator is valid
+	// valid indicates if the iterator is valid.
 	valid bool
 }
 

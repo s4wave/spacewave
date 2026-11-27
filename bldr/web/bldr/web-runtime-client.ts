@@ -266,7 +266,7 @@ export class WebRuntimeClient {
 
   // openStream opens a RPC stream with the WebRuntimeHost.
   // the remote service depends on the WebRuntimeClientType.
-  // relay-rerouted is a stale browser route, not a logical client close; retry
+  // relay-rerouted is a stale browser route, not a logical client close. Retry
   // the stream open on the next generation instead of surfacing it to callers.
   public async openStream(): Promise<PacketStream> {
     for (;;) {
@@ -453,9 +453,10 @@ export class WebRuntimeClient {
     }
     this.clientChannel = port
 
-    // Tell the WebRuntime to start watching our Web Lock for disconnect detection.
-    // This is sent after we've acquired the lock (in WebDocument constructor),
-    // ensuring no race condition where WebRuntime acquires the lock first.
+    // Tell the WebRuntime to start watching the client Web Lock for disconnect
+    // detection. The armWebLock message is sent after the WebDocument
+    // constructor acquires the lock, preventing a race where WebRuntime
+    // acquires the lock first.
     if (!this.disableWebLocks) {
       const armMsg: ClientToWebRuntime = { armWebLock: true }
       port.postMessage(armMsg)
@@ -485,7 +486,7 @@ export class WebRuntimeClient {
     return reconnectPromise
   }
 
-  // openClientChannelWithRetryImpl opens one generation; events on the owning
+  // openClientChannelWithRetryImpl opens one generation. Events on the owning
   // Web Locks/generation decide whether that attempt stays pending or closes.
   private async openClientChannelWithRetryImpl(): Promise<MessagePort> {
     return this.openClientChannel()

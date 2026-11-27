@@ -16,8 +16,9 @@ import (
 var bridgeVersion = controller.MustParseVersion("0.0.1")
 
 // BridgeFactory creates a bus-compatible controller factory from a
-// SpaceExecRegistry handler. This adapts space-aware handlers (no bus.Bus
-// access) to work within the existing forge execution controller dispatch.
+// SpaceExecRegistry handler. BridgeFactory adapts space-aware handlers
+// (no bus.Bus access) to work within the existing forge execution controller
+// dispatch.
 //
 // The forge execution controller resolves config IDs through the bus:
 //   - LoadConfigConstructorByID finds this factory (via static resolver)
@@ -25,9 +26,9 @@ var bridgeVersion = controller.MustParseVersion("0.0.1")
 //   - LoadFactoryByConfig finds this factory again
 //   - Construct creates a bridgeController delegating to the SpaceExecRegistry
 //
-// This makes all space-exec handlers discoverable through the standard bus
-// mechanism, so other plugins can also register handlers by adding their own
-// controller factories.
+// This factory makes all space-exec handlers discoverable through the standard
+// bus mechanism, so other plugins can also register handlers by adding their
+// own controller factories.
 type BridgeFactory struct {
 	configID string
 	registry *Registry
@@ -47,8 +48,8 @@ func (f *BridgeFactory) GetConfigID() string {
 }
 
 // ConstructConfig returns a SpaceExecConfig that stores raw config bytes.
-// The forge execution controller's Resolve path calls this, then unmarshals
-// the target's config data into the returned object.
+// The forge execution controller's Resolve path calls ConstructConfig, then
+// unmarshals the target's config data into the returned object.
 func (f *BridgeFactory) ConstructConfig() config.Config {
 	return NewSpaceExecConfig(f.configID)
 }

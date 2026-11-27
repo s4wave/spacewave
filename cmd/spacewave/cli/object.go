@@ -469,7 +469,7 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 				return errors.New("object key required")
 			}
 
-			// Validate key does not contain /-/ delimiter.
+			// Validate that the key does not contain the /-/ delimiter.
 			if findSubpathDelimiter(key) >= 0 {
 				return errors.New("object key cannot contain /-/")
 			}

@@ -6,7 +6,8 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/appconnector;s4wave_appconnector";
 
-// AppRead names one GET request the connector makes against its application.
+// AppRead describes one GET request the connector makes against its
+// application.
 message AppRead {
   // Name identifies the read in the snapshot and is unique within a connector.
   string name = 1;
@@ -83,9 +84,11 @@ message CreateAppConnectorOp {
   repeated AppRead reads = 4;
   // TokenSecretObjectKey points at an API token Secret.
   string token_secret_object_key = 5;
-  // PollIntervalMs is the time between polls. Zero selects the default.
+  // PollIntervalMs is the time between polls. Zero selects the default
+  // interval.
   uint32 poll_interval_ms = 6;
-  // MaxBodyBytes is the largest retained response body. Zero selects the default.
+  // MaxBodyBytes is the largest retained response body. Zero selects the
+  // default body limit.
   uint32 max_body_bytes = 7;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 8;

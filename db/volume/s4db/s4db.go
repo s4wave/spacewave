@@ -85,7 +85,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 
 	// Open it, converting a file the previous engine wrote in place first,
 	// and hold it until the Volume owns it, so a failed open releases the
-	// file's claim for the next.
+	// file's claim for the next open.
 	db, err := Open(ctx, le, path, opts)
 	if err != nil {
 		return nil, err
@@ -160,8 +160,8 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	return vol, nil
 }
 
-// valueFlows names the flows of the database opened with families, the last
-// of which counts the keys under none.
+// valueFlows labels the flows of the database opened with families. The last
+// flow counts the keys under none of the family prefixes.
 func valueFlows(families []volume_kvtx.ValueFamily, flows []s4db.Flow) []volume.ValueFlow {
 	out := make([]volume.ValueFlow, len(flows))
 	for i, f := range flows {
@@ -214,7 +214,7 @@ func storageStats(ctx context.Context, db *s4db.DB, path string) (*volume.Storag
 // healthSizes measures the file's length and live values through db and the
 // space free on its disk, and chooses the disk reserve: reserveBytes when
 // positive, none when negative, and otherwise the disk one collection needs
-// before it frees any.
+// before collection frees any disk space.
 func healthSizes(ctx context.Context, db *s4db.DB, path string, reserveBytes int64) (volume_kvtx.HealthSizes, error) {
 	// Read the file's sizes as of the published state.
 	st, err := db.Stats(ctx)

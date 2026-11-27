@@ -66,8 +66,8 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 }
 
 // TestNewSpaceWorldIsNodeGraph checks that a new Space's World starts in the
-// newest format. It fails when the Space's InitWorldOp names no format, which
-// starts the World in the kv format.
+// newest format. It fails when the Space's InitWorldOp declares no format, so
+// the World starts in the kv format.
 func TestNewSpaceWorldIsNodeGraph(t *testing.T) {
 	// Mount a new Space and write to its World.
 	ctx := t.Context()
@@ -142,14 +142,14 @@ func TestSpaceWorldChangelogFollowsSettings(t *testing.T) {
 		t.Fatalf("changelog before enabling: %q", keys)
 	}
 
-	// Enabling starts history after the settings write.
+	// Enabling the changelog starts history after the settings write.
 	setChangelog(true)
 	createObject("after")
 	if keys := changedKeys(); !slices.Equal(keys, []string{"after"}) {
 		t.Fatalf("changelog after enabling: %q", keys)
 	}
 
-	// Disabling drops the history.
+	// Disabling the changelog drops the history.
 	setChangelog(false)
 	createObject("disabled")
 	if keys := changedKeys(); len(keys) != 0 {

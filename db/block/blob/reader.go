@@ -23,8 +23,8 @@ type Reader struct {
 	root *Blob
 	// idx is the current read index.
 	idx int
-	// chunkIdx is the previous chunk we read from.
-	// This speeds up seeking for idx during sequential reads.
+	// chunkIdx is the previous chunk the reader read from.
+	// The chunk index speeds up seeking for idx during sequential reads.
 	chunkIdx int
 	// chunkSet supplies the existing chunk references for a chunked blob.
 	chunkSet *sbset.SubBlockSet

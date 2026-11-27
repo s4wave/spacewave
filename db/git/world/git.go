@@ -37,7 +37,8 @@ const (
 
 // AccessRepo is a utility for AccessWorldState to access a repository.
 // Ref can be nil to indicate creating a new repo.
-// The block transaction is written upon completion and updated ObjectRef returned.
+// The block transaction is written upon completion and the updated ObjectRef
+// is returned.
 //
 // configStore, indexStore, and worktree can be empty to use a default in-mem store.
 // Returns the updated object ref and any error.
@@ -172,7 +173,7 @@ func ValidateOrCreateRepo(
 			return nil, err
 		}
 		_, err = world.AccessObject(ctx, accessState, repoRef, func(bcs *block.Cursor) error {
-			// Confirm valid repo object.
+			// Confirm the repo object is valid.
 			repo, err := git_block.UnmarshalRepo(ctx, bcs)
 			if err == nil {
 				err = repo.Validate()
@@ -188,7 +189,7 @@ func ValidateOrCreateRepo(
 	return repoRef, nil
 }
 
-// AccessWorldObjectRepo attempts to look up a Repo in the world state.
+// AccessWorldObjectRepo tries to look up a Repo in the world state.
 // If the object did not exist, bcs will be empty, the object will be created.
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
@@ -235,7 +236,8 @@ func AccessWorktreeWithCursor(
 
 // AccessWorktree is a utility for AccessWorldState to access a worktree.
 // Ref can be nil to indicate creating a new worktree.
-// The block transaction is written upon completion and updated ObjectRef returned.
+// The block transaction is written upon completion and the updated ObjectRef
+// is returned.
 func AccessWorktree(
 	ctx context.Context,
 	access world.AccessWorldStateFunc,
@@ -247,7 +249,7 @@ func AccessWorktree(
 	})
 }
 
-// AccessWorldObjectWorktree attempts to look up a Worktree in the world state.
+// AccessWorldObjectWorktree tries to look up a Worktree in the world state.
 // If the object did not exist, bcs will be empty, the object will be created.
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
@@ -324,7 +326,7 @@ func AccessWorldObjectRepoWithWorktree(
 // CreateWorldObjectWorktree creates a worktree attached to a workdir and repo.
 //
 // le can be nil
-// if checkoutOpts is nil, skips checkout
+// if checkoutOpts is nil, skips checkout.
 func CreateWorldObjectWorktree(
 	ctx context.Context,
 	le *logrus.Entry,

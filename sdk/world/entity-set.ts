@@ -15,9 +15,9 @@ import { GraphEdgeBucketDirection, type WorldChange } from './world.pb.js'
 
 // KeyedSet is a set of World objects and one value read for each, all read
 // at or after one revision. keys lists the members at seqno in listing
-// order; rows holds the value of each member that has one, such as each
+// order. rows holds the value of each member that has one, such as each
 // existing object's body. complete is false while a full read is still
-// reading values; a member without a row then may not have been read yet.
+// reading values. A member without a row then may not have been read yet.
 export interface KeyedSet<T> {
   readonly seqno: bigint
   readonly keys: readonly string[]
@@ -53,11 +53,11 @@ export type KeyedSetReader = Pick<
 // follow for them, and how to read their values. Every read takes the one
 // read transaction of a wake, so a wake reads one revision.
 export interface KeyedSetSource<T> {
-  // members names the changes that may change the members.
+  // members lists the changes that may change the members.
   readonly members: ChangeNames
   // list reads the members at tx's revision, in listing order.
   list(tx: KeyedSetReader, signal: AbortSignal): Promise<string[]>
-  // names names the changes that may change the values of keys.
+  // names lists the changes that may change the values of keys.
   names(keys: readonly string[]): ChangeNames
   // route reads which members a change touches.
   route(change: WorldChange, members: ReadonlySet<string>): KeyedRoute
@@ -88,7 +88,7 @@ function mergeNames(...names: ChangeNames[]): ChangeNames {
  * may have moved them, reads again only the values a change after their own
  * read touched and those of new members, and yields once. A change at or
  * below the revision a value was read at is already in that value, so it is
- * skipped; a followed event past the revision a new member was read at reads
+ * skipped. A followed event past the revision a new member was read at reads
  * it again, since its earlier changes may not have been sent. An unknown
  * change, sent after a gap the stream could not fill, reads the whole set
  * again at a new revision. A failed read or stream ends the iterator with
@@ -157,7 +157,8 @@ export async function* watchKeyedSet<T>(
     return { seqno, keys: members, rows, complete }
   }
 
-  // relist replaces the members with keys, returning the added and removed.
+  // relist replaces the members with keys, returning the added and removed
+  // members.
   function relist(keys: string[]) {
     const next = new Set(keys)
     const added = keys.filter((key) => !memberSet.has(key))
@@ -174,7 +175,7 @@ export async function* watchKeyedSet<T>(
 
   // follow updates the names the feed follows for added and removed members.
   // A member read at at whose names are not yet followed waits in unfollowed
-  // for the followed event, which says from which seqno they are.
+  // for the followed event, which says from which seqno the names are followed.
   function follow(at: bigint, added: string[], removed: string[]) {
     if (!sub) {
       sub = engine.watchChanges(
@@ -195,7 +196,7 @@ export async function* watchKeyedSet<T>(
   }
 
   // withTx runs body on one read transaction and discards it. body yields
-  // only the pages of a first read; the set a wake ends with is yielded
+  // only the pages of a first read. The set a wake ends with is yielded
   // after the discard, so a transaction never waits on the reader.
   async function* withTx<R>(
     body: (tx: Tx) => AsyncGenerator<KeyedSet<T>, R>,
@@ -308,10 +309,10 @@ export async function readKeyedSet<T>(
   return { seqno, keys, rows, complete: true }
 }
 
-// EntitySetSpec names a set of World objects: those a link joins to an
+// EntitySetSpec selects a set of World objects: those a link joins to an
 // origin, or those of one type. A link set with a limit is one page of the
 // link's endpoints: at most limit of them, starting just past after, newest
-// first when reverse.
+// first when reverse is true.
 export type EntitySetSpec =
   | {
       readonly case: 'link'
@@ -366,7 +367,7 @@ function isAfterGone(err: unknown): boolean {
   return err instanceof Error && err.message.includes(afterGoneMessage)
 }
 
-// entitySetKey names a spec in the share key.
+// entitySetKey identifies a spec in the share key.
 export function entitySetKey(spec: EntitySetSpec): string {
   return spec.case === 'link'
     ? JSON.stringify([
@@ -490,7 +491,7 @@ export function entitySetSource<T>(
  * watchEntitySet follows spec's objects and their decoded bodies, sharing
  * one watch among every subscriber of the Engine with the same spec and
  * decoder. Every wake costs three calls when only bodies changed: the read
- * transaction, one body batch and its discard; a moved member adds one
+ * transaction, one body batch and its discard. A moved member adds one
  * listing.
  */
 export function watchEntitySet<T>(

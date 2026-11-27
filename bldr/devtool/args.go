@@ -35,7 +35,7 @@ type DevtoolArgs struct {
 	BldrVersion string
 	// BldrVersionSum is the version sum to require in go.sum.
 	BldrVersionSum string
-	// BldrSrcPath is the path to bldr to replace in go.mod
+	// BldrSrcPath is the path to bldr to replace in go.mod.
 	// Use for a local path to a development checkout of the bldr sources.
 	// Must be a path relative to the dist sources.
 	// Should be unset unless using a dev checkout of bldr.
@@ -51,7 +51,7 @@ type DevtoolArgs struct {
 	ServeStaticPath string
 	// UseGitRoot enables relative paths to the git repo root.
 	UseGitRoot bool
-	// Watch indicates we should watch for changes.
+	// Watch indicates whether the devtool should watch for changes.
 	Watch bool
 
 	// Vars are name=value inputs a bldr.star reads with var(name, default).
@@ -76,7 +76,7 @@ type DevtoolArgs struct {
 	// sets of the built manifests, written once the build finishes and, with
 	// BuildWatch, rewritten whenever their roots change.
 	ExportDir string
-	// MinifyEntrypoint configures if we will minify the entrypoint files.
+	// MinifyEntrypoint configures whether the build minifies entrypoint files.
 	MinifyEntrypoint bool
 	// JSMinification controls build-scoped JavaScript minification.
 	JSMinification string

@@ -25,8 +25,9 @@ type sqliteQueryer interface {
 // A write transaction runs on a connection of its own between BEGIN IMMEDIATE
 // and its COMMIT or ROLLBACK, during the store's writer turn. A read
 // transaction with snapshot reads opens a deferred transaction on a
-// connection of its own at its first read, so every read sees one snapshot;
-// without them it reads through the pool, each statement in its own snapshot.
+// connection of its own at its first read, so every read sees one snapshot.
+// Without snapshot reads, it reads through the pool, each statement in its own
+// snapshot.
 type Tx struct {
 	// queries are the store's statements.
 	queries *queries
@@ -117,7 +118,8 @@ func (t *Tx) queryer(ctx context.Context) (sqliteQueryer, error) {
 		return t.db, nil
 	}
 
-	// Begin the snapshot on a connection of its own; the first read fixes it.
+	// Begin the snapshot on a connection of its own. The first read fixes
+	// the snapshot.
 	conn, err := t.takeConn(ctx)
 	if err != nil {
 		return nil, err
@@ -319,7 +321,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	return true, nil
 }
 
-// existsBatchKeys bounds the keys one ExistsBatch query names, below
+// existsBatchKeys bounds the keys one ExistsBatch query selects, below
 // SQLite's oldest default limit of 999 bound parameters.
 const existsBatchKeys = 900
 
@@ -406,7 +408,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 }
 
 // CommitOrdered commits the transaction to the WAL without a flush. A crash
-// may lose it only with every commit after it; Sync, a later Commit or the
+// may lose it only with every commit after it. Sync, a later Commit or the
 // store's deadline flush makes it durable. A commit that outran the
 // checkpointer then waits for it, as walFlow describes.
 func (t *Tx) CommitOrdered(ctx context.Context) error {
@@ -479,7 +481,8 @@ func (t *Tx) endRead() {
 		return
 	}
 
-	// Roll back in a turn, then keep the connection unless it failed.
+	// Roll back in a turn, then keep the connection unless the rollback
+	// failed.
 	_ = t.turns.enter(context.Background())
 	_, err := t.conn.ExecContext(context.Background(), "ROLLBACK")
 	t.turns.leave()

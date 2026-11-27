@@ -84,7 +84,7 @@ export const SyncStatusState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * SyncUploadHold names the account limit that holds cloud uploads.
+ * SyncUploadHold identifies the account limit that holds cloud uploads.
  *
  * @generated from enum s4wave.session.SyncUploadHold
  */
@@ -516,7 +516,7 @@ export interface GetSessionInfoResponse {
   cryptoInfo?: SessionCryptoInfo
   /**
    * Username is the verified Spacewave Cloud username of the session's account.
-   * Empty for sessions of other providers.
+   * Username is empty for sessions of other providers.
    */
   username?: string
   /**
@@ -635,7 +635,7 @@ export interface CreateSpaceRequest {
   ownerId?: string
   /**
    * StorageBackendId places the Space's blocks on a storage backend.
-   * Empty uses the account's default storage backend.
+   * An empty StorageBackendId uses the account's default storage backend.
    */
   storageBackendId?: string
   /**
@@ -741,9 +741,10 @@ export interface LeaveSpaceRequest {
    */
   sharedObjectId?: string
   /**
-   * SuccessorPeerId names the participant promoted to owner when the leaving
-   * account hosts the Space and others remain. Empty selects the remaining
-   * participant with the highest role, then the earliest admitted.
+   * SuccessorPeerId selects the participant promoted to owner when the leaving
+   * account hosts the Space and others remain. An empty SuccessorPeerId
+   * selects the remaining participant with the highest role, then the earliest
+   * admitted.
    */
   successorPeerId?: string
 }
@@ -833,7 +834,8 @@ export const MountSharedObjectRequest: MessageType<MountSharedObjectRequest> =
  */
 export interface MountSharedObjectResponse {
   /**
-   * Health explains a failed mount; no resource is allocated when set.
+   * Health explains a failed mount. No resource is allocated when Health is
+   * set.
    */
   health?: SharedObjectHealth
   /**
@@ -842,11 +844,11 @@ export interface MountSharedObjectResponse {
   resourceId?: number
   /**
    * SharedObjectMeta is the metadata for the SharedObject.
-   * Contains the body type and body metadata.
+   * SharedObjectMeta contains the body type and body metadata.
    */
   sharedObjectMeta?: SharedObjectMeta
   /**
-   * PeerId is the peer id of our local participant for the shared object.
+   * PeerId is the peer id of the local participant for the shared object.
    */
   peerId?: string
   /**
@@ -1264,20 +1266,20 @@ export interface WatchSyncStatusResponse {
    */
   blockStores?: SyncBlockStoreStatus[]
   /**
-   * local_account selects account-replica status instead of cloud queues.
+   * LocalAccount selects account-replica status instead of cloud queues.
    */
   localAccount?: boolean
   /**
-   * local_copies reports durable availability for each accepted Space head.
+   * LocalCopies reports durable availability for each accepted Space head.
    */
   localCopies?: SyncLocalCopyStatus[]
   /**
-   * peer_upload_bytes and peer_download_bytes count actual block payload traffic.
+   * PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
    */
   peerUploadBytes?: bigint
   peerDownloadBytes?: bigint
   /**
-   * peers breaks the payload totals down by authenticated Session peer.
+   * Peers breaks the payload totals down by authenticated Session peer.
    */
   peers?: SyncPeerTransferStatus[]
   /**
@@ -1287,7 +1289,7 @@ export interface WatchSyncStatusResponse {
    */
   uploadError?: string
   /**
-   * UploadHold names the account limit that refused the latest upload of a
+   * UploadHold identifies the account limit that refused the latest upload of a
    * store whose uploads are still pending. Those uploads wait, without
    * retrying, until the account state changes, as when the limit is raised.
    */
@@ -1566,12 +1568,13 @@ export interface SetBackgroundPluginRequest {
    */
   pluginId?: string
   /**
-   * Enabled confirms the plugin to run in the background, or withdraws it.
+   * Enabled confirms the plugin to run in the background, or withdraws the
+   * confirmation.
    */
   enabled?: boolean
   /**
    * Suspended keeps an enabled confirmation while the plugin does not run in
-   * the background. Clearing it resumes the plugin.
+   * the background. Clearing Suspended resumes the plugin.
    */
   suspended?: boolean
 }
@@ -1925,7 +1928,7 @@ export const DeleteAccountResponse: MessageType<DeleteAccountResponse> =
 export interface AccessSessionStateAtomRequest {
   /**
    * StoreId is the identifier for the state store.
-   * If empty, uses the default "ui-state" store.
+   * An empty StoreId uses the default "ui-state" store.
    */
   storeId?: string
 }
@@ -2330,7 +2333,7 @@ export interface WatchPairingStatusResponse {
   /**
    * SessionPeerId is the base58 peer ID of the receiving Session the approval
    * enrolls (set during verification). It differs from RemotePeerId, which
-   * names the pairing link.
+   * references the pairing link.
    */
   sessionPeerId?: string
 }
@@ -2368,8 +2371,8 @@ export interface CreateSpaceInviteRequest {
    */
   role?: SOParticipantRole
   /**
-   * TargetPeerId is the optional peer ID of the intended invitee (b58).
-   * Empty means open invite (anyone with the token can join).
+   * TargetPeerId is the optional peer ID of the intended invitee (b58). An
+   * empty TargetPeerId means an open invite (anyone with the token can join).
    */
   targetPeerId?: string
   /**
@@ -2379,7 +2382,7 @@ export interface CreateSpaceInviteRequest {
   maxUses?: number
   /**
    * ExpiresAt is the time after which the invite is invalid.
-   * Unset means no expiry.
+   * An unset ExpiresAt means no expiry.
    */
   expiresAt?: Date
   /**
@@ -2415,12 +2418,12 @@ export const CreateSpaceInviteRequest: MessageType<CreateSpaceInviteRequest> =
 export interface CreateSpaceInviteResponse {
   /**
    * InviteMessage is the signed invite message for out-of-band distribution.
-   * Contains the raw token (not stored on-chain).
+   * InviteMessage contains the raw token (not stored on-chain).
    */
   inviteMessage?: SOInviteMessage
   /**
    * ShortCode is an optional short code registered with the cloud.
-   * Present for spacewave sessions, empty for local sessions.
+   * ShortCode is present for spacewave sessions, empty for local sessions.
    */
   shortCode?: string
 }
@@ -2522,13 +2525,14 @@ export interface RemoveSpaceParticipantsRequest {
   peerIds?: string[]
   /**
    * AdmitThrough maps a peer ID to the last of its operations every member
-   * still applies; replay rejects the peer's later operations. A peer it does
-   * not name keeps every operation the Space holds. It recovers a Space whose
-   * removed author signed operations whose payloads no member holds.
+   * still applies. Replay rejects the peer's later operations. A peer absent
+   * from AdmitThrough keeps every operation the Space holds. AdmitThrough
+   * recovers a Space whose removed author signed operations whose payloads no
+   * member holds.
    */
   admitThrough?: { [key: string]: bigint }
   /**
-   * DryRun reports the cut for each peer AdmitThrough names without signing
+   * DryRun reports the cut for each peer AdmitThrough lists without signing
    * the removal.
    */
   dryRun?: boolean
@@ -2557,11 +2561,11 @@ export interface RemoveSpaceParticipantsResponse {
   removedPeerIds?: string[]
   /**
    * AwaitingGroup is true when the viewer agreed to the removal under group
-   * control, and it applies once the group decides it.
+   * control, and the removal applies once the group decides the removal.
    */
   awaitingGroup?: boolean
   /**
-   * Cuts reports each peer AdmitThrough named, in peer ID order.
+   * Cuts reports each peer AdmitThrough listed, in peer ID order.
    */
   cuts?: SpaceParticipantCut[]
 }
@@ -2671,8 +2675,8 @@ export interface ResolveSpaceJoinRequestRequest {
    */
   peerId?: string
   /**
-   * Grant admits the requester at the role of the invite it redeemed; false
-   * refuses the request.
+   * Grant admits the requester at the role of the invite the requester
+   * redeemed. A false Grant refuses the request.
    */
   grant?: boolean
 }
@@ -2776,7 +2780,8 @@ export interface JoinSpaceViaInviteResponse {
    */
   sharedObjectId?: string
   /**
-   * Result describes whether the join completed immediately or only submitted.
+   * Result describes whether the join completed immediately or the join
+   * request was only submitted.
    */
   result?: JoinSpaceViaInviteResult
 }
@@ -2835,9 +2840,10 @@ export const GetTransferStatusResponse: MessageType<GetTransferStatusResponse> =
 
 /**
  * LocalPairingOffer is the SDP offer for no-cloud device pairing.
- * Serialized as proto binary, compressed with DEFLATE, then base58 encoded for
- * display as QR code or copyable string. The public key is extracted from the
- * peer ID (which embeds the multihash of the public key).
+ * LocalPairingOffer is serialized as proto binary, compressed with DEFLATE,
+ * then base58 encoded for display as a QR code or copyable string. The public
+ * key is extracted from the peer ID (which embeds the multihash of the public
+ * key).
  *
  * @generated from message s4wave.session.LocalPairingOffer
  */
@@ -2863,7 +2869,8 @@ export const LocalPairingOffer: MessageType<LocalPairingOffer> =
 
 /**
  * LocalPairingAnswer is the SDP answer for no-cloud device pairing.
- * Same encoding: proto binary -> DEFLATE compress -> base58.
+ * LocalPairingAnswer uses the same encoding: proto binary -> DEFLATE compress
+ * -> base58.
  *
  * @generated from message s4wave.session.LocalPairingAnswer
  */
@@ -3186,7 +3193,7 @@ export interface WatchStorageBackendsResponse {
   storageBackends?: StorageBackendInfo[]
   /**
    * DefaultStorageBackendId identifies the backend new Spaces use.
-   * Empty means the account's own storage.
+   * An empty DefaultStorageBackendId means the account's own storage.
    */
   defaultStorageBackendId?: string
 }
@@ -3226,7 +3233,7 @@ export const StorageBackendInfo: MessageType<StorageBackendInfo> =
   )
 
 /**
- * PlacedSpace names a Space placed on a storage backend.
+ * PlacedSpace references a Space placed on a storage backend.
  *
  * @generated from message s4wave.session.PlacedSpace
  */
@@ -3341,7 +3348,7 @@ export const AddStorageBackendRequest: MessageType<AddStorageBackendRequest> =
 export interface AddStorageBackendResponse {
   /**
    * StorageBackendId identifies the saved backend.
-   * Empty when the check failed and nothing was saved.
+   * StorageBackendId is empty when the check failed and nothing was saved.
    */
   storageBackendId?: string
   /**
@@ -3397,8 +3404,8 @@ export const RemoveStorageBackendResponse: MessageType<RemoveStorageBackendRespo
  */
 export interface SetDefaultStorageBackendRequest {
   /**
-   * StorageBackendId identifies the new default.
-   * Empty returns new Spaces to the account's own storage.
+   * StorageBackendId identifies the new default storage backend.
+   * An empty StorageBackendId returns new Spaces to the account's own storage.
    */
   storageBackendId?: string
 }
@@ -3434,7 +3441,7 @@ export interface SetStorageBackendPricingRequest {
   storageBackendId?: string
   /**
    * Pricing is the new price list.
-   * Empty returns to the published prices of the endpoint's service.
+   * Empty Pricing returns to the published prices of the endpoint's service.
    */
   pricing?: Pricing
 }
@@ -3533,7 +3540,7 @@ export interface MoveSpaceStorageRequest {
   sharedObjectId?: string
   /**
    * StorageBackendId identifies the destination backend.
-   * Empty moves the blocks to the account's own storage.
+   * An empty StorageBackendId moves the blocks to the account's own storage.
    */
   storageBackendId?: string
 }

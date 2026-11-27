@@ -49,7 +49,7 @@ var edBlacklist = [7][32]byte{
 	},
 }
 
-// IsLowOrder checks if the passed group element is of low order.
+// IsEdLowOrder checks if the passed group element is of low order.
 // Algorithm translated from the same source as the blacklist (see above).
 func IsEdLowOrder(ge []byte) bool {
 	// Compare the encoded point against the low-order blacklist.

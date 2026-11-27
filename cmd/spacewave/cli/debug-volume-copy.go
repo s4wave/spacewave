@@ -24,7 +24,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// sqlPasswordEnv names the variable holding the SQL block store's password.
+// sqlPasswordEnv identifies the variable holding the SQL block store's
+// password.
 const sqlPasswordEnv = "SPACEWAVE_SQL_PASSWORD" //nolint:gosec // an environment variable name, not a credential.
 
 // uploadMarkerInfix precedes the hash in the key of a writeback store's
@@ -137,8 +138,9 @@ func newDebugVolumeCopyCommand() *cli.Command {
 // holds when drop is set, writing progress lines to w. It removes dst when
 // the copy fails.
 func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, drop *sqlDrop, w io.Writer) (err error) {
-	// Open the source read-only, which never creates it and writes only its
-	// reader slot, and refuse a file a daemon has open.
+	// Open the source read-only, so the open never creates the source and
+	// writes only the source's reader slot, and refuse a file a daemon has
+	// open.
 	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
 	if errors.Is(err, s4db.ErrPreviousFormat) {
 		if reachable != nil || drop != nil {
@@ -210,10 +212,10 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 	return nil
 }
 
-// copyPreviousFormat copies the stopped previous-format volume at src into
-// the new file dst through the conversion's reader and builder, writing
-// progress lines to w. The copy holds every key of the source and no graph
-// conversion, which the Volume runs when it opens the copy.
+// copyPreviousFormat copies the stopped previous-format volume at src into the
+// new file dst through the conversion's reader and builder, writing progress
+// lines to w. The copy contains every key of the source and leaves the graph
+// conversion to the Volume when the Volume opens the copy.
 func copyPreviousFormat(ctx context.Context, src, dst string, w io.Writer) error {
 	// Create the destination, which must not exist, and report progress at
 	// most once per interval.

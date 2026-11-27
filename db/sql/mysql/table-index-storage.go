@@ -146,7 +146,7 @@ func (t *Table) lookupRows(ctx *sql.Context, lookup sql.IndexLookup) ([]sql.Row,
 	rows := make([]sql.Row, 0, len(ranges))
 	seen := make(map[string]struct{}, len(ranges))
 	for _, r := range ranges {
-		// Encode the leading points and the next column's span; a range that
+		// Encode the leading points and the next column's span. A range that
 		// selects neither scans.
 		values := leadingPoints(ctx, r)
 		n := len(values)

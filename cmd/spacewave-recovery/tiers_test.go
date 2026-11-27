@@ -44,8 +44,8 @@ func makeTierFixture(t *testing.T) (*fixture, []string, uint64) {
 		return packahead.Block{Key: packfile.BlockKey(ref.GetHash()), Value: value}
 	}
 
-	// Write the local log with the store's own writer; its next Open
-	// finalizes the first pack, and the second stays open.
+	// Write the local log with the store's own writer. The next Open
+	// finalizes the first pack, and the second pack stays open.
 	local := filepath.Join(t.TempDir(), "packahead")
 	for _, batch := range [][]*block.BlockRef{{f.liveChild}, {f.refused.GetRootRef(), f.liveBody.GetRootRef()}} {
 		log, err := packahead.Open(ctx, local, packahead.Options{})
@@ -121,7 +121,7 @@ func makeTierFixture(t *testing.T) (*fixture, []string, uint64) {
 	}
 	packs++
 
-	// Declare both tiers; every count but locations and the pack rows holds.
+	// Declare both tiers. Every count but locations and the pack rows holds.
 	f.source.Packs = []*recovery.PackSource{{Path: local, Tier: recovery.PackTier_PACK_TIER_LOCAL}, {Path: remote, Tier: recovery.PackTier_PACK_TIER_REMOTE}}
 	f.expected.PhysicalLocations -= 2
 	f.expected.PackFiles = packs

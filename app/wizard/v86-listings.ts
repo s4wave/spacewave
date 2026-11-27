@@ -3,7 +3,7 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { KeyedSet } from '@s4wave/sdk/world/entity-set.js'
 
 // V86ListingsFailure is a failed read of the Space's images or VMs before
-// the listing was complete: the title names which listing failed, and retry
+// the listing was complete: the title identifies the failed listing, and retry
 // reads it again.
 export interface V86ListingsFailure {
   title: string
@@ -13,13 +13,13 @@ export interface V86ListingsFailure {
 
 // V86ListingsStatus is what the image step may do with the listings.
 export interface V86ListingsStatus {
-  // pending is set until both listings are complete; nothing seeds a
+  // pending is set until both listings are complete, so nothing seeds a
   // default source from them meanwhile.
   pending: boolean
-  // failures lists each listing that could not be read, images first;
+  // failures lists each listing that could not be read, images first.
   // pending stays set while any is listed.
   failures: V86ListingsFailure[]
-  // waiting names the listing still being read while none failed: the
+  // waiting identifies the listing still being read while none failed: the
   // images until their first read is complete, then the VMs.
   waiting: 'images' | 'vms' | null
   // stopped is set when the watch of a complete image set reached its
@@ -31,12 +31,14 @@ export interface V86ListingsStatus {
  * v86ListingsStatus derives the image step's state from the Space's image
  * set and VM listing, as V86Listings.tla specifies. The image set is pending
  * until its first read is complete: a watch yields after each page of that
- * read, and a default seeded from a partial set could miss the newest image.
+ * read, and a default source seeded from a partial set could miss the newest
+ * image.
  * While the watch reconnects by itself the resource loads again, so the step
  * keeps loading before the set is complete and stays quiet after. The
- * resource fails only once the watch stops at its reconnect cap: before the
- * set is complete that is a failure, whether or not it had yielded a page;
- * after it the complete set stays, but may be out of date, so it is stopped.
+ * resource fails only once the watch stops at its reconnect cap. Before the
+ * set is complete, a stopped watch is a failure, whether or not the watch had
+ * yielded a page. After completion the complete set stays, but may be out of
+ * date, so the set is stopped.
  */
 export function v86ListingsStatus(
   images: Resource<KeyedSet<unknown>>,

@@ -19,7 +19,8 @@ type fileWatcher struct {
 // newFileWatcher watches the file at path. Every write raises a kqueue event,
 // so the slot is unused.
 func newFileWatcher(_ *os.File, path string, _ int, readOnly bool) (watcher, error) {
-	// The sole writer never tails its own writes; the kernel notifies readers.
+	// The sole writer never tails its own writes. The kernel notifies
+	// readers.
 	if !readOnly {
 		return newStopWatcher(), nil
 	}

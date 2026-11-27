@@ -16,7 +16,7 @@ type Task struct {
 	Count int `json:"count"`
 	// TotalUs is their total duration in microseconds.
 	TotalUs int64 `json:"totalUs"`
-	// MaxUs is the longest one in microseconds.
+	// MaxUs is the longest task duration in microseconds.
 	MaxUs int64 `json:"maxUs"`
 }
 

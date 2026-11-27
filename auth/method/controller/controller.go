@@ -18,22 +18,21 @@ type MethodConstructor = auth_method.Constructor
 //
 // The controller contains an authentication method and provides it on a bus.
 type Controller struct {
-	// ctx is the controller context
-	// set in the execute() function
-	// ensure not used before execute sets it.
+	// ctx is the controller context set in the execute() function.
+	// Ensure ctx is not used before execute sets ctx.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor MethodConstructor
 
-	// methodCh holds the method like a bucket
+	// methodCh holds the method.
 	methodCh chan auth_method.Method
 	// methodID is the method identifier.
 	methodID string
-	// methodVersion is the method version
+	// methodVersion is the method version.
 	methodVersion controller.Version
 }
 
@@ -132,7 +131,8 @@ func (c *Controller) GetAuthMethod(ctx context.Context) (auth_method.Method, err
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, the handler returns a resolver.
+// Otherwise, the handler returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {

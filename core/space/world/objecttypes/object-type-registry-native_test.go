@@ -11,7 +11,7 @@ import (
 )
 
 // TestLookupObjectType covers the Device and SpaceSettings object types in the
-// native registry; the GoScript registry has its own browser-tagged coverage.
+// native registry. The GoScript registry has its own browser-tagged coverage.
 func TestLookupObjectType(t *testing.T) {
 	for _, row := range []struct{ typeID, want string }{
 		{s4wave_device.DeviceTypeID, s4wave_device.DeviceTypeID},

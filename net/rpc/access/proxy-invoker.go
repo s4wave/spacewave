@@ -19,7 +19,7 @@ type ProxyInvoker struct {
 // NewProxyInvoker constructs a new srpc.Invoker with a client and request.
 //
 // if waitAck is set, waits for ack from the remote before starting the proxied rpc.
-// note: usually you do not need waitAck set to true.
+// note: usually the caller does not need waitAck set to true.
 func NewProxyInvoker(client SRPCAccessRpcServiceClient, req *LookupRpcServiceRequest, waitAck bool) *ProxyInvoker {
 	return &ProxyInvoker{client: client, req: req, waitAck: waitAck}
 }
@@ -74,7 +74,7 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		proxyMsg := srpc.NewRawMessage(nil, false)
 		var result response
 
-		// We have to handle the Packet here because srpc.Stream MsgSend will be
+		// Handle the Packet here because srpc.Stream MsgSend will be
 		// encoded and wrapped in a Body packet.
 		handler := srpc.NewPacketDataHandler(func(pkt *srpc.Packet) error {
 			switch body := pkt.GetBody().(type) {

@@ -41,5 +41,5 @@ func (h *reopenClaimHook) Fire(entry *logrus.Entry) error {
 	return nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ logrus.Hook = (*reopenClaimHook)(nil)

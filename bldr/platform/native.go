@@ -37,7 +37,7 @@ type NativePlatform struct {
 
 // ToNativePlatform type-asserts the platform to NativePlatform.
 //
-// Returns nil if type doesn't match
+// Returns nil if type doesn't match.
 func ToNativePlatform(p Platform) *NativePlatform {
 	np, _ := p.(*NativePlatform)
 	return np
@@ -200,7 +200,7 @@ func (n *NativePlatform) GetPlatformID() string {
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_DESKTOP, PlatformID_WEB, PlatformID_JS
+// Values: PlatformID_DESKTOP, PlatformID_WEB, PlatformID_JS.
 func (n *NativePlatform) GetBasePlatformID() string {
 	if n.IsWebPlatform() {
 		return PlatformID_WEB

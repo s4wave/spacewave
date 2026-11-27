@@ -26,7 +26,7 @@ const spaceIndexPageSize = 100
 
 // SpaceIndexResolution is where the root route of a Space leads.
 export interface SpaceIndexResolution {
-  // path is the index path to open, or empty to show the object list.
+  // path is the index path to open, or an empty string to show the object list.
   path: string
   // stale is set when path replaces a configured index that no longer exists.
   stale: boolean
@@ -83,7 +83,8 @@ async function isVisibleObject(
   return object?.objectKey === key && !isHiddenSpaceObject(key, object.typeId)
 }
 
-// firstVisibleObjectKey returns the first key shown in the Space, or empty.
+// firstVisibleObjectKey returns the first key shown in the Space, or an empty
+// string.
 // Hidden objects are few, so the scan ends within a page or two.
 async function firstVisibleObjectKey(
   world: IWorldState,
@@ -105,7 +106,7 @@ async function firstVisibleObjectKey(
 }
 
 // lowestNumberedObjectKey returns the visible key-N sibling with the lowest N
-// on the first listing page, or empty.
+// on the first listing page, or an empty string.
 async function lowestNumberedObjectKey(
   world: IWorldState,
   key: string,
@@ -191,7 +192,7 @@ export function SpaceIndex() {
   }
 
   // A failed read claims nothing about the Space: its notice stands alone
-  // unless the objects it last read are kept beneath it.
+  // unless the objects from the last read are kept beneath the notice.
   const failure = indexResource.error && (
     <ViewerStatus
       state="failed"

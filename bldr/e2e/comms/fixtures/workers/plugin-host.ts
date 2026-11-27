@@ -1,8 +1,8 @@
-// plugin-host.ts - Simplified DedicatedWorker host for testing.
+// plugin-host.ts: Simplified DedicatedWorker host for testing.
 //
-// Mirrors the shw.mjs startup pattern: receives scriptUrl and workerCommsDetect,
-// dynamically imports the plugin script, and calls its default export without
-// eager SAB bus registration.
+// Mirrors the shw.mjs startup pattern: receives scriptUrl and
+// workerCommsDetect, dynamically imports the plugin script, and calls its default
+// export without eager SAB bus registration.
 
 import type { WorkerCommsDetectResult } from '../../../../web/bldr/worker-comms-detect.js'
 

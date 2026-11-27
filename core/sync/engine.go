@@ -26,7 +26,8 @@ import (
 )
 
 // Engine owns one ready World and the bus that runs its storage controllers.
-// Callers stop admitting operations before Close and must not use it afterwards.
+// Callers stop admitting operations before Close and must not use the engine
+// afterwards.
 type Engine struct {
 	// Bus owns all controllers, including their joined shutdown.
 	Bus bus.Bus
@@ -45,7 +46,8 @@ type Engine struct {
 }
 
 // Open constructs a ready World without starting accounts, networking, or apps.
-// Storage owns its dataset; closing the engine releases handles and never deletes it.
+// Storage owns its dataset. Closing the engine releases handles and never
+// deletes the dataset.
 func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *Engine, resultErr error) {
 	// Validate the arguments and prepare the engine with a cancelable context.
 	if backing == nil {
@@ -134,7 +136,8 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 }
 
 // Close fences acknowledged data and joins all owned controllers.
-// Failure still releases every handle and remains observable on subsequent calls.
+// Close still releases every handle on failure, and the failure remains
+// observable on subsequent calls.
 func (e *Engine) Close() error {
 	e.closeOnce.Do(func() {
 		// Fence acknowledged data before tearing down the bus.

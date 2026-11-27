@@ -6,7 +6,7 @@ import {
 } from './web-view-module-loader.js'
 
 export interface IWebViewErrorBoundaryProps {
-  // children are children elements
+  // children are children elements.
   children?: React.ReactNode
   // onRecoverableRetry is called before retrying a recoverable load failure.
   onRecoverableRetry?: () => void

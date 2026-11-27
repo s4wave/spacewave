@@ -27,7 +27,7 @@ func (c *Config) ParseSrcPeerId() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetSrcPeerId())
 }
 
-// ParseServerPeerIds parses the destination peer ids
+// ParseServerPeerIds parses the destination peer ids.
 func (c *Config) ParseServerPeerIds() ([]peer.ID, error) {
 	return confparse.ParsePeerIDs(c.GetServerPeerIds(), false)
 }

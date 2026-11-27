@@ -141,9 +141,10 @@ func TestIteratorKeepsEntryAcrossCancel(t *testing.T) {
 }
 
 // TestWriterAdmission covers the store's admission: a reader never waits for
-// a writer and reads the tree published when it opened; a cancelled queued
-// writer leaves the queue; foreground writers take the turn in arrival order,
-// ahead of a background writer that queued before them.
+// a writer and reads the tree published when the reader opened.
+// A cancelled queued writer leaves the queue.
+// Foreground writers take the turn in arrival order, ahead of a background
+// writer that queued before them.
 func TestWriterAdmission(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Hold the writer turn with a staged key.
@@ -229,8 +230,9 @@ func TestWriterAdmission(t *testing.T) {
 			}
 		}
 
-		// The old reader still reads its snapshot; a new one sees the holder's
-		// key and the committed half of the peers, and the background writer.
+		// The old reader still reads its snapshot. A new reader sees
+		// the holder's key and the committed half of the peers, and the
+		// background writer.
 		if _, found, err := before.Get(ctx, []byte("held")); err != nil || found {
 			t.Fatalf("old reader saw a later commit: found=%v err=%v", found, err)
 		}

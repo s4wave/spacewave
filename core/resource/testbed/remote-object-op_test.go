@@ -329,8 +329,9 @@ func serveRemoteClaimTestbed(t *testing.T) {
 }
 
 // isRemoteClaimHangup reports whether err means the parent closed the
-// connection. The parent hangs up as soon as its assertions finish, which can
-// interrupt a reply the helper is still writing, so any socket error counts.
+// connection. The parent hangs up as soon as its assertions finish. The hangup
+// can interrupt a reply the helper is still writing, so any socket error
+// counts.
 func isRemoteClaimHangup(err error) bool {
 	var opErr *net.OpError
 	return errors.Is(err, io.EOF) ||

@@ -11,8 +11,8 @@ import (
 )
 
 // V86ImageAssets opens the assets of one V86Image: each from the image's own
-// edge, else from the published image its cdn_source names, whose CDN Space
-// stays mounted until Release so the handles read it lazily.
+// edge, else from the published image its cdn_source references, whose CDN
+// Space stays mounted until Release so the handles read it lazily.
 type V86ImageAssets struct {
 	// r resolves the assets and holds the CDN Worlds.
 	r *v86MountResolver

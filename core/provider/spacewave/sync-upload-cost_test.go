@@ -61,7 +61,7 @@ func TestSyncMixedUploadCost(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The drain left nothing pending; report the upload cost.
+	// The drain left nothing pending. Report the upload cost.
 	if _, pending, _ := syncer.pendingSnapshot(); pending != 0 {
 		t.Fatalf("pending bytes after drain: %d", pending)
 	}

@@ -14,13 +14,14 @@ import (
 )
 
 const (
-	// checkoutRootNameParameter names the parameter holding the checkout root
-	// name that selectors match.
+	// checkoutRootNameParameter identifies the parameter holding the
+	// checkout root name that selectors match.
 	checkoutRootNameParameter = "name"
-	// checkoutRootPathParameter names the parameter holding the absolute path of
-	// the checkout root on its Device.
+	// checkoutRootPathParameter identifies the parameter holding the
+	// absolute path of the checkout root on its Device.
 	checkoutRootPathParameter = "path"
-	// checkoutRootAccessParameter names the parameter holding the access mode.
+	// checkoutRootAccessParameter identifies the parameter holding the
+	// access mode.
 	checkoutRootAccessParameter = "access"
 	// checkoutRootReadOnly is the access parameter value of a read-only root.
 	checkoutRootReadOnly = "read-only"
@@ -87,8 +88,8 @@ func (checkoutRoot) GetCapability(
 }
 
 // checkoutRootPayload returns the checkout root the node's parameters declare,
-// or an error naming the parameter that is missing or malformed. The root is
-// readable, and writable when its access is read-write.
+// or an error identifying the parameter that is missing or malformed. The root
+// is readable, and writable when its access is read-write.
 func checkoutRootPayload(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_device.DeviceCheckoutRootCapability, error) {
 	// Read the parameters the declaration comes from.
 	params := node.GetParameters()
@@ -99,8 +100,8 @@ func checkoutRootPayload(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_device.D
 		return nil, errors.Errorf("parameter %q is required", checkoutRootNameParameter)
 	}
 
-	// Require an absolute path, since a relative one names a different directory
-	// for each process.
+	// Require an absolute path, since a relative one refers to a different
+	// directory for each process.
 	path := strings.TrimSpace(params[checkoutRootPathParameter])
 	if !filepath.IsAbs(path) {
 		return nil, errors.Errorf("parameter %q must be an absolute path", checkoutRootPathParameter)

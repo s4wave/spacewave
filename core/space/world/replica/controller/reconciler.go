@@ -195,10 +195,10 @@ func (r *reconciler) freshBackfill(st *space_world.BackfillState) *space_world.B
 	return st
 }
 
-// proofAccepted reports whether the other node's proof names the desired
+// proofAccepted reports whether the other node's proof identifies the desired
 // owner on the stream and covers the World this Device has installed.
 func (r *reconciler) proofAccepted(ctx context.Context, be space_world.BackfillEngine, signed *space_world_replica.SignedSOReplicaProof) (bool, error) {
-	// Check who signed it and for what.
+	// Check who signed the proof and for which object.
 	spec := r.c.conf.GetSpec()
 	proof, err := signed.Verify(spec.GetSharedObjectId(), spec.GetDesiredOwnerPeerId(), r.c.remote.String())
 	if err != nil {

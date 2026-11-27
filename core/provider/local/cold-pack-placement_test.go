@@ -11,8 +11,9 @@ import (
 // TestPlacedColdPackFallback checks the placed read order and the boundary
 // that makes only legacy SQL reads write migration markers.
 func TestPlacedColdPackFallback(t *testing.T) {
-	// Keep the cold reader's bytes in memory; the fixture uses the real placed
-	// chains and write-back store, and an SQL stand-in for the legacy fallback.
+	// Keep the cold reader's bytes in memory. The fixture uses the real
+	// placed chains and write-back store, and an SQL stand-in for the
+	// legacy fallback.
 	f := newFallbackTest(t)
 	hot := newLeafStore()
 	cold := &countingStore{StoreOps: newLeafStore()}

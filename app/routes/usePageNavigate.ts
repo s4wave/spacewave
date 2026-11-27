@@ -5,7 +5,8 @@ import { useNavigate, type To } from '@s4wave/web/router/router.js'
 
 import { sessionPagePath } from './session-page-path.js'
 
-// usePageNavigate opens informational pages within the current session when present.
+// usePageNavigate opens informational pages within the current session when a
+// session is present.
 export function usePageNavigate(): (to: To) => void {
   const navigate = useNavigate()
   const sessionIndex = useSessionIndex()

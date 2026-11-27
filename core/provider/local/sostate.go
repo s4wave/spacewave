@@ -24,23 +24,25 @@ type SOStateRuns struct {
 	// inside its write transaction, until the transaction ends. Each load
 	// takes it alone and releases it at once, as a barrier.
 	Writes csync.RWMutex
-	// Reload restarts the mount so it loads the stored state; it is
+	// Reload restarts the mount so it loads the stored state. Reload is
 	// required. It is called when storage holds other bytes than the mount
-	// loaded or last wrote, or may: after a write fails its compare, after a
-	// failure that may have committed finds neither the write nor the state
-	// under it, and when such a failure's outcome cannot be read. The mount cannot write
-	// again until it reloads.
+	// loaded or last wrote, or may: after a write fails its compare, after
+	// a failure that may have committed finds neither the write nor the
+	// state under it, and when such a failure's outcome cannot be read. The
+	// mount cannot write again until it reloads.
 	Reload func()
 }
 
-// NewObjectStoreSOStateFuncs constructs a SOHostState backed by an object store and in-memory locks.
+// NewObjectStoreSOStateFuncs constructs a SOHostState backed by an object store
+// and in-memory locks.
 //
 // Each state write is a compare-and-set against the state this mount loaded
 // or last wrote: it fails with ErrStateChanged when another writer, such as
 // ReplaceSharedObjectState, changed the stored state since.
 // rctx is the context to use for looking up states from the object store.
-// localPeer binds private read checkpoints to the local participant; empty disables retention.
-// runs is shared by every run of the object's mount (SOStateRuns); a mount
+// localPeer binds private read checkpoints to the local participant. An empty
+// localPeer disables retention.
+// runs is shared by every run of the object's mount (SOStateRuns). A mount
 // with no other runs passes its own.
 // watchFn watches the committed state.
 func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStore, localPeer peer.ID, runs *SOStateRuns) (
@@ -92,15 +94,15 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 
 	// settle settles a write of token that failed with err, and returns nil
 	// when it committed anyway, err when it did not, or ErrStateWriteUnknown
-	// when storage cannot show which. ended reports that the transaction
-	// body finished, so the failure came at or after the commit; any earlier
-	// failure stored nothing. A failed compare read another writer's state
-	// as stored. A failure at the commit may have stored the write, so read
-	// the token key now: token means the write committed, and the state's
-	// token under it or none means it did not. Any other state may follow this
-	// write, so its outcome is unknown. The mount reloads whenever storage
-	// holds, or may hold, another state than the one it last wrote. The
-	// caller holds ent.writeMtx.
+	// when storage cannot show which. ended reports that the transaction body
+	// finished, so the failure came at or after the commit. Any earlier failure
+	// stored nothing. A failed compare read another writer's state as stored. A
+	// failure at the commit may have stored the write, so read the token key
+	// now: token means the write committed, and the state's token under it or
+	// none means it did not. Any other state may follow this write, so its
+	// outcome is unknown. The mount reloads whenever storage holds, or may
+	// hold, another state than the one it last wrote. The caller holds
+	// ent.writeMtx.
 	settle := func(sharedObjectID string, ent *soStateEntry, token []byte, ended bool, err error) error {
 		// A failure before the commit stored nothing.
 		if errors.Is(err, ErrStateChanged) {
@@ -131,7 +133,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 			)
 		}
 
-		// Settle from what it holds.
+		// Settle from what storage holds.
 		switch {
 		case rerr != nil:
 			runs.Reload()
@@ -235,11 +237,10 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 							return sobject.ErrSharedObjectNotFound
 						}
 
-						// A replaced object stays replaced. The write builds on the
-						// state this entry holds, so it commits only over its
-						// token. A replace commits between the mount's last write
-						// and its restart; a write in that window finds the new
-						// state and fails rather than writing the old lineage back,
+						// A replaced object stays replaced. The write builds on the state this
+						// entry holds, so it commits only over its token. A replace commits
+						// between the mount's last write and its restart. A write in that window
+						// finds the new state and fails rather than writing the old lineage back,
 						// and the mount reloads what storage holds.
 						if !bytes.Equal(stored, ent.token) {
 							return ErrStateChanged

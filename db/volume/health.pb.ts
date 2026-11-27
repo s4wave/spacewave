@@ -120,7 +120,8 @@ export interface VolumeHealth {
   liveValueBytes?: bigint
   /**
    * FreeDiskBytes is the space free to this process on the storage's file
-   * system. Zero when the storage cannot tell, which SizesKnown reports.
+   * system. Zero when the storage cannot tell. SizesKnown reports whether
+   * the storage can tell.
    */
   freeDiskBytes?: bigint
   /**

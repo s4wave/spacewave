@@ -15,8 +15,8 @@ import (
 // On buildFn error the sub-context is canceled automatically. On success the
 // sub-context lives until the resource is released or the client disconnects.
 // The releaseFn returned by buildFn runs before the sub-context is canceled
-// (user cleanup has a live context on explicit release; on client disconnect
-// the client context is already dead which is accepted as abnormal teardown).
+// (user cleanup has a live context on explicit release. On client disconnect
+// the client context is already dead, an accepted state for abnormal teardown).
 func ConstructChildResource[T any](
 	ctx context.Context,
 	buildFn func(subCtx context.Context) (mux srpc.Invoker, result T, releaseFn func(), err error),

@@ -6,8 +6,8 @@ export interface TextContent {
   // text is the file as the editor holds it: a byte order mark stays as
   // U+FEFF, and lines end in LF whatever the file uses.
   text: string
-  // crlf is set when every line of the file ends in CRLF; a save writes them
-  // back so.
+  // crlf is set when every line of the file ends in CRLF. A save writes the
+  // lines back with CRLF endings.
   crlf: boolean
   // preview says why the read is not the whole file as text: cut at the read
   // limit, not valid UTF-8 and decoded with replacements, or line endings the
@@ -22,7 +22,7 @@ export interface TextContent {
 /** TextPreview is why a read cannot be edited. */
 export type TextPreview = 'large' | 'encoding' | 'endings'
 
-// decoder keeps a byte order mark in the text, so it saves back.
+// decoder keeps a byte order mark in the text, so the mark saves back.
 const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const strictDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
 
@@ -44,7 +44,7 @@ export function decodeText(data: Uint8Array, cut: boolean): TextForm {
   }
 
   // The editor ends every line in LF, so only a file whose lines all end in
-  // LF, or all in CRLF, saves back unchanged; any other CR makes a preview.
+  // LF, or all in CRLF, saves back unchanged. Any other CR makes a preview.
   if (!text.includes('\r')) return { text, crlf: false, preview: null }
   const lf = text.replaceAll('\r\n', '\n')
   if (lf.includes('\r') || lf.replaceAll('\n', '\r\n') !== text) {
@@ -91,12 +91,12 @@ export function changeOf(
 
 /**
  * TextDraft is the person's edit of the file. The viewer holds it until
- * Discard edits or a save that lands; a read that runs again, fails, or
+ * Discard edits or a save that lands. A read that runs again, fails, or
  * brings another writer's text never replaces it.
  */
 export interface TextDraft {
   text: string
-  // from is what the draft started from; a plain Save expects its version.
+  // from is what the draft started from. A plain Save expects its version.
   from: TextContent
   // saving is the save in flight: a plain save, or Save over theirs.
   saving: 'save' | 'over' | null
@@ -113,10 +113,11 @@ export interface TextDraft {
 }
 
 /**
- * BackRead is the viewer's read after the store refused a plain save: it
- * learns what refused it. Read again runs it once more. Each read carries the
- * number the viewer gave it, and only its own result lands: a save that lands
- * ends the read, so a result taken before that save never shows over it.
+ * BackRead is the viewer's read after the store refused a plain save: the
+ * read learns what refused the save. Read again runs the read once more.
+ * Each read carries the number the viewer gave it, and only its own result
+ * lands: a save that lands ends the read, so a result taken before that save
+ * never shows over it.
  */
 export type BackRead =
   | { state: 'idle' }
@@ -131,7 +132,7 @@ export interface TextFileState {
   // saved.
   seen: TextContent | null
   // replaced lists the versions the last landed save replaced, until a read
-  // is taken. The file's own handle can still read them; such a read is from
+  // is taken. The file's own handle can still read them. Such a read is from
   // before the save.
   replaced: Uint8Array[]
   back: BackRead
@@ -174,12 +175,12 @@ function awaits(state: TextFileState, read: number): boolean {
 
 // land takes a read that is not stale. A whole read of the text the draft
 // started from changes nothing the draft holds, so the draft moves onto it and
-// takes the read's line endings, which the draft's LF text does not carry; a
-// preview's text is not the file's, so it never moves a draft. A save in
-// flight keeps the version it expected, so a refusal names that version. A
-// draft the store refused that moves so was refused for a change that left
-// its text alone. A read taken is past the last save, so the versions that
-// save replaced stop being stale; another writer may bring one back.
+// takes the read's line endings, which the draft's LF text does not carry. A
+// preview's text is not the file's, so the preview never moves a draft. A save
+// in flight keeps the version it expected, so a refusal records that version.
+// A refused draft that moves onto the read was refused for a change that left
+// the draft's text alone. A read taken is past the last save, so the versions
+// that save replaced stop being stale. Another writer may bring one back.
 function land(prev: TextFileState, content: TextContent): TextFileState {
   const state = { ...prev, replaced: [] }
   const { draft } = state
@@ -255,7 +256,7 @@ export function reduceTextFile(
       if (!draft?.saving) return state
       return { ...state, draft: { ...draft, saving: null, error: event.error } }
     case 'refused':
-      // The store refused a plain save on another writer's version; the
+      // The store refused a plain save on another writer's version, so the
       // viewer reads theirs back, and Save over theirs is offered meanwhile.
       if (draft?.saving !== 'save') return state
       return {
@@ -267,7 +268,7 @@ export function reduceTextFile(
       return { ...state, back: { state: 'reading', read: event.read } }
     case 'back-read':
       // Only the read the viewer waits for lands, and a read at the version
-      // the store refused is not it.
+      // the store refused is not the awaited read.
       if (!awaits(state, event.read)) return state
       if (stale(state, event.content)) {
         const error = 'the file still reads as the version your save expected'
@@ -286,7 +287,7 @@ export function reduceTextFile(
   }
 }
 
-/** TextFilePress names one press the viewer offers. */
+/** TextFilePress represents one press the viewer offers. */
 export type TextFilePress =
   | 'edit'
   | 'save'
@@ -333,14 +334,14 @@ export type TextFileView =
 /**
  * deriveTextFileView derives the view from the read and the viewer's state.
  * writable is false where the file cannot be written, such as a commit's
- * files; Edit then never shows.
+ * files. Edit then never shows.
  */
 export function deriveTextFileView(
   read: TextFileRead,
   state: TextFileState,
   writable: boolean,
 ): TextFileView {
-  // A draft is drawn whatever the read does; only a read after the draft
+  // A draft is drawn whatever the read does. Only a read after the draft
   // began can bring another writer's text.
   const { draft, back } = state
   if (draft) {
@@ -373,8 +374,8 @@ export function deriveTextFileView(
   }
 }
 
-// draftPresses lists a draft's presses: a running save holds its press alone;
-// a changed file offers Save over theirs in place of Save.
+// draftPresses lists a draft's presses: a running save holds its press alone,
+// and a changed file offers Save over theirs in place of Save.
 function draftPresses(
   draft: TextDraft,
   changed: TextChange | null,
@@ -382,8 +383,9 @@ function draftPresses(
   // A running save holds its press alone.
   if (draft.saving) return ['saving']
 
-  // Otherwise a save when dirty: over theirs when changed, else Save. Then
-  // the theirs toggle once their text is read, and Discard edits.
+  // Otherwise offer a save when the draft is dirty: over theirs when the
+  // file changed, else Save. Then offer the theirs toggle once the other
+  // writer's text is read, and Discard edits.
   const presses: TextFilePress[] = []
   if (draft.text !== draft.from.text)
     presses.push(changed ? 'saveover' : 'save')

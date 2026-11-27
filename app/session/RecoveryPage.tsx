@@ -25,7 +25,8 @@ type RecoveryStep = 'verifying' | 'form' | 'executing' | 'done'
 
 // parseRecoveryToken extracts the token query parameter from either the hash
 // route or the pathname query string for backward compatibility.
-// Strips the token from the URL immediately to prevent log/referrer exposure.
+// The function strips the token from the URL immediately to prevent
+// log/referrer exposure.
 function parseRecoveryToken(): string {
   const hash = window.location.hash
   const qIdx = hash.indexOf('?')
@@ -33,7 +34,7 @@ function parseRecoveryToken(): string {
     const params = new URLSearchParams(hash.slice(qIdx))
     const token = params.get('token')
     if (token) {
-      // Strip token from hash query string.
+      // Strip the token from the hash query string.
       params.delete('token')
       const remaining = params.toString()
       const newHash = hash.slice(0, qIdx) + (remaining ? '?' + remaining : '')
@@ -48,7 +49,7 @@ function parseRecoveryToken(): string {
   const searchParams = new URLSearchParams(window.location.search)
   const token = searchParams.get('token') ?? ''
   if (token) {
-    // Strip token from pathname query string.
+    // Strip the token from the pathname query string.
     searchParams.delete('token')
     const remaining = searchParams.toString()
     const newUrl =

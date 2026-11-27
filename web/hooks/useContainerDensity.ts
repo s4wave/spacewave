@@ -5,8 +5,9 @@ import { useCallback, useEffect, useState } from 'react'
 export type ContainerDensity = 'comfortable' | 'compact'
 
 // compactMaxWidth is the inline width, in CSS pixels, at or below which a
-// container adopts the compact tier. A pane narrower than this reads as small
-// regardless of the viewport, so a grid cell on a large display still compacts.
+// container adopts the compact tier. A pane narrower than this width reads as
+// small regardless of the viewport, so a grid cell on a large display still
+// compacts.
 export const compactMaxWidth = 384
 
 // ContainerDensityState is returned by useContainerDensity. Attach ref to the
@@ -22,8 +23,8 @@ export interface ContainerDensityState {
 // content should render at the comfortable or compact tier. Density follows the
 // element's own width through a ResizeObserver, never the viewport, so the same
 // overlay compacts inside a small pane and relaxes inside a large one. Before
-// the first measurement it reports comfortable to avoid flashing compact on a
-// wide pane.
+// the first measurement useContainerDensity reports comfortable to avoid
+// flashing compact on a wide pane.
 export function useContainerDensity(
   threshold = compactMaxWidth,
 ): ContainerDensityState {

@@ -43,7 +43,7 @@ func NewFilter(n uint, p float64) *Filter {
 
 // From constructs a runtime bloom filter from serialized words. It returns nil
 // for an empty filter, and ErrInconsistentBloom if the words hold fewer than m
-// bits, which a lookup would index past.
+// bits, because a lookup would index past the words.
 func From(words []uint64, m, k uint) (*Filter, error) {
 	// An empty filter is none, and one whose words are short of m is refused.
 	if len(words) == 0 || m == 0 || k == 0 {
@@ -60,7 +60,7 @@ func From(words []uint64, m, k uint) (*Filter, error) {
 }
 
 // NewBloom constructs a new bloom object from an existing bloom.
-// if input is nil, returns nil
+// If input is nil, returns nil.
 func NewBloom(bl *Filter) *BloomFilter {
 	if bl == nil {
 		return nil

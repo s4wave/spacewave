@@ -29,7 +29,8 @@ func TestWriterLogsLineLevel(t *testing.T) {
 		}
 	}
 
-	// Each line logs once, at the level it names or the fallback.
+	// Each line logs once, at the level the line specifies or the fallback
+	// level.
 	want := []struct {
 		level logrus.Level
 		msg   string

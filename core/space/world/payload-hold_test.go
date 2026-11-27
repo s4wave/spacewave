@@ -74,8 +74,9 @@ func TestPayloadHoldCoversUnappliedOps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Add the device's operations in one state change: n creates naming a
-	// payload each, an operation only the plugin resolves, and n more.
+	// Add the device's operations in one state change: n create
+	// operations referencing a payload each, an operation only the plugin
+	// resolves, and n more.
 	keys := []string{"plugin-object"}
 	ops := [][]byte{createOp(t, "plugin-object")}
 	for i := range 2 * n {
@@ -223,12 +224,12 @@ func (l *gatedOpPluginLoader) Close() error {
 	return nil
 }
 
-// TestForeignManifestBucketReplays stores a manifest whose ManifestRef names
-// a bucket no bucket on the bus has, once as the Space's own write and once
-// as another device's operation the Space replays, in the plain and the
-// authorized form. Each replayed write must reach the same stored root as
-// the local one, and neither may look the foreign bucket up: the World
-// cursor reads every ref from the Space's own store.
+// TestForeignManifestBucketReplays stores a manifest whose ManifestRef
+// references a bucket no bucket on the bus has, once as the Space's own write
+// and once as another device's operation the Space replays, in the plain and
+// the authorized form. Each replayed write must reach the same stored root as
+// the local one, and neither may look the foreign bucket up: the World cursor
+// reads every ref from the Space's own store.
 //
 // Both paths run on one engine, so both share one World bucket ID. Two
 // replicas whose own World bucket IDs differ are not covered.
@@ -242,8 +243,8 @@ func TestForeignManifestBucketReplays(t *testing.T) {
 	store := so.GetBlockStore()
 	dev := addDevice(t, so)
 
-	// Record every bucket lookup or bucket API directive naming the foreign
-	// bucket; resolve none.
+	// Record every bucket lookup or bucket API directive referencing the
+	// foreign bucket, and resolve none.
 	const foreign = "foreign-bucket"
 	var mtx sync.Mutex
 	var lookups int
@@ -357,9 +358,9 @@ func TestForeignManifestBucketReplays(t *testing.T) {
 // TestMissingTreePageWaits removes pages of a World tree from the Space's
 // store, then replays another device's operation that reads one: replay must
 // wait for the block as a gap, not refuse the operation, since another
-// replica with the page applies it. It covers the object tree, an IAVL tree,
-// read by a World operation, and the graph tree, an Okra tree, read by a
-// graph quad write. Both trees are those every Space World has.
+// replica with the page applies it. The test covers the object tree, an IAVL
+// tree, read by a World operation, and the graph tree, an Okra tree, read by
+// a graph quad write. Both trees are those every Space World has.
 func TestMissingTreePageWaits(t *testing.T) {
 	cases := []struct {
 		name string
@@ -446,12 +447,13 @@ func TestMissingTreePageWaits(t *testing.T) {
 
 // runMissingTreePage fills both World trees past the Space's page bound, so
 // the replay cursor save stores the head's pages, removes the pages pages
-// names from the Space's store, and remounts, so the World reads them from
+// returns from the Space's store, and remounts, so the World reads them from
 // the store and not from the pages the adapter kept in memory, as after a
 // reload. It then replays the operation pages returns from another device,
 // checks that replay waits on the gap, and puts the pages back: replay must
-// then catch up with the operation's write, as applied reports, which shows
-// the wait was for those pages and that it ends once they return.
+// then catch up with the operation's write, as applied reports. The
+// successful replay shows the wait was for those pages and that the wait ends
+// once the pages return.
 func runMissingTreePage(
 	t *testing.T,
 	pages func(t *testing.T, w *world_block.World, keys []string) ([]*block.BlockRef, []byte),
@@ -549,8 +551,8 @@ func runMissingTreePage(
 
 	// Evict the pages from the Volume, which leaves holes as a writeback
 	// cache's eviction does while its backend is out of reach, so a read
-	// misses; the Space store's RmBlock only releases a hold. Then remount,
-	// as a reload does.
+	// misses. The Space store's RmBlock only releases a hold. Then
+	// remount, as a reload does.
 	for _, ref := range refs {
 		if err := f.volume.RmBlock(ctx, ref); err != nil {
 			t.Fatal(err)

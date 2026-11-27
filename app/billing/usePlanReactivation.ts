@@ -23,8 +23,8 @@ function clearAutoReactivateIntent(
 
 // usePlanReactivation reactivates the billing account's subscription, sending
 // the viewer through Stripe checkout when the subscription needs one. When the
-// page loads with the reactivate intent and canReactivate holds, it starts the
-// reactivation once and clears the intent from the path.
+// page loads with the reactivate intent and canReactivate holds, the hook
+// starts the reactivation once and clears the intent from the path.
 export function usePlanReactivation(canReactivate: boolean) {
   const session = SessionContext.useContext().value
   const billingState = useBillingStateContext()

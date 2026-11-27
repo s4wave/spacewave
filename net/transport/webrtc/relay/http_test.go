@@ -34,7 +34,7 @@ func TestHandlerServesSession(t *testing.T) {
 	}
 	session := p.GetPeerID()
 
-	// The session cookie names the peer; the issuer fails on request.
+	// The session cookie identifies the peer. The issuer fails on request.
 	var issuedFor peer.ID
 	var fail bool
 	issuer := issuerFunc(func(_ context.Context, s peer.ID) (*webrtc_relay.Credentials, error) {

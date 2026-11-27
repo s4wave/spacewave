@@ -9,7 +9,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
-// swapCandidate names the manifest a swap state moves to and when the
+// swapCandidate records the manifest a swap state moves to and when the
 // scheduler began preparing it.
 type swapCandidate struct {
 	ref       string
@@ -17,7 +17,7 @@ type swapCandidate struct {
 	startedAt *timestamp.Timestamp
 }
 
-// newSwapCandidate names the manifest args selects, starting now.
+// newSwapCandidate records the manifest args selects, starting now.
 func newSwapCandidate(args *executePluginArgs) swapCandidate {
 	return swapCandidate{
 		ref:       manifestSnapshotRefString(args.manifestSnapshot),
@@ -99,11 +99,12 @@ func (t *pluginInstance) setSwapSettled(ctx context.Context, admittedAt time.Tim
 }
 
 // setSwapRetry records when the execute routine retries a failed candidate.
-// It takes no pass context and needs none: the routine draws delay, and calls
-// this, under its own lock and only while the failed pass's context is still
-// the routine's context and the pass is still its current routine. SetState
-// stops the old pass and starts the next under the same lock, so once a newer
-// pass has started the draw is skipped and this never runs for the old pass.
+// It takes no pass context and needs none: the routine draws the delay and
+// calls setSwapRetry under its own lock and only while the failed pass's
+// context is still the routine's context and the pass is still its current
+// routine. SetState stops the old pass and starts the next under the same
+// lock, so once a newer pass has started the draw is skipped and setSwapRetry
+// never runs for the old pass.
 func (t *pluginInstance) setSwapRetry(delay time.Duration) {
 	if delay == cbackoff.Stop {
 		return
@@ -122,7 +123,7 @@ func (t *pluginInstance) setSwapRetry(delay time.Duration) {
 // awaiting approval or failed for a candidate no longer selected, or settled
 // for a worker since cleared. The caller holds pluginUpdateMtx, under which
 // the selection and the admitted worker change, so no pass starts between the
-// check and the write; the canceled pass's own late writes are dropped by
+// check and the write. The canceled pass's own late writes are dropped by
 // setSwap.
 func (t *pluginInstance) clearReleasedSwapLocked() {
 	if t.executePluginRoutine.GetState() != nil || t.activeExecution != nil {

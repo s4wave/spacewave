@@ -7,8 +7,8 @@ interface NavigatePathProps {
 }
 
 /**
- * NavigatePath component that performs navigation when mounted
- * or when the "to" prop changes
+ * NavigatePath navigates when mounted
+ * or when the "to" prop changes.
  */
 export function NavigatePath({ to, replace }: NavigatePathProps) {
   const navigate = useNavigate()

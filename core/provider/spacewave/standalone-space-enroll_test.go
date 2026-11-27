@@ -210,7 +210,7 @@ func TestSessionClientEnrollSpacePeer(t *testing.T) {
 		t.Fatal("expected changed")
 	}
 
-	// The posted config change names the target peer.
+	// The posted config change lists the target peer.
 	if posted == nil {
 		t.Fatal("expected config-state write")
 	}

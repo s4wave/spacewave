@@ -17,11 +17,11 @@ import (
 // resolv.conf is pointed at the stack's DNS proxy (the gateway), which resolves
 // via the host resolver.
 //
-// apt exit 0 is required. The guest v86fs kernel driver now owns new inodes by
-// the creating task (inode_init_owner on create/mkdir/symlink), so apt's _apt
-// download sandbox can fchmod its own cache temp files instead of getting EPERM
-// from setattr_prepare. A recurrence of "fchmod (1: Operation not permitted)" is
-// a driver regression and fails the test.
+// apt exit 0 is required. The guest v86fs kernel driver assigns ownership of
+// new inodes to the creating task (inode_init_owner on create/mkdir/symlink),
+// so apt's _apt download sandbox can fchmod its own cache temp files instead of
+// getting EPERM from setattr_prepare. A recurrence of "fchmod (1: Operation not
+// permitted)" is a driver regression and fails the test.
 func TestV86WazeroAptOverNet(t *testing.T) {
 	// Require the enabled apt integration fixture before booting the guest.
 	if !runV86AptTest() {
@@ -74,8 +74,9 @@ func TestV86WazeroAptOverNet(t *testing.T) {
 	if err := instance.InitCPU(ctx, HostBootOptions{
 		BIOS:    bios,
 		VGABIOS: vgaBIOS,
-		// apt's package-list parser needs more than the default 64 MiB guest
-		// envelope after kernel reservations; keep this scoped to the apt proof.
+		// apt's package-list parser needs more than the default 64 MiB
+		// guest envelope after kernel reservations. Keep this memory
+		// size scoped to the apt proof.
 		MemorySize:  128 * 1024 * 1024,
 		Kernel:      kernel,
 		V86FSServer: v86fsServer,
@@ -97,9 +98,10 @@ func TestV86WazeroAptOverNet(t *testing.T) {
 		"ip addr show dev eth0 | grep -q '10.0.2.15/24' || ip addr add 10.0.2.15/24 dev eth0",
 		"ip link set eth0 up",
 		"ip route replace default via 10.0.2.2",
-		// Point the guest at the stack's DNS proxy (the gateway), which resolves
-		// via the host resolver. Older images shipped public DNS servers here, so
-		// keep the setup idempotent across rootfs revisions.
+		// Point the guest at the stack's DNS proxy (the gateway), which
+		// resolves via the host resolver. Older images contain public
+		// DNS servers here, so keep the setup idempotent across rootfs
+		// revisions.
 		"printf 'nameserver 10.0.2.2\\n' > /etc/resolv.conf",
 	} {
 		// Run the guest network setup command within its deadline.
@@ -115,8 +117,9 @@ func TestV86WazeroAptOverNet(t *testing.T) {
 	aptCtx, aptCancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer aptCancel()
 
-	// The verifier needs the signed package index fetched and stored over the
-	// usermode network; translation indexes only add time and memory pressure.
+	// The verifier needs the signed package index fetched and stored over
+	// the usermode network. Translation indexes only add time and memory
+	// pressure.
 	serial, err := runShellCommand(aptCtx, instance, "TERM=dumb apt-get -o Acquire::Languages=none -o Dpkg::Progress-Fancy=0 -o APT::Color=0 update; echo APT_RC=$?")
 	if err != nil {
 		t.Fatalf("run apt update: %v; serial=%q", err, serial)
@@ -145,10 +148,11 @@ func TestV86WazeroAptOverNet(t *testing.T) {
 		t.Fatalf("apt update did not complete a fetch (no Fetched summary); serial=%q", serial)
 	}
 
-	// The guest v86fs driver now owns new inodes by the creating task, so apt's
-	// _apt sandbox must not get EPERM fchmodding its own cache temp files. A
-	// recurrence is a driver regression, checked before the exit code so the
-	// failure names the root cause.
+	// The guest v86fs driver now assigns ownership of new inodes to the
+	// creating task, so apt's _apt sandbox must not get EPERM fchmodding
+	// its own cache temp files. A recurrence is a driver regression,
+	// checked before the exit code so the failure identifies the root
+	// cause.
 	if strings.Contains(serial, "fchmod") && strings.Contains(serial, "Operation not permitted") {
 		t.Fatalf("apt update hit the v86fs fchmod EPERM gap that inode_init_owner should fix; serial=%q", serial)
 	}

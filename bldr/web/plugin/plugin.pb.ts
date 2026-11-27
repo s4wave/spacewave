@@ -46,12 +46,14 @@ export const DesktopPresenceState_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface OpenOrFocusDesktopRequest {
   /**
-   * Route is an optional in-app route; empty opens or focuses the main window.
+   * Route is an optional in-app route. An empty route opens or focuses the main
+   * window.
    */
   route?: string
   /**
    * InstalledApp is the application bundle that requested the desktop.
-   * Desktop app updates replace this bundle; empty when not launched from one.
+   * Desktop app updates replace this bundle. InstalledApp is empty when not
+   * launched from a bundle.
    */
   installedApp?: string
 }
@@ -112,7 +114,8 @@ export interface WatchDesktopPresenceResponse {
    */
   state?: DesktopPresenceState
   /**
-   * Error describes a failed shell exit; empty on a normal end or while active.
+   * Error describes a failed shell exit. Error is empty on a normal end or
+   * while the shell is active.
    */
   error?: string
 }
@@ -138,7 +141,7 @@ export interface HandleWebViewViaPluginRequest {
   handlePluginId?: string
   /**
    * WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
-   * If empty, will forward any.
+   * If empty, the web plugin forwards any web view ID.
    */
   webViewIdRe?: string
 }
@@ -189,14 +192,14 @@ export interface HandleWebPkgViaPluginRequest {
   webPkgIdRe?: string
   /**
    * WebPkgIdPrefixes is a list of web pkg id prefixes to match.
-   * If the value is in this list, overrides web_pkg_id_re.
+   * A value in this list overrides web_pkg_id_re.
    * Set to '.*' or empty to match all web pkgs ids.
    */
   webPkgIdPrefixes?: string[]
   /**
    * WebPkgIdList is a list of web pkg IDs to resolve.
-   * If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
-   * Ignored if empty.
+   * A value in this list overrides web_pkg_id_re and web_pkg_id_prefixes.
+   * The list is ignored if empty.
    */
   webPkgIdList?: string[]
 }
@@ -244,17 +247,17 @@ export interface HandleRpcViaPluginRequest {
   handlePluginId?: string
   /**
    * ServiceIdRe is the regex of service IDs to forward.
-   * If empty, will forward any.
+   * If empty, the web plugin forwards any service ID.
    */
   serviceIdRe?: string
   /**
    * ServerIdRe is the regex of server IDs to forward for.
-   * If empty, will forward any.
+   * If empty, the web plugin forwards for any server ID.
    */
   serverIdRe?: string
   /**
    * Backoff is the backoff config for calling the RPC service.
-   * If unset, defaults to reasonable defaults.
+   * Backoff uses reasonable defaults when unset.
    */
   backoff?: Backoff
 }
@@ -344,7 +347,7 @@ export interface HandleWebPkgsViaPluginAssetsRequest {
   webPkgsPath?: string
   /**
    * WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
-   * Must be at least one web pkg listed.
+   * The list must contain at least one web pkg.
    */
   webPkgIdList?: string[]
 }

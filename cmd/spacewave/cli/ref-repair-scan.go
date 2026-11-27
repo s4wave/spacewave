@@ -13,21 +13,22 @@ import (
 
 // refRepairScan counts what a walk that scans found, as refwalk.ScanHits
 // reads refs from bytes without their type. Its first half measures the scan
-// against the types on the blocks the walk decodes; its second half compares
+// against the types on the blocks the walk decodes. Its second half compares
 // the scan with the stored lists of the blocks the walk has no type for.
 type refRepairScan struct {
 	// on reports that the walk scanned.
 	on bool
-	// typed is the number of blocks decoded by type and scanned beside it,
-	// and typedRefs the number of refs their types name.
+	// typed is the number of blocks decoded by type and scanned alongside
+	// that decoding, and typedRefs the number of refs their types
+	// declare.
 	typed, typedRefs uint64
 	// missed counts the typed blocks holding a ref the scan did not find, by
 	// type, and missedRefs those refs.
 	missed     map[string]refRepairFront
 	missedRefs uint64
 	// extra is the number of hashes the scan found in typed blocks outside
-	// their typed refs, and extraStored those naming a stored block, by the
-	// block's type and the hash's field.
+	// their typed refs, and extraStored those referencing a stored block, by
+	// the block's type and the hash's field.
 	extra       uint64
 	extraStored map[string]refRepairFront
 	// shapes outlines up to refRepairScanShapes blocks with a missed ref.
@@ -66,8 +67,8 @@ type refRepairScan struct {
 	knownByList refRepairFront
 	// knownByPeer counts hashes outside the list that only the peer knows.
 	knownByPeer refRepairFront
-	// unseen counts the scanned blocks whose stored list names a child their
-	// bytes do not, and unseenRefs those children.
+	// unseen counts the scanned blocks whose stored list references a child
+	// their bytes do not, and unseenRefs those children.
 	unseen     refRepairFront
 	unseenRefs uint64
 	// strangers counts hashes outside the scanned block's list that neither
@@ -79,7 +80,7 @@ type refRepairScan struct {
 	// failed holds the scanned refs the scan could not verify, with why.
 	failed map[string]string
 	// front counts the front's entries by what a walk whose scan verified
-	// would do with each, as scanFate names it.
+	// would do with each, as scanFate describes.
 	front map[string]uint64
 	// weak holds each known block that bytes name outside a list, by ref,
 	// with where the first such hash sits, and weakRefs those blocks in the
@@ -126,11 +127,12 @@ func (s *refRepairScan) noteWeak(ref *block.BlockRef, where string) {
 	s.weakRefs = append(s.weakRefs, ref)
 }
 
-// measureWeak counts the weak blocks no named root reaches through the
-// stored lists: the blocks a free would delete while bytes still name them.
+// measureWeak counts the weak blocks no named root reaches through the stored
+// lists: the blocks a free would delete while bytes still reference them.
 func (s *refRepairScan) measureWeak(reach *block_gc.RootReach) {
 	for _, ref := range s.weakRefs {
-		// Count a block no root reaches under the field that names it.
+		// Count a block no root reaches under the field that references the
+		// block.
 		if reach.Root(ref) != nil {
 			continue
 		}
@@ -141,7 +143,7 @@ func (s *refRepairScan) measureWeak(reach *block_gc.RootReach) {
 	}
 }
 
-// scanFate names what a walk whose scan verified would do with a front
+// scanFate describes what a walk whose scan verified would do with a front
 // entry: verify it from its type or from its scan, leave it for the cause
 // that kept it from reading, or never reach it. root is the first named root
 // whose stored lists reach the entry, when roots says the run looked.
@@ -173,7 +175,7 @@ func (r *refRepair) scanFate(ref *block.BlockRef, root *block_gc.FrontRoot, root
 const refRepairScanShapes = 6
 
 // visitTyped counts how the scan of a block decoded by type compares with
-// the refs its type names.
+// the refs its type declares.
 func (r *refRepair) visitTyped(ctx context.Context, rd refwalk.Visit) error {
 	// Count the block and the typed refs the scan missed.
 	s := &r.res.scan
@@ -194,7 +196,7 @@ func (r *refRepair) visitTyped(ctx context.Context, rd refwalk.Visit) error {
 		}
 	}
 
-	// Count the hashes outside the typed refs, and those naming a block.
+	// Count the hashes outside the typed refs, and those referencing a block.
 	for _, hit := range rd.ScanExtra {
 		s.extra++
 		stored, err := r.vol.GetBlockExists(ctx, hit.Ref)
@@ -372,7 +374,7 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 		s.short.add(ref)
 	}
 
-	// Count the children the list names and the bytes do not.
+	// Count the children the list references and the bytes do not.
 	var unseen uint64
 	for key := range listed {
 		if _, ok := scanned[key]; !ok {
@@ -392,9 +394,10 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 }
 
 // looseFields returns the report rows of the weak blocks no named root
-// reaches, in all and by the field that names them.
+// reaches, in all and by the field that references them.
 func (s *refRepairScan) looseFields() [][2]string {
-	// Total them, then list each field with its first block.
+	// Total the unreachable weak blocks, then list each field with its first
+	// block.
 	var loose uint64
 	for _, at := range s.loose {
 		loose += at.count
@@ -411,7 +414,7 @@ func (s *refRepairScan) looseFields() [][2]string {
 }
 
 // scanFields returns the report rows of a walk that scanned. rooted says the
-// run also walked from the named roots, which is what counts the weak blocks
+// run also walked from the named roots. That walk counts the weak blocks
 // no root reaches.
 func scanFields(s refRepairScan, rooted bool) [][2]string {
 	// Measure the scan against the types.

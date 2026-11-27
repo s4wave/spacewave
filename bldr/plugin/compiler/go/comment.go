@@ -192,7 +192,7 @@ func FindTagCommentsWithTypes[T any](
 // Returns the merged list of shell args.
 // Returns if the tag was found in any of the comments.
 // Ignores any comments without the prefix.
-// This allows for multi-line shell-style arguments in comments to be combined.
+// The merged list combines multi-line shell-style arguments in comments.
 func CombineShellComments(tag string, comments []string) ([]string, bool, error) {
 	// Split each tagged comment into shell args.
 	var tagFound bool

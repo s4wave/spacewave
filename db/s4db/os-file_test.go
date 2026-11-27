@@ -86,8 +86,8 @@ func TestStats(t *testing.T) {
 		}
 	}
 
-	// Two entries live, one dead, headers included; three values written and
-	// one freed in family a.
+	// Two entries live, one dead, headers included. Three values written
+	// and one freed in family a.
 	s, err := db.Stats(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +127,7 @@ func TestWriteSuperFollowsPublisher(t *testing.T) {
 		t.Fatalf("after an older write: %+v, %v", order, err)
 	}
 
-	// A newer one follows the generation and becomes this handle's.
+	// A newer superblock follows the generation and becomes this handle's.
 	newer := planted
 	newer.seq = 60
 	if err := db.writeSuper(newer); err != nil {

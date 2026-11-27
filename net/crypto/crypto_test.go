@@ -49,7 +49,7 @@ func TestMarshalUnmarshalEd25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Marshal and unmarshal public key.
+	// Marshal and unmarshal the public key.
 	pubBytes, err := MarshalPublicKey(pub)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestMarshalUnmarshalEd25519(t *testing.T) {
 		t.Fatal("public keys not equal after marshal/unmarshal")
 	}
 
-	// Marshal and unmarshal private key.
+	// Marshal and unmarshal the private key.
 	privBytes, err := MarshalPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +75,8 @@ func TestMarshalUnmarshalEd25519(t *testing.T) {
 		t.Fatal("private keys not equal after marshal/unmarshal")
 	}
 
-	// Cross-verify: sign with original, verify with unmarshaled.
+	// Cross-verify: sign with the original private key, verify with the
+	// unmarshaled public key.
 	msg := []byte("cross verify")
 	sig, err := priv.Sign(msg)
 	if err != nil {

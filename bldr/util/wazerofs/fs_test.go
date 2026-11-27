@@ -16,10 +16,10 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
-// testFileContent stores the expected content for the test file
+// testFileContent stores the expected content for the test file.
 const testFileContent = "hello world test content"
 
-// jsScript stores the JavaScript code to run in the QuickJS VM
+// jsScript stores the JavaScript code to run in the QuickJS VM.
 const jsScript = `
 console.log("hello world from quickjs");
 
@@ -77,7 +77,8 @@ func TestWazeroFS(t *testing.T) {
 	// Create the wazero fs adapter
 	wazeroFs := NewFS(ctx, fsh, nil)
 
-	// Combine the above into our baseline config, overriding defaults.
+	// Combine the runtime settings into the baseline config, overriding
+	// defaults.
 	// By default, I/O streams are discarded and there's no file system.
 	config := wazero.NewModuleConfig().
 		WithName("").
@@ -90,11 +91,11 @@ func TestWazeroFS(t *testing.T) {
 	_ = wazeroFs
 
 	// Instantiate WASI, which implements system call APIs.
-	// This is required for the Wasm module to print to the console.
+	// WASI is required for the Wasm module to print to the console.
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
 	// Instantiate the Wasm module.
-	// This will automatically run the "_start" function of the module.
+	// Instantiation automatically runs the "_start" function of the module.
 	mod, err := r.InstantiateWithConfig(
 		ctx,
 		quickjs_wasi.QuickJSWASM,

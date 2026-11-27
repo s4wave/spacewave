@@ -15,7 +15,7 @@ import (
 
 // peerReadWait is the default bound of a read from peers. Without a peer
 // session the solicit store waits for one indefinitely, so a block every other
-// tier lacks would hang its reader; past the bound the read fails with
+// tier lacks would hang its reader. Past the bound the read fails with
 // block.ErrUnavailable. A read from a store that measures each read's progress
 // ends only once the bound passes with nothing arriving toward it, as
 // stallBound describes: on a slow link a peer's answers queue behind each other
@@ -33,7 +33,7 @@ const (
 // peerReadBound is the bound of a read from peers, SetPeerReadWait's value.
 var peerReadBound atomic.Int64
 
-// SetPeerReadWait bounds each read from peers, from the next read on; zero or
+// SetPeerReadWait bounds each read from peers, from the next read on. Zero or
 // less restores peerReadWait. Within the bound a failed read, such as one the
 // peer answered with an error because a tier of its own was away, asks again
 // after a pause that backs off to peerReadPauseMax, and a read with no peer
@@ -301,10 +301,10 @@ type progressStore interface {
 
 // stallBound ends a read from a progressStore once limit passes with no byte
 // arriving toward it. Each check compares the read's progress with the count
-// the check before saw, and waits limit again while it grew. Progress counts
-// the bytes of the answers queued ahead of the read's own in a peer's session,
-// so the read outlasts the bound while its answer moves forward. A read a peer
-// refused counts nothing more, so it ends at its next check.
+// the check before saw, and waits limit again while the count grew. Progress
+// counts the bytes of the answers queued ahead of the read's own in a peer's
+// session, so the read outlasts the bound while its answer moves forward. A
+// read a peer refused counts nothing more, so it ends at its next check.
 type stallBound struct {
 	// ctx is the bounded context, and cancel ends it.
 	ctx    context.Context
@@ -417,9 +417,10 @@ func (c *peerReadCounts) recordRemembered() {
 }
 
 // GetBlockExists reports every block missing. Peers are a read source only:
-// existence is a question about the stores this placement holds, and a write
-// or a copy that asks it must never wait on, or fail with, a peer exchange.
-// This is the answer returningPeers gives while the peers are away.
+// existence is a question about the stores this placement holds, and a write or
+// a copy that asks it must never wait on, or fail with, a peer exchange. The
+// missing-block answer is the answer returningPeers gives while the peers are
+// away.
 func (p *peerMissLog) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
 	return false, nil
 }
@@ -441,11 +442,11 @@ func (p *peerMissLog) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 
 // peerReadErr reports a peer read of ref that failed or outlived its bound
 // readCtx, while the caller's ctx is still live, as block.ErrUnavailable
-// naming ref, so the reader learns which block no peer served. A read that
-// outlived its bound keeps its last failure as text only: the failure is often
-// the bound's own deadline or cancellation, which must not read as the
+// identifying ref, so the reader learns which block no peer served. A read
+// that outlived its bound keeps its last failure as text only: the failure is
+// often the bound's own deadline or cancellation, which must not read as the
 // caller's. An error that already is block.ErrUnavailable comes from the peer
-// store, which names the block.
+// store and identifies the block.
 func peerReadErr(ctx, readCtx context.Context, ref *block.BlockRef, err error) error {
 	switch {
 	case err == nil, ctx.Err() != nil:
@@ -475,7 +476,7 @@ func (p *peerMissLog) logMiss(ref *block.BlockRef) {
 	m.n, m.last = 0, now
 	m.mtx.Unlock()
 
-	// Report it with the latest ref.
+	// Report the count with the latest ref.
 	p.le.WithField("ref", ref.MarshalString()).WithField("misses", n).
 		Warn("blocks missing from the local store, the backend and the fallback; asking peers")
 }

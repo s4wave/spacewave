@@ -136,7 +136,7 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 	}
 
 	// Run the first pass and check it recorded one state and expects no
-	// other.
+	// other pass.
 	next, err := store.Reclaim(ctx, fence, live)
 	if err != nil {
 		t.Fatal(err)

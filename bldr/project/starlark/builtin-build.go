@@ -89,7 +89,7 @@ func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, 
 
 // parseManifestOverrides parses a starlark.IterableMapping of manifest ids to
 // inner-config dicts into a map of ControllerConfig protos. Each value is the
-// builder config payload (e.g. =dist_compiler_config(embedManifests=[...])=);
+// builder config payload (e.g. =dist_compiler_config(embedManifests=[...])=).
 // valueToJSON encodes it and the bytes become =ControllerConfig.Config=. The
 // override's id is deliberately left empty because the manifest's declared
 // builder id wins at apply time (see project/controller/manifest-builder.go).

@@ -43,8 +43,8 @@ export function useNoteWrite({
   const [savedContent, setSavedContent] = useState<string | null>(null)
   const skipNextSourceBlurSave = useRef(false)
   const content = savedContent ?? loadedContent
-  // Full note text of the last completed write or initial load. Editor
-  // updates that re-export this text are not edits.
+  // lastSettledContent holds the full note text of the last completed write
+  // or initial load. Editor updates that re-export this text are not edits.
   const lastSettledContent = useLatestRef(content)
   const parsedNote = useMemo(() => {
     if (!content || noteFormat !== 'markdown') return null
@@ -136,7 +136,8 @@ export function useNoteWrite({
     [noteFormat, rawMetadata, lastSettledContent],
   )
 
-  // WYSIWYG save: re-assemble format metadata + exported body, then write.
+  // Reassemble format metadata and the exported body for a WYSIWYG save,
+  // then write.
   const handleWysiwygSave = useCallback(
     async (body: string) => {
       const full =

@@ -8,7 +8,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// skipInterfacePrefixes names the container and bridge interfaces native
+// skipInterfacePrefixes lists the container and bridge interfaces native
 // gathering skips by default.
 var skipInterfacePrefixes = []string{"docker", "veth", "br-"}
 

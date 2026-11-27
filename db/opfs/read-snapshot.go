@@ -119,7 +119,7 @@ func (BrowserDriver) readSnapshotAt(snapshot *ReadSnapshot, p []byte, off int64)
 		return snapshot.readAtWithTinyGoImport(p, off)
 	}
 
-	// Reuse the retained File for whole reads; slice only a partial range.
+	// Reuse the retained File for whole reads, but slice only a partial range.
 	blob := snapshot.handle
 	if off != 0 || int64(len(p)) != snapshot.size {
 		blob = jsutil.Call(blob, "slice", off, off+int64(len(p)))

@@ -8,7 +8,7 @@ import (
 
 // PackStoreOptions configures a PackStore.
 type PackStoreOptions struct {
-	// Pricing is the price list of the service holding the bucket; nil uses
+	// Pricing is the price list of the service holding the bucket. nil uses
 	// PricingForEndpoint for a *Client and the Amazon S3 prices otherwise.
 	Pricing *Pricing
 	// KeepPacks stops compaction and reclaim, so the store only ever adds
@@ -19,18 +19,18 @@ type PackStoreOptions struct {
 	// DefaultRefreshInterval.
 	RefreshInterval time.Duration
 	// Index is a local KV store for the entry cache and the block location
-	// index; nil keeps neither. The store owns every key in it, so pass a
+	// index. nil keeps neither. The store owns every key in it, so pass a
 	// prefixed view.
 	//
 	// With it, a start reads the index's pack table and the entries of its
 	// unindexed packs, and lists the bucket in the background, unless
-	// SoleWriter is set, reading only the entries the table does not name. A
-	// lookup reads the entry of the pack the
-	// index places its block in from the index, so a start never reads every
-	// entry. A background routine indexes the listed packs: one read of the end
-	// of each pack and a few short write transactions, with a pause between
-	// them. It takes no lock a read waits on. Until a pack is indexed, lookups
-	// test its bloom filter as without the index.
+	// SoleWriter is set, reading only the entries the table does not list.
+	// A lookup reads the entry of the pack the index places its block in
+	// from the index, so a start never reads every entry. A background
+	// routine indexes the listed packs: one read of the end of each pack
+	// and a few short write transactions, with a pause between them. It
+	// takes no lock a read waits on. Until a pack is indexed, lookups test
+	// its bloom filter as without the index.
 	Index kvtx.Store
 	// ExactReads makes a block miss fetch only the block's bytes from its
 	// pack. False uses the pack reader's adaptive window, which suits HTTP
@@ -43,11 +43,12 @@ type PackStoreOptions struct {
 	// smaller than this many bytes while the merged packfile fits one upload
 	// batch, and deletes the packfile it replaces, even with KeepPacks set.
 	MergeTailBytes int64
-	// MaxPackBytes bounds one packfile a batch writes; zero uses
-	// writer.DefaultMaxPackBytes. A batch's block bytes are bounded by half of
-	// it and its block count in proportion to it, as for the default. Larger
-	// packs mean fewer objects and index rows, and each upload holds about
-	// three copies of its blocks in memory. Readers take a pack of any size.
+	// MaxPackBytes bounds one packfile a batch writes. Zero uses
+	// writer.DefaultMaxPackBytes. A batch's block bytes are bounded by half
+	// of it and its block count in proportion to it, as for the default
+	// limit. Larger packs mean fewer objects and index rows, and each
+	// upload holds about three copies of its blocks in memory. Readers take
+	// a pack of any size.
 	MaxPackBytes int64
 	// ReadCache serves block extents before the bucket. Nil reads the bucket.
 	ReadCache RangeCache

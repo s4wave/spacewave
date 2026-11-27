@@ -16,7 +16,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * BuilderConfig contains common config for the manifest builder.
-   * Overridden by the project controller.
+   * The project controller overrides BuilderConfig.
    */
   builderConfig?: BuilderConfig
   /**
@@ -26,7 +26,7 @@ export interface Config {
   controllerConfig?: ControllerConfig
   /**
    * BuildBackoff is the backoff config for building manifests.
-   * If unset, defaults to reasonable defaults.
+   * If unset, BuildBackoff uses the default backoff configuration.
    */
   buildBackoff?: Backoff
   /**

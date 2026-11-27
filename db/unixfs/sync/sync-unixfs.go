@@ -12,7 +12,7 @@ import (
 //
 // Attempts to skip files by checking size and modification time.
 // The output path does not have to be empty when starting.
-// Directories, regular files, and symlinks are supported; other node types
+// Directories, regular files, and symlinks are supported. Other node types
 // (FIFO, device, socket, etc.) are still skipped.
 func SyncToUnixfs(
 	ctx context.Context,

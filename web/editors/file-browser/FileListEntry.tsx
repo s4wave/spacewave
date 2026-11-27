@@ -149,7 +149,7 @@ function useEntryDrag(
     [entry, onEntryDragLeave],
   )
 
-  // Drop onto this entry only when the caller accepts it.
+  // Drop onto this entry only when the caller accepts the drop.
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       if (!onEntryDragOver?.(entry, e)) return
@@ -285,11 +285,12 @@ function FileEntryRow({
     onEntryDrop,
   })
 
-  // Read the entry's date and size from the list; the cells show a dash until
+  // Read the entry's date and size from the list. The cells show a dash until
   // they arrive, and a list without details draws no Date or Size cells.
   const details = entryDetails?.get(entry.id)
 
-  // Draw the icon and name in the name cell unless the caller renders it.
+  // Draw the icon and name in the name cell unless the caller renders the
+  // content.
   const defaultNode = (
     <FileEntryName
       entry={entry}

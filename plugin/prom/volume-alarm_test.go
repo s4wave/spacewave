@@ -43,7 +43,7 @@ const alarmTargetKey = "prom/target/device"
 
 // TestVolumeAlarmGCStuck holds a real adoption in its mark, scrapes the
 // process metrics into a device target, and checks that the stuck collection
-// Alarm fires naming the volume through PromQL and the alarm watch, then
+// Alarm fires identifying the volume through PromQL and the alarm watch, then
 // clears once the adoption ends.
 func TestVolumeAlarmGCStuck(t *testing.T) {
 	// Start the World and a volume on a store that can hold an adoption.
@@ -96,7 +96,7 @@ func TestVolumeAlarmGCStuck(t *testing.T) {
 
 // TestVolumeAlarmReserve scrapes a volume's free disk falling toward its
 // reserve over half an hour, and checks that the forecast Alarm fires after
-// its hold naming the hours left, and that the refusing writes Alarm fires
+// its hold reporting the hours left, and that the refusing writes Alarm fires
 // once the volume reaches its reserve.
 func TestVolumeAlarmReserve(t *testing.T) {
 	// Start the World and a volume with ample free disk.

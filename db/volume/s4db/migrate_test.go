@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// holderPathEnv names the file a test process holds open until its standard
+// holderPathEnv selects the file a test process holds open until its standard
 // input closes.
 const holderPathEnv = "SPACEWAVE_S4DB_VOLUME_HOLDER"
 

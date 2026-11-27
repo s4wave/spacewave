@@ -27,8 +27,8 @@ type revisionEntry struct {
 	// abandon cancels the computation's own context. It is nil for entries
 	// recomputed by the cache or detached from it.
 	abandon context.CancelFunc
-	// gate is the cold read gate of the caller computing the value, or nil;
-	// a waiter lends it its priority until done closes.
+	// gate is the cold read gate of the caller computing the value, or nil.
+	// A waiter lends gate its priority until done closes.
 	gate block.ColdReadGate
 	// at is the revision the value was computed from.
 	at    uint64
@@ -53,13 +53,13 @@ type revisionEntry struct {
 	parts []*revisionEntry
 	// facets are the cached values computing value read through a facet
 	// instead: they leave value alone while the sub-keys it read are
-	// unchanged. Set before done closes; a catch-up replaces each part
+	// unchanged. Set before done closes. A catch-up replaces each part
 	// under the cache's mtx.
 	facets []facetRead
 	// finished is set, under the cache's mtx, once done closes and the value
 	// is checked against the changes passed while it computed.
 	finished bool
-	// Recent is set, under the cache's mtx, once recent answered the
+	// recent is set, under the cache's mtx, once recent answered the
 	// finished value: a catch-up that drops it keeps it as the previous
 	// value.
 	recent bool
@@ -117,7 +117,7 @@ func (e *revisionEntry) leave() {
 // evaluate records the computation's result and direct reads, then its wake
 // deadline. The entry is not ready until its caller attaches dependencies,
 // checks cache membership and signals completion. tx has the tracking policy
-// chosen by the caller; ordinary and behind computations pass an untracked tx.
+// chosen by the caller. Ordinary and behind computations pass an untracked tx.
 func (e *revisionEntry) evaluate(ctx context.Context, tx world.WorldState, compute func(context.Context, world.WorldState) (any, error)) error {
 	// Record the result in an evaluation that holds its blocks and reads.
 	child, finish := world.WithViewReads(block.WithRefHold(ctx, e.blocks), e.reads)
@@ -134,8 +134,9 @@ func (e *revisionEntry) collectParts(collect func() ([]*revisionEntry, []facetRe
 }
 
 // finishComputation marks the result checked for indexing. An entry retained in
-// the cache requires its mtx; a behind claim finishes before retention.
-// Signaling remains separate because cache indexing or claim removal comes next.
+// the cache requires its mtx. A behind claim finishes before retention.
+// Signaling remains separate because cache indexing or claim removal comes
+// next.
 func (e *revisionEntry) finishComputation() {
 	e.finished = true
 }
@@ -296,7 +297,7 @@ func (e *revisionEntry) expired() bool {
 // its own reads or any part's. Each ReadSet remembers its answer for the last
 // ChangeSet, so the parts many values share are checked once per change.
 // next holds the values a catch-up already computed again in place of facet
-// parts it touched; a facet part in next counts as touching the value only
+// parts it touched. A facet part in next counts as touching the value only
 // when its facet changed, and one not in it counts as a plain part. The
 // caller holds the cache's mtx.
 func (e *revisionEntry) touched(changes *world.ChangeSet, next map[*revisionEntry]*revisionEntry) bool {
@@ -321,14 +322,14 @@ func (e *revisionEntry) touched(changes *world.ChangeSet, next map[*revisionEntr
 }
 
 // facetRead is a cached value read through a facet: only the sub-keys of the
-// part its reader named, not all of it.
+// part its reader selected, not all of it.
 type facetRead struct {
 	// part is the cached value, the newest the cache holds for its name.
 	part *revisionEntry
 	// compute computes the part again.
 	compute func(context.Context, world.WorldState) (any, error)
-	// changed reports whether the sub-keys the reader named differ between
-	// two values of the part.
+	// changed reports whether the sub-keys the reader selected differ
+	// between two values of the part.
 	changed func(previous, next any) bool
 	// reads are the part's merged reads when the value read it, kept for
 	// the views that depend on the value, which wake on every change to the

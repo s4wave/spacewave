@@ -10,8 +10,9 @@ import (
 )
 
 // RecordActivationActor records the actor started for a running activation.
-// Repeating the same key succeeds; replacing it is rejected. Create the actor
-// and record it in the same write transaction so a crash cannot orphan it.
+// Repeating the same key succeeds. Replacing the key is rejected. Create the
+// actor and record it in the same write transaction so a crash cannot orphan
+// it.
 func RecordActivationActor(ctx context.Context, ws world.WorldState, runKey, activationID, actorKey string) error {
 	// Find the activation before making any change.
 	obj, run, _, err := readRun(ctx, ws, runKey)

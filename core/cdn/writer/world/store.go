@@ -38,7 +38,7 @@ type Store struct {
 	sender peer.ID
 }
 
-// Store is a writer's store.
+// _ asserts that Store is a writer's store.
 var _ cdn_writer.Store = (*Store)(nil)
 
 // NewStore returns a store writing eng as sender.
@@ -103,7 +103,7 @@ func (s *Store) apply(ctx context.Context, op world.Operation) error {
 	return err
 }
 
-// Validate checks the operation names a Space.
+// Validate checks the operation specifies a Space.
 func (o *ImportCdnSpaceOp) Validate() error {
 	if o.GetRoot().GetSpaceId() == "" {
 		return errors.New("an imported root pointer needs a Space ID")
@@ -136,7 +136,7 @@ func (o *ImportCdnSpaceOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws
 	return false, world_types.SetObjectType(ctx, ws, key, CdnSpaceTypeID)
 }
 
-// Validate checks the operation names a Space.
+// Validate checks the operation specifies a Space.
 func (o *CommitCdnSpaceOp) Validate() error {
 	if o.GetSpaceId() == "" {
 		return errors.New("a CDN Space commit needs a Space ID")
@@ -230,7 +230,7 @@ func lookupRoot(ctx context.Context, ws world.WorldState, spaceID string) (*cdn.
 	return space.GetRoot().CloneVT(), nil
 }
 
-// The operations are World operations.
+// _ asserts that the operations are World operations.
 var (
 	_ world.Operation = (*ImportCdnSpaceOp)(nil)
 	_ world.Operation = (*CommitCdnSpaceOp)(nil)

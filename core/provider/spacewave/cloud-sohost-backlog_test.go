@@ -58,7 +58,7 @@ func TestSOStateBacklogCollapses(t *testing.T) {
 		t.Fatal("take did not empty the backlog")
 	}
 
-	// A gap drops the held run; later messages only raise the nonce.
+	// A gap drops the held run. Later messages only raise the nonce.
 	b.push(testDeltaMessage(7, 8, 1), 0)
 	b.push(testDeltaMessage(9, 10, 1), 0)
 	b.push(testDeltaMessage(10, 11, 1), 12)

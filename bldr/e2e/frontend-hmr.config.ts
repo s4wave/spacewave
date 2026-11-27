@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// The frontend fixture owns its CLI; this lane never starts the application server.
+// The frontend fixture owns its CLI. This lane never starts the application
+// server.
 export default defineConfig({
   testDir: '.',
   testMatch: 'frontend-hmr.spec.ts',

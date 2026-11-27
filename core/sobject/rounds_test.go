@@ -49,7 +49,7 @@ func (f *roundFixture) proposer(round uint32) string {
 
 // msg signs one message of the decision as voter.
 func (f *roundFixture) msg(voter string, typ SOControlMessageType, round uint32, value []byte, validRound uint32) ControlMessage {
-	// Name the decision and the step.
+	// Identify the decision and the step.
 	inner := &SOControlMessageInner{
 		SharedObjectId: mockSharedObjectID,
 		Height:         f.height,
@@ -59,7 +59,7 @@ func (f *roundFixture) msg(voter string, typ SOControlMessageType, round uint32,
 		ValidRound:     validRound,
 	}
 
-	// Name the value, which only a proposal carries.
+	// Identify the value, which only a proposal carries.
 	if len(value) != 0 {
 		h, err := ControlValueHash(SODecisionKind_SO_DECISION_KIND_CHECKPOINT, value)
 		if err != nil {
@@ -164,7 +164,7 @@ func TestStepRoundSkipAndDecide(t *testing.T) {
 	x := checkpointValue(t, 1)
 	self := f.voter(0)
 
-	// One voter of four in round 5 is not enough to skip; two are.
+	// One voter of four in round 5 is not enough to skip, but two are.
 	late := []ControlMessage{f.msg(f.voter(1), SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE, 5, nil, 0)}
 	if out := f.step(self, 1, late); out.round != 0 {
 		t.Fatalf("skipped to round %d on one voter", out.round)
@@ -202,7 +202,7 @@ func TestAddControlMessageBounds(t *testing.T) {
 	f := newRoundFixture(t)
 	d := f.voter(3)
 
-	// Two conflicting prevotes are evidence; a third is dropped.
+	// Two conflicting prevotes are evidence. A third is dropped.
 	for i, want := range []bool{true, true, false} {
 		msg := f.msg(d, SOControlMessageType_SO_CONTROL_MESSAGE_TYPE_PREVOTE, 1, checkpointValue(t, uint64(i+1)), 0)
 		added, err := f.state.AddControlMessage(mockSharedObjectID, msg.Msg)
@@ -268,7 +268,7 @@ func TestStepRoundKeepsLeanRules(t *testing.T) {
 	}
 	faulty := f.voter(3)
 
-	// Run each seed and check its messages; some run must decide.
+	// Run each seed and check its messages. Some run must decide.
 	var decisions int
 	for seed := range uint64(100) {
 		rng := rand.New(rand.NewPCG(seed, 0))
@@ -313,7 +313,7 @@ func (f *roundFixture) simulate(rng *rand.Rand, faulty string, values, hashes []
 		}
 	}
 
-	// Step the voters; honest voter i proposes values[i%2].
+	// Step the voters. Honest voter i proposes values[i%2].
 	for range 300 {
 		// The faulty voter sends any vote or proposal, in any round.
 		if rng.IntN(3) == 0 {
@@ -450,7 +450,7 @@ func (f *roundFixture) checkLeanRules(pool *roundPool, faulty string) int {
 		}
 	}
 
-	// agreement: every decision names the same value.
+	// agreement: every decision selects the same value.
 	var first []byte
 	for peer, h := range pool.decided {
 		if first != nil && !bytes.Equal(first, h) {

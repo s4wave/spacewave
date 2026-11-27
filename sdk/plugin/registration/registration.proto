@@ -15,12 +15,14 @@ service GenerationService {
 
 // PrepareRequest identifies the immutable implementation being registered.
 message PrepareRequest {
-  // PluginId names the plugin family whose registrations are replaced together.
+  // PluginId identifies the plugin family whose registrations are replaced
+  // together.
   string plugin_id = 1;
   // ManifestRoot identifies the exact executable behind this generation.
   string manifest_root = 2;
   // InstanceKey scopes admission to the host's logical installation binding.
-  // Empty registers globally; a Space supplies its World engine ID.
+  // An empty InstanceKey registers globally. A Space supplies its World engine
+  // ID.
   string instance_key = 3;
 }
 

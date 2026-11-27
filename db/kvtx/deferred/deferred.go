@@ -11,7 +11,8 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// Default bounds on the held writes before Ops applies them.
+// DefaultMaxEntries and DefaultMaxBytes bound held writes before Ops applies
+// them.
 const (
 	// DefaultMaxEntries is the default number of held keys.
 	DefaultMaxEntries = 4096
@@ -29,7 +30,7 @@ const (
 // they read the underlying transaction directly or write it out.
 //
 // A failed flush leaves the underlying transaction partly written. Ops returns
-// the error from every later call; discard the underlying transaction.
+// the error from every later call. Discard the underlying transaction.
 type Ops struct {
 	// underlying is the transaction the writes apply to.
 	underlying kvtx.TxOps

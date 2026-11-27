@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RedisURL can be overridden from ldflags
+// RedisURL can be overridden from ldflags.
 var RedisURL = "redis://localhost/"
 
 // TestRedis runs the basic volume test suite against localhost.

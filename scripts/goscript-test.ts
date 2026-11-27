@@ -42,10 +42,11 @@ interface PackageResult {
 }
 
 // testPackage runs goscript test on one package in a fresh scratch directory
-// and removes it afterwards. The work directory sits inside the scratch beside
-// a link to the checkout's node_modules, which its tsconfig and the emitted
-// code resolve by walking up. goscript writes its runtime module shims to the
-// work directory's own node_modules, so they never reach the checkout.
+// and removes the scratch directory afterwards. The work directory sits inside
+// the scratch beside a link to the checkout's node_modules, which its tsconfig
+// and the emitted code resolve by walking up. goscript writes its runtime
+// module shims to the work directory's own node_modules, so they never reach
+// the checkout.
 function testPackage(pkg: string): PackageResult {
   const scratch = mkdtempSync(join(tmpdir(), 'goscript-test-'))
   const workDir = join(scratch, 'work')
@@ -91,7 +92,7 @@ function resultLine({ pkg, ok, seconds }: PackageResult): string {
 
 // The command tests the packages of one shard, each under its own deadline,
 // and keeps going after a failure so every package reports. It exits 1 when
-// any package failed. Naming packages runs only those; each must belong to
+// any package failed. Naming packages runs only those. Each must belong to
 // the shard.
 //
 //   bun scripts/goscript-test.ts <shard> [package...]

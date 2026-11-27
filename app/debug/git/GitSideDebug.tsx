@@ -11,7 +11,8 @@ import {
 const address =
   'spacewave:///u/1/so/01kq8n3x7w2c9vd4h6tbe5yzrm/-/repos/spacewave'
 
-// head is the commit HEAD names, with a subject that fills a narrow column.
+// head is the commit HEAD references, with a subject that fills a narrow
+// column.
 const head = '1f3067e4c9d2a8b7e6f5a4b3c2d1e0f9a8b7c6d5'
 const info: GetRepoInfoResponse = {
   headRef: 'refs/heads/master',

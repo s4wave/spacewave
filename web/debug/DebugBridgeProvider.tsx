@@ -9,7 +9,8 @@ import {
 } from '@s4wave/sdk/debug/debug-service.js'
 
 // DebugBridgeProvider registers a hidden WebView that exposes debug RPCs.
-// Renders nothing. Must be inside AppShell (needs useBldrContext).
+// The provider renders nothing and must be inside AppShell
+// (needs useBldrContext).
 export function DebugBridgeProvider() {
   const ctx = useBldrContext()
   const doc = ctx?.webDocument

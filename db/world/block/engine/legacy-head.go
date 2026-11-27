@@ -22,7 +22,7 @@ func retainedRootName(objectStoreID string, key []byte) string {
 
 // LegacyRootName returns the name of the root an older engine held a World's
 // head under, for a World opened outside this controller that adopts the
-// head the same way: objectStoreID and key name the old head record.
+// head the same way: objectStoreID and key identify the old head record.
 func LegacyRootName(objectStoreID, key string) string {
 	return retainedRootName(objectStoreID, []byte(key))
 }
@@ -42,8 +42,8 @@ type LegacyHead struct {
 }
 
 // read reads the head an older engine kept: the HeadState record, which that
-// engine read as current, and the old root. When both are set and differ, it
-// logs both and returns the record's.
+// engine read as current, and the old root. When both are set and differ, read
+// logs both and returns the record's head.
 func (l LegacyHead) read(ctx context.Context, le *logrus.Entry, cursor *bucket_lookup.Cursor) (*block.BlockRef, *block.BlockRef, error) {
 	// Read the HeadState record.
 	var recorded *block.BlockRef

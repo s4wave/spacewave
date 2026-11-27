@@ -42,19 +42,19 @@ const (
 // NewHTTPBlock builds a new block store on top of a HTTP service.
 // The lookup path /block/{cid} will be appended to the URL path.
 //
-// baseURL cannot be nil
-// client can be nil to use the default client
+// baseURL cannot be nil.
+// client can be nil to use the default client.
 // hashType can be 0 to use the default hash type.
 // if write=false, supports read operations only.
 // if verbose=true logs successful cases as well as failures.
-// le can be nil to disable logging entirely
+// le can be nil to disable logging entirely.
 func NewHTTPBlock(le *logrus.Entry, write bool, client *http.Client, baseURL *url.URL, hashType hash.HashType, verbose bool) *HTTPBlock {
 	if client == nil {
 		client = http.DefaultClient
 	}
 	if baseURL == nil {
-		// this won't work, and nil url is not supported,
-		// at least make sure it's not nil.
+		// An empty URL will not work, and a nil URL is not supported, so at
+		// least ensure baseURL is non-nil.
 		baseURL = &url.URL{}
 	}
 	return &HTTPBlock{

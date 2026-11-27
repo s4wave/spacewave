@@ -129,7 +129,8 @@ func runFlowgraphReconciler(
 	reconcilers.SetContext(ctx, true)
 	defer reconcilers.ClearContext()
 
-	// Follow the setup record and the policy, which together name the Spaces.
+	// Follow the setup record and the policy, which together select the
+	// Spaces.
 	targets := &flowgraphTargets{reconcilers: reconcilers}
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return watchDeviceSetupTarget(egCtx, le, statePath, targets.setSetup) })
@@ -172,7 +173,7 @@ func (t *flowgraphTargets) setServed(served []*device_policy.ServedSpace) {
 
 // syncLocked starts a Reconciler for each new target and stops each removed
 // one, leaving the rest running. Each Space gets one Reconciler, since two
-// would apply the same ConfigSet keys; the setup Space keeps its setup
+// would apply the same ConfigSet keys. The setup Space keeps its setup
 // session when the policy also lists it.
 func (t *flowgraphTargets) syncLocked() {
 	keys := make([]flowgraphTarget, 0, len(t.served)+1)
@@ -189,7 +190,7 @@ func (t *flowgraphTargets) syncLocked() {
 }
 
 // runServedSpace mounts the World of target and reconciles this Device's
-// nodes in it until ctx ends. label names a Device object it writes.
+// nodes in it until ctx ends. label labels a Device object the function writes.
 func runServedSpace(
 	ctx context.Context,
 	le *logrus.Entry,

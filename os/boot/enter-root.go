@@ -37,7 +37,7 @@ func EnterConsole(root string) error {
 	})
 }
 
-// Guest paths of the daemon's state directory and of the card's grant, both
+// Guest paths of the daemon's state directory and of the card's grant are both
 // bound by RunConsole over mountpoints the image provides.
 const (
 	daemonPath      = "/usr/bin/spacewave"

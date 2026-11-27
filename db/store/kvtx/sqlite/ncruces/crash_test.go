@@ -84,7 +84,7 @@ var crashVFSCount atomic.Int64
 
 // crashDevice is a directory whose files SQLite reads and writes through the
 // OS VFS while every mutation is also applied to a memory device. The memory
-// device decides which mutations a power loss keeps; PowerLoss rewrites the
+// device decides which mutations a power loss keeps. PowerLoss rewrites the
 // directory from its image, which also drops the WAL index a reboot drops.
 type crashDevice struct {
 	// mem models what a power loss keeps.

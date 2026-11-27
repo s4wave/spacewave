@@ -286,7 +286,8 @@ export async function proxyFetch(
     })
 
     // TODO: Browsers do not cancel request.signal when the request is canceled.
-    // This is a long-standing browser bug and is not yet fixed.
+    // This cancellation failure is a long-standing browser bug and is not yet
+    // fixed.
     // See: https://github.com/w3c/ServiceWorker/issues/1544
     const resultIterable = svc.Fetch(fetchRequestStream, abortController.signal)
 
@@ -356,8 +357,9 @@ export async function proxyFetch(
 // classifyProxyFetchError maps a proxied-fetch failure to a synthesized
 // response status and message. A network or CORS failure (the fetch never
 // reached the origin) is reported as 503 with a reachability message, distinct
-// from an internal proxy error (500) that carries the underlying message. This
-// keeps a transport failure from masquerading as an origin HTTP status.
+// from an internal proxy error (500) that carries the underlying message.
+// This distinction keeps a transport failure from masquerading as an origin
+// HTTP status.
 export function classifyProxyFetchError(error: Error): {
   status: number
   message: string

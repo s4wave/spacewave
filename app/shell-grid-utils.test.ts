@@ -11,7 +11,7 @@ import {
   SHELL_GRID_BASE_MODEL,
 } from './shell-grid-utils.js'
 
-// Helper to create a simple single-tabset model
+// createSingleTabsetModel creates a simple single-tabset model.
 function createSingleTabsetModel(tabCount = 2): IJsonModel {
   return {
     ...SHELL_GRID_BASE_MODEL,
@@ -36,7 +36,8 @@ function createSingleTabsetModel(tabCount = 2): IJsonModel {
   }
 }
 
-// Helper to create a model with horizontal split (two tabsets side by side)
+// createHorizontalSplitModel creates a model with a horizontal split
+// (two tabsets side by side).
 function createHorizontalSplitModel(): IJsonModel {
   return {
     ...SHELL_GRID_BASE_MODEL,
@@ -77,7 +78,8 @@ function createHorizontalSplitModel(): IJsonModel {
   }
 }
 
-// Helper to create a model with vertical split (nested rows)
+// createVerticalSplitModel creates a model with a vertical split
+// (nested rows).
 function createVerticalSplitModel(): IJsonModel {
   return {
     ...SHELL_GRID_BASE_MODEL,
@@ -165,7 +167,7 @@ describe('shell-grid-utils', () => {
 
       expect(typeof encoded).toBe('string')
       expect(encoded.length).toBeGreaterThan(0)
-      // Should be URL-safe (no +, /, or =)
+      // The encoded string should be URL-safe (no +, /, or =).
       expect(encoded).not.toMatch(/[+/=]/)
 
       const decoded = decodeGridLayout(encoded, SHELL_GRID_BASE_MODEL)
@@ -209,7 +211,7 @@ describe('shell-grid-utils', () => {
       expect(encoded).not.toContain('/')
       expect(encoded).not.toContain('=')
 
-      // Should be usable in a URL without encoding
+      // The encoded string should be usable in a URL without encoding.
       const url = `https://example.com/#/g/${encoded}`
       expect(url).toBe(encodeURI(url))
     })
@@ -271,7 +273,7 @@ describe('shell-grid-utils', () => {
       const model = Model.fromJson(jsonModel)
       const selectedId = getSelectedTabId(model)
 
-      // Should return the selected tab from the first tabset
+      // getSelectedTabId should return the selected tab from the first tabset.
       expect(selectedId).toBe('tab-1')
     })
   })
@@ -330,13 +332,13 @@ describe('shell-grid-utils', () => {
 
       const decodedModel = Model.fromJson(decoded!.model)
 
-      // Both should have the same tab IDs
+      // Both models should have the same tab IDs
       const originalIds = getTabIdsFromModel(originalModel)
       const decodedIds = getTabIdsFromModel(decodedModel)
 
       expect(decodedIds).toEqual(originalIds)
 
-      // Both should have grid layout
+      // Both models should have grid layout
       expect(hasGridLayout(decodedModel)).toBe(hasGridLayout(originalModel))
     })
 

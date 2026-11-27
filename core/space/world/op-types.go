@@ -21,15 +21,16 @@ type OpTypes struct {
 }
 
 // ErrBusPayloadOperation is returned when a handler on the bus resolves an
-// operation type to a world.PayloadOperation. Only OpTypes.Lookup may name
-// payload roots, so the payload hold knows every type's PayloadRefsVersion
-// without asking the bus (payloadVersion).
+// operation type to a world.PayloadOperation. Only OpTypes.Lookup may
+// reference payload roots, so the payload hold knows every type's
+// PayloadRefsVersion without asking the bus (payloadVersion).
 var ErrBusPayloadOperation = errors.New("a bus operation handler names payload roots")
 
 // payloadVersion returns the PayloadRefsVersion of the operation Lookup
-// resolves for opTypeID, or zero when Lookup resolves none or one that names
-// no payload roots of its own. Every other type names only the object roots of
-// its transaction, since LookupOn rejects a payload operation from the bus.
+// resolves for opTypeID, or zero when Lookup resolves none or one that
+// references no payload roots of its own. Every other type references only
+// the object roots of its transaction, since LookupOn rejects a payload
+// operation from the bus.
 func (t OpTypes) payloadVersion(ctx context.Context, opTypeID string) (uint32, error) {
 	// Resolve the type in the static table alone.
 	if t.Lookup == nil {
@@ -59,11 +60,11 @@ func objectRootsOnly(lookup world.LookupOp) world.LookupOp {
 	}
 }
 
-// LookupOn returns the lookup a Space's Adapter applies operations with: Lookup
-// first, then the handlers registered on b for the World engine engineID,
-// such as a running plugin's, which may not name payload roots
-// (ErrBusPayloadOperation). A nil b resolves with Lookup alone. A type neither
-// resolves resolves to nothing.
+// LookupOn returns the lookup a Space's Adapter applies operations with:
+// Lookup first, then the handlers registered on b for the World engine
+// engineID, such as a running plugin's, which may not reference payload roots
+// (ErrBusPayloadOperation). A nil b resolves with Lookup alone. A type
+// neither resolves resolves to nothing.
 func (t OpTypes) LookupOn(b bus.Bus, le *logrus.Entry, engineID string) world.LookupOp {
 	var lookups world.LookupOpSlice
 	if t.Lookup != nil {
@@ -103,7 +104,7 @@ func (t OpTypes) HeldLookupOn(b bus.Bus, le *logrus.Entry, engineID string) (wor
 type unresolvedOpError struct {
 	// opTypeID is the operation type.
 	opTypeID string
-	// pluginID is the plugin a pinned type names, or empty.
+	// pluginID is the plugin a pinned type references, or empty.
 	pluginID string
 	// pluginIDs are the plugins to run while waiting: the pinned one, or
 	// every plugin the World before the operation lists.
@@ -118,7 +119,7 @@ func (e *unresolvedOpError) Error() string {
 // ErrUnreadableOp is returned at an operation whose body this build cannot
 // read: a World operation a newer build wrote, with a field this build's
 // WorldOp does not declare. Replay waits at it for a build that reads it, and
-// ImportRoots cannot name its payloads.
+// ImportRoots cannot reference its payloads.
 var ErrUnreadableOp = errors.New("this build cannot read the operation's body")
 
 // neverWakes is the Wake of a replay wait only a restart ends. Nothing closes
@@ -126,7 +127,7 @@ var ErrUnreadableOp = errors.New("this build cannot read the operation's body")
 var neverWakes = make(chan struct{})
 
 // removedOpField is the WorldOp field of AdvanceStorageGenerationOp, a body
-// releases v0.57.20 through v0.57.22 wrote and no build reads now. WorldOp
+// releases v0.57.20 through v0.57.22 wrote and no build reads. WorldOp
 // reserves it.
 const removedOpField protowire.Number = 3
 
@@ -138,12 +139,12 @@ const reasonRemovedOp = "removed operation"
 // error, or neither when it has no such field.
 //
 // A removed body is refused: every build since its removal decodes it alike,
-// and no later build may read the field again. Any other unknown field, beside
-// a body or without one, fails with ErrUnreadableOp: a newer build may read
-// it as a body that changes the World, or as a field that changes how the
-// body applies, so replicas would diverge if this build applied the body
-// without it. Unknown fields nested inside a known body stay silent here; the
-// body's own message holds them.
+// and no later build may read the field again. Any other unknown field,
+// beside a body or without one, fails with ErrUnreadableOp: a newer build may
+// read it as a body that changes the World, or as a field that changes how
+// the body applies, so replicas would diverge if this build applied the body
+// without it. Unknown fields nested inside a known body stay silent here
+// because the body's own message holds them.
 func readUnknownFields(wop *WorldOp) (string, error) {
 	fields := wop.unknownFields
 	if len(fields) == 0 {
@@ -185,10 +186,10 @@ func isReplayGap(err error) bool {
 		errors.Is(err, context.DeadlineExceeded)
 }
 
-// waitingLookup wraps lookupOp so that an operation type it does not
-// resolve fails with an unresolvedOpError instead of resolving to nothing. ws
-// is the World the operation runs on, whose Space settings name the plugins
-// to run while replay waits.
+// waitingLookup wraps lookupOp so that an operation type it does not resolve
+// fails with an unresolvedOpError instead of resolving to nothing. ws is the
+// World the operation runs on, whose Space settings list the plugins to run
+// while replay waits.
 func waitingLookup(lookupOp world.LookupOp, ws world.WorldState) world.LookupOp {
 	return func(ctx context.Context, opTypeID string) (world.Operation, error) {
 		// Resolve the operation.
@@ -197,9 +198,10 @@ func waitingLookup(lookupOp world.LookupOp, ws world.WorldState) world.LookupOp 
 			return op, err
 		}
 
-		// Name the plugins that could handle it: the pinned one, or the
-		// listed ones. A settings read that fails for want of a block stops
-		// replay there; any other failure only names no plugin.
+		// Select the plugins that could handle the operation: the
+		// pinned one, or the listed ones. A settings read that fails
+		// for want of a block stops replay there. Any other failure
+		// only leaves the plugin list empty.
 		wait := &unresolvedOpError{opTypeID: opTypeID}
 		if pluginID, _, _, ok := s4wave_worldop_registry.ParsePinnedOperationID(opTypeID); ok {
 			wait.pluginID, wait.pluginIDs = pluginID, []string{pluginID}

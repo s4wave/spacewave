@@ -9,7 +9,7 @@ import {
   newFSCursorNodeType_Unknown,
 } from './fs-node-type.js'
 
-// Mode constants matching the source.
+// ModeDir matches the source, as do the other mode constants.
 const ModeDir = 0x80000000
 const ModeSymlink = 0x08000000
 const ModeIrregular = 0x00080000
@@ -150,7 +150,8 @@ describe('Go fs.FileMode parity', () => {
   })
 
   it('classifies a signed-int32 directory mode as a directory', () => {
-    // A consumer that stored the pre-fix signed value still classifies.
+    // A consumer still classifies a directory with a stored pre-fix signed
+    // value.
     const nt = fileModeToNodeType(2147484141 | 0)
     expect(nt.getIsDirectory()).toBe(true)
   })

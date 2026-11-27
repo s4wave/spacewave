@@ -11,9 +11,9 @@ import (
 // proofSignContext is the signature context of a replica proof.
 const proofSignContext = "sobject replica proof"
 
-// SignReplicaProof signs proof with the key of the Device it names.
+// SignReplicaProof signs proof with the key of the Device proof identifies.
 func SignReplicaProof(key crypto.PrivKey, proof *SOReplicaProof) (*SignedSOReplicaProof, error) {
-	// Refuse a proof that names another Device.
+	// Refuse a proof that identifies another Device.
 	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func SignReplicaProof(key crypto.PrivKey, proof *SOReplicaProof) (*SignedSORepli
 }
 
 // Verify returns the proof when it is for sharedObjectID and the stream peer,
-// the proof's peer and the signer all name desiredOwner.
+// the proof's peer and the signer all identify desiredOwner.
 func (s *SignedSOReplicaProof) Verify(sharedObjectID, desiredOwner, streamPeer string) (*SOReplicaProof, error) {
 	// Bound the work before parsing.
 	if len(s.GetProof()) == 0 || s.SizeVT() > sobject.MaxSyncStateSize {
@@ -70,7 +70,7 @@ func (s *SignedSOReplicaProof) Verify(sharedObjectID, desiredOwner, streamPeer s
 		return nil, errors.New("replica proof signature is invalid")
 	}
 
-	// Check that it names the object and the signer.
+	// Check that the proof identifies the object and the signer.
 	proof := &SOReplicaProof{}
 	if err := proof.UnmarshalVT(s.GetProof()); err != nil {
 		return nil, err

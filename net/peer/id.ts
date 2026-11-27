@@ -48,7 +48,7 @@ export function extractPublicKeyFromPeerID(
 // protobuf, or null when the bytes are not a canonical public key.
 // Peer IDs embed the key in an identity multihash, matching Go IDFromPublicKey.
 export function peerIDFromPublicKey(data: Uint8Array): string | null {
-  // Re-encode the parsed key so only canonical bytes name a peer.
+  // Re-encode the parsed key so only canonical bytes identify a peer.
   const decoded = parsePublicKeyFromProtobuf(data)
   if (!decoded) {
     return null

@@ -8,15 +8,15 @@ import (
 	"github.com/s4wave/spacewave/net/pubsub"
 )
 
-// establishLinkHandler handles EstablishLink values
+// establishLinkHandler handles EstablishLink values.
 type establishLinkHandler struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// ref is the reference
+	// ref is the reference.
 	ref directive.Reference
 }
 
-// newEstablishLinkHandler constructs a new establishLinkHandler
+// newEstablishLinkHandler constructs a new establishLinkHandler.
 func newEstablishLinkHandler(c *Controller) *establishLinkHandler {
 	return &establishLinkHandler{
 		c: c,
@@ -79,7 +79,7 @@ func (e *establishLinkHandler) HandleValueRemoved(inst directive.Instance, val d
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
-// This will occur if Close() is called on the directive instance.
+// Disposal will occur if Close() is called on the directive instance.
 func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
 	e.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		eref := e.ref

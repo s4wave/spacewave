@@ -19,5 +19,5 @@ export const USE_CASE_DEMOS = {
   plugins: { title: 'Plugins landing demo', setup: quickstartDemo('sql') },
 } satisfies Record<string, UseCaseDemoSetup>
 
-// DemoId names a use-case demo by its landing page slug.
+// DemoId identifies a use-case demo by its landing page slug.
 export type DemoId = keyof typeof USE_CASE_DEMOS

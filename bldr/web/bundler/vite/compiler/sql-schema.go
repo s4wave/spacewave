@@ -16,8 +16,8 @@ import (
 const sqlSchemaDatabase = "app"
 
 // readSqlSchema reads the SQL schema paths, relative to sourcePath. Returns the
-// files read and the schema as one text, the files joined in order, which keys
-// the Vite processes so that a schema edit starts a fresh database.
+// files read and the schema as one text, the files joined in order. The joined
+// schema keys the Vite processes so that a schema edit starts a fresh database.
 func readSqlSchema(sourcePath string, paths []string) ([]string, string, error) {
 	// Resolve each path against the project root.
 	absPaths := make([]string, len(paths))

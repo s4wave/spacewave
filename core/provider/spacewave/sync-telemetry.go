@@ -23,7 +23,7 @@ const (
 	SyncTelemetryUploadPhaseCorrupt = synctelemetry.UploadPhaseCorrupt
 )
 
-// SyncTelemetryUploadHold names the account limit that holds uploads.
+// SyncTelemetryUploadHold identifies the account limit that holds uploads.
 type SyncTelemetryUploadHold = synctelemetry.UploadHold
 
 const (

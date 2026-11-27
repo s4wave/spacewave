@@ -54,10 +54,10 @@ func (o *rewriteRootsOp) ApplyWorldOp(ctx context.Context, le *logrus.Entry, ws 
 
 // TestApplyWorldOpKeepsFinalRoots records one operation that sets an
 // object's root twice, renames an object whose root it set and sets and
-// deletes another. With the changelog off the recorded entry names each
+// deletes another. With the changelog off the recorded entry references each
 // surviving object's final root once, in key order, and nothing for the
 // deleted one. With it on, the changelog links every root the operation set,
-// so the entry also names the replaced and deleted roots, in write order.
+// so the entry also references the replaced and deleted roots, in write order.
 func TestApplyWorldOpKeepsFinalRoots(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -111,7 +111,8 @@ func TestApplyWorldOpKeepsFinalRoots(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Apply the operation and read the block at each root it names.
+			// Apply the operation and read the block at each root
+			// it references.
 			if _, _, err := rec.ApplyWorldOp(ctx, &rewriteRootsOp{world_mock.NewMockWorldOp("obj", "final")}, tb.Volume.GetPeerID()); err != nil {
 				t.Fatal(err)
 			}

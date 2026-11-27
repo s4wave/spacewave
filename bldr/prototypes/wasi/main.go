@@ -28,7 +28,8 @@ func main() {
 		}
 	}
 
-	// each path is a separate file descriptor, so we have to address them directly.
+	// each path is a separate file descriptor, so address each path
+	// directly.
 	// walkPath("/")
 	walkPath(".")
 	walkPath("/tmp")

@@ -73,7 +73,7 @@ func TestSyncCatalogCommitVisibility(t *testing.T) {
 // stored cursor until the final page, then drops the pulled packs the listing
 // omitted and keeps locally authored ones.
 func TestSyncPullRestartDropsUnlistedPacks(t *testing.T) {
-	// Serve a restarted listing in two pages; the second page fails once.
+	// Serve a restarted listing in two pages. The second page fails once.
 	pages := map[string]*packfile.PullResponse{
 		"5": {
 			Entries:        []*packfile.PackfileEntry{{Id: "kept", Sequence: 4}, {Id: "fresh", Sequence: 20}},

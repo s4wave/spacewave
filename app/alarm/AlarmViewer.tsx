@@ -77,9 +77,9 @@ export function AlarmViewer({
     { key: `alarm:${objectKey}` },
   )
 
-  // Acknowledge it as this member. The write needs the live World: while it
-  // has failed or reloads, Acknowledge is withheld and the Alarm's failure
-  // notice, which carries the World's, says why.
+  // Acknowledge the Alarm as this member. The write needs the live World:
+  // while the World has failed or reloads, Acknowledge is withheld and the
+  // Alarm's failure notice carries the World's failure and says why.
   const world = worldState.value
   const onAcknowledge = useCallback(async () => {
     if (!world) return
@@ -142,9 +142,9 @@ export function AlarmViewer({
   )
 }
 
-// memberName names the member whose session holds peerId: "you" for this
-// member, otherwise their username, or a short peer ID when no participant
-// lists it.
+// memberName returns the name of the member whose session holds peerId:
+// "you" for this member, otherwise their username, or a short peer ID when no
+// participant lists peerId.
 export function memberName(
   state: SpaceSharingState | null,
   peerId: string,

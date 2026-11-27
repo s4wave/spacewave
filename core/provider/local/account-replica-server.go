@@ -27,7 +27,7 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	}
 	defer release()
 
-	// Require the request to name this account's settings object.
+	// Require the request to reference this account's settings object.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 		return nil, errors.New("requested object is absent from the account catalog")
 	}
 
-	// Serve only the lifetime the catalog names, not a local object of
+	// Serve only the lifetime the catalog records, not a local object of
 	// another generation under the same id. The object is read by ref, so
 	// the check runs again after the read: a delete or create in between
 	// changes the listed generation, since generations are never reused.

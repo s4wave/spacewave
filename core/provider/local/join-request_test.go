@@ -201,7 +201,7 @@ func TestJoinParticipantOf(t *testing.T) {
 	parentID := parent.GetSharedObjectID()
 	restricted := &sobject.SOInviteParticipation{SharedObjectIds: []string{parentID}}
 
-	// A stranger to the parent is refused; an empty list admits nobody.
+	// A stranger to the parent is refused. An empty list admits nobody.
 	child := h.createSpace("child")
 	childInvite := h.invite(child, &sobject.SOInvite{ParticipantOf: restricted})
 	h.refused(childInvite)

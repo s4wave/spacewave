@@ -38,7 +38,7 @@ export type TerminalPaneTrustChallengeRenderer = (
 ) => ReactNode
 
 export interface TerminalPaneProps {
-  // session names what the terminal attaches to, for its status copy.
+  // session identifies what the terminal attaches to, for its status copy.
   session: TerminalSessionKind
   connectTerminal?: TerminalPaneConnector
   renderTrustChallenge?: TerminalPaneTrustChallengeRenderer

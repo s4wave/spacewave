@@ -17,7 +17,8 @@ export const SOBJECT_BASE_CRYPTO_CONTEXT =
 // SO_OPERATION_PROTOCOL_VERSION is the operation format this build writes and accepts.
 export const SO_OPERATION_PROTOCOL_VERSION = 1
 
-// MAX_SO_OPERATION_PARENTS bounds the causal parents named by one operation.
+// MAX_SO_OPERATION_PARENTS bounds the causal parents referenced by one
+// operation.
 export const MAX_SO_OPERATION_PARENTS = 256
 
 // MAX_SO_INNER_DATA_SIZE bounds an operation body and its payload.
@@ -63,7 +64,7 @@ export function validateSOOperationInner(inner: SOOperationInner): void {
     throw new Error('operation op_data is too large')
   }
 
-  // The body names this protocol and an object.
+  // The body specifies this protocol and an object.
   if (inner.protocolVersion !== SO_OPERATION_PROTOCOL_VERSION) {
     throw new Error(
       `unsupported operation protocol version ${inner.protocolVersion ?? 0}`,
@@ -73,7 +74,8 @@ export function validateSOOperationInner(inner: SOOperationInner): void {
     throw new Error('operation shared_object_id is empty')
   }
 
-  // The author's first operation has no predecessor; every later one names it.
+  // The author's first operation has no predecessor. Every later operation
+  // references its predecessor.
   const prev = inner.prevOpHash ?? new Uint8Array()
   if (nonce === 1n && prev.length !== 0) {
     throw new Error(
@@ -113,15 +115,15 @@ export function validateSOOperationInner(inner: SOOperationInner): void {
     last = hex
   }
 
-  // The operation names the config it was written under.
+  // The operation references the config it was written under.
   if ((inner.configHash?.length ?? 0) !== 32) {
     throw new Error('operation config_hash must be a 32-byte hash')
   }
 }
 
 // verifySOOperation authenticates the operation as written for sharedObjectID
-// by the author it names, and returns its body. It does not check
-// authorization. It throws when the operation is invalid.
+// by the author the operation specifies, and returns its body. It does not
+// check authorization. It throws when the operation is invalid.
 export async function verifySOOperation(
   sharedObjectID: string,
   op: SOOperation,
@@ -223,9 +225,9 @@ export class SOOperationSet {
   }
 
   // heads returns a fresh list of the operations no other operation in the
-  // set names, in byte order, as lowercase hex.
+  // set references, in byte order, as lowercase hex.
   heads(): string[] {
-    // Collect every hash an operation names.
+    // Collect every hash an operation references.
     const named = new Set<string>()
     for (const inner of this.ops.values()) {
       named.add(bytesToHex(inner.prevOpHash ?? new Uint8Array()))
@@ -234,7 +236,7 @@ export class SOOperationSet {
       }
     }
 
-    // The heads are the operations left unnamed.
+    // The heads are the operations left unreferenced.
     return [...this.ops.keys()].filter((key) => !named.has(key)).sort()
   }
 

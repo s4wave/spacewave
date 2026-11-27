@@ -161,13 +161,14 @@ func (c *RemoteResourceClient) adoptResource(resourceID uint32) bool {
 	return ok
 }
 
-// releasedLocked reports whether id names a resource of this generation that
-// was released, so a late Adopt or Release gets the release notification
+// releasedLocked reports whether id identifies a resource of this generation
+// that was released, so a late Adopt or Release gets the release notification
 // instead of an error. One server-wide counter allocates every resource ID
-// after the generation's root, and each is tracked or attached until its
-// release, so an ID in that range that neither holds was released. An ID of
-// another generation in the range reads as released too, which reveals and
-// grants nothing.
+// after the generation's root, and each resource is tracked or attached until
+// its release, so an ID in that range held by neither resources nor
+// attachedResources was released. An ID of another generation in the range
+// reads as released too.
+// Treating that ID as released reveals and grants nothing.
 func (c *RemoteResourceClient) releasedLocked(id uint32) bool {
 	return id >= c.rootResourceID && id <= c.server.resourceIDCtr &&
 		c.resources[id] == nil && c.attachedResources[id] == nil
@@ -193,7 +194,7 @@ func (c *RemoteResourceClient) queueControlAck(controlID uint32) {
 
 // releaseLocked removes one resource after recursively removing pending
 // descendants. It appends callbacks and notifications while under the server
-// lock; callbacks are always invoked by the caller after unlocking.
+// lock. Callbacks are always invoked by the caller after unlocking.
 func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bool, releaseFns *[]func(), releasedIDs *[]uint32) bool {
 	// Look up the resource and reject unknown IDs.
 	res := c.resources[id]

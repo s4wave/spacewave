@@ -17,11 +17,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// statePathLeaseFile names the database file holding the runtime lease in a
+// statePathLeaseFile selects the database file holding the runtime lease in a
 // writable state path.
 const statePathLeaseFile = "runtime-lock.s4wave"
 
-// statePathLeaseName names the runtime lease in its database file.
+// statePathLeaseName selects the runtime lease in its database file.
 const statePathLeaseName = "runtime"
 
 // statePathLease excludes writable runtimes until their bus has fully stopped.
@@ -119,7 +119,8 @@ func requestDaemonYield(ctx context.Context, sockPath string) error {
 // acquireStatePathLease takes the runtime lease of a canonical root in its
 // lease file. The system releases the lease when the process exits, and a
 // process opens the file once, so a second runtime in the same process finds
-// it held. When wait is set it blocks until another process releases it.
+// the lease held. When wait is set, acquireStatePathLease blocks until another
+// process releases the lease.
 func acquireStatePathLease(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -142,8 +143,9 @@ func acquireStatePathLease(
 	}
 	leasePath := filepath.Join(statePath, statePathLeaseFile)
 
-	// Open the lease file, converting one a previous release wrote; this
-	// process already holding it open is a same-process runtime.
+	// Open the lease file, converting one a previous release wrote. The
+	// current process already holding the file open is a same-process
+	// runtime.
 	open := volume_s4db.Open
 	if wait {
 		open = volume_s4db.OpenWait

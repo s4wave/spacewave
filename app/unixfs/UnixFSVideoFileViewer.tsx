@@ -52,8 +52,9 @@ const videoSkinStyle: CSSProperties = {
 }
 
 // videoFailure says what a media error means for the person. A file this
-// browser cannot decode or play fails the same way on every load, so it points
-// at Download; a stopped or aborted load can succeed when loaded again.
+// browser cannot decode or play fails the same way on every load, so the
+// failure points at Download. A stopped or aborted load can succeed when
+// loaded again.
 function videoFailure(error: MediaError | null): VideoPreviewState {
   if (error?.code === mediaErrSrcNotSupported) {
     return {
@@ -86,8 +87,8 @@ function UnixFSVideoPlayerSurface({
   const mediaRef = useRef<HTMLVideoElement | null>(null)
   const [state, setState] = useState<VideoPreviewState>(loadingState)
 
-  // resumeAt is where play stood when the video failed; a Retry's load starts
-  // at 0, so the metadata seeks back here once.
+  // resumeAt is where play stood when the video failed. A Retry's load starts
+  // at 0, so the metadata seeks back to resumeAt once.
   const resumeAt = useRef(0)
 
   // playing moves the stage's media, so the floats leave while the video
@@ -108,8 +109,8 @@ function UnixFSVideoPlayerSurface({
     setState((prev) => (prev.status === 'loading' ? prev : loadingState))
   }, [])
 
-  // handleBuffering marks a ready video waiting for data; before the metadata
-  // arrives the loading state already says so.
+  // handleBuffering marks a ready video waiting for data. Before the metadata
+  // arrives the loading state already says the video is waiting for data.
   const handleBuffering = useCallback(() => {
     setState((prev) =>
       prev.status === 'ready' && !prev.buffering
@@ -139,7 +140,7 @@ function UnixFSVideoPlayerSurface({
     [handleReady],
   )
 
-  // handleRetry loads the source again; the element fires loadstart and then
+  // handleRetry loads the source again. The element fires loadstart and then
   // the metadata or another error, as on the first load.
   const handleRetry = useCallback(() => {
     setState(loadingState)

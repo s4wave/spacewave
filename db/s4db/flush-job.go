@@ -74,7 +74,7 @@ func (j *flushJob) run(ctx context.Context) error {
 	// Append the flush record under the lock and keep the derived state.
 	var next *state
 	err = db.w.locked(ctx, func() error {
-		// Name the run by its record and append the record.
+		// Assign the run ID from its record and append the record.
 		meta.id = (db.cur.Load().seq + 1) * 16
 		meta.level = 0
 		r := &record{kind: kindFlush, through: st.seq, replay: st.point(), runs: []runMeta{meta}, mchunks: mchunks}
@@ -114,7 +114,7 @@ func (db *DB) publishManifest(next *state, mchunks []uint64) error {
 	}
 
 	// Write the manifest and flush it. The flush covers the state published
-	// before it, whose records were all written by then; a commit published
+	// before it, whose records were all written by then. A commit published
 	// after the flush began flushes itself.
 	covered := db.cur.Load()
 	off := chunkStart(mchunks[0])

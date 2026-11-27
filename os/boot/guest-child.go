@@ -12,11 +12,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Restart and stop bounds for a supervised console child.
+// Restart and stop bounds limit a supervised console child's lifecycle.
 var (
-	// childRetryMin is the first restart delay; each failure doubles it.
+	// childRetryMin is the first restart delay. Each failure doubles the
+	// delay.
 	childRetryMin = 2 * time.Second
-	// childRetryMax caps the delay and is the run that resets it.
+	// childRetryMax caps the delay and is the run duration that resets the
+	// delay.
 	childRetryMax = time.Minute
 	// childStopTimeout bounds the wait after SIGTERM before containment.
 	childStopTimeout = 10 * time.Second
@@ -24,8 +26,8 @@ var (
 
 // guestChild supervises a long-running console child beside the shell: the
 // image's daemon, or the child that stages the next release. The console's
-// single Wait4 authority reaps it and reports each exit; the child never
-// waits for itself. It restarts only while the console runs. Its console
+// single Wait4 authority reaps the child and reports each exit. The child never
+// waits for itself. The child restarts only while the console runs. Its console
 // markers read SPACEWAVE_OS_<name>_STARTED, _EXIT and so on.
 type guestChild struct {
 	// name is the child's name in its console markers, such as DAEMON.
@@ -60,7 +62,7 @@ func (g *guestChild) start() {
 		return
 	}
 
-	// The console's Wait4 loop owns the reap; release only Go's handle.
+	// The console's Wait4 loop owns the reap. Release only Go's handle.
 	g.pid, g.started = process.Pid, time.Now()
 	_ = process.Release()
 	println("SPACEWAVE_OS_" + g.name + "_STARTED pid=" + strconv.Itoa(g.pid))
@@ -102,7 +104,7 @@ func (g *guestChild) schedule() {
 	g.restart = time.NewTimer(g.wait) //gostyle:timer backoff
 }
 
-// restartC fires when a scheduled restart is due; nil blocks forever.
+// restartC fires when a scheduled restart is due. A nil channel blocks forever.
 func (g *guestChild) restartC() <-chan time.Time {
 	if g == nil || g.restart == nil {
 		return nil

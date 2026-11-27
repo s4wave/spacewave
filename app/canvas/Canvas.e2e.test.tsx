@@ -113,7 +113,7 @@ describe('Canvas node drag does not pan viewport', () => {
     const nodeA = makeNode({ id: 'a', x: 100, y: 100, width: 200, height: 150 })
     await render(<TestCanvas initialNodes={[nodeA]} />)
 
-    // Wait for node to render.
+    // Wait for the node to render.
     const nodeEl = await vi.waitFor(() => {
       const el = document.querySelector('[data-canvas-node="a"]')
       expect(el).toBeTruthy()
@@ -128,7 +128,7 @@ describe('Canvas node drag does not pan viewport', () => {
     // Drag the node 50px right and 30px down.
     pointerDrag(nodeEl, { x: 100, y: 75 }, { x: 150, y: 105 })
 
-    // Wait a tick for any state updates.
+    // Wait 100ms for any state updates.
     await new Promise((r) => setTimeout(r, 100))
 
     // The viewport transform should not have changed.
@@ -151,7 +151,7 @@ describe('Canvas node drag does not pan viewport', () => {
     const transformDiv = viewport.querySelector('[style*="transform"]')!
     const initialTransform = (transformDiv as HTMLElement).style.transform
 
-    // Drag node A a significant distance.
+    // Drag node A 100px right and 100px down.
     pointerDrag(nodeEl, { x: 100, y: 75 }, { x: 200, y: 175 }, 10)
 
     await new Promise((r) => setTimeout(r, 100))

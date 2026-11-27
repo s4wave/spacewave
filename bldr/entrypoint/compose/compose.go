@@ -1,6 +1,6 @@
 // Package compose carries the project-supplied part of a host process.
 //
-// A project names one Go package as its compose package in the dist and CLI
+// A project selects one Go package as its compose package in the dist and CLI
 // compiler configs. That package exports Compose() *compose.Composition, which
 // the generated main calls once per process. The composition owns any state its
 // factories and commands share, such as process-wide brokers, so Bldr wires

@@ -50,7 +50,8 @@ func TestUnreadyChildProcess(t *testing.T) {
 }
 
 // TestUnreadyChildStopJoins proves failed-start cleanup terminates descendants
-// and joins its own child, signaling only while its identity is still retained.
+// and joins its own child, signaling only while the child's identity is still
+// retained.
 func TestUnreadyChildStopJoins(t *testing.T) {
 	for _, mode := range []string{"child", "tree"} {
 		for _, exited := range []bool{false, true} {

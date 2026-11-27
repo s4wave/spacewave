@@ -19,9 +19,9 @@ const syncKeepaliveRetryDelay = time.Second
 
 // startSyncKeepalive holds the daemon idle tracker while a session has uploads
 // pending. A short CLI write leaves its edits pending until the next sync
-// flush; the daemon outlives that flush so the edits reach the cloud. It
-// watches core through the Resource invoker, so native and Dist core behave
-// the same.
+// flush. The daemon outlives that flush so the edits reach the cloud.
+// startSyncKeepalive watches core through the Resource invoker, so native and
+// Dist core behave the same.
 func startSyncKeepalive(
 	ctx context.Context,
 	le *logrus.Entry,

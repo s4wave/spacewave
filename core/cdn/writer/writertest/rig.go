@@ -72,7 +72,7 @@ type Rig struct {
 	// Transport carries every client request.
 	Transport *HookTransport
 	// Grace is the writer's superseded pack grace period from the next
-	// Start, or zero for the default.
+	// Start, or zero for the default grace period.
 	Grace time.Duration
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// indexPackDirEnv names a directory of real packfiles to compare in
+// indexPackDirEnv selects a directory of real packfiles to compare in
 // TestTailIndexMatchesParsedIndexOnPackDir.
 const indexPackDirEnv = "PACKFILE_INDEX_PACK_DIR"
 
@@ -103,8 +103,8 @@ func requireSameIndex(t *testing.T, p *parsedIndex, ti *tailIndex, size int64) {
 	}
 }
 
-// requireSameVerdict builds both indexes from tail, which must fail or succeed
-// in both, and compares them when they build.
+// requireSameVerdict builds both indexes from tail, requires both builds to
+// fail or succeed, and compares the indexes when both builds succeed.
 func requireSameVerdict(t *testing.T, tail []byte, size int64, blockCount uint64, what string) bool {
 	t.Helper()
 	p, ti, perr, terr := buildBothIndexes(tail, size, blockCount)
@@ -119,8 +119,8 @@ func requireSameVerdict(t *testing.T, tail []byte, size int64, blockCount uint64
 }
 
 // craftedPack builds a pack of payload bytes followed by an index of entries
-// written in the order given, which kvfile.WriteIndex would sort and reject
-// if duplicated, and returns its bytes. Entries may share offsets.
+// written in the order given, and returns the pack's bytes. kvfile.WriteIndex
+// would sort the entries and reject duplicates. Entries may share offsets.
 func craftedPack(t *testing.T, payload int, entries []*kvfile.IndexEntry) []byte {
 	t.Helper()
 	buf := bytes.NewBuffer(make([]byte, payload))

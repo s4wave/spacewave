@@ -5,7 +5,7 @@
 // screen projection) derives its bar and stage label from this ladder so mapped
 // runtime marks advance the bar between coarse boot phase writes. Step
 // positions are placeholder weights pending recalibration from measured
-// staging traces; keep them monotonic in real emission order. Parallel or
+// staging traces. Keep them monotonic in real emission order. Parallel or
 // re-ordered marks are harmless: the projection takes the maximum ladder
 // position ever observed, never regresses.
 // bootProgressStallDelayMs is the quiet window before an otherwise determinate
@@ -14,7 +14,7 @@
 export const bootProgressStallDelayMs = 2000
 
 // BootProgressStatus is the boot status shape shared by every writer. progress
-// carries a raw 0..1 download fraction for download-driven phases; the model
+// carries a raw 0..1 download fraction for download-driven phases. The model
 // maps it into the phase's ladder window.
 export interface BootProgressStatus {
   phase: string
@@ -22,7 +22,7 @@ export interface BootProgressStatus {
   progress?: number
 }
 
-// BootProgressMark is the startup mark shape the model consumes; detail is
+// BootProgressMark is the startup mark shape the model consumes. detail is
 // used only for the WebView startup-relevance gate.
 export interface BootProgressMark {
   label: string
@@ -43,7 +43,7 @@ interface BootProgressLadderStep {
 
 // bootProgressLadder maps startup mark labels (and boot-status.<phase>
 // pseudo-marks) to absolute ladder positions. Ordered by ladder position for
-// readability; concurrent marks may arrive in either order.
+// readability. Concurrent marks may arrive in either order.
 const bootProgressLadder: Record<string, BootProgressLadderStep> = {
   // prepare: inline boot script loads the browser release manifest.
   'boot-status.loading': { progress: 0.02, label: 'Loading the app shell.' },

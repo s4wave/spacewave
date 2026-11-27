@@ -16,8 +16,9 @@ import (
 
 // RegisterDeviceSession authorizes an independently held Device key with an
 // account entity key and mounts the registered DEVICE Session. The caller
-// persists both keys before calling; retries reuse the Device's local resource
-// identity. Registration survives a failed local mount so retry can finish it.
+// persists both keys before calling. Retries reuse the Device's local resource
+// identity. Registration survives a failed local mount so retry can finish the
+// mount.
 // This operation does not grant Space membership or create a World Device.
 func (p *Provider) RegisterDeviceSession(
 	ctx context.Context,

@@ -11,7 +11,7 @@ import (
 )
 
 // ApplyOpSet applies a SET operation against a store.
-// sets a reference to the location.
+// ApplyOpSet sets a reference to the location.
 func ApplyOpSet(
 	ctx context.Context,
 	handle forge_target.ExecControllerHandle,

@@ -70,7 +70,7 @@ export async function createWorldObject(
   return { objectState, objectRef }
 }
 
-// accessWorldObject attempts to look up an object in the world state.
+// accessWorldObject tries to look up an object in the world state.
 // If the object does not exist, the cursor will be empty and the object will be created.
 // If updateWorld is true and the result is different, will update the object's root ref.
 // Returns the modified object ref and a dirty flag indicating if changes were made.

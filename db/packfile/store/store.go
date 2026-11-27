@@ -838,7 +838,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.setDemandGate(s.gate)
 	eng.SetStatsChangedCallback(notify)
 
-	// Publish only into the matching current catalog; old snapshots borrow
+	// Publish only into the matching current catalog. Old snapshots borrow
 	// a private reader and release it when their operation finishes.
 	s.mtx.Lock()
 	if s.closed {

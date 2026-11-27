@@ -13,7 +13,7 @@ package fatal
 import "sync"
 
 // broker is the process-wide fatal-condition record. The first
-// reported error wins; later reports are dropped.
+// reported error wins, so later reports are dropped.
 var broker = struct {
 	mtx sync.Mutex
 	err error
@@ -21,7 +21,7 @@ var broker = struct {
 }{ch: make(chan struct{})}
 
 // Report records err as a process-fatal condition and wakes watchers.
-// The first reported error is kept; a nil err or a later report is a
+// The first reported error is kept. A nil err or a later report is a
 // no-op.
 func Report(err error) {
 	// Ignore nil reports because they do not establish a fatal condition.

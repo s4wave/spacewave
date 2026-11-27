@@ -11,9 +11,9 @@ import (
 
 // MountedStreamHandler implements the mounted stream handler.
 type MountedStreamHandler struct {
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

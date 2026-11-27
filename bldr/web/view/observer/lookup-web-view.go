@@ -26,11 +26,11 @@ func (c *Controller) resolveLookupWebView(
 
 // lookupWebViewResolver observes the HandleWebView directive.
 type lookupWebViewResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
-	// dir is the directive
+	// dir is the directive.
 	dir web_view.LookupWebView
 }
 

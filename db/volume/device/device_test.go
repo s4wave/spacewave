@@ -40,8 +40,8 @@ func TestMemoryPowerLoss(t *testing.T) {
 		}
 		m.PowerLoss(rand.New(rand.NewPCG(seed, seed)))
 
-		// The flushed first sector survives; each later sector is either
-		// version, or zero past the flushed end.
+		// The flushed first sector survives. Each later sector is the
+		// flushed or unflushed version, or zero past the flushed end.
 		data := m.files["a"]
 		if !bytes.Equal(data[:SectorSize], flushed[:SectorSize]) {
 			t.Fatalf("seed %d: flushed sector lost", seed)
@@ -163,7 +163,8 @@ func TestHandleFailedWrite(t *testing.T) {
 		t.Fatal("Sync succeeded on a failing device")
 	}
 
-	// Reads see the device bytes, the collected writes, and zeros between.
+	// Reads see the device bytes, the collected writes, and zeros in the
+	// gaps.
 	want := "abXYZ\x00\x00q"
 	buf := make([]byte, len(want))
 	if _, err := h.ReadAt(buf, 0); err != nil || string(buf) != want {

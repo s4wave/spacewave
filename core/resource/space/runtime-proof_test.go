@@ -464,7 +464,8 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 	}
 
 	// The watch sends only a changed state, so configure a second plugin to
-	// read the state after the host change, and check the first is healthy.
+	// read the state after the host change, and check the first plugin is
+	// healthy.
 	if _, _, err := space_world_ops.SetSpaceSettings(
 		ctx,
 		tb.WorldState,

@@ -60,7 +60,7 @@ func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) 
 		}
 	}
 
-	// Register ObjectType controller with known types
+	// Register the ObjectType controller with known types.
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 	}
@@ -89,7 +89,7 @@ func NewTestbed(ctx context.Context, tb *world_testbed.Testbed, opts ...Option) 
 	}, nil
 }
 
-// setupResourceClient creates pipes, muxed connections, and resource client.
+// setupResourceClient creates pipes, muxed connections, and a resource client.
 func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resource_client.Client, func(), error) {
 	// Configure logging for the in-memory resource connection.
 	logger := logrus.New()
@@ -99,7 +99,7 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 	// Create pipes for in-memory communication
 	clientPipe, serverPipe := net.Pipe()
 
-	// Create client muxed connection
+	// Create the client muxed connection.
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
 	if err != nil {
 		clientPipe.Close()
@@ -108,11 +108,11 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 	}
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
-	// Create server mux
+	// Create the server mux.
 	mux := srpc.NewMux()
 	server := srpc.NewServer(mux)
 
-	// Create TestbedResourceServer as root
+	// Create the TestbedResourceServer as the root resource.
 	volumeID := tb.Volume.GetID()
 	bucketID := tb.BucketId
 	testbedResource := resource_testbed.NewTestbedResourceServer(ctx, le, tb.Bus, volumeID, bucketID)
@@ -124,7 +124,7 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 		return nil, nil, errors.Wrap(err, "register resource server")
 	}
 
-	// Start server
+	// Start the server.
 	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
 	if err != nil {
 		clientPipe.Close()
@@ -135,7 +135,7 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 		_ = server.AcceptMuxedConn(ctx, serverMp)
 	}()
 
-	// Create resource client
+	// Create the resource client.
 	resourceServiceClient := resource.NewSRPCResourceServiceClient(srpcClient)
 	resClient, err := resource_client.NewClient(ctx, resourceServiceClient)
 	if err != nil {
@@ -190,7 +190,8 @@ type Setup struct {
 	Engine *s4wave_world.Engine
 	// LayoutResourceID is the resource ID of the created layout.
 	LayoutResourceID uint32
-	// layoutResourceRef keeps LayoutResourceID adopted for the setup lifetime
+	// layoutResourceRef keeps LayoutResourceID adopted for the setup
+	// lifetime.
 	layoutResourceRef resource_client.ResourceRef
 }
 
@@ -255,8 +256,8 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	}
 	sdkTx.Release()
 
-	// Access the typed object to get the resource ID
-	// Use a read transaction since we only need the resource ID
+	// Access the typed object to get the resource ID.
+	// Use a read transaction since only the resource ID is needed.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		engine.Release()

@@ -7,14 +7,14 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// valType represents a key-value pair in the btree
+// valType represents a key-value pair in the btree.
 type valType[V any] struct {
 	key []byte
 	val V
 }
 
-// valTypeLess implements the less function for btree
-// may be called with nil if we pass nil for the pivot
+// valTypeLess implements the less function for btree.
+// May be called with nil if the caller passes nil for the pivot.
 func valTypeLess[V any](a, b *valType[V]) bool {
 	var aKey, bKey []byte
 	if a != nil {
@@ -80,9 +80,9 @@ func (m *BTreeMap[V]) Exists(ctx context.Context, key []byte) (bool, error) {
 //
 // Iterator (might) not include items added during iteration.
 //
-// WARNING: Do not modify the btree (Set/Delete) during iteration as this will
-// deadlock. Instead, collect the items to modify during iteration and modify
-// them afterwards.
+// WARNING: Do not modify the btree (Set/Delete) during iteration because
+// modifying the btree will deadlock. Instead, collect the items to modify
+// during iteration and modify them afterwards.
 func (m *BTreeMap[V]) Iterate(ctx context.Context, cb func(ctx context.Context, key []byte, value V) error) error {
 	return m.IteratePrefix(ctx, nil, cb)
 }

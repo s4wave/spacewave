@@ -158,7 +158,7 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 		manifests = bldr_manifest_world.FilterCollectedManifestsByLatestRev(manifests)
 		trace.Logf(entryCtx, "emitted-count", "%d", len(manifests))
 
-		// Build ManifestRef list.
+		// Build the ManifestRef list.
 		refs := make([]*manifest.ManifestRef, len(manifests))
 		for i, m := range manifests {
 			refs[i] = &manifest.ManifestRef{
@@ -167,8 +167,8 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			}
 		}
 
-		// Diff against previous value. An empty result adds no value, so it
-		// never masks manifests the parent source supplies.
+		// Diff against the previous value. An empty result adds no value,
+		// so it never masks manifests the parent source supplies.
 		next := &manifest.FetchManifestValue{ManifestRefs: refs}
 		if entry.emitted == nil || !next.EqualVT(entry.emitted) {
 			_ = entry.handler.ClearValues()

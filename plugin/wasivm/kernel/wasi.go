@@ -241,7 +241,7 @@ func (p *Process) wasiPollFDs(poll *wasiPoll) ([]wasiPollEvent, []<-chan struct{
 
 // fdReadiness reports whether a read of descriptor fd, or a write when write
 // is set, would proceed without waiting, and whether the other side closed.
-// change closes at the descriptor's next change while it is not ready; a
+// change closes at the descriptor's next change while it is not ready. A
 // descriptor that is not open reports neither readiness nor a change.
 func (p *Process) fdReadiness(fd uint32, write bool) (ready, hangup bool, change <-chan struct{}) {
 	of, ok := p.fds[fd]
@@ -403,7 +403,7 @@ func (p *Process) wasiSockAccept(ctx context.Context, mem engine.Memory, fd, fla
 
 // wasiSockRecv reads a connected socket into the iovecs at iovsPtr. It writes
 // the bytes read to nPtr and no output flags to flagsPtr. Peeking is
-// unsupported; waiting for all the data returns what arrived.
+// unsupported. Waiting for all the data returns what arrived.
 func (p *Process) wasiSockRecv(ctx context.Context, mem engine.Memory, fd, iovsPtr, iovsLen, flags, nPtr, flagsPtr uint32) uint32 {
 	// Check the socket and the flags.
 	if _, errno := p.socketFile(fd); errno != 0 {

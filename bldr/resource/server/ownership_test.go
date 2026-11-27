@@ -169,8 +169,8 @@ func TestChildAfterParentReleaseRejected(t *testing.T) {
 	}
 }
 
-// TestNeverAllocatedControlsTerminate checks controls naming an ID the server
-// never allocated are refused.
+// TestNeverAllocatedControlsTerminate checks controls specifying an ID
+// the server never allocated are refused.
 func TestNeverAllocatedControlsTerminate(t *testing.T) {
 	// Release and adopt an ID above the server's counter.
 	_, client := ownershipTestClient(t)

@@ -79,8 +79,8 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	}
 	assertCatalogCacheTestAvailablePlugins(t, initial.GetAvailablePlugins(), manifestSpecs)
 
-	// Configure a plugin, which changes the contents state but not the
-	// manifest set, so the watch sends a state built from the cached catalog.
+	// Configure a plugin to change the contents state but not the manifest
+	// set, so the watch sends a state built from the cached catalog.
 	settingsTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		watchCancel()
@@ -356,8 +356,8 @@ func TestAvailablePluginsFromCatalogKeepsHighestRev(t *testing.T) {
 	// Prepare an empty manifest catalog before adding competing revisions.
 	catalog := map[string]*bldr_manifest.ManifestMeta{}
 
-	// Two revisions of the same plugin plus a distinct plugin; the catalog must
-	// keep the highest revision per manifest ID.
+	// Two revisions of the same plugin plus a distinct plugin. The catalog
+	// must keep the highest revision per manifest ID.
 	for _, meta := range []*bldr_manifest.ManifestMeta{
 		{ManifestId: "spacewave-notes", Rev: 2, Description: "notes v2"},
 		{ManifestId: "spacewave-notes", Rev: 5, Description: "notes v5", NodeTypeIds: []string{"notes/sync"}},

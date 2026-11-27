@@ -127,7 +127,7 @@ export function resolveObjectViewerSelection(
 }
 
 // defaultComponent returns the first component that declares itself its
-// type's default, or else the first component.
+// type's default component, or else the first component.
 function defaultComponent(
   visibleComponents: ObjectViewerComponent[],
 ): ObjectViewerComponent | undefined {
@@ -281,7 +281,7 @@ function useViewerSelection({
 
 // useObjectNameReport holds the stored name the viewer reports for objectKey
 // and names the tab after it. A name reported for an earlier object is
-// dropped when the viewer moves to another.
+// dropped when the viewer moves to another object.
 function useObjectNameReport(objectKey: string | undefined) {
   const [report, setReport] = useState<{ objectKey?: string; name: string }>({
     name: '',

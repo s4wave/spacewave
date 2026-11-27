@@ -20,24 +20,25 @@ message Config {
 	// Path is the file to store the data in.
   string path = 1;
   // Table is the table to store the data in.
-  // The table will be created on startup if not exists.
+  // The table will be created on startup if the table does not exist.
   string table = 2;
   // KvKeyOpts are key/value options.
   .store.kvkey.Config kv_key_opts = 3;
-  // Verbose indicates we should log every operation.
+  // Verbose indicates the store should log every operation.
   bool verbose = 4;
   // VolumeConfig is the volume controller config.
   .volume.controller.Config volume_config = 5;
   // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 6;
   // NoGenerateKey indicates to skip generating a private key.
-  // This has no effect if a key already exists.
+  // NoGenerateKey has no effect if a key already exists.
   bool no_generate_key = 7;
   // NoWriteKey indicates the controller should not write a private key to
-  // storage if it generates one. This results in an ephemeral volume peer
-  // identity if there is no key present in the store already.
+  // storage if it generates one. Skipping the write results in
+  // an ephemeral volume peer identity if there is no key present in the
+  // store already.
   //
-  // Has no effect if the store has a peer private key.
+  // NoWriteKey has no effect if the store has a peer private key.
   bool no_write_key = 8;
 
   // CacheSize sets the SQLite cache_size pragma. Positive values are pages,
@@ -51,7 +52,8 @@ message Config {
   TempStore temp_store = 11;
   // PageSize sets the SQLite page_size pragma in bytes. Must be a power of
   // two between 512 and 65536. 0 leaves the SQLite default (4096). Only
-  // takes effect on a fresh database; ignored if the file already exists.
+  // takes effect on a fresh database. The setting is ignored if the file
+  // already exists.
   int32 page_size = 12;
 }
 

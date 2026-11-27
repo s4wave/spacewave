@@ -7,7 +7,7 @@ import { Table, type TableColumn } from '@s4wave/web/ui/table/Table.js'
 import type { KvKeyRow } from './kv-viewer.js'
 
 // keyColumns are the key list's columns: the key, ordered as the store orders
-// it, and its value's size, which sheds first.
+// it, and its value's size. The size column is hidden first.
 const keyColumns: TableColumn<KvKeyRow>[] = [
   {
     key: 'key',
@@ -36,7 +36,7 @@ interface KvKeyListProps {
 }
 
 // KvKeyList is the store's keys as a Table: each key with its value's size,
-// sorted by either.
+// sorted by either column.
 export function KvKeyList({ rows, state, filtered }: KvKeyListProps) {
   return (
     <Table

@@ -420,7 +420,8 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 	}))
 	eng.setTransportWindows(8, 8, 8)
 
-	// Close the reader during a read and expect the read to report it.
+	// Close the reader during a read and expect the read to report
+	// shutdown.
 	readDone := make(chan error, 1)
 	go func() {
 		_, err := eng.ReaderAt(t.Context()).ReadAt(make([]byte, 8), 0)

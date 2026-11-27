@@ -43,25 +43,25 @@ import (
 
 // providerAccountTracker tracks a ProviderAccount in the world.
 type providerAccountTracker struct {
-	// p is the provider
+	// p is the provider.
 	p *Provider
-	// accountID is the account identifier
+	// accountID is the account identifier.
 	accountID string
-	// accCtr is the provider account container
+	// accCtr is the provider account container.
 	accCtr *ccontainer.CContainer[*ProviderAccount]
 }
 
 // ProviderAccount implements the spacewave provider account.
 type ProviderAccount struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// p is the provider
+	// p is the provider.
 	p *Provider
-	// accountID is the account identifier on the cloud
+	// accountID is the account identifier on the cloud.
 	accountID string
-	// vol is the parent volume for storage for the account
+	// vol is the parent volume for storage for the account.
 	vol volume.Volume
-	// entityCli is the entity client for registration flows
+	// entityCli is the entity client for registration flows.
 	entityCli *EntityClient
 	// sessionClient is the session client for authenticated API.
 	// Guarded by accountBcast after ProviderAccount construction.
@@ -75,9 +75,9 @@ type ProviderAccount struct {
 	sessionTransports map[string]*sessionTransportState
 	// transportComposition selects the direct transport for each Session.
 	transportComposition transportCompositionOwner
-	// conf is the provider configuration
+	// conf is the provider configuration.
 	conf *Config
-	// sfs is the step factory set for block transforms
+	// sfs is the step factory set for block transforms.
 	sfs *block_transform.StepFactorySet
 	// objStore is the ObjectStore for account-level persistence (state cache).
 	objStore object.ObjectStore
@@ -192,7 +192,7 @@ type ProviderAccount struct {
 }
 
 // RegisterCdnRootChangedCallback subscribes cb to cdn-root-changed session
-// WebSocket frames. Returns a release function that unsubscribes; callers
+// WebSocket frames. Returns a release function that unsubscribes. Callers
 // MUST release when the subscription is no longer needed. cb is invoked
 // from the WS read loop so it should be non-blocking or offload work.
 func (a *ProviderAccount) RegisterCdnRootChangedCallback(cb func(spaceID string)) func() {
@@ -268,8 +268,9 @@ type accountState struct {
 	// each listed SharedObject by ID, so a summary scan reads the store only
 	// for SharedObjects absent here.
 	selfEnrollmentEntries map[string]*selfEnrollmentEntry
-	// selfEnrollmentEntriesRev increments when a verified cache write or delete
-	// invalidates an entry. A scan stores its loads only if it is unchanged.
+	// selfEnrollmentEntriesRev increments when a verified cache write or
+	// delete invalidates an entry. A scan stores its loads only if the
+	// revision is unchanged.
 	selfEnrollmentEntriesRev uint64
 	// status is the current account status (READY, UNAUTHENTICATED, DELETED).
 	status provider.ProviderAccountStatus
@@ -832,7 +833,7 @@ func (a *ProviderAccount) getUsername(ctx context.Context) (string, error) {
 
 // GetAccountState returns cached account state, fetching GET /account/state on
 // cache miss. Uses a fetching flag to coalesce concurrent callers so only one
-// HTTP request is made; other goroutines wait on the broadcast for the result.
+// HTTP request is made. Other goroutines wait on the broadcast for the result.
 func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStateResponse, error) {
 	for {
 		var info *api.AccountStateResponse

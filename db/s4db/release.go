@@ -18,15 +18,17 @@ const releaseScan = 4 * freeBatch
 // releaseStep frees what may be reused: pending chunks that no slot pins and
 // recovery can no longer read, and reserved chunks whose owner is gone. It
 // appends one free record for them and truncates up to truncateMax of the
-// file's trailing free chunks, all under the writer lock; replayers apply the
+// file's trailing free chunks, all under the writer lock. Replayers apply the
 // records without repeating the slot reads and marks that justified them.
 func (s *scheduler) releaseStep(ctx context.Context) error {
-	// Advance a serialized pass under writer admission; IO failure clears its queue.
+	// Advance a serialized pass under writer admission. IO failure clears
+	// the pass's queue.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	db := s.db
 	err := db.w.locked(ctx, func() error {
-		// Read every live reader pin; unreadable slots still prevent reclamation.
+		// Read every live reader pin. Unreadable slots still prevent
+		// reclamation.
 		st := db.cur.Load()
 		pins, readable, err := db.liveSlots()
 		if err != nil {
@@ -112,16 +114,17 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 	return err
 }
 
-// releaseQueued reports an unfinished bounded pass, without holding writer.
+// releaseQueued reports an unfinished bounded pass, without holding the writer
+// lock.
 func (s *scheduler) releaseQueued() bool {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.releaseRemaining != 0
 }
 
-// liveSlots returns the pins of the other live slots and whether every one
-// of them read whole; a slot being rewritten pins everything and blocks
-// reclaiming until it reads again.
+// liveSlots returns the pins of the other live slots and whether every one of
+// them read whole. A slot being rewritten pins everything and blocks reclaiming
+// until it reads again.
 func (db *DB) liveSlots() ([]pin, bool, error) {
 	// Read the slots.
 	b := make([]byte, pageSize)

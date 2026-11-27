@@ -28,11 +28,11 @@ const evictableBytesKey = "evictable-bytes"
 
 // EvictAdmit is called before each eviction batch with the bytes the previous
 // batch dropped, zero before the first. It may wait, to pace a pass against the
-// disk's other writers; its error ends the pass.
+// disk's other writers. Its error ends the pass.
 type EvictAdmit func(ctx context.Context, lastBytes int64) error
 
 // evictRetryCommitBlocks bounds each metadata write when refusals are retried.
-// The scan and remote probe keep their bulk size; a queue move always deletes
+// The scan and remote probe keep their bulk size. A queue move always deletes
 // its old key, inserts its replacement and adjusts bytes in one transaction.
 const evictRetryCommitBlocks = 64
 
@@ -40,7 +40,7 @@ const evictRetryCommitBlocks = 64
 // reading the remote, which blocks it durably holds.
 type DurableConfirmer interface {
 	// ConfirmsDurable reports whether ConfirmDurable's answers prove
-	// durability; when false, eviction asks the remote instead.
+	// durability. When false, eviction asks the remote instead.
 	ConfirmsDurable() bool
 	// ConfirmDurable reports, for each ref, that the remote durably holds the
 	// block. A false is a block the records cannot vouch for, not proof of
@@ -100,13 +100,14 @@ type EvictResult struct {
 	// EvictedBytes is the recorded size of the dropped values.
 	EvictedBytes int64
 	// Requeued is the number of entries the caller kept, queued at the new
-	// epoch.
-	// This excludes Refused even when refusal retry moves those entries too.
+	// epoch. Requeued excludes Refused even when refusal retry moves those
+	// entries too.
 	Requeued int
-	// Refused counts decisions to keep a block because a marker awaits upload
-	// or the remote does not report holding it, even if a later write fails.
-	// These entries move to the new epoch when refusal retry is enabled;
-	// indexed marked values instead retain their marker's clear reservation.
+	// Refused counts decisions to keep a block because a marker awaits
+	// upload or the remote does not report holding it, even if a later
+	// write fails. These entries move to the new epoch when refusal retry
+	// is enabled. Indexed marked values instead retain their marker's clear
+	// reservation.
 	Refused int
 }
 
@@ -185,11 +186,12 @@ func scanEvictable(ctx context.Context, tx kvtx.Tx, from []byte, cb func(evictEn
 	return it.Err()
 }
 
-// queueEvict queues a block at epoch and returns its signed byte delta.
-// Indexed moves replace one canonical entry; a marker instead covers the
-// value. Legacy mode deduplicates only the exact epoch/hash key.
+// queueEvict queues a block at epoch and returns its signed byte delta. Indexed
+// moves replace one canonical entry. A marker instead covers the value. Legacy
+// mode deduplicates only the exact epoch/hash key.
 func queueEvict(ctx context.Context, tx kvtx.Tx, epoch uint64, h *hash.Hash, size int64) (int64, error) {
-	// Select one policy inside the transaction; legacy writes invalidate pointers.
+	// Select one policy inside the transaction. Legacy writes invalidate
+	// pointers.
 	indexed := evictQueueIndex.Load() && evictRefusedRetry.Load()
 	if indexed {
 		return queueIndexedEvict(ctx, tx, epoch, h, size)
@@ -241,10 +243,10 @@ func addEvictableBytes(ctx context.Context, tx kvtx.Tx, delta int64) error {
 	return tx.Set(ctx, []byte(evictableBytesKey), []byte(strconv.FormatInt(total+delta, 10)))
 }
 
-// EvictBytes returns how many uploaded bytes a pass drops to bring the
-// resident bytes from past the high mark down to the low mark, or zero. It
-// starts a pass only past the high mark; EvictLatch carries a cut-short pass on
-// to the low mark.
+// EvictBytes returns how many uploaded bytes a pass drops to bring the resident
+// bytes from past the high mark down to the low mark, or zero. It starts a pass
+// only past the high mark. EvictLatch carries a cut-short pass on to the low
+// mark.
 func (s Status) EvictBytes() int64 {
 	resident := s.ResidentBytes()
 	if s.Policy.ResidentHigh <= 0 || resident <= s.Policy.ResidentHigh {
@@ -277,20 +279,20 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 	return strconv.ParseUint(string(value), 10, 64)
 }
 
-// Evict runs one eviction pass, one at a time: it advances the epoch, then walks the queue
-// oldest epoch first and drops local values until it has dropped maxBytes or
-// reaches the new epoch. A block keep reports is queued at the new epoch
-// instead. A nil keep keeps nothing.
+// Evict runs one eviction pass, one at a time: it advances the epoch, then
+// walks the queue oldest epoch first and drops local values until it has
+// dropped maxBytes or reaches the new epoch. A block keep reports is queued at
+// the new epoch instead. A nil keep keeps nothing.
 //
 // A block leaves the local values only while no marker awaits its upload and
 // remote confirms holding it, as confirmHeld describes, so the remote store
 // always holds what was dropped. A remote that is a DurableConfirmer answers
-// from its local records, one local read per block; any other remote is asked
+// from its local records, one local read per block. Any other remote is asked
 // through its existence probe, which can wait on the pack index writer and on
-// bucket reads. An entry whose value is already gone, such as a block the garbage
-// collector swept, is deleted. Values are dropped before their entries, so an
-// interrupted pass leaves only entries the next pass deletes. The pass takes
-// no lock a write waits on, since asking remote can wait on the network.
+// bucket reads. An entry whose value is already gone, such as a block the
+// garbage collector swept, is deleted. Values are dropped before their entries,
+// so an interrupted pass leaves only entries the next pass deletes. The pass
+// takes no lock a write waits on, since asking remote can wait on the network.
 //
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
@@ -298,17 +300,17 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 //
 // A non-nil admit paces the pass, as EvictAdmit describes.
 //
-// Eviction drops a local value only when no upload marker was observed and
-// the remote confirms holding it. Refusal retry never bypasses those checks.
-// With refusal retry enabled, an entry leaves the queue only after its local
-// value is dropped, already absent, or covered by a marker whose clear
-// reserves replacement coverage. Other refused or caller-kept entries move
-// atomically to the new epoch. A failed queue commit leaves the old entry.
-// An entry moved to the pass epoch is not visited again in that pass.
+// Eviction drops a local value only when no upload marker was observed and the
+// remote confirms holding it. Refusal retry never bypasses those checks. With
+// refusal retry enabled, an entry leaves the queue only after its local value
+// is dropped, already absent, or covered by a marker whose clear reserves
+// replacement coverage. Other refused or caller-kept entries move atomically to
+// the new epoch. A failed queue commit leaves the old entry. An entry moved to
+// the pass epoch is not visited again in that pass.
 //
 // A transaction the store reports busy runs again after a backoff, as
-// kvtx.RetryBusy describes, each attempt its own short transaction; a pass
-// ends on a busy store only after those retries.
+// kvtx.RetryBusy describes, each attempt its own short transaction. A pass ends
+// on a busy store only after those retries.
 func (s *Store) Evict(
 	ctx context.Context,
 	remote block.StoreOps,
@@ -323,14 +325,14 @@ func (s *Store) Evict(
 	// remote are background reads.
 	ctx = block.WithBackground(kvtx.WithOrderedCommitContext(ctx))
 
-	// Keep one queue policy for the pass. With retry on, fillMtx is a barrier
-	// around the epoch advance only: a fill holds it from its queue
+	// Keep one queue policy for the pass. With retry on, fillMtx is a
+	// barrier around the epoch advance only: a fill holds it from its queue
 	// reservation through its value write and reserves under the epoch it
 	// reads, so every fill that held it before has written its value, and
-	// every later fill reserves under the new epoch, which this pass neither
-	// visits nor deletes. No fill waits on the pass's remote probes, pacing or
-	// slices. It is taken before the pass mutex, so a pass waiting for a fill
-	// does not delay disable.
+	// every later fill reserves under the new epoch, which this pass
+	// neither visits nor deletes. No fill waits on the pass's remote
+	// probes, pacing or slices. The fill barrier is taken before the pass
+	// mutex, so a pass waiting for a fill does not delay disable.
 	var result EvictResult
 	retryRefused := evictRefusedRetry.Load()
 
@@ -376,8 +378,8 @@ func (s *Store) Evict(
 
 // advanceEpoch takes the fill barrier when retryRefused is set, then the pass
 // mutex, and advances the eviction epoch in one transaction. It returns the
-// pass mutex's release and the new epoch, with the fill barrier released; on
-// an error it holds neither.
+// pass mutex's release and the new epoch, with the fill barrier released. On an
+// error advanceEpoch holds neither.
 func (s *Store) advanceEpoch(ctx context.Context, retryRefused bool) (func(), uint64, error) {
 	// Hold the fill barrier through the epoch advance only.
 	if retryRefused {
@@ -414,7 +416,7 @@ func (s *Store) advanceEpoch(ctx context.Context, retryRefused bool) (func(), ui
 // evictBatch reads one batch of entries older than epoch from the key from,
 // drops the values it may, and commits the entry changes. Returns the key the
 // next batch starts from, and true when the walk reached the end of the older
-// entries; the key is then the start of epoch, where later entries queue.
+// entries. The key is then the start of epoch, where later entries queue.
 func (s *Store) evictBatch(
 	ctx context.Context,
 	remote block.StoreOps,
@@ -438,8 +440,9 @@ func (s *Store) evictBatch(
 	)
 	err := kvtx.RetryBusy(ctx, func() error {
 		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-			// Walk the older entries up to the batch and byte limits; the walk is
-			// done when it runs out of them.
+			// Walk the older entries up to the batch and byte
+			// limits. The walk is done when no older entries
+			// remain.
 			batch, marked, done = batch[:0], marked[:0], true
 			var batchBytes int64
 			next = nil
@@ -578,8 +581,9 @@ func (s *Store) evictBatch(
 			return nil, false, errors.Wrap(err, "update eviction queue")
 		}
 
-		// Project each committed slice; drop-byte reporting keeps the original
-		// boundary after all metadata for this scan batch commits.
+		// Project each committed slice. Drop-byte reporting keeps the
+		// original boundary after all metadata for this scan batch
+		// commits.
 		var reportedBytes int64
 		if end == len(batch) {
 			reportedBytes = evictedBytes

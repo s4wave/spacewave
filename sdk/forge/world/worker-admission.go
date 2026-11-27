@@ -65,7 +65,7 @@ func NewWorkerAdmission(eng world.Engine, workerKey string, peerID peer.ID, clai
 }
 
 // ApplyDeclaration claims and observes this Worker or drains it when the
-// declaration is nil or names another Worker.
+// declaration is nil or references another Worker.
 func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string, declared *s4wave_device.ForgeWorkerDeclaration) error {
 	// Fence new Worker reservations before changing the declaration.
 	w.mtx.Lock()
@@ -163,7 +163,8 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 		return nil
 	}
 
-	// Observe the new Worker capacity and stop reservations if it remains draining.
+	// Observe the new Worker capacity and stop reservations if the capacity
+	// remains draining.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
 		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends(), declared.GetCards())
 	if err != nil {
@@ -317,9 +318,10 @@ func (w *WorkerAdmission) setActive(active bool) {
 
 // Reserve debits the Docker target's explicit request under the current claim.
 // While the Worker is draining or undeclared, or the request fits the Worker
-// but live reservations hold what it needs, it holds the reservation until
-// that changes, so the Execution waits instead of failing. It returns only
-// when the debit is made, the context ends, or the request fails, such as one
+// but live reservations hold the capacity the request needs, Reserve holds
+// the reservation until those conditions change, so the Execution waits
+// instead of failing. Reserve returns only when the debit is made, the context
+// ends, or the request fails, such as one
 // the Worker could never hold. waiting hears of the capacity wait once, when
 // the first try finds the Worker busy, and of its end before a grant returns.
 func (w *WorkerAdmission) Reserve(
@@ -450,7 +452,7 @@ func cardDevices(cards []*s4wave_device.GraphicsCard, ids []string) ([]string, e
 		byID[card.GetId()] = card
 	}
 
-	// Collect each reserved card's nodes; cards share /dev/kfd.
+	// Collect each reserved card's nodes. Cards share /dev/kfd.
 	var devices []string
 	seen := make(map[string]struct{})
 	for _, id := range ids {

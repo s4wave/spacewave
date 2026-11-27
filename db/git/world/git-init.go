@@ -138,7 +138,7 @@ func (o *GitInitOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{root}
 }
 
-// PayloadRefsVersion identifies what GetPayloadRefs names.
+// PayloadRefsVersion identifies what GetPayloadRefs returns.
 func (o *GitInitOp) PayloadRefsVersion() uint32 {
 	return 1
 }

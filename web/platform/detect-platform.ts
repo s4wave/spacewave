@@ -1,7 +1,7 @@
-// PlatformOS enumerates the desktop operating systems we detect.
+// PlatformOS enumerates the desktop operating systems detectPlatform detects.
 export type PlatformOS = 'macos' | 'windows' | 'linux'
 
-// PlatformArch enumerates the CPU architectures we detect.
+// PlatformArch enumerates the CPU architectures detectPlatform detects.
 export type PlatformArch = 'amd64' | 'arm64'
 
 // DetectedPlatform is the OS + arch pair resolved from a Navigator object.
@@ -27,7 +27,7 @@ function detectOS(nav: Navigator): PlatformOS | null {
   const ua = nav.userAgent
   if (/Mac OS X|Macintosh/i.test(ua)) return 'macos'
   if (/Windows NT/i.test(ua)) return 'windows'
-  // Android reports Linux in UA; exclude it.
+  // Android reports Linux in UA. Exclude Android.
   if (/Linux/i.test(ua) && !/Android/i.test(ua)) return 'linux'
   return null
 }

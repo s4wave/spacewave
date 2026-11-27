@@ -122,8 +122,8 @@ func TestAgentUploadDownload(t *testing.T) {
 	store := &memStore{objects: map[string][]byte{}}
 	tmpDir := filepath.Join(dir, "tmp")
 
-	// The first upload stores the object and reports its progress; the
-	// second finds it and skips the Put.
+	// The first upload stores the object and reports its progress. The
+	// second upload finds the object and skips the Put.
 	msgs := runAgent(t, store, tmpDir,
 		initRequest,
 		uploadRequest(oid, len(data), src),
@@ -182,7 +182,8 @@ func TestAgentRejectsCorruptDownload(t *testing.T) {
 		otherOid: data,
 	}}
 
-	// Right size, wrong hash; then a size that disagrees with the pointer.
+	// Download an object with the right size but the wrong hash, then one
+	// with a size that disagrees with the pointer.
 	done := completes(runAgent(t, store, tmpDir,
 		initRequest,
 		downloadRequest(oid, len(data)),

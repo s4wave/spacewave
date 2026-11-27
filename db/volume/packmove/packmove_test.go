@@ -23,7 +23,7 @@ import (
 )
 
 // packsBeforeFailure is the packs TestPackResume lets the bucket accept before
-// it fails; each pack is two objects, the pack and its entry.
+// the bucket fails. Each pack is two objects, the pack and its entry.
 const packsBeforeFailure = 3
 
 // packPrefix is the key prefix of the packs in the test bucket.
@@ -169,7 +169,7 @@ func TestPackSwitch(t *testing.T) {
 	written := w.stop(t)
 	late := writerRefs(t, written)
 
-	// Switch with every process closed; the source stays as it was.
+	// Switch with every process closed. The source stays as it was.
 	before := fileSum(t, src)
 	result := switchOnce(ctx, t, src, dst, logPath)
 	if fileSum(t, src) != before {
@@ -289,10 +289,10 @@ func TestPackSwitch(t *testing.T) {
 	}
 }
 
-// TestPackResume stops a pack on a failing bucket and between an upload and
-// its commit, resumes it, and expects every block in exactly one logged pack.
-// The pack uploaded before the stop was never logged, since uploads run before
-// the log names their pack, so it stays in the bucket as one orphan.
+// TestPackResume stops a pack on a failing bucket and between an upload and its
+// commit, resumes it, and expects every block in exactly one logged pack. The
+// pack uploaded before the stop was never logged, since uploads run before the
+// log records their pack, so it stays in the bucket as one orphan.
 func TestPackResume(t *testing.T) {
 	// Lay out the files and the test bucket.
 	ctx := t.Context()

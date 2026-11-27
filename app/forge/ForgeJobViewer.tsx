@@ -63,7 +63,7 @@ const taskDecoder = messageDecoder(Task)
 
 const taskIcon = <LuListTodo className="size-3 shrink-0" />
 
-// TaskRow draws one task; it draws again only when that task's body changes.
+// TaskRow draws one task. It draws again only when that task's body changes.
 const TaskRow = memo(function TaskRow({ objectKey, value }: ForgeSetRow<Task>) {
   return (
     <div className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150">

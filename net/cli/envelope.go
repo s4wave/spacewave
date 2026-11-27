@@ -116,7 +116,7 @@ func (a *EnvelopeArgs) loadPubKeys() ([]crypto.PubKey, error) {
 	// Load the public recipient keys from the configured key files.
 	keys := make([]crypto.PubKey, 0, len(paths))
 	for _, path := range paths {
-		// Try loading as private key first (to extract public key).
+		// Try loading as a private key first to extract the public key.
 		priv, err := keyfile.OpenOrWritePrivKey(le, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "load key %s", path)

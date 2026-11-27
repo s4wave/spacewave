@@ -32,7 +32,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	}
 	defer stage.Release()
 
-	// importSnapshot snapshot,err via world_block.
+	// Get snapshot and err via world_block.ImportSnapshot.
 	snapshot, err := world_block.ImportSnapshot(ctx, stage, maps.All(map[string]block.Block{
 		"inner": block_mock.NewExample("content"),
 	}), nil)
@@ -43,7 +43,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	const ordinaryKey = "other-app/ordinary"
 	if err := world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, state world.WorldState) error {
 
-		// accessWorldObject _,_,err via world.
+		// Access the object and get err via world.AccessWorldObject.
 		_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
 			nested, err := world_block.NewNestedWorld(tb.EngineBucketID, snapshot, nil)
 			if err != nil {

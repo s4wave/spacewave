@@ -26,7 +26,7 @@ export const SignalingDefinition = {
   typeName: 'signaling.rpc.Signaling',
   methods: {
     /**
-     * Listen waits for messages to be available in our inbox from remote peers.
+     * Listen waits for messages from remote peers in the caller's inbox.
      *
      * @generated from rpc signaling.rpc.Signaling.Listen
      */
@@ -57,7 +57,7 @@ export const SignalingDefinition = {
  */
 export interface Signaling {
   /**
-   * Listen waits for messages to be available in our inbox from remote peers.
+   * Listen waits for messages from remote peers in the caller's inbox.
    *
    * @generated from rpc signaling.rpc.Signaling.Listen
    */
@@ -84,7 +84,7 @@ export interface Signaling {
  */
 export interface SignalingHandler {
   /**
-   * Listen waits for messages to be available in our inbox from remote peers.
+   * Listen waits for messages from remote peers in the caller's inbox.
    *
    * @generated from rpc signaling.rpc.Signaling.Listen
    */
@@ -118,7 +118,7 @@ export class SignalingClient implements Signaling {
     this.Session = this.Session.bind(this)
   }
   /**
-   * Listen waits for messages to be available in our inbox from remote peers.
+   * Listen waits for messages from remote peers in the caller's inbox.
    *
    * @generated from rpc signaling.rpc.Signaling.Listen
    */

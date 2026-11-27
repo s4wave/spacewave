@@ -10,7 +10,7 @@ import (
 // WebPkgRefConfigSlice is a slice of WebPkgRefConfig.
 type WebPkgRefConfigSlice []*WebPkgRefConfig
 
-// AppendWebPkgRef appends a web pkg ref to the slice.
+// AppendWebPkgRefConfig appends a web pkg ref to the slice.
 // Merges with any existing definition for that web pkg id.
 //
 // Returns true if any changes were made.
@@ -58,8 +58,9 @@ func (sl WebPkgRefConfigSlice) AppendWebPkgRefConfig(addConf *WebPkgRefConfig) (
 
 // MergeWebPkgRefConfigImports merges declared config imports into resolved web
 // package refs. Config imports are package-root-relative entry files and apply
-// everywhere a WebPkgRefConfig is consumed; callers that already resolved package
-// roots call this instead of rebuilding the merge policy locally.
+// everywhere a WebPkgRefConfig is consumed. Callers that already resolved
+// package roots call MergeWebPkgRefConfigImports instead of rebuilding the
+// merge policy locally.
 func MergeWebPkgRefConfigImports(refs web_pkg.WebPkgRefSlice, configs []*WebPkgRefConfig) web_pkg.WebPkgRefSlice {
 	if len(refs) == 0 || len(configs) == 0 {
 		return refs
@@ -123,7 +124,7 @@ func CompactWebPkgRefConfigs(refs []*WebPkgRefConfig) []*WebPkgRefConfig {
 		return refs
 	}
 
-	// Sort by ID first to ensure we process duplicates together
+	// Sort by ID first to process duplicates together
 	SortWebPkgRefConfigs(refs)
 
 	// Iterate through the sorted slice, merging duplicates
@@ -134,9 +135,11 @@ func CompactWebPkgRefConfigs(refs []*WebPkgRefConfig) []*WebPkgRefConfig {
 			continue
 		}
 
-		// If this is the first element or has a different ID than the previous one
+		// If the current element is first or has a different ID than
+		// the previous element
 		if writeIdx == 0 || refs[writeIdx-1].GetId() != refs[readIdx].GetId() {
-			// If we're not at the same position, copy the current element
+			// If the read and write positions differ, copy the
+			// current element
 			if writeIdx != readIdx {
 				refs[writeIdx] = refs[readIdx]
 			}

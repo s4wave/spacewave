@@ -150,7 +150,7 @@ describe('UnixFSFileViewer image preview', () => {
     fireEvent.error(screen.getByRole('img', { name: 'logo.png' }))
     expect(screen.getByRole('alert')).toBeDefined()
 
-    // Another image and back loads the first afresh.
+    // Switching to another image and back loads the first image afresh.
     rerender(viewer('/other.png?inline=1'))
     expect(screen.queryByRole('alert')).toBeNull()
     rerender(viewer('/logo.png?inline=1'))

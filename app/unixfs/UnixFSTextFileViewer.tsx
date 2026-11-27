@@ -43,7 +43,7 @@ import {
 export interface UnixFSTextFileViewerProps {
   rootHandle: Resource<FSHandle>
   path: string
-  // readOnly says why the file cannot be written, such as a commit's files;
+  // readOnly says why the file cannot be written, such as a commit's files.
   // Edit then never shows.
   readOnly?: string
   // line is the 1-based line the read file scrolls to and highlights.
@@ -51,8 +51,9 @@ export interface UnixFSTextFileViewerProps {
   // description is one muted line of what the file is, for the viewer's own
   // bar.
   description?: string
-  // renderBar draws the viewer's presses in the bar that owns the pane, such as the
-  // file browser's navigator. Without it the viewer draws its own ViewerBar.
+  // renderBar draws the viewer's presses in the bar that owns the pane, such
+  // as the file browser's navigator. Without renderBar the viewer draws its
+  // own ViewerBar.
   renderBar?: (presses: ReactNode) => ReactNode
 }
 
@@ -60,8 +61,8 @@ export interface UnixFSTextFileViewerProps {
 const rowClass =
   'viewer-inset-x min-h-viewer-fact-row flex shrink-0 items-center gap-2 border-b border-foreground/8 py-1 text-xs'
 
-// pressClass draws a press in a bar that is not a ViewerBar. Below a 28rem
-// pane the press is its icon alone, as a ViewerBar press folds.
+// pressClass is the class for a press in a bar that is not a ViewerBar.
+// Below a 28rem pane the press is its icon alone, as a ViewerBar press folds.
 const pressClass =
   'focus-ring h-viewer-press w-viewer-press inline-flex shrink-0 items-center justify-center gap-1 rounded px-0 text-xs whitespace-nowrap select-none transition-colors aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-3.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11 @pane-md:w-auto @pane-md:px-2 @pane-md:pointer-coarse:min-w-0'
 
@@ -116,9 +117,9 @@ async function readFresh(
  * writeText writes text as the file at path under root while the file still
  * meets expect, and asks for the version it writes. A plain save that finds
  * the file removed recreates it only while nothing holds the path, so a
- * removal never reads as another writer's version. It sends no mode: a mode
- * never changes a file that exists. It takes no abort: a save once sent runs
- * until the Space decides it.
+ * removal never reads as another writer's version. writeText sends no mode:
+ * a mode never changes a file that exists. writeText takes no abort: a save
+ * once sent runs until the Space decides the save.
  */
 async function writeText(
   root: FSHandle,
@@ -189,10 +190,10 @@ function TextFilePresses({ actions }: { actions: ViewerBarAction[] }) {
 
 /**
  * UnixFSTextFileViewer shows a text file and edits it in a draft saved
- * through one atomic World upload. text-file.ts derives what it shows. The
- * draft lives in this viewer's state, so it lasts while the viewer stays
- * mounted; UnixFSFileViewer keys it by the Space id, object key and path.
- * Only Discard edits or a landed save end it.
+ * through one atomic World upload. text-file.ts derives what the viewer
+ * shows. The draft lives in this viewer's state, so the draft lasts while
+ * the viewer stays mounted. UnixFSFileViewer keys the viewer by the Space
+ * id, object key and path. Only Discard edits or a landed save end the draft.
  */
 export function UnixFSTextFileViewer({
   rootHandle,
@@ -202,7 +203,7 @@ export function UnixFSTextFileViewer({
   description,
   renderBar,
 }: UnixFSTextFileViewerProps) {
-  // Read the file once per handle; Retry or a new handle reads it again.
+  // Read the file once per handle. Retry or a new handle reads the file again.
   const file = useUnixFSHandle(rootHandle, path)
   const content = useResource(
     file,
@@ -212,8 +213,9 @@ export function UnixFSTextFileViewer({
   )
   const [state, dispatch] = useReducer(reduceTextFile, initialTextFileState)
   const signal = useAbortSignal([path])
-  // backRead is the read back in flight: its number, which ties its result to
-  // it in the reducer, and its abort, pressed when a save lands past it.
+  // backRead is the read back in flight: its number, which ties the result
+  // to the read in the reducer, and its abort, pressed when a save lands past
+  // the read.
   const backRead = useRef<{ read: number; abort: AbortController } | null>(null)
 
   // Each landed read is the version a draft compares against, kept through a
@@ -227,9 +229,10 @@ export function UnixFSTextFileViewer({
   const view = deriveTextFileView(content, state, !readOnly)
   const saveHold = useSaveHold()
 
-  // Submit only on a press; reconnecting a Resource must not replay a save.
+  // Submit only on a press, because reconnecting a Resource must not replay
+  // a save.
   async function save(over: boolean) {
-    // Take the draft's text once; typing after the press is not saved.
+    // Take the draft's text once, so typing after the press is not saved.
     const root = rootHandle.value
     const draft = state.draft
     if (!root || root.released || !draft || draft.saving || signal.aborted) {
@@ -268,7 +271,7 @@ export function UnixFSTextFileViewer({
       return
     }
 
-    // A landed save shows its text at the version it wrote; a refused one
+    // A landed save shows its text at the version it wrote. A refused save
     // offers Save over theirs and reads their version back.
     if (result.kind === 'written') {
       const version = result.versions[0]?.version
@@ -285,8 +288,8 @@ export function UnixFSTextFileViewer({
 
   // readBack reads the version that refused a save through the root the
   // upload checked against, since the file's own handle may still show the
-  // version before it. The refusal starts it, and Read again runs it once
-  // more.
+  // version before that one. The refusal starts readBack, and Read again runs
+  // readBack once more.
   async function readBack(root: FSHandle, start: 'refused' | 'back-reading') {
     const read = (backRead.current?.read ?? 0) + 1
     const abort = new AbortController()
@@ -328,7 +331,7 @@ export interface TextFileFrameProps {
   path: string
   readOnly?: string
   line?: number
-  // saveHold says why the Space takes no save now; Save waits, the draft stays.
+  // saveHold says why the Space takes no save now. Save waits, the draft stays.
   saveHold?: string | null
   description?: string
   renderBar?: (presses: ReactNode) => ReactNode
@@ -587,9 +590,9 @@ function lineRange(text: string, line: number) {
 
 /**
  * DraftBody draws an open draft. The draft stays in its textarea through every
- * read and save; notices sit above it so the element and its caret never move
- * to another node. The column scrolls so the textarea keeps a usable height
- * under the notices in a short pane.
+ * read and save. Notices sit above the textarea so the element and its caret
+ * never move to another node. The column scrolls so the textarea keeps a
+ * usable height under the notices in a short pane.
  */
 function DraftBody({
   view,

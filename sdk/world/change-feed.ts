@@ -7,7 +7,7 @@ import type {
   WorldChange,
 } from './world.pb.js'
 
-// ChangeNames names the changes a subscriber follows: changes to its object
+// ChangeNames lists the changes a subscriber follows: changes to its object
 // keys, and changes setting or deleting a graph quad that matches one of its
 // patterns.
 export interface ChangeNames {
@@ -25,8 +25,8 @@ export type ChangePattern = Readonly<Quad> & {
 }
 
 // changePattern builds the pattern matching quads with the given fields. An
-// empty field matches any value; the others are spelled as the World stores
-// them, so a key is named as an IRI, keyToIRI(key), and a bare predicate
+// empty field matches any value. The others are spelled as the World stores
+// them, so a key is represented as an IRI, keyToIRI(key), and a bare predicate
 // matches the quoted string the World stores for it.
 export function changePattern(fields: Quad): ChangePattern {
   return {
@@ -39,8 +39,8 @@ export function changePattern(fields: Quad): ChangePattern {
 
 // ChangeFeedEvent is one event of a subscription, in stream order.
 //
-// change: a change after the subscription's seqno naming one of its names, or
-// an unknown change, after which any read may have changed.
+// change: a change after the subscription's seqno referencing one of its
+// names, or an unknown change, after which any read may have changed.
 //
 // followed: every name added before it is followed after afterSeqno. A change
 // at or before afterSeqno to a name added since the last followed event may
@@ -56,8 +56,9 @@ export type ChangeFeedOpen = (
   signal: AbortSignal,
 ) => AsyncIterable<WatchChangesResponse>
 
-// maxQueued bounds the events a subscription holds unread. Past it they
-// collapse into one unknown change, which a reader answers with one full read.
+// maxQueued bounds the events a subscription holds unread. Past that limit,
+// the events collapse into one unknown change, which a reader answers with
+// one full read.
 const maxQueued = 256
 
 // patternKey identifies a pattern by its four fields.
@@ -114,7 +115,7 @@ class RequestQueue implements AsyncIterable<WatchChangesRequest> {
 }
 
 // ChangeFeedSubscription is one subscriber's view of a shared change stream.
-// Iterate it for events; update changes its names; close ends it.
+// Iterate it for events. update changes its names. close ends it.
 export class ChangeFeedSubscription implements AsyncIterable<ChangeFeedEvent> {
   // after is the last seqno the subscription has passed.
   after: bigint
@@ -152,7 +153,7 @@ export class ChangeFeedSubscription implements AsyncIterable<ChangeFeedEvent> {
     this.wake?.()
   }
 
-  // follows reports whether change names one of the subscription's names.
+  // follows reports whether change references one of the subscription's names.
   follows(change: WorldChange): boolean {
     if (change.unknown) return true
     if (change.keys?.some((key) => this.keys.has(key))) return true
@@ -223,12 +224,12 @@ export class ChangeFeedSubscription implements AsyncIterable<ChangeFeedEvent> {
 }
 
 // ChangeFeed shares one WatchChanges stream among its subscribers. The stream
-// carries the union of their names, changed by one delta per burst of
-// updates; each change goes to the subscribers it names. The stream opens
+// carries the union of their names, changed by one delta per burst of updates.
+// Each change goes to the subscribers the change references. The stream opens
 // with the first subscriber and closes with the last. When it fails, every
-// subscriber fails with it; a subscriber reopens by subscribing again with
-// the seqno it reached and its whole set of names, and reads again every name
-// it added without a followed event.
+// subscriber fails with it. A subscriber reopens by subscribing again with the
+// seqno it reached and its whole set of names, and reads again every name it
+// added without a followed event.
 export class ChangeFeed {
   // keys and patterns count the subscribers following each name.
   private readonly keys = new Map<string, number>()
@@ -241,8 +242,8 @@ export class ChangeFeed {
   private sentPatterns = new Map<string, ChangePattern>()
   private readonly subs = new Set<ChangeFeedSubscription>()
   private stream?: { requests: RequestQueue; abort: AbortController }
-  // version is the version of the last delta sent, and acked the version of
-  // the last delta the stream acknowledged; the first interest needs none.
+  // version is the version of the last delta sent, and acked is the version of
+  // the last delta the stream acknowledged. The first interest needs no ack.
   private version = 0n
   private acked = 0n
   // position is the last seqno the stream passed, by a change or an ack.
@@ -286,7 +287,8 @@ export class ChangeFeed {
     this.queueFlush()
   }
 
-  // remove stops following sub's names, closing the stream after the last.
+  // remove stops following sub's names, closing the stream after the last
+  // subscriber.
   remove(sub: ChangeFeedSubscription) {
     if (!this.subs.delete(sub)) return
     this.drop(sub, {
@@ -422,9 +424,9 @@ export class ChangeFeed {
 
   // flush sends the delta from the names the stream holds to the union. A
   // subscriber that added only names the stream already holds needs no
-  // delta: once the stream's last delta is acknowledged they are followed
-  // after every seqno the stream passed, so it gets its followed event here;
-  // otherwise it waits for that delta's ack.
+  // delta: once the stream's last delta is acknowledged the names are followed
+  // after every seqno the stream passed, so the subscriber gets its followed
+  // event here. Otherwise the subscriber waits for that delta's ack.
   private flush() {
     const stream = this.stream
     if (!stream) return

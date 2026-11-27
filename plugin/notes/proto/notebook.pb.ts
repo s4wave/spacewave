@@ -73,7 +73,7 @@ export interface InitNotebookOp {
    */
   timestamp?: Date
   /**
-   * Name is the notebook's display name; empty names it Notes.
+   * Name is the notebook's display name. An empty name selects Notes.
    */
   name?: string
 }
@@ -132,7 +132,7 @@ export const NotebookEditOp: MessageType<NotebookEditOp> =
  */
 export interface NotebookAddSource {
   /**
-   * Source is the source to append; its ref is required.
+   * Source is the source to append. Its ref is required.
    */
   source?: NotebookSource
 }

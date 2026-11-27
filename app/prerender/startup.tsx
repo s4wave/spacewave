@@ -55,7 +55,7 @@ const loading = await loadStartupView(
 )
 
 // Startup renders the initial UI while the Go runtime loads.
-// On static pages (pathname-based, no hash), renders the page
+// On static pages (pathname-based, no hash), Startup renders the page
 // component wrapped in StaticProvider to suppress RPC hooks.
 // App routes and returning visitors see a loading screen.
 export default function Startup() {

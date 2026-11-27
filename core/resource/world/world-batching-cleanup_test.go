@@ -20,9 +20,10 @@ import (
 	sdk_world "github.com/s4wave/spacewave/sdk/world"
 )
 
-// Count real owner-side Resource handles, not merely local goroutines or a mock
-// cursor count. Successful commits and discarded staged attempts must release
-// every transaction, object, and cursor handle back to the same baseline.
+// TestWorldBatchingResourceCleanupS4db counts real owner-side Resource handles,
+// not merely local goroutines or a mock cursor count. Successful commits and
+// discarded staged attempts must release every transaction, object, and cursor
+// handle back to the same baseline.
 func TestWorldBatchingResourceCleanupS4db(t *testing.T) {
 
 	// context ctx.

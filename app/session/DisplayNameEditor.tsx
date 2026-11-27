@@ -84,7 +84,7 @@ export function useDisplayNameEditor(
     state.kind !== 'viewing' &&
     normalizeDisplayName(draft) !== currentDisplayName
 
-  // Finish a pending save once the watched name shows it.
+  // Finish a pending save once the watched name shows the saved name.
   useEffect(() => {
     dispatch({ type: 'watched', current: currentDisplayName })
   }, [currentDisplayName])

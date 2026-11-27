@@ -11,17 +11,17 @@ import (
 
 // Simulator manages state for all simulated machines.
 type Simulator struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// ctxCancel cancels the context
+	// ctxCancel cancels the context.
 	ctxCancel context.CancelFunc
-	// verbose enables verbose mode
+	// verbose enables verbose mode.
 	verbose bool
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// mtx guards below fields
+	// mtx guards the peers field.
 	mtx sync.Mutex
-	// peers contains running peer nodes
+	// peers contains running peer nodes.
 	peers map[bpeer.ID]*Peer
 }
 

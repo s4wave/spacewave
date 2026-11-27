@@ -86,8 +86,8 @@ func (w *watch) forward(ctx context.Context, db *db_s4db.DB) {
 	}
 }
 
-// commits sends an event for each commit sequence after seq the database
-// publishes, from this process or another, until ctx ends or db closes.
+// commits sends an event for each commit sequence the database publishes
+// after seq, from this process or another, until ctx ends or db closes.
 func (w *watch) commits(ctx context.Context, db *db_s4db.DB, scope coord.Scope, seq uint64) {
 	for db.WaitSeq(ctx, seq+1) == nil {
 		seq = db.Seq()

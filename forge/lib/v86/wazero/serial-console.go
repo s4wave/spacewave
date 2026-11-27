@@ -21,9 +21,10 @@ var guestHaltSerialMarkers = [][]byte{
 // goroutine: MainLoop and WriteSerialInput (which raises the UART IRQ) must
 // never run concurrently, so a helper goroutine only reads in and forwards
 // bytes over a channel that this goroutine drains. The next tick is scheduled
-// after the delay MainLoop requests, so an idle guest does not busy-spin; this
-// honors the emulator's own clock rather than polling guest state. Returns nil
-// when in reaches EOF or ctx is canceled with no other error.
+// after the delay MainLoop requests, so an idle guest does not busy-spin. The
+// tick schedule honors the emulator's own clock rather than polling guest
+// state. Returns nil when in reaches EOF or ctx is canceled with no other
+// error.
 func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io.Writer) error {
 	// Route COM1 output through the guest halt detector for this console run.
 	haltDetector := &guestHaltDetectingWriter{dst: out}
@@ -94,8 +95,9 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 				return err
 			}
 		case <-h.netWakeCh():
-			// A host-origin frame arrived; cut the idle wait short so the next
-			// tick drains it instead of stalling on the emulator's clock.
+			// A host-origin frame arrived. Cut the idle wait short
+			// so the next tick drains the frame instead of stalling
+			// on the emulator's clock.
 			if !timer.Stop() {
 				<-timer.C
 			}
@@ -104,7 +106,8 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 	}
 }
 
-// guestHaltDetectingWriter forwards serial output and records whether the
+// guestHaltDetectingWriter forwards serial output and records whether a
+// guest-halt marker has appeared in it.
 type guestHaltDetectingWriter struct {
 	dst    io.Writer
 	tail   []byte
@@ -135,6 +138,7 @@ func (w *guestHaltDetectingWriter) Halted() bool {
 }
 
 // serialMarkerTail returns the trailing bytes of buf that a marker could
+// span across writes.
 func serialMarkerTail(buf []byte) []byte {
 	keep := 0
 	for _, marker := range guestHaltSerialMarkers {

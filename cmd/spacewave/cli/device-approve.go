@@ -164,7 +164,7 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		return errors.Wrap(err, "approve SpaceLink Device")
 	}
 
-	// Reject a response without a completion and encode it.
+	// Reject a response without a completion and encode the completion.
 	completion := response.GetCompletion()
 	if completion == nil {
 		return errors.New("SpaceLink approval returned no completion")

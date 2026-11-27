@@ -704,7 +704,8 @@ func TestAttachPendingCancelAfterResolvedAckDetaches(t *testing.T) {
 	pending := newAttachPendingAcks()
 	attachID, ch := pending.add()
 
-	// Resolve the attachment acknowledgement and verify cancellation detaches it.
+	// Resolve the attachment acknowledgement and verify cancellation
+	// detaches the resource.
 	if resourceID, detach := pending.resolve(&resource.ResourceAttachAddAck{
 		AttachId:   attachID,
 		ResourceId: 42,

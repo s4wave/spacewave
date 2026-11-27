@@ -96,7 +96,7 @@ func TestRunJobSharesKeyAndCancelsOnLastRelease(t *testing.T) {
 	default:
 	}
 
-	// Releasing the last registrant cancels it.
+	// Releasing the last registrant cancels the shared run.
 	second.Release()
 	select {
 	case <-t.Context().Done():

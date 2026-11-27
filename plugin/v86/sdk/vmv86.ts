@@ -11,7 +11,7 @@ export interface IVmV86Handle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose supports disposal with a 'using' statement.
   [Symbol.dispose](): void
 }
 

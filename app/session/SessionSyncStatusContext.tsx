@@ -383,8 +383,8 @@ function activeDirectionLabel(direction: SyncActivityDirection): string {
   return 'Sync active'
 }
 
-// activeDirectionDetail names where the transfer goes: a local session has no
-// cloud, so it moves blocks only with linked peers.
+// activeDirectionDetail describes where the transfer goes: a local session has
+// no cloud, so it moves blocks only with linked peers.
 function activeDirectionDetail(
   direction: SyncActivityDirection,
   local: boolean,

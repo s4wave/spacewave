@@ -123,7 +123,8 @@ func copyFile(src, dst string) error {
 }
 
 // OpenVolumeFile opens the devtool database file at path. An existing file is
-// opened without writing its key; create makes a new one with a new key.
+// opened without writing its key. With create, it makes a new file with a new
+// key.
 func OpenVolumeFile(ctx context.Context, le *logrus.Entry, path string, create bool) (volume.Volume, error) {
 	// Require the file unless creating it.
 	if !create {
@@ -145,10 +146,11 @@ func OpenVolumeFile(ctx context.Context, le *logrus.Entry, path string, create b
 }
 
 // OpenWorld opens the devtool World engine over vol, through the bucket handle
-// the devtool's engine controller uses, so both hold one head. With create it writes an
-// empty World with the plugin host's manifest store; otherwise it reads the
-// stored head and rejects an empty World. The World's head is a root of vol, and each commit swaps it with the commit's
-// blocks in one transaction. The caller closes the engine.
+// the devtool's engine controller uses, so both hold one head. With create,
+// OpenWorld writes an empty World with the plugin host's manifest store.
+// Otherwise, OpenWorld reads the stored head and rejects an empty World.
+// The World's head is a root of vol, and each commit swaps the head with the
+// commit's blocks in one transaction. The caller closes the engine.
 func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create bool) (*world_block.Engine, error) {
 	// Register the gzip step and build the World transform config.
 	sfs := block_transform.NewStepFactorySet()
@@ -194,10 +196,11 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 	return eng, nil
 }
 
-// openHead returns the World's head. With create it writes an empty World
-// when the root is free; otherwise a free root adopts the head record an older
-// build kept in the object store, releasing the root that build held it under
-// and deleting the record, as the devtool's engine controller does, or fails.
+// openHead returns the World's head. With create, openHead writes an empty
+// World when the root is free. Otherwise, a free root adopts the head record
+// an older build kept in the object store, releasing the root that build held
+// the head under and deleting the record, as the devtool's engine controller
+// does, or fails.
 func openHead(
 	ctx context.Context,
 	le *logrus.Entry,

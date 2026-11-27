@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Key prefixes of a target's key-value tree that the segment store owns; the
+// Key prefixes belong to the segment store in a target's key-value tree. The
 // meta and status keys are in s4wave_prom. Keys sort by prefix, then by the
 // big-endian numbers that follow, so a prefix scan returns series pages and
 // segments in the order they were committed.

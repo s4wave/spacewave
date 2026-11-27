@@ -73,7 +73,7 @@ func (t *LocalTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.Sh
 
 // ReadSharedObject reads what the account stores under sharedObjectID. A
 // written Space whose state hash no longer matches is replayed. It counts as
-// written when its World is the source's current one, since no write follows;
+// written when its World is the source's current one, since no write follows,
 // or when its World is the one the transfer copied, no config change or
 // invite was added since, and the stored state stays put across the replay,
 // since a write then replaces only that World.
@@ -129,7 +129,7 @@ func (t *LocalTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.E
 
 // membershipChanged reports whether a stored state has a config change or
 // an invite the transfer's write did not make. The write starts a lineage at
-// its genesis config, which no change has followed, with no invites; a write
+// its genesis config, which no change has followed, with no invites. A write
 // over a later state would drop the participants and invites added since.
 func membershipChanged(state []byte) bool {
 	st := &sobject.SOState{}

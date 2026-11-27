@@ -14,9 +14,9 @@ const ControllerID = "bifrost/stream/accept"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// Factory constructs a controller
+// Factory constructs a controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 
@@ -40,7 +40,7 @@ func (t *Factory) ConstructConfig() config.Config {
 	return &Config{}
 }
 
-// Construct constructs the associated controller given configuration.
+// Construct constructs the associated controller given the configuration.
 func (t *Factory) Construct(
 	ctx context.Context,
 	conf config.Config,

@@ -32,7 +32,7 @@ func (a *debugVolumePreviousGetArgs) BuildFlags() []cli.Flag {
 
 // previousGetKey is one key to look up and how to label it.
 type previousGetKey struct {
-	// label names the key in the output.
+	// label identifies the key in the output.
 	label string
 	// form is the key form: text, or the block key's encoding.
 	form string

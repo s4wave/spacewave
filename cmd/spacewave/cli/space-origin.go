@@ -16,8 +16,8 @@ import (
 	"golang.org/x/term"
 )
 
-// originSecretEnv names the environment variable that supplies the origin's
-// secret key, matching the standard S3 client variable.
+// originSecretEnv identifies the environment variable that supplies the
+// origin's secret key, matching the standard S3 client variable.
 const originSecretEnv = "AWS_SECRET_ACCESS_KEY" //nolint:gosec // the name of the variable, not a credential.
 
 // newSpaceOriginCommand builds the space origin command group.
@@ -280,7 +280,7 @@ func requireOriginSecret(secret string) (string, error) {
 
 // printPublicOriginStatus prints a Space's origin status to stdout.
 func printPublicOriginStatus(spaceID string, status *s4wave_provider_spacewave.PublicOriginStatus) {
-	// Name the origin; an unlinked Space shows nothing more.
+	// Describe the origin. An unlinked Space shows nothing more.
 	fields := [][2]string{{"Space", spaceID}}
 	switch status.GetState() {
 	case s4wave_provider_spacewave.PublicOriginState_PublicOriginState_COPYING:

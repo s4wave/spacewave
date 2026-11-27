@@ -22,20 +22,20 @@ const ControllerID = "hydra/node"
 
 // Controller is the Node controller.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// b is the controller bus
+	// b is the controller bus.
 	b bus.Bus
-	// cc is the configuration
+	// cc is the configuration.
 	cc *Config
-	// mtx guards the maps
+	// mtx guards the maps.
 	mtx sync.Mutex
 	// blockStores is the list of available block stores.
-	// keyed by store ID
+	// keyed by store ID.
 	blockStores map[string]block_store.Store
 	// buckets tracks the list of loadedBucket trackers.
 	// the bucket trackers manage cross-bucket-store lookups.
-	// key: bucket id
+	// key: bucket id.
 	buckets *keyed.KeyedRefCount[string, *loadedBucket]
 }
 

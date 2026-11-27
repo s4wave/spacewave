@@ -251,7 +251,7 @@ export interface StructuredLogState {
    */
   range?: StructuredLogRange
   /**
-   * Events are the retained events currently visible in the view.
+   * Events are the retained events visible in the view.
    */
   events?: StructuredLogEvent[]
   /**

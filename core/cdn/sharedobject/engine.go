@@ -28,14 +28,14 @@ type WorldEngine struct {
 	// (via GetRootRef) is authoritative for the currently applied head.
 	Engine *world_block.Engine
 	// Cursor is the underlying root bucket cursor held by the engine. Release
-	// via WorldEngine.Release when done; Engine itself does not own it.
+	// via WorldEngine.Release when done. Engine itself does not own it.
 	Cursor *bucket_lookup.Cursor
 
 	// so is the shared object whose published head Engine follows.
 	so *CdnSharedObject
 	// bucketID is the CDN block store ID that authored refs resolve through.
 	bucketID string
-	// refresh runs the root pointer watcher goroutine; owned by Release.
+	// refresh runs the root pointer watcher goroutine and is owned by Release.
 	refresh *routine.RoutineContainer
 }
 
@@ -167,7 +167,7 @@ func NewWorldEngine(
 
 // Release stops the refresh routine, waits for it to exit, and releases the
 // underlying cursor.
-// Safe to call more than once; the cursor's own Release guards against
+// Safe to call more than once because the cursor's own Release guards against
 // double-release.
 func (w *WorldEngine) Release() {
 	// Stop head updates before releasing their backing resources.
@@ -192,7 +192,8 @@ func (w *WorldEngine) Release() {
 // Refresh fetches the published root pointer and advances Engine to its head
 // before returning. The refresh routine applies the same head when it observes
 // the new pointer, so a caller that must read the new head right away, such
-// as the writer of the root pointer, calls Refresh instead of waiting for it.
+// as the writer of the root pointer, calls Refresh instead of waiting for
+// the routine.
 func (w *WorldEngine) Refresh(ctx context.Context) error {
 	if err := w.so.RefreshSnapshot(ctx); err != nil {
 		return err

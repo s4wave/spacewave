@@ -11,7 +11,7 @@ import (
 )
 
 // ErrUnknownCdn is returned when Lookup is called with an unregistered
-// cdn_id. Today only the default slot is populated.
+// cdn_id. Only the default slot is populated.
 var ErrUnknownCdn = errors.New("unknown cdn id")
 
 // ErrRegistryClosed is returned when a lookup occurs after registry shutdown.

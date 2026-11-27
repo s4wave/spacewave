@@ -114,7 +114,7 @@ func TestAccountReplicaMesh(t *testing.T) {
 	}
 }
 
-// enrollMeshReplica exercises approved provider enrollment directly; bilateral
+// enrollMeshReplica exercises approved provider enrollment directly. Bilateral
 // rejection and durable UI Session registration are covered by the duplex test.
 func enrollMeshReplica(ctx context.Context, t *testing.T, source *ProviderAccount, sourceSession session.Session, receiving *ProviderAccount, receivingSession session.Session) (*ProviderAccount, *Session) {
 	// The source offers its account to the receiving provider.

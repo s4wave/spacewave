@@ -22,7 +22,8 @@ message AttachAccountRequest {
   string account_id = 1;
 }
 
-// AttachAccountResponse identifies the registered or previously attached Session.
+// AttachAccountResponse identifies the registered or previously attached
+// Session.
 message AttachAccountResponse {
   // SessionListEntry identifies the Session in the shared catalog.
   .session.SessionListEntry session_list_entry = 1;
@@ -32,8 +33,8 @@ message AttachAccountResponse {
 // its durable key and joins the Space through an invite.
 message CompleteSpaceLinkEnrollmentRequest {
   // SessionPemPrivateKey is the Device's durable session private key. The
-  // local provider uses it only to seed this Device's own local session; it
-  // is never forwarded, logged, or copied to another peer.
+  // local provider uses it only to seed this Device's own local session. The
+  // key is never forwarded, logged, or copied to another peer.
   bytes session_pem_private_key = 1;
   // SessionPeerId is the peer ID expected to derive from the key. Empty
   // skips the identity check.
@@ -49,7 +50,7 @@ message CompleteSpaceLinkEnrollmentResponse {
     // SessionListEntry is the enrolled local session entry.
     .session.SessionListEntry session_list_entry = 1;
     // Pending is set when the Space owner queued the redemption for approval.
-    // The caller redeems the same invite with the same key again later; the
+    // The caller redeems the same invite with the same key again later. The
     // owner answers with the grant once it admitted the key.
     bool pending = 2;
   }

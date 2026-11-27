@@ -91,7 +91,7 @@ export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
   )
 
 /**
- * GetBucketInfoRequest requests to bucket information from a volume.
+ * GetBucketInfoRequest requests to get bucket information from a volume.
  *
  * @generated from message bucket.store.rpc.GetBucketInfoRequest
  */
@@ -116,7 +116,7 @@ export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
 export interface GetBucketInfoResponse {
   /**
    * BucketInfo is the bucket information, if found.
-   * Otherwise returns empty.
+   * Otherwise, BucketInfo is empty.
    */
   bucketInfo?: BucketInfo
 }
@@ -128,7 +128,7 @@ export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
   )
 
 /**
- * ListBucketInfoRequest requests to bucket information from a volume.
+ * ListBucketInfoRequest requests to get bucket information from a volume.
  *
  * @generated from message bucket.store.rpc.ListBucketInfoRequest
  */

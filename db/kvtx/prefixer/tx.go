@@ -65,8 +65,8 @@ func (t *tx) Prefetch(ctx context.Context, keys [][]byte) error {
 	return kvtx.Prefetch(ctx, t.lower, prefixed)
 }
 
-// AtCommit defers fn to the commit of the lower transaction, giving it the
-// same prefixed view of the lower transaction it commits in.
+// AtCommit defers fn to the commit of the lower transaction, giving fn the
+// same prefixed view of the lower transaction that fn commits in.
 func (t *tx) AtCommit(ctx context.Context, fn func(ctx context.Context, tx kvtx.Tx) error) error {
 	return kvtx.AtCommit(ctx, t.lower, func(ctx context.Context, lower kvtx.Tx) error {
 		return fn(ctx, newTx(lower, t.prefix))
@@ -79,7 +79,7 @@ func (t *tx) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
@@ -89,7 +89,7 @@ func (t *tx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {

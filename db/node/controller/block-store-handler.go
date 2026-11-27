@@ -78,7 +78,7 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
-// This will occur if Close() is called on the directive instance.
+// Disposal occurs if Close() is called on the directive instance.
 func (r *blockStoreRefHandler) HandleInstanceDisposed(i directive.Instance) {
 	r.c.mtx.Lock()
 	bkts := r.c.buckets.GetKeysWithData()

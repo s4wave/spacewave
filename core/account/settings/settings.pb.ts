@@ -13,7 +13,7 @@ import { SharedObjectListEntry } from '../../sobject/sobject.pb.js'
 
 /**
  * AccountSettings is the root state data for account settings SharedObjects.
- * Stored as SORootInner.StateData.
+ * The state data is stored as SORootInner.StateData.
  *
  * @generated from message account.settings.AccountSettings
  */
@@ -28,7 +28,7 @@ export interface AccountSettings {
   pairedDevices?: PairedDevice[]
   /**
    * EntityKeypairs is the list of entity keypairs for authentication.
-   * Synced between devices via the SharedObject.
+   * The keypairs are synced between devices via the SharedObject.
    */
   entityKeypairs?: EntityKeypair[]
   /**
@@ -45,7 +45,8 @@ export interface AccountSettings {
    */
   sessions?: AccountSession[]
   /**
-   * Catalog names account objects. Checkpoints require separate authenticated enrollment.
+   * Catalog lists account objects. Checkpoints require separate authenticated
+   * enrollment.
    */
   catalog?: AccountCatalogEntry[]
   /**
@@ -61,25 +62,26 @@ export interface AccountSettings {
    */
   storageBackends?: StorageBackend[]
   /**
-   * DefaultStorageBackendId names the backend that new Spaces use.
-   * Empty places new Spaces on the account's own storage.
+   * DefaultStorageBackendId selects the backend that new Spaces use.
+   * An empty id places new Spaces on the account's own storage.
    */
   defaultStorageBackendId?: string
   /**
-   * BlockStorePlacements names the backend holding each placed block store.
+   * BlockStorePlacements records the backend holding each placed block store.
    * A block store without a placement is on the account's own storage.
    */
   blockStorePlacements?: BlockStorePlacement[]
   /**
    * StorageReleases are former placements whose objects remain in the
-   * backend's bucket. A device deletes them, then completes the release. A
-   * release carries only its block store and backend ids.
+   * backend's bucket. A device deletes the objects, then completes the
+   * release. A release carries only its block store and backend ids.
    */
   storageReleases?: BlockStorePlacement[]
   /**
-   * DeveloperSpaceId names the account's developer Space, which holds the
-   * repositories the user adds and what is built from them. Empty until the
-   * first repository is added. Every device of the account uses this Space.
+   * DeveloperSpaceId identifies the account's developer Space, which holds the
+   * repositories the user adds and what is built from them. The id is empty
+   * until the first repository is added. Every device of the account uses this
+   * Space.
    */
   developerSpaceId?: string
   /**
@@ -133,7 +135,7 @@ export interface StorageBackend {
    * Credential is the redacted Secret whose payload holds the access keys.
    * The payload value is a block_store_s3.Credentials message. For an SQL
    * backend its access_key_id is the database user and its
-   * secret_access_key the password.
+   * secret_access_key is the password.
    */
   credential?: Secret
   /**
@@ -163,12 +165,12 @@ export const StorageBackend: MessageType<StorageBackend> =
   )
 
 /**
- * FtpsLocation locates a directory on an FTPS server that holds packfiles,
- * read and written as a bucket is. The server logs in from a netrc file on the
- * host that runs the account, which names the host without its port. Each
- * machine line of the host is one login, and each login adds its own
- * connections. Packfiles
- * are only added: the backend never deletes or compacts one.
+ * FtpsLocation locates a directory on an FTPS server that holds packfiles, read
+ * and written as a bucket is. The server logs in from a netrc file on the host
+ * that runs the account. The netrc file identifies the host without its port.
+ * Each machine line of the host is one login, and each login adds its own
+ * connections. Packfiles are only added: the backend never deletes or compacts
+ * one.
  *
  * @generated from message account.settings.FtpsLocation
  */
@@ -197,7 +199,7 @@ export interface FtpsLocation {
   /**
    * MaxConns is the most sessions the backend holds open at once across
    * all logins, spares included, zero for 10. A server may cap sessions per
-   * client host as well as per user, so logins do not raise it.
+   * client host as well as per user, so logins do not raise that cap.
    */
   maxConns?: number
   /**
@@ -209,7 +211,7 @@ export interface FtpsLocation {
    * Sftp reads and writes the packfiles over SFTP, on the same host and the
    * same netrc login, instead of FTPS. Port zero then means 22. The first
    * netrc login is used, and MaxConns is the number of SSH connections the
-   * backend holds, zero for 4, each carrying many requests at once;
+   * backend holds, zero for 4, each carrying many requests at once.
    * ConnsPerLogin is ignored.
    */
   sftp?: boolean
@@ -217,7 +219,7 @@ export interface FtpsLocation {
    * HostKey pins the SFTP server's SSH host key, as an authorized_keys style
    * public key line, which also limits the handshake to that key's type, or as
    * the "SHA256:..." fingerprint ssh prints, which fails when the server shows
-   * another of its keys. Empty
+   * another of its keys. An empty HostKey
    * trusts the first key the server shows and requires the same one on every
    * later connection of the backend while it runs.
    */
@@ -243,7 +245,7 @@ export interface FtpsLocation {
    * of the packfiles it reads. A store whose pack index holds a pack then
    * finds every pack in the index and never lists the directory, which on a
    * large directory reads every file name. A store with an empty index still
-   * lists it once to build the index.
+   * lists the directory once to build the index.
    */
   soleWriter?: boolean
 }
@@ -297,9 +299,9 @@ export interface SqlLocation {
    */
   tls?: boolean
   /**
-   * TlsCertSha256 is the hex SHA-256 of the server's certificate. Set, TLS
-   * trusts exactly that certificate in place of a CA and the host name, as
-   * for a server with a self-signed certificate.
+   * TlsCertSha256 is the hex SHA-256 of the server's certificate. When
+   * TlsCertSha256 is set, TLS trusts exactly that certificate in place of a CA
+   * and the host name, as for a server with a self-signed certificate.
    */
   tlsCertSha256?: string
 }
@@ -345,8 +347,8 @@ export interface S3Location {
    */
   disableSsl?: boolean
   /**
-   * Pricing overrides the price list storage reclaim uses. Empty uses the
-   * published prices of the service the endpoint names.
+   * Pricing overrides the price list storage reclaim uses. An empty list uses
+   * the published prices of the service the endpoint identifies.
    */
   pricing?: Pricing
   /**
@@ -363,7 +365,8 @@ export interface S3Location {
   indexOnly?: boolean
   /**
    * MaxPackBytes bounds one packfile a block store writes. An upload batch
-   * holds half of it in block bytes. Zero uses the 63 MiB default.
+   * holds half of that packfile size in block bytes. Zero uses the 63 MiB
+   * default.
    */
   maxPackBytes?: bigint
   /**
@@ -405,18 +408,18 @@ export interface BlockStorePlacement {
    */
   storageBackendId?: string
   /**
-   * Cache sets how the local disk holds the placed store. Empty uploads each
-   * write at once and keeps every block local.
+   * Cache sets how the local disk holds the placed store. An empty Cache
+   * uploads each write at once and keeps every block local.
    */
   cache?: BlockStoreCache
   /**
    * FallbackStorageBackendId identifies an SQL StorageBackend the store reads,
-   * read only, after its own backend misses a block. Nothing writes it. A
-   * block only the fallback holds is stored on the local disk with an upload
-   * marker, so it uploads to StorageBackendId and later reads skip the
-   * fallback. Empty has no fallback. The store's backend must be an S3 or
-   * FTPS backend, so an SQL backend is never both primary and fallback. A storage
-   * move clears it.
+   * read only, after its own backend misses a block. Nothing writes it. A block
+   * only the fallback holds is stored on the local disk with an upload marker,
+   * so it uploads to StorageBackendId and later reads skip the fallback. An
+   * empty id has no fallback. The store's backend must be an S3 or FTPS
+   * backend, so an SQL backend is never both primary and fallback. A storage
+   * move clears the fallback id.
    */
   fallbackStorageBackendId?: string
 }
@@ -648,7 +651,7 @@ export const SessionPresentation: MessageType<SessionPresentation> =
 
 /**
  * AccountSettingsOp is an operation on the account settings SharedObject.
- * Stored as SOOperationInner.OpData.
+ * The operation is stored as SOOperationInner.OpData.
  *
  * @generated from message account.settings.AccountSettingsOp
  */
@@ -739,7 +742,7 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
   )
 
 /**
- * AccountPluginOp names one plugin of the account plugin list.
+ * AccountPluginOp identifies one plugin of the account plugin list.
  *
  * @generated from message account.settings.AccountPluginOp
  */
@@ -767,10 +770,10 @@ export interface SetDeveloperSpaceOp {
    */
   spaceId?: string
   /**
-   * PreviousSpaceId is the developer Space the writer observed before
-   * creating SpaceId, or empty when it observed none. The operation applies
-   * only while the account still records that Space, so devices that race to
-   * replace a missing Space converge on one.
+   * PreviousSpaceId is the developer Space the writer observed before creating
+   * SpaceId, or empty when the writer observed none. The operation applies only
+   * while the account still records that Space, so devices that race to replace
+   * a missing Space converge on one.
    */
   previousSpaceId?: string
 }
@@ -809,8 +812,8 @@ export const RemoveStorageBackendOp: MessageType<RemoveStorageBackendOp> =
  */
 export interface SetDefaultStorageBackendOp {
   /**
-   * StorageBackendId identifies the new default, or empty for the account's
-   * own storage.
+   * StorageBackendId identifies the new default backend, or is empty for the
+   * account's own storage.
    */
   storageBackendId?: string
 }

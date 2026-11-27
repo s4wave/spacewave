@@ -12,10 +12,10 @@ const quietMin = 10 * time.Millisecond
 // quietSpan is how many recent foreground commit times a quiet spell lasts.
 const quietSpan = 4
 
-// quiet tracks this handle's foreground commits, so background work runs
-// only in the spells between them. It is safe for concurrent use; concurrent
-// commits may each miss the other's update of the average, which only
-// blurs the estimate.
+// quiet tracks this handle's foreground commits, so background work runs only
+// in the spells between them. quiet is safe for concurrent use. Concurrent
+// commits may each miss the other's update of the average, which only blurs the
+// estimate.
 type quiet struct {
 	// active counts the foreground commits running now.
 	active atomic.Int32

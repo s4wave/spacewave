@@ -11,9 +11,10 @@ import (
 
 // AttachedResourceInvoker serves a client-published resource tree. Handlers publish
 // children before sending the response containing their IDs. Children
-// remain owned by their creating invocation until a response is sent successfully;
-// unsent children are detached when the invocation ends. Sent children retain
-// the client's attachment lifetime, including after a streaming call ends.
+// remain owned by their creating invocation until a response is sent
+// successfully. Unsent children are detached when the invocation ends. Sent
+// children retain the client's attachment lifetime, including after a streaming
+// call ends.
 type AttachedResourceInvoker struct {
 	// client publishes and detaches the tree's children.
 	client *Client

@@ -314,7 +314,7 @@ export const UnstageFilesResponse: MessageType<UnstageFilesResponse> =
 export interface CommitFilesRequest {
   /**
    * Paths is the list of staged file paths that must be included in the commit.
-   * Empty accepts all currently staged paths.
+   * Empty accepts all staged paths.
    */
   paths?: string[]
   /**

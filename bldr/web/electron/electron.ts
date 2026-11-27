@@ -33,42 +33,42 @@ export interface BldrElectron {
   // applyElectronAppUpdate replaces this app using its view's daemon plugin route.
   applyElectronAppUpdate(webViewId: string): Promise<void>
   // installedAppVersion returns the version of the app that opened this
-  // desktop, or an empty string when it is unknown.
+  // desktop, or an empty string when the version is unknown.
   installedAppVersion(): Promise<string>
 }
 
-// BLDR_ELECTRON is declared if this is Electron.
+// BLDR_ELECTRON is declared if the runtime is Electron.
 declare const BLDR_ELECTRON: BldrElectron | undefined
 
-// isElectron indicates this is electron.
+// isElectron indicates the runtime is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
-// isSaucer indicates this is a Saucer desktop app (future).
+// isSaucer indicates the runtime is a Saucer desktop app (future).
 export const isSaucer = false
 
-// isDesktop indicates this is a desktop app (Electron, Saucer, etc.).
+// isDesktop indicates the runtime is a desktop app (Electron, Saucer, etc.).
 export const isDesktop = isElectron || isSaucer
 
 // NOTE: uesrAgentData: https://wicg.github.io/ua-client-hints/#dom-navigatoruadata-platform
 // "Android", "Chrome OS", "Fuchsia", "iOS", "Linux", "macOS", "Windows", or "Unknown".
 
-// isMac indicates this is a MacOS platform.
+// isMac indicates the runtime is on a MacOS platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
-// Only expected to work reliably under Electron (where we test it).
+// Only expected to work reliably under Electron (where the check is tested).
 export const isMac =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'macOS' || false
 
-// isLinux indicates this is a Linux platform.
+// isLinux indicates the runtime is on a Linux platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
-// Only expected to work reliably under Electron (where we test it).
+// Only expected to work reliably under Electron (where the check is tested).
 export const isLinux =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'Linux' || false
 
-// isWindows indicates this is a Windows platform.
+// isWindows indicates the runtime is on a Windows platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
-// Only expected to work reliably under Electron (where we test it).
+// Only expected to work reliably under Electron (where the check is tested).
 export const isWindows =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'Windows' || false
@@ -116,7 +116,7 @@ export async function applyElectronAppUpdate(webViewId: string): Promise<void> {
 }
 
 // installedElectronAppVersion returns the version of the app that opened this
-// desktop, or an empty string when it is unknown.
+// desktop, or an empty string when the version is unknown.
 export async function installedElectronAppVersion(): Promise<string> {
   if (!BLDR_ELECTRON) {
     throw new Error('not running in electron')

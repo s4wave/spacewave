@@ -14,10 +14,10 @@ import (
 )
 
 // TestPeerReadsWaitAcrossRestart checks a placed store's peer source: before
-// the bucket ever had peers a miss finds none; once it had them, a read while
-// P2P sync restarts waits for the next lifecycle and reads the block from it,
-// and a restart that does not return within the peer read bound reports the
-// block unavailable, not missing.
+// the bucket ever had peers a miss finds none. Once the bucket had peers, a
+// read while P2P sync restarts waits for the next lifecycle and reads the block
+// from it, and a restart that does not return within the peer read bound
+// reports the block unavailable, not missing.
 func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Build an account and the peer source of one bucket.

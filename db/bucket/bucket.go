@@ -16,7 +16,7 @@ type Bucket interface {
 // BucketOps are operations against a bucket API handle.
 // All calls use the bucket handle context.
 type BucketOps interface {
-	// Store implements the block store.
+	// StoreOps implements the block store.
 	block.StoreOps
 }
 

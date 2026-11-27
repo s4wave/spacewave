@@ -28,7 +28,8 @@ type ContainerUser struct {
 }
 
 // buildCreateArgs renders the docker create invocation for the config.
-// mounts follow the config's own bind mounts; a nil user keeps the image's.
+// mounts follow the config's own bind mounts. A nil user keeps the image's
+// user.
 func buildCreateArgs(conf *Config, runtimeName string, mounts []*Mount, user *ContainerUser) []string {
 	// Select the container creation command and reserved runtime name.
 	args := []string{"create"}

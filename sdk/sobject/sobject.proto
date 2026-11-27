@@ -21,8 +21,8 @@ service SharedObjectResourceService {
 
   // InspectSharedObjectOrder walks the mounted Space's agreed order from its
   // checkpoint to the head and reports what this build reads of each
-  // operation. It reads the state and the saved replay cursor and writes
-  // nothing.
+  // operation. InspectSharedObjectOrder reads the state and the saved replay
+  // cursor and writes nothing.
   rpc InspectSharedObjectOrder(InspectSharedObjectOrderRequest) returns (stream InspectSharedObjectOrderResponse);
 }
 

@@ -15,7 +15,7 @@ import (
 
 // metaLastPullSequenceKey is the kvtx key holding the last-seen monotonic
 // sequence cursor returned by the cloud /sync/pull response. Pulls send
-// strconv.FormatUint of this value as the wire cursor; a fresh client with
+// strconv.FormatUint of this value as the wire cursor. A fresh client with
 // no key seeds at 0 and receives the full pack list.
 var metaLastPullSequenceKey = []byte("meta/lastPullSequence")
 
@@ -54,7 +54,7 @@ func deletePack(ctx context.Context, tx kvtx.Tx, packID string) error {
 }
 
 // Manifest is a kvtx-backed persistent manifest of packfile entries. It is safe
-// for concurrent use; deltas apply one at a time.
+// for concurrent use. Deltas apply one at a time.
 type Manifest struct {
 	// store persists entries, bloom filters, and the pull cursor.
 	store kvtx.Store

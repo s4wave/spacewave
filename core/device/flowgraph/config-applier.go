@@ -70,7 +70,7 @@ func newConfigApplier(b bus.Bus, notify func()) *configApplier {
 }
 
 // Watch follows the running transport of the Session with peer ID id, and wakes
-// the reconciler as it starts, stops or restarts.
+// the reconciler as the transport starts, stops or restarts.
 func (a *configApplier) Watch(ctx context.Context, id peer.ID) error {
 	_, ref, err := bus.ExecOneOffWatchCb(
 		ctx,
@@ -233,7 +233,7 @@ func (a *configApplier) currentBus() bus.Bus {
 }
 
 // State returns the state of the entry with the ConfigSet key, or nil while
-// the ConfigSet controller has not reported it.
+// the ConfigSet controller has not reported the state.
 func (a *configApplier) State(key string) configset.State {
 	// Report no state while no ConfigSet is applied.
 	if a.current == nil {

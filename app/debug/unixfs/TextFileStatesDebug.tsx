@@ -13,7 +13,7 @@ import {
   type TextFileRead,
 } from '@s4wave/app/unixfs/text-file.js'
 
-// noop stands in for every press; a fixture holds one state.
+// noop stands in for every press. A fixture holds one state.
 const noop = () => {}
 
 const notes: TextContent = {
@@ -47,7 +47,7 @@ const failed = (message: string): TextFileRead => ({
 })
 
 interface Fixture {
-  // reads are the reads in order; each landed one is dispatched as the
+  // reads are the reads in order. Each landed read is dispatched as the
   // viewer's effect does, and the last is the read the view derives from.
   reads: TextFileRead[]
   // events are the presses and save results after the first read.
@@ -179,9 +179,9 @@ function renderNavigator(presses: ReactNode) {
  * the viewport as the pane, for the viewer sweep. Each state is built through
  * the viewer's reducer and derivation: waiting, failed, shown, preview,
  * encoding, empty, readonly, rereading, editing, dirty, saving, save-failed,
- * just-saved, refused, retouched, read-failed, changed and theirs; nav and
- * nav-dirty draw the presses in the file browser's navigator. An unknown or
- * missing state shows shown.
+ * just-saved, refused, retouched, read-failed, changed and theirs. The nav and
+ * nav-dirty states draw the presses in the file browser's navigator. An unknown
+ * or missing state shows shown.
  */
 export function TextFileStatesDebug() {
   // Read the fixture state from the route.

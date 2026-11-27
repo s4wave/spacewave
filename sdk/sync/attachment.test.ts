@@ -6,7 +6,8 @@ import type { AppDefinition } from './app.js'
 import { createAppInstance } from './attachment.js'
 import { SyncError } from './errors.js'
 
-// attached stops createAppInstance after acceptance, where it attaches.
+// attached stops createAppInstance after acceptance, where createAppInstance
+// attaches.
 const attached = new Error('attached')
 
 // engineReplying returns an Engine whose ExecuteWorldOp reply carries code.

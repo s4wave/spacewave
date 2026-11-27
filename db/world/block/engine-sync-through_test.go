@@ -71,8 +71,8 @@ func TestEngineSyncThroughDeferredDurability(t *testing.T) {
 		return seqno
 	}
 
-	// A deferred commit leaves the durable seqno behind; SyncThrough
-	// catches it up.
+	// A deferred commit leaves the durable seqno behind. SyncThrough
+	// catches the durable seqno up.
 	first := commit("first")
 	durable, err := eng.SyncThrough(ctx, first)
 	if err != nil || durable != first {

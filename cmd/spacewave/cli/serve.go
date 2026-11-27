@@ -277,7 +277,7 @@ func runServeCommand(
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
 
-	// Native core runs on the CLI bus; Dist core runs in the spacewave-core
+	// Native core runs on the CLI bus. Dist core runs in the spacewave-core
 	// plugin process.
 	nativeCore := cliBus.GetPluginHostObjectKey() == ""
 	if releaseColdPacks != nil && !nativeCore {
@@ -293,7 +293,8 @@ func runServeCommand(
 		defer invokerRef.Release()
 
 		// Native core owns the same Resource authority as the core plugin.
-		// Present it as that plugin before starting plugins that register types.
+		// Present native core as that plugin before starting plugins
+		// that register types.
 		releaseCorePlugin, err := cliBus.GetBus().AddController(serveCtx, newNativeCorePlugin(cliBus.GetBus(), invoker), nil)
 		if err != nil {
 			return err
@@ -414,7 +415,8 @@ func runServeCommand(
 	}
 	defer lis.Close()
 
-	// Retain startup demand until readiness; then every daemon uses idle expiry.
+	// Retain startup demand until readiness. Then every daemon uses idle
+	// expiry.
 	le.Infof("listening on %s", sockPath)
 	idleTracker := newDaemonIdleTracker(idleTimeout, func() {
 		le.Info("daemon idle timeout reached, shutting down")
@@ -512,8 +514,9 @@ func runServeCommand(
 	}
 	select {
 	case handoff := <-updatePath:
-		// Both bus implementations run caller cleanup in registration order;
-		// the earlier lease release therefore precedes this readiness handoff.
+		// Both bus implementations run caller cleanup in registration
+		// order, so the earlier lease release precedes this readiness
+		// handoff.
 		cliBus.AddRelease(func() {
 			// Start the selected daemon and reopen the desktop when requested.
 			le.Info("old daemon state lease released; starting selected daemon executable")
@@ -602,7 +605,8 @@ func (i *daemonResourceInvoker) InvokeMethod(
 // stopOnSignal calls stop on the first SIGTERM or interrupt before ctx ends,
 // then restores the signals' default action.
 func stopOnSignal(ctx context.Context, stop func()) {
-	// Subscribe before returning so a signal sent right after cannot kill us.
+	// Subscribe before returning so a signal sent right after cannot kill
+	// the process.
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, os.Interrupt)
 	go func() {

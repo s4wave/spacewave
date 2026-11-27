@@ -20,7 +20,7 @@ import (
 // next build instead of being lost between watchers.
 //
 // It watches directories rather than files: editors replace files atomically,
-// which drops a watch on the original file. fsnotify needs one watch per
+// dropping the watch on the original file. fsnotify needs one watch per
 // directory: https://github.com/fsnotify/fsnotify/issues/18
 //
 // A DirSuffix input is a directory, watched itself, and a matching file
@@ -52,7 +52,7 @@ type SourceWatcher struct {
 
 // NewSourceWatcher constructs a SourceWatcher that reads events until ctx ends.
 func NewSourceWatcher(ctx context.Context) (*SourceWatcher, error) {
-	// Create the watcher with no directories; SetPaths adds them.
+	// Create the watcher with no directories. SetPaths adds them.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -189,8 +189,9 @@ func (w *SourceWatcher) takeChanges() ([]*bldr_manifest_builder.InputManifest_Fi
 		files = append(files, file)
 	}
 	for sourcePath := range w.changed {
-		// A DirSuffix directory's own write reports an entry change, which
-		// the listed paths below decide; only its creation or removal counts.
+		// A DirSuffix directory's own write reports an entry change
+		// that the listed paths below decide. Only the directory's
+		// creation or removal counts.
 		file := w.paths[sourcePath]
 		if _, listed := w.listed[sourcePath]; file.GetDirSuffix() != "" && !listed {
 			continue
@@ -244,7 +245,7 @@ func (w *SourceWatcher) readEvents(ctx context.Context) {
 // recordEvent records one watcher event as a pending change.
 //
 // Content and name changes always count. A Chmod alone counts only when the
-// file's modification time moved past the last take, which is how touch
+// file's modification time moved past the last take. That Chmod is how touch
 // reports itself on kqueue, while a permission change by a build does not.
 func (w *SourceWatcher) recordEvent(event fsnotify.Event) {
 	// Classify the event, reading the modification time for a bare Chmod.

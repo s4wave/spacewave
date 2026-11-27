@@ -163,7 +163,7 @@ func desktopDistributionGateEnabled() bool {
 }
 
 func createDesktopDistributionStateRoot() (string, error) {
-	// macOS caps Unix socket paths at 104 bytes; plugin host sockets live under
+	// macOS caps Unix socket paths at 104 bytes. Plugin host sockets live under
 	// SPACEWAVE_DATA_DIR, so use a deliberately short temp root.
 	return os.MkdirTemp("/tmp", "swdg-*")
 }

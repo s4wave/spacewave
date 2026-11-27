@@ -37,7 +37,7 @@ func NewExecutionBlock() block.Block {
 //
 // Writes the Target to a block linked to by the Execution.
 // execPeerID is the peer ID to assign to the Execution.
-// Replacing the Execution replaces its placement and sole Worker edge; a nil
+// Replacing the Execution replaces its placement and sole Worker edge. A nil
 // placement removes the edge. The caller owns the World transaction.
 func CreateExecutionWithTarget(
 	ctx context.Context,
@@ -110,10 +110,12 @@ func CreateExecutionWithTarget(
 	return rootRef, nil
 }
 
-// BindExecutionWorker records the Worker taking custody of an unplaced Execution.
-// It returns false when another Worker has custody or the Execution is complete.
-// An empty placement peer selects the Execution peer for a Worker tracking all peers.
-// The caller must hold a write transaction; the body and graph commit together.
+// BindExecutionWorker records the Worker taking custody of an unplaced
+// Execution. It returns false when another Worker has custody or the Execution
+// is complete.
+// An empty placement peer selects the Execution peer for a Worker tracking all
+// peers.
+// The caller must hold a write transaction. The body and graph commit together.
 func BindExecutionWorker(ctx context.Context, ws world.WorldState, objKey string, placement *forge_worker.Placement) (bool, error) {
 	// Read current custody from the caller's transaction, not a watched snapshot.
 	execution, err := world.LookupObjectBody[Execution](ctx, ws, objKey)

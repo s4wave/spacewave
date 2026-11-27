@@ -7,9 +7,10 @@ import (
 
 // Request explicitly selects immutable content and its destination. Callers
 // with equal destination/roots must use equivalent Codec and Check contracts.
-// Root and Directory hold only reproducible, hash-verified cache files;
-// application state belongs elsewhere. Directory also holds FingerprintName,
-// which a reuse compares with its files. Remotes must supply at least one source.
+// Root and Directory hold only reproducible, hash-verified cache files.
+// Application state belongs elsewhere. Directory also holds FingerprintName,
+// which a reuse check compares with Directory's files. Remotes must supply at
+// least one source.
 type Request struct {
 	// Logger records phase timings and the source of fetched bytes.
 	Logger *logrus.Entry
@@ -17,7 +18,7 @@ type Request struct {
 	Root string
 	// Directory is the final directory, strictly below Root.
 	Directory string
-	// Description names the checkout in errors and logs.
+	// Description identifies the checkout in errors and logs.
 	Description string
 	// Roots lists the trees to assemble in order.
 	Roots []*block.BlockRef

@@ -27,7 +27,7 @@ import (
 // elapsed-time ceiling, so without this cap a wedged environment (for example
 // OPFS GetRoot failing with UnknownError) loops forever at the backoff ceiling
 // while boot waits silently. After this many consecutive failures, retrying
-// has stopped being plausible; the controller records a terminal error and
+// has stopped being plausible. The controller records a terminal error and
 // stops so GetVolume surfaces it to the boot failure path.
 const maxConstructionAttempts = 5
 
@@ -37,21 +37,21 @@ const maxConstructionAttempts = 5
 // garbage collection, and background tasks. The volume interface is implemented
 // by many volume types, which then use the common volume controller.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// config is the volume controller config
+	// config is the volume controller config.
 	config *Config
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor volume.Constructor
-	// volume contains the controlled volume
-	// contains nil if the volume is not ready
+	// volume contains the controlled volume.
+	// The container contains nil if the volume is not ready.
 	volume *ccontainer.CContainer[*volumeCtxPair]
-	// controllerInfo contains the controller info
+	// controllerInfo contains the controller info.
 	controllerInfo *controller.Info
 
-	// bucketHandles contains open bucket handles
+	// bucketHandles contains open bucket handles.
 	// key: bucket id
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
 
@@ -204,10 +204,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return err
 }
 
-// restartBucketHandle resets a bucket handle for a particular bucket id
+// restartBucketHandle resets a bucket handle for a particular bucket id.
 //
-// if conf is set, attempts to use instead of fetching it from the volume.
-// if updating the handle was successful, returns the updated handle.
+// If conf is set, the controller attempts to use conf instead of fetching the
+// configuration from the volume.
+// If updating the handle was successful, the controller returns the updated
+// handle.
 func (c *Controller) restartBucketHandle(bucketID string, conf *bucket.Config) *bucketHandle {
 	if tracker, _ := c.bucketHandles.GetKey(bucketID); tracker != nil {
 		return tracker.updateBucketConfig(conf)
@@ -217,7 +219,8 @@ func (c *Controller) restartBucketHandle(bucketID string, conf *bucket.Config) *
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns a resolver.
+// Otherwise, HandleDirective returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(
@@ -273,7 +276,7 @@ type volumeConstructionWaiter interface {
 //
 // An open that fails because this process still holds the database waits for
 // that claim to clear and tries again on this controller. GetVolume is already
-// waiting on this instance; returning the error would make the loader publish
+// waiting on this instance. Returning the error would make the loader publish
 // readiness on a replacement controller. A permanent failure, or a transient
 // failure that is not waitable and exceeds the retry cap, is recorded for
 // GetVolume and returned as a nil error so the loader does not restart.
@@ -320,7 +323,7 @@ func (c *Controller) constructVolume(ctx context.Context) (volume.Volume, error)
 }
 
 // setTerminal records a permanent construction failure and wakes GetVolume
-// waiters. The first error wins; later calls are ignored.
+// waiters. The first error wins. Subsequent calls are ignored.
 func (c *Controller) setTerminal(err error) {
 	// Serialize the permanent volume construction failure.
 	c.terminalMtx.Lock()
@@ -342,9 +345,10 @@ func (c *Controller) getTerminal() error {
 }
 
 // GetVolume returns the controlled volume.
-// This may wait for the volume to be ready. If construction failed permanently
-// (for example, the browser denied OPFS storage for this profile), it returns
-// that error instead of waiting for a volume that can never be constructed.
+// GetVolume may wait for the volume to be ready. If construction failed
+// permanently (for example, the browser denied OPFS storage for this profile),
+// GetVolume returns that error instead of waiting for a volume that can never
+// be constructed.
 func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
 	// Return the volume immediately when construction has completed.
 	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {

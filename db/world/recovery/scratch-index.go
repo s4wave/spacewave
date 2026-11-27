@@ -11,15 +11,17 @@ import (
 	sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 )
 
-// scratchIndex composes fixed-budget SQLite transactions with named disk indexes.
-// The SQLite pager, connection count, mmap and temp storage are bounded at open.
-// No in-memory freelist, frontier or all-record index is rebuilt on resume.
+// scratchIndex composes fixed-budget SQLite transactions with named disk
+// indexes. The SQLite pager, connection count, mmap and temp storage are
+// bounded at open. No in-memory freelist, frontier or all-record index is
+// rebuilt on resume.
 //
 // Successive Updates share one open write transaction, the batch, until
-// Commit; View reads inside it, so a step sees every earlier step's rows.
+// Commit. View reads inside the batch, so a step sees every earlier step's
+// rows.
 // Every step saves the whole result beside its rows, so each prefix of steps
-// is a consistent state, and a crash or Discard returns to the last Commit,
-// which a resumed run continues exactly as a fresh run would.
+// is a consistent state, and a crash or Discard returns to the last Commit.
+// A resumed run continues from that Commit exactly as a fresh run would.
 type scratchIndex struct {
 	// store owns the existing SQLite KV primitive and its durability barrier.
 	store sqlite.Store

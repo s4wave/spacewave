@@ -28,7 +28,7 @@ export interface UseCaseDemoProps {
 }
 
 // UseCaseDemo frames a use-case demo. Until the visitor starts it, the frame
-// shows a static poster of the seeded Space; the live route mounts the real
+// shows a static poster of the seeded Space. The live route mounts the real
 // app on an in-memory World in the same frame.
 export function UseCaseDemo({
   demo,

@@ -22,10 +22,10 @@ import (
 
 // TestCommitWaitDuringCollection measures how long a writer's commit waits
 // while the collector frees a large garbage tree on an s4db Volume, at two
-// sizes, while it nets and frees one commit of 100,000 ups, and while it
-// frees one block naming 100,000 children, and logs the longest and the
-// 99th percentile wait. It runs only when KVTX_MEASURE_COLLECT is set, on
-// the build host.
+// sizes, while it nets and frees one commit of 100,000 ups, and while it frees
+// one block referencing 100,000 children, and logs the longest and the 99th
+// percentile wait. It runs only when KVTX_MEASURE_COLLECT is set, on the build
+// host.
 func TestCommitWaitDuringCollection(t *testing.T) {
 	if os.Getenv("KVTX_MEASURE_COLLECT") == "" {
 		t.Skip("set KVTX_MEASURE_COLLECT to measure")
@@ -123,12 +123,12 @@ func measureCommitWait(t *testing.T, leaves int) {
 	t.Logf("leaves %d: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
-// measureLargeRecordWait stores leaves blocks under mids of 1000, then in one
-// batch a parent naming each mid's leaves and a top naming the parents under
-// a root, releasing the mids, so the batch's one commit logs an up for each
-// leaf. It releases the root and logs a writer's waits while the collector
-// passes over the young commit, then nets it and frees the tree a grace
-// period later.
+// measureLargeCommitWait stores leaves blocks under mids of 1000, then in one
+// batch a parent referencing each mid's leaves and a top referencing the
+// parents under a root, releasing the mids, so the batch's one commit logs an
+// up for each leaf. It releases the root and logs a writer's waits while the
+// collector passes over the young commit, then nets it and frees the tree a
+// grace period later.
 func measureLargeCommitWait(t *testing.T, leaves int) {
 	// Store the leaves, then the parents and top in one batch.
 	ctx := t.Context()
@@ -169,13 +169,13 @@ func measureLargeCommitWait(t *testing.T, leaves int) {
 	t.Logf("one commit of %d ups: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
-// measureWideBlockWait stores leaves blocks under mids of 1000, then one
-// block naming them all under a root, releasing the mids, releases the root,
-// and logs a writer's waits while the collector passes over the block's young
+// measureWideBlockWait stores leaves blocks under mids of 1000, then one block
+// referencing them all under a root, releasing the mids, releases the root, and
+// logs a writer's waits while the collector passes over the block's young
 // record, then nets it and frees the block and its children a grace period
 // later.
 func measureWideBlockWait(t *testing.T, leaves int) {
-	// Store the leaves, then the block naming them all.
+	// Store the leaves, then the block referencing them all.
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
 	clk := &skewClock{}
@@ -209,14 +209,14 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 	t.Logf("one block of %d children: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
-// measureCheckpointRunThrough commits World-shaped commits at 12 a second
-// for d, each a parent naming 9 new leaves, 250 stored leaves and the parent
+// measureCheckpointRunThrough commits World-shaped commits at 12 a second for
+// d, each a parent referencing 9 new leaves, 250 stored leaves and the parent
 // before it in its chain, so about 260 named keys, under the root main. A
-// checkpoint every 32 commits, 0.375 a second, starts a new chain, which
-// leaves the chain before it dead. A collector frees while the commits
-// continue, with a 2 s grace period. It logs the commits' waits, the frees,
-// and the up log's backlog, UpSeq - UpCursor, sampled each second, then
-// collects to the end and audits.
+// checkpoint every 32 commits, 0.375 a second, starts a new chain, which leaves
+// the chain before it dead. A collector frees while the commits continue, with
+// a 2 s grace period. It logs the commits' waits, the frees, and the up log's
+// backlog, UpSeq - UpCursor, sampled each second, then collects to the end and
+// audits.
 func measureCheckpointRunThrough(t *testing.T, d time.Duration) {
 	// Store the shared leaves under a root of their own.
 	ctx := t.Context()

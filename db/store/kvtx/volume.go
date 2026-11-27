@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 )
 
-// LoadPeerPriv attempts to load the peer private key from the volume.
+// LoadPeerPriv tries to load the peer private key from the volume.
 func (k *KVTx) LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error) {
 	// Open a read transaction for the volume's peer key.
 	tx, err := k.store.NewTransaction(ctx, false)

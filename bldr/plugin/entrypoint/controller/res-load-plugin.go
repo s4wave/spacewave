@@ -36,11 +36,11 @@ func (c *Controller) resolveLoadPlugin(
 
 // loadPluginResolver resolves LoadPlugin with the controller.
 type loadPluginResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// pluginID is the plugin identifier
+	// pluginID is the plugin identifier.
 	pluginID string
-	// instanceKey is the plugin instance key
+	// instanceKey is the plugin instance key.
 	instanceKey string
 	// manifestRoot selects a historical implementation without current registrations.
 	manifestRoot string
@@ -48,12 +48,12 @@ type loadPluginResolver struct {
 	manifests []*manifest.ManifestRef
 	// peerID is the peer whose approvals decide the manifests.
 	peerID string
-	// runningPluginCtr contains the running plugin when the plugin is running
-	// nil otherwise
+	// runningPluginCtr contains the running plugin when the plugin is running,
+	// or nil otherwise.
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
 	// pluginLoadStateCtr atomically tracks the remote plugin's readiness.
 	pluginLoadStateCtr *ccontainer.CContainer[bldr_plugin.PluginLoadState]
-	// bo is the backoff
+	// bo is the backoff.
 	bo cbackoff.BackOff
 }
 
@@ -137,7 +137,8 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	}
 
 	// An exact request must settle when its retained executable is unavailable.
-	// The caller can retry when storage recovers; catalog loads keep reconnecting.
+	// The caller can retry when storage recovers. Catalog loads keep
+	// reconnecting.
 	if r.manifestRoot != "" {
 		return load(ctx, func() {})
 	}

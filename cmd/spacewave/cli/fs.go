@@ -377,7 +377,7 @@ func buildFsLsCommand() *cli.Command {
 			for _, e := range entries {
 				modeStr := os.FileMode(e.Mode).String()
 				sizeStr := strconv.FormatUint(e.Size, 10)
-				// pad size to 10 chars
+				// pad the size to 10 chars
 				for len(sizeStr) < 10 {
 					sizeStr = " " + sizeStr
 				}
@@ -616,7 +616,8 @@ func buildFsWriteCommand() *cli.Command {
 			// navigate to the target file, creating it if it doesn't exist
 			svc, pathCleanup, err := fc.lookupPath(c, uri.path)
 			if err != nil {
-				// file doesn't exist: create it via Mknod on the parent, then lookup
+				// the file doesn't exist: create it via Mknod
+				// on the parent, then look up the file
 				parentSvc, baseName, parentCleanup, parentErr := fc.lookupParentAndName(c, uri.path)
 				if parentErr != nil {
 					return errors.Wrap(err, "lookup path "+uri.path)
@@ -638,7 +639,7 @@ func buildFsWriteCommand() *cli.Command {
 			}
 			defer pathCleanup()
 
-			// determine input source
+			// determine the input source
 			var reader io.Reader
 			if fromPath != "" {
 				f, err := os.Open(fromPath)
@@ -651,7 +652,7 @@ func buildFsWriteCommand() *cli.Command {
 				reader = os.Stdin
 			}
 
-			// truncate the file first to ensure clean write
+			// truncate the file first to ensure a clean write
 			ctx := c.Context
 			_, err = svc.Truncate(ctx, &s4wave_unixfs.HandleTruncateRequest{Size: 0})
 			if err != nil {
@@ -745,7 +746,8 @@ func buildFsMvCommand() *cli.Command {
 			}
 			defer cleanup()
 
-			// look up source: navigate to parent directory and get the entry handle
+			// look up the source: navigate to the parent directory
+			// and get the entry handle
 			srcSvc, _, srcCleanup, err := fc.lookupParentAndName(c, srcURI.path)
 			if err != nil {
 				return errors.Wrap(err, "lookup source parent")
@@ -772,7 +774,7 @@ func buildFsMvCommand() *cli.Command {
 			srcEntrySvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(srcEntryClient)
 			defer srcEntryRef.Release()
 
-			// look up dest parent
+			// look up the destination parent directory
 			dstParentSvc, _, dstCleanup, err := fc.lookupParentAndName(c, dstURI.path)
 			if err != nil {
 				return errors.Wrap(err, "lookup dest parent")

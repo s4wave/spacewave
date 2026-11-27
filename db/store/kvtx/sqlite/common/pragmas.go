@@ -14,7 +14,8 @@ type Pragmas struct {
 	// SQLite default (mmap disabled).
 	MmapSize int64
 	// DisableMmap explicitly disables memory mapping on every connection.
-	// It overrides MmapSize; the zero-value policy of existing callers is unchanged.
+	// DisableMmap overrides MmapSize. The zero-value policy of existing
+	// callers is unchanged.
 	DisableMmap bool
 	// TempStore sets the SQLite temp_store pragma. Valid values are 0
 	// (DEFAULT), 1 (FILE), 2 (MEMORY). 0 leaves the SQLite default.
@@ -25,9 +26,9 @@ type Pragmas struct {
 	PageSize int32
 	// WithoutRowID creates a missing table as WITHOUT ROWID, so each row is
 	// stored once, in the key's B-tree, instead of in a rowid table plus a key
-	// index. It suits many small rows; SQLite advises against it for rows
-	// larger than about a twentieth of a page. An existing table keeps its
-	// shape.
+	// index. It suits many small rows, but SQLite advises against it for
+	// rows larger than about a twentieth of a page. An existing table keeps
+	// its shape.
 	WithoutRowID bool
 	// WALCheckpointBytes bounds the write-ahead log: journal_size_limit
 	// truncates the log to it whenever SQLite restarts it, and once the
@@ -37,13 +38,13 @@ type Pragmas struct {
 	// bound.
 	// 0 uses DefaultWALCheckpointBytes.
 	WALCheckpointBytes int64
-	// ReadOnly opens an existing table for reads beside another process that
-	// writes the file. Every connection opens the file read-only and runs
-	// query_only, so none writes it or checkpoints its log, even the last to
-	// close; the store refuses write transactions, which would take SQLite's
-	// write lock from the writer; and Open neither changes the journal mode
-	// nor creates the table. The other pragmas that shape a file, such as PageSize, are
-	// ignored.
+	// ReadOnly opens an existing table for reads beside another process
+	// that writes the file. Every connection opens the file read-only and
+	// runs query_only, so none writes it or checkpoints its log, even the
+	// last to close. The store refuses write transactions, which would take
+	// SQLite's write lock from the writer, and Open neither changes the
+	// journal mode nor creates the table. The other pragmas that shape a
+	// file, such as PageSize, are ignored.
 	ReadOnly bool
 }
 

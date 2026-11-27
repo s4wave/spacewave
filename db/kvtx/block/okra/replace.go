@@ -84,7 +84,8 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 		return t.setEmptyRoot(ctx)
 	}
 
-	// The root references its staged top page; reads follow it on demand.
+	// The root references its staged top page, and reads follow the page on
+	// demand.
 	t.replaceRoot(root, nil)
 	return ctx.Err()
 }

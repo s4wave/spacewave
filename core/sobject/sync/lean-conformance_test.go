@@ -45,7 +45,7 @@ func leanSyncOracle(t *testing.T) string {
 // checkLeanSync compares actual Go observations with one batched oracle process.
 func checkLeanSync(t *testing.T, oracle string, cases []leanSyncCase) {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	var input bytes.Buffer
 	for _, test := range cases {
@@ -186,7 +186,7 @@ func leanSyncProof(arena *fastjson.Arena, transcript *SOSyncAuthTranscript, proo
 // leanSyncAuthenticationCases exercises role scans and every handshake rejection boundary.
 func leanSyncAuthenticationCases(t *testing.T, seed uint64) []leanSyncCase {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	keys := []crypto.PrivKey{mustKeyPair(t), mustKeyPair(t), mustKeyPair(t)}
 	ids := []string{mustPeerIDStr(t, keys[0]), mustPeerIDStr(t, keys[1]), mustPeerIDStr(t, keys[2])}
@@ -230,7 +230,8 @@ func leanSyncAuthenticationCases(t *testing.T, seed uint64) []leanSyncCase {
 type leanSyncHandshakeRun struct {
 	// stream enters the full owner, which closes and joins data workers before returning.
 	stream bool
-	// deadlineFailure injects failure at the first or second SetDeadline call; zero permits both.
+	// deadlineFailure injects failure at the first or second SetDeadline
+	// call. Zero permits both.
 	deadlineFailure int
 }
 
@@ -276,7 +277,7 @@ func FuzzLeanSyncStreamStart(f *testing.F) {
 // leanSyncStreamStartCases reuses the adversarial handshake corpus at the full stream boundary.
 func leanSyncStreamStartCases(t *testing.T, seed uint64) []leanSyncCase {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	keys := []crypto.PrivKey{mustKeyPair(t), mustKeyPair(t), mustKeyPair(t)}
 	var cases []leanSyncCase
@@ -292,7 +293,7 @@ func leanSyncStreamStartCases(t *testing.T, seed uint64) []leanSyncCase {
 // leanSyncHandshake runs the selected owner against a challenged peer over an unbuffered transport.
 func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.PrivKey, run leanSyncHandshakeRun) []leanSyncCase {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	const objectID = "lean-sync-authentication"
 	state := authenticationState(t, objectID, keys[0], keys[1])
@@ -309,7 +310,8 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		state.Config.Participants = append(state.Config.Participants, participantCfg(mustPeerIDStr(t, keys[1]), sobject.SOParticipantRole_SOParticipantRole_UNKNOWN))
 	}
 
-	// Observe admission; variant 21 ignores it, the model's observer=false.
+	// Observe admission. Variant 21 ignores admission, the model's
+	// observer=false.
 	var notification *bool
 	var observer PeerObserver = admissionObserver(func(_ peer.ID, accepted bool) { notification = &accepted })
 	if variant == 21 {
@@ -337,7 +339,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		localTransport = ""
 	}
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	left, right := net.Pipe()
@@ -346,7 +348,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 	stop := context.AfterFunc(ctx, func() { left.Close(); right.Close() })
 	defer stop()
 
-	// make observed.
+	// Create the observed stream.
 	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 8)}
 	remoteNonce := bytes.Repeat([]byte{byte(seed)}, authenticationNonceSize)
 	if variant == 5 {
@@ -363,7 +365,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 	go func() {
 		remoteDone <- func() error {
 
-			// newSession session via stream_packet.
+			// Create session with stream_packet.NewSession.
 			session := stream_packet.NewSession(right, 64*1024)
 			var challenge *SOSyncMessage
 			if variant == 6 {
@@ -406,7 +408,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 				return err
 			}
 
-			// Record signContext,key.
+			// Record signContext and key.
 			signContext, key := authenticationContext, keys[1]
 			if variant == 10 {
 				signContext = "another-context"
@@ -439,9 +441,11 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 				return err
 			}
 
-			// A successful owner emits its initial head; any rejected startup closes instead.
-			// A refusing owner may wait for a config suffix from this side, so bound the read
-			// and close like a peer that has no newer config to offer.
+			// A successful owner emits its initial head. Any
+			// rejected startup closes instead. A refusing owner may
+			// wait for a config suffix from this side, so bound the
+			// read and close like a peer that has no newer config
+			// to offer.
 			_ = right.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 			message := &SOSyncMessage{}
 			err = session.RecvMsg(message)
@@ -474,7 +478,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 	input.Set("localTransport", arena.NewString(string(localTransport)))
 	input.Set("remoteTransport", arena.NewString(string(remoteTransport)))
 
-	// Set via input.
+	// Set the input fields.
 	input.Set("localPeer", arena.NewString(sync.localObjectPeerID.String()))
 	keyPeer := arena.NewNull()
 	if sync.localObjectKey != nil {
@@ -488,13 +492,13 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		input.Set(key, leanSyncBool(&arena, true))
 	}
 
-	// Set via input.
+	// Set the input fields.
 	input.Set("remoteNonceSize", arena.NewNumberInt(len(remoteNonce)))
 	input.Set("noncesDistinct", leanSyncBool(&arena, !bytes.Equal(localNonce, remoteNonce)))
 	input.Set("proofExchangeOK", leanSyncBool(&arena, variant != 18))
 	input.Set("proof", leanSyncProof(&arena, transcript, proof))
 
-	// Set via input.
+	// Set the input fields.
 	input.Set("participants", leanSyncParticipants(&arena, state.GetConfig().GetParticipants()))
 	input.Set("hash", arena.NewString(hex.EncodeToString(state.GetConfig().GetConfigChainHash())))
 	input.Set("authorizationOK", leanSyncBool(&arena, variant != 19))
@@ -503,13 +507,13 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		remoteAuthorization = leanSyncBool(&arena, variant != 11 && variant != 20)
 	}
 
-	// Set via input.
+	// Set the input fields.
 	input.Set("remoteAuthorization", remoteAuthorization)
 	input.Set("observer", leanSyncBool(&arena, variant != 21))
 	request, expected, result := arena.NewObject(), arena.NewObject(), arena.NewObject()
 	request.Set("op", arena.NewString("authenticateSync"))
 
-	// Set via request.
+	// Set the request fields.
 	request.Set("input", input)
 	result.Set("ok", leanSyncBool(&arena, authErr == nil))
 	result.Set("remote", arena.NewString(remote.String()))
@@ -518,7 +522,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		admission = leanSyncBool(&arena, *notification)
 	}
 
-	// Set via result.
+	// Set the result fields.
 	result.Set("admission", admission)
 	expected.Set("ok", leanSyncBool(&arena, authErr == nil))
 	expected.Set("authentication", result)
@@ -542,7 +546,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		}
 	}
 
-	// formatUint name via strconv.
+	// Build name with strconv.FormatUint.
 	name := "authenticateSync seed " + strconv.FormatUint(seed, 10) + " variant " + strconv.Itoa(variant)
 	if run.stream {
 		request.Set("op", arena.NewString("startSyncStream"))

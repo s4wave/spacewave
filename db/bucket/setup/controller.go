@@ -20,17 +20,17 @@ const ControllerID = "hydra/bucket/setup"
 
 // Controller implements the bucket setup controller.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
-	// mtx guards below
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// closed indicates close was called
+	// closed indicates close was called.
 	closed bool
-	// refs is the list of refs to dispose on close
+	// refs is the list of refs to dispose on close.
 	refs []func()
 }
 
@@ -159,7 +159,7 @@ func (c *Controller) HandleDirective(
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()

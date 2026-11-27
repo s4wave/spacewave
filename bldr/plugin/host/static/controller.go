@@ -18,7 +18,7 @@ const ControllerID = "bldr/plugin/host/static"
 var Version = controller.MustParseVersion("0.0.1")
 
 // Controller resolves LookupPluginHost with a fixed set of plugin hosts. It
-// publishes the hosts without running them; their owner runs them.
+// publishes the hosts without running them. Their owner runs them.
 type Controller struct {
 	// hosts is the published host set.
 	hosts []plugin_host.PluginHost

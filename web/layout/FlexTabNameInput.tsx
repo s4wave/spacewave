@@ -16,12 +16,13 @@ export interface FlexTabNameInputProps {
 }
 
 // FlexTabNameInput edits one FlexLayout tab name. The caller mounts it while
-// its rename state names the tab, so the draft starts from the current name.
+// its rename state references the tab, so the draft starts from the current
+// name.
 //
 // FlexLayout renders every tab twice: the visible button and a hidden drag
-// stamp, each through onRenderTab. Only the visible copy takes focus; a stamp
-// copy that focused would blur the visible one, which saves and ends the
-// rename the moment it starts.
+// stamp, each through onRenderTab. Only the visible copy takes focus. A stamp
+// copy that focused would blur the visible copy, saving and ending the rename
+// the moment the rename starts.
 export function FlexTabNameInput({
   name,
   label,

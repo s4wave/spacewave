@@ -1,10 +1,10 @@
 import React, { createContext, use } from 'react'
 import { IJsonModel } from '@aptre/flex-layout'
 
-// BaseLayoutContextValue defines the shape of our context
+// BaseLayoutContextValue defines the shape of BaseLayoutContext.
 export interface BaseLayoutContextValue {
   // onModelChange is a hook to override the model after a change is made.
-  // if undefined or null is returned, cancels the change entirely.
+  // Returning undefined or null cancels the change entirely.
   onModelChange?: (before: IJsonModel, after: IJsonModel) => IJsonModel | null
 }
 

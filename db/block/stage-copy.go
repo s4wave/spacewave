@@ -15,14 +15,14 @@ const stageCopyBatchEntries = 1024
 // the subtrees the stage holds. It records a completion proof for each
 // subtree it finishes, so the next copy skips it.
 //
-// Invariants. A copy that skips a block hands it to the parent that names it,
-// and the collector frees a stored block that nothing holds, so the copy
+// Invariants. A copy that skips a block hands it to the parent that references
+// it, and the collector frees a stored block that nothing holds, so the copy
 // keeps these:
 //
 //  1. Known reports a block only once the stage holds it: its proof is
 //     checked and a stage root moved onto it in one transaction, or the copy
 //     itself queued the block's write through the stage, ahead of every
-//     parent that names it. A stored block nothing holds is not reported,
+//     parent that references it. A stored block nothing holds is not reported,
 //     whether or not it has a proof.
 //  2. A proved block's whole subtree is stored: the collector deletes a
 //     block's proof with its free, and the block's list holds each child
@@ -38,7 +38,7 @@ const stageCopyBatchEntries = 1024
 //     durable and not because nothing frees it, so the copy skips each block
 //     it stores and records no proofs.
 //
-// The caller keeps the stage open until a root that names the copied roots
+// The caller keeps the stage open until a root that references the copied roots
 // lands, then releases it.
 type StageCopy struct {
 	// store is the destination, which keeps the proofs.
@@ -60,8 +60,8 @@ type StageCopy struct {
 
 // OpenStageCopy opens a stage on store for a copy. With recheck, the copy
 // reads every block again, trusting no proof, and records the proofs of what
-// it finds complete. Call Release once the root that names the copied roots
-// has landed.
+// it finds complete. Call Release once the root that references the copied
+// roots has landed.
 func OpenStageCopy(ctx context.Context, store StoreOps, recheck bool) (*StageCopy, error) {
 	// Write the copy under a stage until a root holds it.
 	staged, release, err := OpenStage(ctx, store)
@@ -74,8 +74,8 @@ func OpenStageCopy(ctx context.Context, store StoreOps, recheck bool) (*StageCop
 }
 
 // NewStageCopy copies block graphs into store under staged, a stage the
-// caller opened on store with OpenStage and holds until a root that names the
-// copied roots lands. Release does nothing: the caller releases the stage.
+// caller opened on store with OpenStage and holds until a root that references
+// the copied roots lands. Release does nothing: the caller releases the stage.
 func NewStageCopy(store, staged StoreOps, recheck bool) *StageCopy {
 	// Copy straight into a store that holds no roots.
 	c := &StageCopy{store: store, staged: staged, release: func() {}, recheck: recheck}
@@ -94,8 +94,9 @@ func NewStageCopy(store, staged StoreOps, recheck bool) *StageCopy {
 }
 
 // Copy copies the graph under root from src, skipping each subtree the stage
-// holds. opts sets the copy's Reads, Visited, Forget and Missing; Copy sets
-// its Known and Complete. Call Flush before the root that names root lands.
+// holds. opts sets the copy's Reads, Visited, Forget and Missing. Copy sets
+// its Known and Complete. Call Flush before the root that references root
+// lands.
 func (c *StageCopy) Copy(ctx context.Context, src StoreOps, root *BlockRef, opts GraphCopyOptions) error {
 	// Copy straight into a store that holds no roots, skipping what it stores.
 	opts.Known, opts.Complete = nil, nil
@@ -146,7 +147,7 @@ func (c *StageCopy) Flush(ctx context.Context) error {
 
 // CheckHeld returns nil when the stage still holds the whole graph under
 // each of roots: each has a completion proof, and the open stage holds it in
-// the same transaction. Call it after the root that names roots lands and
+// the same transaction. Call it after the root that references roots lands and
 // before Release. A process that stalled past the stage's lease and the grace
 // period may have had the graph freed while nothing wrote through the stage.
 // A block loses its children's holds only at its free or, while the

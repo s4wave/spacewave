@@ -68,7 +68,7 @@ func (e *RefCountEngine) ClearContext() {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 // The returned transaction retains the resolved engine until Discard.
 func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, error) {

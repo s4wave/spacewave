@@ -1,6 +1,6 @@
 // Graph utility functions for working with quads and IRIs
 
-// KeyToIRI wraps a key string in IRI format: <key>
+// keyToIRI wraps a key string in IRI format: <key>.
 export function keyToIRI(key: string): string {
   if (!key) {
     return ''
@@ -8,13 +8,13 @@ export function keyToIRI(key: string): string {
   return `<${key}>`
 }
 
-// IsIRI reports whether s is in IRI format: <key>
+// isIRI reports whether s is in IRI format: <key>.
 export function isIRI(s: string | undefined): s is string {
   return !!s && s.length >= 2 && s.startsWith('<') && s.endsWith('>')
 }
 
-// IRIToKey extracts the key from an IRI string: <key> -> key
-// Returns error if the string is not in IRI format
+// iriToKey extracts the key from an IRI string: <key> -> key.
+// iriToKey returns an error if the string is not in IRI format.
 export function iriToKey(iri: string): string {
   if (!iri) {
     return ''
@@ -25,7 +25,7 @@ export function iriToKey(iri: string): string {
   return iri.slice(1, -1)
 }
 
-// PredToIRI wraps a predicate string in IRI format: <pred>
+// predToIRI wraps a predicate string in IRI format: <pred>.
 export function predToIRI(pred: string): string {
   if (!pred) {
     return ''

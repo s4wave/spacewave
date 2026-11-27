@@ -164,7 +164,8 @@ func (a *BrowserAsset) Validate() error {
 
 // Validate checks the update notification for required routing fields.
 func (n *UpdateNotification) Validate() error {
-	// Notifications name a concrete revision and its fetchable root pointer.
+	// Notifications identify a concrete revision and its fetchable root
+	// pointer.
 	if n == nil {
 		return errors.New("nil update notification")
 	}

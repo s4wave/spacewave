@@ -168,7 +168,7 @@ message UnmarshalRequest {
   // Ref is the object reference to unmarshal.
   .bucket.ObjectRef ref = 1;
   // Data is the raw block data to unmarshal.
-  // If empty, will fetch the block first.
+  // If Data is empty, the cursor fetches the block first.
   bytes data = 2;
   // BlockType is the optional block type identifier for server-side decode.
   // Empty preserves the legacy raw-byte fetch behavior.

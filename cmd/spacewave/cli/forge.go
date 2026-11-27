@@ -202,7 +202,8 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 			}
 			defer tx.Discard()
 
-			// Create job with no tasks (tasks can be added later).
+			// Create a job with no tasks.
+			// Tasks can be added later.
 			njob := &forge_job.Job{
 				JobState:  forge_job.State_JobState_PENDING,
 				Timestamp: timestamppb.New(time.Now()),

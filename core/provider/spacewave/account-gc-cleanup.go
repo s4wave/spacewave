@@ -49,7 +49,7 @@ func (a *ProviderAccount) removeSharedObjectGCRefs(
 }
 
 // releaseAccountRoots releases every named root of the deleted account's
-// buckets, so the collector frees what only they reached.
+// buckets, so the collector frees what only those roots reached.
 func (a *ProviderAccount) releaseAccountRoots(ctx context.Context, le *logrus.Entry) {
 	releaser, ok := a.vol.(volume.BucketReleaser)
 	if !ok {

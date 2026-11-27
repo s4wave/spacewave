@@ -25,22 +25,23 @@ export interface FSCursorDirent extends FSCursorNodeType {
 // All operations should throw ErrReleased if the cursor is released.
 // The cursor can release itself if a complete cursor re-build is necessary.
 export interface FSCursor {
-  // checkReleased checks if the fs cursor is currently released.
+  // checkReleased checks if the fs cursor is released.
   checkReleased(): boolean
 
   // getProxyCursor returns a FSCursor to replace this one, if necessary.
-  // This is used to resolve a symbolic link, mount, etc.
-  // Return null if no redirection necessary (in most cases).
-  // This will be called before any of the other calls.
+  // getProxyCursor is used to resolve a symbolic link, mount, etc.
+  // Return null if no redirection is necessary (in most cases).
+  // getProxyCursor will be called before any of the other calls.
   // Releasing a child cursor does not release the parent, and vice-versa.
   // Throw ErrReleased if this FSCursor was released.
   getProxyCursor(signal?: AbortSignal): Promise<FSCursor | null>
 
   // addChangeCb adds a change callback to detect when the cursor has changed.
-  // This will be called only if getProxyCursor returns null.
+  // addChangeCb will be called only if getProxyCursor returns null.
   // cb must not block, and should be called when cursor changes / is released.
   // cb will be called immediately (same call tree) if already released.
-  // The cursor may hold a lock internally while calling cb, do not call release inside the callback.
+  // The cursor may hold a lock internally while calling cb, do not call release
+  // inside the callback.
   addChangeCb(cb: FSCursorChangeCb): void
 
   // getCursorOps returns the FSCursorOps for the FSCursor.
@@ -62,8 +63,9 @@ export interface FSCursor {
 // If the node type changes for any reason, the ops object should be released.
 // All ops must be concurrency safe and may be called concurrently.
 export interface FSCursorOps extends FSCursorNodeType {
-  // checkReleased checks if the fs cursor ops object is currently released.
-  // This indicates if the FSCursorOps is released, not the parent FSCursor.
+  // checkReleased checks if the fs cursor ops object is released.
+  // checkReleased indicates if the FSCursorOps is released,
+  // not the parent FSCursor.
   checkReleased(): boolean
 
   // getName returns the name of the inode (if applicable).
@@ -82,7 +84,7 @@ export interface FSCursorOps extends FSCursorNodeType {
   ): Promise<void>
 
   // getSize returns the size of the inode (in bytes).
-  // Usually applicable only if this is a FILE.
+  // Usually applicable only if the node is a FILE.
   getSize(signal?: AbortSignal): Promise<bigint>
 
   // getModTimestamp returns the modification timestamp.
@@ -172,8 +174,9 @@ export interface FSCursorOps extends FSCursorNodeType {
   ): Promise<{ path: string[]; isAbsolute: boolean }>
 
   // copyTo performs an optimized copy of a dirent inode to another inode.
-  // If the src is a directory, this should be a recursive copy.
-  // If the destination already exists, this should clobber the destination.
+  // If the src is a directory, the copy should be recursive.
+  // If the destination already exists, the operation should clobber
+  // the destination.
   // Returns false if optimized copy to the target is not implemented.
   copyTo(
     tgtDir: FSCursorOps,
@@ -183,8 +186,9 @@ export interface FSCursorOps extends FSCursorNodeType {
   ): Promise<boolean>
 
   // copyFrom performs an optimized copy from another inode.
-  // If the src is a directory, this should be a recursive copy.
-  // If the destination already exists, this should clobber the destination.
+  // If the src is a directory, the copy should be recursive.
+  // If the destination already exists, the operation should clobber
+  // the destination.
   // Returns false if optimized copy from the target is not implemented.
   copyFrom(
     name: string,
@@ -194,8 +198,9 @@ export interface FSCursorOps extends FSCursorNodeType {
   ): Promise<boolean>
 
   // moveTo performs an atomic and optimized move to another inode.
-  // If the src is a directory, this should be a recursive move.
-  // If the destination already exists, this should clobber the destination.
+  // If the src is a directory, the move should be recursive.
+  // If the destination already exists, the operation should clobber
+  // the destination.
   // Returns false if atomic move to the target is not implemented.
   moveTo(
     tgtCursorOps: FSCursorOps,
@@ -205,8 +210,9 @@ export interface FSCursorOps extends FSCursorNodeType {
   ): Promise<boolean>
 
   // moveFrom performs an atomic and optimized move from another inode.
-  // If the src is a directory, this should be a recursive move.
-  // If the destination already exists, this should clobber the destination.
+  // If the src is a directory, the move should be recursive.
+  // If the destination already exists, the operation should clobber
+  // the destination.
   // Returns false if atomic move from the target is not implemented.
   moveFrom(
     name: string,
@@ -217,7 +223,7 @@ export interface FSCursorOps extends FSCursorNodeType {
 
   // remove deletes entries from a directory.
   // Throws ErrReadOnly if read-only.
-  // Does not throw if they did not exist.
+  // Does not throw if the entries did not exist.
   remove(names: string[], ts: Date, signal?: AbortSignal): Promise<void>
 
   // mknodWithContent creates a file entry and writes content atomically.

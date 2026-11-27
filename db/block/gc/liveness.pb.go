@@ -57,9 +57,9 @@ func (x Adoption) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// Generation is how far a Volume has settled the blocks an older store
-// format left, whose child lists may lack a child the block names. Each
-// state is one value; nothing else of the settle remains once it is Settled.
+// Generation is how far a Volume has settled the blocks an older store format
+// left, whose child lists may lack a child the block references. Each state is
+// one value. Nothing else of the settle remains once it is Settled.
 type Generation int32
 
 const (
@@ -194,7 +194,7 @@ type LivenessState struct {
 	unknownFields []byte
 	// Adoption is whether the counts describe the Volume's blocks.
 	Adoption Adoption `protobuf:"varint,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
-	// AdoptionRun names the adoption that marked the Volume adopting, or the
+	// AdoptionRun identifies the adoption that marked the Volume adopting, or the
 	// one that abandoned it. Each transaction of an adoption refuses to write
 	// unless the Volume is still in its run, so a run another superseded writes
 	// nothing more.
@@ -206,12 +206,12 @@ type LivenessState struct {
 	// Release is the paged release in progress of the children of one freed
 	// block, unset when none is.
 	Release *Release `protobuf:"bytes,11,opt,name=release,proto3" json:"release,omitempty"`
-	// Frees is whether the collector's frees were on at the last writable
-	// open, or at the birth of an empty Volume. The write that turns it on
-	// also returns the Volume to unadopted, so an adoption counts every holder
-	// again before the first free; a writable open with frees off clears it,
-	// so the next switch-on counts again (SetFrees). It reads as off unless
-	// frees_mark matches the record.
+	// Frees is whether the collector's frees were on at the last writable open,
+	// or at the birth of an empty Volume. The write that turns it on also returns
+	// the Volume to unadopted, so an adoption counts every holder again before
+	// the first free. A writable open with frees off clears it, so the next
+	// switch-on counts again (SetFrees). It reads as off unless frees_mark
+	// matches the record.
 	Frees bool `protobuf:"varint,15,opt,name=frees,proto3" json:"frees,omitempty"`
 	// FreesMark is a hash of the record's other known fields, salted with
 	// the build's frees epoch, which every write of this format computes. A
@@ -244,8 +244,8 @@ type LivenessState struct {
 	// AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
 	// milliseconds. A block the adoption settles may be a head a reader saw
 	// before the mark, whose move off it the dropped logs carried, so the
-	// collector frees, pops and flips nothing until Grace has passed since
-	// this time. Only Adopt's mark transaction writes it.
+	// collector frees, pops and flips nothing until Grace has passed since this
+	// time. Only Adopt's mark transaction writes it.
 	AdoptAtUnixMilli int64 `protobuf:"varint,21,opt,name=adopt_at_unix_milli,json=adoptAtUnixMilli,proto3" json:"adoptAtUnixMilli,omitempty"`
 	// ObsoleteKinds are the record kinds under the liveness prefix that an
 	// older store format wrote and this one neither writes nor reads, one
@@ -253,10 +253,10 @@ type LivenessState struct {
 	// kind once none of its records remain. None is a block, a block's bytes
 	// or a child list.
 	ObsoleteKinds []byte `protobuf:"bytes,22,opt,name=obsolete_kinds,json=obsoleteKinds,proto3" json:"obsoleteKinds,omitempty"`
-	// AdoptCursor is how far the adoption in progress has counted, set only
-	// while the Volume is adopting. Each slice of the count writes it in the
-	// transaction that writes the slice's counts, so a run that takes the
-	// Volume over continues strictly after the last key it names.
+	// AdoptCursor is how far the adoption in progress has counted, set only while
+	// the Volume is adopting. Each slice of the count writes it in the
+	// transaction that writes the slice's counts, so a run that takes the Volume
+	// over continues strictly after the last key the cursor records.
 	AdoptCursor *AdoptCursor `protobuf:"bytes,23,opt,name=adopt_cursor,json=adoptCursor,proto3" json:"adoptCursor,omitempty"`
 	// DownCursor is the sequence of the first down page the netting has not
 	// deleted. The netting deletes down pages only from the log's head, in
@@ -384,10 +384,10 @@ type AdoptCursor struct {
 	Queued uint64 `protobuf:"varint,6,opt,name=queued,proto3" json:"queued,omitempty"`
 	// Unknown counts the holders of blocks stored without a child list.
 	Unknown uint64 `protobuf:"varint,7,opt,name=unknown,proto3" json:"unknown,omitempty"`
-	// Run is the adoption run that wrote the cursor. A run takes the cursor
-	// over only when it names the run the state names in the same
-	// transaction: a build without the cursor carries it through a claim of
-	// its own as an unknown field, and its counts are not the cursor's.
+	// Run is the adoption run that wrote the cursor. A run takes the cursor over
+	// only when the cursor records the run the state records in the same
+	// transaction: a build without the cursor carries it through a claim of its
+	// own as an unknown field, and its counts are not the cursor's.
 	Run string `protobuf:"bytes,8,opt,name=run,proto3" json:"run,omitempty"`
 }
 
@@ -453,18 +453,18 @@ func (x *AdoptCursor) GetRun() string {
 	return ""
 }
 
-// Release is the release of the children of a freed block whose child list
-// is longer than one collector slice moves. The slice that frees the block
-// moves the list to release pages; each later slice drops the next
-// children's holders by one and moves Next in the same transaction, and the
-// last deletes the pages and clears the release.
+// Release is the release of the children of a freed block whose child list is
+// longer than one collector slice moves. The slice that frees the block moves
+// the list to release pages. Each later slice drops the next children's holders
+// by one and moves Next in the same transaction, and the last deletes the pages
+// and clears the release.
 type Release struct {
 	unknownFields []byte
 	// Block is the block, as its hash type byte and digest.
 	Block []byte `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
 	// Next is the index in the list of the first child not moved yet.
 	Next uint64 `protobuf:"varint,2,opt,name=next,proto3" json:"next,omitempty"`
-	// Children is how many children the list names.
+	// Children is how many children the list contains.
 	Children uint64 `protobuf:"varint,3,opt,name=children,proto3" json:"children,omitempty"`
 }
 

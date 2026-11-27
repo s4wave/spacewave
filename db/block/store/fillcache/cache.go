@@ -51,8 +51,8 @@ const packsDir = "packs"
 //
 // Reads never wait on the packs' writer: a fill only queues its block, and one
 // goroutine appends the queue in batches. The packs load in the background
-// after Open; until they have, reads miss and the queue holds the fills, past
-// its bound dropping them.
+// after Open. Until the packs have loaded, reads miss and the queue holds the
+// fills, dropping fills past its bound.
 type Cache struct {
 	// le is the entry for the cache's log lines.
 	le *logrus.Entry
@@ -79,7 +79,7 @@ type Cache struct {
 	counts counters
 }
 
-// Open opens the cache in dir, creating it when missing; the packs load in
+// Open opens the cache in dir, creating it when missing. The packs load in
 // the background, recovering what a crash left. The cache runs until Close or
 // until ctx ends.
 func Open(ctx context.Context, le *logrus.Entry, dir string, opts Options) (*Cache, error) {

@@ -88,7 +88,7 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
-// ParseResolveControllerConfigTimeout parses the timeout dur.
+// ParseResolveControllerConfigTimeout parses the timeout duration.
 func (c *Config) ParseResolveControllerConfigTimeout() (time.Duration, error) {
 	timeoutStr := c.GetResolveControllerConfigTimeout()
 	if timeoutStr == "" {

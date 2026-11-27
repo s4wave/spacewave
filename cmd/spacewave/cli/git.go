@@ -83,9 +83,9 @@ type gitEngineMount struct {
 }
 
 // mountGitEngine connects to the daemon and mounts the engine without
-// accessing a typed object. spaceID may be a Space ID or name; empty selects
-// the first Space. Used by standalone commands like clone and the remote
-// helper.
+// accessing a typed object. spaceID may be a Space ID or name. An empty
+// spaceID selects the first Space. Used by standalone commands like clone and
+// the remote helper.
 func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*gitEngineMount, func(), error) {
 	// Take the command context for the daemon connection.
 	ctx := c.Context
@@ -629,8 +629,9 @@ func buildGitCommitCommand() *cli.Command {
 			// Take the command context for the parallel commit and diff calls.
 			ctx := c.Context
 
-			// Parallel calls: GetCommit + GetDiffStat
-			// Both RPCs resolve refs/short hashes/rev-parse internally.
+			// commitResult holds the GetCommit result for parallel
+			// GetCommit and GetDiffStat calls. Both RPCs resolve
+			// refs/short hashes/rev-parse internally.
 			type commitResult struct {
 				resp *s4wave_git.GetCommitResponse
 				err  error
@@ -790,7 +791,7 @@ func buildGitTreeCommand() *cli.Command {
 			}
 			defer pathCleanup()
 
-			// Check if it's a directory or file.
+			// Check if the node is a directory or file.
 			ntResp, err := pathSvc.GetNodeType(ctx, &s4wave_unixfs.HandleGetNodeTypeRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get node type")
@@ -1181,7 +1182,8 @@ func buildGitWorktreeCreateCommand() *cli.Command {
 				}
 			}
 
-			// WorkdirRef: use the worktree key as the workdir object key with FS_NODE type.
+			// workdirRef uses the worktree key as the workdir
+			// object key with FS_NODE type.
 			workdirRef := &unixfs_world.UnixfsRef{
 				ObjectKey: wtKey + "/workdir",
 				FsType:    unixfs_world.FSType_FSType_FS_NODE,

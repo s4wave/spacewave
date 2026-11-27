@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
-// establishLinkResolver resolves establishLink directives
+// establishLinkResolver resolves establishLink directives.
 type establishLinkResolver struct {
 	c   *Controller
 	dir link.EstablishLinkWithPeer
@@ -39,11 +39,12 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 		}
 		defer estLinkRef.Release()
 	} else if sourcePeerID != tptSourcePeerID {
-		// The source peer id does not match our peer ID. Bail.
+		// The source peer id does not match the transport peer ID.
+		// Bail.
 		return nil
 	}
 
-	// Determine if we can dial the peer at a specific address.
+	// Determine if the transport can dial the peer at a specific address.
 	var dialAddress string
 	tptDialer, ok := tpt.(dialer.TransportDialer)
 	if ok {
@@ -54,11 +55,12 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 
 		dialAddress = dialerOpts.GetAddress()
 		if dialerOpts.GetAddress() != "" {
-			// Add a reference to request that we dial that peer.
+			// Add a reference to request that the controller dial
+			// that peer.
 			dialRef, dial, _ := o.c.linkDialers.AddKeyRef(linkDialerKey{peerID: targetPeerID, dialAddress: dialAddress})
 			defer dialRef.Release()
 
-			// Attempt to dial the peer at that address.
+			// Try to dial the peer at that address.
 			dial.opts.SetResult(dialerOpts, nil)
 		}
 	}
@@ -84,17 +86,18 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 			return context.Canceled
 		}
 
-		// reuse slice
+		// reuse the slice
 		values = values[:0]
 		o.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// get all links matching the target peer
 			values = append(values, o.c.linksByPeerID[targetPeerID]...)
 
-			// get wait ch to watch for changes
+			// get the wait ch to watch for changes
 			waitCh = getWaitCh()
 		})
 
-		// update unique list resolver, emitting values to the resolver handler.
+		// update the unique list resolver, emitting values to the resolver
+		// handler.
 		uniqueListResolver.SetValues(values...)
 
 		select {
@@ -116,8 +119,9 @@ func (c *Controller) resolveEstablishLink(
 		return nil, nil
 	}
 
-	// Try to skip this if it doesn't match this transport and we can lock.
-	// Otherwise return a resolver and check later.
+	// Try to skip resolution if the directive does not match the transport
+	// and the controller can lock. Otherwise return a resolver and check
+	// later.
 	if srcPeerID := dir.EstablishLinkSourcePeerId(); len(srcPeerID) != 0 {
 		var skip bool
 		_ = c.bcast.TryHoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -128,7 +132,7 @@ func (c *Controller) resolveEstablishLink(
 		}
 	}
 
-	// Return resolver.
+	// Return a resolver.
 	return directive.Resolvers(&establishLinkResolver{
 		c:   c,
 		dir: dir,

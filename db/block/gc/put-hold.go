@@ -18,19 +18,19 @@ type PutHold struct {
 	Observed func(notHeld [NotHeldPut + 1]uint64, err error)
 	// Partial reports that the batch copies part of a tree another store
 	// holds, as a cache fill does: a born block or a refilled hole may
-	// name a child the generation hides, which Land counts as it counts an
-	// absent child instead of refusing. A root onto a hidden block is still
-	// refused.
+	// reference a child the generation hides, which Land counts as it
+	// counts an absent child instead of refusing. A root onto a hidden
+	// block is still refused.
 	Partial bool
 }
 
-// requirePutsHeld refuses, counts or passes, as puts.Mode says, the born
-// blocks the batch gives no holder once the children and roots are counted
-// and whose count records none from before. A born block that a stored or
-// refilled entry of the batch names is held: that parent's list counted it
-// when the parent was born, through an up a child stored after its
-// parent nets at the settle, so its count is only not recorded yet.
-// It reads nothing: the holders are the batch's, in memory.
+// requirePutsHeld refuses, counts or passes, as puts.Mode says, the born blocks
+// the batch gives no holder once the children and roots are counted and whose
+// count records none from before. A born block that a stored or refilled entry
+// of the batch references is held: that parent's list counted it when the
+// parent was born, through an up a child stored after its parent nets at the
+// settle, so its count is only not recorded yet. It reads nothing: the holders
+// are the batch's, in memory.
 func (l *lander) requirePutsHeld(puts PutHold) error {
 	// Off checks nothing.
 	if puts.Mode == HeldOff {
@@ -62,7 +62,7 @@ func (l *lander) requirePutsHeld(puts PutHold) error {
 }
 
 // listedNames returns the block keys of the children the batch's stored and
-// refilled entries name, whose lists hold them already.
+// refilled entries reference, whose lists hold them already.
 func (l *lander) listedNames() map[string]struct{} {
 	names := make(map[string]struct{})
 	for _, entries := range [][]*block.PutBatchEntry{l.stored, l.refills} {

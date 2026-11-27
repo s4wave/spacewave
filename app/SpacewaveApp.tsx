@@ -54,7 +54,8 @@ interface RunningApp {
 }
 
 // SpacewaveApp mounts the ordinary app on supplied storage. Its attachment
-// owns startup, seeded resources, and teardown; the caller owns persistent data.
+// owns startup, seeded resources, and teardown. The caller owns persistent
+// data.
 export function SpacewaveApp({
   appId,
   suppliedStorage,

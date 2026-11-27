@@ -73,8 +73,8 @@ func (s *SharingState) Equal(that *SharingState) bool {
 		slices.EqualFunc(s.ParticipantInfo, that.ParticipantInfo, equalParticipantInfo)
 }
 
-// equalAgreement reports whether two agreements name one change with the same
-// voters.
+// equalAgreement reports whether two agreements identify one change with the
+// same voters.
 func equalAgreement(a, b *sobject.ControlAgreement) bool {
 	return bytes.Equal(a.Hash, b.Hash) && a.Weight == b.Weight && slices.Equal(a.Voters, b.Voters)
 }

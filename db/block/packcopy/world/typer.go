@@ -112,7 +112,7 @@ func (t *Typer) Kind(typ any) string {
 
 // New builds a Typer for the World roots in heads, the head first and then
 // the earlier roots it retains. It reads the type of every object of a type in
-// roots from a snapshot of the head read through store; an object only an
+// roots from a snapshot of the head read through store. An object only an
 // earlier root holds has no listed type.
 func New(ctx context.Context, le *logrus.Entry, store block.StoreOps, heads []*bucket.ObjectRef, roots RootTypes) (*Typer, error) {
 	// Type each World root with its head's transform.
@@ -152,8 +152,8 @@ func New(ctx context.Context, le *logrus.Entry, store block.StoreOps, heads []*b
 	defer tx.Discard()
 
 	// List the objects of each type from the snapshot. A type whose listing
-	// meets a block no source holds keeps the objects it listed; the rest stay
-	// untyped, and the copy leaves their roots as holes.
+	// meets a block no source holds keeps the objects it listed. The rest
+	// stay untyped, and the copy leaves their roots as holes.
 	var failed []string
 	for _, typeID := range slices.Sorted(maps.Keys(roots)) {
 		err := world_types.IterateObjectsWithType(ctx, tx, typeID, func(key string) (bool, error) {
@@ -188,7 +188,7 @@ func (t *Typer) RootType(ref *block.BlockRef) any {
 }
 
 // Decode decodes a block by its type and returns its refs, typed where the
-// block names its children's types.
+// block declares its children's types.
 func (t *Typer) Decode(ctx context.Context, typ any, ref *block.BlockRef, data []byte) ([]packcopy.TypedRef, bool, error) {
 	nt, ok := typ.(*nodeType)
 	if !ok {
@@ -254,7 +254,7 @@ func holdsRefs(blk any) bool {
 
 // children returns the typed children of a decoded block.
 func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.TypedRef, error) {
-	// Objects name their roots' types through the World graph. Only tree
+	// Objects declare their roots' types through the World graph. Only tree
 	// blocks pass the tree's value constructor down.
 	switch b := blk.(type) {
 	case *world_block.Object:
@@ -264,8 +264,8 @@ func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.T
 		values = nil
 	}
 
-	// Type each ref by the constructor its holder names, or the tree's value
-	// constructor for a tree value.
+	// Type each ref by the constructor its holder declares, or the tree's
+	// value constructor for a tree value.
 	var out []packcopy.TypedRef
 	if holder, ok := blk.(block.BlockWithRefs); ok {
 		refs, err := holder.GetBlockRefs()
@@ -291,7 +291,7 @@ func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.T
 	}
 
 	// Type the refs of each inline sub-block. A World's object tree holds
-	// Objects; its graph tree and change log hold no typed values.
+	// Objects. The World's graph tree and change log hold no typed values.
 	if holder, ok := blk.(block.BlockWithSubBlocks); ok {
 		subs := holder.GetSubBlocks()
 		for _, id := range slices.Sorted(maps.Keys(subs)) {
@@ -341,7 +341,7 @@ func (t *Typer) objectRoot(o *world_block.Object, nt *nodeType) ([]packcopy.Type
 		return []packcopy.TypedRef{{Ref: ref}}, nil
 	}
 
-	// Decode the root with its own transform when it names one.
+	// Decode the root with its own transform when the root declares one.
 	xfrm, xfrmConf := nt.xfrm, nt.xfrmConf
 	if conf := root.GetTransformConf(); !conf.GetEmpty() {
 		var err error

@@ -167,7 +167,7 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify the waiter acquired and the released lease is invalid.
+	// Verify the waiter acquired the lease and the released lease is invalid.
 	if err := <-waitErr; err != nil {
 		t.Fatal(err)
 	}

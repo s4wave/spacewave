@@ -23,7 +23,7 @@ export interface Config {
    */
   kvKeyOpts?: Config$1
   /**
-   * Verbose indicates we should log every operation.
+   * Verbose indicates the controller should log every operation.
    */
   verbose?: boolean
   /**
@@ -36,37 +36,39 @@ export interface Config {
   storeConfig?: Config$3
   /**
    * NoGenerateKey indicates to skip generating a private key.
-   * This has no effect if a key already exists.
+   * NoGenerateKey has no effect if a key already exists.
    */
   noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
-   * storage if it generates one. This results in an ephemeral volume peer
-   * identity if there is no key present in the store already.
+   * storage if the controller generates one. Skipping the write results in an
+   * ephemeral volume peer identity if there is no key present in the store
+   * already.
    *
-   * Has no effect if the store has a peer private key.
+   * NoWriteKey has no effect if the store has a peer private key.
    */
   noWriteKey?: boolean
   /**
    * Sync indicates to sync after every write.
-   * Reduces write performance but increases data safety.
+   * Sync reduces write performance but increases data safety.
    */
   sync?: boolean
   /**
    * FreelistSync enables syncing the freelist to disk.
-   * Reduces write performance but increases recovery performance.
+   * FreelistSync reduces write performance but increases recovery performance.
    */
   freelistSync?: boolean
   /**
    * BatchSize coalesces this many write transactions into one BoltDB commit.
-   * Dramatically reduces fsync overhead for bulk write workloads.
+   * BatchSize dramatically reduces fsync overhead for bulk write workloads.
    * 0 or 1 disables batching (default). Typical value: 100-1000.
    */
   batchSize?: number
   /**
    * Exclusive opens the volume file for this process alone. Opens of the file
    * in other processes wait until the volume closes, then open any file that
-   * replaced it. Offline maintenance that rewrites the file sets it.
+   * replaced the file. Offline maintenance that rewrites the file sets
+   * Exclusive.
    */
   exclusive?: boolean
 }

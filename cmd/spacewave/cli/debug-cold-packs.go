@@ -33,7 +33,7 @@ func (a *debugColdPacksArgs) BuildFlags() []cli.Flag {
 
 // Run issues one cold pack control request over the already-running socket.
 func (a *debugColdPacksArgs) Run(c *cli.Context) error {
-	// Require a single explicit action; a typo must not change the daemon.
+	// Require a single explicit action. A typo must not change the daemon.
 	action := c.Args().First()
 	if c.NArg() != 1 || (action != "on" && action != "off" && action != "stats") {
 		return errors.New("expected one of: on, off, stats")

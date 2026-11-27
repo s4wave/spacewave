@@ -48,7 +48,8 @@ func TestFrontendBootstrapAttachesStartup(t *testing.T) {
 		t.Fatalf("bootstrap response = %d %q", response.Code, response.Body.String())
 	}
 
-	// The boot module adds no import map; the document's single map carries them.
+	// The boot module adds no import map. The document's single map
+	// contains the shared package bindings.
 	imports, err := service.WebPkgImports(t.Context())
 	if err != nil || !maps.Equal(imports, map[string]string{"bldr-web-pkg/sonner/": "/b/pkg/sonner/"}) {
 		t.Fatalf("web package imports = %v, %v", imports, err)

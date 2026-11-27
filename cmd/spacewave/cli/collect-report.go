@@ -21,9 +21,9 @@ const collectProgressEvery = 30 * time.Second
 // counts.
 const settleStatusLimit = 100_000
 
-// collectReport is what an offline collection did and what the settle's flip
-// checks found after it, which together say why an Open generation did not
-// flip.
+// collectReport records what an offline collection did and what the settle's
+// flip checks found after the collection. These results say why an Open
+// generation did not flip.
 type collectReport struct {
 	// path is the volume file.
 	path string
@@ -228,13 +228,14 @@ func settleCount(n int, more bool) string {
 	return strconv.Itoa(n)
 }
 
-// flipHeldBy names the first of the flip's checks, in the order
-// Collector.flip takes them, that holds the Open generation st describes,
+// flipHeldBy reports the first of the flip's checks that holds the Open
+// generation st describes, in the order Collector.flip takes the checks,
 // given whether the collector frees, since the settle runs only with frees,
 // and whether st read the collector's grace period. The checks read what
 // the Volume stores. A collector also seeds the front from the roots once
-// before its first flip, which it keeps in memory and st cannot read, so
-// with every stored check clear the flip still waits on that seeding.
+// before its first flip. The collector keeps the seeding state in memory,
+// and st cannot read that state, so with every stored check clear the flip
+// still waits on that seeding.
 func flipHeldBy(st *block_gc.SettleStatus, frees, graced bool) string {
 	switch state := st.State; {
 	case !frees:

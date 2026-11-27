@@ -178,7 +178,8 @@ func TestWatchObjectTypeMetadata(t *testing.T) {
 	resources.CreateResourceReference(first.GetResourceId()).Release()
 	expect("")
 
-	// Registering it again reaches the callback, and a released watch hears nothing more.
+	// Registering the watched type again reaches the callback, and a released
+	// watch hears nothing more.
 	second := register("test/watched", "Second")
 	expect("Second")
 	release()

@@ -28,7 +28,7 @@ type Fetcher struct {
 }
 
 // NewFetcher constructs a fetcher with an explicit registry and download bound.
-// The client must be non-nil; registry must be an HTTP(S) base URL.
+// The client must be non-nil. registry must be an HTTP(S) base URL.
 func NewFetcher(client *http.Client, registry string, maxTarballSize int64) (*Fetcher, error) {
 	// Require a transport and a bound before reading untrusted tarballs.
 	if client == nil {
@@ -52,7 +52,7 @@ func NewFetcher(client *http.Client, registry string, maxTarballSize int64) (*Fe
 // their canonical integrity strings. KVTX chunks the bytes into addressed blocks.
 // dependencies must be the caller's writable, dedicated tarball tree, populated
 // only with verified bytes. The caller commits or discards it and retains its root.
-// On failure, earlier verified tarballs may remain staged; the failing tarball
+// On failure, earlier verified tarballs may remain staged. The failing tarball
 // is never stored. A new Fetcher reuses the same tree without fetching known pins.
 func (f *Fetcher) Fetch(ctx context.Context, data []byte, dependencies kvtx.BlockTx) ([]Package, error) {
 	// Validate the complete lockfile before writing any package.
@@ -131,7 +131,7 @@ func (f *Fetcher) fetchTarball(ctx context.Context, pkg Package) ([]byte, error)
 	return data, nil
 }
 
-// checkURL requires an HTTP(S) URL; HTTP policy belongs to the supplied client.
+// checkURL requires an HTTP(S) URL. HTTP policy belongs to the supplied client.
 func checkURL(raw string) error {
 	// Parse the address before issuing an HTTP request.
 	addr, err := url.Parse(raw)

@@ -35,7 +35,7 @@ type SessionClient struct {
 	readGrants map[readGrantKey]*packfile.ReadGrant
 
 	// recoveryKeypairs is the owning account's keypair listing cache, or nil
-	// for a client no account configured.
+	// for a client with no account configured.
 	recoveryKeypairs *recoveryKeypairCache
 }
 
@@ -138,8 +138,8 @@ func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
 
 // SyncPushData uploads an in-memory packfile to a resource-scoped block store.
 // bodyHash is the pre-computed SHA-256 hash of the file contents.
-// bloomFormatVersion identifies the bloom encoding (currently
-// packfile.BloomFormatVersionV1).
+// bloomFormatVersion identifies the bloom encoding
+// (packfile.BloomFormatVersionV1).
 func (c *SessionClient) SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error {
 	return c.syncPushDataWithProgress(ctx, resourceID, &syncPushPack{
 		packID:             packID,
@@ -180,8 +180,8 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 }
 
 // SyncPushUpload runs the first two steps of a push of an in-memory pack: the
-// admission and the upload. It reports whether the pack awaits SyncPushCommit;
-// a pack the catalog already holds does not. A caller that uploads several
+// admission and the upload. It reports whether the pack awaits SyncPushCommit.
+// A pack the catalog already holds does not. A caller that uploads several
 // packs at once commits them in the order it chooses, before the upload's
 // admission expires.
 func (c *SessionClient) SyncPushUpload(ctx context.Context, resourceID, packID string, blockCount int, packData, bodyHash, bloomFilter []byte, bloomFormatVersion uint32) (bool, error) {
@@ -348,7 +348,7 @@ func (c *SessionClient) PostClientErrorReport(
 }
 
 // CreateSharedObject creates a new shared object in the cloud.
-// ownerType is "account" or "organization"; ownerID is the principal id.
+// ownerType is "account" or "organization". ownerID is the principal id.
 func (c *SessionClient) CreateSharedObject(
 	ctx context.Context,
 	soID string,
@@ -529,7 +529,7 @@ func (c *SessionClient) GetSOSequencer(ctx context.Context, soID string) (string
 		return "", errors.Wrap(err, "get sequencer")
 	}
 
-	// A Cloud without a sequencer secret names no peer.
+	// A Cloud without a sequencer secret reports no peer.
 	if resp.GetPeerId() == "" {
 		return "", errors.New("sequencer peer ID missing from response")
 	}
@@ -621,7 +621,8 @@ func (c *SessionClient) ProcessMailboxEntry(
 // WithdrawMailboxEntries withdraws this peer's pending mailbox entries on soID
 // and returns how many it withdrew.
 func (c *SessionClient) WithdrawMailboxEntries(ctx context.Context, soID string) (uint32, error) {
-	// The route identifies the peer by its signed request, so it has no body.
+	// The route identifies the peer by its signed request, so the request
+	// has no body.
 	resp := &api.WithdrawMailboxEntriesResponse{}
 	if err := c.postBody(ctx, "/api/sobject/"+soID+"/invite-mailbox/withdraw", nil, resp, SeedReasonMutation); err != nil {
 		return 0, errors.Wrap(err, "withdraw mailbox entries")
@@ -1099,7 +1100,7 @@ func (c *SessionClient) RemoveOrgMember(ctx context.Context, orgID, memberID str
 }
 
 // TransferResource transfers a resource to a typed principal owner.
-// newOwnerType is "account" or "organization"; newOwnerID is the destination
+// newOwnerType is "account" or "organization". newOwnerID is the destination
 // principal id (account ULID or org ULID).
 func (c *SessionClient) TransferResource(ctx context.Context, resourceID, newOwnerType, newOwnerID string) ([]byte, error) {
 	body, err := (&api.TransferResourceRequest{
@@ -1127,7 +1128,8 @@ func (c *SessionClient) ListManagedBillingAccounts(ctx context.Context) ([]byte,
 }
 
 // AssignBillingAccount binds a billing account to a principal.
-// targetOwnerType is "account" or "organization"; targetOwnerID is the principal id.
+// targetOwnerType is "account" or "organization".
+// targetOwnerID is the principal id.
 func (c *SessionClient) AssignBillingAccount(ctx context.Context, billingAccountID, targetOwnerType, targetOwnerID string) ([]byte, error) {
 	body, err := (&api.AssignBillingAccountRequest{
 		BillingAccountId: billingAccountID,

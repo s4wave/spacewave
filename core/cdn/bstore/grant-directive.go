@@ -16,7 +16,7 @@ type LookupCdnSpaceGrants interface {
 	LookupCdnSpaceGrantsSpaceID() string
 }
 
-// lookupCdnSpaceGrants names one Space's grant source.
+// lookupCdnSpaceGrants looks up one Space's grant source.
 type lookupCdnSpaceGrants struct {
 	spaceID string
 }
@@ -61,10 +61,10 @@ func (d *lookupCdnSpaceGrants) IsEquivalent(other directive.Directive) bool {
 // Superceeds preserves other lookups.
 func (d *lookupCdnSpaceGrants) Superceeds(directive.Directive) bool { return false }
 
-// GetName names the directive.
+// GetName returns the directive name.
 func (d *lookupCdnSpaceGrants) GetName() string { return "LookupCdnSpaceGrants" }
 
-// GetDebugVals names the Space and no credential.
+// GetDebugVals returns the Space ID and no credential.
 func (d *lookupCdnSpaceGrants) GetDebugVals() directive.DebugValues {
 	return directive.DebugValues{"space-id": []string{d.spaceID}}
 }

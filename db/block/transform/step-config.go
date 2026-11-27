@@ -14,7 +14,7 @@ func (c *StepConfig) IsNil() bool {
 	return c == nil
 }
 
-// Validate performs cursory validation of the config.
+// Validate checks the config cursorily.
 func (c *StepConfig) Validate() error {
 	if id := c.GetId(); len(id) == 0 {
 		return errors.New("step id cannot be nil")

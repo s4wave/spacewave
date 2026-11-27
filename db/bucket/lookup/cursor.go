@@ -23,24 +23,23 @@ const (
 // Cursor contains and manages state for interfacing with objects and references
 // across multiple buckets and transformation configurations.
 type Cursor struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// sfs is the step factory set
+	// sfs is the step factory set.
 	sfs *block_transform.StepFactorySet
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// ref is the current ref
-	// contains the current transform config ref
+	// ref is the current ref and contains the current transform config ref.
 	ref *bucket.ObjectRef
-	// bkt is the store handle
+	// bkt is the store handle.
 	bkt bucket.BucketOps
-	// opArgs is the bucket ID / volume ID pair used for bkt
+	// opArgs is the bucket ID / volume ID pair used for bkt.
 	opArgs *bucket.BucketOpArgs
 	// bucketIDOverride forces implicit reference traversal to stay in one mounted bucket.
 	bucketIDOverride string
-	// xfrm is the transformer handle
+	// xfrm is the transformer handle.
 	xfrm block.Transformer
-	// transformConf is the transform conf used for xfrm
+	// transformConf is the transform conf used for xfrm.
 	transformConf *block_transform.Config
 	// decodedBlocks borrows decoded-block retention from the owning object lifecycle.
 	decodedBlocks *block.DecodedBlockCache
@@ -49,7 +48,7 @@ type Cursor struct {
 	// storeWrappers rebuild transactionStore, in order, over the store of each
 	// bucket the cursor enters.
 	storeWrappers []StoreWrapper
-	// rel is a release function
+	// rel is a release function.
 	rel func()
 }
 
@@ -62,7 +61,7 @@ type StoreWrapper func(ctx context.Context, store block.StoreOps) (block.StoreOp
 // This function allows the caller to create a Cursor with specific details,
 // providing more control over the Cursor's initial state compared to BuildCursor.
 //
-// NOTE: it is almost always recommended to use BuildCursor or BuildEmptyCursor instead.
+// NOTE: BuildCursor or BuildEmptyCursor is almost always recommended instead.
 //
 // Parameters:
 // - ctx: The context for the operation
@@ -267,7 +266,7 @@ func WriteTransformConf(
 		}
 	}
 
-	// The config names no blocks.
+	// The config references no blocks.
 	opts := putOpts.CloneVT()
 	if opts == nil {
 		opts = &block.PutOpts{}
@@ -474,7 +473,7 @@ func (c *Cursor) followRefWithOpArgs(
 		opArgs = opArgs.CloneVT()
 	}
 
-	// if we are switching bucket IDs
+	// if the cursor is switching bucket IDs
 	switchingBucket := opArgs.GetBucketId() != "" && c.opArgs.GetBucketId() != opArgs.GetBucketId()
 	if switchingBucket {
 		// acquire the new bucket handle
@@ -610,7 +609,7 @@ func (c *Cursor) SetRootRef(b *block.BlockRef) {
 }
 
 // SetRootRefBucket sets the cursor's root ref bucket.
-// Note: this does not actually traverse to the bucket.
+// Note: SetRootRefBucket does not actually traverse to the bucket.
 func (c *Cursor) SetRootRefBucket(b string) {
 	if c.ref == nil {
 		c.ref = &bucket.ObjectRef{}
@@ -624,9 +623,9 @@ func (c *Cursor) GetBucket() bucket.BucketOps {
 }
 
 // GetBlockStore returns the effective encoded store for this cursor. Resource
-// adapters must use this rather than GetBucket so implicit transaction staging
-// survives local and RPC object-construction paths. GetBucket still identifies
-// the underlying bucket and is intentionally unaffected.
+// adapters must use GetBlockStore rather than GetBucket so implicit transaction
+// staging survives local and RPC object-construction paths. GetBucket still
+// identifies the underlying bucket and is intentionally unaffected.
 func (c *Cursor) GetBlockStore() block.StoreOps {
 	if c.transactionStore != nil {
 		return c.transactionStore
@@ -647,7 +646,7 @@ func (c *Cursor) GetTransformer() block.Transformer {
 func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	var err error
 	if c.xfrm != nil {
-		// we have to copy the data since EncodeBlock might reuse the buffer.
+		// Copy the data since EncodeBlock might reuse the buffer.
 		dataOrig := data
 		data = make([]byte, len(dataOrig))
 		copy(data, dataOrig)
@@ -724,8 +723,9 @@ func (c *Cursor) GetOpArgs() *bucket.BucketOpArgs {
 
 // SetBucketIDOverride forces FollowRef to resolve every implicit reference
 // through bucketID. Explicit FollowRefWithOpArgs calls remain unchanged.
-// This is intended for self-contained mirrors whose stored refs retain the
-// authoring bucket ID but whose complete block DAG is mounted under an alias.
+// The override is intended for self-contained mirrors whose stored refs retain
+// the authoring bucket ID but whose complete block DAG is mounted under an
+// alias.
 func (c *Cursor) SetBucketIDOverride(bucketID string) {
 	c.bucketIDOverride = bucketID
 }
@@ -806,7 +806,7 @@ func (c *Cursor) Release() {
 	}
 }
 
-// clone returns a base copy of the cursor
+// clone returns a base copy of the cursor.
 func (c *Cursor) clone() *Cursor {
 	return &Cursor{
 		le:               c.le,

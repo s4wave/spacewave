@@ -124,7 +124,7 @@ func (o *fsCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	return o.cursor.lookupChild(ctx, name)
 }
 
-// ReaddirAll calls cb with each child after the first skip.
+// ReaddirAll calls cb with each child after the first skip children.
 func (o *fsCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased

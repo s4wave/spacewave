@@ -19,14 +19,14 @@ type EdgePager interface {
 	// endpoint nodes were created, reversed when reverse, with each
 	// endpoint's edges together. The
 	// walk starts just past all edges of the endpoint after, or at the first
-	// edge when after is nil, and stops when cb returns false or an error,
-	// which it returns.
+	// edge when after is nil, and stops when cb returns false or an error.
+	// IterateEdges returns the error.
 	IterateEdges(ctx context.Context, origin, pred graph.Ref, dir quad.Direction, after graph.Ref, reverse bool, cb func(endpoint, label graph.Ref) (bool, error)) error
 }
 
 // PageGraphEdgeBuckets lists the query's edge buckets through pager, reading
 // one page per origin direction, in endpoint creation order. The query must
-// name a predicate.
+// select a predicate.
 func PageGraphEdgeBuckets(ctx context.Context, pager EdgePager, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
 	// Resolve the cursor and predicate: an after with no node is gone, and a
 	// predicate with no node has no edges.

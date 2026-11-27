@@ -53,7 +53,7 @@ export function splitTail(value: string): number {
 // it is a right-to-left box, so it clips at its start, and its text sits in
 // a left-to-right bdi so the characters keep their order. A head longer than
 // its kept part has already drawn the ellipsis beside the tail, so the tail
-// clips bare; a shorter head never truncates, so the tail draws its own
+// clips bare. A shorter head never truncates, so the tail draws its own
 // ellipsis at its start, and keeps at least two characters so that ellipsis
 // shows even when the head does not fit. The mono face makes 1ch one
 // character, so each limit is a fixed width per value.
@@ -62,7 +62,7 @@ export function splitTail(value: string): number {
 // visually hidden text before the head, so screen readers, text selection
 // and find in page get the whole value, as the title and the copy do. The
 // data-mid, data-cut, data-mid-head and data-mid-tail attributes
-// mark the parts for the viewer clip check; data-cut indexes the drawn value.
+// mark the parts for the viewer clip check. data-cut indexes the drawn value.
 export function MiddleEllipsis({ value, className }: MiddleEllipsisProps) {
   // Split the drawn value where its tail starts.
   const scheme = hiddenScheme(value)
@@ -80,7 +80,7 @@ export function MiddleEllipsis({ value, className }: MiddleEllipsisProps) {
     '--mid-tail-min': `${short ? Math.min(tail.length, 2) : 0}ch`,
   } as CSSProperties
 
-  // Lay out the head and tail; CSS alone decides what shows.
+  // Lay out the head and tail. CSS alone decides what shows.
   return (
     <span
       data-mid

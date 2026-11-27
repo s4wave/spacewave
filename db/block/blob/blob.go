@@ -135,7 +135,7 @@ func (b *Blob) IsNil() bool {
 	return b == nil
 }
 
-// Validate performs cursory validation of the Blob object.
+// Validate cursorily validates the Blob object.
 func (b *Blob) Validate() error {
 	// Validate empty-state fields before checking representation-specific data.
 	blobType := b.GetBlobType()
@@ -178,7 +178,7 @@ func (b *Blob) Validate() error {
 // returns:
 //   - storageSize: actual size of blocks on disk
 //   - totalSize: size of blocks on disk ignoring duplicates (for dedupe comparison)
-//   - err: any error
+//   - err: any error.
 func (b *Blob) ComputeStorageSize(
 	ctx context.Context,
 	bcs *block.Cursor,
@@ -220,8 +220,8 @@ func (b *Blob) ComputeStorageSize(
 	return storageSize, totalSize, nil
 }
 
-// ValidateFull performs a full fetch and validate on the blob.
-// Depending on the blob implementation this will fetch data.
+// ValidateFull fully fetches and validates the blob.
+// Depending on the blob implementation, ValidateFull fetches data.
 // The block cursor should be located at the blob root.
 func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	// Validate root metadata before deciding whether chunk data can be read.
@@ -318,8 +318,8 @@ func (b *Blob) WriteChunkIndex(ctx context.Context, bcs *block.Cursor, opts *Bui
 // last chunk boundary as tail chunks: an append that keeps the tail within the
 // maximum chunk size stores only its own bytes as one more tail chunk, and a
 // larger one chunks the tail together with the new bytes. Implicit zero-filled
-// growth stays before the appended bytes. A zero-length append does no I/O;
-// negative lengths and logical sizes beyond signed reader offsets are rejected.
+// growth stays before the appended bytes. A zero-length append does no I/O.
+// Negative lengths and logical sizes beyond signed reader offsets are rejected.
 func (b *Blob) AppendData(
 	ctx context.Context,
 	dataLen int64,

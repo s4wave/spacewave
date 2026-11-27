@@ -5,10 +5,10 @@ package crypto
 import "crypto/ecdsa"
 
 // ECDSAPublicKeyFromStdKey wraps a standard library *ecdsa.PublicKey. This is
-// provided for interop with x509 certificates that may use ECDSA; bifrost does
+// provided for interop with x509 certificates that may use ECDSA. Bifrost does
 // not generate ECDSA keys itself. The js browser build omits this adapter so the
 // GoScript closure never imports crypto/ecdsa, which transitively pulls
-// golang.org/x/crypto/cryptobyte and reflect into the bundle; browser peer
+// golang.org/x/crypto/cryptobyte and reflect into the bundle. Browser peer
 // identities are ed25519 and the ECDSA interop has no js caller.
 func ECDSAPublicKeyFromStdKey(pub *ecdsa.PublicKey) PubKey {
 	return &ecdsaPublicKeyAdapter{pub: pub}
@@ -22,7 +22,7 @@ type ecdsaPublicKeyAdapter struct {
 // Type returns the libp2p ECDSA key type.
 func (k *ecdsaPublicKeyAdapter) Type() KeyType { return KeyType(3) }
 
-// Raw returns ErrBadKeyType; raw ECDSA bytes are not supported.
+// Raw returns ErrBadKeyType. Raw ECDSA bytes are not supported.
 func (k *ecdsaPublicKeyAdapter) Raw() ([]byte, error) {
 	return nil, ErrBadKeyType
 }

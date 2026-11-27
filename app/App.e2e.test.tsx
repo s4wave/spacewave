@@ -137,7 +137,7 @@ describe('EditorShell E2E', () => {
       </AppShell>,
     )
 
-    // In grid mode with invalid layout data, it should redirect to home
+    // In grid mode with invalid layout data, the shell should redirect to home
     await expect
       .poll(
         () => {

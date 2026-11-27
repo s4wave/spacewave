@@ -179,7 +179,7 @@ func mountJoined(ctx context.Context, t *testing.T, account *provider_local.Prov
 	return mounted.(*provider_local.SharedObject)
 }
 
-// waitSOOwner waits until the config held by object names owner as an owner.
+// waitSOOwner waits until the config held by object lists owner as an owner.
 func waitSOOwner(ctx context.Context, t *testing.T, object *provider_local.SharedObject, owner string) {
 	// Watch the accepted state of the object.
 	t.Helper()
@@ -189,7 +189,7 @@ func waitSOOwner(ctx context.Context, t *testing.T, object *provider_local.Share
 	}
 	defer release()
 
-	// Wait for a config that names owner.
+	// Wait for a config that lists owner.
 	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
 		return slices.Contains(state.GetConfig().SigningOwners(), owner), nil
 	}, nil); err != nil {

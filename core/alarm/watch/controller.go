@@ -92,7 +92,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 // evaluate runs the function on the current inputs and stores the Alarm it
 // implies. It returns what the evaluation read from the World and when the
 // Alarm's hold time ends, if it is holding. A failure to read an input or run
-// the function shows on the Alarm; only a World failure or the end of ctx
+// the function shows on the Alarm. Only a World failure or the end of ctx
 // returns an error.
 func (c *Controller) evaluate(ctx context.Context, src *source) (*worldReads, time.Time, error) {
 	// Read the function and the objects at one point in the World.

@@ -34,7 +34,7 @@ const (
 
 var (
 	extensionID       = getPrefixedExtensionID([]int{1, 1})
-	extensionCritical bool // so we can mark the extension critical in tests
+	extensionCritical bool // so tests can mark the extension critical
 )
 
 type signedKey struct {

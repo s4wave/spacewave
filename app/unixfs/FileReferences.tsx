@@ -25,7 +25,7 @@ const fileReferencesPage = 8
 
 // useFileReferences follows the first want + 1 objects with an edge into
 // file. A live World shares one watch per file and limit among its viewers
-// and wakes it only when an edge into the file or a referrer's type moves; a
+// and wakes it only when an edge into the file or a referrer's type moves. A
 // World snapshot is read once.
 function useFileReferences(
   worldState: Resource<IWorldState>,
@@ -66,11 +66,11 @@ export interface FileReferencesProps {
 /**
  * FileReferences is the references strip under a UnixFS file: the objects
  * with an edge into the file, each opening its own viewer, in referrer key
- * order. More reads one page further; a reference written while the file is
+ * order. More reads one page further. A reference written while the file is
  * open appears without a press.
  */
 export function FileReferences({ worldState, fileKey }: FileReferencesProps) {
-  // pages is how many pages the reader asked for; a new file remounts.
+  // pages is how many pages the reader asked for. A new file remounts.
   const [pages, setPages] = useState(1)
   const want = pages * fileReferencesPage
   const set = useFileReferences(worldState, fileKey, want)
@@ -89,7 +89,7 @@ const stripClass =
 
 /**
  * FileReferencesStrip draws one state of FileReferences.tla. Loading and an
- * empty page show the spec's hint; a failure shows Retry; a page shows its
+ * empty page show the spec's hint. A failure shows Retry. A page shows its
  * referrers as links, an untyped one with no type label, and More while
  * more exist.
  */
@@ -168,9 +168,9 @@ export function FileReferencesStrip({
   )
 }
 
-// referrerKind names a referrer's type in a few words: its registered label, or
-// the last segment of a type ID no plugin registers, such as "observation" for
-// "glados/observation". An untyped referrer has no kind.
+// referrerKind returns a referrer's type in a few words: its registered label,
+// or the last segment of a type ID no plugin registers, such as "observation"
+// for "glados/observation". An untyped referrer has no kind.
 function referrerKind(typeId: string): string {
   if (!typeId) return ''
   const label = getObjectTypeLabel(typeId)

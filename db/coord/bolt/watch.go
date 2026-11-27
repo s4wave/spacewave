@@ -98,8 +98,8 @@ func (w *watch) watchCommits(afterGeneration uint64) <-chan coord.Event {
 }
 
 func (w *watch) waitCommitCounter(last uint64) (next uint64, err error) {
-	// WaitCommitCounter panics on a closed bbolt DB; treat that foreign panic
-	// as cancellation so the commit watcher exits cleanly.
+	// WaitCommitCounter panics on a closed bbolt DB. Treat that foreign
+	// panic as cancellation so the commit watcher exits cleanly.
 	defer func() {
 		if recover() != nil {
 			err = context.Canceled

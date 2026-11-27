@@ -84,7 +84,7 @@ func TestComputeProtocolHashes(t *testing.T) {
 		t.Fatalf("expected 3 hashes, got %d", len(hashes))
 	}
 
-	// Verify sorted.
+	// Verify hashes are sorted.
 	for i := 1; i < len(hashes); i++ {
 		if bytes.Compare(hashes[i-1], hashes[i]) >= 0 {
 			t.Fatal("hashes should be sorted")
@@ -168,8 +168,9 @@ func TestFindMatchingHashesEmpty(t *testing.T) {
 
 // TestComputeHashesKnownAnswers checks the hashes against values computed by
 // native Go. Both peers of a link must compute the same hashes, so a compiler
-// that hashes differently, as GoScript did for BLAKE3 inputs over 64 bytes,
-// fails here even though two peers it compiles still agree with each other.
+// that hashes differently, including the GoScript discrepancy for BLAKE3
+// inputs over 64 bytes, fails here even though two peers it compiles still
+// agree with each other.
 func TestComputeHashesKnownAnswers(t *testing.T) {
 	sid := ComputeSessionID(
 		peer.ID("12D3KooWNrAtf3h7dZisrUer4VPRw5djhq2DyipePVooXo3cW9Mn"),

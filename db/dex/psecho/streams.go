@@ -134,8 +134,9 @@ func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) erro
 			continue
 		}
 
-		// Hand the block to the lookups waiting for it, which removes it from
-		// the want list. It is not stored, as Resolve describes.
+		// Hand the block to the lookups waiting for it, removing the
+		// block from the want list. The block is not stored, as Resolve
+		// describes.
 		var wanted bool
 		c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 			w := c.wants[ref.MarshalString()]
@@ -189,7 +190,7 @@ func (c *Controller) runOutgoingStream(ctx context.Context, key sessionKey) erro
 			return err
 		}
 
-		// Pop next ref from send queue.
+		// Pop the next ref from the send queue.
 		var ref *block.BlockRef
 		c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			rp, ok := c.remotePeers[key.PeerID]

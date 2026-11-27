@@ -57,7 +57,8 @@ import type {
   WrapPemWithPinResponse,
 } from './spacewave.pb.js'
 
-// SpacewaveProvider wraps a Provider resource with spacewave-specific pre-auth RPCs.
+// SpacewaveProvider wraps a Provider resource with spacewave-specific
+// pre-auth RPCs.
 // Post-auth session-scoped RPCs have moved to SpacewaveSession
 // (sdk/session/spacewave-session.ts), accessed via session.spacewave.
 export class SpacewaveProvider extends Provider {
@@ -215,7 +216,7 @@ export class SpacewaveProvider extends Provider {
     return await this.swService.PrepareBrowserSSO(request, abortSignal)
   }
 
-  // ssoNonceExchange exchanges an auth-session nonce for stored SSO result.
+  // ssoNonceExchange exchanges an auth-session nonce for a stored SSO result.
   public async ssoNonceExchange(
     request: SSONonceExchangeRequest,
     abortSignal?: AbortSignal,

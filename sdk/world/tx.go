@@ -54,9 +54,9 @@ func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, read
 // transport still ends the call, and its outcome is then unknown.
 //
 // A commit rejected because another writer advanced the World returns an error
-// world.IsSuperseded matches; the caller may retry from a new transaction. A
-// commit whose tree names a block the Volume does not hold returns an error
-// matching block.ErrRootNotHeld. Both are *CommitRefusal.
+// world.IsSuperseded matches. The caller may retry from a new transaction. A
+// commit whose tree references a block the Volume does not hold returns an
+// error matching block.ErrRootNotHeld. Both are *CommitRefusal.
 func (tx *Tx) Commit(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err

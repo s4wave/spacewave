@@ -21,7 +21,7 @@ import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 
 // EditorCommandsPlugin bridges Lexical formatting operations to the
-// app command system. Active when a notebook tab is focused.
+// app command system. The plugin is active when a notebook tab is focused.
 export default function EditorCommandsPlugin() {
   const [editor] = useLexicalComposerContext()
   const isTabActive = useIsTabActive()

@@ -33,7 +33,8 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// Set web renderer env var if specified (non-empty).
-	// This is read by the web plugin compiler to decide which runtime to bundle.
+	// This variable is read by the web plugin compiler to decide which
+	// runtime to bundle.
 	if a.WebRenderer != "" {
 		renderer, err := web_runtime.ParseWebRenderer(a.WebRenderer)
 		if err != nil {
@@ -211,8 +212,8 @@ func (d *DevtoolBus) waitForDesktop(desktopErr <-chan error) error {
 
 // openDesktopWindow asks the web plugin to open the main window once it loads.
 // Electron starts only on demand, so the devtool supplies the demand and holds
-// the web plugin reference until ctx ends. It returns nil when ctx ends and an
-// error when the web plugin cannot load or open the window.
+// the web plugin reference until ctx ends. openDesktopWindow returns nil when
+// ctx ends and an error when the web plugin cannot load or open the window.
 func (d *DevtoolBus) openDesktopWindow(ctx context.Context) error {
 	// Wait for the web plugin to load and hold its client reference.
 	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, d.b, "web", nil)

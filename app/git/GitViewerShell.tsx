@@ -58,7 +58,7 @@ interface GitViewerFrameProps {
   // starting open or as a rail, with Details only below 42rem.
   side?: ViewerSideState
   // onSideChange hears the column's Collapse and Expand, so the caller can
-  // keep its state across a view without the column.
+  // keep the column's state across a view without the column.
   onSideChange?: (side: ViewerSideState) => void
   // detailsOpen opens the Details popover on mount, for a fixture that
   // shows it.

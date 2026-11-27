@@ -395,12 +395,13 @@ func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_wor
 
 // WatchWorldState implements the streaming watch RPC.
 //
-// Each response names a tracked WorldState snapshot resource. Change detection
-// starts as the client reads through it. After a change, the watch sends the
-// replacement snapshot before it releases the superseded one, so a client
-// whose call fails because its snapshot was released has the replacement on
-// this stream. When the watch ends, it releases its current snapshot. Child
-// resources the client adopted keep their snapshot readable until released.
+// Each response contains the ID of a tracked WorldState snapshot resource.
+// Change detection starts as the client reads through the snapshot. After a
+// change, the watch sends the replacement snapshot before releasing the
+// superseded one, so a client whose call fails because its snapshot was
+// released has the replacement on this stream. When the watch ends, it releases
+// its current snapshot. Child resources the client adopted keep their snapshot
+// readable until released.
 func (r *EngineResource) WatchWorldState(
 	req *s4wave_world.WatchWorldStateRequest,
 	stream s4wave_world.SRPCWatchWorldStateResourceService_WatchWorldStateStream,

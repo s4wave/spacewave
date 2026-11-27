@@ -50,9 +50,9 @@ export interface UnixFSFileViewerProps {
   stat: StatResult
   // rootHandle is the root FSHandle resource for reading file content.
   rootHandle: Resource<FSHandle>
-  // objectKey names the World object holding the file, such as the UnixFS
-  // object, and the tree within it when one object holds several, such as a
-  // Git worktree's working directory and its commits.
+  // objectKey identifies the World object holding the file, such as the
+  // UnixFS object, and the tree within that object when one object holds
+  // several trees, such as a Git worktree's working directory and its commits.
   objectKey: string
   // hideToolbar suppresses the built-in toolbar when an outer component
   // (e.g. GitToolbar) already provides navigation.
@@ -64,8 +64,8 @@ export interface UnixFSFileViewerProps {
   footer?: ReactNode
   // inlineFileURL is the projected raw file URL for inline previews.
   inlineFileURL?: string
-  // readOnly says why the file cannot be written, such as a commit's files;
-  // the text viewer then offers no Edit.
+  // readOnly says why the file cannot be written, such as a commit's files.
+  // The text viewer then offers no Edit.
   readOnly?: string
   // line is the 1-based line a text file scrolls to and highlights.
   line?: number
@@ -139,8 +139,8 @@ function freshImage(url?: string): ImageLoad {
   return { url, attempt: 0, failed: false }
 }
 
-// ImageFileViewer fills the pane with the image, fitted to it or at its own
-// size, with the size press and Download floating over it.
+// ImageFileViewer fills the pane with the image, fitted to the pane or at the
+// image's own size, with the size press and Download floating over the image.
 function ImageFileViewer({
   alt,
   inlineFileURL,
@@ -169,7 +169,7 @@ function ImageFileViewer({
 
   // handleRetry mounts a fresh img, which reads the image again. The browser
   // does not say whether the read or the decode failed, so Retry shows for
-  // both; a decode failure fails again and still offers Download.
+  // both. A decode failure fails again and still offers Download.
   const handleRetry = useCallback(() => {
     setImage((prev) => ({ ...prev, attempt: prev.attempt + 1, failed: false }))
   }, [])
@@ -278,7 +278,9 @@ function SymlinkViewer({
   )
 }
 
-/** FileBodyKind is how the file content is shown; media kinds carry their URL. */
+/**
+ * FileBodyKind is how the file content is shown. Media kinds contain their URL.
+ */
 type FileBodyKind =
   | { kind: 'symlink' | 'text' | 'binary' }
   | { kind: 'image' | 'pdf' | 'audio' | 'video'; url: string }
@@ -468,7 +470,8 @@ export function UnixFSFileViewer({
   // A text file puts its presses in the navigator, the pane's one bar, or
   // draws its own bar where an outer component owns navigation. The key ends
   // the viewer and its draft when the Space, object or path changes, so a
-  // draft never moves to another file; an unmount by a parent ends it too.
+  // draft never moves to another file. An unmount by a parent ends the draft
+  // too.
   const spaceId = SpaceContainerContext.useContextSafe()?.spaceId
   const body = fileBodyKindFor(stat, inlineFileURL)
   if (body.kind === 'text') {

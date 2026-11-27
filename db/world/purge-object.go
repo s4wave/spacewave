@@ -9,9 +9,10 @@ import (
 // ObjectPurger is a WorldState that can remove an object whose record or
 // blocks the store lacks.
 type ObjectPurger interface {
-	// PurgeObject removes the object entry at key and every graph quad naming
-	// it, without reading the object's record or root. The deletion change
-	// keeps no reference to the record, so nothing still reaches its blocks.
+	// PurgeObject removes the object entry at key and every graph quad
+	// referencing the object, without reading the object's record or root.
+	// The deletion change keeps no reference to the record, so nothing
+	// still reaches its blocks.
 	// Returns false, nil if not found.
 	PurgeObject(ctx context.Context, key string) (bool, error)
 }

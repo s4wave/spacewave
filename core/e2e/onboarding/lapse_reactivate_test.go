@@ -104,7 +104,7 @@ func TestSubscriptionLapseReactivateTransferFullFlow(t *testing.T) {
 	swAcc.BumpLocalEpoch()
 	waitForOnboardingStatus(t, strm.msgs, ready, false)
 
-	// Reactivate. The platform role returns to "subscriber".
+	// Reactivate the subscription. The platform role returns to "subscriber".
 	setTestSubscriptionStatus(t, cloudAccountID, "active")
 	swAcc.BumpLocalEpoch()
 	waitForOnboardingStatus(t, strm.msgs, ready, true)

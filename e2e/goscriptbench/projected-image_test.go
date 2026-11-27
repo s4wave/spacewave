@@ -27,7 +27,7 @@ const projectedImageSmokeEnv = "E2E_GOSCRIPT_STORAGE_BENCH"
 // TestProjectedImageCacheDisabledRebuildsStartupModule proves that
 // E2E_WASM_STARTUP_BUILD_CACHE=false rebuilds changed app/prerender sources.
 //
-// The devtool shell served at / never embeds app/prerender/index.html; the
+// The devtool shell served at / never embeds app/prerender/index.html. The
 // startup module graph does reach served output. boot-status.ts contributes
 // the loading detail literal, which lands verbatim in the compiled
 // entrypoint/startup-*.mjs chunk referenced by entrypoint.mjs.

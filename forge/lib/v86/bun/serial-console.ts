@@ -34,7 +34,8 @@ export function getFetchUrl(input: string | URL | Request): string {
 
 let fetchPatched = false
 
-// Patch fetch to support file:// URLs and local paths in bun/node.
+// installLocalFetchPatch patches fetch to support file:// URLs and local paths
+// in bun/node.
 export function installLocalFetchPatch(): void {
   if (fetchPatched) return
   fetchPatched = true
@@ -64,7 +65,7 @@ export function stripAnsi(s: string): string {
   return s.replace(ANSI_RE, '').replace(/\r/g, '')
 }
 
-// Wait for a marker string in serial output.
+// waitForSerial waits for a marker string in serial output.
 export function waitForSerial(
   emulator: V86Emulator,
   marker: string,
@@ -92,7 +93,7 @@ export function waitForSerial(
   })
 }
 
-// Send a command via serial and wait for the shell prompt.
+// runCommand sends a command via serial and waits for the shell prompt.
 export async function runCommand(
   emulator: V86Emulator,
   cmd: string,
@@ -115,7 +116,7 @@ export async function runCommand(
   return clean
 }
 
-// Load handle9p from a v86fs directory (fs.json + flat/).
+// loadHandle9p loads handle9p from a v86fs directory (fs.json + flat/).
 export async function loadHandle9p(
   v86Dir: string,
   v86fsDir: string,

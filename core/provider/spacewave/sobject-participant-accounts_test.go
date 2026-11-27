@@ -155,7 +155,7 @@ func TestFillParticipantAccounts(t *testing.T) {
 	}
 }
 
-// buildBlankParticipantFixtures signs a genesis naming an owner, a writer and
+// buildBlankParticipantFixtures signs a genesis listing an owner, a writer and
 // a reader without accounts, and grants the owner the Space key.
 func buildBlankParticipantFixtures(
 	t *testing.T,

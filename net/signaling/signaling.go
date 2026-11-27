@@ -19,9 +19,9 @@ type SignalPeerSession interface {
 	// Recv waits for and acknowledges an incoming message from the remote peer.
 	Recv(ctx context.Context) ([]byte, error)
 
-	// GetPresence returns the presence epoch of the remote peer and a channel
-	// closed when it may have changed. The epoch is zero while the remote peer
-	// is absent from the session, and each time it joins the epoch takes a
-	// value this session has not reported before.
+	// GetPresence returns the presence epoch of the remote peer and a
+	// channel closed when the epoch may have changed. The epoch is zero
+	// while the remote peer is absent from the session, and each time it
+	// joins the epoch takes a value this session has not reported before.
 	GetPresence() (epoch uint64, changed <-chan struct{})
 }

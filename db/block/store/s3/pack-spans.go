@@ -19,7 +19,7 @@ const spanOverhead = 128
 //
 // Invariants: a span holds bytes read from its pack at its offset. A pack's
 // bytes never change once written, and every block cut from a span is checked
-// against its hash, so a span outliving its pack answers nothing wrong; the
+// against its hash, so a span outliving its pack answers nothing wrong. The
 // buffer needs no invalidation. No held span lies inside another of its pack,
 // so the spans of a pack, ordered by offset, end in the same order, and the
 // one starting nearest at or before an offset is the only one that can hold a
@@ -87,8 +87,9 @@ func (b *spanBuffer) add(id string, off int64, data []byte) {
 		return
 	}
 
-	// Drop the spans starting inside it that it covers; since ends follow
-	// starts, they run from off up to the first ending past it.
+	// Drop the spans starting inside sp that sp covers. Since ends follow
+	// starts, the covered spans run from off up to the first ending past
+	// sp.
 	var covered []*heldSpan
 	b.spans.Ascend(sp, func(next *heldSpan) bool {
 		if next.id != id || next.end() > sp.end() {

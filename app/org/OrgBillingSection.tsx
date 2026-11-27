@@ -45,9 +45,10 @@ export interface OrgBillingSectionProps {
 }
 
 // OrgBillingSection renders the Billing collapsible in OrganizationDetails.
-// Watches the org's assigned BillingAccount via BillingStateProvider and
-// surfaces status/interval/next-date, a Manage link to the BA detail view,
-// and an owner-only picker that reassigns the org to a different managed BA.
+// OrgBillingSection watches the org's assigned BillingAccount via
+// BillingStateProvider and surfaces status/interval/next-date, a Manage link
+// to the BA detail view, and an owner-only picker that reassigns the org to a
+// different managed BA.
 export function OrgBillingSection({
   orgId,
   billingAccountId,

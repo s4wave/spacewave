@@ -108,9 +108,10 @@ func (t *Tx) deleteEntry(ctx context.Context, key []byte) (bool, error) {
 
 // replaceLevelEntries rebuilds the affected windows at one level, then carries
 // all their parent changes upward together. Windows stay separate across
-// untouched pages. Removing a boundary includes its predecessor; overlapping
+// untouched pages. Removing a boundary includes its predecessor. Overlapping
 // windows merge before any page is built, so a shared ancestor is not rebuilt
-// once per affected leaf. The old tree remains intact until the new root is set.
+// once per affected leaf. The old tree remains intact until the new root is
+// set.
 func (t *Tx) replaceLevelEntries(
 	ctx context.Context,
 	level uint32,

@@ -176,8 +176,8 @@ func (s *CoreRootServer) WatchSessionMetadata(
 	var prev *s4wave_root.WatchSessionMetadataResponse
 	for {
 		// Obtain the wait channel first so any mutation that lands after
-		// this point will wake us. Then read the current state - this
-		// ordering ensures no missed wakeups.
+		// channel acquisition will wake the stream. Then read the current
+		// state. This ordering ensures no missed wakeups.
 		var ch <-chan struct{}
 		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()

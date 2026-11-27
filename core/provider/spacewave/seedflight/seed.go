@@ -8,8 +8,8 @@ import (
 
 // Seed coordinates concurrent callers around a single fetch invocation.
 // The first caller runs the fetch function while waiters block on the supplied
-// broadcast and observe the same result; once the fetch completes, a later Run
-// call fires fetch again.
+// broadcast and observe the same result. Once the fetch completes, a subsequent
+// Run call fires fetch again.
 //
 // Embed Seed next to the broadcast that already guards the related cache state.
 type Seed struct {

@@ -9,7 +9,7 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// The validation is cursory to see if the values "look correct."
 func (c *Config) Validate() error {
 	if c.GetBlockStoreId() == "" {
 		return block_store.ErrBlockStoreIDEmpty

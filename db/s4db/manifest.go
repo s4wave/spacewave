@@ -7,9 +7,9 @@ import (
 )
 
 // manifest is one version of the file's structure: its runs and its chunk
-// table, with the key count and the open value chunks. The writer derives
-// the next version from the previous one and a record; every process derives
-// the same versions from the same records.
+// table, with the key count and the open value chunks. The writer derives the
+// next version from the previous one and a record. Every process derives the
+// same versions from the same records.
 type manifest struct {
 	// version increases with each record that changes the structure.
 	version uint64
@@ -19,8 +19,8 @@ type manifest struct {
 	runs []runMeta
 	// table is the chunk table.
 	table *chunkTable
-	// mchunks are the chunks holding this version's encoding, which the next
-	// version makes pending. Clones share it, as runs.
+	// mchunks are the chunks holding this version's encoding, which the
+	// next version makes pending. Clones share mchunks, as runs.
 	mchunks []uint64
 	// count is the number of keys.
 	count int64

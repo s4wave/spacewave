@@ -4,7 +4,7 @@ package stream.forwarding;
 // Config configures the forwarding controller.
 message Config {
   // PeerId is the peer ID to listen for incoming streams.
-  // Can be empty to accept any.
+  // PeerId can be empty to accept any peer.
   string peer_id = 1;
   // ProtocolId is the protocol ID to filter incoming streams.
   // Cannot be empty.

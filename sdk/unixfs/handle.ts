@@ -34,9 +34,9 @@ interface FSHandleMeta {
 
 // TreeUploadDirectory is one explicit directory in a tree upload.
 // expectMissing creates the directory only when the path holds nothing at
-// commit; otherwise the upload ends in a conflict naming the path and nothing
-// is committed. Unset, an existing directory is reused and the entries under
-// it merge into it.
+// commit. Otherwise the upload ends in a conflict naming the path and nothing
+// is committed. With expectMissing unset, an existing directory is reused and
+// the entries under the directory merge into the directory.
 export interface TreeUploadDirectory {
   kind: 'directory'
   path: string
@@ -73,7 +73,7 @@ export interface TreeUploadFile {
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
 
 // TreeUploadResult is the outcome of a tree upload. conflict means an
-// entry's expectation failed and nothing was committed; path is relative to
+// entry's expectation failed and nothing was committed. path is relative to
 // the upload handle and version is the file's current version, absent when
 // the path holds no file. versions holds the new version of each file whose
 // entry set wantVersion, in entry order.
@@ -87,7 +87,7 @@ export type TreeUploadResult =
     }
   | { kind: 'conflict'; path: string; version?: Uint8Array }
 
-// TreeUploadVersion is the version a tree upload gave one file; path is
+// TreeUploadVersion is the version a tree upload gave one file. path is
 // relative to the upload handle.
 export interface TreeUploadVersion {
   path: string
@@ -223,14 +223,14 @@ export interface IFSHandle {
 
   // watchReaddir watches directory entries as an async iterable. Each yielded
   // value is the complete current listing in directory order, each entry with
-  // its size, modification time and mode; an entry a change left alone keeps
+  // its size, modification time and mode. An entry a change left alone keeps
   // its object.
   watchReaddir(abortSignal?: AbortSignal): AsyncIterable<DirEntry[]>
 
   // watchFiles watches the files below this directory whose names end in one
-  // of extensions, ignoring case. The first response adds every match, and
+  // of the extensions, ignoring case. The first response adds every match, and
   // each later one adds and removes the paths a change touched. limit bounds
-  // the matched paths, with zero selecting the server default.
+  // the matched paths, with zero selecting the server default limit.
   watchFiles(
     extensions: string[],
     limit?: number,
@@ -290,7 +290,7 @@ export interface IFSHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose supports use with the 'using' statement.
   [Symbol.dispose](): void
 }
 
@@ -415,7 +415,7 @@ export class FSHandle extends Resource implements IFSHandle {
   // is not positive. The daemon streams the range in order on one handle, so
   // the file's chunk read-ahead overlaps block fetches with the transfer. eof
   // reports that the read reached the end of the file before filling length.
-  // version is the file version the first bytes were read at; pass it to
+  // version is the file version the first bytes were read at. Pass it to
   // uploadTree as a version expectation to save without overwriting another
   // writer's change.
   public async readAt(
@@ -546,9 +546,9 @@ export class FSHandle extends Resource implements IFSHandle {
   }
 
   // watchFiles watches the files below this directory whose names end in one
-  // of extensions, ignoring case. The first response adds every match, and
+  // of the extensions, ignoring case. The first response adds every match, and
   // each later one adds and removes the paths a change touched. limit bounds
-  // the matched paths, with zero selecting the server default.
+  // the matched paths, with zero selecting the server default limit.
   public watchFiles(
     extensions: string[],
     limit?: number,

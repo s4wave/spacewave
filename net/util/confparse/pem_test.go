@@ -28,7 +28,7 @@ func testParseKeysPEM(t *testing.T, keyPriv crypto.PrivKey, keyPub crypto.PubKey
 	t.Logf("public key pem: %s", string(pubPEM))
 
 	// Parse the PEM private key through the configuration parser.
-	// parse
+	// Parse the private key.
 	privOut, err := ParsePrivateKey(string(privPEM))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -40,7 +40,7 @@ func testParseKeysPEM(t *testing.T, keyPriv crypto.PrivKey, keyPub crypto.PubKey
 	}
 
 	// Parse the PEM public key through the configuration parser.
-	// parse
+	// Parse the public key.
 	pubOut, err := ParsePublicKey(string(pubPEM))
 	if err != nil {
 		t.Fatal(err.Error())

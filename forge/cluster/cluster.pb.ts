@@ -210,9 +210,9 @@ export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
 /**
  * ClusterCompleteJobOp transitions a assigned Job from RUNNING to COMPLETE.
  *
- * Must be in the RUNNING state.
- * All assigned Task must be in COMPLETE state.
- * If any failed, the Job will also fail.
+ * The Job must be in the RUNNING state.
+ * All assigned Task must be in the COMPLETE state.
+ * If any assigned Task failed, the Job will also fail.
  *
  * @generated from message forge.cluster.ClusterCompleteJobOp
  */

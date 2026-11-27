@@ -27,7 +27,7 @@ var streamEstablishTimeout = time.Second * 5
 // streamHandleTimeout is the max time to wait for a HandleMountedStream handler.
 var streamHandleTimeout = time.Minute * 10
 
-// streamEstablishMaxPacketSize is the maximum stream establish header size
+// streamEstablishMaxPacketSize is the maximum stream establish header size.
 var streamEstablishMaxPacketSize uint64 = 100000
 
 // Constructor constructs a transport with common parameters.
@@ -66,40 +66,42 @@ func NewResolvePeerDialerWithStaticPeerMap(spm map[string]*dialer.DialerOpts) Re
 
 // Controller implements a common transport controller.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor Constructor
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// lookupPeerID is the peer id to lookup on the bus
+	// lookupPeerID is the peer id to lookup on the bus.
 	// may be empty
 	lookupPeerID peer.ID
-	// verbose enables verbose logs
+	// verbose enables verbose logs.
 	verbose bool
-	// authorizePeer admits remote peers before their links mount; nil admits all.
+	// authorizePeer admits remote peers before their links mount.
+	// nil admits all.
 	authorizePeer PeerAuthorizer
 
-	// linkDialers tracks ongoing dial attempts
-	// when a link is closed (removed from links) the associated dialer is restarted (if any).
+	// linkDialers tracks ongoing dial attempts.
+	// When a link is closed (removed from links), the associated dialer is
+	// restarted (if any).
 	linkDialers *keyed.KeyedRefCount[linkDialerKey, *linkDialer]
 
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// execCtx is the controller execute context
+	// execCtx is the controller execute context.
 	// nil until resolved
 	execCtx context.Context
 	// peerID is the local peer id.
 	// empty until tpt is constructed
 	peerID peer.ID
-	// tpt is the transport
+	// tpt is the transport.
 	// nil until resolved
 	tpt transport.Transport
-	// links is the set of active links, keyed by link uuid
+	// links is the set of active links, keyed by link uuid.
 	links map[uint64]*establishedLink
-	// linksByPeerID is the set of links keyed by peer id
+	// linksByPeerID is the set of links keyed by peer id.
 	linksByPeerID map[peer.ID][]*establishedLink
 	// authEpoch counts Reauthorize calls, so a link admitted before the
 	// latest one is authorized again before it mounts.
@@ -225,7 +227,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		broadcast()
 	})
 
-	// clear on exit
+	// clear the transport state on exit
 	defer func() {
 		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// Clear the stopped transport and flush its remaining established links.
@@ -243,7 +245,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.linkDialers.SetContext(execCtx, true)
 	defer c.linkDialers.ClearContext()
 
-	// execute transport routine
+	// execute the transport routine
 	err = tpt.Execute(execCtx)
 	if err != nil {
 		return err
@@ -266,7 +268,8 @@ func (c *Controller) GetTransport(ctx context.Context) (transport.Transport, err
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, the handler returns a resolver.
+// Otherwise, the handler returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -332,7 +335,8 @@ func (c *Controller) HandleIncomingStream(
 		return
 	}
 
-	// An unreliable stream continues as a message stream on this control.
+	// An unreliable stream continues as a message stream on the control
+	// stream.
 	if streamEst.GetUnreliable() {
 		msgLink, ok := lnk.(link.MessageLink)
 		if !ok {
@@ -485,7 +489,8 @@ func (c *Controller) flushEstablishedLink(el *establishedLink, hasNextLink bool)
 			return false
 		}
 
-		// clear the lnk value and restart if we dont already have a new link.
+		// clear the lnk value and restart if the controller has no new
+		// link.
 		ld.lnk.SetValue(nil)
 		return !hasNextLink
 	})

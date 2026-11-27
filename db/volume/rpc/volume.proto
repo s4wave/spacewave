@@ -132,7 +132,7 @@ message CoordinatorScope {
   string object_store_id = 2;
   // ParticipantId identifies the process or handle performing the operation.
   string participant_id = 3;
-  // Key names a caller-chosen exclusion subject inside the Volume.
+  // Key selects a caller-chosen exclusion subject inside the Volume.
   string key = 4;
 }
 
@@ -240,7 +240,7 @@ message WaitAcquireCoordinatorWriteLeaseRequest {
   CoordinatorScope scope = 1;
 }
 
-// Reserved removed top-level message names; do not reuse:
+// Reserved removed top-level message names. Do not reuse:
 // TryAcquireWorldEngineLeaseRequest, AcquireWorldEngineLeaseResponse,
 // ReleaseWorldEngineLeaseRequest, ReleaseWorldEngineLeaseResponse.
 
@@ -369,7 +369,7 @@ enum SetBucketRootsResult {
 message SetBucketRootsResponse {
   // Result is the outcome.
   SetBucketRootsResult result = 1;
-  // Name is the root a refusal names.
+  // Name is the root a refusal identifies.
   string name = 2;
 }
 
@@ -394,7 +394,7 @@ message HoldPinResponse {}
 // HoldStageRequest opens a stage.
 message HoldStageRequest {}
 
-// HoldStageResponse names the stage the stream holds.
+// HoldStageResponse identifies the stage the stream holds.
 message HoldStageResponse {
   // Stage is the stage's name.
   string stage = 1;
@@ -433,7 +433,7 @@ message PrepareStagedBlockBatchResponse {
   repeated bool existed = 1;
 }
 
-// StageRefsRequest names blocks of a stage.
+// StageRefsRequest identifies blocks of a stage.
 message StageRefsRequest {
   // Stage is a stage this connection holds.
   string stage = 1;
@@ -444,7 +444,7 @@ message StageRefsRequest {
 // ReleaseStageRootsResponse reports that the holds are dropped.
 message ReleaseStageRootsResponse {}
 
-// RefsRequest names blocks.
+// RefsRequest identifies blocks.
 message RefsRequest {
   // Refs are the blocks.
   repeated .block.BlockRef refs = 1;

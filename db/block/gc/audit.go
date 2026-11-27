@@ -7,45 +7,49 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// AuditResult compares what the named roots reach with what the collector
-// would keep. The audit frees nothing; it records the holes it finds.
+// AuditResult is a comparison of what the named roots reach with what the
+// collector would keep. The audit frees nothing, and it records the holes it
+// finds.
 type AuditResult struct {
 	// Mark is what the walk from the roots reached.
 	Mark *Mark
 	// Stored counts the stored blocks, which have a child list.
 	Stored uint64
 	// Leaked counts the stored blocks no root reaches that have holders and
-	// that the paged release in progress does not name. After a pass that
-	// left nothing to do, that is garbage a hole, a put outside a batch or a
-	// lost release keeps; it also counts the children of blocks at zero not
-	// freed yet, and while down pages wait to net, the blocks they release.
+	// that the paged release in progress does not reference. After a pass
+	// that left nothing to do, that is garbage a hole, a put outside a
+	// batch or a lost release keeps. Leaked also counts the children of
+	// blocks at zero not freed yet, and while down pages wait to net, the
+	// blocks they release.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that the collector would
 	// free now: at zero, queued at a ripe sequence the up cursor passed, in
 	// an adopted Volume with no paged release in progress. Any is an error in
 	// the counts.
 	LiveQueued uint64
-	// LiveQueuedSample names up to sampleSize of them.
+	// LiveQueuedSample lists up to sampleSize of those blocks.
 	LiveQueuedSample []*block.BlockRef
 	// Undercount counts the stored blocks whose netted holders, with the
 	// logs not netted yet, are fewer than the roots, child lists and
-	// release in progress that name them, such as a hole put again before an
-	// audit recorded it. Each may be freed while a root still reaches it.
+	// release in progress that reference them, such as a hole put again
+	// before an audit recorded it. Each may be freed while a root still
+	// reaches it.
 	Undercount uint64
-	// UndercountSample names up to sampleSize of them.
+	// UndercountSample lists up to sampleSize of those blocks.
 	UndercountSample []*block.BlockRef
 	// Holes counts the holes under a live root this audit recorded.
 	Holes uint64
 	// LapsedHoles counts the recorded holes that only roots whose lease
-	// lapsed reach, as Mark.LapsedRefs describes; Holes counts them too. Such
-	// a hole names nothing a World or a live reader refers to, but the audit
-	// records it all the same, since an extra holder is the safe side.
+	// lapsed reach, as Mark.LapsedRefs describes. Holes counts them too.
+	// Such a hole references nothing a World or a live reader refers to,
+	// but the audit records it all the same, since an extra holder is the
+	// safe side.
 	LapsedHoles uint64
 	// Unlisted counts the blocks whose bytes the Volume holds without a child
 	// list that no root reaches: garbage nothing frees, since only a block
 	// with a list is stored for the collector.
 	Unlisted uint64
-	// UnlistedSample names up to sampleSize of them.
+	// UnlistedSample lists up to sampleSize of those blocks.
 	UnlistedSample []*block.BlockRef
 }
 
@@ -53,8 +57,8 @@ type AuditResult struct {
 
 // Audit walks from the named roots of the Volume in one snapshot and compares
 // the walk with the counts and the free queue, as AuditResult describes. It
-// then records each hole it reached that no record names yet, restoring its
-// count from the holders the snapshot gave it, so a later put of the hole
+// then records each hole it reached that no record references yet, restoring
+// its count from the holders the snapshot gave it, so a later put of the hole
 // counts it as stored, as Land describes. It keeps the reached set and a
 // holder count per named block in memory, so it suits a copy host. now
 // splits the roots whose lease lapsed from the held ones, as Reachable
@@ -161,9 +165,9 @@ func (res *AuditResult) countUnlisted(ctx context.Context, store AdoptStore) err
 }
 
 // checkStored compares one stored block with the walk, the queue and the
-// holders that name it, taking the stored blocks in block key order. A block
-// a paged release names is no leak: the release takes its parent's holder
-// later.
+// holders that reference it, taking the stored blocks in block key order. A
+// block a paged release references is no leak: the release takes its parent's
+// holder later.
 func (res *AuditResult) checkStored(
 	ctx context.Context,
 	rec *Records,
@@ -178,7 +182,7 @@ func (res *AuditResult) checkStored(
 	// Skip an unmarked block, which the sweep deletes: it is absent from
 	// the flip on, and its holders since then are checked once it leaves
 	// the run. Then read its netted holders and whether the release in
-	// progress names it.
+	// progress references the block.
 	res.Stored++
 	key := BlockKey(ref)
 	if unmarked, err := rec.Unmarked(ctx, key); err != nil || unmarked {
@@ -208,7 +212,8 @@ func (res *AuditResult) checkStored(
 		res.Leaked++
 	}
 
-	// Count a block with fewer holders than name it, when tally is set.
+	// Count a block with fewer holders than reference it, when tally is
+	// set.
 	if tally == nil {
 		return nil
 	}
@@ -220,7 +225,7 @@ func (res *AuditResult) checkStored(
 }
 
 // tallyHolders counts, for each named block, the roots, the child lists and
-// the paged release in progress that name it, in rec. A stored block holds
+// the paged release in progress that reference it, in rec. A stored block holds
 // its children until its free, so every stored list counts, and a child a
 // paged release has not reached yet still counts its parent. Leaving the
 // release's children out would restore a hole's count one too low and free
@@ -304,14 +309,14 @@ type holeCount struct {
 }
 
 // holeCounts returns, from the snapshot in rec, what each hole in absent that
-// a holder names lacks in its count, using the tally and log delta of the
+// a holder references lacks in its count, using the tally and log delta of the
 // same snapshot, and marks each lapsed when only lapsed roots reach it.
 //
 // Invariant: in an adopted Volume, a hole's netted holders change after the
 // snapshot only by netting a log page or a free's release, each by the
 // change to its true holders, or by an underflow's floor at one, which
-// leaves them higher. Land names a hole only through an up in the up log. So
-// the holders the snapshot found missing are still missing when the hole is
+// leaves them higher. Land references a hole only through an up in the up log.
+// So the holders the snapshot found missing are still missing when the hole is
 // recorded, and adding them to its netted holders then counts every holder
 // once, including one a Land gave the hole after the snapshot, which the
 // counts or the logs not netted yet carry and the tally lacks.
@@ -327,7 +332,7 @@ func holeCounts(
 	adopted := state.GetAdoption() == Adoption_ADOPTION_ADOPTED
 	holes := make([]holeCount, 0, len(absent))
 	for _, ref := range absent {
-		// Skip a block nothing names.
+		// Skip a block nothing references.
 		key := BlockKey(ref)
 		named := tally[string(key)]
 		if named == 0 {
@@ -421,14 +426,14 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 
 // AuditFront checks what kindFront documents while the generation is Open on
 // an adopted Volume: each stored block with an unverified list that a young
-// or verified list names is on the front, unless it has no holder, as the
-// free proof pops it. The free proof and the flip rely on it: the walk
-// decodes only the front, so a block missing from it while a marked list
-// names it and something holds it is never verified, and the sweep deletes
-// it. It returns how many times a marked list names a block that breaks it,
-// and at most sampleSize of those blocks; outside Open or before the adoption ends it checks nothing. It
-// walks every child list and reads each child's records, so it suits a test
-// or a copy host.
+// or verified list references is on the front, unless it has no holder, as the
+// free proof pops it. The free proof and the flip rely on this invariant: the
+// walk decodes only the front, so a block missing from it while a marked list
+// references it and something holds it is never verified, and the sweep deletes
+// it. It returns how many times a marked list references a block that breaks
+// this invariant, and at most sampleSize of those blocks. Outside Open or
+// before the adoption ends it checks nothing. It walks every child list and
+// reads each child's records, so it suits a test or a copy host.
 func AuditFront(ctx context.Context, rec *Records) (missing uint64, sample []*block.BlockRef, err error) {
 	// Check only an adopted Volume while Open.
 	state, err := rec.GetState(ctx)

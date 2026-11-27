@@ -14,7 +14,7 @@ import (
 
 // FsCopy copies an inode from one location to another.
 // see the FsCopy object for details on which fields can be empty.
-// NOTE: we use a World Op here to enable efficient cross-fs renames.
+// NOTE: FsCopy uses a World Op here to enable efficient cross-fs renames.
 func FsCopy(
 	ctx context.Context,
 	ws world.WorldState,
@@ -27,7 +27,7 @@ func FsCopy(
 	bpaths := unixfs_block.StringSlicesToPaths([][]string{srcPath, destPath})
 	wOp := NewFsCopyOp(objKey, fsType, bpaths[0], bpaths[1], ts)
 
-	// NOTE: we must return the object rev, not the world rev here.
+	// NOTE: FsCopy must return the object rev, not the world rev here.
 	_, sysErr, err = ws.ApplyWorldOp(ctx, wOp, sender)
 	if err != nil {
 		return 0, sysErr, err
@@ -92,7 +92,7 @@ func (o *FsCopyOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// TODO: make sure this is not is a cross-fs copy by looking at mountpoints
+	// TODO: check mountpoints to keep the copy within one fs.
 	return o.ApplyWorldObjectOp(ctx, le, fsObj, sender)
 }
 

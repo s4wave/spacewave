@@ -14,14 +14,15 @@ export interface WebView {
   // getUuid returns the web-view unique identifier.
   getUuid(): string
   // getParentUuid returns the parent web-view unique identifier.
-  // may be empty
+  // The parent identifier may be empty.
   getParentUuid(): string | undefined
   // getPermanent checks if the web-view is permanent.
   getPermanent(): boolean
   // lookupMethod looks up the given WebView RPC method.
   lookupMethod?(serviceID: string, methodID: string): Promise<InvokeFn | null>
   // setRenderMode sets the render mode of the view.
-  // if wait=true, should wait for op to complete before returning.
+  // if wait=true, setRenderMode should wait for the op to complete before
+  // returning.
   setRenderMode(
     options: Message<SetRenderModeRequest>,
   ): Promise<Message<SetRenderModeResponse> | void>
@@ -45,7 +46,7 @@ export interface WebViewRegistration {
 }
 
 // buildWebViewStatus builds a status message for a web view.
-// if webView is null, indicates the view was deleted.
+// if webView is null, the status indicates the view was deleted.
 export function buildWebViewStatus(
   webViewId: string,
   webView?: WebView,

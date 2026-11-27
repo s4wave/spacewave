@@ -11,7 +11,7 @@ import (
 // PluginScheduler is the status view of a plugin host scheduler.
 type PluginScheduler interface {
 	// GetInstanceKey returns the instance key the scheduler was configured
-	// with. Space runtimes use the Space engine ID; the root host uses "".
+	// with. Space runtimes use the Space engine ID. The root host uses "".
 	GetInstanceKey() string
 	// GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
 	GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot]

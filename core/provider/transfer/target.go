@@ -23,9 +23,9 @@ const (
 	// and has not written its state. The target lets nothing else write it.
 	TargetHoldsArriving
 	// TargetHoldsWritten means the target holds the source World
-	// TargetSpace.Head names. When that is not the source's current World, a
-	// transfer from this source wrote it and nothing changed the Space since,
-	// so a write over it loses nothing.
+	// TargetSpace.Head identifies. When that is not the source's current
+	// World, a transfer from this source wrote it and nothing changed the
+	// Space since, so a write over it loses nothing.
 	TargetHoldsWritten
 	// TargetHoldsShared means the target lists the id as a Space shared with
 	// its account.
@@ -37,8 +37,8 @@ const (
 	// cloud account, holds a configured Space whose World is not the source's
 	// current one. It cannot tell an earlier copy this source wrote from any
 	// other Space, so the transfer writes nothing over it. Transfer.tla names
-	// the case CloudLimit; it goes away when the cloud target stores the
-	// origin.
+	// the case CloudLimit. The case goes away when the cloud target stores
+	// the origin.
 	TargetHoldsNoOrigin
 )
 
@@ -62,20 +62,20 @@ type TransferTarget interface {
 	// Creates the block store if it does not exist.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
 	// ReadSharedObject returns what the target holds under the id of a Space
-	// from the source origin names. For a Space the source holds itself,
-	// origin's SourceHead is the head of the source's current World.
+	// from the source origin identifies. For a Space the source holds
+	// itself, origin's SourceHead is the head of the source's current World.
 	ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error)
 	// AddSharedObject lists a Space the target does not list, arriving from
-	// the source origin names, and returns what the target then holds. It
-	// returns sobject.ErrSharedObjectExists, writing nothing, when the target
-	// lists the id.
+	// the source origin identifies, and returns what the target then holds.
+	// It returns sobject.ErrSharedObjectExists, writing nothing, when the
+	// target lists the id.
 	// The ref should already have the target's provider resource ref.
 	AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, origin *TransferOrigin) (*TargetSpace, error)
 	// WriteSharedObjectState replaces the state of a Space with a new lineage
 	// owned solely by owner whose checkpoint holds stateData, and records
-	// origin, whose head names that World, in the same write. It writes only
-	// while the target holds the state expect read, and otherwise returns
-	// ErrTargetChanged, writing nothing.
+	// origin, whose head identifies that World, in the same write. It
+	// writes only while the target holds the state expect read, and otherwise
+	// returns ErrTargetChanged, writing nothing.
 	WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, expect *TargetSpace) error
 }
 
@@ -92,13 +92,13 @@ func (s *TargetSpace) GetExpect() any {
 	return s.Expect
 }
 
-// sameSource reports whether two origins name the same source account.
+// sameSource reports whether two origins identify the same source account.
 func sameSource(a, b *TransferOrigin) bool {
 	return a.GetSourceProviderId() == b.GetSourceProviderId() && a.GetSourceAccountId() == b.GetSourceAccountId()
 }
 
-// worldHead returns the SHA-256 of the encoded World, which names it: replay
-// encodes the same World to the same bytes.
+// worldHead returns the SHA-256 of the encoded World, identifying the World:
+// replay encodes the same World to the same bytes.
 func worldHead(world *space_world.InnerState) ([]byte, error) {
 	data, err := world.MarshalVT()
 	if err != nil {

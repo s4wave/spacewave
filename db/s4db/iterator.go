@@ -16,7 +16,7 @@ type layer interface {
 	// entry returns the current entry.
 	entry() ientry
 	// seek positions at the first key at or after k, or the last at or
-	// before it when reverse; nil selects the first or last key.
+	// before it when reverse. nil selects the first or last key.
 	seek(k []byte, reverse bool)
 	// step moves to the next key in the direction.
 	step(reverse bool)
@@ -37,7 +37,7 @@ type ientry struct {
 }
 
 // Iterator merges buffered changes, the memtable, and the runs. The first
-// layer holding a key decides its entry; a tombstone hides the key.
+// layer holding a key decides its entry. A tombstone hides the key.
 type Iterator struct {
 	// db reads values.
 	db *DB
@@ -154,7 +154,7 @@ func (it *Iterator) Next() bool {
 }
 
 // Seek positions the iterator at the first key at or after k, or at or
-// before it in reverse; nil seeks to the start or the end of the prefix.
+// before it in reverse. nil seeks to the start or the end of the prefix.
 func (it *Iterator) Seek(k []byte) error {
 	// Clip the seek to the prefix.
 	if it.err != nil {
@@ -178,7 +178,7 @@ func (it *Iterator) Seek(k []byte) error {
 	}
 
 	// A reverse seek to the prefix's end may land on the end key itself,
-	// which lies outside the prefix; step past it, then settle.
+	// which lies outside the prefix. Step past the end key, then settle.
 	if it.reverse && target != nil {
 		for _, l := range it.layers {
 			for l.valid() && bytes.Compare(l.key(), target) >= 0 && !bytes.HasPrefix(l.key(), it.prefix) {

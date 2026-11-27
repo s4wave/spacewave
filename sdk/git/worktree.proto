@@ -116,7 +116,7 @@ message UnstageFilesResponse {}
 // CommitFilesRequest is the request for CommitFiles.
 message CommitFilesRequest {
   // Paths is the list of staged file paths that must be included in the commit.
-  // Empty accepts all currently staged paths.
+  // Empty accepts all staged paths.
   repeated string paths = 1;
   // Message is the commit message.
   string message = 2;

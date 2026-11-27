@@ -41,7 +41,7 @@ func (r *referenceQueryable) add(lset labels.Labels, t int64, v float64) {
 	s.samples = append(s.samples, referenceSample{t: t, f: v})
 }
 
-// Querier returns a querier over all recorded samples; the engine and the
+// Querier returns a querier over all recorded samples. The engine and the
 // series iterators apply the time range.
 func (r *referenceQueryable) Querier(int64, int64) (storage.Querier, error) {
 	return r, nil

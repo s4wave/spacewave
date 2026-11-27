@@ -46,7 +46,7 @@ const fullBackoff = 2 * time.Second
 const dialTimeout = 30 * time.Second
 
 // quitTimeout bounds the wait for the server to end a session after QUIT. The
-// server answers and closes in one round trip; a server that does neither in
+// server answers and closes in one round trip. A server that does neither in
 // time is taken to have ended it, and the connection is dropped.
 const quitTimeout = 5 * time.Second
 
@@ -57,7 +57,7 @@ const tempPrefix = ".tmp-"
 // Client is a block_store_s3.ObjectStore on an FTPS server.
 //
 // A bucket is a directory relative to the login directory, and a key is a
-// slash path below it; missing directories are created on write. Each call
+// slash path below it. Missing directories are created on write. Each call
 // takes one control connection from a pool of Config.Conns, so that many calls
 // run in parallel, and a call whose connection dropped redials once. The pool
 // serves calls by the read class of their context (block.ReadClassOf), as
@@ -594,7 +594,7 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 		return nil, errors.Wrap(err, "connect to "+c.conf.Addr)
 	}
 
-	// Log in. The error names the server, never the credentials.
+	// Log in. The error identifies the server, never the credentials.
 	if err := conn.Login(c.conf.Logins[login].User, c.conf.Logins[login].Password); err != nil {
 		_ = conn.Quit()
 		return nil, errors.Wrap(err, "log in to "+c.conf.Addr)
@@ -664,7 +664,7 @@ func isFull(err error) bool {
 }
 
 // makeDirs creates dir and each missing parent. The errors of directories
-// that exist already are ignored; the retried write reports a real failure.
+// that exist already are ignored. The retried write reports a real failure.
 func makeDirs(conn *ftp.ServerConn, dir string) {
 	dir = strings.TrimSuffix(dir, "/")
 	for i := range len(dir) {

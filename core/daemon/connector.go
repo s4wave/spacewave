@@ -29,7 +29,7 @@ type Connector struct {
 }
 
 // NewConnector constructs a connector. Nil callbacks select the native dialer
-// and detached executable launcher; callbacks allow isolated process fixtures.
+// and detached executable launcher. Callbacks allow isolated process fixtures.
 func NewConnector(dial func(context.Context, string) (net.Conn, error), start func(context.Context, string) error) *Connector {
 	// Supply the native transport and process boundaries by default.
 	if dial == nil {
@@ -134,7 +134,8 @@ func (c *Connector) Dial(ctx context.Context, statePath, socketPath string) (net
 }
 
 // Connect completes Resource Init on the resolved daemon. Closing the returned
-// client releases only its connection, including when this call started it.
+// client releases only its connection, including when this call started the
+// daemon.
 func (c *Connector) Connect(ctx context.Context, statePath, socketPath string) (*Client, error) {
 	// Keep Resource streams tied to the caller, independently of startup expiry.
 	conn, err := c.Dial(ctx, statePath, socketPath)

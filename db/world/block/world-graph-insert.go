@@ -13,15 +13,15 @@ import (
 
 // InsertGraphQuads inserts new, unique relationships in one graph index update.
 // It validates all endpoints before writing and records the same World changes
-// as individual SetGraphQuad calls. Each subject must name an existing object,
-// the holder of the relationship; an object may name a key not written yet, so
-// a record can reference a target created later in the transaction or after
-// it. DeleteObject removes the quads of a key in both directions, including
-// those written before the key's object existed. It writes only the graph: the
-// records of the objects a relationship names keep their revisions. An
-// existing or repeated relationship is an error; discard the enclosing
-// transaction on error. Like other mutable WorldState operations, calls must
-// be serialized by its owner.
+// as individual SetGraphQuad calls. Each subject must reference an existing
+// object, the holder of the relationship. An object may reference a key not
+// written yet, so a record can reference a target created later in the
+// transaction or after it. DeleteObject removes the quads of a key in both
+// directions, including those written before the key's object existed.
+// InsertGraphQuads writes only the graph: the records of the objects a
+// relationship references keep their revisions. An existing or repeated
+// relationship is an error. Discard the enclosing transaction on error. Like
+// other mutable WorldState operations, calls must be serialized by its owner.
 func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
 	// Reject a non-write, discarded state, or canceled context.
 	if !t.write {

@@ -24,7 +24,7 @@ func (c *Config) Validate() error {
 		return errors.Errorf("skiff_dir must be an absolute path: %q", c.GetSkiffDir())
 	}
 
-	// The workspace names one directory under workspaces/.
+	// The workspace selects one directory under workspaces/.
 	ws := c.GetWorkspace()
 	if ws == "" || strings.ContainsAny(ws, "/\\") || strings.HasPrefix(ws, ".") {
 		return errors.Errorf("workspace must be a plain name: %q", ws)
@@ -40,7 +40,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Each config input names a directory under inputs/, apart from the
+	// Each config input selects a directory under inputs/, apart from the
 	// source input.
 	for _, name := range c.GetExtraConfigInputs() {
 		if err := validateInputName(name); err != nil {
@@ -48,7 +48,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Each input names a directory under inputs/ and sets one variable.
+	// Each input selects a directory under inputs/ and sets one variable.
 	for name, env := range c.GetInputEnv() {
 		if err := validateInputName(name); err != nil {
 			return errors.Wrap(err, "input_env")
@@ -60,7 +60,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// validateInputName checks that a UnixFS input names a directory under
+// validateInputName checks that a UnixFS input selects a directory under
 // inputs/ and is not the source input, which is a Repo.
 func validateInputName(name string) error {
 	if name == InputSkiffOS {

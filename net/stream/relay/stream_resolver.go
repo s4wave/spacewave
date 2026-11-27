@@ -13,13 +13,13 @@ import (
 
 // RelayResolver resolves HandleMountedStream by relaying to a target peer.
 type RelayResolver struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// targetPeerID is the peer ID to relay to
+	// targetPeerID is the peer ID to relay to.
 	targetPeerID peer.ID
-	// targetProtocolID is the protocol ID to relay to
+	// targetProtocolID is the protocol ID to relay to.
 	targetProtocolID protocol.ID
 }
 

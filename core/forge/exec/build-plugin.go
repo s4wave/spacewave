@@ -61,8 +61,9 @@ import (
 // retains the source and dependency tree until the target finishes and closes.
 type RepositoryCompilerLoader func(context.Context, *logrus.Entry, bus.Bus, *unixfs.FSHandle, kvtx.TxOps, *js.Config, int64) (builder.Controller, error)
 
-// buildPluginHandler compiles a pinned Space source tree on its assigned native worker.
-// Forge owns scheduling and cancellation; Bldr owns compilation and build provenance.
+// buildPluginHandler compiles a pinned Space source tree on its assigned native
+// worker. Forge owns scheduling and cancellation. Bldr owns compilation and
+// build provenance.
 type buildPluginHandler struct {
 	// le records compiler diagnostics in the enclosing execution.
 	le *logrus.Entry
@@ -152,8 +153,9 @@ func NewBuildPluginHandlerWithRepositoryCompiler(_ context.Context, b bus.Bus, l
 	}, nil
 }
 
-// Execute retains exact source, then lets Bldr write artifacts into the supplied World.
-// Repository builds read blocks; other sources use a disposable native checkout.
+// Execute retains exact source, then lets Bldr write artifacts into the
+// supplied World. Repository builds read blocks. Other sources use a disposable
+// native checkout.
 func (h *buildPluginHandler) Execute(ctx context.Context) error {
 	// Build admitted JS repositories from blocks without starting native tooling.
 	if h.config.GetFrontendId() == "" && h.platformID == bldr_platform.PlatformID_JS && strings.HasPrefix(h.source.GetKey(), "plugin-repos/") {
@@ -449,7 +451,7 @@ func (h *buildPluginHandler) retainBuild(ctx context.Context, key string, ref *m
 // validatePluginBuildMode checks the fields of an immutable build or, when the
 // config carries a frontend attachment, of a live compiler.
 func validatePluginBuildMode(conf *PluginBuildConfig, b bus.Bus) error {
-	// An immutable build names a platform and an explicit capacity.
+	// An immutable build selects a platform and requests an explicit capacity.
 	if conf.GetFrontendId() == "" {
 		if err := validateBuildPlatform(conf.GetPlatformId()); err != nil {
 			return err
@@ -511,8 +513,9 @@ func (h *buildPluginHandler) retainSource(ctx context.Context, stage world.World
 	})
 }
 
-// materializeSource reads the immutable input through the execution's storage capability.
-// The Execution retains queued input; accepted build provenance retains its local DAG.
+// materializeSource reads the immutable input through the execution's storage
+// capability. The Execution retains queued input. Accepted build provenance
+// retains the input's local DAG.
 func (h *buildPluginHandler) materializeSource(ctx context.Context, directory string) error {
 	return h.handle.AccessStorage(ctx, h.source.GetRootRef(), func(cursor *bucket_lookup.Cursor) error {
 		// Sync the source tree into the build directory.

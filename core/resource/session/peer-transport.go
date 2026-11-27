@@ -20,9 +20,9 @@ import (
 )
 
 // AccessPeerTransport exposes the account's authenticated stream transport for
-// this Session. The account owns the transport; the returned resource owns the
+// this Session. The account owns the transport. The returned resource owns the
 // optional UDP transport and remote resource service, which stop when the
-// caller releases it.
+// caller releases the resource.
 func (r *SessionResource) AccessPeerTransport(
 	ctx context.Context,
 	req *s4wave_session.AccessPeerTransportRequest,
@@ -78,7 +78,7 @@ func (r *SessionResource) AccessPeerTransport(
 }
 
 // resolvePeerTransport borrows the Session's running transport. A local
-// account starts it on demand; a cloud account runs it while direct peer
+// account starts it on demand. A cloud account runs it while direct peer
 // connections are enabled.
 func (r *SessionResource) resolvePeerTransport(ctx context.Context) (*transport.SessionTransport, func(), error) {
 	// Start the local account's transport when it is not running yet.

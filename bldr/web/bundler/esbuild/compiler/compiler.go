@@ -31,14 +31,14 @@ import (
 // ControllerID is the compiler controller ID.
 const ControllerID = ConfigID
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "esbuild bundler controller"
 
-// Inline sourcemaps due to Chrome bug
-// https://issues.chromium.org/issues/40765087 [currently open 2024/03/25]
+// inlineSourcemaps enables inline sourcemaps due to a Chrome bug.
+// https://issues.chromium.org/issues/40765087 [open on 2024/03/25].
 var inlineSourcemaps = true
 
 // Controller is the compiler controller.
@@ -96,8 +96,9 @@ type PreBuildHook func(
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
-// AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
-// NOTE: may be removed in future
+// AddPreBuildHook adds a callback that is called just after constructing the
+// plugin working dir.
+// NOTE: may be removed in future.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
@@ -413,9 +414,11 @@ func (c *Controller) BuildManifest(
 	return result, nil
 }
 
-// FastRebuildBundle compiles the plugin once skipping running the web pkgs build process if possible.
-// Assumes we are in dev mode (not release mode).
-// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
+// FastRebuildBundle compiles the plugin once, skipping the web pkgs build
+// process if possible.
+// Assumes the compiler is in dev mode (not release mode).
+// Assumes the previous result is already checked out to outDistPath and
+// outAssetsPath.
 // Returns nil, nil if fast rebuild is not applicable.
 func (c *Controller) FastRebuildBundle(
 	ctx context.Context,
@@ -469,7 +472,7 @@ func (c *Controller) FastRebuildBundle(
 		}
 	}
 
-	// Perform fast rebuild by running the esbuild compiler only.
+	// Run the fast rebuild with the esbuild compiler only.
 	le.Info("performing fast rebuild")
 
 	// Process each bundle
@@ -554,8 +557,9 @@ func (c *Controller) FastRebuildBundle(
 		}
 	}
 
-	// compare the web pkg refs to see if they changed.
-	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
+	// compare the web pkg refs to see if the refs changed.
+	// if so: run a full rebuild to pick up the new refs +
+	// rebuild the web pkgs.
 	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
 		le.Info("references to web pkgs changed: forcing a full re-build")
 		return nil, nil
@@ -566,7 +570,8 @@ func (c *Controller) FastRebuildBundle(
 	updatedInputMeta := inputMeta.CloneVT()
 	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
 
-	// drop all esbuild files from the set (we will add them back next)
+	// drop all esbuild files from the set (the compiler adds the files back
+	// next)
 	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *bldr_manifest_builder.InputManifest_File) bool {
 		// Match files whose metadata kind is the esbuild kind.
 		meta.Reset()

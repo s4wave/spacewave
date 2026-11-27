@@ -74,7 +74,7 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 		return mergePick{inputs: append([]runMeta{top}, over...), level: top.level + 1, bottom: len(sizes) <= int(top.level)+2}, true
 	}
 
-	// Find the level furthest over its target; a level 0 run at the top
+	// Find the level furthest over its target. A level 0 run at the top
 	// takes level 0.
 	bestLevel, bestRatio := -1, 1.0
 	if n := m.level0(); n > level0Trigger {
@@ -94,7 +94,7 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 		return mergePick{}, false
 	}
 
-	// Its run with the least overlapping bytes below.
+	// Select the chosen level's run with the least overlapping bytes below.
 	var best runMeta
 	bestOverlap := int64(-1)
 	var bestBelow []runMeta
@@ -112,7 +112,7 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 }
 
 // pickLevel0 returns the merge of all of level 0 and the level 1 runs it
-// overlaps into level 1; bottom reports that no level below 1 holds keys.
+// overlaps into level 1. bottom reports that no level below 1 holds keys.
 func (m *manifest) pickLevel0(bottom bool) mergePick {
 	// Take level 0, which leads the runs, and the key range it covers.
 	var inputs []runMeta
@@ -255,11 +255,11 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 		l.seek(nil, false)
 	}
 
-	// Write entries in order into runs of runTarget each; each run takes the
-	// chunks the one before it left. A layer's entry lasts until its step may
-	// reload the block it sits in, so the entry is written before the step,
-	// and key holds the current key past it; the run builder copies what it
-	// keeps.
+	// Write entries in order into runs of runTarget each. Each run takes
+	// the chunks the one before it left. A layer's entry lasts until its
+	// step may reload the block it sits in, so the entry is written before
+	// the step, and key holds the current key past the step. The run
+	// builder copies what it keeps.
 	var outputs []runMeta
 	var rb *runBuilder
 	var key []byte
@@ -280,7 +280,7 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 		}
 		key = append(key[:0], best...)
 
-		// Drop a tombstone at the bottom; write the rest.
+		// Drop a tombstone at the bottom. Write the rest.
 		if !ent.del || !pick.bottom {
 			if rb == nil {
 				rb = newRunBuilder(j.db.s, chunks, more)

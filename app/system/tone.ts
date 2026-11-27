@@ -18,7 +18,7 @@ export const toneTextClass: Record<SystemTone, string> = {
   pending: 'text-foreground-alt/60',
 }
 
-// toneLabel names each system tone for assistive technology.
+// toneLabel labels each system tone for assistive technology.
 export const toneLabel: Record<SystemTone, string> = {
   nominal: 'Nominal',
   active: 'Working',

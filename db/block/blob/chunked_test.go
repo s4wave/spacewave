@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// testBlobChunked contains the common test logic for chunked blob tests.
+// testBlobChunked runs the common test logic for chunked blob tests.
 func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs) {
 	// Prepare the context and logger for the chunked blob fixture.
 	ctx := context.Background()
@@ -155,7 +155,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 		t.Fail()
 	}
 
-	// write
+	// Write the blob.
 	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -237,7 +237,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	}
 
 	// test random reads from the ~1Mb blob.
-	// this exercises seeking to different locations in a blob.
+	// The random reads exercise seeking to different locations in a blob.
 	prand := prng.BuildSeededRand([]byte("random-reads"))
 	buf := make([]byte, 4096)
 	for range 10000 {

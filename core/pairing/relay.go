@@ -24,7 +24,7 @@ type Relay struct {
 	URL string
 	// SigningEnvPrefix scopes request signatures to the relay's environment.
 	SigningEnvPrefix string
-	// Client performs relay requests; nil uses http.DefaultClient.
+	// Client performs relay requests. A nil Client uses http.DefaultClient.
 	Client *http.Client
 }
 
@@ -93,8 +93,9 @@ func (e *Engine) GenerateCode(ctx context.Context, relay Relay) (string, error) 
 
 // CompletePeer links to the peer that registered a code and retains the link
 // through enrollment. The caller resolved the code, so the relay is used only
-// for signaling. Label names this client on the other client's approval screen
-// and in its Session list; empty uses the machine name.
+// for signaling. Label identifies this client on the other client's approval
+// screen and in that client's Session list. An empty label uses the machine
+// name.
 func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.ID, offerCurrent bool, label string) error {
 	// Replace any active attempt and ready the Session transport.
 	e.Clear()

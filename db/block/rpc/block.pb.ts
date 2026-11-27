@@ -17,8 +17,8 @@ import { BlockRef, PutOpts, StoreFeature_Enum } from '../block.pb.js'
  */
 export enum GetBlockFailure {
   /**
-   * GET_BLOCK_FAILURE_ERROR is any failure without a class below; error
-   * carries its text.
+   * GET_BLOCK_FAILURE_ERROR is any failure without a class below. The error
+   * field carries the failure text.
    */
   ERROR = 0,
 
@@ -280,7 +280,7 @@ export interface GetBlockResponse {
    */
   exists?: boolean
   /**
-   * Data is the data, if exists.
+   * Data is the data, if the block exists.
    */
   data?: Uint8Array
   /**

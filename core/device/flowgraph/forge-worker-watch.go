@@ -10,8 +10,8 @@ import (
 
 // ForgeWorkerWatch holds, for each Space World this Device serves, the Forge
 // Worker declaration of its accepted forge-worker node and the key of the
-// Device that hosts it. Each Space's Reconciler sets its own World's value;
-// the Worker of that World reads it. Each change to a World's value takes the
+// Device that hosts it. Each Space's Reconciler sets its own World's value.
+// The Worker of that World reads it. Each change to a World's value takes the
 // next revision of one counter shared by every World, so a revision never
 // repeats for a World even after its value returns to empty.
 type ForgeWorkerWatch struct {

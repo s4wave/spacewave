@@ -62,8 +62,9 @@ func CreateSecret(
 		return nil, err
 	}
 	if err := commitSecretObject(ctx, engine, opts.ObjectKey, secret); err != nil {
-		// Another caller took the key between the check and this commit, so
-		// no World object names this nested SharedObject: remove it.
+		// Another caller took the key between the check and this
+		// commit, so no World object references this nested
+		// SharedObject: remove it.
 		if errors.Is(err, world.ErrObjectExists) {
 			if derr := soProvider.DeleteSharedObject(ctx, secret.GetNestedSharedObjectId()); derr != nil {
 				return nil, errors.Wrap(derr, "remove unused nested shared object")
@@ -74,7 +75,7 @@ func CreateSecret(
 	return secret, nil
 }
 
-// checkSecretKeyFree returns world.ErrObjectExists when objectKey names an
+// checkSecretKeyFree returns world.ErrObjectExists when objectKey references an
 // object in the World.
 func checkSecretKeyFree(ctx context.Context, engine world.Engine, objectKey string) error {
 	// Read the key in a read-only transaction.
@@ -120,9 +121,9 @@ func commitSecretObject(ctx context.Context, engine world.Engine, objectKey stri
 
 // CreateSecretObject creates the nested SharedObject holding a Secret payload
 // and returns the redacted Secret metadata. It writes no World object, so the
-// caller records the metadata wherever the Secret is used. The payload names
-// opts.SpaceID as its owner; without one it names no owner and a Secret delete
-// keeps it.
+// caller records the metadata wherever the Secret is used. The payload records
+// opts.SpaceID as its owner. Without opts.SpaceID, the payload records no
+// owner and a Secret delete keeps the payload.
 func CreateSecretObject(
 	ctx context.Context,
 	b bus.Bus,

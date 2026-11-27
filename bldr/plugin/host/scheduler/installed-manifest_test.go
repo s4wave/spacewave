@@ -54,7 +54,8 @@ func TestInstalledManifestSelection(t *testing.T) {
 		ref.ManifestRef.RootRef = block.NewBlockRef(digest)
 	}
 
-	// Install the old artifact on the first binding and the newer on the second.
+	// Install the old artifact on the first binding and the newer artifact
+	// on the second binding.
 	firstRelease := first.addManifestSelection("peer", old)
 	defer firstRelease()
 	secondRelease := second.addManifestSelection("peer", newer)
@@ -275,7 +276,8 @@ func TestReleasedInstallationStopsWaiting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Releasing the selection ends the wait; approving R afterwards starts nothing.
+	// Releasing the selection ends the wait. Approving R afterwards starts
+	// nothing.
 	release()
 	if h.instance.executePluginRoutine.GetState() != nil {
 		t.Fatal("released installation kept its execute state")
@@ -307,7 +309,8 @@ func TestReleasedInstallationKeepsCatalogWorker(t *testing.T) {
 
 // testReleasedInstallationKeepsCatalogWorker runs one catalog worker mode.
 func testReleasedInstallationKeepsCatalogWorker(t *testing.T, serveAssets bool) {
-	// Answer approvals through the trust controller on a real bus; none is given.
+	// Answer approvals through the trust controller on a real bus. None is
+	// given.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -322,7 +325,7 @@ func testReleasedInstallationKeepsCatalogWorker(t *testing.T, serveAssets bool) 
 	}
 	defer rel()
 
-	// Build a root host binding whose workers start in-process; a running
+	// Build a root host binding whose workers start in-process. A running
 	// worker also registers, an asset worker only holds its files.
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	c := &Controller{
@@ -430,7 +433,8 @@ func TestReleasedInstallationLeavesGuardedWorker(t *testing.T) {
 	}
 	instance.runningPluginCtr.SetValue(plugin.NewRunningPlugin(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
 
-	// Selecting R1 routes it through the guarded update; releasing clears it.
+	// Selecting R1 routes R1 through the guarded update. Releasing the
+	// installation clears the guarded update.
 	release := instance.addManifestSelection("peer-p", rootedTestManifestRef(t, 2))
 	pending := instance.updatePluginRoutine.GetState()
 	if pending == nil || pending.installation == nil {

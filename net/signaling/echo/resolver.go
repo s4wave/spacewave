@@ -11,9 +11,9 @@ import (
 
 // EchoResolver resolves HandleSignalPeer by echoing data.
 type EchoResolver struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// dir is the directive
+	// dir is the directive.
 	dir signaling.HandleSignalPeer
 }
 

@@ -11,7 +11,7 @@ import (
 
 // getAtHead returns the named value at the World's newest revision, for a
 // reader whose snapshot the cache has moved past. Every such reader then
-// shares one computation instead of each repeating it alone; the reads it
+// shares one computation instead of each repeating it alone. The reads it
 // records make the reader's watch rerun at the newer revision.
 func (c *Cache) getAtHead(ctx context.Context, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
 	head, err := c.engine.NewTransaction(ctx, false)
@@ -53,8 +53,8 @@ func (c *Cache) Head(ctx context.Context, floor uint64) (uint64, error) {
 	}
 	c.observeHead(0, cause)
 
-	// The watch may not have reported the floor yet, as for the reader's own
-	// write a moment ago; the catch-up waits for the World to reach it.
+	// The watch may not have reported the floor yet, as for the reader's
+	// own write a moment ago. The catch-up waits for the World to reach it.
 	target := max(newest, floor)
 	return target, c.Advance(ctx, target)
 }
@@ -136,7 +136,7 @@ func (c *Cache) catchUp(seqno uint64) {
 
 // runCatchUp advances the cache until it reaches target, then clears
 // catchingUp. A failed advance ends the run without retrying, so an error that
-// persists, such as a closing engine, never loops hot; the next catchUp, from
+// persists, such as a closing engine, never loops hot. The next catchUp, from
 // the next revision the watch reports or the next read, starts again.
 func (c *Cache) runCatchUp() {
 	for {
@@ -152,8 +152,9 @@ func (c *Cache) runCatchUp() {
 		}
 		c.catchingUp.Store(false)
 
-		// A target raised between the last check and the store above found
-		// the run still marked and started none; take it up here.
+		// A target raised between the last check and the store above
+		// found the run still marked and started none. Take up the
+		// raised target here.
 		if c.target.Load() <= c.seqno.Load() || !c.catchingUp.CompareAndSwap(false, true) {
 			return
 		}
@@ -287,7 +288,7 @@ func (c *Cache) previousAt(
 // refresh computes the named value again in the background at the World's
 // Newest revision, at most once at a time per name, so the readers recent
 // answers from the dropped value soon find a current one. It reads only, off
-// the request path, and takes no write lock; nothing waits on it.
+// the request path, and takes no write lock. Nothing waits on it.
 func (c *Cache) refresh(name string, compute func(context.Context, world.WorldState) (any, error)) {
 	// Claim one background refresh per key.
 	c.mtx.Lock()

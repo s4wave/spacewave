@@ -7,13 +7,13 @@ package os.image.sign;
 // pin. The Step asks the holder of that peer's key to sign, through the
 // SignWithPeer directive, so the key never reaches the Step. It signs the
 // built image of its image input's store, its root and transform, only when
-// the rehearsal's receipt names that root, so a receipt for another image
-// signs nothing; the rehearsed input also holds the Step until the rehearsal
+// the rehearsal's receipt records that root, so a receipt for another image
+// signs nothing. The rehearsed input also holds the Step until the rehearsal
 // passes.
 //
 // Inputs:
 //  - image: the image store, a tree holding image.s4wave.
-//  - rehearsed: the rehearsal Step's receipt, a tree whose root file names
+//  - rehearsed: the rehearsal Step's receipt, a tree whose root file records
 //    the image root the guest authorized and booted.
 //
 // Outputs:

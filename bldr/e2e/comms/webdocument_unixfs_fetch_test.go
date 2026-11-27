@@ -118,8 +118,8 @@ func TestGoScriptForegroundUnixFSFetchInFlightReloadZeroDocumentRace(t *testing.
 }
 
 // TestGoScriptForegroundUnixFSFetchPluginHostReplacementDuringFetch verifies
-// that an explicit PluginHost worker replacement during a delayed fetch names
-// the removal owner and re-establishes the spacewave-web route.
+// that an explicit PluginHost worker replacement during a delayed fetch
+// records the removal owner and re-establishes the spacewave-web route.
 func TestGoScriptForegroundUnixFSFetchPluginHostReplacementDuringFetch(t *testing.T) {
 	// Install the fixture assets and run the plugin-host-replacement variant.
 	installWebDocumentRouteFixtureAssets(t)

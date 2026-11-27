@@ -1123,7 +1123,8 @@ export const Unused = 2
 		t.Fatalf("mangle output should keep top-level names:\n%s", mangleOut)
 	}
 
-	// Compress folds the constant sum; the mangle level leaves it in place.
+	// Compress folds the constant sum, but the mangle level leaves it in
+	// place.
 	if !strings.Contains(minCode, "return 7") || !strings.Contains(string(mangleOut), "1+1+2+3") {
 		t.Fatalf("mangle output should skip compress:\nmangle: %s\nfull: %s", mangleOut, minCode)
 	}

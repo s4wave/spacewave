@@ -26,7 +26,7 @@ type BlockCtor func()
 // NewBlockRefSlice builds a new BlockRefSlice from a slice pointer.
 // bcs can be nil, should be a cursor located at the slice.
 // blockCtor can be nil, should construct a block at index.
-// on a object containing []*block.BlockRef, use FollowSubBlock(refID)
+// on a object containing []*block.BlockRef, use FollowSubBlock(refID).
 func NewBlockRefSlice(
 	refs *[]*block.BlockRef,
 	bcs *block.Cursor,
@@ -77,7 +77,7 @@ func (d *BlockRefSlice) Len() int {
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-// does not do bounds checks
+// does not do bounds checks.
 func (d *BlockRefSlice) Less(i, j int) bool {
 	if d.refs == nil {
 		return false
@@ -117,7 +117,7 @@ func (d *BlockRefSlice) BlockPreWriteHook() error {
 }
 
 // SearchBlockRefs searches a ref slice for a ref.
-// If not found returns the index it should be inserted.
+// If not found returns the index where the ref should be inserted.
 func (d *BlockRefSlice) SearchBlockRefs(ref *block.BlockRef) (idx int, match bool) {
 	// Find the first sorted reference equal to or greater than the requested reference.
 	if d.refs == nil {
@@ -152,7 +152,7 @@ func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *block.BlockRef {
 }
 
 // SetBlockCursorAtIndex sets the reference to a cursor at the index.
-// The index must already exist, and bcs be set, or returns ErrOutOfBounds
+// The index must already exist, and bcs be set, or returns ErrOutOfBounds.
 func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error {
 	// Require an existing slice entry and block cursor before replacing its reference.
 	if d.refs == nil || d.bcs == nil {
@@ -176,7 +176,7 @@ func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error 
 
 // FollowBlockRefAsCursor follows a index to its node reference.
 // bcs must be set on the ref slice
-// may return ErrOutOfBounds
+// may return ErrOutOfBounds.
 func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.BlockRef, error) {
 	// Require an existing slice entry and block cursor before following its reference.
 	if d.refs == nil || d.bcs == nil {
@@ -240,7 +240,7 @@ func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: GetBlockRefs does not include pending references (in a cursor).
 func (d *BlockRefSlice) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	// Return no block references for an empty slice.
 	refSlice := *d.refs

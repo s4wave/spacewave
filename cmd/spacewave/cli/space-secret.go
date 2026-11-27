@@ -93,7 +93,8 @@ func newSpaceSecretGrantCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return errors.Wrap(err, "grant Secret")
 			}
 
-			// Report whether the call added the peer, raised it, or left it.
+			// Report whether the call added the peer, raised the
+			// peer's role, or left the role unchanged.
 			held := formatParticipantRole(resp.GetParticipantRole())
 			switch resp.GetOutcome() {
 			case sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED:

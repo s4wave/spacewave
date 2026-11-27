@@ -30,7 +30,7 @@ export function targetState(
     return approved ? { state: 'waiting' } : { state: 'unapproved' }
   if (isTargetStale(info, nowMs)) {
     // An approved Device stands by until the old writer goes stale, then
-    // takes over; it is waiting for its own first scrape.
+    // takes over. The approved Device is waiting for its own first scrape.
     if (approved && status.devicePeerId !== myPeerId)
       return { state: 'waiting' }
     return { state: 'stale', status }

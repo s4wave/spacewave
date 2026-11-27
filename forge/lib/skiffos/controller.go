@@ -33,14 +33,14 @@ const logTailBytes = 4096
 
 // Controller runs one SkiffOS build and stores its boot set.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the Step inputs, read by name through input_env and
 	// extra_config_inputs.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -66,7 +66,7 @@ func (c *Controller) InitForgeExecController(
 
 // Execute builds the workspace and stores its images directory as the
 // output. A failed build returns its error, which retries the Execution with
-// backoff; the workspace keeps its build tree, so a retry resumes the build.
+// backoff. The workspace keeps its build tree, so a retry resumes the build.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Bring the Step's checkout to the source's commit.
 	conf := c.conf

@@ -14,18 +14,18 @@ import (
 type FSCursor struct {
 	// isReleased indicates if this cursor is released.
 	isReleased atomic.Bool
-	// fs is the filesystem
+	// fs is the filesystem.
 	fs fs.FS
 	// depth is the inode depth relative to root of fs
-	// note: not always accurate, used as an estimate
+	// note: not always accurate, used as an estimate.
 	depth uint
-	// name is the name of this node
+	// name is the name of this node.
 	name string
-	// parent is the parent FSCursor or nil if none
+	// parent is the parent FSCursor or nil if none.
 	parent *FSCursor
 	// fsCursorOps is the filesystem ops object.
 	fsCursorOps *FSCursorOps
-	// path is the path to this cursor
+	// path is the path to this cursor.
 	path []string
 }
 
@@ -89,7 +89,7 @@ func (f *FSCursor) GetPath() []string {
 // AddChangeCb adds a change callback to detect when the cursor has changed.
 // This will be called only if GetProxyCursor returns nil, nil.
 func (f *FSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
-	// we do not support changing the fs.FS (read only)
+	// FSCursor does not support changing the fs.FS (read only)
 }
 
 // GetProxyCursor returns a FSCursor to replace this one, if necessary.
@@ -109,7 +109,7 @@ func (f *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error)
 	return f.fsCursorOps, nil
 }
 
-// buildChildCursor locks fs.rmtx and builds a child cursor with a name
+// buildChildCursor locks fs.rmtx and builds a child cursor with a name.
 func (f *FSCursor) buildChildCursor(name string, dirent fs.DirEntry) (unixfs.FSCursor, error) {
 	// Extend the parent cursor path with the child entry name.
 	childPath := make([]string, len(f.path)+1)
@@ -135,7 +135,7 @@ func (f *FSCursor) buildPathString() string {
 }
 
 // Release releases the filesystem cursor.
-// note: locks rmtx. must NOT be locked when calling
+// note: locks rmtx. must NOT be locked when calling.
 func (f *FSCursor) Release() {
 	if f.isReleased.Swap(true) {
 		return

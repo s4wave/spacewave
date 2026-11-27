@@ -70,7 +70,7 @@ message PluginExecutionStatus {
   // RunningManifestRef is the ref of the manifest the admitted execution runs.
   // Empty while no execution is admitted.
   string running_manifest_ref = 3;
-  // RunningManifestRev is the build rev of the manifest named by
+  // RunningManifestRev is the build rev of the manifest selected by
   // RunningManifestRef.
   uint64 running_manifest_rev = 4;
   // Swap is the state of the move from the running manifest to the selected one.
@@ -224,7 +224,7 @@ service Plugin {
 
 // PluginCaller identifies the plugin making a call that another plugin serves.
 // The host writes it as the PluginRpc component ID from the identity it bound
-// when it built the caller's host services; the caller never supplies it.
+// when it built the caller's host services. The caller never supplies it.
 message PluginCaller {
   // PluginId is the calling plugin's ID.
   string plugin_id = 1;
@@ -330,8 +330,8 @@ message LoadPluginRequest {
   repeated .bldr.manifest.ManifestRef manifests = 3;
   // ManifestRoot loads an exact historical executable without current registrations.
   string manifest_root = 4;
-  // PeerId is the peer whose approvals decide the roots Manifests names. A
-  // host that serves one peer ignores it.
+  // PeerId is the peer whose approvals decide the roots Manifests selects. A
+  // host that serves one peer ignores PeerId.
   string peer_id = 5;
 }
 
@@ -376,10 +376,10 @@ message PluginContextInfo {
   // PluginMeta is the plugin metadata.
   PluginMeta plugin_meta = 1;
   // InstanceKey identifies the plugin installation the host runs.
-  // Empty for a singleton plugin; a Space uses its World engine ID.
+  // Empty for a singleton plugin. A Space uses its World engine ID.
   // State private to one installation is scoped by this key.
   string instance_key = 2;
-  // ManifestRoot is the root of the manifest the plugin runs, which names the
-  // exact build of its files. Empty when the host did not report it.
+  // ManifestRoot is the root of the manifest the plugin runs, which selects
+  // the exact build of its files. Empty when the host did not report it.
   string manifest_root = 3;
 }

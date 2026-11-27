@@ -45,7 +45,7 @@ type fixture struct {
 	ctx context.Context
 	// db is the volume file.
 	db *s4db.DB
-	// vol is the volume over db; closing it closes db.
+	// vol is the volume over db. Closing vol closes db.
 	vol *volume_kvtx.Volume
 	// keys is the key layout.
 	keys *store_kvkey.KVKey

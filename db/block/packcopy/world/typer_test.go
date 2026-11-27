@@ -151,7 +151,8 @@ func TestTyperRecoversWorldRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Only the untyped objects' roots are holes; every other block is copied.
+	// Only the untyped objects' roots are holes. Every other block is
+	// copied.
 	t.Logf("result %+v untyped %v", *result, typer.Untyped())
 	if len(h.reasons) != untyped {
 		t.Fatalf("holes %v, want the %d untyped roots", h.reasons, untyped)

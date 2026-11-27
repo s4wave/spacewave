@@ -52,8 +52,9 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 			resume := make(chan struct{})
 			attempts := 0
 			connector := NewConnector(func(ctx context.Context, path string) (net.Conn, error) {
-				// The third dial follows the consumed creation event; retain
-				// its refusal until the listener and explicit event are ready.
+				// The third dial follows the consumed creation
+				// event. Retain its refusal until the listener
+				// and explicit event are ready.
 				conn, err := (&net.Dialer{}).DialContext(ctx, "unix", path)
 				attempts++
 				if attempts == 3 {
@@ -131,8 +132,9 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 				<-served
 			})
 
-			// The event can arrive before the connector starts waiting; its
-			// pre-dial subscription must retain it across the refused result.
+			// The event can arrive before the connector starts
+			// waiting, so the pre-dial subscription must retain it
+			// across the refused result.
 			if err := PublishReady(path); err != nil {
 				t.Fatal(err)
 			}

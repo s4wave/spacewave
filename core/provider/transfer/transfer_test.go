@@ -568,7 +568,8 @@ func TestLocalMergeSoList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Should have 4 SOs: account-settings + tgt-existing + src-space-1 + src-space-2.
+	// Expect 4 SOs: account-settings + tgt-existing + src-space-1 +
+	// src-space-2.
 	entries := tgtList.GetSharedObjects()
 	if len(entries) != 4 {
 		t.Fatalf("expected 4 SOs on target, got %d", len(entries))
@@ -849,7 +850,7 @@ func collectVolume(ctx context.Context, t *testing.T, acc *provider_local.Provid
 }
 
 // putTestWorld stores a World of a root and a leaf holding payload in the
-// block store of the Space soRef on acc, held by a root, and returns the root
+// block store of the Space soRef on acc, held by a root, and returns the root.
 func putTestWorld(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, providerID, accountID string, soRef *sobject.SharedObjectRef, payload []byte) (*block.BlockRef, *block.BlockRef) {
 	t.Helper()
 	bs, rel, err := acc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, accountID, soRef.GetBlockStoreId()), nil)
@@ -1234,8 +1235,8 @@ func TestLocalTransferRetryKeepsWrittenState(t *testing.T) {
 		return xfer.GetState().GetPhase(), err
 	}
 
-	// The run stops before the state write; the retry copies the Space again,
-	// writes it, and stops after the write.
+	// The run stops before the state write. The retry copies the Space
+	// again, writes it, and stops after the write.
 	tgt.failBefore = true
 	if _, err := run(); err == nil {
 		t.Fatal("expected the run to stop before the state write")
@@ -1304,7 +1305,7 @@ func TestLocalMergeKeepsEditOfMovedSpace(t *testing.T) {
 		return xfer.GetState().GetPhase(), err
 	}
 
-	// A run writes the Space and stops; the Space is edited on the target.
+	// A run writes the Space and stops. The Space is edited on the target.
 	tgt.failAfter = true
 	if _, err := run(); err == nil {
 		t.Fatal("expected the run to stop after the state write")
@@ -1349,9 +1350,10 @@ func TestLocalMirrorKeepsTargetInvite(t *testing.T) {
 	})
 }
 
-// TestLocalMirrorKeepsTargetGrant checks the same for a grant to a second
-// device, the config change account member enrollment makes, which advances
-// the config chain.
+// TestLocalMirrorKeepsTargetGrant checks that a Mirror leaves a Space not
+// moved, and its target state unchanged, once the target grants a second
+// device access. That grant is the config change account member enrollment
+// makes and advances the config chain.
 func TestLocalMirrorKeepsTargetGrant(t *testing.T) {
 	testLocalMirrorKeepsMembership(t, func(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, store object.ObjectStore) {
 		// Find the target's Space and mount it.
@@ -1442,7 +1444,7 @@ func testLocalMirrorKeepsMembership(t *testing.T, change func(ctx context.Contex
 		return xfer.GetState().GetPhase()
 	}
 
-	// The first Mirror writes the Space; the second takes the newer World.
+	// The first Mirror writes the Space. The second takes the newer World.
 	if phase := mirror("first leaf"); phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
 		t.Fatalf("first mirror = %s; want COMPLETE", phase)
 	}

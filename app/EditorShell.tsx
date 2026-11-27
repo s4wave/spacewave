@@ -50,7 +50,7 @@ function CommandSessionScope({ children }: { children: ReactNode }) {
     return sessionIndex > 0 ? sessionIndex : null
   }, [tabs, activeTabId])
 
-  // Share the active tab's Session mount; the tab remounts it when the
+  // Share the active tab's Session mount. The tab remounts it when the
   // Session moves to another account.
   const sessionResource = useSessionMount(rootResource, activeSessionIndex)
 
@@ -92,7 +92,7 @@ function ShellDocumentTitle() {
 
 // EditorShell is the main application shell with FlexLayout draggable tabs.
 // The FlexLayout spans the entire content area, enabling drag-to-split anywhere.
-// When splits are created, it transitions to grid mode via URL.
+// When splits are created, the shell transitions to grid mode via URL.
 export function EditorShell() {
   const environment = useAppEnvironment()
   return (

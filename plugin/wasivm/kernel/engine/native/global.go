@@ -17,7 +17,7 @@ func (g *Global) Get() uint64 {
 	return g.g.Get()
 }
 
-// Set changes the value; it has no effect on an immutable global.
+// Set changes the value. Set has no effect on an immutable global.
 func (g *Global) Set(val uint64) {
 	if mg, ok := g.g.(api.MutableGlobal); ok {
 		mg.Set(val)

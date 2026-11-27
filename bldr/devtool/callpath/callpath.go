@@ -80,7 +80,7 @@ func Find(opts Options) (*Result, error) {
 	// Decide which packages a path may pass through.
 	res := &Result{Modules: loadedModules(pkgs)}
 	within := func(f *ssa.Function) bool {
-		// A synthetic wrapper has no package; pass through it to its callees.
+		// A synthetic wrapper has no package. Pass through it to its callees.
 		pkg := funcPkgPath(f)
 		if pkg == "" {
 			return f.Synthetic != ""
@@ -123,7 +123,7 @@ func Find(opts Options) (*Result, error) {
 }
 
 // searchRoot returns the shortest path from root to each target it reaches.
-// The search continues only through functions within allows; a target ends
+// The search continues only through functions within allows. A target ends
 // its path.
 func searchRoot(root *callgraph.Node, to *regexp.Regexp, within func(*ssa.Function) bool) []Path {
 	// Walk breadth first, recording how each node was first reached.

@@ -250,8 +250,8 @@ async function* watchDesktopCLIInstallState(
 }
 
 // DESKTOP_CLI_CHECK_TIMEOUT_MS bounds the "Checking command line tool" state:
-// past this the card reports the check as failed instead of pending forever
-// when the desktop runtime never yields an install state.
+// past this timeout the card reports the check as failed instead of pending
+// forever when the desktop runtime never yields an install state.
 const DESKTOP_CLI_CHECK_TIMEOUT_MS = 15000
 
 // useCheckTimedOut reports whether the install state check has stayed pending
@@ -671,8 +671,8 @@ function InstallGuidanceSection() {
 
 // MoreCommandsSection renders a collapsed panel that links to the
 // next set of useful CLI commands without pulling them into the
-// walkthrough. Covers the web listener, file listing, git helpers, and
-// the developer docs index.
+// walkthrough. The panel covers the web listener, file listing, git helpers,
+// and the developer docs index.
 function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
   const ns = useStateNamespace(['cli-setup'])
   const [open, setOpen] = useStateAtom<boolean>(ns, 'more-open', false)
@@ -713,7 +713,7 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
 }
 
 // MoreCommandRow is a compact command listing row without a copy
-// button. The walkthrough step handles copy; this section is for
+// button. The walkthrough step handles copying, and this section is for
 // orientation only.
 function MoreCommandRow({
   command,
@@ -763,9 +763,9 @@ function CommandStep({
 // ListenerStatusChip renders a compact row showing the desktop
 // resource listener's live status: socket path, Ready / Not listening
 // state, and connected-client count. On non-desktop builds (WASM in the
-// browser, where the listener is a no-op), renders a note that the CLI
+// browser, where the listener is a no-op), the chip renders a note that the CLI
 // runs against the desktop app instead of a misleading "Not listening"
-// state. While a remote runtime has taken the socket, shows "Not
+// state. While a remote runtime has taken the socket, the chip shows "Not
 // listening" with a note pointing at the reclaim affordance.
 function ListenerStatusChip() {
   const status = useListenerStatus()
@@ -838,8 +838,8 @@ function ListenerStatusChip() {
 }
 
 // listenerToneLabel returns the desktop listener chip tone and label
-// for a given status/handoff pair. Caller must have already gated on
-// isDesktop; this helper is only valid for the desktop path.
+// for a given status/handoff pair. The caller must have already gated on
+// isDesktop because this helper is only valid for the desktop path.
 function listenerToneLabel(
   status: ListenerStatus | null,
   handoffActive: boolean,

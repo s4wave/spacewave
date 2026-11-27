@@ -21,7 +21,7 @@ func NewConfig(
 	return c, nil
 }
 
-// Validate does cursory validation of the config.
+// Validate cursorily validates the config.
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.GetId()) == "" {
 		return ErrBucketIDEmpty

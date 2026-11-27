@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 )
 
-// Value kinds in the encodings of records and run entries.
+// Value kinds describe values in the encodings of records and run entries.
 const (
 	// valueInline holds the bytes in the record or entry.
 	valueInline = 0

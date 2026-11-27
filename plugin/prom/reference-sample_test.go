@@ -17,16 +17,16 @@ type referenceSample struct {
 // T returns the sample timestamp.
 func (s referenceSample) T() int64 { return s.t }
 
-// ST returns zero; the reference samples carry no start timestamp.
+// ST returns zero because the reference samples carry no start timestamp.
 func (s referenceSample) ST() int64 { return 0 }
 
 // F returns the sample value.
 func (s referenceSample) F() float64 { return s.f }
 
-// H returns nil; the sample is a float.
+// H returns nil because the sample is a float.
 func (s referenceSample) H() *histogram.Histogram { return nil }
 
-// FH returns nil; the sample is a float.
+// FH returns nil because the sample is a float.
 func (s referenceSample) FH() *histogram.FloatHistogram { return nil }
 
 // Type returns the float value type.

@@ -12,7 +12,8 @@ import (
 )
 
 // RunMountHelper implements bazil's privileged system/data mount handshake.
-// This is neither a setuid helper nor a replacement for general fusermount3.
+// RunMountHelper is neither a setuid helper nor a replacement for general
+// fusermount3.
 func RunMountHelper(args []string) error {
 	// Accept the adapter's fixed filesystem identity and optional read-only flag.
 	if os.Geteuid() != 0 || len(args) != 4 || args[0] != "-o" || args[2] != "--" {
@@ -55,7 +56,8 @@ func RunMountHelper(args []string) error {
 		return err
 	}
 
-	// Transfer the open channel to bazil; undo the mount if it cannot receive it.
+	// Transfer the open channel to bazil. Undo the mount if bazil cannot
+	// receive the channel.
 	if err := unix.Sendmsg(comm, []byte{0}, unix.UnixRights(fd), nil, 0); err != nil {
 		return errors.Join(err, unix.Unmount(args[3], 0))
 	}

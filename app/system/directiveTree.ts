@@ -12,7 +12,8 @@ export interface DirectiveNode {
   id: number
   name: string
   ident: string
-  // configKeys are the ConfigSet keys its references were added under.
+  // configKeys are the ConfigSet keys the directive's references were added
+  // under.
   configKeys: string[]
   children: DirectiveEdge[]
 }
@@ -30,11 +31,12 @@ export interface DirectiveOriginGroup {
 // An origin can sit below the directive it added.
 export interface DirectiveTree {
   nodes: Map<number, DirectiveNode>
-  // controllers added directives from their Execute, outside any directive.
+  // controllers contains controller origins that added directives from
+  // their Execute, outside any directive.
   controllers: DirectiveOriginGroup[]
-  // remote groups directives added by a directive on another bus.
+  // remote contains groups of directives added by a directive on another bus.
   remote: DirectiveOriginGroup[]
-  // unlinked are the directives whose references name no origin at all.
+  // unlinked are the directives whose references specify no origin at all.
   unlinked: number[]
   // configKeys are the distinct ConfigSet keys, sorted.
   configKeys: string[]

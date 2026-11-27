@@ -184,7 +184,7 @@ type fallbackTest struct {
 	tracked *trackedSet
 	// reads and copies are the store's read chains.
 	reads, copies block.StoreOps
-	// open opens the pack store; nil opens it on the fake bucket.
+	// open opens the pack store. A nil open opens it on the fake bucket.
 	open func() backendStore
 	// index is the local pack index every open shares, or nil without one.
 	index kvtx.Store

@@ -8,7 +8,7 @@ import (
 
 // iterOps implements iterator store and returns unsorted ScanPrefixKeys.
 //
-// this is to ensure ScanPrefixKeys returns unsorted results (iterator sorts)
+// iterOps ensures ScanPrefixKeys returns unsorted results (iterator sorts).
 type iterOps struct {
 	t *TXCache
 }

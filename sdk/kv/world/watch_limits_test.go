@@ -277,7 +277,7 @@ func TestBoundedWatchLimitEndsOnlyThatWatch(t *testing.T) {
 		t.Fatal("bounded watch did not end after exceeding its limit")
 	}
 
-	// The unbounded watch must still be running; commit a third record.
+	// The unbounded watch must still be running. Commit a third record.
 	commitKvSet(t, ctx, store, "g/third", "three")
 	select {
 	case s := <-unboundedSnapshots:

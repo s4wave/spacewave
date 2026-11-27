@@ -230,7 +230,8 @@ func TestSDKEngine_SyncThroughSkipsLaterWriter(t *testing.T) {
 		t.Fatal("second commit never reached the gate")
 	}
 
-	// SyncThrough for the first writer returns without it.
+	// SyncThrough for the first writer returns without waiting for the
+	// second commit.
 	fenceCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	durable, err := f.sdk.SyncThrough(fenceCtx, firstSeqno)
 	cancel()
@@ -249,7 +250,8 @@ func TestSDKEngine_SyncThroughSkipsLaterWriter(t *testing.T) {
 		t.Fatalf("durable head %v, %v; want the first commit's head %v", head, err, firstHead)
 	}
 
-	// The held commit's own seqno still waits for it.
+	// The held commit's own seqno still waits for the commit to become
+	// durable.
 	waitCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	_, err = f.sdk.SyncThrough(waitCtx, firstSeqno+1)
 	cancel()

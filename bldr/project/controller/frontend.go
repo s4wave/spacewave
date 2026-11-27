@@ -42,7 +42,7 @@ const refreshExports = "register, injectIntoGlobalHook, createSignatureFunctionF
 // FrontendService owns the project's current development environment.
 // The project Controller constructs and configures it, and other packages reach
 // it through Controller.GetFrontendService. The Controller serializes
-// configuration and shutdown; RPC methods run concurrently.
+// configuration and shutdown. RPC methods run concurrently.
 type FrontendService struct {
 	// le records environment failures and recovery.
 	le *logrus.Entry
@@ -185,8 +185,9 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 	// Clone the config and assign a short unique development session id.
 	conf := config.CloneVT()
 
-	// The session id appears in every module URL; 40 random bits keep it short
-	// while still distinguishing one environment from the one it replaced.
+	// The session id appears in every module URL. 40 random bits keep the
+	// id short while still distinguishing one environment from the one it
+	// replaced.
 	conf.SessionId = strings.ToLower(rand.Text()[:8])
 	err = compiler.RunDevelopment(ctx, conf, func(client vite.SRPCViteBundlerClient, result *vite.DevelopmentResult) {
 		// Publish each ready compiler session as the service's active environment.
@@ -196,8 +197,9 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 			return
 		}
 
-		// The authenticated Bldr route targets Vite's private listener. Its Host
-		// must name that listener, independently of the browser's public origin.
+		// The authenticated Bldr route targets Vite's private listener.
+		// Its Host must identify that listener, independently of the
+		// browser's public origin.
 		env := &frontendEnvironment{ctx: ctx, client: client, result: result, proxy: &httputil.ReverseProxy{
 			Rewrite: func(request *httputil.ProxyRequest) { request.SetURL(target) },
 		}}
@@ -333,12 +335,13 @@ func (f *FrontendService) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Forward all other requests through the environment's reverse proxy.
 	// Vite's caching headers pass through: sources revalidate by ETag, and
 	// optimized dependencies are immutable under their version query. The
-	// route prefix names the compiler session, so cached URLs never span sessions.
+	// route prefix identifies the compiler session, so cached URLs never
+	// span sessions.
 	env.proxy.ServeHTTP(rw, req)
 }
 
 // ServeBootstrap establishes React Refresh before the canonical renderer loads.
-// Only compiler runtime code uses this route; application modules use Fetch.
+// Only compiler runtime code uses this route. Application modules use Fetch.
 func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Request, entrypoint, startup string) {
 	// Serve a passthrough boot module when the frontend is disabled.
 	if f.run.GetState() == nil {
@@ -382,7 +385,7 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 }
 
 // WebPkgImports returns the shared package bindings for the document's import
-// map once the compiler is ready; a disabled frontend returns nil at once.
+// map once the compiler is ready. A disabled frontend returns nil at once.
 // The document declares them in its single map, since Firefox rejects any
 // map added after the first.
 func (f *FrontendService) WebPkgImports(ctx context.Context) (map[string]string, error) {

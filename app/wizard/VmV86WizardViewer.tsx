@@ -61,8 +61,8 @@ import { wizardFinishView } from './wizard-finish.js'
 import { WizardGone } from './WizardGone.js'
 import { WizardLoading } from './WizardLoading.js'
 
-// decodeConfig reads the wizard config, or an empty one when it is missing or
-// does not decode.
+// decodeConfig reads the wizard config, or an empty config when the data is
+// missing or does not decode.
 function decodeConfig(configData: Uint8Array | undefined): V86WizardConfig {
   if (!configData?.length) return V86WizardConfig.create({})
   try {
@@ -143,8 +143,8 @@ function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
 
 /**
  * useVmCreation holds the VM creation the wizard started. Each press runs
- * the creation once on the Space World; nothing reruns it on its own, and
- * once its commit lands the state is done for good, so the VM opens.
+ * the creation once on the Space World. Nothing reruns the creation on its
+ * own, and once the commit lands the state is done for good, so the VM opens.
  */
 function useVmCreation() {
   const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
@@ -255,8 +255,8 @@ function useV86Seed({
 
 /**
  * useDefaultCdnImage resolves the CDN image for a LINK_FROM_CDN config: the
- * chosen catalog entry, or the discovered default, which is then written back
- * to the config. It records the catalog startup boundary once.
+ * chosen catalog entry, or the discovered default entry, which is then written
+ * back to the config. It records the catalog startup boundary once.
  */
 function useDefaultCdnImage(
   rootResource: ReturnType<typeof useRootResource>,
@@ -618,8 +618,9 @@ export function VmV86WizardViewer({
   }, [handleCancel])
 
   // A creation refused because the wizard is gone, or one that failed once
-  // another writer removed it, can only be closed. While it runs or once it
-  // lands, the wizard's absence is its own delete.
+  // another writer removed the wizard, can only be closed. While the creation
+  // runs or once the commit lands, the wizard's absence is the creation's own
+  // delete.
   if (
     creation.status === 'gone' ||
     (creation.status === 'failed' && wizardGone)

@@ -10,7 +10,7 @@ import (
 // testRequestAccess exposes authority changes without a second role model.
 type testRequestAccess struct {
 	// ctx is the request context the access was authorized under. Like the
-	// production access, Check fails once it ends.
+	// production access, Check fails once ctx ends.
 	ctx context.Context
 	// allowed holds the primitive authority decision supplied by the test.
 	allowed *ccontainer.CContainer[bool]

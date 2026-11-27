@@ -51,7 +51,7 @@ func NewTransactionStage(storage WorldStorage) WorldStage {
 }
 
 // OpenWorldStorage opens storage for building through ws. A writable ws opens
-// a stage that owns the build; a read-only ws returns its own storage, so
+// a stage that owns the build. A read-only ws returns its own storage, so
 // reads work and writes fail. Release the result after the build is adopted
 // or abandoned.
 func OpenWorldStorage(ctx context.Context, ws WorldState) (WorldStage, error) {
@@ -63,8 +63,8 @@ func OpenWorldStorage(ctx context.Context, ws WorldState) (WorldStage, error) {
 
 // OpenStagedCursor opens storage for building through ws with
 // OpenWorldStorage and returns a cursor at ref with the stage that owns its
-// writes. Releasing the stage releases the cursor first; release it after the
-// build is adopted or abandoned.
+// writes. Releasing the stage releases the cursor first. Release the stage
+// after the build is adopted or abandoned.
 func OpenStagedCursor(ctx context.Context, ws WorldState, ref *bucket.ObjectRef) (*bucket_lookup.Cursor, WorldStage, error) {
 	// Open the storage that owns the cursor's writes.
 	stage, err := OpenWorldStorage(ctx, ws)
@@ -147,7 +147,7 @@ func (s *storageStage) BuildStorageCursor(ctx context.Context) (*bucket_lookup.C
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-// The cursor is released after cb returns; the stage keeps its writes.
+// The cursor is released after cb returns. The stage keeps its writes.
 func (s *storageStage) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
@@ -164,7 +164,7 @@ func (s *storageStage) AccessWorldState(
 // ReleaseRoots drops the ownership of roots in every volume stage the scope
 // opened. A stage that does not own a root ignores it.
 func (s *storageStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) error {
-	// Take the open stages; a released scope owns nothing.
+	// Take the open stages. A released scope owns nothing.
 	s.mtx.Lock()
 	stores := s.stores
 	s.mtx.Unlock()

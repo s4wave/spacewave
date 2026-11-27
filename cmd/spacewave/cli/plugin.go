@@ -106,8 +106,8 @@ func runPluginImportManifest(
 		return errors.New("object-key is required")
 	}
 
-	// Open a copy of the source devtool volume, which this only reads, and
-	// look up the manifests.
+	// Open a copy of the source devtool volume, which this function only
+	// reads, and look up the manifests.
 	le := cliBus.GetLogger()
 	src, err := devtool_store.OpenVolumeCopy(ctx, le, dbPath)
 	if err != nil {
@@ -398,7 +398,7 @@ func formatPluginRevisions(p *s4wave_space.SpacePluginStatus, loc *time.Location
 }
 
 // formatPluginSwap renders a swap state that has a candidate in flight or
-// failed, naming what it waits for and the next step.
+// failed, describing what the swap waits for and the next step.
 func formatPluginSwap(pluginID string, swap *bldr_plugin.PluginSwap, loc *time.Location) string {
 	// Render each state with its times as local clock times.
 	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }

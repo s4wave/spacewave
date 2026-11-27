@@ -15,7 +15,7 @@ var ErrNoAndroidDevice = errors.New("no adb device")
 
 // AndroidChrome is Chrome on the one Android device adb sees, reached over the
 // DevTools protocol through adb port forwarding. Chrome must be open and the
-// device unlocked; a locked device freezes its tabs.
+// device unlocked. A locked device freezes its tabs.
 //
 // Chrome on Android cannot create browser contexts, so tests share the
 // profile's context and remove what they leave with ClearOrigin.

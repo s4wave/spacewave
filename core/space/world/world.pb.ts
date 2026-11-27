@@ -53,7 +53,7 @@ export const ReplayRefusalRule_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * WorldOpKind names the body of a WorldOp by its field in the body oneof.
+ * WorldOpKind identifies the body of a WorldOp by its field in the body oneof.
  *
  * @generated from enum space.world.WorldOpKind
  */
@@ -150,7 +150,7 @@ export interface WorldContentsObject {
   objectKey?: string
   /**
    * ParentObjectKey is the key of the parent of the object.
-   * Can be empty.
+   * ParentObjectKey can be empty.
    */
   parentObjectKey?: string
   /**
@@ -201,7 +201,7 @@ export interface SpaceSettings {
   indexPath?: string
   /**
    * PluginIds lists manifest IDs of plugins this Space uses.
-   * Shared with all Space participants.
+   * PluginIds is shared with all Space participants.
    */
   pluginIds?: string[]
   /**
@@ -215,8 +215,9 @@ export interface SpaceSettings {
   pluginInstallations?: { [key: string]: SpacePluginInstallation }
   /**
    * ChangelogEnabled keeps a changelog of World changes for this Space.
-   * Writing the settings applies it to the World in the same transaction.
-   * Enabling starts history after that write; disabling drops it.
+   * Writing the settings applies ChangelogEnabled to the World in the same
+   * transaction. Enabling starts history after that write. Disabling drops
+   * the history.
    */
   changelogEnabled?: boolean
 }
@@ -261,7 +262,8 @@ export const SpacePluginInstallation: MessageType<SpacePluginInstallation> =
 export interface Config {
   /**
    * EngineId identifies the World on the bus. LookupWorldEngine directives
-   * naming it resolve to the engine. Empty serves no lookup.
+   * specifying EngineId resolve to the engine. An empty EngineId serves no
+   * lookup.
    */
   engineId?: string
   /**
@@ -283,16 +285,16 @@ export interface Config {
    */
   verbose?: boolean
   /**
-   * ReaderPinDelay is how long a replaced World head a reader still holds
-   * waits before the engine pins it, as a duration string. The pin lands
+   * ReaderPinDelay is how long the engine waits before pinning a replaced
+   * World head a reader still holds, as a duration string. The pin lands
    * within this delay plus the head watch's lag, on whichever goroutine
    * installs the replacing head, so the Volume collector's grace must cover
-   * both. Empty uses the engine's default.
+   * both. An empty ReaderPinDelay uses the engine's default delay.
    */
   readerPinDelay?: string
   /**
    * MaxPendingBytes bounds the World pages the adapter keeps in memory
-   * before it stores them. Zero uses the adapter's default.
+   * before it stores them. Zero uses the adapter's default byte limit.
    */
   maxPendingBytes?: bigint
 }
@@ -424,13 +426,13 @@ export interface InitWorldOp {
   lastChangeDisable?: boolean
   /**
    * TransformConf is the transform the World's blocks are written with. The
-   * author sets it so every member replays the same World; replay rejects an
-   * operation without it.
+   * author sets it so every member replays the same World. Replay rejects an
+   * operation without TransformConf.
    */
   transformConf?: Config$1
   /**
    * GraphSettings are the settings the World's graph store starts with.
-   * Empty means the default settings.
+   * An empty GraphSettings value means the default settings.
    */
   graphSettings?: GraphSettings
   /**
@@ -522,8 +524,8 @@ export const SetTransformConfOp: MessageType<SetTransformConfOp> =
  */
 export interface GraphSettingsStepOp {
   /**
-   * Target are the graph settings to move to. Empty means the default
-   * settings.
+   * Target are the graph settings to move to. An empty Target means the
+   * default settings.
    */
   target?: GraphSettings
   /**
@@ -599,8 +601,8 @@ export interface HeldRoots {
   roots?: BlockRef[]
   /**
    * Prev is an earlier HeldRoots block whose roots, and its own earlier
-   * blocks' roots, are held before these, or empty. An append names the
-   * block it extends instead of naming every root again.
+   * blocks' roots, are held before these roots, or empty. An append references
+   * the block it extends instead of referencing every root again.
    */
   prev?: BlockRef
 }
@@ -614,8 +616,9 @@ export const HeldRoots: MessageType<HeldRoots> =
 /**
  * ReplaySpan is the block a Space engine before the adapter held under its
  * replay-span root: the Worlds after the replayed operations above the
- * checkpoint and their payloads, in a chain. The adapter writes none; the
- * child list repair of a Volume written before it reads them.
+ * checkpoint and their payloads, in a chain. The adapter writes no replay
+ * spans. The child list repair of a Volume written before the adapter reads
+ * these spans.
  *
  * @generated from message space.world.ReplaySpan
  */
@@ -646,8 +649,8 @@ export const ReplaySpan: MessageType<ReplaySpan> =
 
 /**
  * ReplayCursor is the replay a Space engine last saved on this device, so a
- * remount resumes after it instead of replaying from the checkpoint. It names
- * a head World only once the replay cursor root holds that World.
+ * remount resumes after it instead of replaying from the checkpoint. The cursor
+ * records a head World only once the replay cursor root holds that World.
  *
  * @generated from message space.world.ReplayCursor
  */
@@ -718,9 +721,9 @@ export interface ReplayCursorOutcome {
    */
   seqno?: bigint
   /**
-   * PayloadHandlers identifies the handlers that named Payloads. A remount
-   * reuses Payloads only when every handler still names the same roots, and
-   * resolves the operation again when this is unset.
+   * PayloadHandlers identifies the handlers that reported Payloads. A remount
+   * reuses Payloads only when every handler still reports the same roots, and
+   * resolves the operation again when PayloadHandlers is unset.
    */
   payloadHandlers?: PayloadHandlers
 }
@@ -740,7 +743,7 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
   )
 
 /**
- * PayloadHandlers identifies the handlers that named an operation's payload
+ * PayloadHandlers identifies the handlers that reported an operation's payload
  * roots.
  *
  * @generated from message space.world.PayloadHandlers
@@ -752,9 +755,9 @@ export interface PayloadHandlers {
    */
   handlers?: PayloadHandler[]
   /**
-   * TxVersion is the PayloadRefsVersion of the transaction rules that named
-   * the transaction's own roots. Zero, as in handlers saved before it was
-   * recorded, is never current.
+   * TxVersion is the PayloadRefsVersion of the transaction rules that reported
+   * the transaction's own roots. Zero, as in handlers saved before TxVersion
+   * was recorded, is never current.
    */
   txVersion?: number
 }
@@ -770,7 +773,7 @@ export const PayloadHandlers: MessageType<PayloadHandlers> =
 
 /**
  * PayloadHandler is the handler of one operation type, as far as the payload
- * roots it names.
+ * roots it reports.
  *
  * @generated from message space.world.PayloadHandler
  */
@@ -781,7 +784,7 @@ export interface PayloadHandler {
   opTypeId?: string
   /**
    * Version is the PayloadRefsVersion of the type's handler, or zero for a
-   * type that names no payload roots of its own.
+   * type that reports no payload roots of its own.
    */
   version?: number
 }
@@ -897,7 +900,7 @@ export const OrderOperation: MessageType<OrderOperation> =
  */
 export interface OrderOperationBody {
   /**
-   * Kind names the body.
+   * Kind identifies the body.
    */
   kind?: WorldOpKind
 }
@@ -1058,7 +1061,7 @@ export const OrderInspection: MessageType<OrderInspection> =
  */
 export interface OrderKindCount {
   /**
-   * Kind names the body.
+   * Kind identifies the body.
    */
   kind?: WorldOpKind
   /**

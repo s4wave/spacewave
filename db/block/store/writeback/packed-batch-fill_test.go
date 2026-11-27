@@ -65,7 +65,7 @@ func TestPackedBatchFillUploads(t *testing.T) {
 		t.Fatal("the batched block is not in the Log")
 	}
 
-	// Drain the Log; the uploaded pack holds the block.
+	// Drain the Log, so the uploaded pack holds the block.
 	remote := &packRemote{packs: make(map[string][]byte)}
 	d := packahead.NewDrain(log, packahead.DrainOptions{})
 	runCtx, cancel := context.WithCancel(ctx)

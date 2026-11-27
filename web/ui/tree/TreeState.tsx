@@ -31,8 +31,8 @@ export type TreeUpdate = (update: (state: TreeState) => TreeState) => void
 export type TreeStateHandle = readonly [TreeState, TreeUpdate]
 
 // useTreeState keeps a Tree's state under key in the state namespace. The
-// component that renders the Tree owns it, so it reads expansion and selection
-// directly instead of mirroring them from the Tree.
+// component that renders the Tree owns the state, so the component reads
+// expansion and selection directly instead of mirroring them from the Tree.
 export function useTreeState(
   namespace: StateNamespace | null,
   key: string,

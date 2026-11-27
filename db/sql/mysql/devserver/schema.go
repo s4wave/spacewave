@@ -14,7 +14,7 @@ const SchemaFileSuffix = ".sql"
 
 // ReadSchemaFiles reads the SQL schema at each path in order. A directory
 // contributes its .sql files sorted by name, the order migration files are
-// numbered in; subdirectories are not read. Returns the files read and their
+// numbered in. Subdirectories are not read. Returns the files read and their
 // texts, in the same order.
 func ReadSchemaFiles(paths []string) (files []string, texts []string, err error) {
 	for _, path := range paths {

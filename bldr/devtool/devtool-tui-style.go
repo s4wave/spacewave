@@ -31,9 +31,10 @@ const (
 	tuiStatusWarn
 )
 
-// ANSI SGR codes used by the dashboard. Kept minimal and 8-color safe so the
-// dashboard reads on any terminal. Styling is applied to whole pre-sized tokens
-// so it never changes a line's visible width.
+// ansiReset and related constants define the dashboard's ANSI SGR codes.
+// The codes are minimal and 8-color safe so the dashboard reads on any
+// terminal. Styling is applied to whole pre-sized tokens so it never changes
+// a line's visible width.
 const (
 	ansiReset  = "\x1b[0m"
 	ansiBold   = "\x1b[1m"
@@ -65,7 +66,8 @@ func (k tuiStatusKind) glyph() string {
 	}
 }
 
-// color returns the ANSI color code for the kind, or empty for the default.
+// color returns the ANSI color code for the kind, or empty for the default
+// color.
 func (k tuiStatusKind) color() string {
 	switch k {
 	case tuiStatusActive:

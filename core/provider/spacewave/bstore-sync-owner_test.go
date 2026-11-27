@@ -164,7 +164,7 @@ func TestSyncControllerCoalescesNonceTriggersIntoPullNow(t *testing.T) {
 		sc.remotePullRoutine.ClearContext()
 	}()
 
-	// Trigger again while the first pull runs; no second pull starts yet.
+	// Trigger again while the first pull runs. No second pull starts yet.
 	sc.TriggerRemotePull(1)
 	waitForBstoreSyncOwnerSignal(t, pullStarted, time.Second, "nonce-triggered pull")
 	sc.TriggerRemotePull(8)

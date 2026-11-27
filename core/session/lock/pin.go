@@ -21,7 +21,7 @@ func derivePinKey(config *LockConfig, pin []byte) ([]byte, error) {
 		n = 18 // 2^18 = ~0.25s, appropriate for PIN unlock
 	}
 
-	// Pre-hash PIN with blake3 for context binding.
+	// Pre-hash the PIN with blake3 for context binding.
 	var passKey [32]byte
 	blake3.DeriveKey(pinKDFContext, pin, passKey[:])
 
@@ -36,7 +36,7 @@ func derivePinKey(config *LockConfig, pin []byte) ([]byte, error) {
 // CreatePINLock creates PIN-encrypted lock files for a session private key.
 // Returns encrypted privkey, encrypted symmetric key, and lock config.
 func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *LockConfig, err error) {
-	// Generate random 32-byte symmetric key.
+	// Generate a random 32-byte symmetric key.
 	var symKey [32]byte
 	_, err = rand.Read(symKey[:])
 	if err != nil {
@@ -44,7 +44,7 @@ func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *Lock
 	}
 	defer scrub.Scrub(symKey[:])
 
-	// Encrypt privkey with symKey.
+	// Encrypt the privkey with symKey.
 	symMethod, err := newSessionLockMethod(symKey[:])
 	if err != nil {
 		return nil, nil, nil, err
@@ -54,7 +54,7 @@ func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *Lock
 		return nil, nil, nil, err
 	}
 
-	// Derive pinKey from PIN via scrypt (random salt).
+	// Derive pinKey from the PIN via scrypt (random salt).
 	salt := make([]byte, 16)
 	_, err = rand.Read(salt)
 	if err != nil {
@@ -96,6 +96,6 @@ func UnlockPIN(encPriv, encSymKey []byte, config *LockConfig, pin []byte) ([]byt
 	}
 	defer scrub.Scrub(symKeyBytes)
 
-	// Decrypt privkey.
+	// Decrypt the privkey.
 	return decryptSessionLockBytes(symKeyBytes, encPriv)
 }

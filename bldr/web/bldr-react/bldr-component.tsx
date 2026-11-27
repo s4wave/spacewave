@@ -16,7 +16,7 @@ export class BldrComponent<
   S = Record<string, never>,
   SS = unknown,
 > extends AbortComponent<P, S, SS> {
-  // context is the webDocument context
+  // context is the webDocument context.
   declare context: React.ContextType<typeof BldrContext>
   static contextType = BldrContext
 

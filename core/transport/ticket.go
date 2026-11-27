@@ -23,7 +23,7 @@ type signalTicketHTTPError struct {
 	statusCode int
 }
 
-// Error names the refusal's HTTP status.
+// Error reports the refusal's HTTP status.
 func (e *signalTicketHTTPError) Error() string {
 	return "signal ticket: HTTP " + strconv.Itoa(e.statusCode)
 }
@@ -71,7 +71,7 @@ func signalWebSocketURL(baseURL, ticket string) (string, error) {
 
 // acquireSignalTicket POSTs to /signal/ticket with entity-signed headers
 // and returns a JWT token for WebSocket authentication. It signs at clock's
-// time and learns the server's time from each answer; a request refused while
+// time and learns the server's time from each answer. A request refused while
 // the clocks disagreed is signed again once, at the server's time.
 func acquireSignalTicket(
 	ctx context.Context,

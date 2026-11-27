@@ -87,7 +87,7 @@ export const MarkTestResultResponse: MessageType<MarkTestResultResponse> =
 export interface AccessStateAtomRequest {
   /**
    * StoreId is the identifier for the state store.
-   * If empty, uses the default "ui-state" store.
+   * If StoreId is empty, the default "ui-state" store is used.
    */
   storeId?: string
 }

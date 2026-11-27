@@ -76,7 +76,7 @@ func (t *Tx) Prefetch(ctx context.Context, keys [][]byte) (err error) {
 	return kvtx.Prefetch(ctx, t.Tx, keys)
 }
 
-// Size returns number of keys in the store.
+// Size returns the number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (count uint64, err error) {
 	t.le.Debug("Size() start")
 	defer func() {
@@ -167,7 +167,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The value will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 	t.le.Debugf("Set(%s) start", keyForLogging(key))
 	defer func() {
@@ -182,7 +182,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The deletion will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 	t.le.Debugf("Delete(%s) start", keyForLogging(key))

@@ -27,7 +27,7 @@ func checksum(data []byte) []byte {
 }
 
 // wrapChecksum returns data with its masked checksum appended, masked, in one
-// new buffer; data is not changed.
+// new buffer. data is not changed.
 func wrapChecksum(data []byte) []byte {
 	// Append the checksum masked from position zero.
 	out := make([]byte, len(data)+8)

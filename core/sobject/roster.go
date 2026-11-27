@@ -43,7 +43,7 @@ func DropFromSORoster(ctx context.Context, host *SOHost, peers []string, signer 
 }
 
 // changeSORoster makes one attempt to drop the writers that next returns,
-// given those the config the host holds now drops.
+// given those the config the host holds drops.
 func changeSORoster(ctx context.Context, host *SOHost, signer crypto.PrivKey, next func(dropped []string) []string) (bool, error) {
 	// Read the current config.
 	state, err := host.GetHostState(ctx)

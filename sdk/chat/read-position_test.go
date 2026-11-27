@@ -142,7 +142,8 @@ func TestThreadReadPositions(t *testing.T) {
 		t.Fatal("receipt accepted a missing thread root")
 	}
 
-	// The channel position subsumes the main position it passes and keeps the thread ahead of it.
+	// The channel position subsumes the main position it passes and keeps the
+	// thread position ahead of the channel position.
 	position = update(1, nil)
 	if position.GetNextIndex() != 1 || len(position.GetThreadPositions()) != 1 || position.GetThreadPositions()[root].GetNextIndex() != 2 {
 		t.Fatalf("channel receipt kept a subsumed timeline position: %v", position)

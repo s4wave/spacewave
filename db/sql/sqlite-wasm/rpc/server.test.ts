@@ -28,7 +28,7 @@ describe('SqliteBridgeServer', () => {
     const dbId = openResp.dbId
     expect(dbId).toBeGreaterThan(0)
 
-    // Create table.
+    // Create the table.
     const createResp = await server.Exec({
       dbId,
       sql: 'CREATE TABLE test (key BLOB PRIMARY KEY, value BLOB)',
@@ -89,7 +89,7 @@ describe('SqliteBridgeServer', () => {
     expect(row2[0].value?.case).toBe('blobValue')
     expect(row2[1].value?.case).toBe('blobValue')
 
-    // Close database.
+    // Close the database.
     await server.CloseDb({ dbId })
   })
 
@@ -180,7 +180,7 @@ describe('SqliteBridgeServer', () => {
 
     await server.Exec({ dbId, sql: 'CREATE TABLE txtest (k TEXT)' })
 
-    // Begin, insert, rollback.
+    // Begin a transaction, insert a row, and roll back the transaction.
     await server.Exec({ dbId, sql: 'BEGIN IMMEDIATE' })
     await server.Exec({
       dbId,
@@ -189,7 +189,7 @@ describe('SqliteBridgeServer', () => {
     })
     await server.Exec({ dbId, sql: 'ROLLBACK' })
 
-    // Verify row was rolled back.
+    // Verify the row was rolled back.
     const stream = server.Query({
       dbId,
       sql: 'SELECT COUNT(*) as cnt FROM txtest',

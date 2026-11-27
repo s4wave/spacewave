@@ -56,7 +56,7 @@ const inputClass = cn(
 )
 
 // AddStorageDialog adds an S3-compatible bucket as a storage backend. The
-// bucket is checked live before it is saved; when the browser cannot reach
+// bucket is checked live before it is saved. When the browser cannot reach
 // it, the dialog shows the CORS rule the bucket needs.
 export function AddStorageDialog({
   open,

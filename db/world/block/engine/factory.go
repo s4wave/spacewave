@@ -15,9 +15,9 @@ const ControllerID = "hydra/world/block/engine"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// Factory constructs a world engine controller
+// Factory constructs a world engine controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

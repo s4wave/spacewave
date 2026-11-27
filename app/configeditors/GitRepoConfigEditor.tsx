@@ -8,7 +8,8 @@ import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import type { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
 
 // GitRepoConfigEditor edits the config-specific fields of a CreateGitRepoWizardOp.
-// Renders a new/clone toggle and clone options (URL, ref, depth, recursive).
+// The editor renders a new/clone toggle and clone options (URL, ref, depth,
+// recursive).
 export function GitRepoConfigEditor({
   value,
   onValueChange,

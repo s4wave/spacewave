@@ -1280,7 +1280,7 @@ interface FeatureItem {
 }
 
 const ComparisonChart: React.FC = () => {
-  // Features organized by key benefits and capabilities
+  // Features are organized by key benefits and capabilities.
   const features: FeatureItem[] = [
     // Core features
     {

@@ -40,7 +40,7 @@ type ftpsArgs struct {
 }
 
 // ftpsFlags returns the flags that set a, whose server holds the packs: the
-// use names what the command does with them, such as "read the packs from".
+// use describes what the command does with them, such as "read the packs from".
 func ftpsFlags(a *ftpsArgs, use string) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "ftps-host", Usage: use + " this FTPS or SFTP server instead of the bucket", Destination: &a.host},

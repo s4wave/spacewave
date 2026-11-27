@@ -1,13 +1,13 @@
 // sqlite-records is the device worker of the E3 volume replay target: a
 // records store in one SQLite database on the opfs-sahpool VFS.
 //
-// Each request is {id, op, ...args}; each response is {id, error?, ...result}.
+// Each request is {id, op, ...args}. Each response is {id, error?, ...result}.
 // Requests run one at a time in arrival order.
 
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import type { Database, SAHPoolUtil } from '@sqlite.org/sqlite-wasm'
 
-// Op is one write in a commit; an absent value deletes the key.
+// Op is one write in a commit. An absent value deletes the key.
 interface Op {
   key: Uint8Array
   value?: Uint8Array

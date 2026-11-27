@@ -17,7 +17,7 @@ type StepFactory interface {
 	Construct(config.Config, controller.ConstructOpts) (Step, error)
 }
 
-// Step implements a constructed transform step.
+// Step is a constructed transform step.
 // Note: the step functions must be concurrency-safe.
 type Step interface {
 	// EncodeBlock encodes the block according to the config.

@@ -41,8 +41,8 @@ func (r *runner) contextInput(ctx context.Context, target *forge_target.Target, 
 		InputType: forge_target.InputType_InputType_ALIAS,
 	})
 
-	// The context names the activation, so a Step that reuses outputs keys
-	// its result without it.
+	// The context identifies the activation, so a Step that reuses outputs
+	// keys its result without the context.
 	if exec := target.GetExec(); exec.GetReuseOutputs() && !slices.Contains(exec.GetReuseIgnoreInputs(), s4wave_flowgraph.ActivationContextInputName) {
 		exec.ReuseIgnoreInputs = append(exec.ReuseIgnoreInputs, s4wave_flowgraph.ActivationContextInputName)
 	}

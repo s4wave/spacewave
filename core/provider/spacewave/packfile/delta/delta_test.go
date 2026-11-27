@@ -199,7 +199,7 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	// Mirror only the first two specs; the remaining four should be packed.
+	// Mirror only the first two specs. The remaining four should be packed.
 	specs, reader := buildTestKvfile(t, "single", 6, 128)
 	mirror := newMirrorStore(t, ctx, specs[0], specs[1])
 	expectedCount := uint64(len(specs) - 2)
@@ -433,7 +433,8 @@ func TestOpenMirrorUnionAbsent(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	// No {mirrorDir}/{spaceID}/ subdir; should degenerate cleanly.
+	// No {mirrorDir}/{spaceID}/ subdir. The union should degenerate
+	// cleanly.
 	mirrorDir := t.TempDir()
 	union, err := OpenMirrorUnion(ctx, nil, mirrorDir, "01test00000000000000000000")
 	if err != nil {

@@ -47,7 +47,8 @@ func (c *Controller) publishHosts(resErr []error, hosts []plugin_host.PluginHost
 	c.le.WithField("plugin-hosts", unique).Infof("scheduling with %d plugin host(s)", len(unique))
 	c.pluginHostsCtr.SetValue(hostSet)
 
-	// Warn if several plugin hosts serve one platform; the first one runs it.
+	// Warn if several plugin hosts serve one platform. The first host runs
+	// the platform.
 	if len(unique) < len(ids) {
 		c.le.WithField("plugin-hosts", unique).Warn("detected multiple plugin hosts with the same platform id")
 	}

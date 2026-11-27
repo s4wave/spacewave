@@ -19,10 +19,12 @@ type CopyProgress struct {
 	// Bytes is the size of the keys and values copied.
 	Bytes uint64
 	// UnknownBlocks is the number of blocks without a child list that a
-	// reachable copy's walk reached. The blocks they name are not reached.
+	// reachable copy's walk reached. The blocks those blocks reference are
+	// not reached.
 	UnknownBlocks uint64
-	// AbsentBlocks is the number of reached blocks a parent block names that
-	// the source does not hold: holes, which name nothing a reader can reach.
+	// AbsentBlocks is the number of reached blocks a parent block
+	// references that the source does not hold: holes, which reference
+	// nothing a reader can reach.
 	AbsentBlocks uint64
 	// DroppedBlocks is the number of blocks a copy left out.
 	DroppedBlocks uint64
@@ -34,12 +36,11 @@ type CopyProgress struct {
 	DroppedBytes uint64
 }
 
-// CopyStore writes the Volume store src into the empty store dst, every key
-// as it is, so dst holds src's format and liveness; opening dst upgrades an
-// older format. src is read in one snapshot and must have no writer. The
-// format version is written last in a durable commit; a dst without it is an
-// incomplete copy to discard. progress, when set, is called after each
-// commit.
+// CopyStore writes the Volume store src into the empty store dst, every key as
+// it is, so dst holds src's format and liveness. Opening dst upgrades an older
+// format. src is read in one snapshot and must have no writer. The format
+// version is written last in a durable commit. A dst without the version is an
+// incomplete copy to discard. progress, when set, is called after each commit.
 func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
 	return CopyStoreSplitting(ctx, src, dst, keys, SplitOptions{}, progress)
 }
@@ -73,10 +74,10 @@ func CopyStoreSplitting(ctx context.Context, src, dst kvtx.Store, keys *store_kv
 // copy keeps no count, log or free queue, so dst opens unadopted and an
 // adoption counts its holders.
 //
-// src must be at the current format. It refuses, before writing anything, a
-// source whose walk reaches a block stored without a child list, unless
-// opts.AllowUnknown is set: the blocks such a block names are not reached and
-// may be live.
+// src must be at the current format. CopyReachable refuses, before writing
+// anything, a source whose walk reaches a block stored without a child list,
+// unless opts.AllowUnknown is set: the blocks such a block references are not
+// reached and may be live.
 func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts CopyReachableOptions, progress func(CopyProgress)) error {
 	// Require a source whose liveness the walk reads.
 	ctx = block.WithBackground(ctx)
@@ -180,7 +181,7 @@ func copyStore(
 	return tx.Commit(ctx)
 }
 
-// requireEmptyStore returns an error unless store holds no keys.
+// requireEmptyStore returns an error if store holds any keys.
 func requireEmptyStore(ctx context.Context, store kvtx.Store) error {
 	// Count the keys in a snapshot.
 	tx, err := store.NewTransaction(ctx, false)
@@ -206,15 +207,16 @@ type copyWriter struct {
 	progress func(CopyProgress)
 	// counts is the work committed so far.
 	counts CopyProgress
-	// mark holds what the roots reach in a reachable copy; nil copies every
-	// key.
+	// mark holds what the roots reach in a reachable copy. A nil mark
+	// copies every key.
 	mark *block_gc.Mark
 	// blockPrefix is the prefix of the block keys.
 	blockPrefix []byte
-	// drop reports the blocks a dropping copy leaves out; nil keeps them.
+	// drop reports the blocks a dropping copy leaves out. A nil drop keeps
+	// them.
 	drop DropBlocks
 	// kept returns the extra keys written beside a block a dropping copy
-	// keeps; nil writes none.
+	// keeps. A nil kept writes none.
 	kept KeptBlockKeys
 	// omit are the key prefixes the copy leaves out.
 	omit [][]byte

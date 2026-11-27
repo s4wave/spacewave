@@ -112,7 +112,7 @@ func TestApprovalGateFailsClosed(t *testing.T) {
 	putRaw("unknown", data)
 	waitAdmitted(t, ctx, watchAdmitted(t, ctx, tb.Bus, peer, "unknown", root), 0)
 
-	// ALLOWED admits the deciding peer only; DECLINED withdraws the value.
+	// ALLOWED admits the deciding peer only. DECLINED withdraws the value.
 	counts := watchAdmitted(t, ctx, tb.Bus, peer, "colors", root)
 	other := watchAdmitted(t, ctx, tb.Bus, "peer-b", "colors", root)
 	waitAdmitted(t, ctx, counts, 0)

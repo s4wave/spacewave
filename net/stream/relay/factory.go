@@ -14,9 +14,9 @@ const ControllerID = "bifrost/stream/relay"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// Factory constructs a relay controller
+// Factory constructs a relay controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

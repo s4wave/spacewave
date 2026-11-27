@@ -9,8 +9,8 @@ import (
 
 // LookupConfig implements the lookup configuration JSON marshalling logic.
 type LookupConfig struct {
-	// Disable indicates we should not service cross-volume calls against this
-	// bucket.
+	// Disable indicates that cross-volume calls against this bucket should not
+	// be serviced.
 	Disable bool `json:"disable"`
 	// Controller is the controller configuration.
 	Controller *configset_json.ControllerConfig `json:"controller"`

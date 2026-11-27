@@ -55,7 +55,7 @@ func (s *bridgeService) GetPageInfo(ctx context.Context, req *s4wave_debug.GetPa
 }
 
 // PluginRpc forwards an RPC stream to a plugin.
-// Component ID: plugin id (e.g. "spacewave-core")
+// Component ID: plugin id (e.g. "spacewave-core").
 func (s *bridgeService) PluginRpc(strm s4wave_debug.SRPCDebugBridgeService_PluginRpcStream) error {
 	return rpcstream.HandleRpcStream(
 		strm,

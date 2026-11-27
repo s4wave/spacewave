@@ -1,7 +1,7 @@
 //go:build !tinygo
 
 // Package traceutil wraps runtime/trace so callers compile under TinyGo, which
-// lacks the runtime/trace package; the TinyGo build provides no-op equivalents.
+// lacks the runtime/trace package. The TinyGo build provides no-op equivalents.
 package traceutil
 
 import (

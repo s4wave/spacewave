@@ -83,8 +83,8 @@ const handleResource = () => ({
   retry: vi.fn(),
 })
 
-// A useResource mock that actually runs the async factory against the fake
-// handle and re-runs it when retry() is called, mirroring the real hook.
+// useResourceMock runs the async factory against the fake handle and re-runs
+// the factory when retry() is called, mirroring the real useResource hook.
 function useResourceMock<P, T>(
   parent: { value: P | null },
   factory: (parent: P, signal: AbortSignal) => Promise<T>,
@@ -284,7 +284,7 @@ describe('KvStoreViewer', () => {
     await user.click(screen.getByRole('button', { name: 'New Key' }))
     await user.type(screen.getByLabelText('New key'), 'draft')
 
-    // Ctrl+A in the key list selects both keys, which names no one key.
+    // Ctrl+A in the key list selects both keys, so no single key is selected.
     screen.getAllByRole('row')[0].closest<HTMLElement>('[tabindex]')?.focus()
     await user.keyboard('{Control>}a{/Control}')
     await waitFor(() =>
@@ -327,7 +327,7 @@ describe('KvStoreViewer', () => {
   })
 
   it('shows a retryable error state when the key list fails to load', async () => {
-    // A store whose key scan fails.
+    // Use a store whose key scan fails.
     fakeStore = new FakeKvStore({})
     vi.spyOn(fakeStore, 'scanKeys').mockRejectedValue(new Error('boom'))
     renderViewer()

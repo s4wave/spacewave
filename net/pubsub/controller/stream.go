@@ -7,15 +7,15 @@ import (
 	"github.com/s4wave/spacewave/net/pubsub"
 )
 
-// streamHandler handles HandleMountedStream directives
+// streamHandler handles HandleMountedStream directives.
 type streamHandler struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// ps is the pubsub
+	// ps is the pubsub.
 	ps pubsub.PubSub
 }
 
-// newStreamHandler builds a new stream handler
+// newStreamHandler builds a new stream handler.
 func newStreamHandler(
 	c *Controller,
 	ps pubsub.PubSub,

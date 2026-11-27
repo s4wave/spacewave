@@ -1,14 +1,16 @@
 import { WorldErrorCode } from './world.pb.js'
 
-// WorldOperationRejection carries an operation's stable application-defined
-// refusal, such as a validation failure or a conflicting request.
+// rejectionBrand brands WorldOperationRejection, which carries an operation's
+// stable application-defined refusal, such as a validation failure or a
+// conflicting request.
 const rejectionBrand = Symbol.for('spacewave.WorldOperationRejection')
 
 export class WorldOperationRejection extends Error {
   override readonly name = 'WorldOperationRejection'
   readonly [rejectionBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -25,17 +27,19 @@ export class WorldOperationRejection extends Error {
   }
 }
 
-// PluginOpTimeoutError reports that the plugin handling an operation ran past
-// the host's deadline and the host discarded the transaction, so the
-// operation wrote nothing and sending it again is safe. The host reports a
-// timeout it cannot prove kept nothing as a plain error instead.
+// pluginOpTimeoutBrand brands PluginOpTimeoutError, which reports that the
+// plugin handling an operation ran past the host's deadline and the host
+// discarded the transaction, so the operation wrote nothing and sending it
+// again is safe. The host reports a timeout it cannot prove kept nothing as a
+// plain error instead.
 const pluginOpTimeoutBrand = Symbol.for('spacewave.PluginOpTimeoutError')
 
 export class PluginOpTimeoutError extends Error {
   override readonly name = 'PluginOpTimeoutError'
   readonly [pluginOpTimeoutBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -49,17 +53,18 @@ export class PluginOpTimeoutError extends Error {
   }
 }
 
-// PluginUnavailableError reports that the plugin handling an operation could
-// not be reached: its load failed or did not finish in time. The host never
-// sent the operation or opened a transaction, so nothing was written and
-// sending it again is safe.
+// pluginUnavailableBrand brands PluginUnavailableError, which reports that the
+// plugin handling an operation could not be reached: its load failed or did not
+// finish in time. The host never sent the operation or opened a transaction, so
+// nothing was written and sending it again is safe.
 const pluginUnavailableBrand = Symbol.for('spacewave.PluginUnavailableError')
 
 export class PluginUnavailableError extends Error {
   override readonly name = 'PluginUnavailableError'
   readonly [pluginUnavailableBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -73,11 +78,11 @@ export class PluginUnavailableError extends Error {
   }
 }
 
-// PluginExecutableMissingError reports that the plugin build an operation is
-// pinned to has no executable for this device's platform. The host never sent
-// the operation or opened a transaction, so nothing was written. Sending it
-// again on this device fails the same way; a device the build supports can
-// apply it.
+// pluginExecutableMissingBrand brands PluginExecutableMissingError, which
+// reports that the plugin build an operation is pinned to has no executable for
+// this device's platform. The host never sent the operation or opened a
+// transaction, so nothing was written. Sending it again on this device fails
+// the same way. A device the build supports can apply it.
 const pluginExecutableMissingBrand = Symbol.for(
   'spacewave.PluginExecutableMissingError',
 )
@@ -86,7 +91,8 @@ export class PluginExecutableMissingError extends Error {
   override readonly name = 'PluginExecutableMissingError'
   readonly [pluginExecutableMissingBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -100,17 +106,19 @@ export class PluginExecutableMissingError extends Error {
   }
 }
 
-// ReplayWaitError reports that the World took no write because its replay is
-// not caught up: it is opening, or waits at an operation for a handler this
-// device lacks or a plugin's approval. Nothing was written and reads go on.
-// The write may be sent again once SharedObjectHealth.replay is caught_up.
+// replayWaitBrand brands ReplayWaitError, which reports that the World took no
+// write because its replay is not caught up: it is opening, or waits at an
+// operation for a handler this device lacks or a plugin's approval. Nothing was
+// written and reads go on. The write may be sent again once
+// SharedObjectHealth.replay is caught_up.
 const replayWaitBrand = Symbol.for('spacewave.ReplayWaitError')
 
 export class ReplayWaitError extends Error {
   override readonly name = 'ReplayWaitError'
   readonly [replayWaitBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -124,17 +132,18 @@ export class ReplayWaitError extends Error {
   }
 }
 
-// DurabilityUnknownError reports a write whose outcome is unknown: the World
-// may or may not hold it. It is not a refusal, so the caller must not send the
-// same write again as if nothing was written; it reads the World to learn the
-// outcome.
+// durabilityUnknownBrand brands DurabilityUnknownError, which reports a write
+// whose outcome is unknown: the World may or may not hold it. It is not a
+// refusal, so the caller must not send the same write again as if nothing was
+// written. The caller reads the World to learn the outcome.
 const durabilityUnknownBrand = Symbol.for('spacewave.DurabilityUnknownError')
 
 export class DurabilityUnknownError extends Error {
   override readonly name = 'DurabilityUnknownError'
   readonly [durabilityUnknownBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -168,18 +177,19 @@ export function typedError(
   return undefined
 }
 
-// WorldCommitError reports a commit the World refused with a typed result, so
-// nothing was committed. superseded is true when another writer advanced the
-// World first (SUPERSEDED or STALE_GENERATION): the caller may retry from a
-// new transaction. ROOT_NOT_HELD means the transaction's tree names a block
-// the Volume does not hold.
+// worldCommitBrand brands WorldCommitError, which reports a commit the World
+// refused with a typed result, so nothing was committed. superseded is true
+// when another writer advanced the World first (SUPERSEDED or
+// STALE_GENERATION): the caller may retry from a new transaction. ROOT_NOT_HELD
+// means the transaction's tree references a block the Volume does not hold.
 const worldCommitBrand = Symbol.for('spacewave.WorldCommitError')
 
 export class WorldCommitError extends Error {
   override readonly name = 'WorldCommitError'
   readonly [worldCommitBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -252,16 +262,18 @@ export function throwOperationError(response: OperationResponse): void {
   throw new WorldOperationError(code)
 }
 
-// WorldOperationError reports an operation the World refused or failed with a
-// built-in code that has no more specific error, including a code this build
-// does not know. The operation did not succeed.
+// worldOperationErrorBrand brands WorldOperationError, which reports an
+// operation the World refused or failed with a built-in code that has no more
+// specific error, including a code this build does not know. The operation did
+// not succeed.
 const worldOperationErrorBrand = Symbol.for('spacewave.WorldOperationError')
 
 export class WorldOperationError extends Error {
   override readonly name = 'WorldOperationError'
   readonly [worldOperationErrorBrand] = true
 
-  // Client and plugin builds recognize the same public error across bundles.
+  // Symbol.hasInstance lets client and plugin builds recognize the same public
+  // error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&
@@ -276,7 +288,7 @@ export class WorldOperationError extends Error {
 }
 
 // WorldBatchRefusal refuses a World batch with a built-in code, such as an
-// absent object a delete expected. failedIndex names the refused mutation.
+// absent object a delete expected. failedIndex identifies the refused mutation.
 export class WorldBatchRefusal extends Error {
   override readonly name = 'WorldBatchRefusal'
 

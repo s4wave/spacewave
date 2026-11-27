@@ -142,9 +142,9 @@ func TestStandaloneSessionMountsWithStalledSignaling(t *testing.T) {
 // cloud account) uses the trusted signaling URL persisted in the provider
 // configuration: with a URL it signs its own ticket request with the session
 // keypair under the configured signing environment and connects the WebRTC
-// signaling WebSocket without any cloud account credential; with an empty
-// URL it stays without signaling. A daemon restart re-runs the same mount
-// path, so a configured URL reconnects after restart.
+// signaling WebSocket without any cloud account credential. With an empty
+// URL the session stays without signaling. A daemon restart re-runs the same
+// mount path, so a configured URL reconnects after restart.
 func TestStandaloneSessionSignaling(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("standalone signaling test requires native HTTP server and WebSocket support")
@@ -189,7 +189,8 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 				t.Fatal("session transport did not connect to the signaling WebSocket")
 			}
 
-			// Require the ticket to name the session peer and parse its timestamp.
+			// Require the ticket to identify the session peer and
+			// parse its timestamp.
 			req := sig.first.Load()
 			if want := sess.GetPeerId().String(); req.peerID != want {
 				t.Fatalf("ticket request peer ID = %q, want session peer %s", req.peerID, want)

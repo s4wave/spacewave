@@ -11,7 +11,8 @@ import (
 )
 
 // DistSources contains the sources for the web entrypoint(s) and sdk(s).
-// Includes entrypoints, runtime workers, shared package import bindings, and SDK modules.
+// The sources include entrypoints, runtime workers, shared package import
+// bindings, and SDK modules.
 // These files must be checked out to .bldr/src so TypeScript + IDEs can see them.
 //
 // TODO: go.mod go.sum bun.lock tsconfig.json ?
@@ -177,7 +178,7 @@ var DistSources embed.FS
 func BuildDistSourcesFSCursor() *unixfs_iofs.FSCursor {
 	ifs := util_iofs.NewWritableFS(DistSources)
 
-	// NOTE: we assert there is no error in src-web_test.go
+	// NOTE: src-web_test.go asserts there is no error.
 	fs, _ := unixfs_iofs.NewFSCursor(ifs)
 	return fs
 }

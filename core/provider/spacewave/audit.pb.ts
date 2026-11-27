@@ -114,7 +114,8 @@ export interface AuditEventMetadata {
    */
   actorPeerId?: string
   /**
-   * AuthorizedBy names the entity keypair that authorized a session action.
+   * AuthorizedBy identifies the entity keypair that authorized a session
+   * action.
    */
   authorizedBy?: string
   /**

@@ -48,7 +48,7 @@ type debugPayloadRestoreArgs struct {
 	hash string
 	// sourceRoot is a tree whose files the payloads carried.
 	sourceRoot string
-	// bucketID names the owning bucket when the Space has several.
+	// bucketID selects the owning bucket when the Space has several.
 	bucketID string
 	// dryRun reports the missing blocks without writing them.
 	dryRun bool
@@ -181,12 +181,12 @@ func newDebugPayloadRestoreCommand(upgrade *FormatUpgrade) *cli.Command {
 	}
 }
 
-// restorePayload rebuilds the extent blobs of data with the World transform
-// of spaceID, selects the one whose root digest is want, and writes the blocks
-// the volume at path lacks, owned by bucketID, or by the one bucket named for
-// the Space when bucketID is empty, opening it with the store configuration
-// storeConf, nil for the default. It returns the root ref, the blob's block
-// count, and the number of blocks written.
+// restorePayload rebuilds the extent blobs of data with the World transform of
+// spaceID, selects the one whose root digest is want, and writes the blocks the
+// volume at path lacks, owned by bucketID, or by the one bucket named for the
+// Space when bucketID is empty, opening the volume with the store configuration
+// storeConf, nil for the default configuration. It returns the root ref, the
+// blob's block count, and the number of blocks written.
 func restorePayload(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -270,8 +270,8 @@ type sourceTreeResult struct {
 
 // restoreSourceTree rebuilds the extent payload blobs of every regular file
 // under root and writes each block the volume at path lacks, owned by the
-// Space's bucket, opening it with the store configuration storeConf, nil for
-// the default. A dry run only counts the missing blocks.
+// Space's bucket, opening the volume with the store configuration storeConf,
+// nil for the default configuration. A dry run only counts the missing blocks.
 func restoreSourceTree(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -404,9 +404,9 @@ func openRestoreVolume(
 	}
 
 	// Record the holes a live root reaches before writing, so a restored
-	// block those roots name counts as stored rather than as a new block
-	// the collector frees once its put ages past the grace period. A dry
-	// run's read-only audit records none.
+	// block those roots reference counts as stored rather than as a new
+	// block the collector frees once its put ages past the grace period. A
+	// dry run's read-only audit records none.
 	if _, err := vol.Audit(ctx); err != nil {
 		vol.Close()
 		return nil, errors.Wrap(err, "record the holes to restore")
@@ -546,7 +546,7 @@ func findSpaceBucket(ctx context.Context, buckets bucket_store.Store, spaceID st
 		return "", err
 	}
 
-	// Require exactly one.
+	// Require exactly one bucket.
 	found := make([]string, 0, len(infos))
 	for _, info := range infos {
 		found = append(found, info.GetConfig().GetId())
@@ -580,7 +580,8 @@ func encodePayload(ctx context.Context, xfrm block.Transformer, hashType hash.Ha
 type recordStore struct {
 	block.StoreOps
 
-	// mtx guards the fields below; transactions write blocks concurrently.
+	// mtx guards the fields below because transactions write blocks
+	// concurrently.
 	mtx sync.Mutex
 	// seen holds the marshaled refs of the recorded blocks.
 	seen map[string]struct{}

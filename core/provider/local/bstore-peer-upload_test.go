@@ -22,10 +22,10 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 )
 
-// TestPeerFillsUpload checks the new owner's peer fills: a block only the
-// peer holds lands on the disk with an upload marker, eviction keeps it until
-// the upload, and after the upload the pack store holds it; a block the packs
-// hold still refills the disk without a marker.
+// TestPeerFillsUpload checks the new owner's peer fills: a block only the peer
+// holds lands on the disk with an upload marker, eviction keeps it until the
+// upload, and after the upload the pack store holds it. A block the packs hold
+// still refills the disk without a marker.
 func TestPeerFillsUpload(t *testing.T) {
 	// Rebuild the reads with a peer and peer fills that upload.
 	f := newFallbackTest(t)
@@ -192,7 +192,7 @@ func testBackendHitsNeverQueue(t *testing.T, fallback, peerUpload, cache, front 
 		fallbackStore,
 	)
 
-	// Read both; a chain that fills the disk lands them there.
+	// Read both blocks. A chain that fills the disk lands them there.
 	f.read(trackedRef, tracked)
 	f.read(untrackedRef, untracked)
 	if !cache && !front {
@@ -233,8 +233,9 @@ func TestPlacedFillsNeverQueue(t *testing.T) {
 	})
 
 	t.Run("peer", func(t *testing.T) {
-		// Put a block in the packs, and read through packs that miss it, as
-		// a pack read that misses a block its row names does.
+		// Put a block in the packs, and read through packs that miss
+		// it, as a pack read that misses a block its row references
+		// does.
 		f := newIndexedFallbackTest(t)
 		f.p.peerUpload = true
 		data := []byte("pack block the peer holds")
@@ -328,8 +329,8 @@ func TestPeerFillsUploadUnderDivert(t *testing.T) {
 	}
 }
 
-// wrongRows is a pack store whose index places the blocks in wrong as well
-// as those it truly places, as an h row naming a pack that lacks the block
+// wrongRows is a pack store whose index places the blocks in wrong as well as
+// those it truly places, as an h row referencing a pack that lacks the block
 // does. Reads and existence checks still ask the packs.
 type wrongRows struct {
 	backendStore
@@ -350,11 +351,11 @@ func (w *wrongRows) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([
 // KeepsBlocks reports the pack store keeps its blocks.
 func (w *wrongRows) KeepsBlocks() bool { return true }
 
-// TestWrongRowPeerFillKept fills, with peer fills uploading, a block whose
-// h row names a pack that lacks it: the fill does not trust the row, so
-// eviction keeps the only copy until its upload. A block the packs truly
-// hold, filled the same way after a pack read missed it, still fills without
-// a marker and evicts.
+// TestWrongRowPeerFillKept fills, with peer fills uploading, a block whose h
+// row references a pack that lacks it: the fill does not trust the row, so
+// eviction keeps the only copy until its upload. A block the packs truly hold,
+// filled the same way after a pack read missed it, still fills without a marker
+// and evicts.
 func TestWrongRowPeerFillKept(t *testing.T) {
 	// Put a block in the packs, and give the peer it and a block the packs
 	// lack, whose row wrongly places it.
@@ -434,11 +435,11 @@ func (p promptRows) GetBatchLimits() block.BatchLimits {
 
 var _ block_store_writeback.BlockLocator = promptRows{}
 
-// TestWrongRowLocateUploadKept uploads, with the locate skip on and peer
-// fills uploading, a queued block whose h row names a pack that lacks it.
-// The upload does not trust the row: the packs do not confirm the block, so
-// it uploads rather than clearing as already uploaded, and eviction cannot
-// drop the only copy.
+// TestWrongRowLocateUploadKept uploads, with the locate skip on and peer fills
+// uploading, a queued block whose h row references a pack that lacks it. The
+// upload does not trust the row: the packs do not confirm the block, so it
+// uploads rather than clearing as already uploaded, and eviction cannot drop
+// the only copy.
 func TestWrongRowLocateUploadKept(t *testing.T) {
 	// Give the peer a block the packs lack, whose row wrongly places it.
 	f := newIndexedFallbackTest(t)
@@ -520,10 +521,10 @@ func (u *unheldBlocks) GetBlockExistsBatch(ctx context.Context, refs []*block.Bl
 	return held, err
 }
 
-// TestPeerUploadEvictAsksBackend checks that eviction with peer fills
-// uploading asks the backend before it drops a block: a block whose eviction
-// entry stands but whose backend copy is gone stays on the disk, refused, and
-// its entry leaves the queue; a block the backend holds is dropped.
+// TestPeerUploadEvictAsksBackend checks that eviction with peer fills uploading
+// asks the backend before it drops a block: a block whose eviction entry stands
+// but whose backend copy is gone stays on the disk, refused, and its entry
+// leaves the queue. A block the backend holds is dropped.
 func TestPeerUploadEvictAsksBackend(t *testing.T) {
 	// Upload two blocks, so both queue for eviction.
 	f := newFallbackTest(t)
@@ -570,11 +571,11 @@ func TestPeerUploadEvictAsksBackend(t *testing.T) {
 	}
 }
 
-// TestIndexedEvictConfirmsLocally checks that eviction over a pack store with
-// a local index that keeps its packs confirms each block from the index alone,
+// TestIndexedEvictConfirmsLocally checks that eviction over a pack store with a
+// local index that keeps its packs confirms each block from the index alone,
 // with the bucket refusing every request: a block whose h row holds its extent
-// is dropped, and a block whose row names only its pack, or that has no row,
-// keeps its local copy, refused, without a probe of the bucket. The pass
+// is dropped, and a block whose row references only its pack, or that has no
+// row, keeps its local copy, refused, without a probe of the bucket. The pass
 // stores no index tail.
 func TestIndexedEvictConfirmsLocally(t *testing.T) {
 	// Upload three blocks, so all queue for eviction with extent rows.

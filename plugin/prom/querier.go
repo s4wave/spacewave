@@ -110,7 +110,7 @@ func (q *Querier) LabelNames(ctx context.Context, _ *storage.LabelHints, matcher
 	return slices.Compact(names), nil, nil
 }
 
-// Close releases the querier; it holds nothing.
+// Close releases the querier. It holds nothing.
 func (q *Querier) Close() error {
 	return nil
 }

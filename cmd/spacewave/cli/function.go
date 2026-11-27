@@ -84,7 +84,7 @@ func (a *functionSetArgs) Run(c *cli.Context) error {
 		return err
 	}
 
-	// Compile it.
+	// Compile the source.
 	module, err := s4wave_function.Compile(source)
 	if err != nil {
 		return errors.Wrap(err, "compile")
@@ -102,7 +102,7 @@ func (a *functionSetArgs) Run(c *cli.Context) error {
 		}
 	}
 
-	// Store it in one transaction.
+	// Store the PureFunction in one transaction.
 	err = a.withSpace(c, func(_ *sdkClient, _ s4wave_space.SRPCSpaceResourceServiceClient, engine world.Engine) error {
 		return world.ExecTransaction(c.Context, engine, true, func(ctx context.Context, tx world.WorldState) error {
 			return s4wave_function.SetPureFunction(ctx, tx, key, fn)

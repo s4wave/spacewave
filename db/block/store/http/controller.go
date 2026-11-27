@@ -35,8 +35,8 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 
 // NewBlockStoreBuilder constructs a new block store builder from config.
 //
-// le can be nil to disable logging
-// verbose logs successes as well as failures
+// le can be nil to disable logging.
+// verbose logs successes as well as failures.
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		baseURL, err := conf.ParseURL()

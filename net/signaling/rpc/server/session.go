@@ -25,7 +25,8 @@ type sessionPeerTracker struct {
 
 // sessionKey is the key for the sessions map.
 type sessionKey struct {
-	// peerA is the lower-sorted peer ID string; peerB is the other peer.
+	// peerA and peerB are the lower-sorted peer ID string and the other
+	// peer, respectively.
 	peerA, peerB string
 }
 
@@ -84,16 +85,18 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	// Lock and register initial state.
 	s.mtx.Lock()
 
-	// Register that we want a session with that peer.
+	// Register that the source peer wants a session with the destination
+	// peer.
 	dstPeer, _ := s.getPeer(dstPeerIDStr)
 	dstPeer.addWant(srcPeerIDStr)
 
-	// Claim our endpoint and invalidate control state from the previous generation.
+	// Claim the source endpoint and invalidate control state from the
+	// previous generation.
 	sess, _ := s.getSession(sessKey)
 	sess.claimPeer(localIsPeerA, ourPeerTkr)
 	s.mtx.Unlock()
 
-	// Cleanup when we return.
+	// Clean up when Session returns.
 	defer func() {
 		// Serialize session cleanup with endpoint replacement.
 		s.mtx.Lock()
@@ -112,7 +115,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		s.mtx.Unlock()
 	}()
 
-	// Function to handle when our peer tries to send an outgoing message.
+	// Handle when the source peer tries to send an outgoing message.
 	handleSendMsg := func(msgSessionSeqno uint64, sendMsg *signaling.SessionMsg) error {
 		// Verify signature on message and that the source peer matches.
 		_, msgPeerId, err := sendMsg.ExtractAndVerify()
@@ -134,7 +137,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			return err
 		}
 
-		// Check if we are still the local peer.
+		// Check if the source endpoint is still the local peer.
 		currLocalPeer, currRemotePeer := sess.getCurrPeers(localIsPeerA)
 		if currLocalPeer != ourPeerTkr || currRemotePeer == nil {
 			return nil
@@ -147,7 +150,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		return nil
 	}
 
-	// Function to handle when our peer acks an incoming message.
+	// Handle when the source peer acks an incoming message.
 	handleAckMsg := func(msgSessionSeqno, ack uint64) error {
 		// Serialize session acknowledgment updates with endpoint replacement.
 		s.mtx.Lock()
@@ -172,7 +175,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		return nil
 	}
 
-	// Function to handle when our peer clears an outgoing message.
+	// Handle when the source peer clears an outgoing message.
 	handleClearMsg := func(msgSessionSeqno, clear uint64) error {
 		// Serialize session cancellation updates with endpoint replacement.
 		s.mtx.Lock()
@@ -188,10 +191,11 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		currLocalPeer, currRemotePeer := sess.getCurrPeers(localIsPeerA)
 		if currLocalPeer == ourPeerTkr && currRemotePeer != nil {
 			if currRemotePeer.recv != nil && currRemotePeer.recv.Seqno == clear {
-				// We didn't transmit the message yet, drop it.
+				// Drop the message because the session has not
+				// transmitted the message yet.
 				currRemotePeer.recv = nil
 			} else if currRemotePeer.recvSent != nil && *currRemotePeer.recvSent == clear {
-				// Transmit the clear
+				// Transmit the clear request.
 				currRemotePeer.recvSent = nil
 				currRemotePeer.recvClear = &clear
 			}
@@ -201,7 +205,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		return nil
 	}
 
-	// Start read goroutine.
+	// Start the read goroutine.
 	errCh := make(chan error, 2)
 	go func() {
 		for {
@@ -231,13 +235,15 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	}()
 
 	// Reconcile endpoint state before waiting for another change. Zero denotes
-	// a closed session; copy the sequence value so replacement remains visible
-	// even when the session never transitions through an observed closed state.
+	// a closed session. Copy the sequence value so replacement remains
+	// visible even when the session never transitions through an observed
+	// closed state.
 	var waitCh <-chan struct{}
 	var prevSentOpenToLocal uint64
 	for {
 		s.mtx.Lock()
-		// Check if we are still the active session for this key.
+		// Check if the source endpoint is still the active session for
+		// this key.
 		currLocalPeer, currRemotePeer := sess.getCurrPeers(localIsPeerA)
 		currUsurped := currLocalPeer != ourPeerTkr
 		var currOpen uint64
@@ -255,7 +261,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			msgToRecv, msgToClear, msgToAck = currLocalPeer.recv, currLocalPeer.recvClear, currLocalPeer.outAcked
 			currLocalPeer.recv, currLocalPeer.recvClear, currLocalPeer.outAcked = nil, nil, nil
 
-			// Mark as transmitted, if any.
+			// Mark the message as transmitted, if any.
 			if msgToRecv != nil {
 				seqno := msgToRecv.GetSeqno()
 				currLocalPeer.recvSent = &seqno
@@ -289,7 +295,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 		// Forward the pending acknowledgment, cancellation, and payload in order.
 		if currOpen != 0 {
-			// Ack msg
+			// Acknowledge the message.
 			if msgToAck != nil {
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_AckMsg{AckMsg: *msgToAck},
@@ -298,7 +304,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 				}
 			}
 
-			// Clear msg
+			// Clear the message.
 			if msgToClear != nil {
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_ClearMsg{ClearMsg: *msgToClear},
@@ -307,7 +313,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 				}
 			}
 
-			// Tx message
+			// Transmit the message.
 			if msgToRecv != nil {
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_RecvMsg{RecvMsg: msgToRecv},

@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// WorldState names the execution's state for object browsers, and a complete
+// WorldState returns the execution's state for object browsers, and a complete
 // execution's outcome.
 func (e *Execution) WorldState() string {
 	switch s := e.GetExecutionState(); s {

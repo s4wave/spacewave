@@ -161,7 +161,7 @@ func (s *LocalProviderResource) CreateAccount(
 // session from the supplied Device key and joins the target Space through the
 // invite: a targeted one from a local SpaceLink approval, or a bearer grant.
 // A redemption the owner queued for approval returns pending and retains
-// nothing; the caller redeems again with the same key later.
+// nothing. The caller redeems again with the same key later.
 func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	ctx context.Context,
 	req *s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest,
@@ -241,10 +241,11 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		return nil, errors.New("unexpected provider account type")
 	}
 
-	// Redeem each invite once; retries and daemon restarts reuse the account's
-	// grant and transport. An account that holds the Space under an older invite
-	// still redeems a fresh one, which brings its configuration up to date.
-	// The approving peer decides how long the join takes, so ctx alone bounds it.
+	// Redeem each invite once. Retries and daemon restarts reuse the
+	// account's grant and transport. An account that holds the Space under
+	// an older invite still redeems a fresh invite, which brings the account's
+	// configuration up to date. The approving peer decides how long the
+	// join takes, so ctx alone bounds the join.
 	redeemed, err := localAccountRedeemedInvite(ctx, localAcc, invite)
 	if err != nil {
 		return nil, err
@@ -289,8 +290,9 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 }
 
 // retainDeviceSession keeps a completed Device session mounted for the local
-// provider resource lifetime. This bridges the RPC response to the daemon's
-// capacity observer without dropping its transport in between.
+// provider resource lifetime. This retention bridges the RPC response to the
+// daemon's capacity observer without dropping the session's transport in
+// between.
 func (s *LocalProviderResource) retainDeviceSession(ctx context.Context, sessRef *session.SessionRef) error {
 	// Acquire a Session reference before entering the release fence.
 	_, ref, err := session.ExMountSession(ctx, s.b, sessRef, false, nil)
@@ -323,7 +325,7 @@ func (s *LocalProviderResource) retainDeviceSession(ctx context.Context, sessRef
 }
 
 // lookupLocalSessionByPeerID returns the registered local session whose
-// mounted identity matches peerID. Missing is not an error.
+// mounted identity matches peerID. A missing session is not an error.
 func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 	ctx context.Context,
 	sessionCtrl session.SessionController,
@@ -334,7 +336,8 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 		return nil, nil
 	}
 
-	// Match identity against registered Sessions rather than caller-selected accounts.
+	// Match the identity against registered Sessions rather than
+	// caller-selected accounts.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list sessions")

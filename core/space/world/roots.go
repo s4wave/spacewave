@@ -10,7 +10,7 @@ import (
 )
 
 // The named roots a Space holds on its SharedObject's block store. Each holds
-// one World root block, or one small block naming several roots, and moves
+// one World root block, or one small block listing several roots, and moves
 // only through SetRoots with the reference it held as Previous.
 const (
 	// RootReplayBase holds the World of the adopted checkpoint, which every
@@ -28,7 +28,7 @@ const (
 	// cursor was saved at since a checkpoint covered them, the last one the
 	// World after the positions the saved cursor records.
 	RootReplayCursor = "replay-cursor"
-	// RootReplayPayloads holds the HeldRoots block naming the payload
+	// RootReplayPayloads holds the HeldRoots block listing the payload
 	// roots of the operations above the checkpoint, and of the local
 	// candidates queued after them.
 	RootReplayPayloads = "replay-payloads"
@@ -67,18 +67,18 @@ var heldRootNames = []string{
 //
 // Invariants, which the Volume's collector relies on to free nothing live:
 //
-//  1. The caller holds roots until this returns, through a stage or another
-//     root, so the append is never the first hold of a block at zero.
-//  2. The append names the import root's current block as its Prev and as
-//     the move's Previous, so it keeps every root the chain holds, and a
-//     concurrent Adapter move of the root fails and rereads rather than
-//     overwrite the append.
-//  3. An Adapter releases a root from the chain only in a root move that
-//     holds it elsewhere: the trim that moves the replay base onto it, or a
-//     trim while the payloads root holds it. Whether it does is read from the
-//     stored roots under the root lock at the move, never from a plan
-//     gathered earlier, so a restart or a plan gathered before the append
-//     cannot release it.
+//  1. The caller holds roots until HoldImport returns, through a stage or
+//     another root, so the append is never the first hold of a block at zero.
+//  2. The append records the import root's current block as its Prev and as the
+//     move's Previous, so it keeps every root the chain holds, and a concurrent
+//     Adapter move of the root fails and rereads rather than overwrite the
+//     append.
+//  3. An Adapter releases a root from the chain only in a root move that holds
+//     it elsewhere: the trim that moves the replay base onto it, or a trim
+//     while the payloads root holds it. Whether it does is read from the stored
+//     roots under the root lock at the move, never from a plan gathered
+//     earlier, so a restart or a plan gathered before the append cannot release
+//     it.
 //  4. It never moves an Adapter's own roots.
 //
 // It skips a root the replay base or the chain holds already, and does
@@ -86,12 +86,12 @@ var heldRootNames = []string{
 // Spacewave cloud store holds its roots in its local cache bucket, so the
 // import holds the copy there. Its pack reclaim judges packs by the roots
 // writers report to a fence, which this hold does not reach, so pack reclaim
-// stays off until a fence reports it.
-// An append that loses to an Adapter's move reads the roots again and retries
-// after a short backoff, at most holdImportTries times: an Adapter moves the
-// root once per install, so a run of lost appends means the Space is busy,
-// and the error, which wraps block.ErrRootMoved, says the caller's own retry,
-// such as a migration's, can try again later.
+// stays off until a fence reports it. An append that loses to an Adapter's move
+// reads the roots again and retries after a short backoff, at most
+// holdImportTries times: an Adapter moves the root once per install, so a run
+// of lost appends means the Space is busy, and the error, which wraps
+// block.ErrRootMoved, says the caller's own retry, such as a migration's, can
+// try again later.
 func HoldImport(ctx context.Context, store block.StoreOps, roots ...*block.BlockRef) error {
 	// A store that holds no roots needs no hold.
 	roots = slices.DeleteFunc(dedupRefs(roots), func(r *block.BlockRef) bool { return r.GetEmpty() })

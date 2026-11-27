@@ -9,7 +9,7 @@ import (
 
 // FetchManifest is a directive to fetch a manifest to storage.
 //
-// Value type: *FetchManifestValue
+// Value type: *FetchManifestValue.
 type FetchManifest interface {
 	// Directive indicates FetchManifest is a directive.
 	directive.Directive
@@ -25,7 +25,7 @@ type FetchManifest interface {
 	GetRev() uint64
 }
 
-// fetchManifest implements FetchManifest
+// fetchManifest implements FetchManifest.
 type fetchManifest struct {
 	// manifestId is the identifier of the manifest.
 	manifestId string
@@ -89,7 +89,8 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 			// If both DEV and RELEASE are set, use RELEASE
 			selectedBuildType = BuildType_RELEASE
 		} else {
-			// Otherwise use the first from the build types slice
+			// Otherwise use the first build type from the
+			// build types slice
 			selectedBuildType = buildTypes[0]
 		}
 	}
@@ -110,7 +111,8 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// The directive validation is cursory and checks whether the values
+// "look correct."
 func (d *fetchManifest) Validate() error {
 	if d.manifestId == "" {
 		return ErrEmptyManifestID
@@ -119,7 +121,7 @@ func (d *fetchManifest) Validate() error {
 	return nil
 }
 
-// GetValueFetchManifestOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *fetchManifest) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -207,7 +209,7 @@ func (d *fetchManifest) GetName() string {
 	return "FetchManifest"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *fetchManifest) GetDebugVals() directive.DebugValues {

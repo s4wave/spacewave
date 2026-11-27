@@ -257,7 +257,7 @@ export const PendingEntityChange: MessageType<PendingEntityChange> =
  */
 export interface RegisterKeypair {
   /**
-   * The public key is derivable from the peer ID.
+   * RegisterPeerId is the peer ID from which the public key is derivable.
    * Only one Keypair with this public key / peer ID can be used.
    */
   registerPeerId?: string

@@ -18,5 +18,5 @@ export const state = (v: LogSpaceState) =>
     v.full ? 'disk full' : 'disk available'
   }, ${v.room ? 'tail room' : 'tail full'}`
 
-// step names the responsible allocation transition.
+// step identifies the responsible allocation transition.
 export const step = (action: string) => action

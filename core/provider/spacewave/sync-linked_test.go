@@ -256,7 +256,7 @@ func TestLinkedLaneUploadsBesideFlush(t *testing.T) {
 // TestLinkedLaneQueuesUnheldChunks checks that the lane's reconcile uploads
 // indexed chunks that were never queued, as after a crash between the index
 // write and the World write, and drops the entries of a path the index no
-// longer names.
+// longer references.
 func TestLinkedLaneQueuesUnheldChunks(t *testing.T) {
 	// Link a file through an index with no queue, then open the lane over it.
 	push := startTestPushServer(t)

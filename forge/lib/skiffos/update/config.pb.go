@@ -18,7 +18,7 @@ import (
 //
 // A maintenance Flowgraph runs the audit, asks a person, and connects the
 // approving output to this Step's approve port, so a declined update never
-// reaches it. The Step fetches the commit the report names as upstream's head
+// reaches it. The Step fetches the commit the report records as upstream's head
 // from the upstream Repo, and the Buildroot commit that head pins from the
 // Buildroot Repo, each at depth 1, and points the build Repo's main branch and
 // its buildroot module's main branch at them. It moves to the reported commit,
@@ -30,7 +30,7 @@ import (
 //   - report: the audit's report output.
 //   - upstream: the SkiffOS Repo the audit read.
 //   - buildroot: the Buildroot fork's Repo the audit read.
-//   - approve: the person's approval; its value is not read.
+//   - approve: the person's approval. Its value is not read.
 //
 // Outputs:
 //   - repo: the build Repo after the move.

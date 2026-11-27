@@ -12,11 +12,11 @@ import (
 
 // DialResolver resolves HandleMountedStream by dialing a multiaddr.
 type DialResolver struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// ma is the multiaddress to dial
+	// ma is the multiaddress to dial.
 	ma ma.Multiaddr
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

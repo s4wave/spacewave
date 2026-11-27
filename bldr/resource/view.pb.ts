@@ -6,22 +6,24 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * ViewVersion names the view a feed's message carries. Every versioned view
- * message holds it as field 1000, after the view's own fields, so the server
- * encodes a view once and appends the version for every stream. A request
- * names the version its client holds as string field 1000, held_version.
+ * ViewVersion identifies the view a feed's message carries. Every versioned
+ * view message has ViewVersion as field 1000, after the view's own fields, so
+ * the server encodes a view once and appends the version for every stream.
+ * A request specifies the version its client holds as string field 1000,
+ * held_version.
  *
  * @generated from message resource.ViewVersion
  */
 export interface ViewVersion {
   /**
-   * Version names the view's content: equal views share it, across backends
-   * and restarts.
+   * Version identifies the view's content: equal views share the version across
+   * backends and restarts.
    */
   version?: string
   /**
-   * Revision is a World revision the view reflects every write up to, so a
-   * client that wrote at revision R knows a message at R or later shows it.
+   * Revision is a World revision up to which the view reflects every write, so
+   * a client that wrote at revision R knows a message at R or later shows that
+   * write.
    */
   revision?: bigint
   /**
@@ -32,7 +34,7 @@ export interface ViewVersion {
   /**
    * Changes reports that the message carries only the records that changed
    * since the version the stream last delivered, for a watch that asked for
-   * changes; the client applies them to the view it holds.
+   * changes. The client applies those records to the view it holds.
    */
   changes?: boolean
 }

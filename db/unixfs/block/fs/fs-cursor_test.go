@@ -192,7 +192,7 @@ func TestFSCursor(t *testing.T) {
 }
 
 // TestFSCursorSymlinkSize verifies that GetSize returns the symlink target
-// path length, not 0. This is critical for go-git hash compatibility: the
+// path length, not 0. The size is critical for go-git hash compatibility: the
 // blob header uses the size, so a mismatch causes all symlinks to show as
 // modified in worktree.Status().
 func TestFSCursorSymlinkSize(t *testing.T) {
@@ -341,8 +341,9 @@ func TestFSHandle(t *testing.T) {
 }
 
 // TestFS_MknodWithContent tests MknodWithContent through the block-level FSWriter.
-// This exercises the unixfs_block.FSWriter.MknodWithContent path which builds
-// the blob in a detached transaction and must flush it before extracting the ref.
+// The test exercises the unixfs_block.FSWriter.MknodWithContent path, which
+// builds the blob in a detached transaction and must flush the blob before
+// extracting the ref.
 func TestFS_MknodWithContent(t *testing.T) {
 	// Prepare the atomic file creation test context and logger.
 	ctx := context.Background()

@@ -19,7 +19,7 @@ type Config struct {
 	// TLSCertSHA256 is the hex SHA-256 of the server's certificate. Set, TLS
 	// trusts exactly that certificate in place of a CA and the host name.
 	TLSCertSHA256 string
-	// MaxConns bounds the pool's open connections; zero uses
+	// MaxConns bounds the pool's open connections. Zero uses
 	// DefaultMaxConns. Each block read holds one for a round trip.
 	MaxConns int
 }

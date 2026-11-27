@@ -24,7 +24,7 @@ import (
 func TestVolumeCollect(t *testing.T) {
 	for _, e := range engines {
 		t.Run(e.name, func(t *testing.T) {
-			// Publish two blocks and orphan the second.
+			// Publish two blocks and orphan the second block.
 			ctx := t.Context()
 			d := device.NewMemory()
 			s := reopen(t, e, d, nil)
@@ -56,8 +56,8 @@ func TestVolumeCollect(t *testing.T) {
 	}
 }
 
-// openVolume opens a Volume in the store's domain under m/, whose collector
-// frees at once.
+// openVolume opens a Volume in the store's domain under m/. The Volume's
+// collector frees at once.
 func openVolume(t *testing.T, s *Store) *volume_kvtx.Volume {
 	t.Helper()
 	conf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
@@ -95,7 +95,7 @@ func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
 	return ref
 }
 
-// orphan releases the root id of bucket "owner", which holds ref.
+// orphan releases the root id of bucket "owner". The root holds ref.
 func orphan(t *testing.T, v *volume_kvtx.Volume, id string, ref *block.BlockRef) {
 	t.Helper()
 	if err := v.SetBucketRoots(t.Context(), "owner", nil, []block.NamedRoot{{Name: id, Previous: ref}}); err != nil {
@@ -129,10 +129,10 @@ func checkCollected(t *testing.T, s *Store, v *volume_kvtx.Volume, keep, drop *b
 }
 
 // checkCorruptRead flips one byte of ref's payload data on d and checks that a
-// read through v returns ErrBlockCorrupt naming the ref and v, leaves the
-// device image unchanged, and counts the read in v's health; and that a
-// read-through store with v as its primary and a fill serves data from its
-// lower store without writing v.
+// read through v returns ErrBlockCorrupt identifying the ref and v, leaves
+// the device image unchanged, and counts the read in v's health. It also checks
+// that a read-through store with v as its primary and a fill serves data from
+// its lower store without writing v.
 func checkCorruptRead(t *testing.T, d *device.Memory, v *volume_kvtx.Volume, ref *block.BlockRef, data []byte) {
 	// Flip one byte of the only stored copy of data.
 	t.Helper()

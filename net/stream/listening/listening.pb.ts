@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * LocalPeerId is the peer ID to forward incoming connections with.
-   * Can be empty.
+   * LocalPeerId can be empty.
    */
   localPeerId?: string
   /**
@@ -30,7 +30,7 @@ export interface Config {
   listenMultiaddr?: string
   /**
    * TransportId sets a transport ID constraint.
-   * Can be empty.
+   * TransportId can be empty.
    */
   transportId?: bigint
 }

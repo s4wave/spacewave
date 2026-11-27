@@ -9,7 +9,7 @@ import (
 // Options binds feeds to their application's World and authorization boundary.
 // Callbacks must outlive the hub. Context returns a detached context carrying
 // only the requesting stream's scheduling priority. Public removes actor
-// authority; Admit checks the requesting subscriber before it joins.
+// authority. Admit checks the requesting subscriber before it joins.
 type Options[S any] struct {
 	// Context returns a detached context carrying scheduling priority.
 	Context func(context.Context) context.Context

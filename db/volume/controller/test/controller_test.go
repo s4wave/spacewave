@@ -15,7 +15,7 @@ import (
 // Other volume-specific e2e tests are done elsewhere.
 
 // TestBucketHandleFlush tests looking for a bucket, not finding it, then
-// pushing it with a ApplyBucketConfig: we then expect the controller to
+// pushing it with a ApplyBucketConfig: the controller is then expected to
 // re-check for the configuration, find it, and create new handles.
 func TestBucketHandleFlush(t *testing.T) {
 	// Prepare the context and logger used by the testbed.
@@ -52,7 +52,7 @@ func TestBucketHandleFlush(t *testing.T) {
 	}
 	defer bapiRef.Release()
 
-	// Expect first value
+	// Expect the first value.
 	emptyVal := <-vals
 	if emptyVal.GetExists() || emptyVal.GetBucketConfig() != nil {
 		t.Fail()

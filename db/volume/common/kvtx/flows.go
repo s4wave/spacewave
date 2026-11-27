@@ -14,10 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// putPath names a path that writes blocks into the volume, for its flows.
+// putPath identifies a path that writes blocks into the volume, for its flows.
 type putPath int
 
-// The write paths, in the order GetFlows reports them.
+// putDirect begins the write paths, in the order GetFlows reports them.
 const (
 	// putDirect is PutBlock and PutBlockBatch.
 	putDirect putPath = iota
@@ -58,7 +58,7 @@ type putCount struct {
 // ValueFamily is a key prefix of the volume's storage and the name its flows
 // report the prefix under.
 type ValueFamily struct {
-	// Name names the keys, such as "block".
+	// Name identifies the keys, such as "block".
 	Name string
 	// Prefix is the prefix of the keys.
 	Prefix []byte
@@ -76,8 +76,8 @@ func ValueFamilies(keys *store_kvkey.KVKey) []ValueFamily {
 }
 
 // SetLogger sets the logger that reports the first caller of each write path
-// putting a block without its references. It is called once, before the
-// volume is used; without it nothing is logged.
+// putting a block without its references. It is called once, before the volume
+// is used. Without the logger nothing is logged.
 func (v *Volume) SetLogger(le *logrus.Entry) {
 	v.le = le
 }
@@ -176,8 +176,8 @@ func (v *Volume) countRefused(path putPath, err error) {
 
 // noteUnknownRefs logs the caller of the first put on path of a block without
 // its references, once per path for the life of the volume. It runs on the
-// caller's goroutine, before the put, so the stack names the writer; the put
-// may still find the block stored, which passes, or refuse it.
+// caller's goroutine, before the put, so the stack identifies the writer. The
+// put may still find the block stored and pass, or refuse the block.
 func (v *Volume) noteUnknownRefs(path putPath, data []byte, opts *block.PutOpts) {
 	if len(data) != 0 && !opts.GetRefsKnown() {
 		v.logUnknownRefsCaller(path)

@@ -959,7 +959,8 @@ function OrgLoading() {
 }
 
 // OrganizationDetails renders the overlay panel for organization management.
-// Mirrors SessionDetails: header bar + scrollable collapsible sections.
+// OrganizationDetails mirrors SessionDetails: a header bar + scrollable
+// collapsible sections.
 export function OrganizationDetails({
   orgId,
   orgState,

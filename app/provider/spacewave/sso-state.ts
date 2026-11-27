@@ -1,5 +1,5 @@
 // PendingSSOState holds state needed by the SSO confirm page.
-// Used by both desktop (from StartDesktopSSO RPC) and web (from
+// The state is used by both desktop (from StartDesktopSSO RPC) and web (from
 // /auth/sso/finish/:nonce nonce-result exchange).
 export interface PendingSSOState {
   provider: string

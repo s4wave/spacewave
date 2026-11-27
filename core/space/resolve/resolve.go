@@ -25,9 +25,10 @@ type ResolvedSpace struct {
 }
 
 // ResolveSpace resolves a session index and shared object ID to a mounted space body.
-// Mounts the full chain on-demand: session controller, session, provider account,
-// shared object list lookup, and space body.
-// Returns the resolved space and a cleanup function that releases all directive references.
+// It mounts the full chain on-demand: session controller, session, provider
+// account, shared object list lookup, and space body.
+// It returns the resolved space and a cleanup function that releases all
+// directive references.
 func ResolveSpace(
 	ctx context.Context,
 	b bus.Bus,

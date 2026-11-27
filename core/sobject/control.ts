@@ -71,8 +71,8 @@ export function soHasQuorum(weight: number, total: number): boolean {
 }
 
 // validateSOControl checks the control setting and voting weights, matching
-// Go validateControl: under owner control nobody votes; under group control
-// only writers and owners vote, at least one does, and the config names the
+// Go validateControl: under owner control nobody votes. Under group control
+// only writers and owners vote, at least one does, and the config records the
 // checkpoint it sealed. It throws on the first violation.
 export function validateSOControl(cfg: SharedObjectConfig): void {
   // Owner control has no voters.
@@ -124,7 +124,7 @@ function canWriteOps(role: SOParticipantRole | undefined): boolean {
   )
 }
 
-// validateSOCheckpointHead checks that head names a checkpoint.
+// validateSOCheckpointHead checks that head identifies a checkpoint.
 function validateSOCheckpointHead(head: SOCheckpointHead): void {
   if ((head.hash?.length ?? 0) !== 32) {
     throw new Error('checkpoint head hash must be a 32-byte hash')
@@ -148,7 +148,7 @@ export function soControlValueHash(
   kind: SODecisionKind | undefined,
   value: Uint8Array,
 ): Uint8Array {
-  // A checkpoint is named by its body.
+  // A checkpoint is identified by its body.
   if (kind === SODecisionKind.SO_DECISION_KIND_CHECKPOINT) {
     return hashSOCheckpointInner(value)
   }
@@ -171,7 +171,7 @@ export function soControlValueHash(
 export function validateSOControlMessageInner(
   inner: SOControlMessageInner,
 ): void {
-  // The body names an object, a voter and an instance.
+  // The body identifies an object, a voter and an instance.
   if (!inner.sharedObjectId) {
     throw new Error('control message shared_object_id is empty')
   }
@@ -229,8 +229,9 @@ export function validateSOControlMessageInner(
   }
 }
 
-// validateSOControlValue checks that the message carries the bounded value it
-// names. A value holds a checkpoint body with its World, or a control record.
+// validateSOControlValue checks that the message carries the bounded value
+// its hash identifies. A value holds a checkpoint body with its World, or a
+// control record.
 function validateSOControlValue(inner: SOControlMessageInner): void {
   // The value must be present and bounded.
   const value = inner.value ?? new Uint8Array()
@@ -249,9 +250,9 @@ function validateSOControlValue(inner: SOControlMessageInner): void {
 }
 
 // verifySOControlMessage authenticates the message as signed for
-// sharedObjectID by the voter it names and returns its body, matching Go
-// SOControlMessage.Verify. It does not check that the signer votes. It throws
-// when the message is invalid.
+// sharedObjectID by the voter the message identifies and returns its body,
+// matching Go SOControlMessage.Verify. It does not check that the signer
+// votes. It throws when the message is invalid.
 export async function verifySOControlMessage(
   sharedObjectID: string,
   msg: SOControlMessage,

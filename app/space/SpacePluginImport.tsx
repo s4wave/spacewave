@@ -26,7 +26,8 @@ interface SourceSpace {
 }
 
 interface SpacePluginImportProps {
-  // spaceId is the Space plugins are imported into; it is not offered as a source.
+  // spaceId is the Space plugins are imported into and is not offered as a
+  // source.
   spaceId: string
   installedIds: Set<string>
   pending: string

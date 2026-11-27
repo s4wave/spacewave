@@ -5,7 +5,7 @@ import s4wave_root "github.com/s4wave/spacewave/sdk/root"
 // WatchListenerStatus streams the current desktop resource listener
 // status: effective socket path, whether the listener is currently
 // bound, and the count of connected resource clients. The UI uses
-// this to render a live status chip on the session-local command-line
+// the status to render a live status chip on the session-local command-line
 // setup page and to choose the agent prompt. A runtime without a
 // resource listener, such as the browser, sends one empty status.
 func (s *CoreRootServer) WatchListenerStatus(

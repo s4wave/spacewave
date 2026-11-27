@@ -161,7 +161,7 @@ func TestForgeWorkerRejectsMalformedParameters(t *testing.T) {
 }
 
 // TestForgeWorkerCardSelection offers every detected card for "all" and refuses
-// a named card the host does not have, naming it.
+// a named card the host does not have, identifying the missing card.
 func TestForgeWorkerCardSelection(t *testing.T) {
 	detected := []*s4wave_device.GraphicsCard{{Id: "0000:03:00.0"}, {Id: "0000:04:00.0"}}
 	all, err := parseForgeWorkerCards("all")

@@ -25,7 +25,8 @@ export class LocalProvider extends Provider {
     return await this.localService.CreateAccount({}, abortSignal)
   }
 
-  // preparePairingSession creates the exchange identity without adding an account to Home.
+  // preparePairingSession creates the exchange identity without adding an
+  // account to Home.
   public async preparePairingSession(
     abortSignal?: AbortSignal,
   ): Promise<SessionRef> {

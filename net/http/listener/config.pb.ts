@@ -8,13 +8,13 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures a http server that listens on a port.
  *
- * Handles incoming requests with LookupHTTPHandler.
+ * The server handles incoming requests with LookupHTTPHandler.
  *
  * @generated from message bifrost.http.listener.Config
  */
 export interface Config {
   /**
-   * Addr is the address to listen.
+   * Addr is the address to listen on.
    *
    * Example: 0.0.0.0:8080
    */
@@ -25,18 +25,19 @@ export interface Config {
   clientId?: string
   /**
    * CertFile is the path to the certificate file to use for https.
-   * Can be unset to use HTTP.
+   * CertFile can be unset to use HTTP.
    */
   certFile?: string
   /**
    * KeyFile is the path to the key file to use for https.
-   * Cannot be unset if cert_file is set.
-   * Otherwise can be unset.
+   * KeyFile cannot be unset if cert_file is set.
+   * KeyFile can otherwise be unset.
    */
   keyFile?: string
   /**
    * Wait indicates to wait for LookupHTTPHandler even if it becomes idle.
-   * If false: returns 404 not found if LookupHTTPHandler becomes idle.
+   * If Wait is false, the server returns 404 not found if LookupHTTPHandler
+   * becomes idle.
    */
   wait?: boolean
 }

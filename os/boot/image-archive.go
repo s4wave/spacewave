@@ -14,7 +14,8 @@ import (
 
 // importImageArchive streams an explicit application bundle into a new image.
 // It accepts regular files and directories only, keeping links and special
-// devices out of the import. The selected immutable root covers their bytes.
+// devices out of the import. The selected immutable root covers the files' and
+// directories' bytes.
 func importImageArchive(ctx context.Context, root *unixfs.FSHandle, source io.Reader) error {
 	// Consume one archive entry at a time, never collecting the application tree.
 	archive := tar.NewReader(source)

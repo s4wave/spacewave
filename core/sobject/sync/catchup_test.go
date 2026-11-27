@@ -515,8 +515,8 @@ func TestCatchupSendsOnlyMissingRecords(t *testing.T) {
 		return snapshot, full.SizeVT()
 	}
 
-	// One op behind sends that op, a run on each side of it and the small
-	// fields, at both sizes.
+	// A receiver one op behind receives that op, a run on each side of it
+	// and the small fields, at both sizes.
 	small, smallFull := catchUp(32, 1, false)
 	large, largeFull := catchUp(320, 1, false)
 	t.Logf("one op behind: snapshot %d of %d bytes at 32 ops, %d of %d at 320", small.SizeVT(), smallFull, large.SizeVT(), largeFull)
@@ -539,7 +539,7 @@ func TestCatchupSendsOnlyMissingRecords(t *testing.T) {
 	}
 
 	// A forged restore fails: a run past the held list, one overlapping the
-	// last, an empty one, or the right count from the wrong held op.
+	// last run, an empty run, or the right count from the wrong held op.
 	held := []*sobject.SOOperation{{Inner: []byte("a")}, {Inner: []byte("b")}}
 	delivered := []*sobject.SOOperation{{Inner: []byte("c")}}
 	for _, runs := range [][]*SOSyncHeldRun{

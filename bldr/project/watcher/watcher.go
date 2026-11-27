@@ -106,7 +106,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 		return context.Canceled
 	}
 
-	// Watcher
+	// Create the file watcher.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -118,10 +118,10 @@ func (c *Controller) Execute(rctx context.Context) error {
 
 	// Watch the config files and restart the project controller on changes.
 	for {
-		// Missing paths are expected here: bldr.star and loaded files may not
-		// exist yet. Other Add failures (e.g. too many watches) are dropped
-		// too; the debounce loop still sees changes on successfully added
-		// paths.
+		// Missing paths are expected here: bldr.star and loaded files
+		// may not exist yet. Other Add failures (e.g. too many watches)
+		// are dropped too, but the debounce loop still sees changes on
+		// successfully added paths.
 		_ = watcher.Add(configPath)
 		_ = watcher.Add(starPath)
 		for _, f := range c.starLoadedFiles {

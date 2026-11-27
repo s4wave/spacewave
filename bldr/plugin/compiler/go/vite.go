@@ -25,7 +25,7 @@ func BuildViteBundlerConfig(
 	publicPath string,
 	disableProjectConfig bool,
 ) (*bldr_web_bundler_vite_compiler.Config, error) {
-	// build list of ViteBundleMeta from bundleVar list
+	// build a list of ViteBundleMeta from the bundleVar list
 	var viteBundleMeta []*bldr_web_bundler_vite_compiler.ViteBundleMeta
 	for _, bundleVar := range bundleVars {
 		// build the entrypoints for this bundle
@@ -34,13 +34,13 @@ func BuildViteBundlerConfig(
 		bundleDisableProjectConfig := disableProjectConfig
 
 		for _, bundleVarEntrypoint := range bundleVar.GetEntrypointVars() {
-			// validate entrypoint path
+			// validate the entrypoint path
 			if bundleVarEntrypoint.EntrypointPath == "" {
 				return nil, errors.Errorf("entrypoint path is required for %s.%s",
 					bundleVarEntrypoint.PkgImportPath, bundleVarEntrypoint.PkgVar)
 			}
 
-			// add to list
+			// add the entrypoint to the list
 			entrypoints = append(entrypoints, &bldr_web_bundler_vite_compiler.ViteBundleEntrypoint{
 				InputPath: filepath.Join(bundleVarEntrypoint.PkgCodePath, bundleVarEntrypoint.EntrypointPath),
 			})
@@ -66,7 +66,7 @@ func BuildViteBundlerConfig(
 			ExternalPkgs: web_pkg_external.BldrExternal,
 		}
 
-		// add to the bundle meta list
+		// add the bundle metadata to the bundle meta list
 		viteBundleMeta = append(viteBundleMeta, bundleMeta)
 	}
 
@@ -115,7 +115,7 @@ func BuildViteBundleVarMeta(
 		}
 
 		for pkgVar, pkgViteDirective := range pkgVars {
-			// validate entrypoint path
+			// validate the entrypoint path
 			if pkgViteDirective.EntrypointPath == "" {
 				return nil, errors.Errorf("%s.%s: entrypoint path is required", pkgImportPath, pkgVar)
 			}
@@ -140,7 +140,7 @@ func BuildViteBundleVarMeta(
 		bundle.SortEntrypointVars()
 	}
 
-	// sort by bundle id
+	// sort bundles by bundle id
 	slices.SortFunc(bundleVals, func(a, b *ViteBundleVarMeta) int {
 		return strings.Compare(a.GetId(), b.GetId())
 	})

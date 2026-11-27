@@ -39,13 +39,14 @@ const (
 	releaseWasmDistDirEnv = "E2E_RELEASE_WASM_DIST_DIR"
 	// releaseWasmPrerenderDistEnv selects the matching prebuilt static pages.
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
-	// releaseAuthConfigPath serves the harness's local authentication endpoints.
+	// releaseAuthConfigPath is the path to the harness's local
+	// authentication endpoints.
 	releaseAuthConfigPath = "/api/auth/config"
 )
 
 // browserReleaseDescriptor is parsed field-by-field from browser-release.json
-// via fastjson in browserRelease; it is never marshaled or unmarshaled by
-// encoding/json, so it carries no struct tags.
+// via fastjson in browserRelease. The descriptor is never marshaled or
+// unmarshaled by encoding/json, so it carries no struct tags.
 type browserReleaseDescriptor struct {
 	// SchemaVersion identifies the browser release descriptor format.
 	SchemaVersion int
@@ -59,15 +60,15 @@ type browserReleaseDescriptor struct {
 	RequiredStaticAssets []string
 }
 
-// browserReleaseShellAssets names the shell's scripts, styles, and runtime.
+// browserReleaseShellAssets holds the shell's scripts, styles, and runtime.
 type browserReleaseShellAssets struct {
 	// Entrypoint starts the browser shell.
 	Entrypoint string
-	// ServiceWorker names the offline worker script.
+	// ServiceWorker holds the offline worker script path.
 	ServiceWorker string
-	// SharedWorker names the shared runtime script.
+	// SharedWorker holds the shared runtime script path.
 	SharedWorker string
-	// Wasm names the runtime binary when present in the release.
+	// Wasm holds the runtime binary path when present in the release.
 	Wasm string
 	// CSS lists the shell's stylesheets.
 	CSS []string
@@ -217,8 +218,9 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 			opts.FirefoxUserPrefs = firefoxUserPrefs
 		}
 		if os.Getenv(localCDNEnv) == "1" {
-			// The static server rejects proxy requests; all browser network access
-			// stays local, including requests made by service and shared workers.
+			// The static server rejects proxy requests, so all
+			// browser network access stays local, including
+			// requests made by service and shared workers.
 			opts.Proxy = &playwright.Proxy{Server: baseURL, Bypass: new("127.0.0.1,localhost")}
 		}
 		return browserType.Launch(opts)
@@ -249,8 +251,8 @@ func (h *harness) getBaseURL() string { return h.baseURL }
 var firefoxUserPrefs = map[string]any{"javascript.options.asyncstack": false}
 
 // persistentBrowserContextLaunchOptions maps the shared Chromium launch
-// options onto a persistent-context launch. Firefox gets firefoxUserPrefs;
-// other browsers stay plain.
+// options onto a persistent-context launch. Firefox gets firefoxUserPrefs.
+// Other browsers keep the default launch options.
 func persistentBrowserContextLaunchOptions(
 	browserName string,
 	gpu bool,
@@ -412,7 +414,8 @@ func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playw
 	}
 }
 
-// quickstartSmokeArtifactPath names the current test's smoke diagnostics.
+// quickstartSmokeArtifactPath returns the path to the current test's smoke
+// diagnostics.
 func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	t.Helper()
 
@@ -421,7 +424,8 @@ func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	return filepath.Join(h.artifactDir, name+".json")
 }
 
-// quickstartRuntimeTraceArtifactPath names the current test's browser trace.
+// quickstartRuntimeTraceArtifactPath returns the path to the current test's
+// browser trace.
 func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
 	t.Helper()
 
@@ -601,10 +605,11 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		errs = append(errs, msg)
 	}
 
-	// WebKit reports the proxy's refusal of the public CDN root as two page
-	// console errors: a CORS line naming only this origin, and a Fetch API
-	// line naming the URL. Pair each CORS line with a Fetch API line for the
-	// refused root, and count any CORS line left over at cleanup.
+	// WebKit reports the proxy's refusal of the public CDN root as two
+	// page console errors: a CORS line identifying only the harness origin,
+	// and a Fetch API line identifying the URL. Pair each CORS line with a
+	// Fetch API line for the refused root, and count any CORS line left
+	// over at cleanup.
 	var corsRefusals, cdnRootRefusals int
 	countRefusal := func(n *int) {
 		errsMu.Lock()
@@ -785,11 +790,11 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 }
 
 // describeBrowserHTTPError describes a failed response with the
-// ServiceWorker fetch classification headers and the start of its body. They
-// name the layer that answered: a classified ServiceWorker failure, the
-// runtime, or the origin.
+// ServiceWorker fetch classification headers and the start of its body. The
+// headers and body identify the layer that answered: a classified ServiceWorker
+// failure, the runtime, or the origin.
 func describeBrowserHTTPError(resp playwright.Response) string {
-	// Name the status, URL, and any ServiceWorker classification.
+	// Record the status, URL, and any ServiceWorker classification.
 	var msg strings.Builder
 	msg.WriteString("http " + strconv.Itoa(resp.Status()) + ": " + resp.URL())
 	headers := resp.Headers()
@@ -866,16 +871,16 @@ var publicCDNRootURL = cdn.DefaultBaseURL + "/" + cdn.ProvisionedSpaceID + "/roo
 
 // isRefusedCDNRootError recognizes WebKit's console error for the public CDN
 // root fetch that the harness proxy refused. Refusing every outbound request
-// is the designed isolation, and local-cdn-startup_test.go asserts it; any
-// other host or path still counts.
+// is the designed isolation, and local-cdn-startup_test.go asserts that
+// isolation. Any other host or path still counts as a console error.
 func (h *harness) isRefusedCDNRootError(text string) bool {
 	return os.Getenv(localCDNEnv) == "1" &&
 		text == "Fetch API cannot load "+publicCDNRootURL+" due to access control checks."
 }
 
 // proxyCORSRefusal is WebKit's console error for a cross-origin request the
-// harness proxy refused with 403. It names only this origin, so the page
-// diagnostics pair it with a refused CDN root error.
+// harness proxy refused with 403. The error identifies only the harness origin,
+// so the page diagnostics pair the error with a refused CDN root error.
 func (h *harness) proxyCORSRefusal() string {
 	return "Origin " + h.baseURL + " is not allowed by Access-Control-Allow-Origin. Status code: 403"
 }
@@ -1098,7 +1103,7 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 		return "", false
 	}
 
-	// clean rejects ".." above; the join stays inside staticDir.
+	// clean rejects ".." above, so the join stays inside staticDir.
 	path := filepath.Join(staticDir, clean+".html")
 
 	// #nosec G703 -- traversal rejected above; path stays inside staticDir.

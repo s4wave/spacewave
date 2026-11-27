@@ -94,7 +94,7 @@ func TestFrameButtons(t *testing.T) {
 	})
 	tc.awaitPixel(at, red)
 
-	// A press on close released off it does nothing; a click on it asks
+	// A press on close released off it does nothing. A click on it asks
 	// the client to close the window.
 	closeAt := image.Pt(at.X+48-titleHeight/2, at.Y-titleHeight/2)
 	tc.pointer(closeAt.X, closeAt.Y, 1)

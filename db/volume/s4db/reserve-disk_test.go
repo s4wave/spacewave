@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// reserveDiskEnv names a directory on a small file system the disk reserve
+// reserveDiskEnv selects a directory on a small file system the disk reserve
 // run-through fills. The run-through is skipped without it.
 const reserveDiskEnv = "SPACEWAVE_RESERVE_DISK_DIR"
 
@@ -29,8 +29,8 @@ const reserveDiskEnv = "SPACEWAVE_RESERVE_DISK_DIR"
 // scheduled collection is an hour away. Each write replaces the bucket's head,
 // so the earlier heads are garbage. It checks that writes stop with
 // volume.ErrReserve before the disk is full, that reads continue, that the
-// controller collects at once and the volume returns to writable, and that
-// writes then resume.
+// controller collects at once and the volume returns to a writable state,
+// and that writes then resume.
 func TestReserveDisk(t *testing.T) {
 	// Register the factory on a test bus.
 	dir := os.Getenv(reserveDiskEnv)
@@ -93,7 +93,7 @@ func TestReserveDisk(t *testing.T) {
 	}
 
 	// The controller collects the replaced heads and the volume returns to
-	// writable.
+	// a writable state.
 	start := time.Now()
 	deadline := time.After(2 * time.Minute)
 	for {

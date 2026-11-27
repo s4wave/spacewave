@@ -60,7 +60,7 @@ interface ToolbarProps {
   onPathTargetDrop?: PathTargetDrop
   height?: number
   hideNav?: boolean
-  // actions are the shown object's presses, drawn before Search; a file
+  // actions are the shown object's presses, drawn before Search. A file
   // viewer puts its Edit and Save here. Nothing is drawn without them.
   actions?: ReactNode
 }

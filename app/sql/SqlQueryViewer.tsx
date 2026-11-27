@@ -254,7 +254,7 @@ function SqlQueryEditor({
   onOpenTargetDb,
   onResult,
 }: SqlQueryEditorProps) {
-  // The editor seeds its draft state from the persisted query once; the parent
+  // The editor seeds its draft state from the persisted query once. The parent
   // keys this component on the object key, so a different query remounts and
   // reseeds rather than silently overwriting an in-progress edit.
   /* eslint-disable react-doctor/no-derived-useState */

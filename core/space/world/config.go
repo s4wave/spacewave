@@ -33,9 +33,9 @@ func (c *Config) Validate() error {
 }
 
 // ParseReaderPinDelay returns the reader pin delay, or nil for the engine's
-// default.
+// default delay.
 func (c *Config) ParseReaderPinDelay() (*time.Duration, error) {
-	// Use the default when unset.
+	// Use the default delay when unset.
 	if c.GetReaderPinDelay() == "" {
 		return nil, nil
 	}

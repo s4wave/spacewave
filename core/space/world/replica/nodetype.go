@@ -13,8 +13,9 @@ import (
 // Devices and move its ownership to the desired owner.
 const NodeTypeID = "sobject/replica"
 
-// The ports of a replica node. A pair is joined from one node's output to the
-// other's input; which node holds which end does not matter.
+// PortOut, PortIn and portTypeID define the ports of a replica node. A pair
+// is joined from one node's output to the other's input. Either node can hold
+// either end.
 const (
 	// PortOut is the replica output port.
 	PortOut = "replica-out"
@@ -24,7 +25,8 @@ const (
 	portTypeID = "sobject/replica"
 )
 
-// The parameters of a replica node.
+// ParamSharedObject, ParamDesiredOwner and ParamProvider define the
+// parameters of a replica node.
 const (
 	// ParamSharedObject is the ID of the replicated SharedObject.
 	ParamSharedObject = "shared_object"
@@ -36,7 +38,7 @@ const (
 	ParamProvider = "provider"
 )
 
-// defaultProviderID is the provider a node names when it sets none.
+// defaultProviderID is the provider a node selects when it sets none.
 const defaultProviderID = "local"
 
 // NodeType is the replica node type.

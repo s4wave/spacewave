@@ -23,9 +23,11 @@ import {
 
 /** PluginViewer declares one web viewer a plugin serves. */
 export interface PluginViewer {
-  /** typeId is the object type it opens; a trailing /* matches a prefix. */
+  /**
+   * typeId is the object type the viewer opens. A trailing /* matches a prefix.
+   */
   readonly typeId: string
-  /** viewerName names the viewer in the selector. */
+  /** viewerName labels the viewer in the selector. */
   readonly viewerName: string
   /** componentId is the stable ID of a persisted viewer selection. */
   readonly componentId: string
@@ -120,7 +122,7 @@ export function defineViewerPlugin(
         }),
       )
 
-      // An initial load publishes now; a replacement waits for the scheduler.
+      // An initial load publishes now. A replacement waits for the scheduler.
       if (!host.prepared) await activateRegistrations(scope, lifetime)
     })()
 

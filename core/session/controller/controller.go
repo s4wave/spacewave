@@ -113,7 +113,8 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns a resolver.
+// Otherwise, HandleDirective returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -519,7 +520,7 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 // metadata, in one transaction, then stops its tracked lifetimes so clients
 // mount it again at the new index.
 func (c *Controller) MoveSession(ctx context.Context, from, to uint32) (*session.SessionListEntry, error) {
-	// Refuse a move that names no new index.
+	// Refuse a move that selects no new index.
 	if from == 0 || to == 0 {
 		return nil, errors.New("session indexes start at 1")
 	}
@@ -533,7 +534,7 @@ func (c *Controller) MoveSession(ctx context.Context, from, to uint32) (*session
 		return nil, err
 	}
 
-	// Stop the mounted lifetimes, which name the old index.
+	// Stop the mounted lifetimes, which refer to the old index.
 	var lifetimes []*sessionLifetime
 	c.mtx.Lock()
 	for lifetime := range c.lifetimes {
@@ -602,7 +603,7 @@ func (c *Controller) moveSessionRecords(ctx context.Context, from, to uint32) (*
 				return err
 			}
 
-			// Carry the metadata with it.
+			// Carry the metadata with the session entry.
 			meta, found, err := otx.Get(ctx, sessionMetaKey(from))
 			if err != nil {
 				return err

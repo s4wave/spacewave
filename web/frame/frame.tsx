@@ -5,17 +5,17 @@ import { IBarProps, Bar } from './bar.js'
 
 // IFrameProps are properties for Frame.
 export interface IFrameProps {
-  // children are children elements for the body
+  // children are children elements for the body.
   children?: React.ReactNode
-  // style are styles to apply to the outer flex
+  // style are styles to apply to the outer flex.
   style?: CSSProperties
   // className is a class name to apply to the outer flex.
   className?: string
-  // overlay is content to show in an overlay dialog
+  // overlay is content to show in an overlay dialog.
   overlay?: React.ReactNode
-  // innerClassName is additional className for the children container
+  // innerClassName is additional className for the children container.
   innerClassName?: string
-  // overlayClassName is additional className for the overlay container
+  // overlayClassName is additional className for the overlay container.
   overlayClassName?: string
   // overlayLabel is the accessible name of the overlay dialog.
   overlayLabel?: string
@@ -26,7 +26,7 @@ export interface IFrameProps {
   // note: unlike the bottom bar, the top bar is automatically hidden if the
   // hidden, left, and right properties are undefined.
   topBar?: IBarProps
-  // onCloseOverlay is called when the overlay should be closed
+  // onCloseOverlay is called when the overlay should be closed.
   onCloseOverlay?: () => void
 }
 

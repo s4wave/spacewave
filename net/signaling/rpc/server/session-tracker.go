@@ -5,7 +5,8 @@ import "github.com/pkg/errors"
 // sessionTracker tracks a session between two peers.
 // Its methods run under Server.mtx.
 type sessionTracker struct {
-	// wait is a channel that is closed when below changes.
+	// wait is a channel that is closed when the session tracker state
+	// changes.
 	wait chan struct{}
 	// seqno is incremented when peerA or peerB changes.
 	seqno uint64
@@ -87,7 +88,8 @@ func (t *sessionTracker) getCurrPeers(srcIsPeerA bool) (*sessionPeerTracker, *se
 	return t.peerB, t.peerA
 }
 
-// checkSeqno checks if a seqno is equal to the current and is a reasonable value.
+// checkSeqno checks if a seqno is equal to the current seqno and is a
+// reasonable value.
 func (t *sessionTracker) checkSeqno(seqno uint64) (bool, error) {
 	// If the session sequence number is lower than the message session seqno, the peer is misbehaving.
 	if t.seqno < seqno {

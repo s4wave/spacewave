@@ -237,7 +237,8 @@ message BootReport {
   BootBuild build = 12;
   // Environment contains coarse device-local runtime context.
   BootEnvironment environment = 13;
-  // Marks contains accepted startup marks through the measured terminal boundary; sealing occurs after this timeline.
+  // Marks contains accepted startup marks through the measured terminal
+  // boundary. Sealing occurs after the marks timeline.
   repeated BootMark marks = 14;
   // Spans contains owner intervals that attribute work between marks.
   repeated BootSpan spans = 15;
@@ -346,9 +347,10 @@ message BootSpan {
   BootWorkClass work_class = 7;
   // Result describes how the operation ended.
   BootSpanResult result = 8;
-  // CausalWaitTarget names a dependency, lock, or request class without an identifier.
+  // CausalWaitTarget identifies a dependency, lock, or request class without an
+  // identifier.
   string causal_wait_target = 9;
-  // SourceTask names a stable source task, package symbol, or trace task.
+  // SourceTask identifies a stable source task, package symbol, or trace task.
   string source_task = 10;
 }
 

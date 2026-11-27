@@ -40,14 +40,14 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "Hello World!", nil))
 	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "I like trains!", nil))
 
-	// Create path querying the data.
+	// Create a path querying the data.
 	p := cayley.
 		StartPath(store, quad.String("phrase of the day")).
 		Out(quad.String("is of course"))
 
-	// Now we iterate over results. Arguments:
+	// Now iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
-	// 2. Quad store, but we can omit it because we have already built path with it.
+	// 2. Quad store, optional because the path was built with the store.
 	nvals := 0
 	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types

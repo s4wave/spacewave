@@ -13,7 +13,7 @@ import (
 )
 
 // TestWatchIndexedReadSetGrows checks that a ReadSet waiting on the Engine's
-// indexed change watch is woken only by changes it names, and that a read
+// indexed change watch is woken only by changes it references, and that a read
 // recorded during the wait reaches the index: a change committed before the
 // read ends the wait, and so does one committed after it.
 func TestWatchIndexedReadSetGrows(t *testing.T) {
@@ -30,7 +30,7 @@ func TestWatchIndexedReadSetGrows(t *testing.T) {
 	readWatchTestObject(t, ctx, tracked, "grow/read")
 	result := startIndexedWait(ctx, e, reads, headSeqno(t, ctx, e))
 
-	// The index names only the read object.
+	// The index references only the read object.
 	sub := waitIndexedSubscriber(t, ctx, e)
 	if candidates := e.indexCandidates(&world.ChangeSet{Keys: []string{"grow/other"}}); slices.Contains(candidates, sub) {
 		t.Fatal("an unread key names the waiting view")
@@ -103,7 +103,8 @@ func TestWatchViewKeepsSubscription(t *testing.T) {
 		}
 	}
 
-	// The first wait names keep/a; an unread commit does not rerun it.
+	// The first wait references keep/a. An unread commit does not rerun the
+	// view.
 	expectRun(0)
 	waitIndexedName(t, ctx, e, "keep/a")
 	sub := waitIndexedSubscriber(t, ctx, e)
@@ -168,7 +169,7 @@ func TestWatchIndexWriteNotBlocked(t *testing.T) {
 	indexed := startIndexedWait(ctx, e, reads, before)
 	waitIndexedSubscriber(t, ctx, e)
 
-	// Hold the index as a subscriber naming a large interest would, and
+	// Hold the index as a subscriber declaring a large interest would, and
 	// subscribe a second view, which waits for the index.
 	locked := e.bcast.Lock()
 	w := e.changeWatch
@@ -207,7 +208,8 @@ func TestWatchIndexWriteNotBlocked(t *testing.T) {
 // TestWatchChangesKeepsIntermediateDeletion proves that the change feed
 // reports a deletion even when its object was absent at both ends of a span.
 func TestWatchChangesKeepsIntermediateDeletion(t *testing.T) {
-	// Start a watcher that names the object which will be created and deleted.
+	// Start a watcher that references the object that will be created and
+	// deleted.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	e := newRetirementTestEngine(t, ctx, nil)
@@ -310,7 +312,7 @@ func waitIndexedSubscriber(t *testing.T, ctx context.Context, e *Engine) *change
 	}
 }
 
-// waitIndexedName waits until a change to key names the change watch's
+// waitIndexedName waits until a change to key selects the change watch's
 // subscriber, which happens once the restarted wait indexes the new read.
 func waitIndexedName(t *testing.T, ctx context.Context, e *Engine, key string) {
 	t.Helper()

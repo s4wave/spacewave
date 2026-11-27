@@ -61,7 +61,8 @@ export interface Config {
   cdnBaseUrl?: string
   /**
    * PointerTtlDur is the cached root pointer TTL.
-   * Empty uses the CDN block store default. Negative disables expiry.
+   * An empty value uses the CDN block store's default TTL. A negative value
+   * disables expiry.
    */
   pointerTtlDur?: string
   /**
@@ -80,13 +81,13 @@ export interface Config {
    * durable writeback for this Space and supplies that store over the block
    * store RPC. The controller fetches the root pointer independently to build
    * its world head. It resolves no LookupBlockStore because it owns no store.
-   * Mutually exclusive with cache_block_store_id.
+   * SuppliedBlockStoreId is mutually exclusive with cache_block_store_id.
    */
   suppliedBlockStoreId?: string
   /**
    * RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
    * so an owner can serve the mutable pointer from its own server and keep the
-   * CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+   * CDN hostname immutable. An empty value reads the pointer from cdn_base_url.
    */
   rootPointerBaseUrl?: string
   /**

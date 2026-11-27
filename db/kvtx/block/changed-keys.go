@@ -36,7 +36,7 @@ func ExactKeyRange(key []byte) KeyRange {
 // PrefixKeyRange returns the range of the keys starting with prefix.
 func PrefixKeyRange(prefix []byte) KeyRange {
 	// Increment the last byte below 0xff after dropping the trailing 0xff
-	// bytes; a prefix of only 0xff bytes has no end.
+	// bytes. A prefix of only 0xff bytes has no end.
 	end := bytes.Clone(prefix)
 	for len(end) != 0 && end[len(end)-1] == 0xff {
 		end = end[:len(end)-1]
@@ -50,8 +50,8 @@ func PrefixKeyRange(prefix []byte) KeyRange {
 
 // ChangedKeys compares immutable KV roots, skipping equal subtree references.
 // It reads tree metadata and inline values, never external value blocks.
-// Complete is false after maxKeys changes or 100,000 visited tree nodes;
-// callers then reread.
+// Complete is false after maxKeys changes or 100,000 visited tree nodes,
+// so callers then reread.
 func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) (keys [][]byte, complete bool, err error) {
 	complete, err = changedKeys(ctx, before, after, nil, maxKeys, func(key []byte) error {
 		keys = append(keys, bytes.Clone(key))
@@ -94,8 +94,8 @@ func WalkChangedKeysIn(ctx context.Context, before, after *block.Cursor, ranges 
 
 // changedKeys compares two KV roots and calls emit with each changed key in
 // ascending order. A nil ranges compares every key, bounded by maxKeys and
-// changedKeysMaxVisits; otherwise only keys in the sorted, disjoint ranges are
-// compared, without a bound. emit must not keep key.
+// changedKeysMaxVisits. Otherwise only keys in the sorted, disjoint ranges
+// are compared, without a bound. emit must not keep key.
 func changedKeys(
 	ctx context.Context,
 	before, after *block.Cursor,
@@ -278,7 +278,7 @@ func mayHoldKeyIn(frontier []*diffTreeNode, ranges []KeyRange) bool {
 // of frontier that the walk will load: those that may hold a key in ranges and
 // whose subtree is not a node, or a loaded node's child, on other, the other
 // frontier. The walk skips such a shared subtree unread. A child shared deeper
-// than that loads unneeded; one sharing only a deeper subtree loads as the walk
+// than that loads unneeded. One sharing only a deeper subtree loads as the walk
 // needs it anyway. The scan of other stops at the first node starting after
 // the node ends, so it covers only the nodes overlapping the node's keys.
 func childrenToVisit(frontier, other []*diffTreeNode, ranges []KeyRange) []*diffTreeNode {
@@ -289,7 +289,7 @@ func childrenToVisit(frontier, other []*diffTreeNode, ranges []KeyRange) []*diff
 		end = frontier[len(frontier)-2].lower
 	}
 
-	// Name the subtrees of the other frontier that overlap the node.
+	// Record the subtrees of the other frontier that overlap the node.
 	shared := make(map[string]struct{})
 	addShared := func(node *diffTreeNode) {
 		if node.cursor != nil && node.kind == n.kind {
@@ -339,7 +339,7 @@ func spanHoldsKeyIn(lower, end []byte, ranges []KeyRange) bool {
 // loadDiffTreeNodes loads nodes, at most changedKeysLoadConcurrency at once.
 // Each load writes only its own node. Returns the first failure.
 func loadDiffTreeNodes(ctx context.Context, nodes []*diffTreeNode) error {
-	// Load the nodes still unloaded; a single one loads on the caller's
+	// Load the nodes still unloaded. A single node loads on the caller's
 	// goroutine.
 	nodes = slices.DeleteFunc(nodes, func(n *diffTreeNode) bool { return n == nil || n.loaded })
 	if len(nodes) <= 1 {
@@ -356,7 +356,8 @@ func loadDiffTreeNodes(ctx context.Context, nodes []*diffTreeNode) error {
 	return eg.Wait()
 }
 
-// diffTreeNode is a lazy ordered frontier; children are stored right-to-left for a stack.
+// diffTreeNode is a lazy ordered frontier. Children are stored right-to-left
+// for a stack.
 type diffTreeNode struct {
 	cursor *block.Cursor
 	kind   KVImplType
@@ -443,7 +444,7 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 	}
 
 	// Expose Okra leaf values or child references in stack order. A child
-	// starts at its entry's key; the level anchor starts where the page does.
+	// starts at its entry's key. The level anchor starts where the page does.
 	n.height = page.GetLevel() + 1
 	entries := page.GetEntries()
 	if page.GetLevel() == 0 {

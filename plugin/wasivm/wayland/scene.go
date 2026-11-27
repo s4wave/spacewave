@@ -53,9 +53,9 @@ func (c *Compositor) mapLayer(s *surface) {
 }
 
 // unmap takes the window or layer surface s off the screen, dismisses its
-// popups and moves the focus it held. A window in its own space ends it and
-// maps again on the desktop. The client must configure it again before it
-// maps. The caller holds the lock.
+// popups and moves the focus it held. A window in its own space ends that
+// space and maps again on the desktop. The client must configure s again
+// before s maps. The caller holds the lock.
 func (c *Compositor) unmap(s *surface) {
 	// Hide it and its popups.
 	if !s.mapped() {

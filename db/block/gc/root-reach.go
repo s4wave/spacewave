@@ -59,16 +59,16 @@ func (x *RootReach) Roots() int {
 }
 
 // Listed returns the number of blocks with a child list that the roots
-// reach, which are the stored blocks and the evicted ones; a listed block
-// they do not reach is one a collector with frees on would free.
+// reach, which are the stored blocks and the evicted ones. A listed block
+// the roots do not reach is one a collector with frees on would free.
 func (x *RootReach) Listed() uint64 {
 	return x.listed
 }
 
 // Root returns the first named root whose walk reached ref, or nil for a
 // block no root reaches, which a collector with frees on would free. So it
-// answers whether a block that something names outside a child list, as a
-// weak ref does, is held by another path.
+// answers whether a block that something references outside a child list,
+// as a weak ref does, is held by another path.
 func (x *RootReach) Root(ref *block.BlockRef) *FrontRoot {
 	return x.root(BlockKey(ref))
 }

@@ -35,11 +35,13 @@ import (
 //
 // The process owns one yield broker and one listener status broker, shared by
 // the resource listener, the root resource controller, the status projector and
-// the CLI commands, and one collector frees switch and one format upgrade
-// decision, which serve's flags set and the host storage reads as each Volume
-// opens, and one Device policy store, which serve loads before it starts the
-// bus and the root resource consults for the plugins granted Space Secrets. The app upgrades formats on its own, since a person cannot pass it a
-// flag; the development CLI asks the operator to opt in.
+// the CLI commands. The process also owns one collector frees switch and one
+// format upgrade decision. serve's flags set the switch and decision, and the
+// host storage reads both as each Volume opens. The process owns one Device
+// policy store. serve loads the store before starting the bus, and the root
+// resource consults the store for the plugins granted Space Secrets. The app
+// upgrades formats on its own, since a person cannot pass the app a flag. The
+// development CLI asks the operator to opt in.
 func composeNative(composition *compose.Composition) {
 	// Create the shared brokers and set the native desktop action.
 	yield := yield_policy.NewBroker()

@@ -220,7 +220,8 @@ func prepareBundle(dir, name, bundleRoot, executable string, expected []byte) (p
 		return "", errors.New("copied daemon bundle has no executable")
 	}
 
-	// Renaming onto an existing bundle fails, which keeps a published version intact.
+	// Renaming onto an existing bundle fails, so a published version stays
+	// intact.
 	if err := os.Rename(copied, bundle); err != nil && !errors.Is(err, os.ErrExist) && !errors.Is(err, syscall.ENOTEMPTY) {
 		return "", errors.Wrap(err, "publish daemon bundle copy")
 	}

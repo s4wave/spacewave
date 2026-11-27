@@ -36,7 +36,7 @@ func CreateCluster(
 	return w.ApplyWorldOp(ctx, op, sender)
 }
 
-// Validate performs cursory validation of the operation.
+// Validate validates the operation cursorily.
 // PeerId is optional here: defaults to sender in ApplyWorldOp.
 func (o *ClusterCreateOp) Validate() error {
 	if o.GetClusterKey() == "" {

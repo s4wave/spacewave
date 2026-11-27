@@ -30,7 +30,7 @@ import (
 
 // walkHiddenRefs serves a store's blocks with their refs unknown, as a peer
 // that never recorded them does, and misses one block. Each read is counted
-// when it returns to a walk still running; hook, when set, runs first and may
+// when it returns to a walk still running. hook, when set, runs first and may
 // fail the read.
 type walkHiddenRefs struct {
 	store block.StoreOps
@@ -595,8 +595,9 @@ func TestWalkStateAtomic(t *testing.T) {
 		t.Fatalf("a save left %s: %v", walkStateTmp, err)
 	}
 
-	// A crash mid-save leaves a partial file beside the path; the path still
-	// reads the last position, and the next save replaces the partial file.
+	// A crash mid-save leaves a partial file beside the path. The path
+	// still reads the last position, and the next save replaces the partial
+	// file.
 	if err := os.WriteFile(path+walkStateTmp, []byte{0xff, 0xff, 0x01}, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -624,7 +625,7 @@ func TestWalkStateAtomic(t *testing.T) {
 		t.Fatalf("after a failed save: seqno %d %v", st.GetPin().GetSeqno(), err)
 	}
 
-	// Discarding removes both.
+	// Discarding removes the state file and the partial file.
 	if err := os.RemoveAll(path + walkStateTmp); err != nil {
 		t.Fatal(err)
 	}
@@ -720,7 +721,7 @@ func (r *walkReadOnly) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 }
 
 // walkSlowKeep records the blocks kept, and holds each keep until release
-// closes, signalling entered as it starts.
+// closes, signalling entered as each keep starts.
 type walkSlowKeep struct {
 	entered chan struct{}
 	release chan struct{}
@@ -775,7 +776,7 @@ func TestWalkKeepYields(t *testing.T) {
 	// The held block is not kept.
 	w.keepDecoded(ctx, walkItem{ref: held}, []byte("held"), nil)
 
-	// One keep takes the only slot; another meanwhile is deferred at once.
+	// One keep takes the only slot, so another is deferred at once.
 	done := make(chan struct{})
 	go func() {
 		w.keepDecoded(ctx, walkItem{ref: slow}, []byte("slow"), nil)

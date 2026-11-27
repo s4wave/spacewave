@@ -10,7 +10,7 @@ import (
 )
 
 // TestDistDepsMatchRoot checks that the dist deps pin every dependency and
-// override the root package.json also names at the root's version, as
+// override the root package.json also declares at the root's version, as
 // bldr:gen:deps writes them. A mismatch serves the dev web packages at another
 // version than the generated code expects.
 func TestDistDepsMatchRoot(t *testing.T) {
@@ -30,7 +30,7 @@ func TestDistDepsMatchRoot(t *testing.T) {
 	root := read("../package.json")
 	dist := read("dist/deps/package.json")
 
-	// Compare each dist pin the root also names.
+	// Compare each dist pin the root also declares.
 	check := func(field string) {
 		dist.GetObject(field).Visit(func(name []byte, version *fastjson.Value) {
 			want := root.Get(field, string(name))

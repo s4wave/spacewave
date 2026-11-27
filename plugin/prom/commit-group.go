@@ -11,7 +11,7 @@ import (
 
 // commitGroup commits the windows of every target one Device scrapes in one
 // Space, in one World transaction per commit window. Each target's process
-// joins with its own handle on the Space's World engine; any member's handle
+// joins with its own handle on the Space's World engine. Any member's handle
 // can write every member's target.
 type commitGroup struct {
 	// le is the logger.
@@ -23,7 +23,8 @@ type commitGroup struct {
 	mtx sync.Mutex
 	// members maps each joined target's Store to its World engine handle.
 	members map[*Store]world.Engine
-	// cancel stops the commit loop; nil while the group has no members.
+	// cancel stops the commit loop and is nil while the group has no
+	// members.
 	cancel context.CancelFunc
 }
 
@@ -34,8 +35,8 @@ func newCommitGroup(le *logrus.Entry, window time.Duration) *commitGroup {
 
 // join adds store, written through eng, to the next commits, starting the
 // commit loop for the first member. It returns the function that removes the
-// store, which stops the loop after the last member leaves. The uncommitted
-// window of a leaving store is dropped, as a crash would drop it.
+// store. Removing the last member stops the loop. The uncommitted window of
+// a leaving store is dropped, as a crash would drop it.
 func (g *commitGroup) join(store *Store, eng world.Engine) func() {
 	// Add the member, starting the loop if it is the first.
 	g.mtx.Lock()

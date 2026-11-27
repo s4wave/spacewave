@@ -3,10 +3,10 @@ package block_store_writeback
 // EvictLatch carries an eviction loop from the high mark down to the low mark
 // across passes: once the resident bytes cross the high mark, Bytes keeps
 // returning the bytes down to the low mark after a pass cut short leaves them
-// between the marks, until they reach the low mark, no uploaded byte is left
-// to evict, or either mark changes. Without it a pass that ends early, such as
-// on a busy database, starts again only once the resident bytes cross the high
-// mark again. The latch decides only when a pass starts; each pass still
+// between the marks, until they reach the low mark, no uploaded byte is left to
+// evict, or either mark changes. Without it a pass that ends early, such as on
+// a busy database, starts again only once the resident bytes cross the high
+// mark again. The latch decides only when a pass starts. Each pass still
 // commits in the same short batches. The zero value is released.
 type EvictLatch struct {
 	// held is set while a pass started at the high mark has yet to reach

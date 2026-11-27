@@ -19,7 +19,7 @@ import {
 
 /**
  * Stager serves a placed os/system node's release to its Device's console.
- * The console's stage child is its one client; it reads the image's blocks
+ * The console's stage child is its one client. It reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
  * The console is the image store's only writer, so the stage child also
  * reports the store's revisions, which the node serves to the Device's update
@@ -71,7 +71,7 @@ export const StagerDefinition = {
 
 /**
  * Stager serves a placed os/system node's release to its Device's console.
- * The console's stage child is its one client; it reads the image's blocks
+ * The console's stage child is its one client. It reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
  * The console is the image store's only writer, so the stage child also
  * reports the store's revisions, which the node serves to the Device's update
@@ -116,7 +116,7 @@ export interface Stager {
 
 /**
  * Stager serves a placed os/system node's release to its Device's console.
- * The console's stage child is its one client; it reads the image's blocks
+ * The console's stage child is its one client. It reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
  * The console is the image store's only writer, so the stage child also
  * reports the store's revisions, which the node serves to the Device's update

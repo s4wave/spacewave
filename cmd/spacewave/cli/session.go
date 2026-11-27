@@ -133,7 +133,7 @@ func newSessionInfoCommand() *cli.Command {
 }
 
 // runSessionInfo implements the session info command logic.
-// This is also called from the hidden "info" alias in cli.go.
+// runSessionInfo is also called from the hidden "info" alias in cli.go.
 func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx uint32) error {
 	// Connect to the daemon.
 	ctx := c.Context
@@ -422,8 +422,8 @@ func confirmSessionLogout(entry *core_session.SessionListEntry) (bool, error) {
 	return answer == "y" || answer == "yes", nil
 }
 
-// newSessionRevokeCommand builds the session revoke command.
 // newSessionMoveCommand builds the command that gives a session another index.
+// newSessionRevokeCommand builds the session revoke command.
 func newSessionMoveCommand() *cli.Command {
 	var statePath string
 	return &cli.Command{

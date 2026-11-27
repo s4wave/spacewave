@@ -16,8 +16,8 @@ type StoreIdbFactory = NonNullable<OpenBootReportStoreOptions['idbFactory']>
 // The fake IndexedDB implements the native request/transaction callback
 // surface only: requests settle through onsuccess/onerror, transactions
 // settle through oncomplete/onabort/onerror, and requests expose no
-// promise interface. This forces the production wrappers to own the
-// request-to-promise conversion and transaction-completion discipline.
+// promise interface. This callback surface forces the production wrappers to
+// own the request-to-promise conversion and transaction-completion discipline.
 
 interface FakeIDBEvent {
   target: unknown
@@ -150,7 +150,7 @@ class FakeIDBTransaction {
     )
   }
 
-  // Abort marks the transaction so completion rejects through onabort even
+  // abort marks the transaction so completion rejects through onabort even
   // after every individual request succeeded.
   abort(): void {
     this.database.commitFailure = true
@@ -159,8 +159,8 @@ class FakeIDBTransaction {
   _track<T>(produce: () => T, meta?: { key?: string }): FakeIDBRequest<T> {
     const request = new FakeIDBRequest<T>(this, produce)
     if (this.database.factory.holdPredicate?.(meta)) {
-      // Held requests stay unsettled until the factory releases them, which
-      // lets tests discriminate serialized execution from concurrent
+      // Held requests stay unsettled until the factory releases them. Holding
+      // requests lets tests discriminate serialized execution from concurrent
       // execution.
       this.database.factory.held.push({
         execute: () => request._execute(),
@@ -237,8 +237,9 @@ class FakeIDatabase {
     return store
   }
 
-  // Transaction mirrors the native IDBDatabase signature and rejects an
-  // unknown store name so a mode-only caller cannot regress silently.
+  // transactionCalls records calls to transaction, whose signature mirrors
+  // native IDBDatabase. transaction rejects an unknown store name so a
+  // mode-only caller cannot regress silently.
   transactionCalls: Array<{
     storeName: string
     mode: 'readonly' | 'readwrite'
@@ -309,7 +310,7 @@ class FakeIDBFactory {
     return database
   }
 
-  // Release every held request in FIFO order.
+  // settleHeld releases every held request in FIFO order.
   settleHeld(): void {
     const held = [...this.held]
     this.held.length = 0
@@ -320,8 +321,8 @@ class FakeIDBFactory {
 
 function lockManagerAcquirable(): LockManager {
   const manager = {
-    // With ifAvailable an acquirable lock hands the lock object to the
-    // callback, proving the previous holder died.
+    // request hands the lock object to the callback for an acquirable lock
+    // with ifAvailable, proving the previous holder died.
     request: async (
       name: string,
       _options: unknown,
@@ -333,8 +334,8 @@ function lockManagerAcquirable(): LockManager {
 
 function lockManagerHeldElsewhere(): LockManager {
   const manager = {
-    // With ifAvailable a held lock hands null to the callback, proving
-    // another live tab owns the boot.
+    // request hands null to the callback for a held lock with ifAvailable,
+    // proving another live tab owns the boot.
     request: async (
       _name: string,
       _options: unknown,
@@ -450,7 +451,7 @@ describe('BootReportStore durability', () => {
     await store.list()
     await store.delete('boot-report-txn')
 
-    // Native IDBDatabase.transaction takes (storeNames, mode); a mode-only
+    // Native IDBDatabase.transaction takes (storeNames, mode). A mode-only
     // call asks the browser for a store literally named "readwrite".
     expect(
       factory.databases.get('bldr-boot-reports')!.transactionCalls,
@@ -692,7 +693,7 @@ describe('BootReportStore durability', () => {
     })
 
     // A multibyte-heavy label encodes to more bytes than its character
-    // count suggests; the budget must measure the encoded body.
+    // count suggests, so the budget must measure the encoded body.
     const wide = recordingReport('boot-report-wide', ['\u{1F600}'.repeat(24)])
     wide.state = BootReportState.READY
     ;(wide as { sealedAt?: bigint }).sealedAt = 10n
@@ -786,7 +787,7 @@ describe('BootReportStore durability', () => {
     const survivors = await store.list()
 
     // Number() coercion would collapse both stamps to the same double and
-    // could evict the wrong side; BigInt comparison keeps the newer report.
+    // could evict the wrong side. BigInt comparison keeps the newer report.
     expect(survivors.map((r: BootReport) => r.reportId)).toEqual([
       'boot-report-big-new',
     ])
@@ -920,7 +921,7 @@ describe('BootReport lock and lazy-attach races', () => {
 
     await expect(first.holdBootLock('boot-report-contend')).resolves.toBe(true)
     // The contender learns its denial through the asynchronous Web Locks
-    // callback; an optimistic synchronous read would answer true here.
+    // callback. An optimistic synchronous read would answer true here.
     await expect(second.holdBootLock('boot-report-contend')).resolves.toBe(
       false,
     )
@@ -948,7 +949,7 @@ describe('BootReport lock and lazy-attach races', () => {
     await expect(first.holdBootLock('boot-report-fail')).resolves.toBe(true)
 
     // A contender whose manager rejects must not disturb the live hold's
-    // registration; only its own failed request cleans up.
+    // registration. Only the contender's own failed request cleans up.
     const failing = await openBootReportStore({
       idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerRejecting(),
@@ -1021,7 +1022,7 @@ describe('BootReport lock and lazy-attach races', () => {
   })
 
   it('recovers stale boots before taking the lease and writing recording', async () => {
-    // Fresh module registry keeps the document-global collector state
+    // A fresh module registry keeps the document-global collector state
     // hermetic against earlier construction-time seals.
     vi.resetModules()
     const collectorModule = await import(/* @vite-ignore */ './collector.js')
@@ -1030,7 +1031,7 @@ describe('BootReport lock and lazy-attach races', () => {
     }
     delete globals.__swBootReport
     const factory = new FakeIDBFactory()
-    // One shared exclusive manager across every store in this boot, so the
+    // One exclusive manager is shared across every store in this boot, so the
     // lease contention is real rather than per-instance.
     const locks = lockManagerShared()
     // A crashed tab left a stale RECORDING row whose web lock died with it.
@@ -1088,7 +1089,7 @@ describe('BootReport lock and lazy-attach races', () => {
   })
 
   it('keeps a lease-denied boot memory-only until its terminal seal', async () => {
-    // Fresh module registry keeps the document-global collector state
+    // A fresh module registry keeps the document-global collector state
     // hermetic against earlier construction-time seals.
     vi.resetModules()
     const collectorModule = await import(/* @vite-ignore */ './collector.js')
@@ -1159,7 +1160,7 @@ describe('BootReport lock and lazy-attach races', () => {
     globals.indexedDB = factory as unknown as IDBFactory
     try {
       for (let boot = 1; boot <= 2; boot += 1) {
-        // Fresh module registry per boot mirrors separate document loads;
+        // A fresh module registry per boot mirrors separate document loads.
         // happy-dom exposes no navigator.locks, so both boots run lockless.
         vi.resetModules()
         const collectorModule = await import(

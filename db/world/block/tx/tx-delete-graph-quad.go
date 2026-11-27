@@ -49,8 +49,8 @@ func (t *TxDeleteGraphQuad) Clone() *TxDeleteGraphQuad {
 	}
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 // An empty quad is a *world.OpRefusedError.
 func (t *TxDeleteGraphQuad) Validate() error {
 	if t.GetQuad().IsEmpty() {

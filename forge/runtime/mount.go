@@ -14,7 +14,7 @@ import (
 // into one runtime backend. One attempt owns exactly one mount: guest writes
 // enter the Workdir through the Spacewave-owned FSHandle writer, so the
 // FSHandle is the only write fence. Flush fences every write that traversed
-// the FSHandle into durable storage; call it once before diff evidence.
+// the FSHandle into durable storage. Call Flush once before diff evidence.
 type WorkdirMount interface {
 	// Flush fences pending FSHandle writes into durable storage before diff evidence.
 	Flush(ctx context.Context) error
@@ -39,8 +39,8 @@ type V86WorkdirMount struct {
 }
 
 // NewV86WorkdirMount constructs the writable v86fs adapter for one Workdir
-// FSHandle. Attach registers it once; a second Attach is rejected because one
-// attempt mounts its Workdir exactly once.
+// FSHandle. Attach registers the mount once. A second Attach is rejected
+// because one attempt mounts its Workdir exactly once.
 func NewV86WorkdirMount(
 	eng world.Engine,
 	server *unixfs_v86fs.Server,

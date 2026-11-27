@@ -103,8 +103,8 @@ func TestStateChangeScales(t *testing.T) {
 }
 
 // buildRoundsState returns a state whose writers each write rounds
-// acknowledgments, every operation of a round naming every operation of the
-// round before, as concurrent devices that each saw the last round do.
+// acknowledgments, every operation of a round referencing every operation of
+// the round before, as concurrent devices that each saw the last round do.
 func buildRoundsState(t *testing.T, peers []peer.Peer, keys []crypto.PrivKey, rounds int) *SOState {
 	// Start from the genesis state.
 	t.Helper()

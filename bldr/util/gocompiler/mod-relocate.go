@@ -9,7 +9,7 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
-// dotSlash is ./
+// dotSlash is "." followed by the OS path separator, such as ./ on Unix.
 var dotSlash = string([]rune{'.', os.PathSeparator})
 
 // RelocateGoModFile transforms all references to a new path.
@@ -49,9 +49,9 @@ func RelocateGoModFile(
 			if err != nil {
 				return err
 			}
-			// ensure starts with ./
+			// Ensure the relative replacement path starts with ./.
 			newPathRelative = ensureStartsWithDotSlash(newPathRelative)
-			// add a new replacement to override the old
+			// Add a new replacement to override the old replacement.
 			oldSrcReplacePath := srcReplace.Old.Path
 			oldSrcReplaceVersion := srcReplace.Old.Version
 			oldSrcReplaceNewVersion := srcReplace.New.Version
@@ -78,9 +78,9 @@ func RelocateGoModFile(
 	return nil
 }
 
-// ensureStartsWithDotSlash returns the string with a ./ or ../ prefix
+// ensureStartsWithDotSlash returns the string with a ./ or ../ prefix.
 func ensureStartsWithDotSlash(p string) string {
-	// ensure starts with ./ or ../ - check simply for '.'
+	// Ensure the path starts with ./ or ../ by checking for '.'.
 	if !strings.HasPrefix(p, dotSlash[:1]) {
 		p = dotSlash + p
 	}

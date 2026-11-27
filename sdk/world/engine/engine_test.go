@@ -311,7 +311,7 @@ func TestSDKEngine_CreateAndGetObject(t *testing.T) {
 	// Name the object used by the create and lookup assertions.
 	objKey := "test-obj-create-get"
 
-	// Verify object does not exist yet.
+	// Verify the object does not exist yet.
 	objectState, found, err := tx.GetObject(ctx, objKey)
 	world.ReleaseObjectState(objectState)
 	if err != nil {
@@ -331,7 +331,7 @@ func TestSDKEngine_CreateAndGetObject(t *testing.T) {
 		t.Fatalf("expected key %q, got %q", objKey, obj.GetKey())
 	}
 
-	// Verify object exists now.
+	// Verify the object exists now.
 	retrieved, found, err := tx.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(retrieved)
 	if err != nil {
@@ -1163,7 +1163,7 @@ func TestSDKEngine_ObjectState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// GetRootRef should return initial revision.
+	// GetRootRef should return the initial revision.
 	_, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1312,7 +1312,7 @@ func TestSDKEngine_GraphQuadOperations(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Lookup should return empty now.
+	// Lookup should return an empty quad list now.
 	quads, err = tx.LookupGraphQuads(ctx, filter, 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1327,7 +1327,7 @@ func TestSDKEngine_GraphQuadOperations(t *testing.T) {
 // Note: hydra's DeleteGraphObject has a known bug where it returns early
 // if the object only appears as Subject or only as Object (uses || instead
 // of && on the early-return check). The test sets up quads in both
-// directions to work around this.
+// directions to avoid this early-return condition.
 func TestSDKEngine_DeleteGraphObject(t *testing.T) {
 	// Start an SDK engine for deleting all graph links of one object.
 	ctx := context.Background()
@@ -1356,8 +1356,9 @@ func TestSDKEngine_DeleteGraphObject(t *testing.T) {
 	}
 
 	// Set quads in both directions so dgo-subj appears as both Subject and Object.
-	// This is required because hydra's DeleteGraphObject returns early if the
-	// object only appears in one position (known bug: || instead of &&).
+	// Both directions are required because hydra's DeleteGraphObject
+	// returns early if the object only appears in one position (known
+	// bug: || instead of &&).
 	q1 := world.NewGraphQuadWithKeys("dgo-subj", "<ref>", "dgo-obj", "")
 	err = tx.SetGraphQuad(ctx, q1)
 	if err != nil {

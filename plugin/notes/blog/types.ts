@@ -2,7 +2,7 @@
 export interface BlogPostData {
   // name is the original .md filename.
   name: string
-  // title is the post title from frontmatter or derived from filename.
+  // title is the post title from frontmatter or derived from the filename.
   title: string
   // date is the publication date string (YYYY-MM-DD) from frontmatter.
   date: string
@@ -14,6 +14,7 @@ export interface BlogPostData {
   body: string
   // author is the optional author name from frontmatter.
   author?: string
-  // draft indicates the post is a draft and should be hidden from reading view.
+  // draft indicates the post is a draft and should be hidden from the reading
+  // view.
   draft?: boolean
 }

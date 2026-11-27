@@ -222,14 +222,15 @@ describe('ApplicationOperatorClient', () => {
     await expect(client.getApplication('app-123')).rejects.toMatchObject({
       statusCode: 302,
     })
-    // Only the original request must have been sent; the redirect was not followed.
+    // Only the original request must have been sent. The redirect was not
+    // followed.
     expect(captured).toHaveLength(1)
   })
 
   it('invokes the default fetch with globalThis as its receiver', async () => {
     // The Worker fetch requires globalThis as its receiver: it throws a
     // TypeError otherwise. Stand in for it to prove the client binds the
-    // default without changing injected-fetch semantics.
+    // default fetch without changing injected-fetch semantics.
     const originalFetch = globalThis.fetch
     const strictFetch = function (
       this: typeof globalThis,

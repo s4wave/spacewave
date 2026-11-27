@@ -18,14 +18,16 @@ export interface Config {
   disableLookup?: boolean
   /**
    * DisableDefaultLookup disables the default lookup controller.
-   * If a controller is defined in a bucket config this has no effect.
+   * If a controller is defined in a bucket config, DisableDefaultLookup
+   * has no effect.
    */
   disableDefaultLookup?: boolean
   /**
    * DefaultLookup overrides the default lookup controller.
-   * If this is empty, uses the hard-coded default controller.
-   * If DisableDefaultLookup is set, this has no effect.
-   * If a controller is defined in a bucket config this has no effect.
+   * If DefaultLookup is empty, the controller uses the hard-coded default
+   * controller.
+   * If DisableDefaultLookup is set, DefaultLookup has no effect.
+   * If a controller is defined in a bucket config, DefaultLookup has no effect.
    */
   defaultLookup?: ControllerConfig
 }

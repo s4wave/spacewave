@@ -52,10 +52,10 @@ message StartBenchmarkResponse {
 // BenchmarkConfig configures a benchmark run.
 message BenchmarkConfig {
   // DurationSeconds is the total benchmark duration target in seconds.
-  // Each suite gets a proportional share. Defaults to 10.
+  // Each suite gets a proportional share. DurationSeconds defaults to 10.
   uint32 duration_seconds = 1;
   // BlockSizes is the list of block sizes to test in bytes.
-  // Defaults to [256, 1024, 4096, 16384, 65536].
+  // BlockSizes defaults to [256, 1024, 4096, 16384, 65536].
   repeated uint32 block_sizes = 2;
   // IncludeWorldSuite enables the world transaction benchmark suite.
   bool include_world_suite = 3;
@@ -132,6 +132,6 @@ message BenchmarkMetric {
   // MaxMs is the maximum operation time.
   double max_ms = 8;
   // Samples contains raw timing samples when count < 1000.
-  // Empty for high-count metrics to keep response compact.
+  // Samples is empty for high-count metrics to keep the response compact.
   repeated double samples = 9;
 }

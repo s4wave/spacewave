@@ -508,7 +508,7 @@ func assertSocketAccepts(t *testing.T, sock string) {
 }
 
 // makeShortTakeoverDir returns a short, test-package-local directory
-// for Unix sockets; mirrors the helper in the spacewave-cli tests.
+// for Unix sockets and mirrors the helper in the spacewave-cli tests.
 func makeShortTakeoverDir(t *testing.T, _ string) string {
 	// Choose a short socket directory beneath the test state root.
 	t.Helper()
@@ -550,7 +550,7 @@ func createStaleTakeoverSocket(t *testing.T, path string) {
 }
 
 // TestEnsureSocketAvailablePreservesNonSocket prevents arbitrary file removal
-// when a configured socket path actually names an ordinary file.
+// when a configured socket path actually refers to an ordinary file.
 func TestEnsureSocketAvailablePreservesNonSocket(t *testing.T) {
 	path := filepath.Join(makeShortTakeoverDir(t, "regular"), "d.sock")
 	if err := os.WriteFile(path, []byte("preserved"), 0o600); err != nil {

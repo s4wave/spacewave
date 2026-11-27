@@ -182,7 +182,7 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 	}
 
 	// Merge the original local session's Space into the linked local
-	// target, which removes the source afterward.
+	// target. The target removes the source afterward.
 	targetResource, _, relTargetResource := mountSessionResource(ctx, t, linkedLocal)
 	defer relTargetResource()
 	if _, err := targetResource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{

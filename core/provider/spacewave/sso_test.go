@@ -117,8 +117,8 @@ func TestSSOCodeExchange_Unlinked(t *testing.T) {
 	}
 }
 
-// TestSSOCodeExchange_ServerError verifies SSOCodeExchange returns error for
-// non-2xx.
+// TestSSOCodeExchange_ServerError verifies SSOCodeExchange returns an error for
+// non-2xx responses.
 func TestSSOCodeExchange_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -182,7 +182,7 @@ func TestLinkSSO_Success(t *testing.T) {
 			t.Errorf("unexpected envelope path: %s", env.GetPath())
 		}
 
-		// Decode SSOLinkAction from envelope payload (proto binary).
+		// Decode SSOLinkAction from the envelope payload (proto binary).
 		action := &api.SSOLinkAction{}
 		if err := action.UnmarshalVT(env.GetPayload()); err != nil {
 			t.Fatalf("unmarshal sso link action: %v", err)
@@ -200,7 +200,7 @@ func TestLinkSSO_Success(t *testing.T) {
 			t.Error("encrypted_privkey should not be empty")
 		}
 
-		// Verify signature over the envelope bytes.
+		// Verify the signature over the envelope bytes.
 		pub := priv.GetPublic()
 		payload := BuildMultiSigPayload(req.GetSignatures()[0].GetSignedAt(), req.GetEnvelope())
 		ok, err := pub.Verify(payload, req.GetSignatures()[0].GetSignature())
@@ -244,7 +244,8 @@ func TestLinkSSO_Success(t *testing.T) {
 	}
 }
 
-// TestLinkSSO_ServerError verifies LinkSSO returns error for non-2xx.
+// TestLinkSSO_ServerError verifies LinkSSO returns an error for non-2xx
+// responses.
 func TestLinkSSO_ServerError(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 

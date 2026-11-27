@@ -9,12 +9,12 @@ import (
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
 
-// ModSeqnoEnv names the environment variable that turns ModSeqno stamping off
-// when set to "off". Commits then write records as before ModSeqno existed: a
-// written record keeps whatever ModSeqno it carried, and stays stale until a
-// commit with stamping on writes it again. It is the fallback while stamping
-// is new. ModSeqno is part of each record's hash, so every replica of a Shared
-// Object must use the same setting, or their checkpoints disagree.
+// ModSeqnoEnv is the name of the environment variable that turns ModSeqno
+// stamping off when set to "off". Commits then write records as before ModSeqno
+// existed: a written record keeps whatever ModSeqno it carried, and stays stale
+// until a commit with stamping on writes it again. It is the fallback while
+// stamping is new. ModSeqno is part of each record's hash, so every replica of
+// a Shared Object must use the same setting, or their checkpoints disagree.
 const ModSeqnoEnv = "SPACEWAVE_WORLD_MOD_SEQNO"
 
 // modSeqnoOff is read once at startup from ModSeqnoEnv.
@@ -25,8 +25,8 @@ var modSeqnoOff = os.Getenv(ModSeqnoEnv) == "off"
 // written twice keeps both cursors, since a changelog entry may hold the
 // first.
 //
-// Every write of an Object record into the object tree calls it; a record
-// written without it keeps the ModSeqno of an earlier commit.
+// Every write of an Object record into the object tree calls markObjectWritten.
+// A record written without that call keeps the ModSeqno of an earlier commit.
 func (t *WorldState) markObjectWritten(key string, cursor *block.Cursor) {
 	if t.modObjects == nil {
 		t.modObjects = make(map[string][]*block.Cursor)
@@ -52,7 +52,7 @@ func (t *WorldState) forgetObjectWritten(key string) {
 // Invariant: after Commit, every record a commit wrote carries that commit's
 // seqno, and no other record changes. The stamp writes through the cursor the
 // record was written to, which the changelog entry for the write also holds,
-// so the entry and the tree name the same block.
+// so the entry and the tree reference the same block.
 func (t *WorldState) stampModSeqno(ctx context.Context, seqno uint64) error {
 	// Leave records untouched when stamping is off.
 	if modSeqnoOff {

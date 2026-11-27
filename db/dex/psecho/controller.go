@@ -41,11 +41,11 @@ type sessionKey struct {
 // want is a block this node asks its peers for.
 type want struct {
 	ref *block.BlockRef
-	// waiters counts the lookups waiting for the block; the last to leave
+	// waiters counts the lookups waiting for the block. The last to leave
 	// removes the want.
 	waiters int
-	// data is the block once a peer sent it, which leaves the published want
-	// list.
+	// data is the block once a peer sent it. The received block leaves the
+	// published want list.
 	data []byte
 }
 
@@ -75,7 +75,7 @@ type Controller struct {
 	cc *Config
 
 	bcast broadcast.Broadcast
-	// All below guarded by bcast.
+	// wants and all fields below it are guarded by bcast.
 	wants       map[string]*want
 	remotePeers map[peer.ID]*remotePeerState
 	incoming    map[sessionKey]link.MountedStream
@@ -275,7 +275,8 @@ func (c *Controller) handleIncomingMessage(
 	m pubsub.Message,
 	privKey crypto.PrivKey,
 ) {
-	// Ignore unauthenticated messages and echoes of our own messages.
+	// Ignore unauthenticated messages and echoes of the local peer's
+	// messages.
 	if !m.GetAuthenticated() || m.GetFrom().MatchesPrivateKey(privKey) {
 		return
 	}

@@ -66,7 +66,7 @@ func TestTypedObjectResourceExitLogUsesKeyName(t *testing.T) {
 		readOnly:  false,
 	}, nil, nil, nil)
 
-	// Verify the exit log names the key and leaks no struct internals.
+	// Verify the exit log records the key and leaks no struct internals.
 
 	// Format got via out.
 	got := out.String()

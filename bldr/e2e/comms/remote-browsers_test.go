@@ -18,9 +18,9 @@ import (
 )
 
 // Two browsers run outside Playwright's launcher. "safari" is Safari on
-// macOS, driven over WebDriver by a safaridriver the caller starts and names
-// in SAFARIDRIVER_URL. "android" is Chrome on the one device adb sees;
-// see e2eharness.AndroidChrome.
+// macOS, driven over WebDriver by a safaridriver the caller starts and
+// specifies in SAFARIDRIVER_URL. "android" is Chrome on the one device adb
+// sees. See e2eharness.AndroidChrome.
 
 // safariDoneScript resolves a WebDriver async script with window.__results
 // once #log contains "DONE".

@@ -128,7 +128,7 @@ type SRPCNodeTypeResourceServiceClient interface {
 	// streams its status until the call ends.
 	ExecController(ctx context.Context, in *ExecControllerRequest) (SRPCNodeTypeResourceService_ExecControllerClient, error)
 	// ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-	// names the port protocol used as LookupRpcService's server ID.
+	// selects the port protocol used as LookupRpcService's server ID.
 	ServeRpc(ctx context.Context) (SRPCNodeTypeResourceService_ServeRpcClient, error)
 }
 
@@ -238,7 +238,7 @@ type SRPCNodeTypeResourceServiceServer interface {
 	// streams its status until the call ends.
 	ExecController(*ExecControllerRequest, SRPCNodeTypeResourceService_ExecControllerStream) error
 	// ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
-	// names the port protocol used as LookupRpcService's server ID.
+	// selects the port protocol used as LookupRpcService's server ID.
 	ServeRpc(SRPCNodeTypeResourceService_ServeRpcStream) error
 }
 

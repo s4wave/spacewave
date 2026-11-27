@@ -60,7 +60,7 @@ func TestOPFSStoreSetGet(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Write.
+	// Write the key-value pair.
 	wtx, err := s.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +74,7 @@ func TestOPFSStoreSetGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Read back.
+	// Read the key-value pair back.
 	rtx, err := s.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestOPFSStoreDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Confirm gone.
+	// Confirm the key is gone.
 	rtx, err := s.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +228,7 @@ func TestHandleCacheRefcount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Release once, handle should stay open.
+	// Release once, the handle should stay open.
 	cache.release("test.bin")
 	cache.mu.Lock()
 	entry := cache.entries["test.bin"]
@@ -237,7 +237,7 @@ func TestHandleCacheRefcount(t *testing.T) {
 		t.Fatal("expected refcount 1 after one release")
 	}
 
-	// Release again, handle should close.
+	// Release again, the handle should close.
 	cache.release("test.bin")
 	cache.mu.Lock()
 	_, exists := cache.entries["test.bin"]
@@ -260,7 +260,7 @@ func TestOPFSStoreIterate(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Write keys with shared prefix.
+	// Write keys with a shared prefix.
 	wtx, err := s.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -284,7 +284,7 @@ func TestOPFSStoreIterate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Iterate with prefix.
+	// Iterate with the prefix.
 	rtx, err := s.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -395,12 +395,12 @@ func TestOPFSStoreTally(t *testing.T) {
 		t.Fatalf("tally: got %d, want 10", tally)
 	}
 
-	// Save and reload.
+	// Save and reload the tally.
 	if err := s.saveTally(); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create new store from same directory to test tally load.
+	// Create a new store from the same directory to test loading the tally.
 	s2, err := NewStore(s.root)
 	if err != nil {
 		t.Fatal(err)
@@ -432,7 +432,7 @@ func TestOPFSStoreTxDiscard(t *testing.T) {
 	}
 	wtx.Discard()
 
-	// Confirm key was not persisted.
+	// Confirm the key was not persisted.
 	rtx, err := s.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

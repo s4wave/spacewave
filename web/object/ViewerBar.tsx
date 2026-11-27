@@ -32,7 +32,7 @@ export type ViewerBarFold = 'xs' | 'md' | 'menu'
 
 /** ViewerBarActionBase is what every press on the object a viewer shows has. */
 interface ViewerBarActionBase {
-  // id keys the press; it stays fixed while the label changes.
+  // id keys the press. The id stays fixed while the label changes.
   id: string
   // label names the press, its menu item, and its tooltip while the bar draws
   // it as an icon.
@@ -52,7 +52,7 @@ interface ViewerBarActionBase {
 /**
  * ViewerBarAction is one press on the object a viewer shows. A narrow press
  * shows only below a 42rem pane, where the side column it opens is gone, such
- * as a Pages press beside a page list; from 42rem it is gone, not folded, so
+ * as a Pages press beside a page list. From 42rem it is gone, not folded, so
  * More never lists it. A narrow press folds at "xs" or "md", never "menu",
  * since More would then show at 42rem with nothing to list.
  */
@@ -75,9 +75,9 @@ export interface ViewerBarOption {
 /**
  * ViewerBarChoice is a group of exclusive options in the bar, such as a time
  * range. From a 28rem pane the options sit in the bar, the current one
- * pressed; below it one press names the current option and opens a menu of
- * them. The choice never folds into More. ViewerBarChoice.tla holds its
- * states.
+ * pressed. Below 28rem one press names the current option and opens a menu of
+ * the options. The choice never folds into More. ViewerBarChoice.tla contains
+ * its states.
  */
 export interface ViewerBarChoice {
   // label names the group, its press and its menu, such as "Time range".
@@ -89,16 +89,17 @@ export interface ViewerBarChoice {
 }
 
 interface ViewerBarProps {
-  // icon marks the object's kind; it keeps its own color.
+  // icon marks the object's kind. The icon keeps its own color.
   icon?: ReactNode
-  // title names the object; it keeps viewer-title of width at every size.
+  // title names the object. The title keeps viewer-title of width at every
+  // size.
   title: string
-  // tone "alert" draws the title in the destructive color.
+  // tone draws the title in the destructive color when set to "alert".
   tone?: 'alert'
   // state is a short chip such as a badge, kept whole.
   state?: ReactNode
-  // description is one muted line of what the object is, from a 28rem pane;
-  // below that More shows it above the folded presses.
+  // description is one muted line of what the object is, from a 28rem pane.
+  // Below that More shows the description above the folded presses.
   description?: ReactNode
   actions?: ViewerBarAction[]
   // choice puts a group of exclusive options before the presses.
@@ -232,10 +233,10 @@ function focusSide(header: HTMLElement | null) {
  * A running press stays in place, disabled but focusable.
  *
  * The @pane-* variants decide which presses sit in the bar, so the bar must
- * render inside the viewer slot's pane container; outside one every press
+ * render inside the viewer slot's pane container. Outside one every press
  * folds into More. More reads what the pane hides when it opens and again on
  * each resize or change of the presses while open, so the bar and the menu
- * never disagree. It closes when nothing is folded and sends focus to the
+ * never disagree. More closes when nothing is folded and sends focus to the
  * first shown press, or the bar. ViewerBar.tla checks that
  * every press is in the bar or one More press away at every width.
  */
@@ -350,7 +351,7 @@ export function ViewerBar({
 }
 
 // ViewerBarPress is one press in the bar. A press with an icon and a label
-// shows its label from a 28rem pane; the tooltip and accessible name carry the
+// shows its label from a 28rem pane. The tooltip and accessible name carry the
 // label whenever the bar draws only the icon.
 function ViewerBarPress({
   action,
@@ -394,7 +395,7 @@ function ViewerBarPress({
 }
 
 // ViewerChoice is the bar's choice: its options as pressed buttons from a
-// 28rem pane, and below it one press naming the current option that opens a
+// 28rem pane, and below 28rem one press naming the current option that opens a
 // menu of them. While the menu is open it watches the bar and closes once the
 // press leaves it, sending focus to the current option, which the wider pane
 // now shows.
@@ -424,7 +425,7 @@ function ViewerChoice({
     return () => observer.disconnect()
   }, [open, barRef])
 
-  // Draw the group from 28rem and the press below it; both name the current
+  // Draw the group from 28rem and the press below 28rem. Both name the current
   // option.
   const current = options.find((o) => o.id === value)
   return (
@@ -515,7 +516,8 @@ function ViewerBarMore({
   description?: ReactNode
   readFolded: () => MoreList
 }) {
-  // Hold the More press and what its open menu lists; null is closed.
+  // Hold the More press and what its open menu lists. null means the menu is
+  // closed.
   const moreRef = useRef<HTMLButtonElement>(null)
   const [listed, setListed] = useState<MoreList | null>(null)
   const open = listed !== null
@@ -622,7 +624,7 @@ function ViewerBarMore({
  * Popover primitive's: opening moves focus into it, Escape or a click away
  * closes it and returns focus to the press. While open it watches the bar
  * and closes once the press leaves it, as a narrow press does from a 42rem
- * pane, where the side column shows the facts; focus then goes to the
+ * pane, where the side column shows the facts. Focus then goes to the
  * column's press, found beside the bar, or to the bar, which must take focus
  * with tabIndex -1.
  */
@@ -633,7 +635,8 @@ export function ViewerDetailsPress({
   narrow,
   defaultOpen = false,
 }: ViewerBarDetails & { barRef: RefObject<HTMLElement | null> }) {
-  // Hold the press, to see when it leaves the bar, and whether it is open.
+  // Hold the press, to see when it leaves the bar, and whether the popover
+  // is open.
   const pressRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(defaultOpen)
   const onResize = useEffectEvent(() => {

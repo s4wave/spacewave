@@ -17,7 +17,7 @@ func (f ChangeFilter) Accepts(changes *ChangeSet) bool {
 	return f == nil || changes.Unknown || f(changes)
 }
 
-// ChangeWatcher reports what changed between seqnos. Every Engine is one; a
+// ChangeWatcher reports what changed between seqnos. Every Engine is one. A
 // WorldState is one when it serves live reads rather than one revision.
 type ChangeWatcher interface {
 	// WatchChanges calls cb with each later seqno whose changes touches
@@ -30,18 +30,18 @@ type ChangeWatcher interface {
 
 // IndexedChangeWatcher is a ChangeWatcher that indexes its watchers by the
 // names in their ChangeInterests, so a change tests and wakes only the
-// watchers it names. An Engine wrapper that forwards WatchChanges forwards
-// WatchIndexedChanges too, or its watchers fall back to WatchChanges.
+// watchers the change concerns. An Engine wrapper that forwards WatchChanges
+// forwards WatchIndexedChanges too, or its watchers fall back to WatchChanges.
 type IndexedChangeWatcher interface {
 	ChangeWatcher
-	// WatchIndexedChanges is WatchChanges for the changes interest accepts. A
-	// change that names none of the interest's keys or quad fields never tests
-	// or wakes the watcher.
+	// WatchIndexedChanges is WatchChanges for the changes interest accepts.
+	// A change that contains none of the interest's keys or quad fields
+	// never tests or wakes the watcher.
 	WatchIndexedChanges(ctx context.Context, afterSeqno uint64, interest *ChangeInterest, cb func(seqno uint64, changes *ChangeSet) error) error
 }
 
 // WatchChanges calls cb with each seqno of w after afterSeqno and the changes
-// since the previous call. w is an Engine or a WorldState; a WorldState that
+// since the previous call. w is an Engine or a WorldState. A WorldState that
 // is not a ChangeWatcher reports every advance as an unknown ChangeSet.
 // Returns when ctx is canceled or cb returns an error.
 func WatchChanges(
@@ -100,7 +100,8 @@ func WatchSeqnoChanges(
 
 // WatchInterestedChanges is WatchTouchingChanges for the changes interest
 // accepts. A World whose change feed indexes its watchers tests interest only
-// on the changes it names; any other World tests it as a ChangeFilter.
+// on the changes interest selects. Any other World tests interest as a
+// ChangeFilter.
 func WatchInterestedChanges(
 	ctx context.Context,
 	w WorldWaitSeqno,
@@ -132,13 +133,13 @@ func WatchView(ctx context.Context, source WorldWaitSeqno, view func(ctx context
 }
 
 // WatchViewWith runs view like WatchView, tuned by opts. source must be an
-// Engine or WorldState; an Engine supplies a live, read-only WorldState. Every
+// Engine or WorldState. An Engine supplies a live, read-only WorldState. Every
 // evaluation has a fresh read set carried by its context. Transactions opened
 // through a ReadTrackingEngine with that context join the same set, including
 // transactions opened by clients captured by view, and AddViewReads joins a
 // finished set. All transactions must read source's World, and all evaluation
 // work must finish before view returns. Unknown changes can rerun an unchanged
-// projection; use SendViews to suppress equal results.
+// projection. Use SendViews to suppress equal results.
 // Returns when ctx ends or view or the watch fails.
 func WatchViewWith(
 	ctx context.Context,

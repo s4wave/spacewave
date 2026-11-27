@@ -6,7 +6,7 @@ message Config {
   // EngineId is the world engine id.
   string engine_id = 1;
   // ObjectKey is the Worker object to attach to.
-  // If not exists, waits for it to exist.
+  // If the Worker object does not exist, the controller waits for the object.
   string object_key = 2;
   // PeerId sets the peer id to use for worker operations.
   // PeerId must match one of the Keypair attached to the Worker.
@@ -15,6 +15,6 @@ message Config {
   string peer_id = 3;
 
   // AssignSelf sets the AssignSelf option on the task controller.
-  // indicates we want to run executions on this worker.
+  // Indicates that executions should run on the Worker.
   bool assign_self = 4;
 }

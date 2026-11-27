@@ -82,7 +82,7 @@ func (h *Holder) Hold(ctx context.Context, b bus.Bus) error {
 		return err
 	}
 
-	// Open the generation scope; a historical worker gets none.
+	// Open the generation scope. A historical worker gets none.
 	scopeRef, err := PrepareGeneration(ctx, b, resources.Client, root)
 	if err != nil {
 		return err

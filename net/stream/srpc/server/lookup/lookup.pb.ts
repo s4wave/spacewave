@@ -22,7 +22,7 @@ export interface Config {
    */
   protocolIds?: string[]
   /**
-   * ServerID is the server identifier passed to LookupRpcService.
+   * ServerId is the server identifier passed to LookupRpcService.
    * Can be empty.
    */
   serverId?: string

@@ -16,11 +16,11 @@ const WriteBudgetLength = 10 * time.Second
 // write after another writer moved the head spends the same budget, and the
 // time a replay waits to acquire the writer again counts against it.
 //
-// The budget bounds plugin time under the writer; it is not a deadline for the
-// write. Only plugin calls are cut at the deadline. An operation implemented
-// in Go runs to completion, and the budget ends the write's replay loop only
-// after a plugin call claimed it with Deadline, so a write of Go operations
-// alone replays as long as it did without a budget.
+// The budget bounds plugin time under the writer. The budget is not a deadline
+// for the write. Only plugin calls are cut at the deadline. An operation
+// implemented in Go runs to completion, and the budget ends the write's replay
+// loop only after a plugin call claimed it with Deadline, so a write of Go
+// operations alone replays as long as it did without a budget.
 //
 // A WriteBudget is safe for concurrent use: nested operations arrive over
 // plugin RPC calls on other goroutines.

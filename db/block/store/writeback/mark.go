@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Mark names a written block.
+// Mark records a written block.
 type Mark struct {
 	// Hash is the block hash.
 	Hash *hash.Hash

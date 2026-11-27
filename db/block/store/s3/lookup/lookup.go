@@ -23,18 +23,18 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller looks up blocks via an S3 HTTP service for LookupBlockFromNetwork directives.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// client is the client to use
+	// client is the client to use.
 	client *http.Client
 }
 
 // NewController constructs a controller that looks up blocks via an HTTP
 // service for LookupBlockFromNetwork directives.
 //
-// if client is nil, uses http.DefaultClient
+// If client is nil, NewController uses http.DefaultClient.
 func NewController(le *logrus.Entry, conf *Config, client *http.Client) *Controller {
 	if client == nil {
 		client = http.DefaultClient

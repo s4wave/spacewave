@@ -37,7 +37,7 @@ func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manife
 		return nil
 	}
 
-	// Skip when the directive names no platform IDs.
+	// Skip when the directive selects no platform IDs.
 	if len(dir.GetPlatformIds()) == 0 {
 		c.le.Debugf("not building manifest %s because list of platform ids is empty", manifestID)
 		return nil
@@ -53,11 +53,11 @@ func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manife
 
 // fetchManifestResolver resolves FetchManifest with the controller.
 type fetchManifestResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
-	//  dir is the directive
+	//  dir is the directive.
 	dir bldr_manifest.FetchManifest
 }
 
@@ -84,13 +84,13 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 
 // fetchManifestWithMetaResolver resolves FetchManifest with a ManifestMeta.
 type fetchManifestWithMetaResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
-	//  dir is the directive
+	//  dir is the directive.
 	dir bldr_manifest.FetchManifest
-	// meta is the manifest meta
+	// meta is the manifest meta.
 	meta *bldr_manifest.ManifestMeta
 }
 

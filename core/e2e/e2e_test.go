@@ -43,7 +43,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// get path to repo root
+	// get the path to the repo root
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,7 +88,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// add the controllers we will need
+	// add the controllers the testbed needs
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 
 	// Register the plugin host, project, and compiler factories.
@@ -104,7 +104,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
-	// create testbed resource server
+	// create the testbed resource server
 	volumeID := tb.GetVolume().GetID()
 	bucketID := "e2e-testbed-bucket"
 	testbedResourceServer := resource_testbed.NewTestbedResourceServer(
@@ -117,9 +117,10 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 
 	// Register the testbed resource service directly on the testbed mux. The
 	// plugin's host mux has its own ResourceServer from the scheduler, so
-	// wrapping it in a ResourceServer here would be shadowed. The E2E plugin
-	// is outside the host set; the host reaches this service for it only
-	// because NewNativeTestbed allows the service's ID.
+	// wrapping the testbed service in a ResourceServer here would be
+	// shadowed. The E2E plugin is outside the host set. The host reaches
+	// this service for the E2E plugin only because NewNativeTestbed allows
+	// the service's ID.
 	if err := testbedResourceServer.Register(tb.GetMux()); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -136,7 +137,8 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	}
 	defer relPeerCtrl()
 
-	// start objecttype controller to resolve LookupObjectType directives
+	// start the objecttype controller to resolve
+	// LookupObjectType directives
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {

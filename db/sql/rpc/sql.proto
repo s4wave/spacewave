@@ -29,7 +29,7 @@ message SqlTransactionRequest {
 
 // SqlTransactionInit initializes a SQL transaction.
 message SqlTransactionInit {
-  // Write indicates if this should be a write transaction.
+  // Write indicates if the transaction should be a write transaction.
   bool write = 1;
   // Dsn is the SQL database path/name.
   string dsn = 2;

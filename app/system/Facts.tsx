@@ -9,7 +9,7 @@ export interface Fact {
 }
 
 // Facts renders labeled readings as a definition list. Readings with no value
-// are omitted so the list shows only what the system reported; an empty list
+// are omitted so the list shows only what the system reported. An empty list
 // renders the fallback line instead.
 export function Facts({
   facts,

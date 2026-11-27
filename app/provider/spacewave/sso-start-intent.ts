@@ -1,7 +1,8 @@
 const SSO_START_INTENT_KEY = 'spacewave-sso-start-provider'
 const SSO_RETURN_TO_KEY = 'spacewave-sso-return-to'
-// The binding blocks finish URLs opened in independent contexts. Same-origin
-// opener clones, XSS, and extension-equivalent access can inherit or read it.
+// SSO_BROWSER_BINDING_KEY is the storage key for the binding that blocks finish
+// URLs opened in independent contexts. Same-origin opener clones, XSS, and
+// extension-equivalent access can inherit or read the binding.
 const SSO_BROWSER_BINDING_KEY = 'spacewave-sso-browser-binding'
 
 type ReturnPath = string & { readonly returnPath: unique symbol }

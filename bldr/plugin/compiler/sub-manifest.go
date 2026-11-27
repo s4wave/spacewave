@@ -61,7 +61,7 @@ func BuildAndCheckoutSubManifest[OutputMetaT any](
 		srcFiles = append(srcFiles, inputFile.GetPath())
 	}
 
-	// sync the latest sub-manifest contents into our assets directory
+	// sync the latest sub-manifest contents into the assets directory
 	le.Debugf("%s sub-manifest build complete, checking out assets", subManifestID)
 	outAssetsSubPath := filepath.Join(outAssetsPath, assetsSubdir)
 	_, err = bldr_manifest_world.CheckoutManifest(

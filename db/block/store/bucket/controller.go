@@ -14,7 +14,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "hydra/block/store/bucket"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -42,7 +42,8 @@ func NewController(
 		bucketConf:       bucketConf,
 		accessBlockStore: accessBlockStore,
 	}
-	// note: keep the handle if we have zero references and the context is not canceled.
+	// Keep the handle if the refcount has zero references and the
+	// context is not canceled.
 	ctrl.errCtr = ccontainer.NewCContainer[*error](nil)
 	ctrl.handleRc = refcount.NewRefCount(nil, true, nil, ctrl.errCtr, ctrl.resolveBucketHandle)
 	return ctrl

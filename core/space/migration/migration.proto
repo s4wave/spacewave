@@ -117,7 +117,7 @@ message MigrationConflict {
   string object_key = 2;
   // ObjectType identifies the affected ObjectType.
   string object_type = 3;
-  // SuggestedKey is the deterministic default for key collisions.
+  // SuggestedKey is the deterministic default key for key collisions.
   string suggested_key = 4;
   // Detail is safe, non-secret diagnostic text.
   string detail = 5;

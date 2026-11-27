@@ -177,7 +177,7 @@ func (r *WorldOpRegistryResource) LookupRegistrationByOpType(
 }
 
 // lookupPluginInstance finds a registration by operation type ID with the
-// plugin instance that serves it, empty for a global registration.
+// key of the plugin instance that serves it, empty for a global registration.
 func (r *WorldOpRegistryResource) lookupPluginInstance(
 	opTypeID, instanceKey string,
 ) (*s4wave_worldop_registry.WorldOpRegistration, string) {

@@ -16,7 +16,7 @@ var BlockEnc_KeySize = map[BlockEnc]int{
 	BlockEnc_BlockEnc_XCHACHA20_POLY1305: 32,
 }
 
-// ValidateKeySize checks the given key size is the expected.
+// ValidateKeySize checks the given key size is the expected size.
 func ValidateKeySize(e BlockEnc, keySize int) error {
 	expected, expectedOk := BlockEnc_KeySize[e]
 	if !expectedOk {

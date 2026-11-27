@@ -16,7 +16,7 @@ import (
 // the host reports the local state durable.
 func TestWriteMessagesWaitsDurable(t *testing.T) {
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
@@ -32,7 +32,7 @@ func TestWriteMessagesWaitsDurable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// newCContainerVT ctr via ccontainer.
+	// Create ctr with ccontainer.NewCContainerVT.
 	ctr := ccontainer.NewCContainerVT(authenticationState(t, soID, owner, reader))
 	watch := func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
 		return ctr, func() {}, nil

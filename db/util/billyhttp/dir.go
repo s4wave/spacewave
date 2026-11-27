@@ -9,9 +9,9 @@ import (
 
 // Dir implements the HTTP directory.
 type Dir struct {
-	// fs is the base filesystem
+	// fs is the base filesystem.
 	fs BillyFs
-	// path is the path to this dir
+	// path is the path to this dir.
 	path string
 	// ents holds the listed entries not yet returned by Readdir.
 	ents []fs.DirEntry

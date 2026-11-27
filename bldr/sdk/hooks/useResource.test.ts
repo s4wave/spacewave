@@ -244,7 +244,7 @@ function TestStreamOptions(props: {
   seen: Row[]
   version?: number
 }) {
-  // Stream rows from a trivial parent; version is the stream's only dep.
+  // Stream rows from a trivial parent. version is the stream's only dep.
   const parent = useResource(async () => ({}), [])
   const resource = useStreamingResource(
     parent,
@@ -556,7 +556,7 @@ describe('useResource', () => {
     expect(view('data-last')).toBe('child-1')
     expect(view('data-error')).toBe('parent failed')
 
-    // The run's value returns it to ready.
+    // The run's value returns the child to ready.
     await update(() => results[1]('child-2'))
     expect(view('data-value')).toBe('child-2')
     expect(view('data-error')).toBe('')
@@ -999,7 +999,8 @@ describe('useResource', () => {
       2,
     )
 
-    // An equal row keeps the first row's identity; a changed one replaces it.
+    // An equal row keeps the first row's identity, but a changed row replaces
+    // the first row.
     for (const row of [
       { id: 1, label: 'first' },
       { id: 1, label: 'same id' },
@@ -1201,7 +1202,7 @@ describe('useResource', () => {
     expect(view('data-value')).toBe('first')
     expect(view('data-loading')).toBe('true')
 
-    // A failure of the new stream drops it and keeps no last.
+    // A failure of the new stream drops the previous value and keeps no last.
     await update(() => streams[1].fail(new Error('dropped')))
     expect(view('data-value')).toBe('')
     expect(view('data-last')).toBe('')
@@ -1244,14 +1245,15 @@ describe('useResource', () => {
       expect(view('data-error')).toBe('dropped')
       expect(view('data-loading')).toBe('false')
 
-      // It keeps reopening without leaving the failed state.
+      // The resource keeps reopening its stream without leaving the failed
+      // state.
       await reopen()
       expect(streamFactory).toHaveBeenCalledTimes(8)
       expect(view('data-error')).toBe('dropped')
       expect(view('data-loading')).toBe('false')
 
-      // Retry reopens at once, still failed over the kept value so it never
-      // blanks; a value settles it.
+      // Retry reopens at once, still failed over the kept value so the content
+      // never blanks. A value settles the resource.
       await click()
       expect(streamFactory).toHaveBeenCalledTimes(9)
       expect(view('data-last')).toBe('first')

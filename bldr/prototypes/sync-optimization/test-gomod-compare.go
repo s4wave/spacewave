@@ -54,9 +54,9 @@ func main() {
 	fmt.Printf("Existing go.mod: %d bytes\n", len(existingGoMod))
 
 	// Step 2: Generate the go.mod that SyncDistSources would produce.
-	// We replicate the logic from devtool/bus.go lines 380-417.
-	// In a real implementation, this would use the embedded DistSources go.mod.
-	// For this test, we re-parse the existing go.mod and re-generate.
+	// The test replicates the logic from devtool/bus.go lines 380-417.
+	// A real implementation would use the embedded DistSources go.mod.
+	// This test re-parses the existing go.mod and re-generates the file.
 	t0 := time.Now()
 
 	// Parse the existing go.mod before regenerating its deterministic form.
@@ -73,7 +73,7 @@ func main() {
 	fmt.Printf("Current module:  %s\n", origModPath)
 	fmt.Printf("bldrSrcPath:     %s\n", bldrSrcPath)
 
-	// Re-format (this tests whether Format is deterministic)
+	// Re-format to test whether Format is deterministic.
 	modFile.Cleanup()
 	regenerated, err := modFile.Format()
 	if err != nil {

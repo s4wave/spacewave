@@ -51,8 +51,8 @@ service EngineResourceService {
 
   // WatchChanges streams each later World revision with the objects and graph
   // quads it changed since the previous message. The first request opens the
-  // stream; a stream opened with an interest takes later requests that change
-  // it, each acknowledged in order among the changes.
+  // stream. A stream opened with an interest takes later requests that change
+  // the interest, each acknowledged in order among the changes.
   rpc WatchChanges(stream WatchChangesRequest) returns (stream WatchChangesResponse);
 
   // WaitObjectRev waits until an object reaches a revision through the
@@ -219,22 +219,22 @@ message WatchChangesRequest {
   // AfterSeqno is the revision the stream starts after. Only the first request
   // sets it.
   uint64 after_seqno = 1;
-  // Interest names the changes the stream sends. On the first request, an
+  // Interest selects the changes the stream sends. On the first request, an
   // unset interest sends every change, and a set one, even empty, starts a
   // named interest from nothing and applies it. Each later request must set
   // it, on a stream opened with one, and changes the interest by it. Closing
-  // the request side ends only the deltas; the changes keep coming.
+  // the request side ends only the deltas. The changes keep coming.
   ChangeInterestDelta interest = 2;
 }
 
 // ChangeInterestDelta changes a named interest. A change reaches the stream
 // when it changes one of the interest's object keys, or sets or deletes a
 // graph quad matching one of its patterns. The stream may also send other
-// changes; a client filters what it receives.
+// changes. A client filters what it receives.
 message ChangeInterestDelta {
   // Version numbers the delta. The interest sent with the first request is
   // version 1, and each later delta's version is one more than the one
-  // before; the stream fails on any other. The ack that applies a delta
+  // before. The stream fails on any other version. The ack that applies a delta
   // carries its version.
   uint64 version = 1;
   // AddKeys are object keys to add.
@@ -242,7 +242,7 @@ message ChangeInterestDelta {
   // RemoveKeys are object keys to remove.
   repeated string remove_keys = 3;
   // AddPatterns are graph quad patterns to add. An empty field matches any
-  // value; a pattern must set at least one field.
+  // value. A pattern must set at least one field.
   repeated .quad.Quad add_patterns = 4;
   // RemovePatterns are graph quad patterns to remove, spelled as added.
   repeated .quad.Quad remove_patterns = 5;
@@ -261,7 +261,7 @@ message WatchChangesResponse {
 
 // InterestAck reports which interest filtered which changes. The changes the
 // stream sent before the ack, up to after_seqno, were filtered under the
-// earlier interest; every change after after_seqno is filtered under the
+// earlier interest. Every change after after_seqno is filtered under the
 // interest with the deltas up to version applied. Nothing after after_seqno
 // was sent before the ack, so nothing is sent twice. When the World no longer
 // records the revision at after_seqno, the next change is unknown.
@@ -308,7 +308,7 @@ message WaitObjectRevResponse {
 // AccessWorldStateRequest is the request type for AccessWorldState.
 message AccessWorldStateRequest {
   // Ref is an optional reference to access a specific object.
-  // If unset, we will access the Root of the WorldState.
+  // If unset, the Root of the WorldState is accessed.
   .bucket.ObjectRef ref = 1;
 }
 
@@ -589,7 +589,7 @@ message ListObjectsRequest {
   // Empty prefix lists all objects.
   string prefix = 1;
   // StartAfter resumes the listing after this object key. It must start with
-  // prefix. Empty starts at the first key.
+  // prefix. An empty start_after starts at the first key.
   string start_after = 2;
   // Limit is the maximum number of entries, objects plus prefixes, in the
   // page. It must be non-zero. The server may return a shorter page and set
@@ -597,8 +597,8 @@ message ListObjectsRequest {
   uint32 limit = 3;
   // Delimiter groups keys by the next path segment. When set, each key whose
   // remainder after prefix contains the delimiter is listed once as its prefix
-  // up to and including the first delimiter, instead of as an object. Empty
-  // lists every key under prefix.
+  // up to and including the first delimiter, instead of as an object. An empty
+  // delimiter lists every key under prefix.
   string delimiter = 4;
 }
 
@@ -719,10 +719,10 @@ message ListGraphEdgeBucketsRequest {
   GraphEdgeBucketDirection direction = 4;
   // After resumes each listing just past all edges of this endpoint object
   // key: pass the endpoint of the previous page's last edge. It requires a
-  // predicate. Empty starts at the first edge.
+  // predicate. An empty after starts at the first edge.
   //
   // With a predicate on a node graph World, edges come in endpoint creation
-  // order and each page reads only itself; otherwise every matching edge is
+  // order and each page reads only itself. Otherwise every matching edge is
   // read and ordered by quad text.
   string after = 5;
   // Reverse lists each direction's edges last first: newest first in
@@ -759,7 +759,7 @@ message ListObjectsWithTypeRequest {
   // TypeId is the type identifier to match.
   string type_id = 1;
   // StartAfter is the last object key returned by the previous page.
-  // Empty starts at the first subject in graph-index order.
+  // An empty start_after starts at the first subject in graph-index order.
   string start_after = 2;
   // Limit bounds the number of returned keys and must be non-zero.
   // The server may return a shorter page and set more.
@@ -793,7 +793,7 @@ message ListObjectsWithTypeResponse {
 message TypeCountEntry {
   // TypeId is the type identifier.
   string type_id = 1;
-  // Count is the number of objects of the type; zero in a watch step means
+  // Count is the number of objects of the type. Zero in a watch step means
   // the type's last object went.
   uint64 count = 2;
   // Internal reports that the type holds bookkeeping a person did not make,
@@ -814,7 +814,7 @@ message ListTypeCountsResponse {
 message WatchTypeCountsRequest {}
 
 // WatchTypeCountsResponse is one step of a type count watch. The first
-// response holds every count; each later one holds only the counts that
+// response holds every count. Each later one holds only the counts that
 // changed, with a zero count for a type whose last object went.
 message WatchTypeCountsResponse {
   // TypeCounts holds the counts, sorted by type ID.
@@ -825,13 +825,13 @@ message WatchTypeCountsResponse {
 
 // SearchObjectsWithTypeRequest starts a search over the objects of one type.
 message SearchObjectsWithTypeRequest {
-  // TypeId is the type whose objects are searched; it must be set.
+  // TypeId is the type whose objects are searched. It must be set.
   string type_id = 1;
-  // Query matches an object whose key or title holds it, ignoring case. An
-  // empty query matches every object of the type.
+  // Query matches an object whose key or title contains the query, ignoring
+  // case. An empty query matches every object of the type.
   string query = 2;
   // PageSize bounds the matches in one response. Zero selects the default of
-  // 100; the server caps it at the type listing page limit.
+  // 100. The server caps the page size at the type listing page limit.
   uint32 page_size = 3;
 }
 
@@ -894,10 +894,10 @@ message ObjectMetadata {
 message ObjectDeclaration {
   // Title names the object. An empty title means the client shows the key.
   string title = 1;
-  // State names the object's state in lower case, such as running or failed.
-  // Empty shows no state.
+  // State records the object's state in lower case, such as running or failed.
+  // An empty state shows no state.
   string state = 2;
-  // Time is when the object was made. Unset shows no age.
+  // Time is when the object was made. An unset time shows no age.
   google.protobuf.Timestamp time = 3;
   // Measures are the object's summable quantities, such as a receipt's cost
   // and tokens. A browser sums them by name over a family of objects.
@@ -908,7 +908,8 @@ message ObjectDeclaration {
 message ObjectMeasure {
   // Name identifies the quantity across objects, such as "cost" or "tokens".
   string name = 1;
-  // Unit is how the sum reads, such as "usd"; empty counts the named things.
+  // Unit is how the sum reads, such as "usd". An empty unit counts the named
+  // things.
   string unit = 2;
   // Value is the object's amount.
   double value = 3;
@@ -951,7 +952,7 @@ message ObjectBody {
   // and the type's owner, the host or its plugin, can render it.
   string body_json = 7;
   // WithheldSize is the length of a body left out of its page because the
-  // entry alone exceeds the page budget; body and body_json are then empty.
+  // entry alone exceeds the page budget. body and body_json are then empty.
   // The object read returns a withheld body.
   uint64 withheld_size = 8;
 }
@@ -964,9 +965,9 @@ message GetObjectBodiesBatchRequest {
   // Json asks for each body's type ID and JSON rendering.
   bool json = 2;
   // PageBudget, when set, asks for one page of at most this many encoded body
-  // bytes, capped at the default budget; the stream ends after it, and its
-  // bodies answer a prefix of object_keys. Zero streams every key in pages of
-  // the default budget.
+  // bytes, capped at the default budget. The stream ends after that page, and
+  // its bodies answer a prefix of object_keys. Zero streams every key in
+  // pages of the default budget.
   uint32 page_budget = 3;
 }
 
@@ -1098,28 +1099,28 @@ enum WorldErrorCode {
   // so nothing was committed. It is a superseded commit: the caller may retry
   // from a new transaction.
   WORLD_ERROR_CODE_STALE_GENERATION = 8;
-  // WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree names
-  // a block the Volume does not hold, so the Volume refused the root and
-  // nothing was committed.
+  // WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree
+  // references a block the Volume does not hold, so the Volume refused the
+  // root and nothing was committed.
   WORLD_ERROR_CODE_ROOT_NOT_HELD = 9;
   // WORLD_ERROR_CODE_REPLAY_WAITS indicates that the World takes no writes
   // because its replay is not caught up: it is opening, or waits at an
   // operation, such as for a handler this device lacks or the approval of a
   // plugin. Nothing was written. Reads go on. The Space's health shows the
-  // replay state in SharedObjectHealth.replay; the caller may write again
+  // replay state in SharedObjectHealth.replay. The caller may write again
   // once it is caught_up.
   WORLD_ERROR_CODE_REPLAY_WAITS = 10;
   // WORLD_ERROR_CODE_DURABILITY_UNKNOWN indicates that the World may or may
   // not hold the write: its outcome is unknown, so it is not a refusal. The
-  // caller must not send the same write again as if nothing was written; it
-  // reads the World to learn the outcome. A client that does not decode this
-  // code gets the bare durability unknown text as the call's error.
+  // caller must not send the same write again as if nothing was written. The
+  // caller reads the World to learn the outcome. A client that does not
+  // decode this code gets the bare durability unknown text as the call's error.
   WORLD_ERROR_CODE_DURABILITY_UNKNOWN = 11;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
 message ApplyWorldOpResponse {
-  // Seqno is the sequence number following the operation execution.
+  // Seqno is the sequence number after the operation executes.
   uint64 seqno = 1;
   // SysErr indicates if the error is a transient system error.
   bool sys_err = 2;
@@ -1134,10 +1135,10 @@ message ApplyWorldOpResponse {
 // WorldMutation is one write in an ExecuteWorldBatch list.
 message WorldMutation {
   oneof mutation {
-    // Op applies a World operation; the authenticated Resource sender
+    // Op applies a World operation. The authenticated Resource sender
     // overrides op_sender, as in ExecuteWorldOp.
     ApplyWorldOpRequest op = 1;
-    // CreateObject creates an object; an object already at the key fails the
+    // CreateObject creates an object. An object already at the key fails the
     // call.
     CreateObjectRequest create_object = 2;
     // SetGraphQuad adds or updates a graph quad.
@@ -1154,13 +1155,13 @@ message WorldMutation {
     RenameObjectRequest rename_object = 6;
     // DeleteGraphQuad deletes a graph quad.
     DeleteGraphQuadRequest delete_graph_quad = 7;
-    // DeleteGraphObject deletes every graph quad naming the object.
+    // DeleteGraphObject deletes every graph quad referencing the object.
     DeleteGraphObjectRequest delete_graph_object = 8;
     // SetRootRef sets the root of an object that must exist. Its result
     // carries the object's new revision.
     SetRootRefMutation set_root_ref = 9;
-    // ApplyObjectOp applies an object operation to an object that must exist;
-    // the authenticated Resource sender overrides op_sender. Its result
+    // ApplyObjectOp applies an object operation to an object that must exist.
+    // The authenticated Resource sender overrides op_sender. Its result
     // carries the object's new revision.
     ApplyObjectOpMutation apply_object_op = 10;
     // IncrementRev increments the revision of an object that must exist. Its
@@ -1221,8 +1222,8 @@ message ExecuteWorldBatchRequest {
 }
 
 // ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.
-// A refused batch wrote nothing, and names the mutation that refused it with
-// error_code or rejection_code; an applied batch carries neither.
+// A refused batch wrote nothing, and identifies the mutation that refused the
+// batch with error_code or rejection_code. An applied batch carries neither.
 message ExecuteWorldBatchResponse {
   // Seqno is the World sequence number after an applied batch.
   uint64 seqno = 1;
@@ -1483,8 +1484,9 @@ service TypedObjectResourceService {
   rpc AccessTypedObject(AccessTypedObjectRequest) returns (AccessTypedObjectResponse);
 
   // WatchTypedObject reports initial and changing typed-handler availability.
-  // Live Worlds follow object creation, type changes and deletion; immutable
-  // World snapshots retain their object state while handler availability changes.
+  // Live Worlds follow object creation, type changes and deletion. Immutable
+  // World snapshots retain their object state while handler availability
+  // changes.
   // Loss or replacement releases the previous child before the next snapshot.
   // Canceling the stream releases its lookup demand and current child.
   // The stream never invokes or replays methods on a typed child.
@@ -1519,8 +1521,8 @@ message WatchTypedObjectRequest {
 message WatchTypedObjectResponse {
   // ResourceId identifies a child bound to this handler generation, or zero if
   // the object, its type or its handler is absent. Each available generation
-  // receives a new child; the child implements the RPC service for TypeId.
-  // The consumer adopts and releases its reference; the watch also releases
+  // receives a new child. The child implements the RPC service for TypeId.
+  // The consumer adopts and releases its reference. The watch also releases
   // the child on loss, replacement or cancellation, including adopted children.
   uint32 resource_id = 1;
   // TypeId identifies the object's type even when its handler is absent.

@@ -117,8 +117,8 @@ describe('CanvasViewer', () => {
     const handle = openHandle()
     const { rerender } = await renderWithCanvas(handle)
 
-    // The edit goes to the real queue while the handle is open; its save
-    // never answers, so it stays pending.
+    // The edit goes to the real queue while the handle is open. The save
+    // never answers, so the edit stays pending.
     const moved = { ...h.canvas!.state.nodes.get('a')!, x: 300, y: 400 }
     const added = { ...moved, id: 'b', x: 50, y: 60 }
     act(() => {
@@ -132,9 +132,9 @@ describe('CanvasViewer', () => {
     expect(handle.update).toHaveBeenCalledTimes(1)
     expect(h.canvas!.readOnly).toBe(false)
 
-    // The handle fails: the watch keeps its canvas as last, drawn with the
-    // queued edits under the handle's failure and its Retry. With no handle
-    // to send on, the canvas is read-only and says why.
+    // The handle fails: the watch keeps its canvas as the last value, drawn
+    // with the queued edits under the handle's failure and its Retry. With no
+    // handle to send on, the canvas is read-only and says why.
     const retry = vi.fn()
     h.handleResource = handleState(null, new Error('stream reset'), retry)
     rerender(viewer())
@@ -149,14 +149,14 @@ describe('CanvasViewer', () => {
     expect(retry).toHaveBeenCalledTimes(1)
 
     // The Retry reloads the handle: the canvas stays drawn, still read-only,
-    // and never blanks to the wait.
+    // and never blanks to the waiting status.
     h.handleResource = { value: null, loading: true, error: null, retry }
     rerender(viewer())
     expect(screen.getByTestId('canvas')).toBeTruthy()
     expect(h.canvas!.state.nodes.size).toBe(2)
     expect(h.canvas!.readOnly).toBe(true)
 
-    // A new handle yields the canvas; the queued edits draw on it, unsent,
+    // A new handle yields the canvas. The queued edits draw on it, unsent,
     // and editing returns.
     const reopened = openHandle()
     h.handleResource = handleState(reopened)
@@ -194,7 +194,7 @@ describe('CanvasViewer', () => {
     expect(stage.contains(notices)).toBe(true)
     expect(notices.className).toMatch(/\babsolute\b/)
 
-    // A later edit leaves the notice up; Dismiss clears it.
+    // A later edit leaves the notice up. Dismiss clears it.
     act(() => {
       h.canvas!.callbacks.onNodesChange!(new Map([['a', moved]]))
     })
@@ -206,7 +206,7 @@ describe('CanvasViewer', () => {
   it('keeps the canvas under the failure once the watch reaches its backoff cap', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     try {
-      // The first watch yields a canvas and drops; every reopen fails.
+      // The first watch yields a canvas and drops. Every reopen fails.
       let opened = 0
       const handle: Handle = {
         update: vi.fn(() => Promise.resolve()),
@@ -226,7 +226,7 @@ describe('CanvasViewer', () => {
       })
       expect(screen.getByTestId('canvas')).toBeTruthy()
 
-      // Below the cap a line says the canvas reads again; at the cap the
+      // Below the cap a line says the canvas reads again. At the cap the
       // failure shows with Retry over the same canvas, never the empty hint.
       for (let i = 0; i < 7; i++) {
         await act(async () => {

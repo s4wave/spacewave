@@ -127,7 +127,7 @@ export interface V86Config {
   mounts?: VmMount[]
   /**
    * RuntimePluginId is the plugin that hosts the instanced V86 runtime.
-   * Empty defaults to spacewave-v86.
+   * An empty RuntimePluginId defaults to spacewave-v86.
    */
   runtimePluginId?: string
 }
@@ -254,27 +254,28 @@ export interface CreateVmV86Op {
    */
   timestamp?: Date
   /**
-   * ImageObjectKey points at a V86Image providing default asset edges. Required.
+   * ImageObjectKey points at a V86Image providing default asset edges.
+   * ImageObjectKey is required.
    */
   imageObjectKey?: string
   /**
    * KernelOverrideObjectKey optionally overrides the kernel resolved from the
-   * linked V86Image. Points at a UnixFS object.
+   * linked V86Image. The override points at a UnixFS object.
    */
   kernelOverrideObjectKey?: string
   /**
    * RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-   * linked V86Image. Points at a UnixFS object.
+   * linked V86Image. The override points at a UnixFS object.
    */
   rootfsOverrideObjectKey?: string
   /**
    * BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-   * linked V86Image. Points at a UnixFS object.
+   * linked V86Image. The override points at a UnixFS object.
    */
   biosOverrideObjectKey?: string
   /**
    * WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-   * the linked V86Image. Points at a UnixFS object.
+   * the linked V86Image. The override points at a UnixFS object.
    */
   wasmOverrideObjectKey?: string
 }
@@ -307,7 +308,7 @@ export interface SetV86ConfigOp {
    */
   objectKey?: string
   /**
-   * Config is the new configuration to apply. Replaces the stored Config.
+   * Config is the new configuration to apply. It replaces the stored Config.
    */
   config?: V86Config
 }
@@ -429,7 +430,7 @@ export const ReportV86RuntimeStatusResponse: MessageType<ReportV86RuntimeStatusR
 /**
  * V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
  * kernel, rootfs) linked through graph edges. The object itself carries
- * metadata; the five UnixFS targets are attached via v86image/wasm,
+ * metadata. The five UnixFS targets are attached via v86image/wasm,
  * v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
  *
  * @generated from message s4wave.vm.V86Image
@@ -469,7 +470,8 @@ export interface V86Image {
   createdAt?: Date
   /**
    * CdnSource locates the published image whose assets this image reads
-   * lazily. Unset when every asset edge points at an object in this Space.
+   * lazily. CdnSource is unset when every asset edge points at an object in
+   * this Space.
    *
    * Links (via graph edges, not proto fields):
    *   v86image/wasm          -> UnixFS object (emulator WASM binary)
@@ -522,7 +524,7 @@ export const VmImageCdnSource: MessageType<VmImageCdnSource> =
 
 /**
  * CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
- * inline; the five UnixFS edges are set separately via SetGraphQuad.
+ * inline. The five UnixFS edges are set separately via SetGraphQuad.
  *
  * @generated from message s4wave.vm.CreateV86ImageOp
  */
@@ -533,11 +535,11 @@ export interface CreateV86ImageOp {
   objectKey?: string
   /**
    * Image carries the metadata for the new V86Image. Name / platform / tags
-   * are required; the remaining fields are optional.
+   * are required. The remaining fields are optional.
    */
   image?: V86Image
   /**
-   * Timestamp is the creation timestamp. Stored on the block as CreatedAt.
+   * Timestamp is the creation timestamp, stored on the block as CreatedAt.
    */
   timestamp?: Date
 }
@@ -554,7 +556,7 @@ export const CreateV86ImageOp: MessageType<CreateV86ImageOp> =
 
 /**
  * SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
- * The four UnixFS edges are immutable post-create; use graph-quad ops on a
+ * The four UnixFS edges are immutable post-create. Use graph-quad ops on a
  * fresh V86Image to change asset bindings.
  *
  * @generated from message s4wave.vm.SetV86ImageMetadataOp
@@ -566,7 +568,7 @@ export interface SetV86ImageMetadataOp {
   objectKey?: string
   /**
    * Image carries the new metadata. CreatedAt is preserved from the stored
-   * block; any CreatedAt on the supplied V86Image is ignored.
+   * block. Any CreatedAt on the supplied V86Image is ignored.
    */
   image?: V86Image
 }

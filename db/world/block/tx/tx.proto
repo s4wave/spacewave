@@ -27,7 +27,7 @@ message Tx {
   // TxObjectIncRev increments the revision of an object.
   // TxType_OBJECT_INC_REV
   TxObjectIncRev tx_object_inc_rev = 6;
-  // TxDeleteObject to delete a object.
+  // TxDeleteObject deletes an object.
   // TxType_DELETE_OBJECT
   TxDeleteObject tx_delete_object = 7;
   // TxRenameObject renames an object key.
@@ -111,7 +111,7 @@ message TxApplyObjectOp {
   // OpSender is the peer ID to apply the operation as.
   string op_sender = 4;
   // SetRoots are the same-bucket object roots the operation set when its
-  // author applied it; see TxApplyWorldOp.set_roots.
+  // author applied it. See TxApplyWorldOp.set_roots.
   repeated .block.BlockRef set_roots = 5;
 }
 
@@ -145,7 +145,7 @@ message TxObjectIncRev {
 message TxDeleteObject {
   // ObjectKey is the object key to delete.
   string object_key = 1;
-  // FailIfNotFound indicates to error if not found.
+  // FailIfNotFound indicates to error if the object is not found.
   bool fail_if_not_found = 2;
 }
 

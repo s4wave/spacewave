@@ -59,15 +59,17 @@ const (
 	wasiIovecSize        = 8
 )
 
-// WASI has no permission argument for created files and directories, so
-// they take these less the umask.
+// wasiDefaultCreatedPerm and wasiDefaultDirectoryPerm supply permissions for
+// created files and directories, less the umask. WASI has no permission
+// argument for either.
 const (
 	wasiDefaultCreatedPerm   = 0o666
 	wasiDefaultDirectoryPerm = 0o777
 )
 
-// wasiRightsEverything grants every right. wasiRightsTerminal omits fd_seek
-// and fd_tell, which wasi-libc's isatty requires a terminal to lack.
+// wasiRightsEverything and wasiRightsTerminal grant every right except that
+// wasiRightsTerminal omits fd_seek and fd_tell, which wasi-libc's isatty
+// requires a terminal to lack.
 const (
 	wasiRightsEverything = ^uint64(0)
 	wasiRightsTerminal   = wasiRightsEverything &^ (1<<2 | 1<<5)
@@ -354,7 +356,7 @@ func (p *Process) wasiFDRead(ctx context.Context, mem engine.Memory, fd, iovsPtr
 
 // wasiReadMove returns the move of a read of fd into iovecs. Only the first
 // buffer's read waits, so a read that fills one buffer returns what follows
-// it at once instead of waiting to fill the next.
+// it at once instead of waiting to fill the next buffer.
 func (p *Process) wasiReadMove(ctx context.Context, fd uint32) func(base, length uint32) (uint32, uint32) {
 	return func(base, length uint32) (uint32, uint32) {
 		n, errno := wasiResult(p.sysRead(ctx, fd, base, length))
@@ -410,7 +412,7 @@ func (p *Process) wasiFDPwrite(mem engine.Memory, fd, iovsPtr, iovsLen uint32, o
 		return errno
 	}
 
-	// Write each buffer after the last.
+	// Write each buffer after the last buffer.
 	pos := int64(offset)
 	return wasiTransfer(mem, iovsPtr, iovsLen, nwrittenPtr, func(base, length uint32) (uint32, uint32) {
 		// Write the buffer to the file if the seals allow it.
@@ -433,8 +435,8 @@ func (p *Process) wasiFDPwrite(mem engine.Memory, fd, iovsPtr, iovsLen uint32, o
 // wasiFDReadDir writes the entries of a directory from cookie on to the
 // buffer at bufPtr, as many as fit whole, and the bytes written to usedPtr.
 // Each entry's cookie is the index of the entry after it. Reading from
-// cookie 0 takes a fresh listing of the directory; later reads continue in
-// it, skipping entries removed since.
+// cookie 0 takes a fresh listing of the directory. Subsequent reads continue
+// in the listing, skipping entries removed since.
 func (p *Process) wasiFDReadDir(mem engine.Memory, fd, bufPtr, bufLen uint32, cookie uint64, usedPtr uint32) uint32 {
 	// List the directory.
 	of, ok := p.fds[fd]

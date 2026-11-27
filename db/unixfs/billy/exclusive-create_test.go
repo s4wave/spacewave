@@ -18,7 +18,7 @@ import (
 type createInterleaving struct {
 	// Filesystem serves the same folder as the host writer.
 	billy.Filesystem
-	// folder names the host writer's scratch directory.
+	// folder holds the host writer's scratch directory path.
 	folder string
 }
 

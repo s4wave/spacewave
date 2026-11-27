@@ -153,7 +153,7 @@ export const KeyCombo: MessageType<KeyCombo> =
  */
 export interface KeySequence {
   /**
-   * Steps are canonical key step strings; "Leader" is the virtual leader step.
+   * Steps are canonical key step strings. "Leader" is the virtual leader step.
    */
   steps?: string[]
 }

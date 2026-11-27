@@ -276,8 +276,9 @@ func generateCjsWrappers(
 
 		// If the module re-exports from another file (e.g. conditional
 		// require based on NODE_ENV), resolve the reexport target and
-		// point the wrapper at the resolved file directly. This avoids
-		// Rolldown encountering require() calls in the conditional entry.
+		// point the wrapper at the resolved file directly.
+		// This resolution avoids Rolldown encountering require() calls in
+		// the conditional entry.
 		wrapperImportPath := absPath
 		if cjsResult.Reexport != "" {
 			resolved, resolutionFiles, resolveErr := determine_cjs_exports.ResolveModuleWithProvenance(
@@ -299,10 +300,12 @@ func generateCjsWrappers(
 			}
 		}
 
-		// Generate ESM wrapper that re-exports the CJS named exports.
+		// Generate an ESM wrapper that re-exports the CJS named
+		// exports.
 		wrapperContent := determine_cjs_exports.GenerateRemapExports(wrapperImportPath, cjsResult)
 
-		// Write wrapper to temp dir, preserving the import sub-path structure.
+		// Write the wrapper to the temp dir, preserving the import
+		// sub-path structure.
 		wrapperPath := filepath.Join(wrapperDir, imp)
 		wrapperExt := filepath.Ext(wrapperPath)
 		if wrapperExt == ".js" || wrapperExt == ".cjs" {

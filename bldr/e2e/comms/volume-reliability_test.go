@@ -136,7 +136,8 @@ func testReliabilityEvictAtRest(t *testing.T, r rel) {
 }
 
 // testReliabilityContend holds the volume on one page while a second page
-// tries to open it, which must fail cleanly and leave the holder working.
+// tries to open the volume. The second open must fail cleanly and leave the
+// holder working.
 func testReliabilityContend(t *testing.T, r rel) {
 	// Hold the volume open on one page.
 	ctx := launchContext(t, r.browser, t.TempDir())

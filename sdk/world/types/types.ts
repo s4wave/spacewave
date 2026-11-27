@@ -3,13 +3,13 @@ import type { IWorldState } from '../world-state.js'
 import { keyToIRI } from '../graph-utils.js'
 import { ErrTypeIDEmpty } from './errors.js'
 
-// TypesPrefix is the prefix string for all types identifiers
+// TypesPrefix is the prefix string for all types identifiers.
 export const TypesPrefix = 'types/'
 
-// TypePred is the predicate linking an object to its type (in IRI format)
+// TypePred is the predicate linking an object to its type (in IRI format).
 export const TypePred = '<type>'
 
-// BuildTypeObjectKey returns the object key referring to the type
+// buildTypeObjectKey returns the object key referring to the type.
 export function buildTypeObjectKey(typeID: string): string {
   if (!typeID) {
     return ''
@@ -17,14 +17,14 @@ export function buildTypeObjectKey(typeID: string): string {
   return TypesPrefix + typeID
 }
 
-// typeIDFromIRI returns the type ID a type quad's object names, or '' when
-// it names no type.
+// typeIDFromIRI returns the type ID a type quad's object references, or '' when
+// the object references no type.
 export function typeIDFromIRI(iri: string | undefined): string {
   if (!iri?.startsWith('<' + TypesPrefix) || !iri.endsWith('>')) return ''
   return iri.slice(1 + TypesPrefix.length, -1)
 }
 
-// BuildTypeQuad returns a type quad for a key and type
+// buildTypeQuad returns a type quad for a key and type.
 export function buildTypeQuad(objKey: string, typeID: string): GraphQuad {
   return {
     subject: keyToIRI(objKey),
@@ -33,8 +33,8 @@ export function buildTypeQuad(objKey: string, typeID: string): GraphQuad {
   }
 }
 
-// GetObjectType returns the type of a given object
-// Returns empty string if the object has no type
+// getObjectType returns the type of a given object.
+// Returns an empty string if the object has no type.
 export async function getObjectType(
   ws: IWorldState,
   key: string,
@@ -133,7 +133,7 @@ async function deleteOldTypeQuads(
   return exists
 }
 
-// CheckObjectType asserts that the object key exists and has the given type
+// checkObjectType asserts that the object key exists and has the given type.
 export async function checkObjectType(
   ws: IWorldState,
   key: string,
@@ -151,7 +151,7 @@ export async function checkObjectType(
   }
 }
 
-// SetObjectType sets the type of a given object by writing a graph quad
+// setObjectType sets the type of a given object by writing a graph quad.
 export async function setObjectType(
   ws: IWorldState,
   key: string,
@@ -207,8 +207,9 @@ export async function setObjectType(
   }
 }
 
-// EnsureTypeExists creates the object representing the type ID if it doesn't exist
-// Returns true if the type was created, false if it already existed
+// ensureTypeExists creates the object representing the type ID if it doesn't
+// exist.
+// Returns true if the type was created, false if it already existed.
 export async function ensureTypeExists(
   ws: IWorldState,
   typeID: string,
@@ -225,8 +226,9 @@ export async function ensureTypeExists(
   return true
 }
 
-// IterateObjectsWithType iterates over object keys with the given type ID
-// The callback receives each object key and should return true to continue iteration
+// iterateObjectsWithType iterates over object keys with the given type ID.
+// The callback receives each object key and should return true to continue
+// iteration.
 export async function iterateObjectsWithType(
   ws: IWorldState,
   typeID: string,
@@ -253,7 +255,7 @@ export async function iterateObjectsWithType(
   await iterate(0)
 }
 
-// ListObjectsWithType returns the list of object keys with the given type id.
+// listObjectsWithType returns the list of object keys with the given type id.
 export async function listObjectsWithType(
   ws: IWorldState,
   typeID: string,

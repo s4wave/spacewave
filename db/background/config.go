@@ -25,7 +25,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig[*Config](c, other)
 }
 
-// GetRunSlotsOrDefault returns the run slots or the default.
+// GetRunSlotsOrDefault returns the run slots or the default number of slots.
 func (c *Config) GetRunSlotsOrDefault() uint32 {
 	return max(c.GetRunSlots(), defaultRunSlots)
 }

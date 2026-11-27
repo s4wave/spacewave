@@ -75,8 +75,9 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 	return nil, nil
 }
 
-// watch publishes the value for the registration lookup returns, replacing it
-// when the registration changes and withdrawing it when none remains.
+// watch publishes the value for the registration that lookup returns,
+// replacing the value when the registration changes and withdrawing the value
+// when no registration remains.
 func (c *BridgeController) watch(lookup func() *nodeTypeRegistration, value func(*nodeTypeRegistration) directive.Value) ([]directive.Resolver, error) {
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 		var current *nodeTypeRegistration

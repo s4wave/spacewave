@@ -21,7 +21,7 @@ func (silentWriter) Close() error { return nil }
 
 // TestWorkerStreamsFailCallsWhenWorkerGone parks an activation check on a
 // worker that never answers, ends the worker, and requires the call to fail
-// at once; after the execution closes, a new call fails without opening.
+// at once. After the execution closes, a new call fails without opening.
 func TestWorkerStreamsFailCallsWhenWorkerGone(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()

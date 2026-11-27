@@ -38,7 +38,7 @@ import (
 // - Web package references used by the bundle
 // - Metadata about the esbuild outputs
 // - List of source files used by esbuild
-// - Any error that occurred
+// - Any error that occurred.
 func BuildEsbuildBundle(
 	le *logrus.Entry,
 	codeRootPath string,
@@ -128,8 +128,10 @@ func BuildEsbuildBundle(
 	)
 
 	// https://github.com/evanw/esbuild/issues/1921
-	// NOTE: we can't use async import() here since require() is called w/o await.
-	// This fixes an issue with esbuild where dynamic imports don't work correctly in certain environments
+	// NOTE: the bundle can't use async import() here since require() is
+	// called w/o await.
+	// FixEsbuildIssue1921 fixes an issue with esbuild where dynamic imports
+	// don't work correctly in certain environments
 	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts)
 
 	// compile the bundle

@@ -76,7 +76,7 @@ func NewViaBusHandler(le *logrus.Entry, b bus.Bus, returnIfErr bool) WebViewHand
 
 // NewSetRenderMode builds a new handler that sets the render mode.
 //
-// le can be nil
+// le can be nil.
 func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest, opts ...func(r *web_view.SetRenderModeRequest)) WebViewHandler {
 	for _, opt := range opts {
 		opt(req)
@@ -105,7 +105,7 @@ func SetRenderModeWithRefresh() func(m *web_view.SetRenderModeRequest) {
 
 // NewSetReactComponent builds a handler that sets a react component.
 //
-// le can be empty
+// le can be empty.
 func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte, opts ...func(r *web_view.SetRenderModeRequest)) WebViewHandler {
 	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
@@ -116,8 +116,8 @@ func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte, opt
 
 // NewSetFunctionComponent builds a handler that sets a function callback component.
 //
-// le can be empty
-// props can be nil (undefined)
+// le can be empty.
+// props can be nil (undefined).
 func NewSetFunctionComponent(le *logrus.Entry, scriptPath string, props []byte) WebViewHandler {
 	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_FUNCTION,
@@ -128,7 +128,7 @@ func NewSetFunctionComponent(le *logrus.Entry, scriptPath string, props []byte) 
 
 // NewSetHtmlLinks builds a new handler that sets html links.
 //
-// le can be nil
+// le can be nil.
 func NewSetHtmlLinks(le *logrus.Entry, req *web_view.SetHtmlLinksRequest) WebViewHandler {
 	return func(
 		ctx context.Context,

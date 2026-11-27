@@ -94,7 +94,8 @@ type batchWalk[P walkPage, C any] struct {
 	lookups []batchLookup
 	values  [][]byte
 	found   []bool
-	// level holds the loaded nodes being expanded; next the loads below them.
+	// level holds the loaded nodes being expanded, and next holds the loads
+	// below them.
 	level, next []batchLoad[P, C]
 }
 
@@ -181,10 +182,9 @@ const batchLoadConcurrency = 16
 
 // runLoads runs the planned loads with at most batchLoadConcurrency in
 // flight. The level's child pages and stored values are read first in one
-// batch read, so a remote store answers the level in a few requests; each load
-// then goes
-// through the reader, and a block the decoded block cache holds costs no store
-// read. Returns the first failure.
+// batch read, so a remote store answers the level in a few requests. Each load
+// then goes through the reader, and a block the decoded block cache holds costs
+// no store read. Returns the first failure.
 func (w *batchWalk[P, C]) runLoads(ctx context.Context) error {
 	// Place each child page's load. A level of many loads reads its child
 	// pages and stored values together first.
@@ -217,7 +217,7 @@ func (w *batchWalk[P, C]) runLoads(ctx context.Context) error {
 		return w.load(ctx, 0)
 	}
 
-	// Run the loads together; each writes only its own load and result. The
+	// Run the loads together. Each writes only its own load and result. The
 	// group's context is its own variable: the closure captures it, and
 	// reassigning ctx would move ctx to the heap on the single-load path too.
 	eg, egCtx := errgroup.WithContext(ctx)

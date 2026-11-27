@@ -128,11 +128,11 @@ func TestSharedWorkerOpfsReturnGate(t *testing.T) {
 	}
 
 	// Directly probe the Chromium issue 528332884 condition: a cross-origin
-	// isolated SharedWorker calling navigator.storage.getDirectory(). While the
-	// bug is present this fails closed with SecurityError, which is why
-	// sharedWorkerOpfsBugHardDisable forces DedicatedWorker hosting. When the
-	// browser fix lands this probe goes green, and that is the signal to remove
-	// the hard-disable.
+	// isolated SharedWorker calling navigator.storage.getDirectory(). While
+	// the bug is present the call fails closed with SecurityError, which is
+	// why sharedWorkerOpfsBugHardDisable forces DedicatedWorker hosting. When
+	// the browser fix lands this probe goes green, and that is the signal to
+	// remove the hard-disable.
 	probe := runSharedWorkerOpfsProbe(t, page)
 	if got, _ := probe["stage"].(string); got != "result" {
 		t.Fatalf("SharedWorker probe stage = %q, want result; probe=%#v", got, probe)
@@ -160,8 +160,8 @@ func TestSharedWorkerOpfsReturnGate(t *testing.T) {
 }
 
 // runSharedWorkerOpfsProbe constructs a cross-origin isolated SharedWorker and
-// reports whether navigator.storage.getDirectory() succeeds inside it. This is
-// the direct reproduction of Chromium issue 528332884.
+// reports whether navigator.storage.getDirectory() succeeds inside it. This
+// probe is the direct reproduction of Chromium issue 528332884.
 func runSharedWorkerOpfsProbe(t testing.TB, page playwright.Page) map[string]any {
 	// Run the OPFS probe in the page.
 	t.Helper()

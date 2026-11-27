@@ -145,7 +145,8 @@ describe('Shell tab lifecycle with FlexLayout', () => {
       ).toBe(false)
       expect(activePanel()!.getBoundingClientRect().width).toBe(844)
 
-      // Navigation updates only the new tab; returning preserves the first viewer.
+      // Navigation updates only the new tab. Returning preserves the first
+      // viewer.
       activePanel()!.querySelector('button')!.click()
       await onDOMChange(
         () =>

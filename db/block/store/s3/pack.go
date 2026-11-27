@@ -69,7 +69,7 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 // bytes and refs of each block, keyed by block hash. The object
 // {prefix}entries/{id} holds its PackfileEntry with the bloom filter readers
 // use to find the pack of a block. The entry is written after the packfile, so
-// a listed entry names a complete packfile.
+// a listed entry identifies a complete packfile.
 //
 // Reads use the entries this store wrote or listed. The first read lists the
 // entries, and a background routine lists them again every refresh interval,
@@ -117,7 +117,7 @@ type PackStore struct {
 	refreshInterval time.Duration
 	// soleWriter stops the refresher: no other writer adds packfiles.
 	soleWriter bool
-	// indexOnly keeps the store to the packs its index holds; see
+	// indexOnly keeps the store to the packs its index holds. See
 	// PackStoreOptions.IndexOnly.
 	indexOnly bool
 	// exactReads makes the pack readers fetch only the bytes a miss needs.
@@ -251,7 +251,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	// Read blocks from the known packfiles within the shared cache budget.
 	s.packs = packfile_store.NewPackfileStore(s.openPack, tails, conf)
 
-	// Start compaction; the refresher starts at the first read.
+	// Start compaction. The refresher starts at the first read.
 	s.compactor.SetRoutine(s.runCompaction)
 	s.compactor.SetContext(context.Background(), false)
 	s.refresher.SetRoutine(s.runRefresh)
@@ -387,7 +387,7 @@ func (s *PackStore) published(entry *packfile.PackfileEntry) {
 // blocks.
 //
 // Invariant: the packfile holds exactly the blocks next yields, each once,
-// whichever layout writes it; a duplicate fails the write.
+// whichever layout writes the packfile. A duplicate fails the write.
 func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*packfile.PackfileEntry, error) {
 	// Pack the blocks in memory within the size limit.
 	pack := writer.PackBlocks
@@ -505,8 +505,8 @@ func (s *PackStore) HasPackfile(ctx context.Context, id string) (bool, error) {
 }
 
 // publishPack uploads the packfile data, then its entry, so a listed entry
-// names a complete packfile, then indexes keys with the entry, so the pack is
-// found at once, and keeps its index tail, so its first read from the remote
+// identifies a complete packfile, then indexes keys with the entry, so the pack
+// is found at once, and keeps its index tail, so its first read from the remote
 // reads no tail.
 func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEntry, data []byte, keys [][]byte) error {
 	// Upload the packfile before the entry that lists it.
@@ -647,7 +647,7 @@ func verifiedBlock(ref *block.BlockRef, data []byte) (*block.StoredBlock, error)
 	return stored, nil
 }
 
-// extentReadsOn turns on the extent read path of every PackStore; see
+// extentReadsOn turns on the extent read path of every PackStore. See
 // SetIndexExtentReads.
 var extentReadsOn atomic.Bool
 
@@ -659,37 +659,37 @@ func init() {
 // SetIndexExtentReads turns the extent read path of every PackStore on or
 // off. On, a block whose index row holds its offset and size in its pack
 // reads with one range read of the pack, without the pack's entry or index
-// tail; off, every read goes through the pack readers, as before the rows
+// tail. Off, every read goes through the pack readers, as before the rows
 // held extents.
 func SetIndexExtentReads(on bool) {
 	extentReadsOn.Store(on)
 }
 
 // packGraphOrder makes every PackStore write its packs in graph order while
-// it holds true; see SetPackGraphOrder.
+// packGraphOrder is true. See SetPackGraphOrder.
 var packGraphOrder atomic.Bool
 
 // SetPackGraphOrder chooses how every PackStore lays out the packs it writes:
 // uploads, compaction merges and tail merges. On, a pack holds its trees'
 // structure blocks depth first and then their leaves, with each structure
-// block's reach in its index entry, as writer.PackGraph describes; off, the
-// default, a pack holds its blocks in the order its writer yields them, which
-// for merges is key order. Either layout holds the same blocks. A process
+// block's reach in its index entry, as writer.PackGraph describes. Off, the
+// default layout, a pack holds its blocks in the order its writer yields them,
+// which for merges is key order. Either layout holds the same blocks. A process
 // started with SPACEWAVE_PACK_GRAPH_ORDER=1 starts with graph order on.
 func SetPackGraphOrder(on bool) {
 	packGraphOrder.Store(on)
 }
 
 // packExactReads makes the pack readers of every PackStore without
-// ExactReads read exactly while it holds true; see SetPackExactReads.
+// ExactReads read exactly while packExactReads is true. See SetPackExactReads.
 var packExactReads atomic.Bool
 
 // SetPackExactReads turns exact reads on or off for the pack readers of every
 // PackStore that does not set ExactReads, including the readers already open.
 // On, a block the pack readers read fetches only its own bytes, which suits a
 // bucket that bills each byte read over packs whose neighboring blocks are
-// seldom read together; off, the default, a read fetches a window of at least
-// 1 MiB around the block. A pack's index tail reads the same either way.
+// seldom read together. Off, the default mode, a read fetches a window of at
+// least 1 MiB around the block. A pack's index tail reads the same either way.
 func SetPackExactReads(on bool) {
 	packExactReads.Store(on)
 }
@@ -697,11 +697,11 @@ func SetPackExactReads(on bool) {
 // readExtent reads the block with one range read of its pack when its h row
 // holds its extent. It returns nil and no error when the row holds no extent,
 // when the pack is missing, or when the bytes read do not hold the block: a row
-// of a pack sharing its number may name the wrong pack, and the lookup through
-// the pack readers finds the right one. Any other failure of the read, such as
-// a throttled or failed request, returns its error, because the pack readers
-// would send the same bucket more and larger reads that fail the same way.
-// Concurrent reads of one block share the range read, which runs until its
+// of a pack sharing its number may identify the wrong pack, and the lookup
+// through the pack readers finds the right one. Any other failure of the read,
+// such as a throttled or failed request, returns its error, because the pack
+// readers would send the same bucket more and larger reads that fail the same
+// way. Concurrent reads of one block share the range read, which runs until its
 // last reader leaves, in the most urgent class of its readers.
 func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Find the extent.
@@ -716,12 +716,14 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 
 	// Read and verify the block's bytes, once for every concurrent reader.
 	return s.extentReads.do(ctx, string(key), func(ctx context.Context) (*block.StoredBlock, error) {
-		// A cached copy saves the read; anything wrong with it costs only that.
+		// A cached copy saves the read. A faulty copy costs only that
+		// read.
 		if stored := s.cachedBlock(ctx, ref, id, off, size); stored != nil {
 			return stored, nil
 		}
 
-		// Read the extent; a missing pack means the row named the wrong one.
+		// Read the extent. A missing pack means the row identified the
+		// wrong pack.
 		start := time.Now()
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
 		s.reads.latency[readExtent].observe(start)
@@ -786,7 +788,7 @@ func (s *PackStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 func (s *PackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	var exists []bool
 	err := s.lookup(ctx, refs, func(placed []bool) (bool, error) {
-		// Probe the packs; retry once a placed block is not found.
+		// Probe the packs, then retry once a placed block is not found.
 		var err error
 		exists, err = s.packs.GetBlockExistsBatch(ctx, refs)
 		if err != nil {
@@ -824,22 +826,22 @@ func (s *PackStore) Sync(context.Context) (bool, error) {
 	return true, nil
 }
 
-// lookup runs find against the known packfiles for refs, which the first
-// lookup loads, and keeps them fresh.
+// lookup runs find against the known packfiles for refs, which the first lookup
+// loads, and keeps them fresh.
 //
 // With an index, entries holds the unindexed packs, and lookup first publishes
 // the packs the index places refs in, reading their entries from the index.
 // find reports whether it missed a block the index placed: the placing row
-// names a pack that is gone or lacks the block, which may sit in an older pack
-// the row shadowed, so lookup publishes every entry and runs find again. A
+// identifies a pack that is gone or lacks the block, which may sit in an older
+// pack the row shadowed, so lookup publishes every entry and runs find again. A
 // block the index places nowhere is in no indexed pack, and every unindexed
 // pack is published, so that miss is final.
 //
 // When find reports a deleted packfile, lookup lists the entries, which drops
 // the packfiles merged away and finds their merged packfile, and runs find
 // again. It repeats while each listing drops a packfile, so a reader crosses
-// any number of tail merges that replace its packfile while it lists, and
-// stops when a listing drops none.
+// any number of tail merges that replace its packfile while it lists, and stops
+// when a listing drops none.
 func (s *PackStore) lookup(ctx context.Context, refs []*block.BlockRef, find func(placed []bool) (bool, error)) error {
 	if err := s.Preload(ctx); err != nil {
 		return err
@@ -1095,7 +1097,7 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 
 	// Snapshot the packs known before the listing starts: the published
 	// entries, and with an index every pack its table holds, so the listing
-	// reads only the entries of packs neither names.
+	// reads only the entries of packs neither contains.
 	var known map[string]bool
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 		known = make(map[string]bool, len(s.entries))
@@ -1107,10 +1109,10 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		s.index.eachPack(func(id string) { known[id] = true })
 	}
 
-	// List until a listing reads every new entry it names. A tail merge
-	// writes the merged entry before it deletes the replaced one, so an entry
-	// that vanished after the listing means the listing predates the merged
-	// entry and may miss it.
+	// List until a listing reads every new entry it contains. A tail merge
+	// writes the merged entry before it deletes the replaced one, so an
+	// entry that vanished after the listing means the listing predates the
+	// merged entry and may miss it.
 	read := make(map[string]*packfile.PackfileEntry)
 	var ids map[string]bool
 	for {
@@ -1251,7 +1253,8 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 		return nil, errors.Wrap(err, "read packfile entry")
 	}
 
-	// Decode the packfile entry and verify it names the requested packfile.
+	// Decode the packfile entry and verify it identifies the requested
+	// packfile.
 	entry := &packfile.PackfileEntry{}
 	if err := entry.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "decode packfile entry "+id)

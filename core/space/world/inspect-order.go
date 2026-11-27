@@ -15,7 +15,7 @@ import (
 // operation, in order. It returns the counts of the whole order.
 //
 // It reads the state and the saved replay cursor and writes nothing: it runs
-// no operation and mounts no World. It keeps only the counts; each operation
+// no operation and mounts no World. It keeps only the counts. Each operation
 // is passed to emit and dropped. The order's hashes are the state's own,
 // which the SharedObject already holds in memory.
 func InspectOrder(ctx context.Context, so sobject.SharedObject, emit func(*OrderOperation) error) (*OrderInspection, error) {
@@ -132,8 +132,8 @@ func readOrderOperation(op *sobject.OrderedOperation) *OrderOperation {
 	return &OrderOperation{Read: &OrderOperation_Empty{Empty: &OrderOperationEmpty{}}}
 }
 
-// worldOpKind names the body of wop, or returns WORLD_OP_KIND_UNKNOWN when it
-// has none this build declares.
+// worldOpKind identifies the body of wop, or returns WORLD_OP_KIND_UNKNOWN
+// when wop has no body this build declares.
 func worldOpKind(wop *WorldOp) WorldOpKind {
 	switch wop.GetBody().(type) {
 	case *WorldOp_InitWorld:

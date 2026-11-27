@@ -27,7 +27,7 @@ message LookupRpcServiceRequest {
 message LookupRpcServiceResponse {
   // Idle indicates the directive is now idle.
   bool idle = 1;
-  // Exists indicates we found the service on the remote.
+  // Exists indicates the service was found on the remote.
   bool exists = 2;
   // Removed indicates the value no longer exists.
   bool removed = 3;

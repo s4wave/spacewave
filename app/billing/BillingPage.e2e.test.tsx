@@ -88,7 +88,7 @@ import { BillingPage } from './BillingPage.js'
 
 // BillingPageSurface fills the viewport and applies the bg-background-primary
 // token so the screenshot captures the billing detail page over its real
-// backdrop. UsageBars renders for real off the mocked billing state; the
+// backdrop. UsageBars renders for real off the mocked billing state. The
 // heavier action sections are stubbed the same way the unit test stubs them.
 function BillingPageSurface() {
   return (

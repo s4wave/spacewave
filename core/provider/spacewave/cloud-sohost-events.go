@@ -18,8 +18,9 @@ func (h *cloudSOHost) connected() {
 // soNotify records an so_notify payload for the state routine. It runs on the
 // Session websocket's read goroutine and returns in constant time. An inline
 // snapshot or delta goes to the backlog with its block store nonce. A
-// configuration notification carries no state, so it pulls the state that
-// holds the new configuration; applying it wakes the chain verifier.
+// configuration notification carries no state, so soNotify pulls the state
+// that holds the new configuration. Applying the state wakes the chain
+// verifier.
 func (h *cloudSOHost) soNotify(payload *api.SONotifyEventPayload) {
 	// Hand inline state to the state routine.
 	if payload == nil {
@@ -49,8 +50,8 @@ func (h *cloudSOHost) soNotify(payload *api.SONotifyEventPayload) {
 		// Account-level notification routing handles these.
 	default:
 		// Cloud always attaches an inline SOStateMessage for op and checkpoint
-		// mutations, so this indicates a publisher bug rather than a missed
-		// update we should pull behind.
+		// mutations, so a missing inline state payload indicates a publisher
+		// bug rather than a missed update the host should pull behind.
 		h.le.WithField("change-type", payload.GetChangeType()).
 			WithField("seqno", payload.GetSeqno()).
 			Warn("so_notify arrived without inline state payload; ignoring")
@@ -77,7 +78,7 @@ func (h *cloudSOHost) applyStateBacklog(ctx context.Context) {
 	}
 
 	// A resync reads the cloud now, after the take, so it covers every message
-	// the backlog dropped; joining an earlier in-flight pull would not. A
+	// the backlog dropped. Joining an earlier in-flight pull would not. A
 	// failure resyncs on the next event.
 	if batch.resync != "" {
 		if err := h.pullState(ctx, batch.resync); err != nil && ctx.Err() == nil {
@@ -99,7 +100,7 @@ func (h *cloudSOHost) applyStateBacklog(ctx context.Context) {
 
 // applyInlineState applies one held snapshot or delta, reporting whether it
 // applied. A config chain mismatch waits for the chain verifier, which the
-// failed verification already signaled; any other failure pulls.
+// failed verification already signaled. Any other failure pulls.
 func (h *cloudSOHost) applyInlineState(ctx context.Context, msg *api.SOStateMessage) bool {
 	// Apply the message under the host's acceptance lock.
 	err := h.handleStateDelta(ctx, msg)
@@ -111,7 +112,7 @@ func (h *cloudSOHost) applyInlineState(ctx context.Context, msg *api.SOStateMess
 	}
 
 	// Firing /state on a config chain mismatch would read the same state and
-	// fail verification the same way until the chain catches up; the next
+	// fail verification the same way until the chain catches up. The next
 	// event or gap recovery carries the state forward instead.
 	if errors.Is(err, errSOConfigChainChanged) {
 		h.le.WithError(err).

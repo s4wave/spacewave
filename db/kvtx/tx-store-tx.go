@@ -9,14 +9,14 @@ import (
 	"github.com/s4wave/spacewave/db/tx"
 )
 
-// TxStoreTx implements the Tx interface backed by a TxOps
+// TxStoreTx implements the Tx interface backed by a TxOps.
 // See TxStore.
 type TxStoreTx struct {
-	// tx is the underlying tx
+	// tx is the underlying tx.
 	tx TxOps
-	// rmtx guards discarded field
+	// rmtx guards the discarded field.
 	rmtx sync.RWMutex
-	// discarded indicates the tx was already discarded
+	// discarded indicates the tx was already discarded.
 	discarded bool
 	// wrote records writes for the owning TxStore, nil outside a TxStore.
 	wrote *atomic.Bool
@@ -136,14 +136,14 @@ func (t *TxStoreTx) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The write will not be committed until Commit is called.
 func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
 	// Require a nonempty key for the virtual transaction write.
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
 
-	// note: we don't write discarded field, so use RLock
+	// Use RLock because Set does not write the discarded field.
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -158,7 +158,7 @@ func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The write will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TxStoreTx) Delete(ctx context.Context, key []byte) error {
 	// Require a nonempty key for the virtual transaction write.
@@ -166,7 +166,7 @@ func (t *TxStoreTx) Delete(ctx context.Context, key []byte) error {
 		return ErrEmptyKey
 	}
 
-	// note: we don't write discarded field, so use RLock
+	// Use RLock because Delete does not write the discarded field.
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -269,7 +269,8 @@ func (t *TxStoreTx) markWrote() {
 	}
 }
 
-// discardOnce locks & discards the tx, returns ErrDiscarded if already discarded
+// discardOnce locks & discards the tx, returns ErrDiscarded if already
+// discarded.
 func (t *TxStoreTx) discardOnce() error {
 	// Mark the virtual transaction discarded under its lifecycle lock.
 	t.rmtx.Lock()

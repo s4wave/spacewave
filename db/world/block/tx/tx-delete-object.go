@@ -48,8 +48,8 @@ func (t *TxDeleteObject) Clone() *TxDeleteObject {
 	}
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxDeleteObject) Validate() error {
 	if len(t.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey

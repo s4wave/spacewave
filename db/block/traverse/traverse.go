@@ -13,7 +13,7 @@ var ErrBreak = errors.New("BREAK")
 // ErrContinue will skip the node and its children.
 var ErrContinue = errors.New("CONTINUE")
 
-// Location is a position in the visitor graph
+// Location is a position in the visitor graph.
 type Location struct {
 	// Depth is the depth of this position.
 	Depth int
@@ -28,7 +28,7 @@ type Location struct {
 	ParentRefID uint32
 }
 
-// GetParentBlocks traverses the list and gets all parent blocks
+// GetParentBlocks traverses the list and gets all parent blocks.
 // The tail block is the first in the list.
 func (l *Location) GetParentBlocks() []any {
 	res := make([]any, 0, l.Depth)
@@ -63,7 +63,7 @@ func Visit(
 	return err
 }
 
-// visitRecursive performs recursive visiting of a tree
+// visitRecursive recursively visits a tree.
 //
 // TODO: reformat into a stack instead of a recursive func.
 func visitRecursive(

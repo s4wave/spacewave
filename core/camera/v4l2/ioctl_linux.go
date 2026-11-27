@@ -38,8 +38,8 @@ const (
 	ioctlReadWrite = ioctlRead | ioctlWrite
 )
 
-// V4L2 request numbers from linux/videodev2.h; ioctl adds the direction and
-// the argument's size, as the kernel's _IOC macro does.
+// V4L2 request numbers come from linux/videodev2.h. ioctl adds the direction
+// and the argument's size, as the kernel's _IOC macro does.
 const (
 	vidiocQuerycap  = 0
 	vidiocEnumFmt   = 2

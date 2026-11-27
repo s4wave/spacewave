@@ -1,5 +1,5 @@
-// V86ImageTypeID is the object type identifier for V86Image objects. Mirrors
-// V86ImageTypeID in sdk/vm/v86image.go; keep these values aligned.
+// V86ImageTypeID is the object type identifier for V86Image objects. It mirrors
+// V86ImageTypeID in sdk/vm/v86image.go. Keep these values aligned.
 export const V86ImageTypeID = 'vm/image/v86'
 
 // CREATE_V86_IMAGE_OP_ID is the operation type ID for CreateV86ImageOp.

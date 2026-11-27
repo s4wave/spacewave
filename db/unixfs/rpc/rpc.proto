@@ -62,12 +62,12 @@ message FSCursorClientRequest {}
 message FSCursorClientResponse {
   // Body is the body of the event.
   oneof body {
-    // FSClientInit contains the initialization message for FSCursorClient.
+    // Init contains the initialization message for FSCursorClient.
     FSClientInit init = 1;
     // CursorChange contains a FSCursorChange event.
     FSCursorChange cursor_change = 2;
     // UnixfsError contains the error returned by the call, if any.
-    // If sent, this will be the last message in the rpc stream.
+    // If sent, the error will be the last message in the rpc stream.
     .unixfs.errors.UnixFSError unixfs_error = 3;
   }
 }
@@ -82,7 +82,8 @@ message FSClientInit {
   uint64 cursor_handle_id = 2;
 }
 
-// GetCursorOpsRequest requests that we resolve the FSCursorOps for an FSCursor.
+// GetCursorOpsRequest requests that the server resolve the FSCursorOps for an
+// FSCursor.
 message GetCursorOpsRequest {
   // CursorHandleId is the handle identifier for the cursor.
   uint64 cursor_handle_id = 1;
@@ -193,7 +194,7 @@ message OpsReadAtRequest {
   // Offset is the location in the file from which to read.
   int64 offset = 2;
   // Size is the size of data to read (buffer max size).
-  // This will automatically be capped by the hardcoded limit of 256e7 (256MB).
+  // Size will automatically be capped by the hardcoded limit of 256e7 (256MB).
   int64 size = 3;
   // WantVersion requests the opaque version of the file opened for this read.
   bool want_version = 4;
@@ -245,7 +246,7 @@ message OpsWriteAtResponse {
 message OpsTruncateRequest {
   // OpsHandleId uniquely identifies the open ops handle.
   uint64 ops_handle_id = 1;
-  // NewSize is the desired new size for the file.
+  // Nsize is the desired new size for the file.
   uint64 nsize = 2;
   // Timestamp is the desired timestamp for the operation.
   google.protobuf.Timestamp timestamp = 3;
@@ -321,7 +322,7 @@ message OpsMknodResponse {
   .unixfs.errors.UnixFSError unixfs_error = 1;
 }
 
-// OpsMknodWithContentStart names the file and its complete size.
+// OpsMknodWithContentStart declares the file and its complete size.
 message OpsMknodWithContentStart {
   // CursorHandleId identifies the target directory cursor.
   uint64 cursor_handle_id = 1;
@@ -331,7 +332,7 @@ message OpsMknodWithContentStart {
   string name = 3;
   // TotalSize is the number of bytes the stream must deliver.
   int64 total_size = 4;
-  // Permissions is the new file's mode. Zero selects the default.
+  // Permissions is the new file's mode. Zero selects the default mode.
   uint32 permissions = 5;
   // Timestamp sets the new file's modification time.
   google.protobuf.Timestamp timestamp = 6;
@@ -347,7 +348,7 @@ message OpsMknodWithContentStart {
 // OpsMknodWithContentRequest carries the start followed by the file data.
 message OpsMknodWithContentRequest {
   oneof body {
-    // Start names the destination and appears once, in the first message.
+    // Start declares the destination and appears once, in the first message.
     OpsMknodWithContentStart start = 1;
     // Data carries a nonempty chunk of file content.
     bytes data = 2;
@@ -413,7 +414,7 @@ message OpsCopyToRequest {
   uint64 ops_handle_id = 1;
   // TargetDirOpsHandleId is the target directory FSCursorOps handle ID for the copy operation.
   uint64 target_dir_ops_handle_id = 2;
-  // Target name of the inode for the copy operation.
+  // TargetName is the target name of the inode for the copy operation.
   string target_name = 3;
   // Timestamp is the desired timestamp for the operation.
   google.protobuf.Timestamp timestamp = 4;
@@ -431,7 +432,7 @@ message OpsCopyToResponse {
 message OpsCopyFromRequest {
   // OpsHandleId uniquely identifies the open ops handle.
   uint64 ops_handle_id = 1;
-  // Name of the inode for the copy operation.
+  // Name is the name of the inode for the copy operation.
   string name = 2;
   // SrcCursorOpsHandleId is the handle identifier for the source cursor ops object for the copy operation.
   uint64 src_cursor_ops_handle_id = 3;
@@ -453,7 +454,7 @@ message OpsMoveToRequest {
   uint64 ops_handle_id = 1;
   // TargetDirOpsHandleId is the handle id for the FSCursorOps for the directory for the move operation.
   uint64 target_dir_ops_handle_id =  2;
-  // Target name of the inode for the move operation.
+  // TargetName is the target name of the inode for the move operation.
   string target_name = 3;
   // Timestamp is the desired timestamp for the operation.
   google.protobuf.Timestamp timestamp = 4;
@@ -471,7 +472,7 @@ message OpsMoveToResponse {
 message OpsMoveFromRequest {
   // OpsHandleId uniquely identifies the open ops handle.
   uint64 ops_handle_id = 1;
-  // Name of the inode for the move operation.
+  // Name is the name of the inode for the move operation.
   string name = 2;
   // SrcOpsHandleId is the handle id for the FSCursorOps for the source of the move operation.
   uint64 src_ops_handle_id = 3;
@@ -524,7 +525,7 @@ service FSCursorService {
   rpc GetCursorOps(GetCursorOpsRequest) returns (GetCursorOpsResponse) {};
 
   // ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-  // This is a Fire and Forget RPC which will return instantly.
+  // ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
   rpc ReleaseFSCursor(ReleaseFSCursorRequest) returns (ReleaseFSCursorResponse) {};
 
 	// OpsGetPermissions returns the permissions bits of the file mode.
@@ -573,16 +574,17 @@ service FSCursorService {
   // OpsReadlink reads a symbolic link contents.
   rpc OpsReadlink(OpsReadlinkRequest) returns (OpsReadlinkResponse) {};
 
-  // OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+  // OpsCopyTo copies a dirent inode to another inode with an optimized
+  // operation.
   rpc OpsCopyTo(OpsCopyToRequest) returns (OpsCopyToResponse) {};
 
-  // OpsCopyFrom performs an optimized copy from another inode.
+  // OpsCopyFrom copies from another inode with an optimized operation.
   rpc OpsCopyFrom(OpsCopyFromRequest) returns (OpsCopyFromResponse) {};
 
-  // OpsMoveTo performs an atomic and optimized move to another inode.
+  // OpsMoveTo moves to another inode with an atomic, optimized operation.
   rpc OpsMoveTo(OpsMoveToRequest) returns (OpsMoveToResponse) {};
 
-  // OpsMoveFrom performs an atomic and optimized move from another inode.
+  // OpsMoveFrom moves from another inode with an atomic, optimized operation.
   rpc OpsMoveFrom(OpsMoveFromRequest) returns (OpsMoveFromResponse) {};
 
   // OpsRemove deletes entries from a directory.

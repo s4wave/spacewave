@@ -56,7 +56,7 @@ func (a *reportArgs) Run(*cli.Context) error {
 		return err
 	}
 
-	// Print the quantiles of each.
+	// Print the quantiles of each stage.
 	fmt.Printf("%-14s %7s %10s %10s %10s\n", "stage", "commits", "p50", "p99", "max")
 	for _, stage := range order {
 		d := byStage[stage]

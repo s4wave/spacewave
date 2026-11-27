@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestEncrypt tests encrypt/decrypt with multiple key types
+// TestEncrypt tests encrypt/decrypt with multiple key types.
 func TestEncrypt(t *testing.T) {
 	// Exercise encryption and decryption for each supported key.
 	keys := BuildMockKeys(t)

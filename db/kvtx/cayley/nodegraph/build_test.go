@@ -114,7 +114,7 @@ func TestBuilderMatchesIncrementalTree(t *testing.T) {
 	}
 }
 
-// TestBuilderRejectsBadGraph checks that a value added twice and a quad naming
+// TestBuilderRejectsBadGraph checks that a value added twice and a quad using
 // a node never added fail the build.
 func TestBuilderRejectsBadGraph(t *testing.T) {
 	v := func(b *Builder, id uint64, s string) error { return b.AddNode(id, pquads.MakeValue(quad.IRI(s))) }

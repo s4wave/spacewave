@@ -50,7 +50,7 @@ export const WebRuntimeClientType_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum WebRenderer {
   /**
-   * WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
+   * WEB_RENDERER_DEFAULT uses the default renderer (electron).
    */
   DEFAULT = 0,
 
@@ -116,7 +116,7 @@ export const WatchWebRuntimeStatusRequest: MessageType<WatchWebRuntimeStatusRequ
  */
 export interface WebRuntimeStatus {
   /**
-   * Snapshot indicates this is a full snapshot of the lists.
+   * Snapshot indicates the message is a full snapshot of the lists.
    */
   snapshot?: boolean
   /**
@@ -177,7 +177,7 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
  */
 export interface CreateWebDocumentRequest {
   /**
-   * id is the identifier for the new WebDocument.
+   * Id is the identifier for the new WebDocument.
    */
   id?: string
 }
@@ -196,7 +196,8 @@ export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
 export interface CreateWebDocumentResponse {
   /**
    * Created indicates the WebDocument was created.
-   * If this is not set, assumes we cannot create WebDocuments.
+   * If Created is not set, the caller assumes the runtime cannot create
+   * WebDocuments.
    */
   created?: boolean
 }
@@ -233,7 +234,7 @@ export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
 export interface RemoveWebDocumentResponse {
   /**
    * Removed indicates the WebDocument was removed.
-   * If this is not set, the document did not exist.
+   * If Removed is not set, the document did not exist.
    */
   removed?: boolean
 }
@@ -277,7 +278,7 @@ export const FlushIndexCacheResponse: MessageType<FlushIndexCacheResponse> =
  */
 export interface WebRuntimeClientInit {
   /**
-   * RuntimeId is the shared identifier for the Go Runtime instance.
+   * WebRuntimeId is the shared identifier for the Go Runtime instance.
    *
    * must be set
    */

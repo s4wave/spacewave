@@ -41,7 +41,7 @@ func (s *SharedObject) GetJoinRequestsCtr() ccontainer.Watchable[*sobject.SOJoin
 
 // QueueJoinRequest holds a redemption, signed by the requester and its storage
 // peer, as a pending join request. A later request by the same peer replaces
-// the earlier one; a repeat of the held request, as a pending Device sends
+// the earlier one. A repeat of the held request, as a pending Device sends
 // while it waits, keeps the held request and its age without a write.
 func (s *SharedObject) QueueJoinRequest(ctx context.Context, joinResp, storageJoinResp *sobject.SOJoinResponse) error {
 	// Skip the write when the peer repeats the request already held.
@@ -93,7 +93,7 @@ func (s *SharedObject) WithdrawJoinRequest(ctx context.Context, peerID string) e
 
 // dropInviteJoinRequests removes the pending requests that redeemed inviteID.
 func (s *SharedObject) dropInviteJoinRequests(ctx context.Context, inviteID string) error {
-	// Skip the write when no request names the invite.
+	// Skip the write when no request references the invite.
 	redeemed := func(req *sobject.SOJoinRequest) bool {
 		return req.GetJoinResponse().GetInviteId() == inviteID
 	}
@@ -149,9 +149,9 @@ func (s *SharedObject) updateJoinRequests(
 // the Space sharedObjectID, then removes the request. A grant admits the
 // requester and its storage peer at the role of the invite it redeemed.
 //
-// A grant is the owner's decision under a usable invite: one revoked or used
-// up since the request refuses it. The admitted requester redeems the invite
-// again to receive its grant.
+// A grant is the owner's decision under a usable invite. An invite revoked or
+// used up since the request causes the request to be refused. The admitted
+// requester redeems the invite again to receive its grant.
 func (a *ProviderAccount) ResolveJoinRequest(ctx context.Context, sharedObjectID, peerID string, grant bool) error {
 	// Mount the Space and find the peer's request.
 	so, relSO, err := a.mountListedSharedObject(ctx, sharedObjectID)
@@ -173,7 +173,8 @@ func (a *ProviderAccount) ResolveJoinRequest(ctx context.Context, sharedObjectID
 		return so.removeJoinRequest(ctx, peerID)
 	}
 
-	// Verify the queued redemption and the invite it names.
+	// Verify the queued redemption and the invite the redemption
+	// references.
 	redeemer, err := sobject_invite.ValidateRedeemer(request.GetJoinResponse(), request.GetStorageJoinResponse())
 	if err != nil {
 		return errors.Wrap(err, "validate join request")

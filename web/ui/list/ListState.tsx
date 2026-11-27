@@ -37,16 +37,17 @@ export type ListAction = SelectItemAction | SetSortAction | UpdateIndicesAction
 
 export type ListDispatch = (action: ListAction) => void
 
-// ListUpdate applies a change to the latest List state. It runs update before
-// it returns, so a caller can compare the state it was given with the next.
+// ListUpdate applies a change to the latest List state. ListUpdate runs update
+// before returning, so a caller can compare the state passed to update with the
+// next state.
 export type ListUpdate = (update: (state: ListState) => ListState) => void
 
 // ListStateHandle is the state a List shows and the update that changes it.
 export type ListStateHandle = readonly [ListState, ListUpdate]
 
 // useListState keeps a List's state under key in the state namespace. The
-// component that renders the List owns it, so it reads the selection and sort
-// directly instead of mirroring them from the List.
+// component that renders the List owns the state, so the component reads the
+// selection and sort directly instead of mirroring them from the List.
 export function useListState(
   namespace: StateNamespace | null,
   key: string,
@@ -205,9 +206,9 @@ export function selectRange<T>(
 }
 
 // translateIndicesToNewOrder finds new indices after sort order changes. An
-// index held while the list was empty names no row, such as one restored from
-// persisted state before the items arrived: focus and the Shift anchor move to
-// the one selected id's row when it arrived, and clear otherwise.
+// index held while the list was empty references no row, such as one restored
+// from persisted state before the items arrived: focus and the Shift anchor
+// move to the one selected id's row when the item arrived, and clear otherwise.
 export function translateIndicesToNewOrder<T>(
   state: ListState,
   oldItems: ListItem<T>[],

@@ -55,18 +55,19 @@ func (a *ProviderAccount) watchSOHosting(ctx context.Context, soID string, so *S
 // Hosting routines read it concurrently, so it is set atomically.
 var soHostingReconcileHook atomic.Pointer[func(ctx context.Context) error]
 
-// reconcileSOHosting follows the owners named by the configuration of so.
+// reconcileSOHosting follows the owners listed by the configuration of so.
 // The account holding the successor of a departure commits it and promotes its
 // storage identity in one change. An account whose storage identity owns so
-// enrolls its running Session as an owner, so the configuration names the
-// endpoint that serves so, and drops it from the trimming roster. Every
-// account keeps a link to each other owner, so a participant reaches the owner
-// account's current Session after the Session it joined through is replaced,
-// and to each block peer soLinkPeers names, so a member reads a linked folder
-// from the Device that links it while the owners are offline. A peer the
-// configuration stops naming loses its link at the next reconcile.
+// enrolls its running Session as an owner, so the configuration references
+// the endpoint that serves so, and drops the Session from the trimming roster.
+// Every account keeps a link to each other owner, so a participant reaches the
+// owner account's current Session after the Session it joined through is
+// replaced, and to each block peer soLinkPeers lists, so a member reads a
+// linked folder from the Device that links it while the owners are offline.
+// A peer the configuration stops listing loses its link at the next reconcile.
 func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, so *SharedObject) error {
-	// The storage identity always signs; the session identity signs while its transport runs.
+	// The storage identity always signs. The session identity signs while
+	// its transport runs.
 	st := a.GetSessionTransport()
 	keys := map[string]crypto.PrivKey{so.localPid.String(): so.localPriv}
 	if st != nil {
@@ -134,7 +135,8 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 // soLinkHolderPrefix begins the name of each Space hosting's link holder.
 const soLinkHolderPrefix = "shared-object/"
 
-// soLinkHolder names the holder of the links the hosting of so keeps.
+// soLinkHolder returns the name of the holder of the links the hosting of so
+// keeps.
 func soLinkHolder(soID string) string {
 	return soLinkHolderPrefix + soID
 }
@@ -157,8 +159,8 @@ func (a *ProviderAccount) dropMissingSOLinkHolders(ctx context.Context, list *so
 		}
 	})
 
-	// Drop them; dropping retains nothing, so it cannot fail on a running
-	// generation.
+	// Drop the stale holders. Dropping retains nothing, so dropping cannot
+	// fail on a running generation.
 	for _, holder := range stale {
 		_ = a.setHeldP2PPeers(ctx, holder, nil)
 	}
@@ -198,9 +200,10 @@ func soLinkPeers(config *sobject.SharedObjectConfig, owners []string, local map[
 }
 
 // enrollSOSession adds the Session peer as an owner of so unless owners
-// already name it, and keeps it off the trimming roster. The storage identity
-// writes every operation of so, so the Session never builds on the
-// checkpointer's edits and on the roster would hold the stable point at zero.
+// already list the Session peer, and keeps the peer off the trimming roster.
+// The storage identity writes every operation of so, so the Session never
+// builds on the checkpointer's edits and on the roster would hold the stable
+// point at zero.
 func (a *ProviderAccount) enrollSOSession(ctx context.Context, soID string, so *SharedObject, session peer.ID, owners []string) error {
 	// The storage identity signs the Session's addition.
 	if !slices.Contains(owners, session.String()) {

@@ -7,8 +7,8 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
-// inlineValueLimit keeps small metadata values with their page. Larger values
-// retain the existing Blob block and chunking path.
+// inlineValueLimit is the size limit for keeping small metadata values with
+// their page. Larger values retain the existing Blob block and chunking path.
 const inlineValueLimit = 256
 
 // NewTxWithInlineValues opens an Okra transaction whose owning store is tagged
@@ -29,9 +29,9 @@ func NewTxWithInlineValues(
 }
 
 // buildValueEntry chooses the value's storage layout. An inline value borrows
-// the caller's bytes; the tree builder copies them before the next entry.
+// the caller's bytes. The tree builder copies them before the next entry.
 func (t *Tx) buildValueEntry(ctx context.Context, key, value []byte) (BuildEntry, error) {
-	// Store small values inline when the transaction allows it.
+	// Store small values inline when the transaction allows inline values.
 	entry := BuildEntry{Key: key, ValueIsBlob: true}
 	if t.inlineValues && len(value) <= inlineValueLimit {
 		entry.ValueBlob = blob.NewRawBlob(value)

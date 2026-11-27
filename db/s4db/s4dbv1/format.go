@@ -32,7 +32,7 @@ const (
 const (
 	// lockWriter is the writer lock.
 	lockWriter = 1 << 40
-	// lockSlot is the first reader slot lock; slot i locks lockSlot+i.
+	// lockSlot is the first reader slot lock. Slot i locks lockSlot+i.
 	lockSlot = lockWriter + 1
 	// slots is the number of reader slots.
 	slots = 128

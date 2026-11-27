@@ -130,7 +130,7 @@ func TestBlockStoreRefusesDeletion(t *testing.T) {
 	}
 }
 
-// one prefix.
+// TestCoordinatorConformance checks coordination through views of one prefix.
 func TestCoordinatorConformance(t *testing.T) {
 	conformance.Check(t, func(t testing.TB) (coord.Coordinator, coord.Coordinator) {
 		tb, err := testbed.NewTestbed(t.Context(), logrus.NewEntry(logrus.New()))
@@ -178,8 +178,8 @@ func TestRootsStayInView(t *testing.T) {
 // TestStagesStayInView checks that a stage opened through the view holds its
 // blocks on a host that frees at once, until the view releases it, that the
 // view refuses a stage it did not open, and that the host collects a view's
-// block once the view releases its root while keeping another view's and its
-// own.
+// block once the view releases its root while keeping another view's blocks
+// and the host's own blocks.
 func TestStagesStayInView(t *testing.T) {
 	// Build a view over a host volume that frees at once.
 	ctx := t.Context()
@@ -243,7 +243,7 @@ func TestStagesStayInView(t *testing.T) {
 	}
 
 	// Two views of the host and the host itself each hold a block under a
-	// root; when one view releases its root, the host's collection frees
+	// root. When one view releases its root, the host's collection frees
 	// that view's block and only it.
 	holds := make(map[string]*block.BlockRef)
 	views := map[string]block.StoreOps{"kept": volume_scoped.NewVolume(tb.Volume, "kept/"), "dropped": volume_scoped.NewVolume(tb.Volume, "dropped/"), "host": tb.Volume}

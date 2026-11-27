@@ -20,13 +20,13 @@ const ControllerID = "bifrost/pubsub/relay"
 // Controller is the pubsub relay controller.
 // It subscribes to each configured topic via BuildChannelSubscription.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// peerID is the peer id
+	// peerID is the peer id.
 	peerID peer.ID
-	// topics is the list of topics
+	// topics is the list of topics.
 	topics []string
 }
 
@@ -79,7 +79,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If it can, it returns a resolver. If not, the handler returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(
@@ -99,7 +99,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

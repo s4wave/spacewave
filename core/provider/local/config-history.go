@@ -25,7 +25,8 @@ func SOConfigHistoryEntryKey(sharedObjectID string, hash []byte) []byte {
 // WriteSOConfigHistory retains verified transitions in the transaction that
 // writes their resulting SOState. The caller commits both or discards both.
 // Ordinary state writes do not establish or replace a history checkpoint.
-// Retention records held trust; it does not authenticate legacy state or admit peers.
+// Retention records held trust. It does not authenticate legacy state or admit
+// peers.
 func WriteSOConfigHistory(
 	ctx context.Context,
 	tx kvtx.Tx,

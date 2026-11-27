@@ -48,7 +48,7 @@ func BuildFSFromUnixfsRef(
 // FollowUnixfsRef builds a fs cursor based on a Unixfs ref.
 //
 // NOTE: ignores the Path field!
-// watchChanges: if unset, the fs will be read-only
+// watchChanges: if unset, the fs will be read-only.
 func FollowUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,

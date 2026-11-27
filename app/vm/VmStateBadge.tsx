@@ -1,7 +1,7 @@
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { VmState } from '@s4wave/sdk/vm/v86.pb.js'
 
-// stateBadge names each observed VM state and picks its badge treatment.
+// stateBadge labels each observed VM state and picks its badge treatment.
 const stateBadge: Record<
   VmState,
   { label: string; variant: 'muted' | 'subtle' | 'success' | 'conflict' }

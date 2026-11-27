@@ -22,9 +22,9 @@ message WebViewHandlerConfig {
   .filter.StringFilter web_view_parent_id = 2;
   // Handler configuration.
   oneof handler {
-    // SetRenderModeHandler sets the render mode.
+    // SetRenderMode sets the render mode.
     .web.view.SetRenderModeRequest set_render_mode = 3;
-    // SetHtmlLinksHandler sets html links.
+    // SetHtmlLinks sets html links.
     .web.view.SetHtmlLinksRequest set_html_links = 4;
   }
 }

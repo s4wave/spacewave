@@ -18,7 +18,7 @@ func NewDriverConnector(driver *Driver, dsn string) *DriverConnector {
 
 // Connect returns a connection to the database.
 // Connect may return a cached connection (one previously
-// closed), but doing so is unnecessary; the sql package
+// closed), but doing so is unnecessary because the sql package
 // maintains a pool of idle connections for efficient re-use.
 //
 // The provided context.Context is for dialing purposes only

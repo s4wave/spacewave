@@ -1,7 +1,7 @@
 // The Development React setting's model, following
 // bldr/web/bldr/ReactDev.tla: one reducer over the device setting, the cached
 // generation, the copy into the cache and the build this document runs, and a
-// view derived from it.
+// view derived from the model.
 import { useCallback, useEffect, useReducer, useState } from 'react'
 
 import {
@@ -21,7 +21,8 @@ export type ReactDevFill = 'idle' | 'fetching' | 'failed'
 export interface ReactDevModel {
   // enabled is the device setting.
   enabled: boolean
-  // cached is the React version of the complete cached generation, or empty.
+  // cached is the React version of the complete cached generation, or an empty
+  // string.
   cached: string
   // fill is the state of the copy.
   fill: ReactDevFill
@@ -31,7 +32,7 @@ export interface ReactDevModel {
   running: boolean
 }
 
-// ReactDevView names the state the person sees.
+// ReactDevView declares the state the person sees.
 export type ReactDevView =
   | 'off'
   | 'fetching'
@@ -126,8 +127,8 @@ export function useReactDev(): ReactDevControl | null {
   const [release] = useState(readRelease)
   const [model, dispatch] = useReducer(reactDevReducer, release, initModel)
 
-  // Confirm the stored version still has a complete generation; clearing site
-  // data or an eviction drops it without touching the setting.
+  // Confirm the stored version still has a complete generation. Clearing site
+  // data or an eviction drops the generation without touching the setting.
   const stored = model.cached
   useEffect(() => {
     if (!release || !stored) return

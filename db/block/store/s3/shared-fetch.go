@@ -21,7 +21,7 @@ var errFetchAbandoned = errors.New("shared fetch abandoned by its batch")
 // which rises as a more urgent caller joins. So the caller that started the
 // fetch neither hands its deadline or cancel to the others nor holds a more
 // urgent caller behind its own class. A caller that leaves gets its own
-// context's cause; a caller that joins after every other left starts a new
+// context's cause. A caller that joins after every other left starts a new
 // fetch.
 //
 // A batch claims many keys at once, as claim describes: it joins the running
@@ -130,10 +130,10 @@ type fetchClaim[V any] struct {
 // claim joins the running fetch of each key, raising its class to the
 // caller's, and starts a fetch the caller owns for each other key. The caller
 // settles each owned fetch with settle, waits for each joined one with wait,
-// and calls release when done, which abandons what it left open. A batch's
-// owned fetches share one read class, which a joiner raises, so the caller
-// reads them under the context claim returns. A key named twice is owned
-// once and joined after.
+// and calls release when done. release abandons what the caller left open.
+// A batch's owned fetches share one read class, which a joiner raises, so the
+// caller reads them under the context claim returns. A key named twice is
+// owned once and joined after.
 func (g *fetchGroup[V]) claim(ctx context.Context, keys []string) (*fetchClaim[V], context.Context) {
 	// One demand carries the class of every fetch the batch owns.
 	class := block.ReadClassOf(ctx)

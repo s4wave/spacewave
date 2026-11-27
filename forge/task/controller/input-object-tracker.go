@@ -12,13 +12,13 @@ import (
 
 // inputObjectTracker tracks an input WorldObject for the Task.
 type inputObjectTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// objKey is the object key
+	// objKey is the object key.
 	objKey string
-	// objLoop tracks the object changes
+	// objLoop tracks the object changes.
 	objLoop *world_control.WatchLoop
-	// firstCheck indicates this is the first check of the state.
+	// firstCheck indicates whether the state check is the first.
 	firstCheck bool
 	// prevObjRev is the previous object rev.
 	prevObjRev uint64
@@ -62,7 +62,7 @@ func (t *inputObjectTracker) processState(
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
 	// Recheck the initial snapshot too: the source may have changed between
-	// Task input resolution and attachment of this watch.
+	// Task input resolution and attachment of the input object watch.
 	if t.firstCheck || rev != t.prevObjRev {
 		t.firstCheck = false
 		t.prevObjRev = rev

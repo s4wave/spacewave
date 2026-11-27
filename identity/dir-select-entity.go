@@ -52,7 +52,7 @@ func ExSelectIdentityEntity(
 	return valObj, nil
 }
 
-// selectIdentityEntity implements SelectIdentityEntity
+// selectIdentityEntity implements SelectIdentityEntity.
 type selectIdentityEntity struct {
 	purpose  string
 	domainID string
@@ -88,7 +88,7 @@ func (s *selectIdentityEntity) SelectIdentityEntityPrevError() error {
 // Validate checks the directive.
 func (s *selectIdentityEntity) Validate() error { return nil }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *selectIdentityEntity) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		MaxValueCount:   1,

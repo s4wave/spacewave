@@ -41,7 +41,7 @@ func TestRedactStepConfig(t *testing.T) {
 		t.Fatalf("expected key to be zeroed, got %d bytes", len(out.GetKey()))
 	}
 
-	// Verify original is unchanged.
+	// Verify the original config is unchanged.
 	orig := &blockenc_conf.Config{}
 	if err := orig.UnmarshalVT(step.GetConfig()); err != nil {
 		t.Fatal(err)

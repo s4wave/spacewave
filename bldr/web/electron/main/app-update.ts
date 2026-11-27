@@ -12,7 +12,7 @@ const execFileAsync = promisify(execFile);
 export async function installedAppVersion(
   installedApp: string,
 ): Promise<string> {
-  // The Windows launcher carries its version in its version resource.
+  // The Windows launcher has its version in its version resource.
   if (process.platform === "win32") {
     const { stdout } = await execFileAsync(
       "powershell.exe",

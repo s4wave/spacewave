@@ -11,10 +11,10 @@ message Target {
   option (typeid.id) = "forge/target";
 
   // Inputs is the mapping of inputs.
-  // Not necessarily sorted or unique, later values override earlier.
+  // Not necessarily sorted or unique, later values override earlier values.
   repeated Input inputs = 1;
   // Outputs is the mapping of outputs.
-  // Not necessarily sorted or unique, later values override earlier.
+  // Not necessarily sorted or unique, later values override earlier values.
   repeated Output outputs = 2;
   // Exec is the execution pass configuration.
   Exec exec = 3;
@@ -133,11 +133,12 @@ message Exec {
   bool disable = 1;
   // Controller indicates to run a controllerbus controller.
   .configset.proto.ControllerConfig controller = 2;
-  // ReuseOutputs completes a Task with the outputs of an earlier successful
-  // Task whose Exec, Outputs and input values are equal, without running it.
+  // ReuseOutputs completes a Task without running the Task, using the outputs
+  // of an earlier successful Task whose Exec, Outputs and input values are
+  // equal.
   // Set it only when the controller's outputs depend on nothing else.
   bool reuse_outputs = 3;
-  // ReuseIgnoreInputs names inputs that do not affect the outputs and are
+  // ReuseIgnoreInputs lists inputs that do not affect the outputs and are
   // left out of the reuse key, such as a scheduler's per-activation context.
   repeated string reuse_ignore_inputs = 4;
 }
@@ -154,19 +155,20 @@ message ValueSet {
   repeated .forge.value.Value outputs = 2;
 }
 
-// Waiting names what blocks a running Execution before its work can start. An
-// unset reason means nothing blocks it.
+// Waiting describes what blocks a running Execution before its work can start.
+// An unset reason means nothing blocks the Execution.
 message Waiting {
   oneof reason {
-    // PluginId names the plugin whose load blocks the Execution.
+    // PluginId identifies the plugin whose load blocks the Execution.
     string plugin_id = 1;
-    // Capacity names the Worker capacity the Execution waits to reserve.
+    // Capacity specifies the Worker capacity the Execution waits to reserve.
     CapacityWait capacity = 2;
   }
 }
 
 // CapacityWait is a wait for Worker capacity that live reservations hold. The
-// Worker could hold the request; it waits until they release enough.
+// Worker could hold the request. The Execution waits until the live
+// reservations release enough capacity.
 message CapacityWait {
   // WorkerObjectKey is the Forge Worker whose capacity the Execution waits for.
   string worker_object_key = 1;

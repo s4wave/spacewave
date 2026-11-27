@@ -95,7 +95,7 @@ func ObjectLayoutFactory(
 
 	// updateLayout applies update to the stored layout in one write
 	// transaction, so each change starts from the committed model. update
-	// reports whether it changed the layout; an unchanged layout discards the
+	// reports whether the layout changed. An unchanged layout discards the
 	// transaction.
 	updateLayout := func(ctx context.Context, update func(layout *ObjectLayout) (bool, error)) error {
 		// Open the write transaction and the stored layout object.

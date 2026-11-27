@@ -48,11 +48,12 @@ message FlowgraphRequirements {
   uint64 milli_cpu = 1;
   // MemoryBytes is the reserved memory in bytes.
   uint64 memory_bytes = 2;
-  // RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+  // RuntimeBackend selects a Forge backend. An empty backend accepts any
+  // declared backend.
   string runtime_backend = 3;
   // MatchLabels requires each key and value in the Device's effective labels.
   map<string, string> match_labels = 4;
-  // Replicas is the desired number of Devices; zero means one.
+  // Replicas is the desired number of Devices. Zero means one.
   uint32 replicas = 5;
 }
 
@@ -166,7 +167,7 @@ message FlowgraphPlacements {
 enum FlowgraphBindingState {
   // FLOWGRAPH_BINDING_STATE_UNKNOWN is unset.
   FLOWGRAPH_BINDING_STATE_UNKNOWN = 0;
-  // FLOWGRAPH_BINDING_STATE_UNBOUND means the node names no object.
+  // FLOWGRAPH_BINDING_STATE_UNBOUND means the node references no object.
   FLOWGRAPH_BINDING_STATE_UNBOUND = 1;
   // FLOWGRAPH_BINDING_STATE_BOUND means the object exists and its type is
   // registered, so the declared ports are known.
@@ -188,11 +189,12 @@ message FlowgraphBinding {
   // State is the binding state derived from the World and the type registry.
   FlowgraphBindingState state = 3;
   // Ports lists the ports the object's registered type declares. The node's
-  // connections may name these ports. It is empty unless the state is BOUND.
+  // connections may reference these ports. Ports is empty unless the state is
+  // BOUND.
   repeated FlowgraphPort ports = 4;
 }
 
-// FlowgraphSnapshot reads authored state and its placement edges together.
+// FlowgraphSnapshot contains authored state and its placement edges together.
 message FlowgraphSnapshot {
   // State is the authored object body.
   Flowgraph state = 1;
@@ -200,8 +202,8 @@ message FlowgraphSnapshot {
   map<string, FlowgraphPlacements> placements = 2;
   // Revision is the object's revision observed by this read.
   uint64 revision = 3;
-  // Bindings contains the binding of each node that names an object, keyed by
-  // node ID. An unbound node has no entry.
+  // Bindings contains the binding of each node that references an object, keyed
+  // by node ID. An unbound node has no entry.
   map<string, FlowgraphBinding> bindings = 4;
 }
 
@@ -299,7 +301,8 @@ message FlowgraphChange {
 
 // ListFlowgraphChangesRequest reads the mounted graph's history.
 message ListFlowgraphChangesRequest {
-  // Limit bounds the number of changes returned; zero returns all retained.
+  // Limit bounds the number of changes returned. Zero returns all retained
+  // changes.
   uint32 limit = 1;
 }
 
@@ -354,8 +357,9 @@ message FlowgraphRun {
   // one standing run.
   bool standing = 11;
   // Cursor holds the opaque position after the last event delivered from each
-  // event-source node, by node ID. A delivery applies only when it names the
-  // stored cursor, so two readers of the same events deliver each once.
+  // event-source node, by node ID. A delivery applies only when the delivery
+  // references the stored cursor, so two readers of the same events deliver
+  // each once.
   map<string, bytes> cursor = 12;
   // Placements is the immutable placement snapshot at FlowgraphRevision.
   map<string, FlowgraphPlacements> placements = 13;
@@ -385,21 +389,21 @@ message FlowgraphActivation {
   // grows, so a sequence number is never reused after an acknowledgement.
   uint64 last_input_seq = 8;
   // ActorKey is the immutable receipt of the actor started for this activation.
-  // RecordActivationActor sets it once; restarted execs reattach to this actor.
+  // RecordActivationActor sets it once. Restarted execs reattach to this actor.
   string actor_key = 9;
 }
 
 // FlowgraphActivationContext is supplied as the flowgraph/context Task input.
 // An exec uses it to record its actor and watch or acknowledge live inputs.
 message FlowgraphActivationContext {
-  // RunKey names the owning run, an immutable execution snapshot.
+  // RunKey references the owning run, an immutable execution snapshot.
   string run_key = 1;
   // ActivationId is the activation's Task key within that run.
   string activation_id = 2;
   // Key is the activation's arrival key, empty for an unkeyed Step.
   string key = 3;
-  // TemplateKey names the template in the run's immutable placement snapshot.
-  // It is empty unless the Step is placed on an actor template.
+  // TemplateKey references the template in the run's immutable placement
+  // snapshot. It is empty unless the Step is placed on an actor template.
   string template_key = 4;
 }
 
@@ -429,7 +433,7 @@ message FlowgraphArrival {
   }
 }
 
-// FlowgraphTaskOutput names an output of a Forge Task.
+// FlowgraphTaskOutput references an output of a Forge Task.
 message FlowgraphTaskOutput {
   // TaskKey is the Task whose output arrived.
   string task_key = 1;
@@ -437,7 +441,7 @@ message FlowgraphTaskOutput {
   string output_name = 2;
 }
 
-// FlowgraphEvent names one event on a World object.
+// FlowgraphEvent references one event on a World object.
 message FlowgraphEvent {
   // ObjectKey is the World object the event happened on. The receiving Step's
   // Task reads it as a WORLD_OBJECT input.

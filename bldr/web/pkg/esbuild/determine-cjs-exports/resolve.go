@@ -138,7 +138,8 @@ func isRelativeOrAbsoluteImport(importPath string) bool {
 }
 
 func readPackageMain(path string) (string, error) {
-	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
+	// #nosec G703: path is resolved from the package graph under analysis,
+	// not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -156,7 +157,8 @@ func hasExtension(path string) bool {
 }
 
 func isFile(path string) bool {
-	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
+	// #nosec G703: path is resolved from the package graph under analysis,
+	// not user input.
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
 }

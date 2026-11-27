@@ -79,7 +79,7 @@ func TestBlobReaderReadAheadBoundsAndClose(t *testing.T) {
 // TestBlobReaderReadAheadHintsStore verifies each streaming chunk fetch asks
 // the store to read the window ahead, bounded by the blob's remaining bytes.
 func TestBlobReaderReadAheadHintsStore(t *testing.T) {
-	// Open six 1 MiB chunks; the 4 MiB window fetches the first four.
+	// Open six 1 MiB chunks. The 4 MiB window fetches the first four.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	reader, store := newReadAheadFixture(t, ctx, 6, 1<<20)

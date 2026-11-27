@@ -12,8 +12,8 @@ type commitOrder struct {
 	mtx sync.Mutex
 	// next is the number of the batch whose turn it is.
 	next uint64
-	// turn is closed and replaced when next advances; nil until a waiter
-	// needs it.
+	// turn is closed and replaced when next advances. It is nil until a
+	// waiter needs it.
 	turn chan struct{}
 }
 

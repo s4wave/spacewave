@@ -16,13 +16,13 @@ type CState[T any] struct {
 	// wake wakes the execution loop, optionally setting dirty=true.
 	wake chan bool
 	// opQueue is pushed with pending operations.
-	// used whenever mtx needs to be locked
+	// used whenever mtx needs to be locked.
 	opQueue chan *queuedOp[T]
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx csync.Mutex
 	// watchers contains the list of watchers.
 	watchers []*watcher[T]
-	// obj contains the state object
+	// obj contains the state object.
 	obj T
 }
 
@@ -111,9 +111,10 @@ func (c *CState[T]) Wake(setDirty bool) {
 // AddWatcher adds a watcher callback function.
 // The state will be locked while the watcher executes.
 // Called if the state changes (dirty=true).
-// If initial=true, calls with initial value immediately.
+// If initial=true, calls the watcher with the initial value immediately.
 // Returns a function to remove the watcher.
-// The ctx is used to call the watcher, if canceled, watcher is removed.
+// The ctx is used to call the watcher. If ctx is canceled, the watcher is
+// removed.
 // Returns an error only if ctx is canceled.
 func (c *CState[T]) AddWatcher(
 	ctx context.Context,
@@ -252,7 +253,7 @@ func (c *CState[T]) Execute(ctx context.Context, errCh <-chan error) error {
 			}
 		}
 
-		// unlock
+		// Unlock mtx.
 		unlock()
 
 		select {

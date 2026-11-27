@@ -15,26 +15,28 @@ import (
 )
 
 const (
-	// uploadBatchBlocks bounds the blocks one upload batch carries to a remote
-	// that sizes none.
+	// uploadBatchBlocks bounds the blocks one upload batch carries to a
+	// remote that sets no batch sizes.
 	uploadBatchBlocks = 4096
 	// uploadBatchBytes bounds the recorded block bytes one upload batch
-	// carries to a remote that sizes none. A batch holds at least one block,
-	// whatever its size.
+	// carries to a remote that sets no batch sizes. A batch holds at least
+	// one block, whatever its size.
 	uploadBatchBytes = 4 << 20
-	// uploadWorkers bounds the batches written at once to a remote that sizes
-	// none. A remote with a long round trip, such as a database across the
-	// internet, uploads one batch per round trip per worker.
+	// uploadWorkers bounds the batches written at once to a remote that
+	// sets no batch sizes. A remote with a long round trip, such as a
+	// database across the internet, uploads one batch per round trip per
+	// worker.
 	uploadWorkers = 16
 	// clearLocatedBlocks bounds the hashes one ClearLocated round looks up
-	// and clears; clear bounds each of its transactions itself.
+	// and clears. clear bounds each of its transactions itself.
 	clearLocatedBlocks = 1024
 )
 
-// batchLimitsOf returns the batches Upload builds for remote: the remote's
-// own, where it sizes them, over the defaults for a remote that does not.
+// batchLimitsOf returns the batch limits Upload uses for remote: the remote's
+// own limits, where it sets them, over the defaults for a remote that does not.
 func batchLimitsOf(remote block.StoreOps) block.BatchLimits {
-	// Start from the defaults and stop there for a remote that sizes none.
+	// Start from the defaults and stop there for a remote that sets no
+	// batch sizes.
 	limits := block.BatchLimits{Bytes: uploadBatchBytes, Blocks: uploadBatchBlocks, Workers: uploadWorkers}
 	sizer, ok := remote.(block.BatchSizer)
 	if !ok {
@@ -121,8 +123,8 @@ func (s *Store) UploadPaced(ctx context.Context, remote block.StoreOps, admit Up
 }
 
 // waitDue waits until the oldest marker has settled or the queue exceeds its
-// byte limit. A mark or policy change wakes it to recompute the deadline,
-// which reads no markers.
+// byte limit. A mark or policy change wakes waitDue to recompute the deadline
+// without reading markers.
 func (s *Store) waitDue(ctx context.Context) error {
 	for {
 		// Compute the oldest marker's due time from the projected queue.
@@ -210,8 +212,8 @@ type queueHead struct {
 
 // nextRound waits until a round of batches is worth uploading and returns it,
 // with the queue head it was chosen from. prev is the head the last call
-// returned, or nil; each read of the queue reuses the entries the read before
-// it parsed.
+// returned, or nil. Each read of the queue reuses the entries the previous read
+// parsed.
 func (s *Store) nextRound(ctx context.Context, limits block.BatchLimits, prev *queueHead) (uploadRound, *queueHead, error) {
 	for {
 		// Wait for the oldest block to settle, then read the queue's head.
@@ -242,8 +244,9 @@ func (s *Store) nextRound(ctx context.Context, limits block.BatchLimits, prev *q
 //
 // prev is an earlier head of the same queue, or nil. An entry whose key and
 // value match one prev read is taken from prev rather than parsed again: a
-// queue key names one block written at one time, and a repeated write of the
-// block changes the value. Both list keys in order, so one pass matches them.
+// queue key identifies one block written at one time, and a repeated write of
+// the block changes the value. Both list keys in order, so one pass matches
+// them.
 func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *queueHead) (*queueHead, error) {
 	// Read the status the batches are chosen against.
 	var policy Policy
@@ -376,8 +379,9 @@ func (h *queueHead) plan(now time.Time, linger time.Duration) (uploadRound, time
 
 // waitFill waits for readyAt, or until a change could make a read of the queue
 // choose a batch: a policy change, a new queue head, or enough queued bytes to
-// close the first batch. A mark that changes none of them wakes it and goes back
-// to sleep without reading markers. A zero readyAt waits for a change alone.
+// close the first batch. A mark that changes none of them wakes waitFill, which
+// goes back to sleep without reading markers. A zero readyAt waits for a change
+// alone.
 func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.BatchLimits, readyAt time.Time) error {
 	for {
 		// Decide from the projected status whether to read the queue again.
@@ -465,8 +469,8 @@ func (s *Store) SetLocateUploaded(on *atomic.Bool) {
 // upload them all. A failed lookup uploads them: a repeated block is only
 // stored twice, and a block wrongly skipped could lose its last copy.
 //
-// The index alone does not decide: a row can name a pack that lacks the block,
-// or one gone from the bucket, and a skipped block clears its marker and
+// The index alone does not decide: a row can refer to a pack that lacks the
+// block, or one gone from the bucket, and a skipped block clears its marker and
 // queues for eviction, which may trust the queue with no remote check. So the
 // remote's own existence check must confirm each located block, in one batch
 // for the located blocks of the chunk. A block it does not confirm uploads.
@@ -490,7 +494,8 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 		return nil
 	}
 
-	// Confirm them against the remote, keeping only the confirmed.
+	// Confirm the located blocks against the remote, keeping only
+	// confirmed blocks.
 	held, err := remote.GetBlockExistsBatch(ctx, refs)
 	if err != nil || len(held) != len(refs) {
 		return nil
@@ -501,7 +506,7 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 	return located
 }
 
-// locateBlocks reports which blocks of batch the remote's index names, or nil
+// locateBlocks reports which blocks of batch the remote's index lists, or nil
 // when the switch is off, remote has no index that keeps its blocks, or the
 // lookup fails.
 func (s *Store) locateBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) []bool {
@@ -527,17 +532,18 @@ func (s *Store) locateBlocks(ctx context.Context, remote block.StoreOps, batch [
 // ClearLocated clears the queue entries of the blocks another writer just
 // uploaded, wherever they stand in the queue, so that a backlog ahead of them
 // does not keep them on the local store. An entry goes only when the switch is
-// on, remote keeps its blocks and its index names the block; unlike the skip in
-// uploadChunk it takes the index alone, since the caller's pack was just
-// verified against the bucket. Anything else stays queued for Upload,
-// which is the only thing that must eventually drain the queue, so a block this
-// misses costs only its turn. A block with no entry is left alone.
+// on, remote keeps its blocks and its index lists the block. Unlike the skip in
+// uploadChunk, ClearLocated takes the index alone, since the caller's pack was
+// just verified against the bucket. Anything else stays queued for Upload,
+// which is the only thing that must eventually drain the queue, so a block
+// ClearLocated misses costs only its turn. A block with no entry is left alone.
 //
-// The queue's head stays the oldest block the remote may lack, so UploadedBefore
-// keeps its meaning. Each block clears once, here or in Upload, so this adds no
-// marker writes to the ones its upload would have made; it only moves them
-// earlier. Clears wait behind foreground writers, and behind the count of the
-// queue after an open, as countRest describes, so the caller must not hold up
+// The queue's head stays the oldest block the remote may lack, so
+// UploadedBefore keeps its meaning. Each block clears once, here or in Upload,
+// so ClearLocated adds no marker writes to the ones its upload would have made.
+// ClearLocated only moves those writes earlier. Clears wait behind foreground
+// writers, and behind the count of the queue after an open, as countRest
+// describes, so the caller must not hold up
 // anything that matters on this call. A clear says nothing about the upload's
 // health, so it leaves the status's failure alone.
 func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes []*hash.Hash) error {
@@ -553,8 +559,9 @@ func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes 
 			return err
 		}
 
-		// Keep those the remote's index names. The pack was just verified
-		// against the bucket, so its rows need no confirm.
+		// Keep the blocks the remote's index lists. The pack was just
+		// verified against the bucket, so its rows need no
+		// confirmation.
 		located := s.locateBlocks(ctx, remote, batch)
 		if located == nil {
 			continue
@@ -579,7 +586,7 @@ func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes 
 func (s *Store) queuedBlocks(ctx context.Context, hashes []*hash.Hash) ([]pendingBlock, error) {
 	var batch []pendingBlock
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Read each block's marker, which names its queue entry.
+		// Read each block's marker, which identifies its queue entry.
 		batch = batch[:0]
 		keys := make([][]byte, len(hashes))
 		for i, h := range hashes {

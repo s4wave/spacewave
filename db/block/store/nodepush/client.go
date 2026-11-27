@@ -80,7 +80,7 @@ func (c *Client) Run(ctx context.Context, dial func(context.Context) (net.Conn, 
 
 // Send pushes entries and waits for the node's flush.
 func (c *Client) Send(ctx context.Context, entries []*block.PutBatchEntry) error {
-	// Encode first: nothing reads entries after this.
+	// Encode first: nothing reads entries after encoding.
 	blocks := make([]*Block, 0, len(entries))
 	for _, entry := range entries {
 		value, err := block.EncodeBlockObject(entry.Data, entry.Refs, entry.RefsKnown)
@@ -190,7 +190,7 @@ func (c *Client) forgetRead(id uint64) {
 	delete(c.reading, id)
 }
 
-// answerRead delivers the answer of a read, which holds one answer.
+// answerRead delivers a read's answer to its channel, which holds one answer.
 func (c *Client) answerRead(data *ReadData) {
 	// A read that gave up has no channel left.
 	c.mtx.Lock()
@@ -247,7 +247,7 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 	}()
 
 	// Write frames, and apply reports off the read loop. The unbounded
-	// running queue starts each at once and reports idle when both returned.
+	// running queue starts each task at once and reports idle when both return.
 	running.Enqueue(func() {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()

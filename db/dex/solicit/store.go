@@ -17,9 +17,9 @@ type linkedAnswersKey struct{}
 // peer that accept admits answer linked: a linked file on that peer's Device
 // is its only copy there, and the Store returns the block's refs, marked
 // Linked, with no data. Only a copy that may leave such a block on that
-// peer's Device sets it, and accept admits only peers trusted to keep the
-// block, since a linked answer makes the copy skip it. GetBlock and existence
-// checks always ask for the data.
+// peer's Device uses WithLinkedAnswers, and accept admits only peers trusted
+// to keep the block, since a linked answer makes the copy skip the block.
+// GetBlock and existence checks always ask for the data.
 func WithLinkedAnswers(ctx context.Context, accept func(peer.ID) bool) context.Context {
 	return context.WithValue(ctx, linkedAnswersKey{}, accept)
 }

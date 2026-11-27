@@ -19,9 +19,9 @@ import (
 // Controller resolves LookupPluginHost and LookupRoot on a plugin's bus with
 // proxies for the plugin hosts its host exports.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// client reaches the host's HostExport service
+	// client reaches the host's HostExport service.
 	client SRPCHostExportClient
 	// hostsCtr holds the current proxies, nil until the first host report.
 	// Each hostSet is immutable once published.
@@ -104,8 +104,8 @@ func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instanc
 	return nil, nil
 }
 
-// resolve follows the proxies matching platformIDs, or all when empty, and
-// resolves value for each.
+// resolve follows the proxies matching platformIDs, or all proxies when
+// platformIDs is empty, and resolves value for each proxy.
 func (c *Controller) resolve(platformIDs []string, value func(*proxyHost) directive.Value) directive.Resolver {
 	return directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 		valueIDs := make(map[*proxyHost]uint32)

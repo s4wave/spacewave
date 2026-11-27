@@ -10,9 +10,9 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
-// useAVX selects the AVX code: crypto/sha256 has SHA-NI and AVX2 code, so it
-// is used wherever AVX2 and BMI2 are, and its generic code is slower than AVX
-// everywhere else.
+// useAVX selects the AVX code: crypto/sha256 has SHA-NI and AVX2 code, so
+// crypto/sha256 is used wherever AVX2 and BMI2 are, and its generic code is
+// slower than AVX everywhere else.
 var useAVX = cpu.X86.HasAVX && cpu.X86.HasSSSE3 && !(cpu.X86.HasAVX2 && cpu.X86.HasBMI2)
 
 // blockAvx hashes message, a whole number of blocks, into h.

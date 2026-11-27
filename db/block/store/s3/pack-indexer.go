@@ -176,18 +176,18 @@ func (s *PackStore) BuildIndex(ctx context.Context, width int, report func(Index
 }
 
 // LocateBlocks reports, for each ref, whether the local index places it in a
-// pack, without reading any pack. Only the keys of indexed packs are placed,
-// so after BuildIndex a false names a block no listed pack held, or one whose
-// pack a tail merge replaced since. The store must have been opened with an
-// Index.
+// pack, without reading any pack. Only the keys of indexed packs are placed, so
+// after BuildIndex a false result indicates a block no listed pack held, or one
+// whose pack a tail merge replaced since. The store must have been opened with
+// an Index.
 func (s *PackStore) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Refuse a store without an index.
 	if s.index == nil {
 		return nil, errors.New("pack store has no index")
 	}
 
-	// Load the pack table first: a row names its pack by number, and only the
-	// loaded table maps the number to a pack.
+	// Load the pack table first: a row identifies its pack by number, and
+	// only the loaded table maps the number to a pack.
 	if err := s.loadEntries(ctx); err != nil {
 		return nil, err
 	}
@@ -217,18 +217,19 @@ func (s *PackStore) ConfirmsDurable() bool {
 
 // ConfirmDurable reports, for each ref, whether the local index proves a pack
 // the bucket holds lists the block: its h row holds the block's extent and
-// names a pack the table holds. It reads no pack and nothing remote, and
-// stores nothing. A false is a block the index cannot vouch for, such as one
-// whose row names only its pack or is missing, not proof of absence. Each call
-// is one read transaction on the index. Callers check ConfirmsDurable first.
+// identifies a pack the table holds. It reads no pack and nothing remote, and
+// stores nothing. A false result indicates a block the index cannot vouch
+// for, such as one whose row identifies only its pack or is missing. The
+// result is not proof of absence. Each call is one read transaction on the
+// index. Callers check ConfirmsDurable first.
 func (s *PackStore) ConfirmDurable(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Refuse a store without an index.
 	if s.index == nil {
 		return nil, errors.New("pack store has no index")
 	}
 
-	// Load the pack table first: a row names its pack by number, and only the
-	// loaded table maps the number to a pack.
+	// Load the pack table first: a row identifies its pack by number, and
+	// only the loaded table maps the number to a pack.
 	if err := s.loadEntries(ctx); err != nil {
 		return nil, err
 	}

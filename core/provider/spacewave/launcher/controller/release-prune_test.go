@@ -139,7 +139,7 @@ func TestStagingKeepsReleasesInUse(t *testing.T) {
 			ctrl.keepStagedReleases = false
 			tc.prepare(ctrl, stagingDir)
 
-			// Stage the third and compare what stays.
+			// Stage the third version and compare what stays.
 			metadata.Version = "0.1.2"
 			if err := ctrl.stageReleaseManifestUpdate(ctx, metadata, nativeTestPlatformID(), manifestRef, cliManifestRef); err != nil {
 				t.Fatalf("stage 0.1.2: %v", err)

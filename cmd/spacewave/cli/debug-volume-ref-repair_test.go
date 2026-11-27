@@ -193,7 +193,8 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Store raw blocks outside the walk: two with child lists, and one that
-	// only a parent's list names, whose own references stay unknown.
+	// only a parent's list references. That block's own references stay
+	// unknown.
 	trackedData := [][]byte{[]byte("outgoing only"), []byte("staging only")}
 	tracked := make([]*block.BlockRef, len(trackedData))
 	for i, data := range trackedData {
@@ -230,7 +231,7 @@ func TestDebugRefRepair(t *testing.T) {
 		}
 	}
 
-	// The original World copies are all untracked; only the two raw blocks
+	// The original World copies are all untracked. Only the two raw blocks
 	// with child lists are excluded from the stored-block totals.
 	var storedCount, storedBytes uint64
 	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
@@ -295,8 +296,8 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("histogram: total %+v, types %+v, walked %d", total, hist.Rows(), dry.blocks)
 	}
 
-	// The World root, named as a payload, is read as a guessed blob, is not
-	// certainly one, and is verified for nothing.
+	// The World root, recorded as a payload, is read as a guessed blob, is
+	// not certainly one, and is verified for nothing.
 	if dry.notBlob != 1 || dry.payloadBlobs != 0 || !dry.notBlobSample[0].EqualVT(worldRoot) {
 		t.Fatalf("payload root that is not a blob: %+v", dry)
 	}
@@ -386,7 +387,7 @@ func TestDebugRefRepair(t *testing.T) {
 
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, and verifies every walked block's
-	// list, which leaves no reached block on the settle's front.
+	// list, so the repair leaves no reached block on the settle's front.
 	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -399,8 +400,9 @@ func TestDebugRefRepair(t *testing.T) {
 	// the World under a named root as a Space's replay base holds it, and
 	// rebuild with every object root typed as raw bytes, a registered type
 	// that decodes without refs. The rebuild refuses the shortened root
-	// list, which the held World reaches, and leaves it on the front; a
-	// correct rebuild after it finds every list whole and empties the front.
+	// list, which the held World reaches, and leaves the list on the front.
+	// A correct rebuild afterward finds every list whole and empties the
+	// front.
 	markVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
@@ -428,8 +430,9 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
 
-	// The walk from the named roots finds the one root and names it as the
-	// cause of every front entry, since the root holds the refused World.
+	// The walk from the named roots finds the one root and reports the root
+	// as the cause of every front entry, since the root holds the refused
+	// World.
 	under := wrong.front[frontRest+frontRootOf+restoreTestBucket+" "+space_world.RootReplayBase]
 	if !wrong.rooted || wrong.roots != 1 || wrong.rootListed < under.count || len(wrong.front) != 1 ||
 		under.count != wrong.rebuild.Front {
@@ -452,9 +455,9 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("after repair: %+v", after)
 	}
 
-	// A marked list can lack a child its block's bytes name, as Land marks a
-	// list from the refs its caller hands it: drop a child from the World
-	// root's list.
+	// A marked list can lack a child its block's bytes reference, as Land
+	// marks a list from the refs its caller hands it: drop a child from the
+	// World root's list.
 	rootRef := held[0].Ref
 	children := lsChildren(t, path, rootRef)
 	if len(children) == 0 {
@@ -476,14 +479,14 @@ func TestDebugRefRepair(t *testing.T) {
 		return rec.PutChildren(ctx, rootRef, children[1:])
 	})
 
-	// A dry run counts it and writes nothing.
+	// A dry run counts the short marked list and writes nothing.
 	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{frontRoots: true, scanUntyped: true}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Its scan finds every ref the types name, and only a run that walked
-	// from the named roots reports the blocks no root reaches.
+	// Its scan finds every ref the types identify, and only a run that
+	// walked from the named roots reports the blocks no root reaches.
 	looseRow := func(res refRepairResult) bool {
 		return slices.ContainsFunc(refRepairFields(path, true, res), func(f [2]string) bool {
 			return f[0] == "Scan: of them no named root reaches"
@@ -519,9 +522,10 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("repair of a short marked list: %+v", fixed.rebuild)
 	}
 
-	// A short marked list can also name a child the decode lacks, as a list
-	// a second type of the block marked does: give the root's short list a
-	// raw block its content does not name, whose own list is marked.
+	// A short marked list can also reference a child the decode lacks, as a
+	// list a second type of the block marked does: give the root's short
+	// list a raw block the root's content does not reference, whose own
+	// list is marked.
 	extra := tracked[1]
 	writeStopped(func(rec *block_gc.Records) error {
 		if err := rec.PutChildren(ctx, extra, nil); err != nil {
@@ -803,14 +807,15 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Adoption refuses while a stored child list names a block stored
-	// without one: the raw block only a parent's list names.
+	// Adoption refuses while a stored child list references a block stored
+	// without a child list: the raw block only a parent's list references.
 	refused, err := adoptVolume(ctx, le, path, nil)
 	if !errors.Is(err, block_gc.ErrAdoptUnknown) || !slices.ContainsFunc(refused.UnknownSample, listed.EqualVT) {
 		t.Fatalf("adopt with a listless child: %+v, %v", refused, err)
 	}
 
-	// Give that block its list, then adopt; a second adoption changes nothing.
+	// Give that block its list, then adopt. A second adoption changes
+	// nothing.
 	fixVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
@@ -833,8 +838,8 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The audit reaches the whole World from the root, finds no count that
-	// would free a live block, and names the orphan, which has no child list
-	// for the collector to free it by.
+	// would free a live block, and reports the orphan, which has no child
+	// list for the collector to free it by.
 	audit, err := auditVolume(ctx, le, path)
 	if err != nil {
 		t.Fatal(err)

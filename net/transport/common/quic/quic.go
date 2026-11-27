@@ -17,34 +17,34 @@ import (
 // Transport implements a bifrost transport with a Quic-based packet conn.
 // Transport UUIDs are deterministic and based on the LocalAddr() of the pconn.
 type Transport struct {
-	// ctx is the root context
+	// ctx is the root context.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// peerID is the local peer id
+	// peerID is the local peer id.
 	peerID peer.ID
-	// privKey is the local private key
+	// privKey is the local private key.
 	privKey crypto.PrivKey
-	// uuid is the unique id
+	// uuid is the unique id.
 	uuid uint64
-	// laddr is the local address
+	// laddr is the local address.
 	laddr net.Addr
-	// handler is the transport handler
+	// handler is the transport handler.
 	handler transport.TransportHandler
-	// opts are extra options
+	// opts are extra options.
 	opts *Opts
-	// identity is the p2ptls identity
+	// identity is the p2ptls identity.
 	identity *p2ptls.Identity
-	// dialFn is the dialer function
+	// dialFn is the dialer function.
 	// may be empty
 	dialFn DialFunc
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// links is the links map
+	// links is the links map.
 	// maps address string to Link
 	links map[string]*Link
-	// dialers is the dialers map
+	// dialers is the dialers map.
 	// maps address to dialer
 	dialers map[string]*Dialer
 	// sessionCounter is incremented when a link is created.
@@ -151,7 +151,8 @@ func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (li
 	var dl *Dialer
 	t.mtx.Lock()
 	if edl, dialerOk := t.dialers[as]; dialerOk {
-		// TODO: possibly override the prior if edl.peerID != peerID
+		// TODO: possibly override the prior dialer
+		// if edl.peerID != peerID
 		dl = edl
 	}
 	if dl == nil {

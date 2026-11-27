@@ -18,7 +18,7 @@ project(id=var("deployment", "production") + "-" + DEPLOYMENT)
 	"lib/deploy.star": {Data: []byte(`DEPLOYMENT = var("deployment", "production")`)},
 }
 
-// TestEvaluateFSVarDefault uses the default when no input was passed.
+// TestEvaluateFSVarDefault uses the default value when no input was passed.
 func TestEvaluateFSVarDefault(t *testing.T) {
 	// Evaluate with no inputs.
 	result, err := EvaluateFS(t.Context(), varProject, "bldr.star")
@@ -26,7 +26,7 @@ func TestEvaluateFSVarDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Both files must see the default.
+	// Both files must see the default value.
 	if got := result.Config.GetId(); got != "production-production" {
 		t.Fatalf("expected the default in both files, got %q", got)
 	}
@@ -85,9 +85,9 @@ func TestEvaluateFSVarWithoutDefault(t *testing.T) {
 	}
 }
 
-// TestEvaluateFSVarRejectsEmptyName refuses a call that names no input.
+// TestEvaluateFSVarRejectsEmptyName refuses a call that selects no input.
 func TestEvaluateFSVarRejectsEmptyName(t *testing.T) {
-	// Name no input in the call.
+	// Select no input in the call.
 	fsys := fstest.MapFS{"bldr.star": {Data: []byte(`project(id=var("", "x"))`)}}
 
 	// The evaluation must fail.

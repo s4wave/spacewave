@@ -190,7 +190,8 @@ func TestFS(t *testing.T) {
 		// Open a fresh filesystem handle for the cursor adapter case.
 		fsHandle := buildFsHandle()
 
-		// NOTE: we pass releaseHandle to true below: the fsHandleCursor will release the fs handle.
+		// NOTE: releaseHandle is true below: the fsHandleCursor will
+		// release the fs handle.
 		// defer fsHandle.Release()
 
 		// Wrap the cursor in a handle that releases the underlying filesystem.

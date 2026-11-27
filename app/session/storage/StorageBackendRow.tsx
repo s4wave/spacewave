@@ -39,7 +39,8 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
   const preset = guessStoragePreset(backend?.s3)
   const placed = info.placedSpaces ?? []
 
-  // Run one action at a time. A failure is reported and returns undefined.
+  // Run one action at a time. On failure, report the error and return
+  // undefined.
   const run = useCallback(async <T,>(action: () => Promise<T>) => {
     setBusy(true)
     try {

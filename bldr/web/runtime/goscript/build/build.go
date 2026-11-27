@@ -59,7 +59,8 @@ type GoScriptSharedImportMap map[string]string
 // GoScriptSharedBundleOptions configures shared provider publication and
 // consumer externalization.
 type GoScriptSharedBundleOptions struct {
-	// WebPkgID names the provider web package, or the default when empty.
+	// WebPkgID selects the provider web package, or the default package when
+	// empty.
 	WebPkgID string
 	// Enabled externalizes shared modules to the provider.
 	Enabled bool

@@ -21,7 +21,7 @@ func NewCreateComputersDashboardOp(objKey, name string, ts time.Time) *CreateCom
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *CreateComputersDashboardOp) Validate() error {
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey

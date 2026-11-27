@@ -15,11 +15,11 @@ import (
 
 // Store wraps a kvtx store in a RPC service.
 type Store struct {
-	// store is the underlying kvtx store
+	// store is the underlying kvtx store.
 	store kvtx.Store
 	// idCounter is the transaction id counter.
 	idCounter atomic.Uint32
-	// rmtx guards below fields
+	// rmtx guards the fields below.
 	rmtx sync.RWMutex
 	// txs is the list of ongoing transaction ops.
 	txs map[string]*txHandle
@@ -29,7 +29,7 @@ type txHandle struct {
 	// mux is the ops service mux for the transaction.
 	mux srpc.Mux
 
-	// mtx guards below fields.
+	// mtx guards the fields below.
 	mtx sync.Mutex
 	// closing indicates commit/discard has started.
 	closing bool

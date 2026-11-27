@@ -18,7 +18,7 @@ type tentry struct {
 	data []byte
 	// del deletes the key.
 	del bool
-	// expect is the offset of the value a cleaner's move replaces; the move
+	// expect is the offset of the value a cleaner's move replaces. The move
 	// applies only while the key still holds it. Zero for a transaction's
 	// own changes.
 	expect uint64
@@ -44,9 +44,9 @@ type Tx struct {
 	st *state
 	// stripe is the counter of st holding the snapshot.
 	stripe int
-	// changes buffers the writes of a write transaction; nil when read-only.
+	// changes buffers the writes of a write transaction. nil when read-only.
 	changes *btree.BTreeG[tentry]
-	// reads records the snapshot reads of an optimistic write transaction;
+	// reads records the snapshot reads of an optimistic write transaction.
 	// nil otherwise.
 	reads *readSet
 	// atCommit holds the writes an optimistic transaction deferred to its
@@ -125,7 +125,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 }
 
 // GetBatch returns owned values in caller order. Buffered changes decide
-// their keys; the rest are read from the snapshot in key order, so adjacent
+// their keys. The rest are read from the snapshot in key order, so adjacent
 // keys share blocks, with up to lookupInFlight index and value reads in
 // flight.
 func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
@@ -143,7 +143,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 	// reference is read into a new buffer, and an inline value is copied out
 	// of the shared memory.
 	err = t.db.lookupEach(t.st, keys, order, true, func(i int, v value, ok bool) error {
-		// Read a found key's value; an absent key keeps its empty slot.
+		// Read a found key's value. An absent key keeps its empty slot.
 		if !ok {
 			return nil
 		}

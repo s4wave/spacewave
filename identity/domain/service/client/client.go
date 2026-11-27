@@ -15,14 +15,14 @@ import (
 
 // Client is an identity authority client.
 type Client struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
 
-	// peerID is the peer id to use for requests
+	// peerID is the peer id to use for requests.
 	peerID peer.ID
-	// srpcClient is the srpc client instance
+	// srpcClient is the srpc client instance.
 	srpcClient stream_srpc_client.Client
 }
 

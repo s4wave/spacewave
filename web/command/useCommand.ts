@@ -41,20 +41,22 @@ interface UseCommandOpts {
   // hasSubItems indicates the command has a sub-item list in the palette.
   hasSubItems?: boolean
   // subItems provides the sub-item list callback for the palette.
-  // Only used when hasSubItems is true.
+  // subItems is only used when hasSubItems is true.
   subItems?: SubItemsCallback
   // handler is called when the command is invoked.
   handler: (args: Record<string, string>) => void
   // active controls whether the command is active in the current UI tree.
-  // Defaults to true.
+  // active defaults to true.
   active?: boolean
   // enabled controls whether the command is enabled (clickable).
-  // Disabled commands appear dimmed in palette and menu bar. Defaults to true.
+  // Disabled commands appear dimmed in the palette and menu bar.
+  // enabled defaults to true.
   enabled?: boolean
 }
 
 // useCommand registers a command with the command registry and sets up
-// a client-side handler. Manages registration, activation, and cleanup.
+// a client-side handler. useCommand manages registration, activation, and
+// cleanup.
 export function useCommand(opts: UseCommandOpts): void {
   const { service, adoptResource, attachResource } = useCommandContext()
   const registrationResourceIdRef = useRef(0)

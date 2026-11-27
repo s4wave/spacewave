@@ -1,7 +1,7 @@
 // A member's change reaching one file in the owner's linked folder: the node
 // fetches a written version, checks the disk still holds the version the member
-// replaced, exchanges the files atomically and verifies what it displaced; a
-// delete goes to the trash and is verified there.
+// replaced, exchanges the files atomically and verifies what it displaced.
+// A delete goes to the trash and is verified there.
 
 type Change = { kind: string; base: number; new: number }
 

@@ -30,7 +30,7 @@ export interface EmailSectionProps {
 }
 
 // EmailSection lets the user manage the account's email list after onboarding.
-// Mirrors the add / verify / set-primary / remove surface exposed by the
+// It mirrors the add / verify / set-primary / remove surface exposed by the
 // onboarding VerifyEmailPage, rendered with the SessionDetails design tokens.
 export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
   const ns = useStateNamespace(['session-settings'])

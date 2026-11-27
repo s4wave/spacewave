@@ -25,7 +25,7 @@ message Envelope {
   // Keypairs is the list of public keys used to encrypt grants.
   repeated EnvelopeKeypair keypairs = 6;
   // Contents is an optional plaintext description of what the envelope contains.
-  // Application-specific; not used in the unlock process.
+  // Application-specific. Not used in the unlock process.
   bytes contents = 7;
 }
 

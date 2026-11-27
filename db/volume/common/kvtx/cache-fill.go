@@ -26,8 +26,9 @@ type cacheFill struct {
 	owner string
 	data  []byte
 	opts  *block.PutOpts
-	// mark is the marker request of the fill's caller, or nil. The drain writes
-	// on behalf of several callers, so each fill marks for its own.
+	// mark is the marker request of the fill's caller, or nil. The drain
+	// writes on behalf of several callers, so each fill marks for its own
+	// caller.
 	mark *kvtx.BlockMarkRequest
 	// ref, existed and err are set before done closes.
 	ref     *block.BlockRef
@@ -53,10 +54,10 @@ type fillQueue struct {
 // few commits, and a publication waits behind one bounded batch at most.
 //
 // The first fill queued with no drain running starts one, which writes batches
-// until the queue is empty, so no caller works through the fills of others.
-// The drain uses background admission, since a fill is a copy the next read
-// can redo. A caller whose context ends stops waiting; its fill is
-// still written.
+// until the queue is empty, so no caller works through the fills of others. The
+// drain uses background admission, since a fill is a copy the next read can
+// redo. A caller whose context ends stops waiting, but its fill is still
+// written.
 func (v *Volume) prepareCacheFill(ctx context.Context, owner string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Queue the fill, and drain the queue if no caller is.
 	fill := &cacheFill{owner: owner, data: data, opts: opts, mark: kvtx.GetBlockMarkRequest(ctx), done: make(chan struct{})}
@@ -209,7 +210,7 @@ func (v *Volume) FillFates(ctx context.Context, entries []*block.PutBatchEntry) 
 // prepareFillBatch writes a batch of cache fills that owner's bucket read, such
 // as a pack's neighbors, in one fill transaction, holding each block as
 // landFill does. The caller already batched the fills, so they skip the fill
-// queue; the batch runs with background admission, since a fill is a copy the
+// queue. The batch runs with background admission, since a fill is a copy the
 // next read can redo. When it drops some entries, it returns a
 // block.FillsDroppedError naming them with the other entries' results.
 func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
@@ -286,10 +287,10 @@ const fillRootPrefix = "fill:"
 // whether blocks held its bytes before, and the copied entries
 // RefillBlocks dropped.
 //
-// RefillBlocks reads each block's child list, and Land the state record and
-// the log positions, so an optimistic fill conflicts with each commit that
-// lands before it; the fill transaction falls back to the store's writer
-// after repeated conflicts.
+// RefillBlocks reads each block's child list, and Land the state record and the
+// log positions, so an optimistic fill conflicts with each commit that lands
+// before the fill. The fill transaction falls back to the store's writer after
+// repeated conflicts.
 func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entries []*block.PutBatchEntry) ([]bool, block_gc.FillDrops, error) {
 	// Refill the listed blocks' bytes, dropping the copied entries of the
 	// others.
@@ -334,10 +335,10 @@ func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entr
 	return existed, drops, nil
 }
 
-// unnamedRefs returns the refs of the entries no other entry names, once
+// unnamedRefs returns the refs of the entries no other entry references, once
 // each, in entry order.
 func unnamedRefs(entries []*block.PutBatchEntry) []*block.BlockRef {
-	// Note every name, then keep the entries none names.
+	// Record every reference, then keep the entries none references.
 	named := make(map[string]struct{})
 	for _, entry := range entries {
 		for _, ref := range entry.Refs {

@@ -13,7 +13,7 @@ type syncMeasuredIterator struct {
 // Err returns the backend's terminal error.
 func (i *syncMeasuredIterator) Err() error { return i.iterator.Err() }
 
-// Valid reports whether the cursor names an entry.
+// Valid reports whether the cursor references an entry.
 func (i *syncMeasuredIterator) Valid() bool { return i.iterator.Valid() }
 
 // Key returns the current borrowed key.

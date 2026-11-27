@@ -80,7 +80,7 @@ type SOSync struct {
 	soHost *sobject.SOHost
 	// validateSnapshotAccess checks local decryption before acceptance.
 	validateSnapshotAccess SnapshotAccessValidator
-	// observer receives the per-peer events; fixed at construction.
+	// observer receives the per-peer events and is fixed at construction.
 	observer PeerObserver
 	// failures remembers the last logged stream failure of each peer.
 	failures syncFailures
@@ -114,7 +114,7 @@ type PeerObserver interface {
 // HealthObserver records admission, recovery and connection events in a
 // SharedObjectHealth snapshot through the swap function the observer is.
 // The swap must apply fn atomically to the current snapshot. PeerState is
-// ignored; wrap the observer to handle it.
+// ignored. Wrap the observer to handle PeerState.
 type HealthObserver func(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth)
 
 // PeerAdmission records the peer's admission response.
@@ -166,7 +166,7 @@ func (o peerStateObserver) PeerState(remoteID peer.ID, stateHash []byte) {
 // available for the SOSync lifetime. Authentication rejects a mismatched key.
 // observer receives the per-peer events for the SOSync lifetime and must not be
 // nil. links reports the session's links, and bounds each peer's renewal to
-// the time a link to the peer exists; Execute requires it.
+// the time a link to the peer exists. Execute requires links.
 func NewSOSync(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -200,7 +200,7 @@ func NewSOSync(
 
 // Execute runs the SO sync until ctx is canceled. It offers the protocol for
 // the object to every peer for its whole lifetime and runs each matched
-// stream; a peer whose stream ends renews only its own offer, so the other
+// stream. A peer whose stream ends renews only its own offer, so the other
 // peers' streams keep running.
 func (s *SOSync) Execute(ctx context.Context) error {
 	// Give every stream and renewal the owner's cancellation boundary.
@@ -310,8 +310,8 @@ func (f *syncFailures) record(remoteID peer.ID, err error) bool {
 	return !failing || prev != err.Error()
 }
 
-// localRefusal is ErrAccessDenied from this side's held authority, naming the
-// participant it refused. A denial sent by the remote side is plain
+// localRefusal is ErrAccessDenied from this side's held authority, identifying
+// the participant it refused. A denial sent by the remote side is plain
 // ErrAccessDenied, because only the remote config can lift it.
 type localRefusal struct {
 	// remoteID is the refused participant.
@@ -379,8 +379,8 @@ func (s *SOSync) nextStep(err error, mark heldMark) (step endStep, ready func(*s
 			return !errors.Is(s.authorizeParticipants(state, refused.remoteID), ErrAccessDenied)
 		}
 	case errors.Is(err, sobject.ErrParticipantRevoked):
-		// A committed removal of this participant: a config that grants it
-		// readable access again lifts it.
+		// A committed removal of this participant: a config that grants
+		// it readable access again lifts the removal.
 		return stepWatch, s.localReadable
 	case errors.Is(err, sobject.ErrConfigHistoryUnavailable), errors.Is(err, sobject.ErrStateTooLarge):
 		// Catch-up cannot bridge the two states: a recovered or advanced
@@ -429,7 +429,8 @@ func (s *SOSync) readHeldMark(ctx context.Context) (heldMark, error) {
 		return heldMark{}, err
 	}
 
-	// Keep only the two fields that decide catch-up; held states are immutable.
+	// Keep only the two fields that decide catch-up. Held states are
+	// immutable.
 	return heldMark{
 		configChainHash: state.GetConfig().GetConfigChainHash(),
 		checkpoint:      state.GetCheckpoint().GetInner(),
@@ -445,7 +446,7 @@ func (m heldMark) changed(state *sobject.SOState) bool {
 }
 
 // logStreamResult logs the end of a stream with remoteID. A change in the
-// peer's failure reaches the info or warn log once; a failure that repeats on
+// peer's failure reaches the info or warn log once. A failure that repeats on
 // every retry stays at debug.
 func (s *SOSync) logStreamResult(le *logrus.Entry, remoteID peer.ID, err error) {
 	if !s.failures.record(remoteID, err) {
@@ -466,7 +467,7 @@ func (s *SOSync) logStreamResult(le *logrus.Entry, remoteID peer.ID, err error) 
 
 // runStream owns authentication, authorization watches, data exchange and
 // stream cleanup. A denial by this side's held authority, at admission or by
-// revocation, returns a *localRefusal naming the participant.
+// revocation, returns a *localRefusal identifying the participant.
 func (s *SOSync) runStream(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -474,14 +475,16 @@ func (s *SOSync) runStream(
 	localTransport peer.ID,
 	remoteTransport peer.ID,
 ) (rerr error) {
-	// Preserve the local authorization failure when closing transport interrupts I/O.
+	// Preserve the local authorization failure when closing transport
+	// interrupts I/O.
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	defer strm.Close()
 	stopClose := context.AfterFunc(ctx, func() { strm.Close() })
 	defer stopClose()
 
-	// Authentication has a short deadline and a smaller frame limit than object data.
+	// Authentication has a short deadline and a smaller frame limit than
+	// object data.
 	deadline := time.Now().Add(30 * time.Second)
 	if contextDeadline, ok := ctx.Deadline(); ok && contextDeadline.Before(deadline) {
 		deadline = contextDeadline
@@ -538,11 +541,12 @@ func joinSyncWorkers(workers ...*routine.RoutineContainer) {
 	}
 }
 
-// watchAuthority retains current authority until revocation, provider failure or cancellation.
-// Every exit releases the watch before canceling the owner and closing blocked transport.
+// watchAuthority retains current authority until revocation, provider failure
+// or cancellation. Every exit releases the watch before canceling the owner and
+// closing blocked transport.
 func (s *SOSync) watchAuthority(ctx context.Context, strm stream.Stream, sess *stream_packet.Session, remoteID peer.ID, cancel context.CancelCauseFunc) (rerr error) {
 
-	// func.
+	// On return, cancel the owner with the result and close the stream.
 	defer func() {
 		cancel(rerr)
 		strm.Close()
@@ -559,7 +563,8 @@ func (s *SOSync) watchAuthority(ctx context.Context, strm stream.Stream, sess *s
 			return err
 		}
 		if err := s.authorizeParticipants(current, remoteID); err != nil {
-			// A control frame exposes no state; a stalled transport still closes promptly.
+			// A control frame exposes no state. A stalled transport
+			// still closes promptly.
 			if strm.SetWriteDeadline(time.Now().Add(250*time.Millisecond)) == nil {
 				_ = sendAccessDenied(sess)
 			}
@@ -585,12 +590,12 @@ func sendAccessDenied(sess *stream_packet.Session) error {
 // remote's standing offer and opens one new stream on that peer's links. The
 // other peers' streams keep running. An end that only a held-state event can
 // lift, such as a refusal, a revocation or a history catch-up cannot bridge,
-// waits for that event and then renews at once; a denial by the remote side
+// waits for that event and then renews at once. A denial by the remote side
 // renews nothing and leaves the peer to the remote side's renewal.
 //
 // A renewal lasts only while a link to its peer exists. A new link pairs both
-// sides' standing offers and opens a stream without one, so a peer whose last
-// link goes costs nothing until it returns.
+// sides' standing offers and opens a stream without a renewal, so a peer whose
+// last link goes costs nothing until the peer returns.
 type peerStreams struct {
 	// s runs each stream and supplies held authority for readmission.
 	s *SOSync
@@ -610,8 +615,8 @@ type peerStreams struct {
 type peerStream struct {
 	// streams counts the running streams with the peer, one per link pair.
 	streams int
-	// renewal reopens the peer's stream; set only while streams is zero and a
-	// link to the peer exists.
+	// renewal reopens the peer's stream. The renewal is set only while
+	// streams is zero and a link to the peer exists.
 	renewal *peerRenewal
 	// backoff spaces the peer's renewals, from syncRetryInitialInterval up to
 	// syncRetryMaxInterval, for the owner's lifetime.
@@ -647,7 +652,7 @@ func (o *peerStreams) runStream(sms link_solicit.SolicitMountedStream) {
 	// Release the goroutine's registration however the stream ends.
 	defer o.workerDone()
 
-	// Claim the stream once; a failed claim names no peer to renew.
+	// Claim the stream once. A failed claim identifies no peer to renew.
 	ms, taken, err := sms.AcceptMountedStream()
 	if err != nil {
 		o.s.le.WithError(err).Debug("matched shared object stream was not claimed")
@@ -682,7 +687,7 @@ func (o *peerStreams) runStream(sms link_solicit.SolicitMountedStream) {
 
 // arrive counts a new stream with remote and removes the peer's renewal, which
 // a stream from any offer makes unnecessary. Releasing the renewed offer
-// refuses its other pairs; the accepted stream keeps running.
+// refuses its other pairs. The accepted stream keeps running.
 func (o *peerStreams) arrive(remote peer.ID) {
 	// Take the renewal while counting the stream.
 	var renewal *peerRenewal
@@ -700,9 +705,9 @@ func (o *peerStreams) arrive(remote peer.ID) {
 }
 
 // end uncounts a stream with remote that returned err, and starts the peer's
-// renewal when this was its last stream and err leaves a next step. lower
-// reports whether the local transport peer ID sorts below remote's. mark is
-// the held authority the stream ran against.
+// renewal when the ended stream was its last stream and err leaves a next step.
+// lower reports whether the local transport peer ID sorts below remote's. mark
+// is the held authority the stream ran against.
 func (o *peerStreams) end(remote peer.ID, lower bool, err error, mark heldMark) {
 	// Classify the end by the event that lets the peer stream again.
 	step, ready := o.s.nextStep(err, mark)
@@ -712,7 +717,7 @@ func (o *peerStreams) end(remote peer.ID, lower bool, err error, mark heldMark) 
 	var wait time.Duration
 	var rctx context.Context
 	o.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		// Uncount the stream; renew only after the peer's last one.
+		// Uncount the stream. Renew only after the peer's last stream.
 		p := o.peerLocked(remote)
 		p.streams--
 		bcast()
@@ -748,8 +753,9 @@ func (o *peerStreams) end(remote peer.ID, lower bool, err error, mark heldMark) 
 		defer o.workerDone()
 		if ready != nil {
 			if err := o.s.waitHeld(rctx, ready); err != nil {
-				// Without the held state this side cannot sync either; park
-				// the peer until a new link or the next Execute.
+				// Without the held state this side cannot sync
+				// either. Park the peer until a new link or the
+				// next Execute.
 				if rctx.Err() == nil {
 					o.s.le.WithError(err).WithField("remote-peer", remote.String()).
 						Warn("failed to watch held state for the peer's next stream")

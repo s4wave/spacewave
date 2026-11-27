@@ -26,14 +26,14 @@ const ControllerID = "identity/server"
 
 // Server is an identity authority server.
 type Server struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// c is the config
+	// c is the config.
 	c *Config
 
-	// server is the srpc server
+	// server is the srpc server.
 	server *stream_srpc_server.Server
 }
 
@@ -142,7 +142,8 @@ func (s *Server) LookupEntity(
 		entityID,
 	)
 	if err != nil {
-		// note: this is a exception (not a lookup error)
+		// note: the directive execution error is an exception
+		// (not a lookup error)
 		return nil, err
 	}
 
@@ -177,7 +178,7 @@ func (s *Server) HandleDirective(ctx context.Context, di directive.Instance) ([]
 	return s.server.HandleDirective(ctx, di)
 }
 
-// DomainIdMatches checks if we will service domain id.
+// DomainIdMatches checks if the server will service the domain id.
 func (s *Server) DomainIdMatches(domainID string) bool {
 	domainIDs := s.c.GetDomainIds()
 	if len(domainIDs) == 0 {

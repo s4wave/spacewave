@@ -37,7 +37,7 @@ describe('gitCloneAddress', () => {
   })
 
   it('gives no address without a session, Space or key', () => {
-    // Each part is needed to name the object.
+    // Each part is needed to identify the object.
     expect(gitCloneAddress(0, 'sp', 'k')).toBeNull()
     expect(gitCloneAddress(1, undefined, 'k')).toBeNull()
     expect(gitCloneAddress(1, 'sp', '')).toBeNull()

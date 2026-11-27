@@ -87,10 +87,10 @@ class NotebookResource implements NotebookResourceService {
    * editNotebook applies one edit as a single notes/notebook/edit World op,
    * which reads, checks and writes the Notebook under the World writer. An
    * edit made against sources the Notebook no longer holds comes back as the
-   * changed outcome; the caller refreshes from its watch and does not resend.
+   * changed outcome. The caller refreshes from its watch and does not resend.
    * An edit the host discarded without writing comes back as the timed out
    * outcome, and an edit the host never sent because it could not load the
-   * plugin comes back as the plugin unavailable outcome; the caller may resend
+   * plugin comes back as the plugin unavailable outcome. The caller may resend
    * either.
    */
   private async editNotebook(
@@ -179,7 +179,10 @@ class NotebookResource implements NotebookResourceService {
     return { outcome }
   }
 
-  /** dispose releases the resource's Engine reference. Active calls retain their own. */
+  /**
+   * dispose releases the resource's Engine reference. Active calls retain their
+   * own references.
+   */
   dispose(): void {
     this.engineRef?.release()
     this.engineRef = undefined

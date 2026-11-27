@@ -18,7 +18,7 @@ type FSConfigWithSysFSMount interface {
 	WithSysFSMount(fs wazero_sys.FS, guestPath string) wazero.FSConfig
 }
 
-// demoFS is an embedded filesystem
+// demoFS is an embedded filesystem.
 //
 //go:embed main.go
 var demoFS embed.FS
@@ -29,7 +29,7 @@ func main() {
 
 	// Create a new WebAssembly Runtime.
 	r := wazero.NewRuntime(ctx)
-	defer r.Close(ctx) // This closes everything this Runtime created.
+	defer r.Close(ctx) // Close everything the Runtime created.
 
 	// Mount the example filesystems at the guest paths used by the module.
 	fsConf := wazero.NewFSConfig()
@@ -37,7 +37,8 @@ func main() {
 	fsConf = fsConf.WithDirMount("/tmp", "/tmp")
 	fsConf = fsConf.WithFSMount(demoFS, "/example")
 
-	// NOTE: We can pass a wazero_sys.FS to enable a custom read/write fs.
+	// NOTE: The caller can pass a wazero_sys.FS to enable a custom
+	// read/write fs.
 	var writableFS wazero_sys.FS
 	_ = writableFS
 
@@ -63,16 +64,17 @@ func main() {
 	demoWasm, err := os.ReadFile("../demo.wasm")
 	check(err)
 
-	// args are the command line os.Args
+	// args are the command line os.Args.
 	args := config.WithArgs("demo.wasm")
 
-	// This is a convenience utility that chains CompileModule with
-	// InstantiateModule. To instantiate the same source multiple times, use
-	// CompileModule as InstantiateModule avoids redundant decoding and/or
-	// compilation.
+	// InstantiateWithConfig is a convenience utility that chains
+	// CompileModule with InstantiateModule. To instantiate the same source
+	// multiple times, use CompileModule as InstantiateModule avoids redundant
+	// decoding and/or compilation.
 	//
 	// Note: Most compilers do not exit the module after running "_start",
-	// unless there was an error. This allows you to call exported functions.
+	// unless there was an error. The caller can then call exported
+	// functions.
 	if _, err = r.InstantiateWithConfig(ctx, demoWasm, args); err != nil {
 		if exitErr, ok := err.(*sys.ExitError); ok && exitErr.ExitCode() != 0 {
 			fmt.Fprintf(os.Stderr, "exit_code: %d\n", exitErr.ExitCode())

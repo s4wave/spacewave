@@ -47,8 +47,8 @@ func TestPtyPair(t *testing.T) {
 		t.Fatal("/dev/tty does not name the slave")
 	}
 
-	// A line the master types reaches the slave edited, and its echo the
-	// master.
+	// A line the master types reaches the slave edited, and its echo reaches
+	// the master.
 	writeTestFD(t, p, master, "hellx\x7fo\r")
 	if got := readTestFD(t, p, slave); got != "hello\n" {
 		t.Fatalf("slave read %q, want %q", got, "hello\n")

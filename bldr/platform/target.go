@@ -71,7 +71,8 @@ var builtinTargets = map[string]*Target{
 }
 
 // GetBuiltinTarget returns a builtin target by ID.
-// For targets that depend on the host platform (like "desktop"), this computes the correct platform IDs.
+// For targets that depend on the host platform (like "desktop"),
+// GetBuiltinTarget computes the correct platform IDs.
 func GetBuiltinTarget(id string) *Target {
 	// Return the static builtin target when one matches.
 	if target, ok := builtinTargets[id]; ok {
@@ -89,8 +90,9 @@ func GetBuiltinTarget(id string) *Target {
 	return nil
 }
 
-// ParseTarget parses a target string, supporting built-in and parameterized targets.
-// Examples: "browser", "desktop", "desktop/darwin/arm64"
+// ParseTarget parses a target string, supporting built-in and parameterized
+// targets.
+// Examples: "browser", "desktop", "desktop/darwin/arm64".
 func ParseTarget(id string) (*Target, error) {
 	// Trim and require a non-empty target ID.
 	id = strings.TrimSpace(id)

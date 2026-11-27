@@ -10,9 +10,10 @@ interface SavedEnvironment {
   params: Record<string, string>
 }
 
-// Each named frontend keeps its shell state in its supplied installation.
-// App IDs distinguish simultaneous views; ordinary state atoms already use
-// the Root's per-atom persistence through SpacewaveRuntimeProviders.
+// persistAppEnvironment keeps each named frontend's shell state in its supplied
+// installation. App IDs distinguish simultaneous views. Ordinary state atoms
+// already use the Root's per-atom persistence through
+// SpacewaveRuntimeProviders.
 export async function persistAppEnvironment(
   root: Root,
   environment: AppEnvironment,
@@ -75,7 +76,8 @@ export async function persistAppEnvironment(
   return async () => {
     for (const stop of unsubscribe) stop()
     try {
-      // Each pending write follows the previous snapshot; teardown drains that order.
+      // Each pending write follows the previous snapshot. Teardown drains
+      // that order.
       // eslint-disable-next-line react-doctor/async-await-in-loop
       while (writing) await writing
       if (failure) throw failure

@@ -12,7 +12,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Report {
   /**
-   * Label names the run, such as the commit under test.
+   * Label identifies the run, such as the commit under test.
    */
   label?: string
   /**
@@ -41,7 +41,7 @@ export interface Report {
    */
   writeLatency?: Latency
   /**
-   * Hold is the writer lock hold of each write.
+   * Hold is how long each write holds the writer lock.
    */
   hold?: Latency
   /**
@@ -113,7 +113,7 @@ export interface Latency {
    */
   p99Us?: bigint
   /**
-   * MaxUs is the largest.
+   * MaxUs is the largest duration.
    */
   maxUs?: bigint
   /**
@@ -237,7 +237,7 @@ export const GcStats: MessageType<GcStats> =
  */
 export interface CpuShare {
   /**
-   * Name names the code path, such as decode or gc.
+   * Name identifies the code path, such as decode or gc.
    */
   name?: string
   /**

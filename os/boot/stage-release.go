@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// daemonSocket names the daemon's socket in its state directory, as
+// daemonSocket selects the daemon's socket in its state directory, as
 // core/daemon's SocketName does.
 const daemonSocket = "spacewave.sock"
 
@@ -27,18 +27,18 @@ func StageReleaseArgs(system, data string) []string {
 	return []string{"stage-release", system, data}
 }
 
-// RunStageRelease stages one release from the os/system node that the
-// daemon whose state lives under data serves, as StageReleaseArgs names
-// them. It reports the image store's revisions to the node, which serves
-// them to the Device's update state, then watches the node's release and
-// stages the first one a pinned signer authorized that is neither the
-// accepted revision nor the trial that last rolled back, reporting the
-// staging and then the trial. It returns nil once the trial is staged, so the
-// console reboots into it. It returns an error when the daemon or the node
-// stops serving, or when a trial is already pending, and the console runs it
-// again after a backoff, which reports the revisions again.
+// RunStageRelease stages one release from the os/system node served by the
+// daemon whose state lives under data, with arguments from StageReleaseArgs.
+// RunStageRelease reports the image store's revisions to the node, which serves
+// the revisions to the Device's update state, then watches the node's release
+// and stages the first one a pinned signer authorized that is neither the
+// accepted revision nor the trial that last rolled back, reporting the staging
+// and then the trial. It returns nil once the trial is staged, so the console
+// reboots into it. It returns an error when the daemon or the node stops
+// serving, or when a trial is already pending, and the console runs it again
+// after a backoff. Running the child again reports the revisions again.
 func RunStageRelease(args []string) error {
-	// Name the store, the daemon's state and the log.
+	// Select the store, the daemon's state and the log.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	system, data := args[0], args[1]
@@ -108,8 +108,8 @@ func RunStageRelease(args []string) error {
 			return err
 		}
 		le.Infof("staged release %s; copied %d blocks", root.MarshalString(), copied)
-		// The trial is published, so the console must reboot into it even
-		// when this report fails; the trial's boot reports again.
+		// The trial is published, so the console must reboot into it
+		// even when this report fails. The trial's boot reports again.
 		report.Update = &os_system_stager.Revision_Trial{Trial: root}
 		if _, err := stager.ReportRevision(ctx, report); err != nil {
 			le.WithError(err).Warn("cannot report the staged trial")

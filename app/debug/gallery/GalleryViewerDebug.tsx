@@ -134,10 +134,10 @@ function stillURL(i: number): string {
  * viewport as the pane under the file browser's bar, for the viewer sweep:
  * tiles, waiting, failed (before the first index, with Retry), again (the
  * tiles while the watch reads again), failed-kept (the last tiles under the
- * watch's failure past its backoff, with Retry), empty, limit (the index stopped at its
- * limit), issues (some folders unreadable), no-session and no-space. An
- * unknown or missing state shows tiles. The body derives its rows from the watch's
- * resource as the viewer does; only the previews are stand-ins.
+ * watch's failure past its backoff, with Retry), empty, limit (the index
+ * stopped at its limit), issues (some folders unreadable), no-session and
+ * no-space. An unknown or missing state shows tiles. The body derives its rows
+ * from the watch's resource as the viewer does. Only the previews are stand-ins.
  */
 export function GalleryViewerDebug() {
   // Read the fixture state from the route.

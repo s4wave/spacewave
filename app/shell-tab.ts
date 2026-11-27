@@ -7,12 +7,14 @@ export interface ShellTab {
   name: string
   path: string
   // customName overrides the auto-derived name when set.
-  // Clearing it (setting to empty string or undefined) reverts to the default.
+  // Clearing it (setting to empty string or undefined) reverts to the
+  // default name.
   customName?: string
 }
 
 // getTabDisplayName returns the display name for a tab.
-// Uses customName if set, otherwise falls back to auto-derived name.
+// The function uses customName if set, otherwise falls back to the
+// auto-derived name.
 export function getTabDisplayName(tab: ShellTab): string {
   if (tab.customName) return tab.customName
   return tab.name
@@ -117,7 +119,8 @@ export const DEFAULT_HOME_TAB: ShellTab = {
 }
 
 // getSessionPathFromPath extracts the session base path from a URL path.
-// Returns `/u/{sessionIndex}` if the path is within a session, otherwise null.
+// The function returns `/u/{sessionIndex}` if the path is within a session,
+// otherwise null.
 export function getSessionPathFromPath(path: string): string | null {
   const match = path.match(/^\/u\/(\d+)/)
   if (match) {

@@ -18,7 +18,7 @@ import (
 // never as wrong data. A range whose bytes changed under an unchanged stat
 // drops its path's ranges from the index and is reported to the watchers of
 // hash misses, which link the file again. It never writes or deletes a block
-// or a file; its write methods return block_store.ErrReadOnly.
+// or a file. Its write methods return block_store.ErrReadOnly.
 //
 // It reads nothing until SetTransformer gives it the Space's transform, which
 // the World holds and the session lock keeps from rest.
@@ -27,7 +27,7 @@ type Store struct {
 	idx *Index
 	// xfrm holds the Space's transform, or nil before SetTransformer.
 	xfrm atomic.Pointer[transformer]
-	// bufs pools the read buffers; each holds a *[]byte.
+	// bufs pools the read buffers. Each pool entry holds a *[]byte.
 	bufs sync.Pool
 
 	// Hits counts reads served from a file.
@@ -150,7 +150,7 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 }
 
 // GetBlockExists reports an indexed range whose file stat is unchanged. It
-// does not hash; a read still verifies.
+// does not hash, but a read still verifies.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	seg, err := s.statSegment(ctx, ref)
 	return seg != nil, err
@@ -191,8 +191,8 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 }
 
 // StatBlock returns the encoded size recorded for a range whose file stat is
-// unchanged, or nil. Like GetBlockExists it reads, encodes and hashes nothing;
-// a read still verifies.
+// unchanged, or nil. Like GetBlockExists it reads, encodes and hashes nothing,
+// but a read still verifies.
 func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	seg, err := s.statSegment(ctx, ref)
 	if err != nil || seg == nil {
@@ -203,7 +203,8 @@ func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bloc
 
 // GetCopyTier returns the store as the file tier of a copy chain, whose stored
 // blocks are marked Linked. Only a copy chain that reads every Volume tier
-// before it may use it, so a Linked block is one no Volume tier holds.
+// before the file tier may use the file tier, so a Linked block is one no
+// Volume tier holds.
 func (s *Store) GetCopyTier() block.StoreOps {
 	return copyTier{Store: s}
 }
@@ -253,8 +254,8 @@ func (s *Store) WatchHashMisses(cb func(path string)) func() {
 //
 // A failed drop leaves ranges that keep missing until the relink replaces
 // them, so the read reports its miss either way and the error goes nowhere.
-// A drop that races the relink of the same path can remove the new ranges;
-// the relink this drop reports runs after the drop and restores them.
+// A drop that races the relink of the same path can remove the new ranges.
+// The relink this drop reports runs after the drop and restores them.
 func (s *Store) dropStale(ctx context.Context, path string) {
 	// Drop the path's ranges.
 	_ = s.idx.DropPath(ctx, path)
@@ -308,7 +309,8 @@ func (s *Store) regenerate(ctx context.Context, xfrm *transformer, ref *block.Bl
 		s.bufs.Put(bp)
 	}
 
-	// Verify; a mismatch means the bytes changed under an unchanged stat.
+	// Verify the bytes. A mismatch means the bytes changed under an
+	// unchanged stat.
 	if ref.VerifyData(enc, false) != nil {
 		s.HashMisses.Add(1)
 		s.dropStale(ctx, seg.GetPath())

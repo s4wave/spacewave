@@ -18,8 +18,8 @@ const (
 	letterIdxMax = 63 / letterIdxBits
 )
 
-// RandString generates n ASCII letters. A nil source uses crypto/rand directly;
-// a supplied source preserves its deterministic sequence and is not secure.
+// RandString generates n ASCII letters. A nil source uses crypto/rand directly.
+// A supplied source preserves its deterministic sequence and is not secure.
 // Failure to obtain system entropy panics. A negative length panics.
 func RandString(src *mrand.Rand, n int) string {
 	// Build the requested identifier from random alphabet indexes.

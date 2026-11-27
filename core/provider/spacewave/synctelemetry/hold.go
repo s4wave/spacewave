@@ -6,7 +6,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 )
 
-// UploadHold names the account limit that holds a store's uploads.
+// UploadHold identifies the account limit that holds a store's uploads.
 type UploadHold int
 
 const (

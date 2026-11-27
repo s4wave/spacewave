@@ -7,7 +7,7 @@ import (
 )
 
 // BrowserProfile records the optional same-window browser JS CPU/profile
-// artifact. It is present only when the harness attempted the profile gate.
+// artifact. It is present only when the harness tried the profile gate.
 type BrowserProfile struct {
 	// Captured reports whether a profile was captured.
 	Captured bool `json:"captured"`
@@ -15,7 +15,7 @@ type BrowserProfile struct {
 	ProfilePath string `json:"profilePath,omitempty"`
 	// SummaryPath is the path of the profile summary.
 	SummaryPath string `json:"summaryPath,omitempty"`
-	// CaptureWindow names the window the profile covers.
+	// CaptureWindow identifies the window the profile covers.
 	CaptureWindow string `json:"captureWindow,omitempty"`
 	// StartedAt is when the capture started.
 	StartedAt string `json:"startedAt,omitempty"`

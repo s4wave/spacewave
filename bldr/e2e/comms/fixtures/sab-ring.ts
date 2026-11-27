@@ -1,4 +1,4 @@
-// sab-ring.ts - SAB ring buffer point-to-point test fixture.
+// sab-ring.ts: SAB ring buffer point-to-point test fixture.
 //
 // Creates a SabRingStream pair, sends messages, verifies ordering,
 // tests bidirectional and close propagation.
@@ -51,7 +51,7 @@ async function run() {
       sabBufferSize() === expectedDirectionBytes &&
       sabPairBufferSize() === 2 * expectedDirectionBytes
 
-    // Test 1: Send 10 messages A->B, verify all received in order.
+    // Test 1: Send 10 messages A->B, verify all messages are received in order.
     let sendRecv = false
     {
       const { aSab, bSab } = createSabPair()
@@ -89,7 +89,7 @@ async function run() {
       streamB.close()
     }
 
-    // Test 2: Bidirectional - both sides send simultaneously.
+    // Test 2: Bidirectional: both sides send simultaneously.
     let bidirectional = false
     {
       const { aSab, bSab } = createSabPair()
@@ -145,14 +145,14 @@ async function run() {
       streamB.close()
     }
 
-    // Test 3: Close propagation - closing A's sink should end B's source.
+    // Test 3: Close propagation: closing A's sink should end B's source.
     let closeOk = false
     {
       const { aSab, bSab } = createSabPair()
       const streamA = new SabRingStream(aSab, bSab)
       const streamB = new SabRingStream(bSab, aSab)
 
-      // Send one message then close.
+      // Send one message then close the stream.
       await streamA.sink(
         (async function* () {
           yield new Uint8Array([42])

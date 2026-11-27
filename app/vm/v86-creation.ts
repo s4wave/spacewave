@@ -117,7 +117,7 @@ async function readExistingVm(
   }
 }
 
-// hasImageChoice reports whether the config names an image to create from.
+// hasImageChoice reports whether the config selects an image to create from.
 export function hasImageChoice(cfg: V86WizardConfig): boolean {
   if (!cfg.imageObjectKey) return false
   return (
@@ -241,10 +241,11 @@ async function linkCdnV86Image(
 }
 
 // runVmCreation links the CDN image when requested, then creates the VM and
-// removes the wizard as one list, moving a Space index that names the wizard
-// to the VM. The link runs first, outside the list, since it reads the CDN and
-// reuses an image already linked. A failed create writes nothing, so Retry
-// runs it again with the same key. It yields each stage as it starts.
+// removes the wizard as one list, moving a Space index that points to the
+// wizard to the VM. The link runs first, outside the list, since it reads the
+// CDN and reuses an image already linked. A failed create writes nothing, so
+// Retry runs the create again with the same key. runVmCreation yields each
+// stage as the stage starts.
 export async function* runVmCreation(
   world: EngineWorldState,
   request: VmCreationRequest,
@@ -292,9 +293,9 @@ export async function* runVmCreation(
 }
 
 // VmCreationState is a VM creation's state. running applies the request and
-// names the stage it is in; failed names the stage that failed and offers
-// Retry, which starts the same request again; done means this run's commit
-// landed; gone means the wizard was removed, so no run can create from it.
+// records the run's stage. failed records the stage that failed and offers
+// Retry, which starts the same request again. done means this run's commit
+// landed. gone means the wizard was removed, so no run can create from it.
 // done and gone are terminal: nothing reruns the creation from them.
 export type VmCreationState =
   | { status: 'idle' }
@@ -309,7 +310,7 @@ export type VmCreationState =
   | { status: 'gone' }
 
 // VmCreationEvent moves a VM creation between its states. start begins a run
-// from idle or failed; the rest report the running run's progress and end.
+// from idle or failed. The rest report the running run's progress and end.
 export type VmCreationEvent =
   | { type: 'start'; request: VmCreationRequest }
   | { type: 'stage'; stage: VmCreationStage }

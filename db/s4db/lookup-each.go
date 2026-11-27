@@ -12,7 +12,7 @@ import (
 const lookupInFlight = 32
 
 // lookupSlow is the lookup time past which a batch starts more workers. A
-// lookup that slow read the device, where overlapping reads pays; one served
+// lookup that slow read the device, where overlapping reads pays. One served
 // from the block cache or the page cache runs faster inline than a worker
 // starts, and the scaling test measured workers doubling a hot batch's time.
 const lookupSlow = 100 * time.Microsecond
@@ -47,7 +47,7 @@ func (db *DB) lookupEach(st *state, keys [][]byte, order []int, cache bool, fn f
 		}
 	}
 
-	// work takes queued keys in order until none remain; the inline worker
+	// work takes queued keys in order until none remain. The inline worker
 	// starts the others once a lookup is slow.
 	var next atomic.Int64
 	var g errgroup.Group

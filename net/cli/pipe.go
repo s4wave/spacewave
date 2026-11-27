@@ -128,7 +128,8 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
 
-	// Add hold-open controller (prevents link timeout during streaming)
+	// Add the hold-open controller
+	// (prevents link timeout during streaming).
 	sr.AddFactory(link_holdopen_controller.NewFactory(b))
 	_, _, hoRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -167,11 +168,11 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 // loadOrGenerateKey loads a private key from file or generates a new one.
 func (a *PipeArgs) loadOrGenerateKey(le *logrus.Entry) (crypto.PrivKey, error) {
 	if a.PrivKeyPath != "" {
-		// Use keyfile helper to load or generate key
+		// Use the keyfile helper to load or generate the key.
 		return keyfile.OpenOrWritePrivKey(le, a.PrivKeyPath)
 	}
 
-	// No path specified, just generate an ephemeral key
+	// Generate an ephemeral key when no path is specified.
 	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return nil, errors.Wrap(err, "generate key")
@@ -208,7 +209,7 @@ func parseConnectAddr(addr string) (peer.ID, string, error) {
 	return peerID, hostPort, nil
 }
 
-// pipeStream performs bidirectional copying between a stream and stdin/stdout.
+// pipeStream copies bidirectionally between a stream and stdin/stdout.
 func pipeStream(strm io.ReadWriteCloser, stdin io.Reader, stdout io.Writer) error {
 	// Track completion of copying the remote stream to stdout.
 	done := make(chan struct{})

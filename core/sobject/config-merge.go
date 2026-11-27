@@ -165,7 +165,8 @@ func applyConfigDelta(target, parent, next *SharedObjectConfig) *SharedObjectCon
 
 // mergeByKey applies the change from parent to next onto target, matching
 // items by key: an item next added or changed replaces or joins target's, and
-// an item next removed leaves target. Target keeps its order; new items follow.
+// an item next removed leaves target. Target keeps its order, and new items
+// follow.
 func mergeByKey[T any](target, parent, next []T, key func(T) string, equal func(T, T) bool, clone func(T) T) []T {
 	// Index the parent's items by key.
 	before := make(map[string]T, len(parent))
@@ -222,7 +223,7 @@ func AbsorbedFork(head []byte, entry *SOConfigChange) *SOConfigChange {
 
 // AbsorbedConfigChanges returns every record merge records in changes absorb,
 // including those of nested merges, so a replica retains the configs that
-// operations signed on an absorbed branch name.
+// operations signed on an absorbed branch reference.
 func AbsorbedConfigChanges(changes []*SOConfigChange) []*SOConfigChange {
 	var out []*SOConfigChange
 	for _, change := range changes {
@@ -237,7 +238,7 @@ func AbsorbedConfigChanges(changes []*SOConfigChange) []*SOConfigChange {
 // the held config current. A suffix that does not follow current must contain
 // a merge that absorbs current's head and starts at that merge's fork. The
 // absorbed records link the fork to current's head by hash, so current's head
-// authenticates the fork; verifying the suffix checks those links.
+// authenticates the fork. Verifying the suffix checks those links.
 func ConfigSuffixBase(current *SharedObjectConfig, changes []*SOConfigChange) (*SharedObjectConfig, error) {
 	// A suffix that follows the held head starts there.
 	head := current.GetConfigChainHash()

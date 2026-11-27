@@ -56,14 +56,15 @@ func (s *SOHost) checkMergeFloor(ctx context.Context, state *SOState, changes []
 	return nil
 }
 
-// MergePeerBranch commits a candidate whose config chain diverged from the
-// held one. cursor names the peer's record at the held checkpoint floor, and
+// MergePeerBranch commits a candidate whose config chain diverged from the held
+// one. cursor identifies the peer's record at the held checkpoint floor, and
 // changes lead from it to the candidate's config. The newest record both chains
-// share is the fork. When the candidate's head is chosen over the held head
-// and localKey owns it, this signs a merge record on that head absorbing the
-// held branch and commits the candidate with the merge. Otherwise the held
-// state is unchanged: the peer whose head loses merges, and an owner merges
-// for a reader. A fork below the floor returns ErrConfigHistoryUnavailable.
+// share is the fork. When the candidate's head is chosen over the held head and
+// localKey owns that head, MergePeerBranch signs a merge record on that head
+// absorbing the held branch and commits the candidate with the merge. Otherwise
+// the held state is unchanged: the peer whose head loses merges, and an owner
+// merges for a reader. A fork below the floor returns
+// ErrConfigHistoryUnavailable.
 func (s *SOHost) MergePeerBranch(
 	ctx context.Context,
 	candidate *SOState,
@@ -106,7 +107,8 @@ func (s *SOHost) MergePeerBranch(
 		return s.commitPeerSnapshot(ctx, lock, candidate, theirs, localPeer, validateAccess)
 	}
 
-	// Leave the merge to an owner of the winning head when it is not ours.
+	// Leave the merge to an owner of the winning head when the local peer
+	// does not own that head.
 	target := candidate.GetConfig()
 	wins := MergeWins(target.GetConfigChainSeqno(), target.GetConfigChainHash(), held.GetConfigChainSeqno(), held.GetConfigChainHash())
 	if !wins || target.IsGroupControl() || !isOwnerPeer(target, localPeer.String()) {
@@ -144,7 +146,7 @@ func (s *SOHost) splitConfigBranches(
 	peerCursor []byte,
 	peerBranch []*SOConfigChange,
 ) (ours, theirs []*SOConfigChange, fork *SOConfigChange, err error) {
-	// Index the held branch by hash; the cursor is position -1.
+	// Index the held branch by hash. The cursor is position -1.
 	heldAt := map[string]int{string(heldCursor): -1}
 	for i, change := range heldBranch {
 		hash, err := HashSOConfigChange(change)

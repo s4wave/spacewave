@@ -35,7 +35,7 @@ func (c *resourceRpcClient) ExecCall(ctx context.Context, service, method string
 	// A failed result leaves every returned child ID unavailable to the caller.
 	if call.stream != nil {
 		if err != nil {
-			// A broken transport can reject abandonment; retain the original error.
+			// A broken transport can reject abandonment, so retain the original error.
 			_ = call.stream.Send(&ResourceRpcPacket{Body: &ResourceRpcPacket_Abandon{Abandon: &ResourceRpcAbandon{}}})
 			_ = call.stream.Close()
 			return err

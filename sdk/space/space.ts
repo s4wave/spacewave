@@ -228,8 +228,8 @@ export class Space extends Resource {
   }
 
   // accessWorldState accesses the Engine as a WorldState-like interface.
-  // This automatically creates short-lived transactions for each operation.
-  // This is the recommended API for most use cases.
+  // accessWorldState automatically creates short-lived transactions for each
+  // operation. accessWorldState is the recommended API for most use cases.
   public async accessWorldState(
     write: boolean = true,
     abortSignal?: AbortSignal,

@@ -129,7 +129,7 @@ function createTestSpaceWorld(): {
   }
 }
 
-// noCleanup records resources passed to the setup's own cleanup.
+// createCleanup records resources passed to the setup's own cleanup.
 function createCleanup(): { cleanup: RegisterCleanup; calls: unknown[] } {
   const calls: unknown[] = []
   return {

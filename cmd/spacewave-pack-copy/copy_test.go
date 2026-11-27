@@ -218,7 +218,7 @@ func TestCommandRunThrough(t *testing.T) {
 
 	// A store on the target's pack index file places both blocks from the
 	// index and serves them, the root with its child ref, and the graph stream
-	// sits beside it.
+	// sits beside the target packs.
 	targetIndex, err := store_kvtx_sqlite.OpenWithPragmas(ctx, args.TargetIndex, defaultIndexTable, store_kvtx_sqlite.Pragmas{WithoutRowID: true})
 	if err != nil {
 		t.Fatal(err)
@@ -255,7 +255,7 @@ func TestCommandRunThrough(t *testing.T) {
 	}
 
 	// Write a parent and its child to a Volume file with their child lists,
-	// the leaf's empty, and keep the writer open.
+	// the leaf's child list empty, and keep the writer open.
 	volumeFile := filepath.Join(dir, "volume.db")
 	writer, err := store_kvtx_sqlite.Open(ctx, volumeFile, "world")
 	if err != nil {
@@ -286,7 +286,8 @@ func TestCommandRunThrough(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Copy it from the file into packs of up to 128 MiB, beside the writer.
+	// Copy the parent and child from the file into packs of up to 128 MiB,
+	// beside the writer.
 	_ = targetIndex.Close()
 	target.Close()
 	args.Roots = *cli.NewStringSlice(rootRef.MarshalString(), parentRef.MarshalString())

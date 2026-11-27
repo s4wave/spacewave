@@ -47,7 +47,7 @@ func (c *coldCache[K, V]) peek(key K) (V, bool) {
 	return c.lookup(key, false)
 }
 
-// lookup copies an immutable value under the lock; only its owner may touch it.
+// lookup copies an immutable value under the lock. Only its owner may touch it.
 func (c *coldCache[K, V]) lookup(key K, touch bool) (V, bool) {
 	// A miss does not create state or run an eviction.
 	c.mtx.Lock()
@@ -66,7 +66,7 @@ func (c *coldCache[K, V]) lookup(key K, touch bool) (V, bool) {
 }
 
 // put caches a value while never exceeding the charge limit. Warm fills only
-// use spare capacity; they cannot evict anything a request already read.
+// use spare capacity. They cannot evict anything a request already read.
 func (c *coldCache[K, V]) put(key K, value V, charge int, spareOnly bool) {
 	// Existing immutable entries are never installed twice.
 	c.mtx.Lock()

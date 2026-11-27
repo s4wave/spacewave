@@ -51,7 +51,8 @@ class CliTerminalSessionRegistry {
 const CliTerminalSessionContext =
   createContext<CliTerminalSessionRegistry | null>(null)
 
-// CliTerminalSessionProvider retains each tab’s CLI stream across pane remounts.
+// CliTerminalSessionProvider retains each tab's CLI stream across pane
+// remounts.
 // Closing the tab or navigating away releases its stream.
 export function CliTerminalSessionProvider({
   children,

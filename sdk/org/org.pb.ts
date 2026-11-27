@@ -66,7 +66,8 @@ export interface OrgState {
   billingAccountId?: string
   /**
    * Members is the list of organization members with metadata.
-   * SOParticipantConfig is the authority for membership, this is supplementary.
+   * SOParticipantConfig is the authority for membership. Member metadata is
+   * supplementary.
    */
   members?: OrgMemberInfo[]
   /**

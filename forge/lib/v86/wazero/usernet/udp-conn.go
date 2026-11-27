@@ -38,7 +38,7 @@ func newUDPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *udp
 	}
 }
 
-// start launches the host-to-guest read loop on its own goroutine; the
+// start launches the host-to-guest read loop on its own goroutine.
 func (c *udpConn) start() {
 	go c.readLoop()
 }
@@ -78,6 +78,7 @@ func (c *udpConn) close() error {
 }
 
 // readLoop pumps host datagrams back toward the guest until the host
+// socket returns an error.
 func (c *udpConn) readLoop() {
 	buf := make([]byte, defaultMTU-ipv4HeaderSize-udpHeaderSize)
 	for {

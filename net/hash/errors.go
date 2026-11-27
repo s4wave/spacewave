@@ -2,7 +2,8 @@ package hash
 
 import "github.com/pkg/errors"
 
-// ErrHashTypeUnsupported is returned when persisted state names a hash type this build cannot use.
+// ErrHashTypeUnsupported is returned when persisted state specifies a hash type
+// this build cannot use.
 var ErrHashTypeUnsupported = errors.New("unsupported hash type")
 
 // UnsupportedHashTypeError records an unsupported hash type while preserving the original error text.

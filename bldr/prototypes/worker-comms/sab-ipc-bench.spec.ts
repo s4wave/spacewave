@@ -4,7 +4,7 @@ test.describe('SAB IPC Benchmark', () => {
   test('runs throughput and latency benchmarks', async ({ page }) => {
     // Atomics.wait is not available on the main thread in some browsers.
     // The benchmark uses it for the SAB ping-pong test. Firefox and Safari
-    // may not support Atomics.wait on the main thread, so we check.
+    // may not support Atomics.wait on the main thread, so the test checks.
     await page.goto('/sab-ipc-bench.html')
 
     // Wait for the benchmarks to complete (look for "DONE" in the log).
@@ -16,7 +16,7 @@ test.describe('SAB IPC Benchmark', () => {
     console.log('Results:', JSON.stringify(results, null, 2))
 
     if (results.error) {
-      // Not cross-origin isolated (some browser configs).
+      // The page is not cross-origin isolated (some browser configs).
       test.skip(true, `Skipped: ${results.error}`)
       return
     }

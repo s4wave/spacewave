@@ -194,7 +194,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	t.forgetObjectWritten(oldKey)
 	t.moveSetRoot(oldKey, newKey)
 
-	// The old key no longer resolves; drop any stale object memo entry.
+	// The old key no longer resolves. Drop any stale object memo entry.
 	t.forgetObject(oldKey)
 
 	// Record both object revisions and the changed key in one rename entry.
@@ -376,7 +376,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	t.forgetObjectWritten(key)
 	t.forgetSetRoot(key)
 
-	// A deleted object no longer exists; drop any stale object memo entry.
+	// A deleted object no longer exists. Drop any stale object memo entry.
 	t.forgetObject(key)
 
 	// Record the object deletion in the world changelog.
@@ -395,10 +395,10 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	return true, nil
 }
 
-// PurgeObject removes the object entry at key and every graph quad naming it,
-// without reading the object's record or root, so an object whose blocks the
-// store lacks can still be removed. The deletion change keeps no reference to
-// the record. Returns false, nil if not found.
+// PurgeObject removes the object entry at key and every graph quad referencing
+// the object, without reading the object's record or root, so an object whose
+// blocks the store lacks can still be removed. The deletion change keeps no
+// reference to the record. Returns false, nil if not found.
 func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) {
 	// Require an active writer before removing the object.
 	if !t.write {
@@ -408,7 +408,7 @@ func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) 
 		return false, err
 	}
 
-	// Find the entry in the object tree; this reads tree nodes only.
+	// Find the entry in the object tree. This lookup reads tree nodes only.
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
 	exists, err := ot.Exists(ctx, k)

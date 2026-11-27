@@ -25,7 +25,7 @@ func (c *Config) GetConfigID() string {
 }
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory and checks whether the values "look correct."
 func (c *Config) Validate() error {
 	if _, err := c.ParseWebPkgIdRe(); err != nil {
 		return err

@@ -46,7 +46,7 @@ const (
 	VerbRevoke = "revoke"
 )
 
-// Platform verbs.
+// VerbAdmin is the Platform verb.
 const VerbAdmin = "admin"
 
 // VerbWildcard grants all verbs for a resource type.

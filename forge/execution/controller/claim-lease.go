@@ -33,7 +33,7 @@ func compareReclaimableClaim(a, b *reclaimableClaim) bool {
 // reclaims the Execution. A renewal or a competing reclaim changes the observed
 // claim, which restarts the routine with the new state.
 func (c *Controller) reclaimExpiredClaim(ctx context.Context, rc *reclaimableClaim) error {
-	// Wait once for the known lease deadline; the watch replaces renewed claims.
+	// Wait once for the known lease deadline. The watch replaces renewed claims.
 	timer := time.NewTimer(time.Until(rc.claim.GetLeaseExpiresAt().AsTime()))
 	defer timer.Stop()
 	select {
@@ -70,7 +70,8 @@ func (c *Controller) reclaimExpiredClaim(ctx context.Context, rc *reclaimableCla
 	_, _, err := c.ws.ApplyWorldOp(ctx, txd, rc.peerID)
 	var liveErr *execution_transaction.ClaimLiveError
 	if execution_transaction.IsClaimFenced(err) || errors.As(err, &liveErr) {
-		// Another controller renewed or reclaimed first; the watch reports it.
+		// Another controller renewed or reclaimed first. The watch reports the
+		// renewal or reclaim.
 		c.le.WithError(err).Debug("execution claim changed before reclaim")
 		return nil
 	}

@@ -82,8 +82,8 @@ export class StorageDurabilityOwner {
       }
       this.setStatus(persisted ? 'persisted' : 'not-persisted')
     } catch (err) {
-      // A persistence query or request failure must never fail the user write;
-      // record a single bounded diagnostic and leave the status unchanged.
+      // A persistence query or request failure must never fail the user write,
+      // so record a single bounded diagnostic and leave the status unchanged.
       console.warn('WebDocument: storage persistence request failed', err)
     }
   }

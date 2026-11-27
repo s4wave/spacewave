@@ -129,7 +129,8 @@ func (s *AccountSettings) setDefaultStorageBackend(id string) error {
 //
 // Leaving a backend releases the store's objects there. Returning to a
 // backend cancels its pending release, since the store writes there again, and
-// so does naming it as the read fallback, since the store still reads there.
+// so does selecting that backend as the read fallback, since the store still
+// reads there.
 func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement) error {
 	// Require a block store id and an existing target backend.
 	blockStoreID := placement.GetBlockStoreId()
@@ -223,7 +224,7 @@ func (s *AccountSettings) dropStorageRelease(release *BlockStorePlacement) {
 	s.StorageReleases = slices.DeleteFunc(s.StorageReleases, release.sameStore)
 }
 
-// sameStore reports whether two placements name the same block store on the
+// sameStore reports whether two placements identify the same block store on the
 // same backend, whatever their cache settings.
 func (p *BlockStorePlacement) sameStore(other *BlockStorePlacement) bool {
 	return p.GetBlockStoreId() == other.GetBlockStoreId() &&
@@ -269,8 +270,8 @@ func (b *StorageBackend) Validate() error {
 	return nil
 }
 
-// Validate checks that the S3 location names an endpoint and bucket, and that
-// any price list override is valid.
+// Validate checks that the S3 location specifies an endpoint and bucket, and
+// that any price list override is valid.
 func (l *S3Location) Validate() error {
 	if l.GetEndpoint() == "" {
 		return errors.New("endpoint is required")
@@ -281,7 +282,7 @@ func (l *S3Location) Validate() error {
 	return errors.Wrap(l.GetPricing().Validate(), "pricing")
 }
 
-// Validate checks that the SQL location names a host and a database.
+// Validate checks that the SQL location specifies a host and a database.
 func (l *SqlLocation) Validate() error {
 	if l.GetHost() == "" {
 		return errors.New("host is required")
@@ -295,7 +296,7 @@ func (l *SqlLocation) Validate() error {
 	return nil
 }
 
-// Validate checks that the FTPS location names a host, a login file and a
+// Validate checks that the FTPS location specifies a host, a login file and a
 // root directory.
 func (l *FtpsLocation) Validate() error {
 	// Check the required fields, then the ports.

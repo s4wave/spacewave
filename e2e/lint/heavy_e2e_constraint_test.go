@@ -1,7 +1,7 @@
 //go:build skip_e2e && !js
 
 // Package lint hosts the repository-wide build-constraint guard for heavy
-// end-to-end suites. The package file remains buildable without skip_e2e; the
+// end-to-end suites. The package file remains buildable without skip_e2e. The
 // guard itself runs only in the tagged sweep.
 package lint
 
@@ -21,14 +21,15 @@ import (
 // heavyDriverSignals lists the source substrings that mark a _test.go file as a
 // "heavy" end-to-end test: one that drives a real browser and therefore must be
 // excluded from the broad skip_e2e sweep (its TestMain builds Vite/goscript
-// fixtures and steers Chromium/Firefox/WebKit, which times out the sweep).
+// fixtures and steers Chromium/Firefox/WebKit, and that work times out the
+// sweep).
 //
-// The single load-bearing signal is the Playwright browser-driver import. Every
-// heavy suite in the repo imports it to boot or steer the browser
+// The only signal the guard relies on is the Playwright browser-driver import.
+// Every heavy suite in the repo imports it to boot or steer the browser
 // (bldr/e2e/comms, e2e/wasm, e2e/releasewasm, e2e/electron), so a NEW heavy
-// suite added without the negating constraint will trip it. It is deliberately
-// narrow for precision; two broader signals were considered and rejected
-// because they fire on known-light packages that mention the concept
+// suite added without the negating constraint will fail the guard. The signal
+// is deliberately narrow for precision. Two broader signals were considered and
+// rejected because they fire on known-light packages that mention the concept
 // incidentally:
 //   - The raw string "vite build" also appears in bldr/web/bundler's compiler
 //     unit tests (bldr/web/bundler/vite/compiler/bundler_test.go).
@@ -42,7 +43,7 @@ var heavyDriverSignals = []string{
 	`"github.com/mxschmitt/playwright-go"`,
 }
 
-// lightAllowlist names heavy-signal _test.go files that legitimately stay in
+// lightAllowlist lists heavy-signal _test.go files that legitimately stay in
 // the skip_e2e sweep because they never actually drive a browser there: they
 // reference the Playwright types incidentally or gate all real browser work
 // behind an env var / t.Skip that is unset during the sweep. Paths are relative
@@ -87,8 +88,8 @@ func TestHeavyE2EFilesNegateSkipE2E(t *testing.T) {
 			return nil
 		}
 		if path == selfFile {
-			// This file names the driver import literally as its own signal; do
-			// not let it flag itself.
+			// This file contains the driver import literally as its own signal,
+			// so do not let it flag itself.
 			return nil
 		}
 		if !strings.HasSuffix(d.Name(), "_test.go") {
@@ -140,7 +141,8 @@ func isHeavyE2E(src []byte) bool {
 // excludedUnderSkipE2E reports whether src's leading build constraint evaluates
 // false in the skip_e2e sweep environment (skip_e2e set, js unset), i.e. the
 // file is excluded from that build. A file with no leading build constraint is
-// not excluded. It accepts both modern //go:build and legacy // +build syntax.
+// not excluded. excludedUnderSkipE2E accepts both modern //go:build and legacy
+// // +build syntax.
 func excludedUnderSkipE2E(t *testing.T, src []byte) bool {
 	t.Helper()
 	sweep := func(tag string) bool {

@@ -72,7 +72,7 @@ func main() {
 			log.SetLevel(logrus.DebugLevel)
 		}
 
-		// Resolve state directory relative to git root if relative
+		// Resolve the state directory relative to the git root if relative.
 		resolvedStateDir := stateDir
 		if !filepath.IsAbs(stateDir) {
 			root, err := gitroot.FindRepoRoot()

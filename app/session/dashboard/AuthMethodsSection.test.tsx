@@ -83,7 +83,7 @@ describe('AuthMethodsSection', () => {
   })
 
   beforeEach(() => {
-    // Default: return loading state for both useStreamingResource calls.
+    // Default: return a loading state for both useStreamingResource calls.
     mockUseStreamingResource.mockReturnValue({
       value: null,
       loading: true,

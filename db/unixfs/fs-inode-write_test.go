@@ -30,7 +30,7 @@ func (f *fakeFileOps) Remove(ctx context.Context, names []string, ts time.Time) 
 }
 
 // openBufferedFile opens a handle at a file whose commits are recorded and
-// writes "abc" to it, which stays buffered.
+// writes "abc" to the file, keeping the write buffered.
 func openBufferedFile(t *testing.T) (*FSHandle, *fakeFileOps) {
 	// Open the file.
 	ops := &fakeFileOps{}

@@ -15,7 +15,7 @@ import (
 
 // ObjectStore implements a ObjectStore backed by a ObjectStore service.
 type ObjectStore struct {
-	// client is the client to use
+	// client is the client to use.
 	client object_rpc.SRPCObjectStoreClient
 }
 

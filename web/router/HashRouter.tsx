@@ -3,8 +3,8 @@ import { Router } from './router.js'
 import { useHashPath, useNavigateHandler } from './hash.js'
 
 /**
- * HashRouter component that provides hash-based routing
- * using the Router component internally
+ * HashRouter provides hash-based routing
+ * using the Router component internally.
  */
 export function HashRouter({ children }: { children: React.ReactNode }) {
   const [path, setPath] = useHashPath()

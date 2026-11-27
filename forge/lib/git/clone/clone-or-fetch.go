@@ -17,7 +17,7 @@ import (
 // branch again when the repository object already exists. The fetch reuses the
 // clone's remote, depth and tag mode, so a depth-one clone later receives only
 // the branch's newest commit. A fetch moves the remote-tracking refs and leaves
-// an existing worktree on its checked-out commit; a configured worktree that
+// an existing worktree on its checked-out commit. A configured worktree that
 // does not exist yet is created. Returns the repository's root reference.
 // authMethod and progress can be nil.
 func (c *Config) CloneOrFetch(

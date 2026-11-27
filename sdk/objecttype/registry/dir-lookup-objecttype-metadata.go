@@ -60,19 +60,19 @@ func ExLookupObjectTypeMetadata(
 }
 
 // ExWatchObjectTypeMetadata calls onChange with the metadata registered for an
-// object type each time it changes, scoped to engineID the way
+// object type each time the metadata changes, scoped to engineID the way
 // ExLookupObjectTypeMetadata is scoped by its context. The registry answers the
 // lookup directive for as long as it is held, so the callback runs when a
-// plugin registers the type, replaces its registration, or releases it. It
-// receives nil when no plugin registers the type, and each call gets its own
-// private copy of the metadata.
+// plugin registers the type, replaces its registration, or releases it.
+// onChange receives nil when no plugin registers the type, and each call gets
+// its own private copy of the metadata.
 //
 // ExWatchObjectTypeMetadata returns once the registry has answered the lookup
 // for the first time, so a change after it returns always calls onChange, and
 // the registration present at that point has already been delivered.
 //
 // onChange runs inside the directive's value callback and must return quickly
-// without calling back into the bus. Call release to stop watching; onChange is
+// without calling back into the bus. Call release to stop watching. onChange is
 // not called after release returns.
 func ExWatchObjectTypeMetadata(
 	ctx context.Context,
@@ -136,7 +136,8 @@ type lookupObjectTypeMetadata struct {
 }
 
 // NewLookupObjectTypeMetadata constructs a LookupObjectTypeMetadata directive
-// scoped to the demanded plugins of one world engine; empty engineID is unscoped.
+// scoped to the demanded plugins of one world engine. An empty engineID is
+// unscoped.
 func NewLookupObjectTypeMetadata(objectTypeID, engineID string) LookupObjectTypeMetadata {
 	return &lookupObjectTypeMetadata{
 		objectTypeID: objectTypeID,

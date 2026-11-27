@@ -31,11 +31,11 @@ func SocketPathEnvVar(projectID string) string {
 }
 
 // ResolveStatePath makes statePath absolute and creates it. When explicit is
-// set, it publishes the root with the optional explicit socket path to the
-// project's environment variables. Logs, bus-hosted components, and child
-// processes then scope their default paths to the chosen state root instead
-// of the shared process default. A default state path is not published, so
-// the environment still tells subcommands whether the user chose one; the
+// set, ResolveStatePath publishes the root with the optional explicit socket
+// path to the project's environment variables. Logs, bus-hosted components,
+// and child processes then scope their default paths to the chosen state root
+// instead of the shared process default. A default state path is not published,
+// so the environment still tells subcommands whether the user chose one. The
 // unpublished default is the root DetermineStorageRoot resolves anyway.
 // socketPath may be empty when no explicit socket path was requested.
 // Returns the absolute state root.

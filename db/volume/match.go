@@ -18,7 +18,7 @@ func CheckIDMatchesList(id string, list []string, re *regexp.Regexp) bool {
 }
 
 // CheckIDMatchesAliases checks if the ID matches the value or any alias.
-// Returns true if the target id was empty
+// Returns true if the target id was empty.
 func CheckIDMatchesAliases(targetVolID, volID string, aliases []string) bool {
 	if targetVolID == "" {
 		return true

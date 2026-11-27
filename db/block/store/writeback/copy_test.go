@@ -173,8 +173,8 @@ func TestCopyHoldsCursorAtCorruptStep(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A new run starts from the saved cursor with no corrupt count and lands
-	// the last step clean; the copy must not be done.
+	// A new run starts from the saved cursor with no corrupt count and
+	// lands the last step clean. The copy must not be done.
 	cursor, found := readCopyKey(t, s, copyCursorPrefix+"db")
 	if found {
 		t.Fatalf("cursor passed the corrupt step: %q", cursor)

@@ -124,7 +124,8 @@ export const RegisterQuickstartResponse: MessageType<RegisterQuickstartResponse>
  */
 export interface ListQuickstartsRequest {
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty InstanceKey lists
+   * global registrations.
    */
   instanceKey?: string
 }
@@ -160,7 +161,8 @@ export const ListQuickstartsResponse: MessageType<ListQuickstartsResponse> =
  */
 export interface WatchQuickstartsRequest {
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty InstanceKey lists
+   * global registrations.
    */
   instanceKey?: string
 }

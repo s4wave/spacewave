@@ -22,7 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Messages the presence test counts per transport.
+// msgLinkPublished, msgSessionStarted and msgLinkLost are the messages the
+// presence test counts per transport.
 const (
 	msgLinkPublished  = "webrtc quic phase: link published"
 	msgSessionStarted = "webrtc session starting"

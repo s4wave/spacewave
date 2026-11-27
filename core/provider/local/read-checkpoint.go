@@ -16,10 +16,10 @@ func readCheckpointKey(sharedObjectID string) []byte {
 }
 
 // writeReadCheckpoint retains the last readable state at the authority commit
-// boundary. A peer whose leave the head ownership transfer
-// carries is no longer readable. Readmission removes the checkpoint because the
-// current World owns history again. It runs after the commit's configuration
-// history is written to tx.
+// boundary. A peer is no longer readable when the head ownership transfer
+// carries the peer's leave. Readmission removes the checkpoint because the
+// current World owns history again. writeReadCheckpoint runs after the
+// commit's configuration history is written to tx.
 func writeReadCheckpoint(
 	ctx context.Context,
 	tx kvtx.Tx,
@@ -67,7 +67,8 @@ func writeReadCheckpoint(
 		return err
 	}
 
-	// Delete the checkpoint on readmission; retain the readable state on departure.
+	// Delete the checkpoint on readmission and retain the readable state on
+	// departure.
 	key := readCheckpointKey(sharedObjectID)
 	if isReadable {
 		return tx.Delete(ctx, key)

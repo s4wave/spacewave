@@ -26,7 +26,7 @@ func BuildGenesisSOState(
 	privKey crypto.PrivKey,
 	stateData []byte,
 ) (*SOState, *SOConfigChange, error) {
-	// Sign the genesis config naming the owner.
+	// Sign the genesis config declaring the owner.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, nil, err

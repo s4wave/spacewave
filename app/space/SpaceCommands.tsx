@@ -84,7 +84,7 @@ async function planCreate(
   }
 }
 
-// SpaceCommands registers space-scoped commands. Returns null (no UI).
+// SpaceCommands registers space-scoped commands and returns null (no UI).
 export function SpaceCommands({
   canRename,
   canShare,

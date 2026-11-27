@@ -5,7 +5,7 @@
 // main thread via a bridge MessagePort. Data channels are transferred back
 // to the worker as real RTCDataChannel objects.
 
-// Bridge command sent from worker to main thread.
+// BridgeCommand is a command sent from the worker to the main thread.
 export interface BridgeCommand {
   type: string
   cmdId: number
@@ -17,7 +17,7 @@ export interface BridgeCommand {
   options?: RTCDataChannelInit | RTCOfferOptions | RTCAnswerOptions
 }
 
-// Bridge response sent from main thread to worker.
+// BridgeResponse is a response sent from the main thread to the worker.
 export interface BridgeResponse {
   type: string
   cmdId: number
@@ -28,7 +28,7 @@ export interface BridgeResponse {
   snapshot?: PeerConnectionSnapshot
 }
 
-// Bridge event sent from main thread to worker (no cmdId).
+// BridgeEvent is an event sent from the main thread to the worker (no cmdId).
 // The candidate field carries full RTCIceCandidate properties (protocol,
 // address, port, type, foundation, etc.) in addition to the standard
 // RTCIceCandidateInit fields so that pion/webrtc's valueToICECandidate
@@ -43,7 +43,8 @@ export interface BridgeEvent {
   snapshot?: PeerConnectionSnapshot
 }
 
-// Snapshot of RTCPeerConnection state, cached in the proxy.
+// PeerConnectionSnapshot is a snapshot of RTCPeerConnection state, cached in
+// the proxy.
 export interface PeerConnectionSnapshot {
   connectionState: string
   signalingState: string
@@ -74,9 +75,9 @@ function sendRtcDataChannelPayload(
 }
 
 // DataChannelWrapper is a synchronous stub that looks like an RTCDataChannel.
-// Returned by createDataChannel before the real DC arrives from the main
-// thread via transfer. Queues send() calls and stores event handlers until
-// the real DC is attached.
+// createDataChannel returns the wrapper before the real DC arrives from the
+// main thread via transfer. The wrapper queues send() calls and stores event
+// handlers until the real DC is attached.
 export class DataChannelWrapper {
   // Properties known at creation time
   readonly label: string
@@ -95,7 +96,7 @@ export class DataChannelWrapper {
   private _closeEmitted = false
   private _realDC: RTCDataChannel | null = null
 
-  // Queued sends before the real DC arrives
+  // sendQueue holds queued sends before the real DC arrives.
   private sendQueue: (string | ArrayBuffer | ArrayBufferView)[] = []
 
   // Stored event handlers. After attach(), setters forward to the real DC
@@ -185,7 +186,7 @@ export class DataChannelWrapper {
     this._bufferedAmountLowThreshold = v
   }
 
-  // maxRetransmitTime is a deprecated alias used by older pion-webrtc
+  // maxRetransmitTime is a deprecated alias used by older pion-webrtc.
   get maxRetransmitTime(): number | null {
     return this.maxPacketLifeTime
   }
@@ -239,8 +240,8 @@ export class DataChannelWrapper {
     dc.onclose = (event) => this.finishClose(dc, event)
   }
 
-  // attach swaps in the real transferred DC. Called by ProxyRTCPeerConnection
-  // when the main thread transfers the DC back to the worker.
+  // attach swaps in the real transferred DC. ProxyRTCPeerConnection calls
+  // attach when the main thread transfers the DC back to the worker.
   attach(dc: RTCDataChannel) {
     if (this._closed) {
       dc.close()
@@ -459,7 +460,7 @@ class BridgeDispatcher {
       return
     }
 
-    // Event (type starts with "event:") - route by pcId
+    // Event (type starts with "event:"): route by pcId
     if (data.type?.startsWith('event:') && (data as BridgeEvent).pcId) {
       const event = data as BridgeEvent
       const pc = this.pcs.get(event.pcId!)
@@ -488,7 +489,8 @@ export class ProxyRTCPeerConnection {
   private pcIdPromise: Promise<string>
   private _closed = false
 
-  // DC wrappers awaiting the real transferred DC, keyed by cmdId
+  // pendingDCs holds DC wrappers awaiting the real transferred DC, keyed by
+  // cmdId.
   private pendingDCs = new Map<number, DataChannelWrapper>()
   private readonly sctpTransport = new StubRTCSctpTransport()
   private sctpEnabled = false
@@ -504,7 +506,7 @@ export class ProxyRTCPeerConnection {
   onicegatheringstatechange: (() => void) | null = null
   onnegotiationneeded: (() => void) | null = null
 
-  // Cached state (updated from snapshots)
+  // _snapshot is cached state (updated from snapshots).
   private _snapshot: PeerConnectionSnapshot = {
     connectionState: 'new',
     signalingState: 'stable',
@@ -638,7 +640,8 @@ export class ProxyRTCPeerConnection {
 
   // createDataChannel returns a synchronous DataChannelWrapper. The real DC
   // will arrive via transfer from the main thread and be attached to the
-  // wrapper. pion-webrtc calls this synchronously via js.Value.Call().
+  // wrapper. pion-webrtc calls createDataChannel synchronously via
+  // js.Value.Call().
   //
   // The command is queued until the createPC response provides a pcId.
   createDataChannel(
@@ -676,7 +679,7 @@ export class ProxyRTCPeerConnection {
         })
       })
       .catch(() => {
-        // createPC failed - clean up this wrapper if not already done.
+        // createPC failed. Clean up this wrapper if cleanup is still pending.
         if (this.pendingDCs.delete(cmdId)) {
           wrapper.bridgeDied()
         }
@@ -685,7 +688,7 @@ export class ProxyRTCPeerConnection {
     return wrapper
   }
 
-  // Property accessors -- return cached values from snapshot
+  // Property accessors: return cached values from the snapshot
 
   get connectionState(): RTCPeerConnectionState {
     return this._snapshot.connectionState as RTCPeerConnectionState
@@ -752,7 +755,8 @@ export class ProxyRTCPeerConnection {
     return this.sctpTransport
   }
 
-  // pion-webrtc calls these but they're not critical for the bridge
+  // pion-webrtc calls these methods, but the methods are not critical for
+  // the bridge.
   getConfiguration(): RTCConfiguration {
     return {}
   }
@@ -796,7 +800,7 @@ export class ProxyRTCPeerConnection {
 
   // close sends a close command to the main thread and cleans up.
   // If called before createPC resolves, the pcIdPromise handler will
-  // send the close command when it completes.
+  // send the close command when createPC completes.
   close() {
     if (this._closed) return
     this._closed = true
@@ -821,7 +825,7 @@ function getWebRtcBridgeGlobals(): WebRtcBridgeGlobals {
 }
 
 // setBridgePort sets the bridge MessagePort for WebRTC proxying.
-// Creates a BridgeDispatcher to manage the port.
+// setBridgePort creates a BridgeDispatcher to manage the port.
 export function setBridgePort(port: MessagePort) {
   const globals = getWebRtcBridgeGlobals()
   globals.__bldrWebRtcBridgePort = port

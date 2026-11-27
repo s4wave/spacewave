@@ -10,7 +10,7 @@ type tableRootPartitionSet struct {
 	r *TableRoot
 }
 
-// newTableRootPartitionSetContainer builds a new db root table set container
+// newTableRootPartitionSetContainer builds a new db root table set container.
 func newTableRootPartitionSetContainer(r *TableRoot, bcs *block.Cursor) *sbset.SubBlockSet {
 	if r == nil {
 		return nil

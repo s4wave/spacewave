@@ -35,7 +35,7 @@ func NewLookupRpcClientResolver(client srpc.Client) LookupRpcClientResolver {
 	return directive.NewValueResolver([]LookupRpcClientValue{client})
 }
 
-// lookupRpcClient implements LookupRpcClient
+// lookupRpcClient implements LookupRpcClient.
 type lookupRpcClient struct {
 	serviceID string
 	clientID  string

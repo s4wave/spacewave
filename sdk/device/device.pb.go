@@ -179,10 +179,10 @@ const (
 	DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED DeviceCapabilityState = 3
 	// DEVICE_CAPABILITY_STATE_AVAILABLE means the capability can be used.
 	DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE DeviceCapabilityState = 4
-	// DEVICE_CAPABILITY_STATE_ACTIVE means the capability currently has active work.
+	// DEVICE_CAPABILITY_STATE_ACTIVE means the capability has active work.
 	DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE DeviceCapabilityState = 5
 	// DEVICE_CAPABILITY_STATE_REJECTED means the daemon declined or failed to run the
-	// capability; Detail carries the reason.
+	// capability. Detail carries the reason.
 	DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED DeviceCapabilityState = 6
 )
 
@@ -268,9 +268,11 @@ type DeviceCapabilityGrantState int32
 const (
 	// DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
 	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN DeviceCapabilityGrantState = 0
-	// DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+	// DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy allows the
+	// capability.
 	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED DeviceCapabilityGrantState = 1
-	// DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+	// DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy blocks the
+	// capability.
 	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED DeviceCapabilityGrantState = 2
 )
 
@@ -342,8 +344,8 @@ func (x DeviceCheckoutRootAccess) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// GraphicsCardVendor names the maker of a graphics card, which decides the
-// device nodes and drivers a container needs.
+// GraphicsCardVendor identifies the maker of a graphics card. The maker decides
+// the device nodes and drivers a container needs.
 type GraphicsCardVendor int32
 
 const (
@@ -687,7 +689,7 @@ type DeviceCheckoutRootCapability struct {
 	// SelectionRef is the durable selector for this root: the ID of the
 	// capability that advertises it.
 	SelectionRef string `protobuf:"bytes,3,opt,name=selection_ref,json=selectionRef,proto3" json:"selectionRef,omitempty"`
-	// Access is the read/write mode currently exposed by the Device policy.
+	// Access is the read/write mode exposed by the Device policy.
 	Access DeviceCheckoutRootAccess `protobuf:"varint,4,opt,name=access,proto3" json:"access,omitempty"`
 	// ReadAvailable reports whether the linked filesystem owner may be opened for reads.
 	ReadAvailable bool `protobuf:"varint,5,opt,name=read_available,json=readAvailable,proto3" json:"readAvailable,omitempty"`
@@ -799,7 +801,7 @@ type GraphicsCardRequest struct {
 	unknownFields []byte
 	// Count is the number of whole cards requested.
 	Count uint32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	// Vendor limits the request to one maker; UNKNOWN accepts any vendor.
+	// Vendor limits the request to one maker. UNKNOWN accepts any vendor.
 	Vendor GraphicsCardVendor `protobuf:"varint,2,opt,name=vendor,proto3" json:"vendor,omitempty"`
 	// MinMemoryBytes is the least dedicated memory each card must have.
 	MinMemoryBytes uint64 `protobuf:"varint,3,opt,name=min_memory_bytes,json=minMemoryBytes,proto3" json:"minMemoryBytes,omitempty"`
@@ -1228,7 +1230,8 @@ func (x *ReportDeviceStatusResponse) GetState() *Device {
 // AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
 type AccessCheckoutRootRequest struct {
 	unknownFields []byte
-	// Name is the checkout-root selector. Empty selects the first readable root.
+	// Name is the checkout-root selector. An empty Name selects the first
+	// readable root.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Write requests a write-capable filesystem handle.
 	Write bool `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`

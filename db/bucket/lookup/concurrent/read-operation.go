@@ -10,7 +10,7 @@ import (
 )
 
 // BeginReadOperation retains the sole local bucket's read scope when available.
-// Network fallback remains live; writeback lookups keep their unscoped path.
+// Network fallback remains live. Writeback lookups keep their unscoped path.
 func (c *LookupController) BeginReadOperation(ctx context.Context) (lookup.Lookup, func(), error) {
 	// Resolve the controller's bucket handles.
 	handles, err := c.getBucketHandles(ctx)

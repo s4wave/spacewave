@@ -20,7 +20,7 @@ const pipeAtomic = 4096
 // byte of the write that sent it, as SCM_RIGHTS does on a Linux stream
 // socket. A read never crosses into bytes that carry files, so the files
 // arrive with the read that starts at their byte. A file in the pipe holds a
-// reference, which the reader takes over; files still in the pipe when its
+// reference, which the reader takes over. Files still in the pipe when its
 // read side closes are released. A socket sent over itself keeps itself open
 // until its peer closes, as on Linux without its garbage collector.
 type bufferedPipe struct {
@@ -117,9 +117,10 @@ func (p *bufferedPipe) takeLocked(dat []byte) (int, []*OpenFile) {
 
 // write copies dat to the buffer, waiting for room. A write of at most
 // pipeAtomic bytes waits until it fits whole. It attaches files to the first
-// byte written, taking over their references; when nothing is written,
-// as for empty dat, the caller keeps them. It returns the bytes written, fewer when ctx ends, and
-// reports false when the read side closed before any byte was written.
+// byte written, taking over their references. When nothing is written, as
+// for empty dat, the caller keeps the references. It returns the bytes
+// written, fewer when ctx ends, and reports false when the read side closed
+// before any byte was written.
 func (p *bufferedPipe) write(ctx context.Context, dat []byte, files []*OpenFile) (int, bool) {
 	written := 0
 	for {

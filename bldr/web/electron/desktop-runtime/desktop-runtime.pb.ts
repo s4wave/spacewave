@@ -1178,7 +1178,8 @@ export interface OpenOrFocusMainWindowRequest {
   route?: string
   /**
    * InstalledApp is the application bundle that requested the desktop.
-   * Desktop app updates replace this bundle; empty keeps the last one.
+   * Desktop app updates replace this bundle. An empty value keeps the last
+   * bundle.
    */
   installedApp?: string
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // livenessPrefix holds the Volume's liveness records, as block_gc.Records
-// lays them out. Store formats 2 to 6 kept their reference graph here; format
+// lays them out. Store formats 2 to 6 kept their reference graph here. Format
 // 7 keeps its child lists in place and writes the rest of liveness beside
 // them.
 var livenessPrefix = []byte{2}
@@ -130,7 +130,7 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 		return err
 	}
 
-	// Call fn with each.
+	// Call fn with each root.
 	for _, root := range roots {
 		if err := fn(root); err != nil {
 			return err
@@ -142,7 +142,7 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 // SetBucketRoots stores entries and moves the bucket's named roots in one
 // physical transaction, as block_gc.Land describes: it writes nothing and
 // returns block.ErrRootMoved when a root does not hold its Previous. Entries
-// return volume.ErrReserve while the volume is in the reserve state; moving
+// return volume.ErrReserve while the volume is in the reserve state. Moving
 // roots alone writes no new data and continues. The move is durable when it
 // returns unless ctx asks for write ordering, as block.RootOps requires: it
 // publishes heads, such as a World Authority's, that writers are told are
@@ -181,7 +181,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 
 // ReleaseBucket releases every named root of bucketID, so the collector frees
 // what only they reached, such as the blocks of a deleted Space. It releases
-// the roots it read in one transaction; a root a writer moved meanwhile is
+// the roots it read in one transaction. A root a writer moved meanwhile is
 // read and released again.
 func (v *Volume) ReleaseBucket(ctx context.Context, bucketID string) error {
 	for {
@@ -220,7 +220,7 @@ func (v *Volume) ReleaseBucketPrefix(ctx context.Context, prefix string) error {
 		return err
 	}
 
-	// Release each.
+	// Release each bucket.
 	for bucketID := range buckets {
 		if err := v.ReleaseBucket(ctx, bucketID); err != nil {
 			return err

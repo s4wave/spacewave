@@ -17,7 +17,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// GitClone performs a git clone operation against a world.
+// GitClone clones a git repo into a world.
 // Clones the repo directly into a bulk-mode hydra Store. Objects stream
 // to KV via per-object mini-transactions during the clone, and the IAVL
 // tree is built bottom-up at commit time.

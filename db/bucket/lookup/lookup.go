@@ -12,7 +12,8 @@ import (
 
 // LookupBlockOpts contains additional options for the lookup block call.
 type LookupBlockOpts struct {
-	// LocalOnly indicates we should not use the network for the call.
+	// LocalOnly indicates the lookup should not use the network for the
+	// call.
 	LocalOnly bool
 	// Timeout is the lookup timeout duration.
 	// Ignored if unset (zero).
@@ -33,14 +34,16 @@ func NewLookupBlockOpts(opts ...LookupBlockOption) *LookupBlockOpts {
 	return o
 }
 
-// WithLocalOnly indicates we should only use the local block stores for the call.
+// WithLocalOnly indicates the lookup should only use the local block stores for
+// the call.
 func WithLocalOnly() LookupBlockOption {
 	return func(opts *LookupBlockOpts) {
 		opts.LocalOnly = true
 	}
 }
 
-// WithTimeout indicates we should use the timeout for looking up a block.
+// WithTimeout indicates the lookup should use the timeout for looking up a
+// block.
 // Returns ErrDeadlineExceeded if the timeout is exceeded.
 // If notFound is set, returns not found instead of an error.
 func WithTimeout(dur time.Duration, notFound bool) LookupBlockOption {
@@ -110,9 +113,9 @@ type Controller interface {
 	Lookup
 
 	// PushBucketHandles pushes the bucket handle list that the controller may
-	// use to service requests. The controller should wait for this to be called
-	// before beginning to service requests. The bucket handles pushed will
-	// always have GetExists() == true.
+	// use to service requests. The controller should wait for PushBucketHandles
+	// to be called before beginning to service requests. The bucket handles
+	// pushed will always have GetExists() == true.
 	PushBucketHandles(ctx context.Context, handles []bucket.BucketHandle)
 }
 

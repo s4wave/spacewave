@@ -94,7 +94,7 @@ func (r *pluginLoadResolver) Resolve(ctx context.Context, handler directive.Reso
 	}
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ controller.Controller = (*PluginLoader)(nil)
 	_ directive.Resolver    = (*pluginLoadResolver)(nil)

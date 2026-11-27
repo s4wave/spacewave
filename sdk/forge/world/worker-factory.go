@@ -36,9 +36,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// forgeWorkerFactory creates a ForgeWorker resource with PersistentExecutionService.
-// Checks that the local session peer is linked to the Worker. Returns a nil
-// invoker for an unlinked session; each linked session runs its own worker loop.
+// forgeWorkerFactory creates a ForgeWorker resource with
+// PersistentExecutionService. The factory checks that the local session peer
+// is linked to the Worker and returns a nil invoker for an unlinked session.
+// Each linked session runs its own worker loop.
 func forgeWorkerFactory(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -55,11 +56,11 @@ func forgeWorkerFactory(
 	// Get the local session peer ID from context.
 	sessionPeerID := objecttype.SessionPeerIDFromContext(ctx)
 	if len(sessionPeerID) == 0 {
-		// No session peer ID available; cannot run as worker.
+		// No session peer ID is available. The session cannot run as a worker.
 		return nil, func() {}, nil
 	}
 
-	// A Worker may serve several Device peers; this session runs only when linked.
+	// A Worker may serve several Device peers. This session runs only when linked.
 	linked, err := workerHasPeerID(ctx, ws, objectKey, sessionPeerID)
 	if err != nil {
 		return nil, nil, err

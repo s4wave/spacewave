@@ -34,7 +34,8 @@ async function dialBoundSocket(url: string): Promise<WebSocketConn> {
       { once: true },
     )
   })
-  // The adapter uses the shared WHATWG methods; its dependency types name ws.
+  // The adapter uses the shared WHATWG methods, but its dependency types
+  // refer to ws.
   return new WebSocketConn(
     socket as unknown as ConstructorParameters<typeof WebSocketConn>[0],
     'outbound',

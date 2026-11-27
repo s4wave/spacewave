@@ -15,7 +15,7 @@ import (
 // CdnInstance owns the process-scoped singleton CdnSharedObject and the
 // shared CdnBlockStore backing it for a single CDN (identified by cdn_id in
 // the enclosing registry). Future multi-CDN support will create one
-// CdnInstance per configured CDN; today only the default instance exists.
+// CdnInstance per configured CDN. Only the default instance exists.
 //
 // CdnInstance is process-lived: started once by the Registry on first
 // lookup, torn down via Close when the Registry is stopped.

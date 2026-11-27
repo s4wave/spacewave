@@ -32,7 +32,7 @@ type RunConfig struct {
 // Run boots the WasiVM image imageKey in ws with conf's program as init and
 // returns its exit code once it exits. The program reads an empty input. An
 // in-memory upper layer over the image's root filesystem holds the run's
-// writes, so each run starts from the unchanged image; a published image's CDN
+// writes, so each run starts from the unchanged image. A published image's CDN
 // Space stays mounted until the run ends. Canceling ctx stops the run.
 func Run(ctx context.Context, le *logrus.Entry, b bus.Bus, ws world.WorldState, imageKey string, conf *RunConfig) (int, error) {
 	// Open the image's root filesystem and the WebAssembly runtime.

@@ -42,7 +42,7 @@ func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 		t.Fatal("desktop listener did not exit after takeover")
 	}
 
-	// The desktop listener removes its socket on exit; verify a fresh
+	// The desktop listener removes its socket on exit. Verify a fresh
 	// listen on the same path succeeds (no orphan file).
 	newLis, err := net.Listen("unix", sock)
 	if err != nil {

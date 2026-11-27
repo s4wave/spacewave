@@ -31,8 +31,8 @@ func remoteError(errStr string, retryClass kvtx_rpc.KvtxRetryClass) error {
 }
 
 // InitTx negotiates the transaction with the client stream.
-// le can be nil to disable error logging
-// note: usually you will want to call Store.NewTransaction()
+// le can be nil to disable error logging.
+// The caller should usually call Store.NewTransaction().
 func InitTx(
 	ctx context.Context,
 	client kvtx_rpc.SRPCKvtx_KvtxTransactionClient,

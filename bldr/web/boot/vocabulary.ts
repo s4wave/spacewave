@@ -254,7 +254,7 @@ export const bootMarkPhases: ReadonlyMap<string, BootPhase> = new Map([
 // bootMarkErrorCodes maps failure marks to the stable terminal error codes the
 // validator accepts. Marks absent from the map do not fail a boot.
 // boot-status.entrypoint-error and manifest-copy.failed are timeline labels
-// only today: their producers recover or retry, so sealing on them would make
+// only: their producers recover or retry, so sealing on them would make
 // transient failures terminal. A mark joins this map only when an explicitly
 // non-retryable producer owns it.
 export const bootMarkErrorCodes: ReadonlyMap<string, string> = new Map([

@@ -21,8 +21,8 @@ import (
 var errUnauthenticatedWorldTransform = errors.New("world transform requires authenticated encryption")
 
 // NewInitWorldOp returns a copy of base, or an empty operation, with a fresh
-// World transform when base names none. The author chooses the transform, so
-// every member replays the same World.
+// World transform when base specifies none. The author chooses the transform,
+// so every member replays the same World.
 func NewInitWorldOp(base *InitWorldOp) (*InitWorldOp, error) {
 	// Copy the base.
 	op := base.CloneVT()
@@ -30,7 +30,7 @@ func NewInitWorldOp(base *InitWorldOp) (*InitWorldOp, error) {
 		op = &InitWorldOp{}
 	}
 
-	// Choose a transform when the base names none.
+	// Choose a transform when the base specifies none.
 	if op.GetTransformConf().GetEmpty() {
 		conf, err := buildDefaultTransformConf()
 		if err != nil {
@@ -59,7 +59,7 @@ func (i *InitWorldOp) Validate() error {
 }
 
 // BuildInitialInnerState builds the empty World initOp initializes. initOp
-// must name an authenticated World transform.
+// must specify an authenticated World transform.
 func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
 	// Require an authenticated transform.
 	transformConf := initOp.GetTransformConf()
@@ -74,7 +74,7 @@ func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
 	return &InnerState{HeadRef: &bucket.ObjectRef{TransformConf: transformConf}}, nil
 }
 
-// newWorldTransformer builds the World block transformer. conf must name an
+// newWorldTransformer builds the World block transformer. conf must specify an
 // authenticated encryption step.
 func newWorldTransformer(opts controller.ConstructOpts, sfs *block_transform.StepFactorySet, conf *block_transform.Config) (*block_transform.Transformer, error) {
 	if err := validateWorldWriteTransform(conf); err != nil {
@@ -96,7 +96,7 @@ func validateWorldWriteTransform(conf *block_transform.Config) error {
 			return errors.Wrap(err, "world block encryption config")
 		}
 
-		// Accept the first authenticated one.
+		// Accept the first authenticated encryption step.
 		switch encConf.GetBlockEnc() {
 		case blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			blockenc.BlockEnc_BlockEnc_SECRET_BOX,
@@ -164,9 +164,11 @@ func buildDefaultTransformConf() (*block_transform.Config, error) {
 	}
 	defer scrub.Scrub(material[:])
 
-	// Derive it under the label, which names core/sobject/world/engine, the
-	// deleted package this came from. The label separates this derivation
-	// from others, not packages, so it keeps the old path.
+	// Derive the key under the label, which refers to
+	// core/sobject/world/engine, the deleted package
+	// buildDefaultTransformConf came from. The label separates this
+	// derivation from others, not packages, so the label keeps the old
+	// path.
 	blockenc.DeriveKeySHA256("sobject/world/engine transform-config 2026-06-08 sha256 v1.", material[:], encKey[:])
 
 	// Encrypt with it.

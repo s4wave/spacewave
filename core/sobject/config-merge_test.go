@@ -20,7 +20,7 @@ type mergeChain struct {
 	root *SharedObjectConfig
 	// history retains every record by hash.
 	history map[string]*SOConfigChange
-	// readers names the reader peer IDs the test adds.
+	// readers holds the reader peer IDs the test adds.
 	readers map[string]string
 }
 
@@ -132,7 +132,7 @@ func TestConfigMergeDropsRecordOfFormerOwner(t *testing.T) {
 	demotion := c.sign(c.root, demoted, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, 1)
 	head := c.apply(c.root, demotion)
 
-	// Owner 1 merges; the former owner's record is dropped.
+	// Owner 1 merges, so the former owner's record is dropped.
 	merge, merged := c.merge(head, c.genesis, []*SOConfigChange{added}, 1)
 	if hasPeer(merged, c.reader("reader-of-demoted-owner")) || len(merged.GetParticipants()) != 3 {
 		t.Fatal("merge applied a record whose signer no longer owns")

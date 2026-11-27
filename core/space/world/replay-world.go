@@ -18,7 +18,7 @@ import (
 // ReplayWorld replays the operation set of snap as the Space World engine
 // engineID, and returns the World after it. The pages it computes land in a
 // stage on so's block store, which holds them until release, so the caller
-// copies the World before it releases.
+// copies the World before releasing the stage.
 func ReplayWorld(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -37,10 +37,10 @@ func ReplayWorld(
 	return state, release, nil
 }
 
-// replayOnce replays snap on a transient adapter whose pages stay in memory
-// up to maxPending bytes and go to its replay stage on so's block store past
-// it. The stage holds them until release. It waits for the trims its installs
-// start.
+// replayOnce replays snap on a transient adapter whose pages stay in memory up
+// to maxPending bytes and go to its replay stage on so's block store past that
+// bound. The stage holds them until release. replayOnce waits for the trims the
+// adapter's installs start.
 func replayOnce(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -78,34 +78,35 @@ func replayOnce(
 
 // ErrUnresolvedOp is returned by ImportRoots when the type of an operation
 // above the checkpoint does not resolve, such as a plugin's before the plugin
-// registers, so its payloads cannot all be named.
+// registers, so its payloads cannot all be identified.
 var ErrUnresolvedOp = errors.New("an operation's type does not resolve")
 
 // ImportRoots returns the roots a replay of snap, the state of so, reads, so a
-// copy of them lets another device replay the state without this one: the
-// World its checkpoint carries, if any, then the payloads of the operations
-// above it. It resolves operation types as the Adapter of so for the Space
-// World engine engineID on b does, with opTypes, looking each type up on b
-// once.
+// copy of them lets another device replay the state without the source
+// device: the World its checkpoint carries, if any, then the payloads of the
+// operations above it.
+// It resolves operation types as the Adapter of so for the Space World engine
+// engineID on b does, with opTypes, looking each type up on b once.
 //
-// An operation whose type resolves nowhere names its payloads only in part, so
-// ImportRoots names that part where the source's replay refuses it and fails
-// with ErrUnresolvedOp otherwise. Replay refuses it when the Adapter's saved
-// replay cursor records it as refused at the same position above the same
-// checkpoint, and decides one the cursor has not reached at the World before
-// it: the World after the cursor's last matching outcome, or the checkpoint's
-// World without one, kept across the operations so decided, which leave it.
-// There replay refuses a transaction only on a World that is not initialized,
-// when the type of the operation it runs first resolves nowhere: a missing
-// handler is a fact about a device, which replay waits out, never a refusal.
-// A failed lookup of that type fails ImportRoots with its error, on a World
-// that is not initialized and on one that is. An operation whose body this
-// build cannot read, and that replay does not refuse before its body, fails
-// it with ErrUnreadableOp, whatever the cursor saved for it. A refused
-// operation still names every payload it can, at the cost of bytes the
-// target may not read. Invariant: an operation gets no payloads only when
-// every replay of this state would refuse it whatever its handlers, or its
-// payloads cannot be named.
+// An operation whose type resolves nowhere identifies its payloads only in
+// part, so ImportRoots returns that part where the source's replay refuses it
+// and fails with ErrUnresolvedOp otherwise. Replay refuses it when the
+// Adapter's saved replay cursor records it as refused at the same position
+// above the same checkpoint, and decides one the cursor has not reached at the
+// World before it: the World after the cursor's last matching outcome, or the
+// checkpoint's World without a matching outcome, kept across the operations so
+// decided, which leave the World unchanged. There replay refuses a transaction
+// only on a World that is not initialized, when the type of the operation it
+// runs first resolves nowhere: a missing handler is a fact about a device.
+// Replay waits for the handler instead of refusing the transaction. A failed
+// lookup of that type fails ImportRoots with its error, on a World that is not
+// initialized and on one that is. An operation whose body this build cannot
+// read, and that replay does not refuse before its body, fails ImportRoots with
+// ErrUnreadableOp, whatever the cursor saved for it. A refused operation still
+// identifies every payload it can, at the cost of bytes the target may not
+// read. Invariant: an operation gets no payloads only when every replay of this
+// state would refuse it whatever its handlers, or its payloads cannot be
+// identified.
 func ImportRoots(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -143,14 +144,14 @@ func ImportRoots(
 		}
 	}
 
-	// Name each operation's payloads, following the saved outcomes while they
-	// record the same operations. prev is the World before the operation
-	// while it is known.
+	// Identify each operation's payloads, following the saved outcomes
+	// while they record the same operations. prev is the World before the
+	// operation while it is known.
 	prev := base
 	for i, h := range set.Order() {
-		// Take a saved outcome. A refusal may only mean the source lacked a
-		// handler another device has, so a refused operation still names
-		// its payloads where it can.
+		// Take a saved outcome. A refusal may only mean the source
+		// lacked a handler another device has, so a refused operation
+		// still identifies its payloads where it can.
 		if i < len(saved) && bytes.Equal(saved[i].GetHash(), h) {
 			prev = states[i]
 			refs, known, err := opPayloads(ctx, snap, set, h, lookupOp)
@@ -165,9 +166,10 @@ func ImportRoots(
 		}
 		saved = nil
 
-		// Name the payloads of an operation replay has not reached. One that
-		// runs no transaction names none; the World after one that changes it
-		// another way is not known here.
+		// Identify the payloads of an operation replay has not reached.
+		// One that runs no transaction has none. The World after an
+		// operation that changes the World another way is not known
+		// here.
 		tx, leaves, err := replayedTx(ctx, snap, set, h)
 		if err != nil {
 			return nil, err
@@ -185,10 +187,11 @@ func ImportRoots(
 			continue
 		}
 
-		// Look up the type of the operation it runs first at a known World,
-		// failing with the lookup's own error. Replay refuses the
-		// transaction only on a World that is not initialized, when that
-		// type resolves nowhere; anywhere else it waits for a handler.
+		// Look up the type of the operation it runs first at a known
+		// World, failing with the lookup's own error. Replay refuses
+		// the transaction only on a World that is not initialized, when
+		// that type resolves nowhere. On any other World replay waits
+		// for a handler.
 		if prev == nil {
 			return nil, ErrUnresolvedOp
 		}
@@ -239,7 +242,7 @@ func checkpointWorld(ctx context.Context, snap sobject.SharedObjectStateSnapshot
 		return nil, nil, errors.Wrap(err, "checkpoint World state")
 	}
 
-	// Name its root when it has one.
+	// Collect the checkpoint World's root when the World has one.
 	var roots []*block.BlockRef
 	if worldRoot := state.GetHeadRef().GetRootRef(); !worldRoot.GetEmpty() {
 		roots = append(roots, worldRoot)
@@ -248,13 +251,14 @@ func checkpointWorld(ctx context.Context, snap sobject.SharedObjectStateSnapshot
 }
 
 // PublishedGraph returns one root reaching every block a replay of snap reads:
-// the World its checkpoint carries and the payloads of the operations above
-// it, resolving operation types with lookupOp. With payloads, the root is a new
-// HeldRoots block, returned as entry for the caller to store; otherwise it is
-// the World root and entry is nil. An operation this participant cannot decode
-// or its config does not authorize applies nothing and has no payload.
+// the World its checkpoint carries and the payloads of the operations above it,
+// resolving operation types with lookupOp. With payloads, the root is a new
+// HeldRoots block, returned as entry for the caller to store. Otherwise the
+// root is the World root and entry is nil. An operation this participant cannot
+// decode or its config does not authorize applies nothing and has no payload.
 func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot, lookupOp world.LookupOp) (*block.PutBatchEntry, *block.BlockRef, error) {
-	// Name the roots, then return the only one or a block naming them all.
+	// Collect the roots, then return the only one or a block listing them
+	// all.
 	roots, _, err := snapRoots(ctx, snap, lookupOp)
 	if err != nil {
 		return nil, nil, err
@@ -272,15 +276,15 @@ func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot,
 	return entry, entry.Ref, nil
 }
 
-// PublishedRoots returns the roots data names when it is exactly the block
+// PublishedRoots returns the roots data lists when it is exactly the block
 // PublishedGraph builds for a graph of several roots: a HeldRoots of two or
 // more roots and nothing else, in the encoding refsEntry writes. It reports
 // false for any other bytes.
 //
 // A reader that holds only a published graph's root tells with it whether the
-// root is that block or the one World or payload root the graph has. Those
-// are encoded with the Space's transform, and read as this block only if
-// their bytes are exactly two or more block refs.
+// root is that block or the one World or payload root the graph has. Those are
+// encoded with the Space's transform, and read as this block only if their
+// bytes are exactly two or more block refs.
 func PublishedRoots(data []byte) ([]*block.BlockRef, bool) {
 	// Decode the block and take two or more valid roots.
 	held := &HeldRoots{}
@@ -356,18 +360,18 @@ func opPayloads(
 		return nil, err == nil, err
 	}
 
-	// Read the roots the transaction names.
+	// Read the roots the transaction references.
 	refs, err = tx.PayloadRefs(ctx, lookupOp)
 	return refs, err == nil, nil
 }
 
-// replayedTx returns the World transaction operation h of set, read from
-// snap, runs, or nil for one that runs none. leaves reports one that leaves
-// the World: an acknowledgment, one replay refuses before its body, such as
-// an equivocated or skipped one, one its config does not authorize, one that
-// does not decode, a removed body, a fence and a root set. err is a failure
-// to read snap, or ErrUnreadableOp at a body this build cannot read, which
-// may name payloads and change the World.
+// replayedTx returns the World transaction operation h of set, read from snap,
+// runs, or nil for one that runs none. leaves reports one that leaves the
+// World: an acknowledgment, one replay refuses before its body, such as an
+// equivocated or skipped one, one its config does not authorize, one that does
+// not decode, a removed body, a fence and a root set. err is a failure to read
+// snap, or ErrUnreadableOp at a body this build cannot read, which may
+// reference payloads and change the World.
 func replayedTx(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (tx *world_block_tx.Tx, leaves bool, err error) {
 	// Skip what replay skips whole, under the config replay reads.
 	inner := set.Get(h)
@@ -386,7 +390,8 @@ func replayedTx(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set
 		return nil, false, err
 	}
 
-	// Decide it by the fields this build does not declare, then by its body.
+	// Decide the operation by the fields this build does not declare, then
+	// by its body.
 	op := &WorldOp{}
 	if reason != "" || op.UnmarshalVT(opData) != nil {
 		return nil, true, nil

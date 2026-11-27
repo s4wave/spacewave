@@ -21,12 +21,12 @@ func GetDevWrapper() (string, error) {
 	return string(src), nil
 }
 
-// delveAddrRe is a regexp of allowed characters for dlv_addr
+// delveAddrRe is a regexp of allowed characters for dlv_addr.
 var delveAddrRe = regexp.MustCompile(`^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))?:[0-9]+$`)
 
 // ValidateDelveAddr validates a Dlv listen address.
 //
-// basic checks
+// basic checks.
 func ValidateDelveAddr(addr string) error {
 	if addr == "" {
 		return errors.New("delve listen address is empty")

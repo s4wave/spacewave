@@ -21,11 +21,11 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller calls the web plugin to enable forwarding rpcs to the handler plugin.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 
@@ -93,7 +93,7 @@ func (c *Controller) HandleDirective(
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

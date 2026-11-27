@@ -11,17 +11,17 @@ type OpenOpts struct {
 
 // Stream is a stream-based data channel between two peers over a link.
 type Stream interface {
-	// Read data from the stream.
+	// Read reads data from the stream.
 	Read(b []byte) (n int, err error)
-	// Write data to the stream.
+	// Write writes data to the stream.
 	Write(b []byte) (n int, err error)
-	// SetReadDeadline sets the read deadline as defined by
+	// SetReadDeadline sets the read deadline.
 	// A zero time value disables the deadline.
 	SetReadDeadline(t time.Time) error
-	// SetWriteDeadline sets the write deadline as defined by
+	// SetWriteDeadline sets the write deadline.
 	// A zero time value disables the deadline.
 	SetWriteDeadline(t time.Time) error
-	// SetDeadline sets both read and write deadlines as defined by
+	// SetDeadline sets both read and write deadlines.
 	// A zero time value disables the deadlines.
 	SetDeadline(t time.Time) error
 	// Close closes both directions of the stream. A pending Read or Write
@@ -34,7 +34,7 @@ type Stream interface {
 // Each Write sends one message and each Read returns one whole message.
 // Messages are delivered at most once, possibly out of order, and a lost
 // message is never retransmitted. Write fails when a message exceeds the size
-// the link can send in one packet; Read fails with io.ErrShortBuffer when b is
+// the link can send in one packet. Read fails with io.ErrShortBuffer when b is
 // too small for the next message, which is then dropped.
 //
 // Control is the reliable stream the message stream was negotiated on. It

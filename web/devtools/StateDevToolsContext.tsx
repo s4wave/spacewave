@@ -31,7 +31,8 @@ export function useStateDevToolsContext() {
   return useStateAtomRegistryContext()
 }
 
-// useAtomValue subscribes to an atom's value changes.
+// EMPTY_STATE_ATOM_VALUE is the fallback for useAtomValue, a hook that
+// subscribes to an atom's value changes.
 const EMPTY_STATE_ATOM_VALUE = {}
 
 export function useAtomValue(atom: InspectableStateAtom | null): unknown {
@@ -51,6 +52,7 @@ export function useAtomValue(atom: InspectableStateAtom | null): unknown {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
 
-// devToolsStateAtom is a singleton persistent atom for State DevTools panel state.
+// stateDevToolsStateAtom is a singleton persistent atom for State DevTools
+// panel state.
 export const stateDevToolsStateAtom: Atom<StateType> =
   atomWithLocalStorage<StateType>('spacewave-state-devtools', {})

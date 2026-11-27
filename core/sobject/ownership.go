@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// SOOwnershipState names where ownership of a SharedObject stands.
+// SOOwnershipState describes where ownership of a SharedObject stands.
 type SOOwnershipState int
 
 const (
@@ -29,12 +29,12 @@ type SOOwnership struct {
 	state SOOwnershipState
 	// signing are the owners whose signatures the config accepts.
 	signing []string
-	// departing are the owners the head transfer's leave request names.
+	// departing are the owners the head transfer's leave request lists.
 	departing []string
 }
 
 // DeriveSOOwnership derives ownership from config and the change head that
-// produced it, which may be nil when history is not retained.
+// produced the config. The change head may be nil when history is not retained.
 func DeriveSOOwnership(config *SharedObjectConfig, head *SOConfigChange) (*SOOwnership, error) {
 	// Settled unless the head transfers ownership with a departure.
 	own := &SOOwnership{signing: config.SigningOwners()}
@@ -76,9 +76,10 @@ func ReadSOOwnership(
 
 // refuseDepartingSigners returns ErrHandingOver when entry is signed by an
 // owner departing at the head entry builds on. Its successor commits the
-// departure, and any other change it signs on the transfer head forks the
-// config chain. The head is named by entry's previous hash, so its change is
-// read without the state lock, which a history reader may take.
+// departure, and any other change the departing owner signs on the transfer
+// head forks the config chain. The head is identified by entry's previous
+// hash, so its change is read without the state lock, which a history reader
+// may take.
 func (s *SOHost) refuseDepartingSigners(ctx context.Context, entry *SOConfigChange) error {
 	// Read the departure the head carries, if any.
 	head := entry.GetPreviousHash()

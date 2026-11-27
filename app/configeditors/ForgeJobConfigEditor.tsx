@@ -58,7 +58,7 @@ function fitTaskKeys(keys: string[], count: number): string[] {
 }
 
 // ForgeJobConfigEditor edits the config-specific fields of a ForgeJobCreateOp.
-// Renders a cluster picker and task definitions list.
+// The editor renders a cluster picker and a task definitions list.
 export function ForgeJobConfigEditor({
   value,
   onValueChange,

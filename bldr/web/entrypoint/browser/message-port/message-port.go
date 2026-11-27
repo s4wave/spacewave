@@ -18,9 +18,10 @@ const tinyGoPostBytes = "BLDR_TINYGO_POST_BYTES"
 //
 // It is expected that the remote is using a MessagePortDuplex.
 // Writes a null value when closing the stream.
-// NOTE: This assumes we are running in a single-threaded environment!
+// NOTE: MessagePort assumes a single-threaded environment.
 type MessagePort struct {
-	// chObj is the physical JavaScript endpoint; chPost is its bound sender.
+	// chObj is the physical JavaScript endpoint. chPost is its bound
+	// sender.
 	chObj  js.Value
 	chPost js.Value
 	// uint8Array constructs outgoing byte buffers.

@@ -56,7 +56,8 @@ func statIdentity(path string, dir bool) ([]byte, error) {
 		identity = append(identity, 0)
 	}
 
-	// Read metadata only; access time may change from ordinary OS read semantics.
+	// Read metadata only. Access time may change from ordinary OS read
+	// semantics.
 	identity = append(identity, strconv.AppendInt(nil, info.Size(), 10)...)
 	identity = append(identity, 0)
 	identity = append(identity, strconv.AppendInt(nil, info.ModTime().UnixNano(), 10)...)

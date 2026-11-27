@@ -15,8 +15,9 @@ import { GoCompiler_Enum } from '../../plugin/compiler/go/compiler.pb.js'
  *
  * Both fields are required: the manifest id and the exact platform id of the
  * manifest build to embed. There is no implicit resolution across the dist
- * build target's expanded platform list. This forces authors to decide
- * up-front which platform variant of each manifest ships inside the binary.
+ * build target's expanded platform list. Requiring exact platform ids forces
+ * authors to decide up-front which platform variant of each manifest ships
+ * inside the binary.
  *
  * A dist binary may host multiple plugin runtimes (native + js + wasm), so
  * a single dist build can list multiple EmbedManifest entries pointing at
@@ -78,28 +79,30 @@ export const IceServer: MessageType<IceServer> =
 /**
  * Config configures the dist compiler controller.
  *
- * Builds an unpacked distribution bundle of the application.
- * Contains compressed & embedded static manifests for first-run.
+ * The compiler builds an unpacked distribution bundle of the application.
+ * The bundle contains compressed & embedded static manifests for first-run.
  *
  * @generated from message bldr.dist.compiler.Config
  */
 export interface Config {
   /**
    * EmbedManifests is the list of (manifest_id, platform_id) pairs to embed
-   * in the dist binary. Creates a ManifestStore containing the named builds.
+   * in the dist binary. The compiler creates a ManifestStore containing the
+   * named builds.
    * The manifest contents will be embedded in the dist binary.
    */
   embedManifests?: EmbedManifest[]
   /**
    * LoadPlugins is the list of plugins to load on startup.
-   * Note that plugins can also load other plugins with the LoadPlugin directive.
-   * Use this to load your entrypoint plugin which then loads other plugins.
-   * This will be included in the dist binary.
+   * Plugins can also load other plugins with the LoadPlugin directive.
+   * Use LoadPlugins to load the entrypoint plugin, which then loads other
+   * plugins. The plugin list will be included in the dist binary.
    */
   loadPlugins?: string[]
   /**
-   * LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
-   * Must be a relative path located within the project sources.
+   * LoadWebStartup is a path to a .js or .ts or .tsx file with a React
+   * component to load on startup. The path must be relative and located
+   * within the project sources.
    * The file will be bundled with esbuild into the entrypoint bundle.
    * The component should contain a <WebView /> from @aptre/bldr-react.
    * The contents will be used for the children of BldrRoot.
@@ -108,7 +111,7 @@ export interface Config {
   /**
    * HostConfigSet is a ConfigSet to apply to the host on dist startup.
    * This ConfigSet is applied to the dist host bus on startup.
-   * This will be included in the dist binary.
+   * The ConfigSet will be included in the dist binary.
    */
   hostConfigSet?: { [key: string]: ControllerConfig }
   /**
@@ -138,9 +141,9 @@ export interface Config {
    */
   goCompiler?: GoCompiler
   /**
-   * EnableCompression can optionally force-enable or force-disable binary compression.
-   * The default is ENABLE for release-mode only.
-   * Only applicable for the web platform (WebAssembly) (currently).
+   * EnableCompression can optionally force-enable or force-disable binary
+   * compression. The default value is ENABLE for release-mode only.
+   * Compression applies only to the web platform (WebAssembly).
    */
   enableCompression?: Enabled
   /**
@@ -158,7 +161,7 @@ export interface Config {
   /**
    * BrowserIceServersEndpoint is the optional trusted same-origin path that
    * returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
-   * document shell may use it; worker-provided servers remain ignored.
+   * document shell may use it. Worker-provided servers remain ignored.
    */
   browserIceServersEndpoint?: string
   /**
@@ -174,9 +177,10 @@ export interface Config {
    */
   updateGuardPluginIds?: string[]
   /**
-   * AdmissionPluginId names the plugin that owns this device's plugin
+   * AdmissionPluginId selects the plugin that owns this device's plugin
    * approvals. The host builds its root admission controller asking that
-   * plugin in code at startup; empty leaves admission to the trusted roots.
+   * plugin in code at startup. An empty AdmissionPluginId leaves admission
+   * to the trusted roots.
    */
   admissionPluginId?: string
   /**
@@ -186,15 +190,17 @@ export interface Config {
   goscriptDeferredFunctions?: string[]
   /**
    * NativeRunnerPackage supplies Run with the dist_entrypoint.NativeRunner
-   * signature. It owns a native event loop around the existing distribution
-   * lifetime. Empty uses the default runner; browser builds ignore this field.
+   * signature. The package owns a native event loop around the existing
+   * distribution lifetime. An empty NativeRunnerPackage uses the default
+   * runner. Browser builds ignore this field.
    */
   nativeRunnerPackage?: string
   /**
    * ComposePackage is a Go package exporting Compose() *compose.Composition
-   * from bldr/entrypoint/compose. The dist host calls it once at startup and
-   * adds the returned factories to its bus and, on native builds, the returned
-   * commands to its CLI. May be relative to the project module.
+   * from bldr/entrypoint/compose. The dist host calls Compose() once at
+   * startup and adds the returned factories to its bus and, on native builds,
+   * the returned commands to its CLI. The package path may be relative to
+   * the project module.
    */
   composePackage?: string
 }
@@ -230,7 +236,7 @@ export const Config: MessageType<Config> =
 export interface PreBuildHookResult {
   /**
    * Config is the configuration for the dist build step.
-   * Merged with the existing configuration.
+   * The hook configuration is merged with the existing configuration.
    */
   config?: Config
 }

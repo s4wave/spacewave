@@ -19,7 +19,7 @@ import (
 // encoded text, estimated at 120 bytes, and the side tag.
 const regenVerifyQuadBytes = 128
 
-// regenVerifyShown is the most differing quads a mismatch names.
+// regenVerifyShown is the most differing quads a mismatch lists.
 const regenVerifyShown = 4
 
 // verify proves built holds what base holds: the same World apart from the
@@ -27,7 +27,7 @@ const regenVerifyShown = 4
 // name, so commits on the head since the swap do not enter the comparison.
 // Both graphs stream every quad, tagged by side, into one external sort, and
 // the merge must meet each quad from both sides. Memory holds cfg.Budget and
-// the sort's read buffers; disk holds the runs, reserved before the first.
+// the sort's read buffers. Disk holds the runs, reserved before the first run.
 // A difference returns a wrapped ErrRegenMismatch.
 func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 	// Trace the whole comparison.
@@ -103,7 +103,7 @@ type verifyTally struct {
 	// differ counts the quads one side lacks. A side may give a quad more than
 	// once, as an old kv store's physical copies of it.
 	differ int
-	// shown names the first few of them.
+	// shown lists the first few differing quads.
 	shown []string
 }
 
@@ -164,7 +164,7 @@ func addVerifyQuads(ctx context.Context, cursor *block.Cursor, w *World, side by
 	})
 }
 
-// describeVerifyQuad names a quad the two sides hold count times each.
+// describeVerifyQuad describes a quad the two sides hold count times each.
 func describeVerifyQuad(key []byte, count [2]int) string {
 	q := &pquads.Quad{}
 	if err := q.UnmarshalVT(key); err != nil {

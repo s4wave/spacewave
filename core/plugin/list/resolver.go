@@ -10,7 +10,7 @@ import (
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 )
 
-// checkPluginLoaded checks if a plugin is currently loaded and running.
+// checkPluginLoaded checks if a plugin is loaded and running.
 // Reads the plugin host scheduler status without perturbing LoadPlugin refs.
 func checkPluginLoaded(ctx context.Context, b bus.Bus, pluginID string) bool {
 	return plugin_host_scheduler.IsPluginRunningOnBus(ctx, b, pluginID)

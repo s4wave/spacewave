@@ -20,29 +20,29 @@ type Constructor func(
 
 // Controller implements a common Domain controller.
 type Controller struct {
-	// ctx is the controller context
+	// ctx is the controller context.
 	// set in the execute() function
 	// ensure not used before execute sets it.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor Constructor
 
-	// domainInfo is the domain information
+	// domainInfo is the domain information.
 	domainInfo *identity_domain.DomainInfo
 	// resolveSelectIdentityDomain indicates this domain should resolve any
 	// SelectIdentityDomain directive with its own domain info.
 	resolveSelectIdentityDomain bool
 
-	// controllerID is the controller id
+	// controllerID is the controller id.
 	controllerID string
-	// ver is the controller version
+	// controllerVer is the controller version.
 	controllerVer controller.Version
 
-	// domainCh holds the domain like a bucket
+	// domainCh holds the domain.
 	domainCh chan identity_domain.Domain
 }
 

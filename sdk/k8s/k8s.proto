@@ -8,7 +8,7 @@ option go_package = "github.com/s4wave/spacewave/sdk/k8s;s4wave_k8s";
 // Cluster is the root of the k8s/cluster object, which makes its Space a
 // Kubernetes cluster. The Device whose ProcessBinding approves the object
 // serves the Space's Kubernetes API through the spacewave-k8s plugin, and a
-// client reaches it through the object's web.fetch.FetchService.
+// client reaches the API through the object's web.fetch.FetchService.
 message Cluster {
   option (typeid.id) = "k8s/cluster";
 }

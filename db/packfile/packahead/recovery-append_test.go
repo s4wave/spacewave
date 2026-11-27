@@ -184,7 +184,7 @@ func TestPackAheadRecoveredIndexCannotAcknowledgeAppend(t *testing.T) {
 	}
 }
 
-// bytesKey names a later append outside the prefix's key range.
+// bytesKey returns a key for a later append outside the prefix's key range.
 func bytesKey(tag byte) []byte {
 	key := make([]byte, block.BlockDigestTailLen)
 	key[0] = tag

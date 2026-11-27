@@ -105,16 +105,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer wvRef.Release()
 
-	// Build mux for the debug bridge service.
+	// Build a mux for the debug bridge service.
 	mux := srpc.NewMux()
 
-	// Register the debug bridge service (proxies to page via WebView client).
+	// Register the debug bridge service (proxies to the page via the
+	// WebView client).
 	svc := &bridgeService{ctrl: c, wv: wv, le: le}
 	if err := s4wave_debug.SRPCRegisterDebugBridgeService(mux, svc); err != nil {
 		return err
 	}
 
-	// Create Unix socket listener.
+	// Create a Unix socket listener.
 	// In WASM environments os.Getwd and Unix sockets are unavailable.
 	// Return nil so the controller stays attached without retrying.
 	absPath, err := c.getSocketPath()
@@ -123,7 +124,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 
-	// Remove stale socket.
+	// Remove the stale socket.
 	_ = os.Remove(absPath)
 
 	// Listen on a protected Unix socket that cleans up after itself.
@@ -139,7 +140,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Log the listening socket path for operators.
 	le.Infof("debug bridge listening on %s", absPath)
 
-	// Close listener when context is cancelled.
+	// Close the listener when the context is cancelled.
 	go func() {
 		<-ctx.Done()
 		lis.Close()
@@ -197,8 +198,9 @@ func (c *Controller) StoreEvalScript(id, code string, isModule bool) string {
 	c.evalScripts[id] = stored
 	c.mtx.Unlock()
 
-	// Return the full path the browser uses; the /p/spacewave-debug/ prefix
-	// is stripped by the web runtime before reaching our ServeHTTP.
+	// Return the full path the browser uses. The /p/spacewave-debug/ prefix
+	// is stripped by the web runtime before reaching the controller's
+	// ServeHTTP.
 	return "/p/spacewave-debug" + evalPathPrefix + id + ".js"
 }
 

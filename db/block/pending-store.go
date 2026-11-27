@@ -10,39 +10,39 @@ import (
 )
 
 // PendingStore keeps the blocks put through it in memory and stores them only
-// when a named root moves onto a block that reaches them. A writer whose
-// record of a change is not its blocks, such as a SharedObject whose
-// operation log rebuilds a World, writes every intermediate tree through it,
-// and only the trees a root names reach the store: a page written and
-// replaced between two named roots never enters the Volume's graph.
+// when a named root moves onto a block that reaches them. A writer whose record
+// of a change is not its blocks, such as a SharedObject whose operation log
+// rebuilds a World, writes every intermediate tree through it, and only the
+// trees a root references reach the store: a page written and replaced between
+// two named roots never enters the Volume's graph.
 //
 // Reads serve a kept block first, then the inner store. SetRoots adds to its
 // entries every kept block a moved root reaches, so the root and its tree land
 // in one transaction, and drops them from memory once the inner store holds
-// them. Sweep drops the kept blocks no live root reaches. A put through a
-// stage a writer opened with OpenStage goes to the inner store's stage at
-// once, with the kept blocks below it, and a put past the memory bound goes
-// to the stage OpenOverflowStage opened; either stage holds it until its
-// writer's root does. An unstaged put the store cannot keep, past the bound
-// or without its child list, fails whole with ErrUnheldPut: nothing would
-// hold it in the inner store.
+// them. Sweep drops the kept blocks no live root reaches. A put through a stage
+// a writer opened with OpenStage goes to the inner store's stage at once, with
+// the kept blocks below it, and a put past the memory bound goes to the stage
+// OpenOverflowStage opened. Either stage holds the block until its writer's
+// root does. An unstaged put the store cannot keep, past the bound or without
+// its child list, fails whole with ErrUnheldPut: nothing would hold it in the
+// inner store.
 //
 // Invariants:
 //   - A kept block carries its complete child list, and each child is kept or
 //     was put to the inner store, so a walk from a root through kept blocks
 //     never reads the inner store to find a child. The writer holds each
-//     stored child while a kept block names it, under a root, a stage or a
-//     pin of its own.
+//     stored child while a kept block references it, under a root, a stage
+//     or a pin of its own.
 //   - A put past the bound, or through a stage OpenStage opened, stores the
 //     kept blocks below the entry with it and keeps them, so a block the
-//     inner store holds names only blocks it holds and the kept Worlds still
-//     find their pages here.
+//     inner store holds references only blocks it holds and the kept Worlds
+//     still find their pages here.
 //   - A stage OpenStage opened keeps no block, unless SetKeepStaged turned
 //     keeping on. Such a stage serves a writer that builds a tree apart from
-//     the head and later names its root in a short write, such as a staged
+//     the head and later references its root in a short write, such as a staged
 //     World build adopted under the writer's turn: the tree reaches the inner
-//     store while it is built, outside that turn, and the move that names it
-//     walks no kept block.
+//     store while it is built, outside that turn, and the move that references
+//     it walks no kept block.
 //   - A kept block leaves memory only once the inner store holds it under a
 //     root moved in the same transaction, or when a sweep finds that no root
 //     it is given, no block an open stage or pin holds, and no block kept
@@ -54,8 +54,8 @@ import (
 //     at any tree size.
 //   - A flushed block is stored under its Flush's stage until the Flush is
 //     released, and no Flush releases while a SetRoots or Flush that left out
-//     a flushed block is open, so the move that names it names a block the
-//     inner store holds.
+//     a flushed block is open, so the move that references it references a
+//     block the inner store holds.
 type PendingStore struct {
 	// StoreOps is the inner store. Methods PendingStore does not override
 	// pass through to it.
@@ -68,8 +68,8 @@ type PendingStore struct {
 	// kept holds the blocks put and not yet stored, by reference.
 	kept map[string]*PutBatchEntry
 	// held counts, by key, the open stages that put each kept block. Sweep
-	// keeps a held block and what it reaches: its writer has not named its
-	// root yet.
+	// keeps a held block and what it reaches: its writer has not referenced
+	// its root yet.
 	held map[string]int
 	// flushed counts, by key, the open Flushes that stored each kept block
 	// under their stage. SetRoots puts no flushed block again.
@@ -77,8 +77,8 @@ type PendingStore struct {
 	// skipping counts the SetRoots in flight and the open Flushes that left
 	// out a block an open Flush stored, and deferred holds the flush stage
 	// releases that wait for the last of them to end. A walk that holds mtx
-	// shared adds to skipping, so it is atomic; it is read and lowered under
-	// mtx held exclusive.
+	// shared adds to skipping, so skipping is atomic. It is read and
+	// lowered under mtx held exclusive.
 	skipping atomic.Int64
 	deferred []func()
 	// keptAt is the put sequence at which each kept block was kept. A sweep
@@ -109,7 +109,7 @@ func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
 }
 
 // Full reports whether the kept blocks reached half the bound, so the writer
-// names a tree before more puts must go to a stage.
+// references a tree before more puts must go to a stage.
 func (s *PendingStore) Full() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -119,8 +119,8 @@ func (s *PendingStore) Full() bool {
 // SetKeepStaged sets whether a stage OpenStage opens afterwards keeps its
 // puts in memory while the bound allows, storing them only when a root moves
 // onto them, instead of storing each at once. Keeping saves the Volume the
-// pages a staged writer replaces before naming its root, but the move that
-// names a staged tree then stores the whole tree in one transaction, under
+// pages a staged writer replaces before referencing its root, but the move that
+// references a staged tree then stores the whole tree in one transaction, under
 // whatever turn that move holds. It is off by default.
 func (s *PendingStore) SetKeepStaged(keep bool) {
 	s.keepStaged.Store(keep)
@@ -193,16 +193,16 @@ func verifyKeepable(entries []*PutBatchEntry) error {
 	return nil
 }
 
-// put keeps the entries it can and puts the rest to dst, reporting whether
-// it put any. With no dst it keeps all of them or, when any cannot be kept,
-// none, and returns ErrUnheldPut. Without keep it keeps none and puts all of
-// them to dst, which must be set. Each entry kept through hold, when set, is
-// held until the hold is released. The kept blocks an entry put to dst names
-// are stored with it and stay kept, so the Worlds that name them still find
-// them here.
-// Tombstones are refused: a kept block may be reached by any kept World. The
-// caller has hashed each entry put may keep: PutBlock builds its ref from the
-// bytes, and a batch passes verifyKeepable.
+// put keeps the entries it can and puts the rest to dst, reporting whether it
+// put any. With no dst it keeps all of them or, when any cannot be kept, none,
+// and returns ErrUnheldPut. Without keep it keeps none and puts all of them to
+// dst, which must be set. Each entry kept through hold, when set, is held until
+// the hold is released. The kept blocks an entry put to dst references are
+// stored with it and stay kept, so the Worlds that reference them still find
+// them here. Tombstones are refused: a kept block may be reached by any kept
+// World.
+// The caller has hashed each entry put may keep: PutBlock builds its ref from
+// the bytes, and a batch passes verifyKeepable.
 func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, keep bool, entries []*PutBatchEntry) ([]bool, bool, error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {
@@ -242,8 +242,8 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 	}
 	s.mtx.Unlock()
 
-	// Gather the kept blocks the rest name: a block the inner store holds
-	// names only blocks it holds.
+	// Gather the kept blocks the rest reference: a block the inner store holds
+	// references only blocks it holds.
 	if len(rest) == 0 {
 		return out, false, nil
 	}
@@ -314,8 +314,8 @@ func (s *PendingStore) holdLocked(h *pendingHold, key string) {
 }
 
 // release drops h's holds. Each block it held is stamped as kept now, so a
-// sweep that took its mark while the hold stood keeps it: that sweep may
-// have gathered its live roots before the holder named the block, such as a
+// sweep that took its mark while the hold stood keeps it: that sweep may have
+// gathered its live roots before the holder referenced the block, such as a
 // writer that admits its candidate and ends its stage mid-sweep.
 func (s *PendingStore) release(h *pendingHold) {
 	s.mtx.Lock()
@@ -518,11 +518,11 @@ func (s *PendingStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 
 // SetRoots stores entries and every kept block a moved root or an entry
 // reaches, and moves the roots, in one inner SetRoots, then drops the stored
-// blocks from memory. A root may name an entry, such as a new block naming
-// several kept trees, so the walk starts from each entry's children too. A
-// block an open Flush stored is not put again: its stage holds it until the
-// move names it. The walk still descends through it, since a block kept
-// below it after the flush's walk may be one no store holds.
+// blocks from memory. A root may reference an entry, such as a new block
+// referencing several kept trees, so the walk starts from each entry's children
+// too. A block an open Flush stored is not put again: its stage holds it until
+// the move references it. The walk still descends through it, since a block
+// kept below it after the flush's walk may be one no store holds.
 func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
 	// Gather the kept trees under the moved roots and the entries.
 	refs := make([]*BlockRef, 0, len(roots))
@@ -698,7 +698,7 @@ func (s *PendingStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), erro
 }
 
 // OpenStage opens a stage on the inner store whose writes go to it at once,
-// with the kept blocks below them, so the move that later names the staged
+// with the kept blocks below them, so the move that later references the staged
 // tree stores nothing of it. With SetKeepStaged on, the writes are kept here
 // while the bound allows and go to the stage past it.
 func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) {

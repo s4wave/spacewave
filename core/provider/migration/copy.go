@@ -20,7 +20,7 @@ import (
 // The state is one consistent read, so an operation or checkpoint the source
 // accepts later is left to the merge that follows. Operation types resolve as
 // the source Space's Adapter resolves them on b, the source account's bus
-// (Account.SpaceBus), so a running plugin's operations name their payloads.
+// (Account.SpaceBus), so a running plugin's operations identify their payloads.
 // It fails with space_world.ErrUnresolvedOp while an operation's type
 // resolves nowhere on an initialized World, such as a plugin's that is not
 // running, and with space_world.ErrUnreadableOp at an operation whose body
@@ -54,18 +54,18 @@ func Roots(
 // interrupted write.
 //
 // On a store that holds roots the copy runs under a stage, which holds each
-// copied block from its first put, and CopyRoots returns it. The caller keeps
-// it open until a root holds every one of roots, through
-// space_world.HoldImport, then checks them with CheckHeld and releases it. A
-// copy that stops early, or a process that dies, leaves only the stage's
-// lease, which lapses, and a retry copies again.
+// copied block from its first put, and CopyRoots returns the stage. The caller
+// keeps the stage open until a root holds every one of roots, through
+// space_world.HoldImport, then checks roots with CheckHeld and releases the
+// stage. A copy that stops early, or a process that dies, leaves only the
+// stage's lease, which lapses, and a retry copies again.
 //
 // A store that holds no roots takes no stage: CopyRoots copies every block
 // into it, trusting no presence check, and returns nil. A Spacewave cloud
 // store holds roots in its local cache bucket and stages the copy there. Its
 // uploaded packs are safe only because pack reclaim is off by default
 // (SetPackReclaim): a reclaim pass trashes a pack at least half dead by the
-// roots a fence reports, and the stage reaches no fence; a trashed pack stays
+// roots a fence reports, and the stage reaches no fence. A trashed pack stays
 // readable, and a pass retires it only after packfile.TrashAge, rescuing first
 // the blocks that are live again.
 func CopyRoots(

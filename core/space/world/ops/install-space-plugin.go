@@ -16,7 +16,8 @@ import (
 //
 // A pinned artifact moves to the front of the plugin's ordered installation
 // list and retains one predecessor for its platform. Older pins for that
-// platform are removed; every other platform's pins keep their relative order.
+// platform are removed, but every other platform's pins keep their relative
+// order.
 // Immutable manifests and build provenance remain in the World. The caller
 // supplies the World transaction that commits the installation.
 func InstallSpacePlugin(

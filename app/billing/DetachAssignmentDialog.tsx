@@ -25,7 +25,7 @@ export interface DetachAssignmentDialogProps {
 }
 
 // DetachAssignmentDialog is the shared confirmation modal for clearing a
-// billing account assignment from a principal. Controlled by the caller.
+// billing account assignment from a principal. The caller controls the modal.
 export function DetachAssignmentDialog({
   target,
   busy,

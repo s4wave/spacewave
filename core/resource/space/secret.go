@@ -20,8 +20,8 @@ import (
 
 // checkSecretCaller refuses a plugin outside the host set unless this Space
 // loaded it. The core root's plugin caller filter admits a Secret call from a
-// plugin the Device grants in the Space its binding names, but cannot see
-// which Space a Resource serves; this check binds the grant to this one.
+// plugin the Device grants in the Space its binding selects, but cannot see
+// which Space a Resource serves. This check binds the grant to this Space.
 func (r *SpaceResource) checkSecretCaller(ctx context.Context) error {
 	caller := bldr_plugin.PluginCallerFromContext(ctx)
 	if caller == nil || caller.GetHostSet() {
@@ -251,7 +251,7 @@ func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_sp
 	}
 
 	// Grant the peer on the Secret's nested SharedObject, raising a lower
-	// role; the response reports the outcome and the role the peer holds.
+	// role. The response reports the outcome and the role the peer holds.
 	bound, err := r.bindSecret(ctx, secret)
 	if err != nil {
 		return nil, err
@@ -264,11 +264,11 @@ func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_sp
 }
 
 // bindSecret returns secret with its nested ref in the account that holds the
-// Space. A Secret another account created names that account, which this
+// Space. A Secret another account created records that account, which this
 // Session's provider does not hold, so the account enrolls into the nested
 // object through the Space first. A ref from another provider is unchanged.
 func (r *SpaceResource) bindSecret(ctx context.Context, secret *s4wave_secret.Secret) (*s4wave_secret.Secret, error) {
-	// Keep a ref that already names the Space's account.
+	// Keep a ref that already selects the Space's account.
 	spaceRef := r.space.GetSharedObjectRef().GetProviderResourceRef()
 	nestedRef := secret.GetRef().GetProviderResourceRef()
 	if spaceRef == nil || nestedRef == nil || nestedRef.GetProviderId() != spaceRef.GetProviderId() || nestedRef.GetProviderAccountId() == spaceRef.GetProviderAccountId() {
@@ -302,7 +302,7 @@ func (r *SpaceResource) bindSecret(ctx context.Context, secret *s4wave_secret.Se
 // DeleteSecret deletes the Secret at a key: the payload copy in each account
 // this device holds, then its name, under the same mounted Space authority as
 // CreateSecret. The held accounts are the Space's own and every account a
-// local session names; no other account is opened.
+// local session selects. No other account is opened.
 func (r *SpaceResource) DeleteSecret(ctx context.Context, req *s4wave_space.DeleteSecretRequest) (*s4wave_space.DeleteSecretResponse, error) {
 	// Require the Secret identity.
 	if req.GetObjectKey() == "" {

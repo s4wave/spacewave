@@ -139,7 +139,7 @@ func TestV86FSServerRootTraversal(t *testing.T) {
 
 	// A missing child must return a typed LOOKUP reply with an ENOENT status,
 	// not an error reply: the guest maps any non-LOOKUP_R reply to EIO and never
-	// creates a negative dentry, which breaks ordinary missing-file probes.
+	// creates a negative dentry, so ordinary missing-file probes fail.
 	missing, err := session.HandleMessage(ctx, &unixfs_v86fs.V86FsMessage{
 		Body: &unixfs_v86fs.V86FsMessage_LookupRequest{
 			LookupRequest: &unixfs_v86fs.V86FsLookupRequest{ParentId: mount.GetRootInodeId(), Name: ".bashrc"},

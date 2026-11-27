@@ -62,7 +62,7 @@ func (s collectorStore) BlockStored(ctx context.Context, ref *block.BlockRef) (b
 }
 
 // ScanBlocks calls fn with runs of the blocks the Volume keeps as records, as
-// scanRuns reads them. A key that names no ref is skipped. A Volume whose
+// scanRuns reads them. A key that encodes no ref is skipped. A Volume whose
 // blocks a BlockDomain serves lists none.
 func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.BlockRef) error) error {
 	// A BlockDomain keeps its blocks outside the records.
@@ -79,11 +79,11 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 }
 
 // Adopt counts the holders of every block of an unadopted Volume, such as one
-// that predates its logs, and marks it adopted, as block_gc.Adopt
-// describes, reporting the mark phase while it runs. It runs one adoption of this Volume at a time; an
-// adoption from another process on the same store supersedes it, as
-// block_gc.Adopt describes. Adopt a Volume only once every writer that uses
-// it holds what it needs under named roots.
+// that predates its logs, and marks it adopted, as block_gc.Adopt describes,
+// reporting the mark phase while it runs. It runs one adoption of this Volume
+// at a time. An adoption from another process on the same store supersedes that
+// adoption, as block_gc.Adopt describes. Adopt a Volume only once every writer
+// that uses it holds what it needs under named roots.
 func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	// Require liveness, then adopt one run at a time.
 	if !v.HoldsRoots() {
@@ -95,11 +95,10 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.now)
 }
 
-// runBackgroundAdopt adopts the Volume, in Adopt's bounded background
-// slices, each time wakeAdopt asks, until ctx ends. A failed pass, such as one
-// that finds a named block stored without a child list, waits for the next
-// request; an adoption another process runs supersedes a pass, and that one
-// finishes the work.
+// runBackgroundAdopt adopts the Volume, in Adopt's bounded background slices,
+// each time wakeAdopt asks, until ctx ends. A failed pass, such as one that
+// finds a named block stored without a child list, waits for the next request.
+// An adoption another process runs supersedes a pass and finishes the work.
 func (v *Volume) runBackgroundAdopt(ctx context.Context) {
 	defer close(v.adoptDone)
 	for {
@@ -125,7 +124,7 @@ func (v *Volume) runBackgroundAdopt(ctx context.Context) {
 }
 
 // wakeAdopt asks the background adoption for a pass, keeping at most one
-// request pending. A Volume without one ignores it.
+// request pending. A Volume without background adoption ignores the request.
 func (v *Volume) wakeAdopt() {
 	select {
 	case v.adoptWake <- struct{}{}:

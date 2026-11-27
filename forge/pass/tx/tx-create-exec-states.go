@@ -28,13 +28,13 @@ func NewTxCreateExecSpecsTxn() Transaction {
 	return &TxCreateExecSpecs{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction type.
 func (t *TxCreateExecSpecs) GetTxType() TxType {
 	return TxType_TxType_CREATE_EXEC_SPECS
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxCreateExecSpecs) Validate() error {
 	if execSpecs := t.GetExecSpecs(); len(execSpecs) != 0 {
 		return ValidateExecSpecs(execSpecs)
@@ -60,7 +60,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
-	// ensure RUNNING state
+	// ensure the pass is in the RUNNING state
 	err := root.GetPassState().EnsureMatches(forge_pass.State_PassState_RUNNING)
 	if err != nil {
 		return err
@@ -84,10 +84,11 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 		return err
 	}
 
-	// if clear is set: delete all execution objects first
+	// if ClearExisting is set: delete all execution objects first
 	skipExecs := make(map[string]struct{})
 	for i, execObjKey := range execObjs {
-		// unconditionally clear all existing if set
+		// unconditionally clear all existing executions
+		// if ClearExisting is set
 		if !t.GetClearExisting() {
 			// check if the exec object is in a terminal state
 			// otherwise, skip deleting it

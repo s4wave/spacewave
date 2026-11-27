@@ -301,7 +301,7 @@ func (p *Process) mkdirResolved(resolved string, mode uint32) uint64 {
 }
 
 // unlinkResolved removes the entry at a resolved path. removeDir removes an
-// empty directory, as rmdir does; otherwise the entry must not be a
+// empty directory, as rmdir does. Otherwise the entry must not be a
 // directory, as unlink requires.
 func (p *Process) unlinkResolved(resolved string, removeDir bool) uint64 {
 	// Find the entry.

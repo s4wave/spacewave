@@ -81,7 +81,7 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 }
 
 func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Store the batch, which reports which entries already existed.
+	// Store the batch and find which entries already existed.
 	existed, err := s.inner.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err

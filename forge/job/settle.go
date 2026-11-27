@@ -11,8 +11,8 @@ import (
 )
 
 // Settle ends a retained Job's lifetime and releases its private Git checkouts.
-// COMPLETE between Tasks retains those checkouts. The caller must drain all
-// Executions before settlement and owns the World transaction.
+// A Job in COMPLETE between Tasks retains those checkouts. The caller must
+// drain all Executions before settlement and owns the World transaction.
 func Settle(ctx context.Context, ws world.WorldState, jobKey string) error {
 	// Require every retained Task to be terminal before removing its workspace.
 	tasks, _, err := CollectJobTasks(ctx, ws, jobKey)

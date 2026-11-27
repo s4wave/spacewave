@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// WorldState names the pass's state for object browsers, and a complete
+// WorldState returns the pass's state for object browsers, and a complete
 // pass's outcome.
 func (e *Pass) WorldState() string {
 	switch s := e.GetPassState(); s {

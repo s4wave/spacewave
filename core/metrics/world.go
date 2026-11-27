@@ -9,7 +9,7 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
-// The descriptors of the World page metrics.
+// worldStoredPagesDesc and the following variable describe World page metrics.
 var (
 	worldStoredPagesDesc = prometheus.NewDesc(
 		"spacewave_world_stored_pages_total",

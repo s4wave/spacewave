@@ -133,8 +133,8 @@ export interface ChatEnvelope {
   data?: Uint8Array
   /**
    * RedactedData is the protocol's form of the message after redaction, bounded
-   * to 64 KiB. Redacting the message replaces Data with it and clears it; empty
-   * leaves no bytes.
+   * to 64 KiB. Redacting the message replaces Data with RedactedData and clears
+   * RedactedData. An empty RedactedData leaves no bytes.
    */
   redactedData?: Uint8Array
   /**

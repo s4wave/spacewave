@@ -30,29 +30,29 @@ import (
 
 // Provider implements the spacewave cloud provider.
 type Provider struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// conf is the provider configuration
+	// conf is the provider configuration.
 	conf *Config
 	// endpoint is the resolved cloud API endpoint URL.
 	endpoint string
 	// signingEnvPfx is the request-signing environment prefix.
 	signingEnvPfx string
-	// info is the provider info
+	// info is the provider info.
 	info *provider.ProviderInfo
-	// sfs is the step factory set for block transforms
+	// sfs is the step factory set for block transforms.
 	sfs *block_transform.StepFactorySet
-	// peer is the peer instance
+	// peer is the peer instance.
 	peer peer.Peer
-	// handler is the provider handler
+	// handler is the provider handler.
 	handler provider.ProviderHandler
-	// httpCli is the HTTP client for API calls
+	// httpCli is the HTTP client for API calls.
 	httpCli *http.Client
 	// cacheSeedBuf records every tagged HTTP call for the cache-seed
-	// inspector. Always-on; only the debug RPC exposing it is gated behind
-	// a build tag.
+	// inspector. Always-on. Only the debug RPC exposing the buffer is gated
+	// behind a build tag.
 	cacheSeedBuf *CacheSeedBuffer
 	// accountRc is the keyed refcount for accounts.
 	accountRc *keyed.KeyedRefCount[string, *providerAccountTracker]
@@ -346,7 +346,7 @@ func (p *Provider) CreateSpacewaveAccountAndSession(
 }
 
 // LoginOrCreateAccount derives an entity keypair from username and password,
-// attempts to register a new account, and falls back to session login if the
+// tries to register a new account, and falls back to session login if the
 // account already exists.
 //
 // Returns the session list entry, whether this is a new account, and any error.
@@ -391,7 +391,8 @@ func (p *Provider) LoginOrCreateAccount(
 		}
 
 		// Account exists: try to register a session with the derived entity key.
-		// This verifies the password is correct for this username.
+		// Registering a session verifies the password is correct for
+		// this username.
 		sessEntry, sessErr := p.LoginExistingAccount(ctx, entityCli, privKey, peerID, username, "", sessionCtrl)
 		if sessErr != nil {
 			return nil, false, sessErr

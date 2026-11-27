@@ -26,8 +26,8 @@ export interface IntroWizardOverlayProps {
 // an ordered tour: one callout points at one region at a time while the control
 // panel narrates the tour and advances through the steps. Presenting a single
 // callout per step avoids stacking every pointer at once. The root is
-// click-through so the live UI stays usable while the introduction is shown;
-// only the control panel captures pointer events. The last step's primary
+// click-through so the live UI stays usable while the introduction is shown.
+// Only the control panel captures pointer events. The last step's primary
 // action ends the introduction.
 export function IntroWizardOverlay({
   headline,
@@ -50,8 +50,9 @@ export function IntroWizardOverlay({
     <div className="pointer-events-none absolute inset-0 z-20">
       {/* The dim veil draws focus to the introduction but leaves the bottom-right
           upload-indicator anchor lit: the "Upload progress" callout teaches the
-          user to watch that live element, so it must not read as disabled. The
-          two panels tile the screen around a w-72 h-40 lit corner window. */}
+          user to watch that live element, so the anchor must not read as
+          disabled. The two panels tile the screen around a w-72 h-40 lit
+          corner window. */}
       <div
         data-testid="intro-scrim"
         className="bg-background/60 absolute inset-x-0 top-0 bottom-40"

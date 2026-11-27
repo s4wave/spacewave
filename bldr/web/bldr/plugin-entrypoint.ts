@@ -7,7 +7,8 @@ import {
 
 export { createPluginEntrypoint } from '../../plugin/compiler/js/entrypoint.js'
 
-// startWorkerPluginEntrypoint waits for startup and observes process-lifetime failure.
+// startWorkerPluginEntrypoint waits for startup and observes process-lifetime
+// failure.
 export async function startWorkerPluginEntrypoint(
   entrypoint: BackendEntrypointFunc,
   api: BackendAPI,
@@ -27,8 +28,9 @@ export async function startWorkerPluginEntrypoint(
 
   // A started plugin that serves no RPC answers every call as not found, so
   // host probes such as Activation.Check learn the method is absent instead
-  // of waiting for a handler that never comes. This holds for any plugin
-  // build, since the host runtime, not the plugin bundle, runs it.
+  // of waiting for a handler that never comes. This not-found response holds
+  // for any plugin build, since the host runtime, not the plugin bundle,
+  // runs the handler.
   if (!api.handleStreamCtr.value) {
     const server = new Server(createMux().lookupMethod)
     api.handleStreamCtr.set(async (stream) => {

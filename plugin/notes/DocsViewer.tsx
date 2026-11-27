@@ -26,7 +26,7 @@ import { getNoteFileFormat } from './note-files.js'
 import NoteContentView from './NoteContentView.js'
 
 // DocsViewer is the viewer for Notes Documentation objects.
-// Renders a tree sidebar, content area, and table of contents panel.
+// DocsViewer renders a tree sidebar, content area, and table of contents panel.
 function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['docs'])
@@ -40,7 +40,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
 
   const firstSource = sources[0]
 
-  // Persisted state for selected page and editing mode.
+  // Persisted state for the selected page and editing mode.
   const [selectedPage, setSelectedPage] = useStateAtom<string>(
     ns,
     'selectedPage',
@@ -48,7 +48,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   )
   const [editing, setEditing] = useStateAtom<boolean>(ns, 'editing', false)
 
-  // Parse source ref for UnixFS access.
+  // Parse the source ref for UnixFS access.
   const parsed = useMemo(() => {
     if (!firstSource?.ref) return null
     return parseObjectUri(firstSource.ref)

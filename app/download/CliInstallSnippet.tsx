@@ -7,7 +7,7 @@ interface CliInstallSnippetProps {
 }
 
 // CliInstallSnippet renders the per-OS install instructions for a CLI
-// archive entry. Linux targets get a curl + tar one-liner; macOS and
+// archive entry. Linux targets get a curl + tar one-liner. macOS and
 // Windows targets get zip-extract instructions. Each snippet has a
 // copy button where a one-line install is safe.
 export function CliInstallSnippet({ entry }: CliInstallSnippetProps) {

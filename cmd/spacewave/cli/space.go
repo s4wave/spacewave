@@ -448,8 +448,9 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	}
 }
 
-// setSpaceChangelog writes the Space settings with the changelog setting,
-// which switches the Space World's changelog in the same transaction.
+// setSpaceChangelog writes the Space settings with the changelog setting.
+// The changelog setting switches the Space World's changelog in the same
+// transaction.
 func setSpaceChangelog(
 	ctx context.Context,
 	client *sdkClient,

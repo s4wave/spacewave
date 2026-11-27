@@ -15,8 +15,8 @@ import (
 )
 
 // FetchPackEntries reads the active packs of a resource-scoped block store.
-// The pulled catalog also lists superseded packs for incremental readers;
-// they are dropped, since their blocks live in the packs that replaced them.
+// The pulled catalog also lists superseded packs for incremental readers.
+// They are dropped, since their blocks live in the packs that replaced them.
 func FetchPackEntries(ctx context.Context, client SessionClient, spaceID string) ([]*packfile.PackfileEntry, error) {
 	catalog, err := packfile.PullCatalog(ctx, client, spaceID)
 	if err != nil {

@@ -8,9 +8,9 @@ import (
 )
 
 // preStartCmd sets the Setpgid flag so that the sub-process has a process group.
-// we later kill the process group to kill the process & all child processes.
+// killCmd kills the process group to kill the process & all child processes.
 func preStartCmd(cmd *exec.Cmd) (struct{}, error) {
-	// set pgid so that we can kill the entire process group
+	// set pgid so that the entire process group can be killed
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}

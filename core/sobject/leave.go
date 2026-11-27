@@ -68,9 +68,11 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 	return peers, nil
 }
 
-// LeaveSOParticipants commits a proven voluntary removal under the owner's existing signing authority.
-// The committing owner re-signs the departed peers' proofs, so it must remain while anyone remains.
-// Retries return only the original removal proof; an old request cannot remove a rejoined participant.
+// LeaveSOParticipants commits a proven voluntary removal under the owner's
+// existing signing authority. The committing owner re-signs the departed peers'
+// proofs, so the owner must remain while anyone remains. Retries return only
+// the original removal proof. An old request cannot remove a rejoined
+// participant.
 func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey, request *SOLeaveRequest) (*SOLeaveResponse, error) {
 	return leaveSOParticipants(ctx, host, owner, request, nil)
 }
@@ -179,10 +181,10 @@ func peerIDSet(ids []string) map[string]struct{} {
 }
 
 // carriesLeaveRequest reports whether changes is the single ownership transfer
-// that carries request from the configuration it was signed at. Its owner
-// already checked the consent there, so the departure commits without reading
-// the entry that produced that configuration, which a replica that joined at
-// it does not hold.
+// that carries request from the configuration the request was signed at. The
+// configuration's owner already checked the consent there, so the departure
+// commits without reading the entry that produced that configuration. A replica
+// that joined at that configuration does not hold the entry.
 func carriesLeaveRequest(changes []*SOConfigChange, request *SOLeaveRequest) bool {
 	return len(changes) == 1 &&
 		isSODepartureTransfer(changes[0]) &&

@@ -12,8 +12,8 @@ interface IExampleState {
   message?: string
 }
 
-// ClassExample is an example of a class component implementing Example.
-// This is no longer recommended (use function components).
+// Example is an example of a class component implementing Example.
+// Class components are no longer recommended (use function components).
 export class Example extends BldrComponent<ExampleProps, IExampleState> {
   private echoHost?: EchoerClient
 

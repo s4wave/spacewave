@@ -67,8 +67,9 @@ func WithCallerParticipantLookup(lookup func(context.Context, peer.ID) (*sobject
 	return func(r *WorldStateResource) { r.participantLookup = lookup }
 }
 
-// WithEngineID binds typed access to the registry scope selected by the granting mount.
-// An empty ID binds global scope; callers cannot override a trusted binding.
+// WithEngineID binds typed access to the registry scope selected by the
+// granting mount. An empty ID binds global scope. Callers cannot override a
+// trusted binding.
 func WithEngineID(engineID string) WorldStateResourceOption {
 	return func(r *WorldStateResource) {
 		r.engineID = engineID

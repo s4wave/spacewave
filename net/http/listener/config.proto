@@ -3,9 +3,9 @@ package bifrost.http.listener;
 
 // Config configures a http server that listens on a port.
 //
-// Handles incoming requests with LookupHTTPHandler.
+// The server handles incoming requests with LookupHTTPHandler.
 message Config {
-  // Addr is the address to listen.
+  // Addr is the address to listen on.
   //
   // Example: 0.0.0.0:8080
   string addr = 1;
@@ -13,13 +13,14 @@ message Config {
   string client_id = 2;
 
   // CertFile is the path to the certificate file to use for https.
-  // Can be unset to use HTTP.
+  // CertFile can be unset to use HTTP.
   string cert_file = 3;
   // KeyFile is the path to the key file to use for https.
-  // Cannot be unset if cert_file is set.
-  // Otherwise can be unset.
+  // KeyFile cannot be unset if cert_file is set.
+  // KeyFile can otherwise be unset.
   string key_file = 4;
   // Wait indicates to wait for LookupHTTPHandler even if it becomes idle.
-  // If false: returns 404 not found if LookupHTTPHandler becomes idle.
+  // If Wait is false, the server returns 404 not found if LookupHTTPHandler
+  // becomes idle.
   bool wait = 5;
 }

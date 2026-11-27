@@ -145,7 +145,8 @@ func TestSequenceHandoff(t *testing.T) {
 	privS2, idS2 := vectorKey(t, "sequencer s2")
 	state.Config.Sequencer = &SOSequencer{PeerId: idS1}
 
-	// S1 places a and b, then c after the start a lost-device change names.
+	// S1 places a and b, then c after the start a lost-device change
+	// selects.
 	ops := []*SOOperation{concurrentOp(t, state, keys[0]), concurrentOp(t, state, keys[1]), concurrentOp(t, state, keys[2])}
 	slices.SortFunc(ops, func(a, b *SOOperation) int { return bytes.Compare(b.Hash(), a.Hash()) })
 	start := addTestSequence(t, state, privS1, nil, ops[0])
@@ -180,8 +181,8 @@ func TestSequenceHandoff(t *testing.T) {
 	}
 }
 
-// concurrentOp signs and adds the first operation of priv's author, naming no
-// other operation.
+// concurrentOp signs and adds the first operation of priv's author,
+// referencing no other operation.
 func concurrentOp(t *testing.T, state *SOState, priv crypto.PrivKey) *SOOperation {
 	// Sign the author's first operation and add it.
 	t.Helper()

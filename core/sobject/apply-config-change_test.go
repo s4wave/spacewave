@@ -165,7 +165,7 @@ func TestApplyConfigChange(t *testing.T) {
 			}, func() {}), nil
 		}, mockSharedObjectID)
 
-		// Build a change that names no previous hash.
+		// Build a change that references no previous hash.
 		entry := &SOConfigChange{
 			SharedObjectId: mockSharedObjectID,
 			ConfigSeqno:    1,
@@ -183,7 +183,7 @@ func TestApplyConfigChange(t *testing.T) {
 	})
 
 	t.Run("reject wrong seqno", func(t *testing.T) {
-		// Build a genesis entry so we have a real chain hash.
+		// Build a genesis entry so the test has a real chain hash.
 		genesisEntry := &SOConfigChange{
 			SharedObjectId: mockSharedObjectID,
 			ConfigSeqno:    0,

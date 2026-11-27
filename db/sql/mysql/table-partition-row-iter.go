@@ -47,7 +47,8 @@ func (i *TablePartitionRowIter) GetRow(sctx *sql.Context) (sql.Row, error) {
 		return nil, io.EOF
 	}
 
-	// Detach the row cursor so decoded values can be collected after this read.
+	// Detach the row cursor so decoded values can be collected after the row
+	// read.
 	valueCs := i.it.ValueCursor().DetachTransaction()
 
 	// Decode the stored table row block at the detached value cursor.

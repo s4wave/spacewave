@@ -62,7 +62,7 @@ func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 
 // TestTakeoverDaemonSocketSurfacesDenyAsClearError asserts that a
 // denied policy propagates back to takeoverDaemonSocket as a CLI
-// error that names the Spacewave desktop app, matching the scope
+// error that mentions the Spacewave desktop app, matching the scope
 // requirement.
 func TestTakeoverDaemonSocketSurfacesDenyAsClearError(t *testing.T) {
 	// Take the test context.

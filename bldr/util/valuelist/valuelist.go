@@ -67,7 +67,7 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	queueSend := func(msg R) {
 		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			for i := 0; i < len(sendQueue); i++ {
-				// remove any referring to the same value id
+				// remove any queued message referring to the same value id
 				smsg := sendQueue[i]
 				if smsg.GetValueId() == msg.GetValueId() {
 					sendQueue = append(sendQueue[:i], sendQueue[i+1:]...)
@@ -152,9 +152,9 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 // WatchDirectiveViaStream resolves a directive by watching a value stream.
 //
 // T is the type of the value and R is the type of the response message.
-// idle is an optional callback when the result is marked idle
-// the stream will be closed on return
-// returnOnIdle returns nil if the result is marked idle
+// idle is an optional callback when the result is marked idle.
+// the stream will be closed on return.
+// returnOnIdle returns nil if the result is marked idle.
 func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 	ctx context.Context,
 	strm srpc.StreamRecv[R],

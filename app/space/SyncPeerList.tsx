@@ -6,8 +6,8 @@ import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { deviceName } from './device-name.js'
 
 // SyncPeerList shows this device's sync stream with each other device that
-// has synced the Space since this device started, and whether it still runs.
-// Peer IDs show only with the technical details.
+// has synced the Space since this device started, and whether the stream still
+// runs. Peer IDs show only with the technical details.
 export function SyncPeerList({
   state,
   peers,

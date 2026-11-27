@@ -50,7 +50,7 @@ message ProviderFeatureMap {
 
 // ProviderFeatureMapItem is an item in the ProviderFeatureMap.
 message ProviderFeatureMapItem {
-  // ProviderFeatures is the set of features we are mapping.
+  // ProviderFeatures is the set of features being mapped.
   repeated ProviderFeature provider_features = 1;
   // ProviderId is the provider identifier.
   string provider_id = 2;
@@ -75,7 +75,8 @@ message ProviderAccountInfo {
 
 // ProviderAccountStatus contains the high-level status of an account.
 enum ProviderAccountStatus {
-  // ProviderAccountStatus_NONE is if the account was not created yet (zero value)
+  // ProviderAccountStatus_NONE is the zero value for an account that has not
+  // been created yet.
   ProviderAccountStatus_NONE = 0;
   // ProviderAccountStatus_PENDING is the pending state (account is being created).
   ProviderAccountStatus_PENDING = 1;
@@ -112,7 +113,7 @@ message ProviderFeatureResourceRef {
   // ProviderFeature is the feature implemented by this resource.
   ProviderFeature provider_feature = 2;
   // ProviderFeatureMeta is encoded metadata specific to the resource type.
-  // Max size 120kb
+  // The maximum size is 120kb.
   bytes provider_feature_meta = 3;
 }
 
@@ -123,7 +124,8 @@ message AccountTransition {
   string operation_id = 1;
   // Source identifies the account whose Sessions and resources are moving.
   ProviderResourceRef source = 2;
-  // Destination identifies the surviving account; id is its settings object ID.
+  // Destination identifies the surviving account. Its id is the account's
+  // settings object ID.
   ProviderResourceRef destination = 3;
   // DestinationEndpoint must match the receiver's configured cloud provider.
   string destination_endpoint = 4;
@@ -131,6 +133,7 @@ message AccountTransition {
   repeated string destination_peer_ids = 5;
   // SessionPeerIds is the exact set of source Sessions approved for the transition.
   repeated string session_peer_ids = 6;
-  // SourceEndpoint identifies cloud authority; empty identifies a local account.
+  // SourceEndpoint identifies cloud authority. An empty SourceEndpoint
+  // identifies a local account.
   string source_endpoint = 7;
 }

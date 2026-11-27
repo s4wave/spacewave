@@ -65,5 +65,5 @@ func (s *appPluginSource) Close() error {
 	return nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ controller.Controller = (*appPluginSource)(nil)

@@ -11,7 +11,7 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory to see if the values "look correct."
 func (c *Config) Validate() error {
 	// Validate the optional local peer identity filter.
 	if c.GetLocalPeerId() != "" {
@@ -50,7 +50,7 @@ func (c *Config) GetConfigID() string {
 	return ConfigID
 }
 
-// EqualsConfig checks if the config is equal to another.
+// EqualsConfig checks if the config is equal to another config.
 func (c *Config) EqualsConfig(other config.Config) bool {
 	ot, ok := other.(*Config)
 	if !ok {

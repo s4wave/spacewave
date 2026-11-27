@@ -9,14 +9,14 @@ import "github.com/s4wave/spacewave/sdk/command/command.proto";
 import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
 
 // AccountSettings is the root state data for account settings SharedObjects.
-// Stored as SORootInner.StateData.
+// The state data is stored as SORootInner.StateData.
 message AccountSettings {
   // DisplayName is the user-visible name for the local provider account.
   string display_name = 1;
   // PairedDevices is the list of paired devices for this account.
   repeated PairedDevice paired_devices = 2;
   // EntityKeypairs is the list of entity keypairs for authentication.
-  // Synced between devices via the SharedObject.
+  // The keypairs are synced between devices via the SharedObject.
   repeated .session.EntityKeypair entity_keypairs = 3;
   // SessionPresentations is the mirrored private presentation metadata keyed
   // by session peer ID for both local and cloud sessions.
@@ -25,7 +25,8 @@ message AccountSettings {
   .s4wave.command.KeybindingOverrideSet keybinding_overrides = 5;
   // Sessions binds each approved account Session to its replica's storage identity.
   repeated AccountSession sessions = 6;
-  // Catalog names account objects. Checkpoints require separate authenticated enrollment.
+  // Catalog lists account objects. Checkpoints require separate authenticated
+  // enrollment.
   repeated AccountCatalogEntry catalog = 7;
   // Transition redirects returning Sessions after all destination resources are durable.
   .provider.AccountTransition transition = 8;
@@ -33,19 +34,20 @@ message AccountSettings {
   repeated .provider.AccountTransition accepted_migrations = 9;
   // StorageBackends lists the account's bring-your-own block storage backends.
   repeated StorageBackend storage_backends = 10;
-  // DefaultStorageBackendId names the backend that new Spaces use.
-  // Empty places new Spaces on the account's own storage.
+  // DefaultStorageBackendId selects the backend that new Spaces use.
+  // An empty id places new Spaces on the account's own storage.
   string default_storage_backend_id = 11;
-  // BlockStorePlacements names the backend holding each placed block store.
+  // BlockStorePlacements records the backend holding each placed block store.
   // A block store without a placement is on the account's own storage.
   repeated BlockStorePlacement block_store_placements = 12;
   // StorageReleases are former placements whose objects remain in the
-  // backend's bucket. A device deletes them, then completes the release. A
-  // release carries only its block store and backend ids.
+  // backend's bucket. A device deletes the objects, then completes the
+  // release. A release carries only its block store and backend ids.
   repeated BlockStorePlacement storage_releases = 13;
-  // DeveloperSpaceId names the account's developer Space, which holds the
-  // repositories the user adds and what is built from them. Empty until the
-  // first repository is added. Every device of the account uses this Space.
+  // DeveloperSpaceId identifies the account's developer Space, which holds the
+  // repositories the user adds and what is built from them. The id is empty
+  // until the first repository is added. Every device of the account uses this
+  // Space.
   string developer_space_id = 14;
   // PluginIds lists the manifest IDs of plugins the account loads into every
   // Space it mounts, alongside the plugins the Space lists itself.
@@ -63,7 +65,7 @@ message StorageBackend {
   // Credential is the redacted Secret whose payload holds the access keys.
   // The payload value is a block_store_s3.Credentials message. For an SQL
   // backend its access_key_id is the database user and its
-  // secret_access_key the password.
+  // secret_access_key is the password.
   .s4wave.secret.Secret credential = 4;
   // Sql locates the SQL database that holds the blocks instead of a bucket.
   // A backend sets exactly one of S3 and Sql.
@@ -74,12 +76,12 @@ message StorageBackend {
   FtpsLocation ftps = 6;
 }
 
-// FtpsLocation locates a directory on an FTPS server that holds packfiles,
-// read and written as a bucket is. The server logs in from a netrc file on the
-// host that runs the account, which names the host without its port. Each
-// machine line of the host is one login, and each login adds its own
-// connections. Packfiles
-// are only added: the backend never deletes or compacts one.
+// FtpsLocation locates a directory on an FTPS server that holds packfiles, read
+// and written as a bucket is. The server logs in from a netrc file on the host
+// that runs the account. The netrc file identifies the host without its port.
+// Each machine line of the host is one login, and each login adds its own
+// connections. Packfiles are only added: the backend never deletes or compacts
+// one.
 message FtpsLocation {
   // Host is the server host name, also the machine of the netrc entry.
   string host = 1;
@@ -94,7 +96,7 @@ message FtpsLocation {
   string prefix = 5;
   // MaxConns is the most sessions the backend holds open at once across
   // all logins, spares included, zero for 10. A server may cap sessions per
-  // client host as well as per user, so logins do not raise it.
+  // client host as well as per user, so logins do not raise that cap.
   uint32 max_conns = 6;
   // ConnsPerLogin is the most sessions open at once on one netrc login,
   // counting the spares dialed ahead of range reads, zero for 9.
@@ -102,13 +104,13 @@ message FtpsLocation {
   // Sftp reads and writes the packfiles over SFTP, on the same host and the
   // same netrc login, instead of FTPS. Port zero then means 22. The first
   // netrc login is used, and MaxConns is the number of SSH connections the
-  // backend holds, zero for 4, each carrying many requests at once;
+  // backend holds, zero for 4, each carrying many requests at once.
   // ConnsPerLogin is ignored.
   bool sftp = 8;
   // HostKey pins the SFTP server's SSH host key, as an authorized_keys style
   // public key line, which also limits the handshake to that key's type, or as
   // the "SHA256:..." fingerprint ssh prints, which fails when the server shows
-  // another of its keys. Empty
+  // another of its keys. An empty HostKey
   // trusts the first key the server shows and requires the same one on every
   // later connection of the backend while it runs.
   string host_key = 9;
@@ -128,7 +130,7 @@ message FtpsLocation {
   // of the packfiles it reads. A store whose pack index holds a pack then
   // finds every pack in the index and never lists the directory, which on a
   // large directory reads every file name. A store with an empty index still
-  // lists it once to build the index.
+  // lists the directory once to build the index.
   bool sole_writer = 12;
 }
 
@@ -147,9 +149,9 @@ message SqlLocation {
   string table_prefix = 4;
   // Tls connects with TLS.
   bool tls = 5;
-  // TlsCertSha256 is the hex SHA-256 of the server's certificate. Set, TLS
-  // trusts exactly that certificate in place of a CA and the host name, as
-  // for a server with a self-signed certificate.
+  // TlsCertSha256 is the hex SHA-256 of the server's certificate. When
+  // TlsCertSha256 is set, TLS trusts exactly that certificate in place of a CA
+  // and the host name, as for a server with a self-signed certificate.
   string tls_cert_sha256 = 6;
 }
 
@@ -166,8 +168,8 @@ message S3Location {
   string object_prefix = 4;
   // DisableSsl connects with HTTP instead of HTTPS.
   bool disable_ssl = 5;
-  // Pricing overrides the price list storage reclaim uses. Empty uses the
-  // published prices of the service the endpoint names.
+  // Pricing overrides the price list storage reclaim uses. An empty list uses
+  // the published prices of the service the endpoint identifies.
   .block.store.s3.Pricing pricing = 6;
   // KeepPacks stops compaction and reclaim on the bucket, so its block stores
   // only ever add packfiles and never rewrite or delete one.
@@ -178,7 +180,8 @@ message S3Location {
   // block store is then the prefix's only writer.
   bool index_only = 8;
   // MaxPackBytes bounds one packfile a block store writes. An upload batch
-  // holds half of it in block bytes. Zero uses the 63 MiB default.
+  // holds half of that packfile size in block bytes. Zero uses the 63 MiB
+  // default.
   uint64 max_pack_bytes = 9;
   // LingerSeconds is how long a short upload batch waits for more blocks
   // before it is written anyway. Zero uses the 30 s default.
@@ -191,16 +194,16 @@ message BlockStorePlacement {
   string block_store_id = 1;
   // StorageBackendId identifies the StorageBackend that holds its blocks.
   string storage_backend_id = 2;
-  // Cache sets how the local disk holds the placed store. Empty uploads each
-  // write at once and keeps every block local.
+  // Cache sets how the local disk holds the placed store. An empty Cache
+  // uploads each write at once and keeps every block local.
   BlockStoreCache cache = 3;
   // FallbackStorageBackendId identifies an SQL StorageBackend the store reads,
-  // read only, after its own backend misses a block. Nothing writes it. A
-  // block only the fallback holds is stored on the local disk with an upload
-  // marker, so it uploads to StorageBackendId and later reads skip the
-  // fallback. Empty has no fallback. The store's backend must be an S3 or
-  // FTPS backend, so an SQL backend is never both primary and fallback. A storage
-  // move clears it.
+  // read only, after its own backend misses a block. Nothing writes it. A block
+  // only the fallback holds is stored on the local disk with an upload marker,
+  // so it uploads to StorageBackendId and later reads skip the fallback. An
+  // empty id has no fallback. The store's backend must be an S3 or FTPS
+  // backend, so an SQL backend is never both primary and fallback. A storage
+  // move clears the fallback id.
   string fallback_storage_backend_id = 4;
 }
 
@@ -292,7 +295,7 @@ message SessionPresentation {
 }
 
 // AccountSettingsOp is an operation on the account settings SharedObject.
-// Stored as SOOperationInner.OpData.
+// The operation is stored as SOOperationInner.OpData.
 message AccountSettingsOp {
   oneof op {
     // UpdateDisplayName changes the local provider account display name.
@@ -301,7 +304,7 @@ message AccountSettingsOp {
     PairedDevice add_paired_device = 2;
     // RemovePairedDevice removes a paired device by peer_id.
     RemovePairedDeviceOp remove_paired_device = 3;
-    // AddEntityKeypair adds an entity keypair. Deduplicates by peer_id.
+    // AddEntityKeypair adds an entity keypair and deduplicates by peer_id.
     .session.EntityKeypair add_entity_keypair = 4;
     // RemoveEntityKeypair removes an entity keypair by peer_id.
     RemoveEntityKeypairOp remove_entity_keypair = 5;
@@ -331,9 +334,9 @@ message AccountSettingsOp {
     // CompleteStorageRelease records that the released block store's objects
     // are gone from the backend's bucket.
     BlockStorePlacement complete_storage_release = 17;
-    // SetDeveloperSpace records the account's developer Space. It replaces the
-    // recorded Space only when that Space is the one the operation names as
-    // previous; otherwise it is rejected.
+    // SetDeveloperSpace records the account's developer Space. The operation
+    // replaces the recorded Space only when that Space is the one the operation
+    // records as previous. Otherwise the operation is rejected.
     SetDeveloperSpaceOp set_developer_space = 18;
     // AddPlugin adds a plugin manifest ID to the account plugin list.
     AccountPluginOp add_plugin = 19;
@@ -342,7 +345,7 @@ message AccountSettingsOp {
   }
 }
 
-// AccountPluginOp names one plugin of the account plugin list.
+// AccountPluginOp identifies one plugin of the account plugin list.
 message AccountPluginOp {
   // PluginId is the manifest ID of the plugin.
   string plugin_id = 1;
@@ -352,10 +355,10 @@ message AccountPluginOp {
 message SetDeveloperSpaceOp {
   // SpaceId identifies the Space the account uses as its developer Space.
   string space_id = 1;
-  // PreviousSpaceId is the developer Space the writer observed before
-  // creating SpaceId, or empty when it observed none. The operation applies
-  // only while the account still records that Space, so devices that race to
-  // replace a missing Space converge on one.
+  // PreviousSpaceId is the developer Space the writer observed before creating
+  // SpaceId, or empty when the writer observed none. The operation applies only
+  // while the account still records that Space, so devices that race to replace
+  // a missing Space converge on one.
   string previous_space_id = 2;
 }
 
@@ -367,8 +370,8 @@ message RemoveStorageBackendOp {
 
 // SetDefaultStorageBackendOp selects the default storage backend.
 message SetDefaultStorageBackendOp {
-  // StorageBackendId identifies the new default, or empty for the account's
-  // own storage.
+  // StorageBackendId identifies the new default backend, or is empty for the
+  // account's own storage.
   string storage_backend_id = 1;
 }
 

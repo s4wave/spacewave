@@ -21,7 +21,8 @@ const (
 
 // AssetOptions configures where the harness finds the real v86 image.
 type AssetOptions struct {
-	// Le records hydration activity; nil selects the harness's standard logger.
+	// Le records hydration activity. nil selects the harness's standard
+	// logger.
 	Le *logrus.Entry
 	// CacheDir stores downloaded boot files.
 	CacheDir string

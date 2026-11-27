@@ -21,6 +21,6 @@ message ApplyUpdateRequest {
 
 // ApplyUpdateResponse hands a verified app artifact to its process owner.
 message ApplyUpdateResponse {
-  // StagedPath is the verified desktop artifact; Electron owns its replacement.
+  // StagedPath is the verified desktop artifact. Electron owns its replacement.
   string staged_path = 1;
 }

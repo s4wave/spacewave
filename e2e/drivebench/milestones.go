@@ -10,7 +10,7 @@ import (
 
 // Milestones records wall-clock milliseconds from navigation start to each boot
 // milestone. ContentReadyMs is the moment getting-started.md is present in the
-// file browser, which is also when the first file row renders.
+// file browser, also the moment when the first file row renders.
 type Milestones struct {
 	// LiveAppMs is when the app became live.
 	LiveAppMs int64 `json:"liveAppMs"`

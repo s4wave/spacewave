@@ -134,8 +134,8 @@ function ShellAppPanelInner({
     return tab?.path ?? initialPath
   }, [tabs, tabId, initialPath])
 
-  // A navigation resets the tab name from the path; nameTab changes with the
-  // path, so the shown object's viewer names the tab again.
+  // A navigation resets the tab name from the path. nameTab changes with the
+  // path, so the shown object's viewer sets the tab name again.
   const nameTab = useCallback(
     (objectKey: string, name: string) => {
       if (tabId && getTabObjectKey(path) === objectKey) {

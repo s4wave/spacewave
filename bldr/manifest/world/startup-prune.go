@@ -8,7 +8,7 @@ import (
 
 // UnlinkMissingStartupManifests deletes the graph edges from rootObjKeys to
 // each missing candidate, then deletes the candidate object once no manifest
-// edge references it. A missing candidate can never start; a later fetch
+// edge references it. A missing candidate can never start. A later fetch
 // registers the manifest again while a source still holds it. Block bytes
 // remain owned by normal World GC. Returns the object keys that were unlinked.
 func UnlinkMissingStartupManifests(

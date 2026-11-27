@@ -17,8 +17,8 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
-// scaleObjects is the smaller seeded World of the scaling test; the larger
-// holds ten times as many objects.
+// scaleObjects is the smaller seeded World of the scaling test. The larger
+// World holds ten times as many objects.
 const scaleObjects = 10000
 
 // scaleCalls is the number of calls each entry point makes on each World.
@@ -29,7 +29,7 @@ type scaleCost struct {
 	reads, writes, writeBytes, allocs float64
 }
 
-// scaleBatch is the number of adjacent objects one batch read names.
+// scaleBatch is the number of adjacent objects one batch read references.
 const scaleBatch = 32
 
 // scaledWorld is one seeded World of the scaling test.
@@ -49,13 +49,13 @@ func (w *scaledWorld) pick(i int) int {
 
 // TestWorldScaling runs each entry point of the World's cost table on a seeded
 // World of n objects and one of 10n, and checks that a call's block reads and
-// allocations stay flat: each should grow with the call's own quads and
-// results and the depth of the World's trees, never with the World. A cost
-// linear in the World grows tenfold and one in its square root threefold; one
-// more tree level, which 10n adds to each path a commit rewrites and each key
-// a lookup descends to, grows it by at most half, since the commit rewrites
-// one more page of about 32 entries per path. The graph store's own key
-// operations are exactly flat, which its package's TestScaling checks.
+// allocations stay flat: each should grow with the call's own quads and results
+// and the depth of the World's trees, never with the World. A cost linear in
+// the World grows tenfold and one in its square root threefold. One more tree
+// level, which 10n adds to each path a commit rewrites and each key a lookup
+// descends to, grows the cost by at most half, since the commit rewrites one
+// more page of about 32 entries per path. The graph store's own key operations
+// are exactly flat, which its package's TestScaling checks.
 func TestWorldScaling(t *testing.T) {
 	if testing.Short() {
 		t.Skip("seeds two Worlds")
@@ -77,7 +77,7 @@ func TestWorldScaling(t *testing.T) {
 	}
 
 	// Each entry point, as a call on one World. A write commits its own
-	// transaction; a read runs in a read transaction.
+	// transaction. A read runs in a read transaction.
 	ops := []struct {
 		name  string
 		write bool
@@ -93,7 +93,8 @@ func TestWorldScaling(t *testing.T) {
 			return ws.SetGraphQuad(ctx, q)
 		}},
 		{"create an object and link it", true, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
-			// A quad names only objects, so its new value is a new object.
+			// A quad references only objects, so its new value is a
+			// new object.
 			key := "bench/scale/tag/" + strconv.Itoa(i)
 			obj, err := ws.CreateObject(ctx, key, nil)
 			world.ReleaseObjectState(obj)

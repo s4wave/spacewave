@@ -63,7 +63,8 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatal("expected non-empty bloom filter")
 	}
 
-	// Verify kvfile is readable and contains all blocks with their refs.
+	// Verify that the kvfile is readable and contains all blocks with
+	// their refs.
 	rd := bytes.NewReader(buf.Bytes())
 	reader, err := kvfile.BuildReader(rd, uint64(buf.Len()))
 	if err != nil {
@@ -100,7 +101,7 @@ func TestPackBlocks(t *testing.T) {
 		}
 	}
 
-	// Verify bloom filter contains all hashes.
+	// Verify that the bloom filter contains all hashes.
 	var pbf bloom.BloomFilter
 	if err := pbf.UnmarshalVT(result.BloomFilter); err != nil {
 		t.Fatal(err)
@@ -125,7 +126,7 @@ func TestPackBlocks(t *testing.T) {
 		}
 	}
 
-	// Verify bloom rejects an unknown hash.
+	// Verify that the bloom filter rejects an unknown hash.
 	unknownData := []byte("definitely-not-in-the-packfile")
 	unknownHash, err := hash.Sum(hash.HashType_HashType_SHA256, unknownData)
 	if err != nil {
@@ -133,8 +134,9 @@ func TestPackBlocks(t *testing.T) {
 	}
 	unknownKey := packfile.BlockKey(unknownHash)
 
-	// Bloom may false-positive, but with 10 items and 1% FPR it is unlikely.
-	// We just log it rather than fail.
+	// Bloom may false-positive, but with 10 items and 1% FPR a false
+	// positive is unlikely. The test logs a false positive rather than
+	// failing.
 	if bf.Test(unknownKey) {
 		t.Log("bloom false positive for unknown hash (acceptable)")
 	}

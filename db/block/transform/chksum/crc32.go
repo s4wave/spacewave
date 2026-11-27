@@ -15,7 +15,7 @@ func DecodeCRC32(data []byte) ([]byte, error) {
 	}
 
 	// Verify the payload against its stored CRC32 checksum.
-	// get last 4 bytes
+	// get the last 4 bytes
 	b := data[len(data)-4:]
 	data = data[:len(data)-4]
 	cs := crc32.ChecksumIEEE(data)

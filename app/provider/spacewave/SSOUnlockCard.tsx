@@ -27,9 +27,10 @@ export interface SSOUnlockCardProps {
 
 const UNLOCK_HIGHLIGHTS = ['End-to-end encrypted', 'Local-first', 'Open source']
 
-// SSOUnlockCard renders the post-SSO PIN unlock card. Mirrors SSOConfirmPage's
-// provider context header, AuthCard wrapper, and trust-signal row so the
-// signed-in identity flow stays visually continuous with the signup flow.
+// SSOUnlockCard renders the post-SSO PIN unlock card. The card mirrors
+// SSOConfirmPage's provider context header, AuthCard wrapper, and trust-signal
+// row so the signed-in identity flow stays visually continuous with the signup
+// flow.
 export function SSOUnlockCard(props: SSOUnlockCardProps) {
   const {
     provider,

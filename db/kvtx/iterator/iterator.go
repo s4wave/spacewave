@@ -8,7 +8,7 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// TODO: avoid using this and remove it wherever possible.
+// TODO: avoid using Iterator and remove Iterator wherever possible.
 
 // Ops are tx ops.
 type Ops interface {
@@ -19,8 +19,8 @@ type Ops interface {
 }
 
 // Iterator implements the KVTX Iterator interface by scanning all keys into an
-// in-memory tree set. This implements (fills) the Iterator interface for stores
-// that do not support iteration.
+// in-memory tree set. Iterator implements (fills) the Iterator interface for
+// stores that do not support iteration.
 //
 // Note: iterator is tested in store/kvtx/inmem.
 type Iterator struct {
@@ -35,7 +35,7 @@ type Iterator struct {
 	val    []byte
 
 	// keys is a workaround to produce sorted / seekable output
-	// keys is nil until Initialize is called
+	// keys is nil until Initialize is called.
 	keys *btree.BTreeG[[]byte]
 	ki   btree.IterG[[]byte]
 }
@@ -65,7 +65,7 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 		NoLocks: true,
 	})
 
-	// Build items list with prefix filtering
+	// Build the items list with prefix filtering
 	err = i.s.ScanPrefixKeys(i.ctx, i.prefix, func(key []byte) error {
 		if len(i.prefix) != 0 && !bytes.HasPrefix(key, i.prefix) {
 			return nil
@@ -114,14 +114,15 @@ func (i *Iterator) Seek(k []byte) error {
 	// Adjust reverse seeks to the greatest key at or below the target.
 	if i.rev {
 		// In reverse mode:
-		// If we found an exact match, stay there
-		// If we didn't find an exact match and landed on a greater key, move back one
+		// If the iterator found an exact match, stay there
+		// If the iterator found a greater key instead, move back one
 		if valid {
 			if bytes.Compare(i.ki.Item(), k) > 0 {
 				valid = i.ki.Prev()
 			}
 		} else {
-			// If we went past the end, move to the last item
+			// If the iterator passed the end, move to the last
+			// item
 			valid = i.ki.Last()
 		}
 	}
@@ -129,7 +130,7 @@ func (i *Iterator) Seek(k []byte) error {
 	// Mark the iterator out of bounds when the seek found no item.
 	i.oob = !valid
 
-	// Check if the key matches our prefix constraint.
+	// Check if the key matches the iterator's prefix constraint.
 	if valid && len(i.prefix) != 0 {
 		key := i.ki.Item()
 		if !bytes.HasPrefix(key, i.prefix) {

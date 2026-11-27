@@ -50,7 +50,7 @@ func seed(t *testing.T, engine world.Engine, key string) {
 }
 
 func TestRevisionCache(t *testing.T) {
-	// compute counts its calls and reads a; read opens a snapshot.
+	// compute counts its calls and reads a. read opens a snapshot.
 	store, engine := readsStore(t)
 	ctx := t.Context()
 	cache := &Cache{engine: engine}
@@ -84,8 +84,8 @@ func TestRevisionCache(t *testing.T) {
 		t.Fatal("a revision's value was computed", calls, "times")
 	}
 
-	// An unrelated write keeps it; a write to a replaces it, for older readers
-	// too.
+	// An unrelated write keeps the value. A write to a replaces the value,
+	// for older readers too.
 	seed(t, engine, "b")
 	if got, _ := cache.Get(ctx, read(), "v", compute(6)); got != 5 || calls != 1 {
 		t.Fatal("an unrelated revision recomputed the value", got, calls)
@@ -156,7 +156,8 @@ func TestRevisionCache(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// A timer requests a reread; cancellation still ends the routine.
+		// A timer requests a reread. Cancellation still ends the
+		// routine.
 		change = lagging.NextChange()
 		timed, end := context.WithTimeout(t.Context(), time.Second)
 		defer end()
@@ -172,7 +173,7 @@ func TestRevisionCache(t *testing.T) {
 }
 
 // TestRevisionCacheIndexedParts keeps a value built from a part across a write
-// neither read, and drops both when the part's read changes: the index names
+// neither read, and drops both when the part's read changes: the index selects
 // the outer value through the part's reads.
 func TestRevisionCacheIndexedParts(t *testing.T) {
 	// The outer value reads b and reuses the part, which reads a.
@@ -395,8 +396,8 @@ func TestRevisionCachePartBehindHead(t *testing.T) {
 	}
 
 	// A part computed behind the cache whose reads the changes since left
-	// alone is kept: the next reader shares it. The cache reads changes from
-	// the engine itself, which names what changed.
+	// alone is kept: the next reader shares it. The cache reads changes
+	// from the engine itself, which reports what changed.
 	cache = &Cache{engine: engine}
 	untouched := 0
 	other := func(ctx context.Context, tx world.WorldState) (any, error) {
@@ -662,8 +663,8 @@ func TestRevisionCacheParts(t *testing.T) {
 		t.Fatal("the composite recorded", recorded, "parts")
 	}
 
-	// An unrelated change keeps both; one to b keeps the part; one to a
-	// drops both.
+	// An unrelated change keeps both values. A change to b keeps the part.
+	// A change to a drops both values.
 	seed(t, engine, "c")
 	expect(1, 1)
 	seed(t, engine, "b")
@@ -745,8 +746,8 @@ func TestRevisionCacheParts(t *testing.T) {
 }
 
 func TestRevisionCacheFacetHolder(t *testing.T) {
-	// The facet part reads the keys listed and serves the table; the reader
-	// reads x through a facet; the holder reuses the reader.
+	// The facet part reads the keys listed and serves the table. The reader
+	// reads x through a facet. The holder reuses the reader.
 	store, engine := readsStore(t)
 	ctx := t.Context()
 	cache := &Cache{engine: engine}
@@ -1247,7 +1248,7 @@ func TestRevisionCacheBehindRecursive(t *testing.T) {
 // TestViewWaitsOnFacetedValue runs two views over one recorded change stream:
 // one reads a player's value, which reads a shared summary by facet, and one
 // reads the summary itself. Changes to other players' entries rerun only the
-// second; a change to the player's entry reruns both, with the same answer.
+// second. A change to the player's entry reruns both, with the same answer.
 func TestViewWaitsOnFacetedValue(t *testing.T) {
 	// Start a World and a cache the change watch feeds, as a server runs it.
 	_, engine := readsStore(t)
@@ -1268,7 +1269,7 @@ func TestViewWaitsOnFacetedValue(t *testing.T) {
 	}()
 
 	// The summary reads the key of every membership change, and serves the
-	// table of lobbies by player; the player's value reads its own entry by
+	// table of lobbies by player. The player's value reads its own entry by
 	// facet.
 	var mtx sync.Mutex
 	table := map[string]int{"a": 0, "b": 0}

@@ -28,11 +28,11 @@ type HostSource interface {
 
 // Server exports a HostSource's plugin hosts to one plugin.
 type Server struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus where executions publish their plugin files
+	// b is the bus where executions publish their plugin files.
 	b bus.Bus
-	// hosts reports the exported plugin hosts
+	// hosts reports the exported plugin hosts.
 	hosts HostSource
 }
 
@@ -91,11 +91,11 @@ func (s *Server) ExecutePlugin(strm SRPCHostExport_ExecutePluginStream) error {
 
 // execution is the host side of one ExecutePlugin session.
 type execution struct {
-	// s is the exporting server
+	// s is the exporting server.
 	s *Server
-	// caller reaches the caller's host mux for the plugin
+	// caller reaches the caller's host mux for the plugin.
 	caller srpc.Client
-	// plugin is the running plugin's client, nil while not ready
+	// plugin is the running plugin's client, nil while not ready.
 	plugin *ccontainer.CContainer[srpc.Client]
 }
 

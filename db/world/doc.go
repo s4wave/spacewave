@@ -7,7 +7,7 @@
 // alone moves the head: an accepted candidate becomes the head, and a
 // superseded one fails with ErrSuperseded so the writer reruns its change from
 // a new transaction (IsSuperseded). ErrDurabilityUnknown after acceptance
-// means the outcome is unknown, not failed; the writer reconciles from
+// means the outcome is unknown, not failed. The writer reconciles from
 // Authority.Head. Sync and SyncThrough fence durability, and a head the
 // Authority accepted survives a restart because the Authority holds it.
 //

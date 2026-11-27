@@ -12,7 +12,7 @@ type HandleSignalPeer interface {
 	// Directive indicates HandleSignalPeer is a directive.
 	directive.Directive
 
-	// SignalingID returns the identifier of the signaling channel.
+	// HandleSignalingID returns the identifier of the signaling channel.
 	// Cannot be empty.
 	HandleSignalingID() string
 	// HandleSignalPeerSession returns the handle to the signaling session.
@@ -20,7 +20,7 @@ type HandleSignalPeer interface {
 	HandleSignalPeerSession() SignalPeerSession
 }
 
-// handleSignalPeer implements HandleSignalPeer
+// handleSignalPeer implements HandleSignalPeer.
 type handleSignalPeer struct {
 	signalingID       string
 	signalPeerSession SignalPeerSession
@@ -56,7 +56,7 @@ func (d *handleSignalPeer) Validate() error {
 	return nil
 }
 
-// SignalingID returns the identifier of the signaling channel.
+// HandleSignalingID returns the identifier of the signaling channel.
 // Cannot be empty.
 func (d *handleSignalPeer) HandleSignalingID() string {
 	return d.signalingID

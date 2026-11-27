@@ -122,7 +122,7 @@ type syncController struct {
 }
 
 // holdState is a store's held state: the dirty blocks a flush found corrupt.
-// The store is held exactly while blocks is not empty; an empty set has a zero
+// The store is held exactly while blocks is not empty. An empty set has a zero
 // since and partial false.
 type holdState struct {
 	// blocks holds the corrupt dirty blocks by hash. A flush skips and counts
@@ -133,15 +133,17 @@ type holdState struct {
 	since time.Time
 	// partial is set when the pass that last set blocks stopped before
 	// reading every dirty block, so their count is a lower bound. Only the
-	// sync status shows it: a flush that stops early returns its own error.
+	// sync status shows partial: a flush that stops early returns its own
+	// error.
 	partial bool
 }
 
 // heldError is the result of a flush that uploaded every dirty block it could
-// verify and held back count whose local bytes fail their hash. It published
-// nothing: a checkpoint is published only when every block it reaches is on
-// the remote. It matches block.ErrBlockCorrupt, so a caller that needs every
-// block on the remote fails as on any other corrupt read.
+// verify and held back count whose local bytes fail their hash. The flush
+// published nothing: a checkpoint is published only when every block the
+// checkpoint reaches is on the remote. heldError matches block.ErrBlockCorrupt,
+// so a caller that needs every block on the remote fails as on any other
+// corrupt read.
 type heldError struct {
 	// count is the number of corrupt dirty blocks held back.
 	count int
@@ -149,7 +151,7 @@ type heldError struct {
 	since time.Time
 }
 
-// Error names the held state the person sees. Only a complete flush returns
+// Error describes the held state the person sees. Only a complete flush returns
 // a heldError, so count is exact.
 func (e *heldError) Error() string {
 	return fmt.Sprintf("sync held: %d damaged blocks on this device, nothing published since %s",
@@ -312,7 +314,7 @@ func (s *syncController) pendingSnapshot() (time.Time, int64, <-chan struct{}) {
 
 // dueSnapshot reads the queue projection, whether any publication holds
 // operations, and the notification together. Operations are due at once, since
-// another member waits on them; blocks and a bare checkpoint wait for the
+// another member waits on them. Blocks and a bare checkpoint wait for the
 // interval.
 func (s *syncController) dueSnapshot() (time.Time, int64, bool, <-chan struct{}) {
 	// Read the queue projection and the earliest pending publication.
@@ -502,7 +504,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 
 // drain flushes pending blocks and publications once after ctx ends. A
 // short-lived mount, such as a CLI write, releases the store before the
-// checkpoint deadline; without the drain its edits wait for the next mount. A
+// checkpoint deadline. Without the drain its edits wait for the next mount. A
 // failed or skipped drain keeps the durable obligation for that mount. The
 // drain is skipped before retryAt, the end of the Retry-After the cloud gave
 // the last failed flush, so a rate-limited store is not called early.
@@ -517,7 +519,7 @@ func (s *syncController) drain(ctx context.Context, retryAt time.Time) {
 	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
 	defer cancel()
 
-	// A held flush publishes nothing either; the held blocks keep their
+	// A held flush publishes nothing either. The held blocks keep their
 	// markers for the next mount.
 	if err := s.FlushNow(flushCtx); err != nil {
 		s.le.WithError(err).Warn("pending cloud work kept for the next mount")
@@ -535,10 +537,10 @@ func (s *syncController) writeSnapshot() (uint64, <-chan struct{}) {
 }
 
 // waitHeld waits while a flush holds corrupt blocks back. A write after the
-// flush started, counted past writes, ends the wait one interval later; the
-// recheckAt deadline ends it with recheck set. Other broadcasts, such as a
-// flush another caller ran, do not end it. It returns ctx's error when ctx
-// ends.
+// flush started, counted past writes, ends the wait one interval later. The
+// recheckAt deadline ends the wait with recheck set. Other broadcasts, such as
+// a flush another caller ran, do not end the wait. waitHeld returns ctx's error
+// when ctx ends.
 func (s *syncController) waitHeld(ctx context.Context, writes uint64, recheckAt time.Time, interval time.Duration) (bool, error) {
 	// Wait for a new write or the recheck deadline.
 	deadline := time.NewTimer(time.Until(recheckAt))
@@ -618,7 +620,7 @@ func (s *syncController) waitDirtySyncGate(ctx context.Context) error {
 
 // FlushNow serializes an immediate flush request. A flush that held back a
 // dirty block whose local bytes fail its hash returns a *heldError and
-// publishes nothing; the block keeps its marker and its local copy.
+// publishes nothing. The block keeps its marker and its local copy.
 func (s *syncController) FlushNow(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
@@ -734,7 +736,8 @@ func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writ
 			return errors.Wrap(err, "retain pending block")
 		}
 
-		// Publish each committed batch; retrying a partial mark is idempotent.
+		// Publish each committed batch. Retrying a partial mark is
+		// idempotent.
 		s.publishDirtyState(state)
 	}
 
@@ -819,8 +822,8 @@ type dirtyCandidate struct {
 	sequence uint64
 }
 
-// dirtyBlock holds one loaded block with its refs for the currently packed
-// flush chunk.
+// dirtyBlock holds one loaded block with its refs for the flush chunk being
+// packed.
 type dirtyBlock struct {
 	dirtyCandidate
 	stored *block.StoredBlock
@@ -1193,16 +1196,17 @@ func (s *syncController) prepareChunks(
 // held state is marked partial: the count is a lower bound. A block the flush
 // read sound has already left the current set (loadDirtyBlocks), so the join
 // does not count it. A partial flush that found nothing while nothing is held
-// leaves the store not held; that is the one case the held state cannot know,
+// leaves the store not held. That is the one case the held state cannot know,
 // since the blocks the flush did not read may be damaged.
 //
-// Invariants: nothing here deletes or acknowledges a block or a marker; a
-// flush skips a block only while its hash is held; and a path that could
-// leave a sound hash held sets corruptRecheck. A write of a held hash always
+// Invariants: nothing here deletes or acknowledges a block or a marker. A
+// flush skips a block only while its hash is held. A path that could leave a
+// sound hash held sets corruptRecheck. A write of a held hash always
 // makes a later flush read the block: MarkDirty removes the hash at once, but
-// this replacement would put back a hash the flush read before that write
+// replacing the held set would put back a hash the flush read before that write
 // landed. The flush cannot tell which hashes a write touched, so when any
-// write landed since its copy it makes the next flush read every held block.
+// write landed since its copy the flush makes the next flush read every held
+// block.
 // The caller holds flushMtx.
 func (s *syncController) setCorruptKnown(corrupt map[string]struct{}, writes uint64, partial bool) {
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -1235,8 +1239,8 @@ func (s *syncController) releaseHold(key string) {
 // them stopped early, and shows the result in the sync status in the same
 // step, so the status never shows a hold the set no longer has. It is the
 // only writer of s.hold. An empty set is not held: it clears since and
-// partial. The first hold sets since; later ones keep it. The caller holds
-// bcast; the telemetry store takes only its own lock.
+// partial. The first hold sets since. Subsequent holds keep since. The caller
+// holds bcast. The telemetry store takes only its own lock.
 func (s *syncController) setHold(blocks map[string]struct{}, partial bool) {
 	// Derive the next state: a non-empty set is held since the first hold.
 	prev := s.hold

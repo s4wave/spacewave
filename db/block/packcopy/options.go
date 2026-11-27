@@ -25,8 +25,9 @@ type Options struct {
 	// Reads is the number of reads kept in flight. Zero uses DefaultReads.
 	Reads int
 	// Uploads is the number of packs written at once, which is what fills a
-	// fast link: one pack is one PUT. Each holds about three copies of its
-	// blocks in memory while it writes. Zero uses the target's batch limits.
+	// fast link: one pack is one PUT. Each pack holds about three copies
+	// of its blocks in memory while it writes. Zero uses the target's batch
+	// limits.
 	Uploads int
 	// Progress observes the counts after each pack, nil for none.
 	Progress func(Result)

@@ -117,7 +117,7 @@ func TestQueueOrganizationSyncGuardsAndRegistersKey(t *testing.T) {
 }
 
 func TestQueueOrganizationSyncRerunsAfterEachChange(t *testing.T) {
-	// Start each run in order; the first blocks until it is canceled.
+	// Start each run in order. The first blocks until it is canceled.
 	acc := NewTestProviderAccount(t, "http://example.invalid")
 	started := make(chan int, 3)
 	finished := make(chan int, 3)

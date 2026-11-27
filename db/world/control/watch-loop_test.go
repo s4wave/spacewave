@@ -56,7 +56,7 @@ func TestWatchLoop(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// expect result
+	// Expect the object revision.
 	var outRev uint64
 	select {
 	case err := <-errCh:
@@ -105,7 +105,7 @@ func TestWatchLoop(t *testing.T) {
 	// trigger wake
 	loop.Wake()
 
-	// expect value
+	// Expect the object revision after the wake.
 	nrev := <-revCh
 	if nrev != outRev {
 		t.Fatalf("expected new rev %d to be equal to old %d", nrev, outRev)
@@ -585,8 +585,8 @@ func recvWatchLoopValue[T any](t *testing.T, ch <-chan T, name string) T {
 
 // TestWatchLoopReleasesObjectStatePerIteration proves the loop hands back every
 // object handle it takes. A remote world state allocates a server-side resource
-// per GetObject, so a loop that watched a busy object for minutes used to leave
-// one tracked handle behind per revision.
+// per GetObject, so a loop watching a busy object for minutes must release each
+// handle to avoid leaving one tracked handle behind per revision.
 func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 	// Bound the object-release watch lifetime and cancel it on test exit.
 	ctx, cancel := context.WithCancel(t.Context())

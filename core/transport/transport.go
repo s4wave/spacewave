@@ -54,16 +54,17 @@ type SessionTransport struct {
 	linkControllers []*transport_controller.Controller
 	// startLocalTransport optionally attaches a process-local transport.
 	startLocalTransport LocalTransportFunc
-	// authorizePeer admits remote peers to gated links and services; nil refuses all.
+	// authorizePeer admits remote peers to gated links and services. Nil
+	// refuses all.
 	authorizePeer transport_controller.PeerAuthorizer
-	// watchPeers reports changes to the peers authorizePeer admits; nil
+	// watchPeers reports changes to the peers authorizePeer admits. Nil
 	// reports none.
 	watchPeers PeerAuthorizationWatch
 	// authorizeLink admits to a listener's links peers that authorizePeer
-	// refuses, without the service authority authorizePeer grants; nil adds
+	// refuses, without the service authority authorizePeer grants. Nil adds
 	// none.
 	authorizeLink transport_controller.PeerAuthorizer
-	// watchLinks reports changes to the peers authorizeLink admits; nil
+	// watchLinks reports changes to the peers authorizeLink admits. Nil
 	// reports none.
 	watchLinks PeerAuthorizationWatch
 	// authorizeDEXRequest checks incoming block reads against the creator's authority.
@@ -91,7 +92,7 @@ type SessionTransport struct {
 	frames *frametrack.SubscriptionRegistry
 	// cancel cancels the running Execute when the transport fails.
 	cancel context.CancelFunc
-	// phase is the lifecycle phase; bcast guards it together with err and
+	// phase is the lifecycle phase. bcast guards phase together with err and
 	// stage below.
 	phase transportPhase
 	// ready closes when the child bus and local controllers become ready.
@@ -108,13 +109,13 @@ type SessionTransport struct {
 type transportPhase uint8
 
 const (
-	// The zero phase is the state before the first Execute attempt.
+	// _ is the zero phase before the first Execute attempt.
 	_ transportPhase = iota
 	// phaseStarting means the local controllers are still coming up.
 	phaseStarting
 	// phaseReady means the child bus and local controllers are running.
 	phaseReady
-	// phaseFailed means the transport cannot run again; err says why.
+	// phaseFailed means the transport cannot run again. err says why.
 	phaseFailed
 )
 
@@ -256,7 +257,8 @@ func (t *SessionTransport) WithChildBus(ctx context.Context, fn func(context.Con
 }
 
 // GetLinkedPeerIDsSnapshotWithWait returns linked peer IDs and their change channels.
-// Each controller retains its link state; callers wait on all returned channels.
+// Each controller retains its link state. Callers wait on all returned
+// channels.
 func (t *SessionTransport) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[peer.ID]struct{}, []<-chan struct{}) {
 	// Snapshot controller membership together with its notification channel.
 	var controllers []*transport_controller.Controller

@@ -16,7 +16,7 @@ type Peer interface {
 	GetPubKey() crypto.PubKey
 
 	// GetPrivKey returns the private key.
-	// This may require an extra lookup operation.
+	// GetPrivKey may require an extra lookup.
 	// Returns ErrNoPrivKey if the private key is unavailable.
 	GetPrivKey(ctx context.Context) (crypto.PrivKey, error)
 }

@@ -47,7 +47,7 @@ func TestRedactionStripsOwnBodies(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each redaction names one target with a public reason.
+	// Each redaction selects one target with a public reason.
 	redaction := func(target string) *chat_rpc.SendMessageRequest {
 		return &chat_rpc.SendMessageRequest{Content: &ChatMessageContent{Content: &ChatMessageContent_Redaction{Redaction: &ChatRedaction{TargetKey: target, Reason: "typo"}}}}
 	}
@@ -101,7 +101,8 @@ func TestModeratedRedaction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each person signs with their own device; owner reports the signer's role.
+	// Each person signs with their own device.
+	// owner reports the signer's role.
 	apply := func(person string, owner bool, op world.Operation) error {
 		authorCtx := world.WithOperationOwner(world.WithOperationPerson(ctx, person), owner)
 		_, _, err := ws.ApplyWorldOp(authorCtx, op, peer.ID(person+"-device"))
@@ -164,7 +165,7 @@ func TestModeratedRedaction(t *testing.T) {
 	}
 	requireRedacted(bobKey, envelopedKey)
 
-	// Only a moderator may name a message not held yet.
+	// Only a moderator may target a message not held yet.
 	early := &ChatRedaction{TargetKey: envelopeKey("$later"), TargetEnvelopeId: "$later"}
 	if _, err := send("carol", false, redaction("carol-2", early)); !errors.Is(err, ErrChatRedactionForbidden) {
 		t.Fatalf("writer redacted a message not held: %v", err)

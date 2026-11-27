@@ -31,7 +31,8 @@ type Controller struct {
 	bus bus.Bus
 	// conf selects manifest roots and IDs.
 	conf *Config
-	// fetchManifestIDRe filters requested manifest IDs; nil accepts every ID.
+	// fetchManifestIDRe filters requested manifest IDs.
+	// nil accepts every ID.
 	fetchManifestIDRe *regexp.Regexp
 
 	// mtx guards the collection lifecycle and snapshot.
@@ -272,7 +273,7 @@ func (k manifestCollectionKey) equal(other manifestCollectionKey) bool {
 }
 
 // addTrustedRoot adds root to the host's trusted root set. A host that keeps
-// no set, such as a development build, skips it.
+// no set, such as a development build, skips adding the root.
 func (c *Controller) addTrustedRoot(ctx context.Context, root bldr_manifest_trust.Root) error {
 	// Look up the host's set without waiting for one.
 	set, ref, err := bldr_manifest_trust.ExLookupTrustedRoots(ctx, c.bus, true)

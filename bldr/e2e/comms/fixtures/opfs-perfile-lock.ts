@@ -1,4 +1,4 @@
-// opfs-perfile-lock.ts - Per-file WebLock + OPFS contention fixture.
+// opfs-perfile-lock.ts: Per-file WebLock + OPFS contention fixture.
 //
 // Validates the locking protocol used by hydra's OPFS volume stores:
 // - Per-file WebLock acquisition (exclusive locks per file, not per store)
@@ -37,7 +37,7 @@ function arraysEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 // acquireFileExclusive mimics the Go filelock.AcquireFile protocol:
-// acquire exclusive WebLock for the file, then open a writable handle.
+// acquire an exclusive WebLock for the file, then open a writable handle.
 async function acquireFileExclusive(
   dir: FileSystemDirectoryHandle,
   name: string,
@@ -98,7 +98,7 @@ async function run() {
       await writable.close()
       release()
 
-      // Read back.
+      // Read the file back.
       const fh = await testDir.getFileHandle('file-a')
       const file = await fh.getFile()
       const text = await file.text()
@@ -160,7 +160,7 @@ async function run() {
       for (let i = 0; i < n; i++) {
         promises.push(
           (async () => {
-            // Acquire exclusive lock.
+            // Acquire an exclusive lock.
             let releaseLock: (() => void) | null = null
             await new Promise<void>((resolve) => {
               navigator.locks.request(lockName, { mode: 'exclusive' }, () => {
@@ -171,13 +171,13 @@ async function run() {
               })
             })
 
-            // Read current value.
+            // Read the current value.
 
             const fh = await testDir.getFileHandle('counter')
             const file = await fh.getFile()
             const val = parseInt(await file.text(), 10)
 
-            // Write incremented value.
+            // Write the incremented value.
             const w = await fh.createWritable()
             await w.write(String(val + 1))
             await w.close()
@@ -188,7 +188,7 @@ async function run() {
       }
       await Promise.all(promises)
 
-      // Verify final value.
+      // Verify the final value.
       const fhFinal = await testDir.getFileHandle('counter')
       const fileFinal = await fhFinal.getFile()
       const finalVal = parseInt(await fileFinal.text(), 10)
@@ -205,7 +205,7 @@ async function run() {
         create: true,
       })
 
-      // Simulate 3 block puts with 2-char shard prefix.
+      // Simulate 3 block puts with a 2-char shard prefix.
       const blocks = [
         { key: 'ab1234', data: new Uint8Array([1, 2, 3]) },
         { key: 'ab5678', data: new Uint8Array([4, 5, 6]) },
@@ -230,7 +230,7 @@ async function run() {
         release()
       }
 
-      // Read back and verify.
+      // Read the blocks back and verify them.
       let allOk = true
       for (const b of blocks) {
         const shard = b.key.substring(0, 2)
@@ -244,7 +244,7 @@ async function run() {
         }
       }
 
-      // Idempotent put: writing same key again should not error.
+      // Idempotent put: writing the same key again should not error.
       const shard0 = blocks[0].key.substring(0, 2)
 
       const shardDir0 = await blocksDir.getDirectoryHandle(shard0)
@@ -268,7 +268,7 @@ async function run() {
       })
       const objLock = `${testId}|objstore`
 
-      // Write under exclusive lock.
+      // Write under an exclusive lock.
       await navigator.locks.request(
         objLock,
         { mode: 'exclusive' },
@@ -306,7 +306,7 @@ async function run() {
         },
       )
 
-      // Read under shared lock.
+      // Read under a shared lock.
       let readOk = true
       await navigator.locks.request(objLock, { mode: 'shared' }, async () => {
         const hex1 = hexEncode(new Uint8Array([0x01, 0x02]))
@@ -328,7 +328,7 @@ async function run() {
       const acidLock = `${testId}|acid`
       const events: string[] = []
 
-      // Start exclusive write.
+      // Start an exclusive write.
       const writeDone = navigator.locks.request(
         acidLock,
         { mode: 'exclusive' },
@@ -339,10 +339,10 @@ async function run() {
         },
       )
 
-      // Give write a moment to acquire.
+      // Give the write a moment to acquire the lock.
       await new Promise((r) => setTimeout(r, 20))
 
-      // Start shared read (should wait for write to finish).
+      // Start a shared read (the read should wait for the write to finish).
       const readDone = navigator.locks.request(
         acidLock,
         { mode: 'shared' },

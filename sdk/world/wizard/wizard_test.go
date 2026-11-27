@@ -1208,7 +1208,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 		t.Fatalf("IDFromPrivateKey: %v", err)
 	}
 
-	// Step 1: Create wizard object for forge/cluster.
+	// Step 1: Create a wizard object for forge/cluster.
 	wizardKey := "wizard/forge/cluster/test-1"
 	createWizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 		wizardKey,
@@ -1239,7 +1239,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 	}
 	writeTx.Release()
 
-	// Step 2: Simulate finalize - apply ClusterCreateOp with empty peerId.
+	// Step 2: Simulate finalize: apply ClusterCreateOp with empty peerId.
 	// The Go handler defaults peerId to the sender.
 	clusterKey := "forge/cluster/test-cluster-abc"
 	clusterOp := &forge_cluster.ClusterCreateOp{
@@ -1275,7 +1275,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 	}
 	writeTx2.Release()
 
-	// Step 4: Verify cluster exists and wizard is gone.
+	// Step 4: Verify the cluster exists and the wizard is gone.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction(verify): %v", err)
@@ -1333,7 +1333,7 @@ func TestForgeWizardChain(t *testing.T) {
 	jobWizardKey := "wizard/forge/job/chain-1"
 	taskWizardKey := "wizard/forge/task/chain-1"
 
-	// Phase 1: Create cluster via wizard finalize.
+	// Phase 1: Create a cluster via wizard finalize.
 	{
 		wizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 			clusterWizardKey, "wizard/forge/cluster",
@@ -1359,7 +1359,7 @@ func TestForgeWizardChain(t *testing.T) {
 		}
 		tx.Release()
 
-		// Finalize: create cluster + delete wizard.
+		// Finalize: create a cluster + delete the wizard.
 		clusterOp := &forge_cluster.ClusterCreateOp{
 			ClusterKey: clusterKey,
 			Name:       "chain-cluster",
@@ -1389,7 +1389,7 @@ func TestForgeWizardChain(t *testing.T) {
 		tx.Release()
 	}
 
-	// Phase 2: Create job via wizard finalize (linked to cluster).
+	// Phase 2: Create a job via wizard finalize (linked to the cluster).
 	{
 		wizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 			jobWizardKey, "wizard/forge/job",
@@ -1415,7 +1415,8 @@ func TestForgeWizardChain(t *testing.T) {
 		}
 		tx.Release()
 
-		// Finalize: create job with one task def, assigned to cluster, delete wizard.
+		// Finalize: create a job with one task def, assigned to the cluster,
+		// delete the wizard.
 		jobOp := &forge_job_ops.ForgeJobCreateOp{
 			JobKey:     jobKey,
 			ClusterKey: clusterKey,
@@ -1447,7 +1448,7 @@ func TestForgeWizardChain(t *testing.T) {
 		tx.Release()
 	}
 
-	// Phase 3: Create task via wizard finalize (linked to job).
+	// Phase 3: Create a task via wizard finalize (linked to the job).
 	{
 		wizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 			taskWizardKey, "wizard/forge/task",
@@ -1473,7 +1474,7 @@ func TestForgeWizardChain(t *testing.T) {
 		}
 		tx.Release()
 
-		// Finalize: create task linked to job, delete wizard.
+		// Finalize: create a task linked to the job, delete the wizard.
 		taskOp := &forge_task_ops.ForgeTaskCreateOp{
 			TaskKey:   taskKey,
 			Name:      "chain-task",
@@ -1505,7 +1506,8 @@ func TestForgeWizardChain(t *testing.T) {
 		tx.Release()
 	}
 
-	// Verify: all three objects exist, all wizard objects deleted, graph edges correct.
+	// Verify: all three objects exist, all wizard objects are deleted, and the
+	// graph edges are correct.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction(verify): %v", err)
@@ -1665,7 +1667,7 @@ func TestGitRepoWizardOp(t *testing.T) {
 		// Choose the Git repository wizard key for its lifecycle checks.
 		wizardKey := "wizard/git/repo/lifecycle-1"
 
-		// Create wizard object for git/repo.
+		// Create a wizard object for git/repo.
 		wizardOp := s4wave_wizard.NewCreateWizardObjectOp(
 			wizardKey, "wizard/git/repo",
 			"git/repo", "git/repo/", "my-repo", time.Now(),
@@ -1691,7 +1693,7 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 		tx.Release()
 
-		// Verify wizard exists.
+		// Verify the wizard exists.
 		readTx, err := engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction(verify create): %v", err)
@@ -1708,7 +1710,7 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 		readTx.Release()
 
-		// Delete wizard (simulating finalize cleanup).
+		// Delete the wizard (simulating finalize cleanup).
 		tx, err = engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction(delete): %v", err)
@@ -1724,7 +1726,7 @@ func TestGitRepoWizardOp(t *testing.T) {
 		}
 		tx.Release()
 
-		// Verify wizard deleted.
+		// Verify the wizard is deleted.
 		readTx, err = engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatalf("NewTransaction(verify delete): %v", err)

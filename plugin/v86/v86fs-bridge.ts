@@ -1,15 +1,15 @@
 /**
- * v86fs-bridge.ts - V86FSAdapter backed by v86fs SRPC client.
+ * v86fs-bridge.ts: V86FSAdapter backed by v86fs SRPC client.
  *
- * Bridges the v86 VirtioV86FS adapter callback interface to a remote
- * v86fs SRPC server over a bidirectional stream. Each adapter callback
+ * The module bridges the v86 VirtioV86FS adapter callback interface to a
+ * remote v86fs SRPC server over a bidirectional stream. Each adapter callback
  * sends a tagged request and resolves the reply callback when the
  * matching tagged response arrives. Untagged server notifications wait for
  * a notifier (the guest device) and are then delivered in order.
  *
  * Adapted from forge/lib/v86/bun/v86fs-bridge.ts for the alpha plugin
- * SharedWorker context. Uses BackendAPI SRPC (MessagePort to Go WASM)
- * instead of unix socket.
+ * SharedWorker context. The bridge uses BackendAPI SRPC (MessagePort to Go
+ * WASM) instead of a unix socket.
  */
 
 import { pushable } from 'it-pushable'
@@ -95,14 +95,17 @@ export interface V86fsAdapter {
 }
 
 /**
- * Creates a V86FSAdapter backed by a v86fs SRPC client.
+ * createV86fsSrpcAdapter creates a V86FSAdapter backed by a v86fs SRPC client.
  *
  * The adapter implements all v86fs callbacks by forwarding them as
  * tagged SRPC requests and dispatching replies back to the caller.
  *
- * @param rpc - SRPC ProtoRpc connection to the v86fs server (typically api.client).
- * @param serviceOpts - Optional service routing options (e.g. { service: 'prefix/...' }).
- * @returns adapter compatible with V86 constructor's virtio_v86fs_adapter option.
+ * @param rpc: SRPC ProtoRpc connection to the v86fs server
+ * (typically api.client).
+ * @param serviceOpts: Optional service routing options
+ * (e.g. { service: 'prefix/...' }).
+ * @returns adapter compatible with V86 constructor's
+ * virtio_v86fs_adapter option.
  */
 export function createV86fsSrpcAdapter(
   rpc: ProtoRpc,
@@ -120,10 +123,10 @@ export function createV86fsSrpcAdapter(
   let notifier: V86fsNotifier | undefined
   const heldNotifications: V86fsMessageType[] = []
 
-  // Open bidirectional SRPC stream.
+  // Open the bidirectional SRPC stream.
   const responses = client.RelayV86fs(outgoing)
 
-  // Read responses in background, dispatch by tag.
+  // Read responses in the background and dispatch by tag.
   const _readerDone = (async () => {
     for await (const msg of responses) {
       const tag = msg.tag ?? 0
@@ -143,7 +146,7 @@ export function createV86fsSrpcAdapter(
       }
     }
   })().catch(() => {
-    // Stream closed. Reject all pending requests.
+    // The stream closed. Reject all pending requests.
     for (const [, handler] of pending) {
       handler({ tag: 0, body: { case: 'errorReply', value: { status: 5 } } })
     }

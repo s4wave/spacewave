@@ -16,7 +16,7 @@ import (
 // Each node keeps the ID its caller gives it. IDs need not be dense, since the
 // tree's next ID is one past the largest added, so a caller converting another
 // store keeps that store's IDs and needs no map from old IDs to new ones. A
-// node a quad names as predicate or label is pinned, as ApplyDeltas pins it.
+// node a quad uses as predicate or label is pinned, as ApplyDeltas pins it.
 //
 // The stream depends only on the nodes and quads added, not on their order or
 // on where the sorter spilled, so two builds of the same graph stream the
@@ -25,8 +25,8 @@ type Builder struct {
 	sorter *extsort.Sorter
 	// maxID is the largest node ID added.
 	maxID uint64
-	// key and val are scratch for the record being added; the sorter copies
-	// each record, so one buffer of each serves every add.
+	// key holds scratch for the record being added, as does val. The sorter
+	// copies each record, so one buffer of each serves every add.
 	key, val []byte
 }
 
@@ -38,7 +38,7 @@ func NewBuilder(sorter *extsort.Sorter) *Builder {
 
 // AddNode adds node id with value v.
 func (b *Builder) AddNode(id uint64, v *pquads.Value) error {
-	// Write the ID map entry and the unpinned meta; a pin marker merges in.
+	// Write the ID map entry and the unpinned meta. A pin marker merges in.
 	nv := v.ToNative()
 	if id == 0 || nv == nil {
 		return errors.Errorf("node graph build: node %d has no ID or value", id)
@@ -79,7 +79,7 @@ func (b *Builder) AddQuad(s, p, o, l uint64) error {
 }
 
 // add sorts in one record whose key was appended to b.key[:0], and keeps the
-// key's buffer for the next.
+// key's buffer for the next record.
 func (b *Builder) add(key, value []byte) error {
 	b.key = key
 	return b.sorter.Add(key, value)
@@ -117,14 +117,14 @@ func (b *Builder) Write(ctx context.Context, fn func(key, value []byte) error) e
 	return held.flush(fn)
 }
 
-// heldKey is the key Write holds until it has seen all its records.
+// heldKey is the key Write holds until Write has seen all the key's records.
 type heldKey struct {
 	key, value []byte
 	// ok is whether a key is held.
 	ok bool
 	// meta is whether the key is a node's meta key.
 	meta bool
-	// pinned is whether a pin marker named the node.
+	// pinned is whether a pin marker selected the node.
 	pinned bool
 }
 
@@ -161,7 +161,7 @@ func (h *heldKey) merge(value []byte) error {
 	return nil
 }
 
-// flush passes the held key to fn, pinning its meta when a marker named it.
+// flush passes the held key to fn, pinning its meta when a marker selected it.
 func (h *heldKey) flush(fn func(key, value []byte) error) error {
 	// Nothing is held before the first key.
 	if !h.ok {

@@ -84,8 +84,8 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 }
 
 // TestWorldStateSetGraphQuadTargetWrittenLater checks that a relationship may
-// name a target not yet written, reads from the target once it exists, and is
-// removed with the target.
+// reference a target not yet written, reads from the target once it exists,
+// and is removed with the target.
 func TestWorldStateSetGraphQuadTargetWrittenLater(t *testing.T) {
 	// Open a fresh write state holding only the source.
 	ctx := context.Background()

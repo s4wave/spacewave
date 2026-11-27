@@ -656,7 +656,7 @@ function DirectiveRow({
   )
 }
 
-// DirectiveToolbar switches the directives layout and, in the tree, roots it
+// DirectiveToolbar switches the directives layout and roots the tree
 // at one ConfigSet key.
 function DirectiveToolbar({
   layout,

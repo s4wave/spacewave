@@ -19,20 +19,21 @@ import (
 //   - plugin/{plugin-id}/{service id}
 //   - plugin-host/{service id}
 type LookupRpcServiceResolver struct {
-	// h is the handler
+	// h is the handler.
 	h LookupRpcClientHandler
-	// pluginID is the plugin identifier
-	// if empty we are looking up the plugin host
+	// pluginID is the plugin identifier.
+	// If empty, the resolver looks up the plugin host.
 	pluginID string
-	// stripServiceIDPrefix is the prefix to strip from the service id, if any
+	// stripServiceIDPrefix is the prefix to strip from the service id, if
+	// any.
 	stripServiceIDPrefix string
 }
 
 // NewLookupRpcServiceResolver constructs a new LookupRpcServiceResolver.
 //
-// Usually you will want to use ResolveLookupRpcService instead.
+// Prefer ResolveLookupRpcService in most cases.
 // If pluginID is empty, addresses the plugin host.
-// stripServiceIDPrefix is the prefix to strip from the service id, if any
+// stripServiceIDPrefix is the prefix to strip from the service id, if any.
 func NewLookupRpcServiceResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *LookupRpcServiceResolver {
 	return &LookupRpcServiceResolver{
 		h:                    h,
@@ -86,12 +87,13 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		targetServiceID = strings.TrimPrefix(serviceID, f.stripPrefix)
 	}
 
-	// If target service ID is empty after stripping, we can't forward
+	// If the target service ID is empty after stripping, the invoker
+	// cannot forward.
 	if targetServiceID == "" {
 		return false, nil
 	}
 
-	// Create outgoing stream via client
+	// Create an outgoing stream via the client.
 	outgoingStream, err := f.client.NewStream(strm.Context(), targetServiceID, methodID, nil)
 	if err != nil {
 		return true, errors.Wrap(err, "failed to create outgoing stream")
@@ -204,8 +206,9 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 	}
 
 	// rel is nil for the loopback and plugin-host client paths
-	// (WaitPluginClient/WaitPluginHostClient return a nil release func there), so
-	// guard the deferred release to avoid a nil func call when the deferred runs.
+	// (WaitPluginClient/WaitPluginHostClient return a nil release func
+	// there), so guard the deferred release to avoid a nil func call when
+	// the defer runs.
 	if rel != nil {
 		defer rel()
 	}

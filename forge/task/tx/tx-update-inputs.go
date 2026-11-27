@@ -28,13 +28,13 @@ func NewTxUpdateInputsTxn() Transaction {
 	return &TxUpdateInputs{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction's type.
 func (t *TxUpdateInputs) GetTxType() TxType {
 	return TxType_TxType_UPDATE_INPUTS
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate checks the transaction cursorily.
+// Note: Validate should not fetch network data.
 func (t *TxUpdateInputs) Validate() error {
 	// Validate that the input update contains only permitted input values.
 	valueSet := t.GetValueSet()
@@ -64,7 +64,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 		return world.NewOpRefusedError(errors.New("unexpected empty root task object"))
 	}
 
-	// if nothing changed we will exit without writing anything
+	// If nothing changed, ExecuteTx exits without writing anything.
 	var dirty bool
 
 	// check if the target changed
@@ -81,7 +81,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 			return errors.Wrap(err, "follow target ref")
 		}
 
-		// compare (note: existingTgt and tgt both might be nil)
+		// Compare the targets (note: existingTgt and tgt both might be nil).
 		if !existingTgt.EqualVT(tgt) {
 			dirty = true
 			existingTgtBcs.SetBlock(tgt, true)
@@ -101,7 +101,8 @@ func (t *TxUpdateInputs) ExecuteTx(
 	if t.GetResetInputs() {
 		valueSet = forge_target.NewValueSet()
 
-		// note: if reset_inputs is set, we transition to PENDING unconditionally.
+		// note: if reset_inputs is set, the Task transitions to PENDING
+		// unconditionally.
 		dirty = true
 	} else {
 		valueSet = valueSetBefore.Clone()
@@ -137,14 +138,14 @@ func (t *TxUpdateInputs) ExecuteTx(
 		return nil
 	}
 
-	// Previous outputs remain on the completed Pass; they do not represent
+	// Previous outputs remain on the completed Pass. They do not represent
 	// these new input values.
 	valueSet.Outputs = nil
 	valueSet.SortValues()
 	root.ValueSet = valueSet
 	bcs.SetBlock(root, true)
 
-	// check if we need to transition to PENDING
+	// Check if the Task needs to transition to PENDING.
 	taskState := root.GetTaskState()
 	if taskState == forge_task.State_TaskState_PENDING {
 		// no more to do
@@ -181,7 +182,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 		}
 	}
 
-	// mark as pending
+	// Mark the Task as pending.
 	root.TaskState = forge_task.State_TaskState_PENDING
 	root.Result = nil
 

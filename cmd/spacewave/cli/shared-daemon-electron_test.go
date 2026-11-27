@@ -14,8 +14,8 @@ import (
 // TestSharedDaemonElectron checks both core routes through an actual Electron
 // window, preload bridge, dedicated Worker, and retained Unix-socket client.
 // The distribution fixture loads the core through production plugin RPC while
-// keeping the core implementation in-process; it does not select a packaged
-// distribution or plugin artifact.
+// keeping the core implementation in-process. The fixture does not select a
+// packaged distribution or plugin artifact.
 //
 // These tests are opt-in. Build the app with
 // "go run ./e2e/shareddaemon/prepare <dir>" after "go mod vendor", set
@@ -47,7 +47,8 @@ func runSharedDaemonElectron(t *testing.T, app sharedElectronApp, shape string) 
 	renameFromWorker(t, d, view, "worker first open")
 	cli.requireName(t, "worker first open")
 
-	// Close the BrowserWindow; its IPC reply can disappear with the renderer.
+	// Close the BrowserWindow. Its IPC reply can disappear with the
+	// renderer.
 	// The daemon status watch confirms the joined shell result, and closing a
 	// window never stops the daemon.
 	_ = view.Remove(d.ctx)
@@ -94,8 +95,9 @@ func TestSharedDaemonElectronQuit(t *testing.T) {
 		d.waitExited(t)
 	})
 
-	// Quit with another client and a background service declines, names both,
-	// and leaves the retained CLI watch running; Quit stops the daemon once they leave.
+	// Quit with another client and a background service declines, reports
+	// both, and leaves the retained CLI watch running. Quit stops the
+	// daemon once the client and service leave.
 	t.Run("busy-then-stop", func(t *testing.T) {
 		// Hold the daemon with a CLI and a background service beside the desktop.
 		d := newSharedElectronDaemon(t, app, opts)

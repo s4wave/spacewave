@@ -29,7 +29,7 @@ type StatusResource struct {
 	b    bus.Bus
 	sess session.Session
 	// rendererRecoveryCtr stores renderer-published, session-local recovery
-	// facts. It is diagnostic status only and is not persisted.
+	// facts. The facts are diagnostic status only and are not persisted.
 	rendererRecoveryCtr *ccontainer.CContainer[*s4wave_status.ReportRecoveryStatusRequest]
 }
 
@@ -210,7 +210,8 @@ func (r *StatusResource) WatchDirectives(
 
 // buildDirectiveInfos describes dirs with their references.
 // Each directive's id is its position in dirs plus one.
-// A reference names its origin directive by that id when the origin is in dirs.
+// A reference references its origin directive by that id when the origin is in
+// dirs.
 func buildDirectiveInfos(dirs []directive.Instance) []*s4wave_status.DirectiveInfo {
 	// Number the directives.
 	ids := make(map[directive.Instance]uint32, len(dirs))
@@ -289,7 +290,7 @@ func (r *StatusResource) WatchNetworkStats(
 }
 
 // ReportRecoveryStatus stores renderer-owned runtime recovery facts for status
-// composition. The report is volatile diagnostic state; it never mutates
+// composition. The report is volatile diagnostic state. It never mutates
 // release, Manifest, package, boot, or asset-serving state.
 func (r *StatusResource) ReportRecoveryStatus(
 	_ context.Context,
@@ -494,7 +495,7 @@ func buildPluginsResponse(
 
 // pluginSpaceID returns the engine ID of the Space a plugin instance serves: the
 // Space runtime's scheduler key, or on the root host, an instance key that
-// names a Space engine. Empty for system plugins.
+// references a Space engine. Empty for system plugins.
 func pluginSpaceID(schedulerKey, instanceKey string) string {
 	if schedulerKey != "" {
 		return schedulerKey

@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Configuration - these will be updated with actual peer IDs
+// Configuration values will be updated with actual peer IDs.
 var (
 	signalingServerID = "SIGNALING_SERVER_PEER_ID" // Replace with actual signaling server peer ID
 	backendPeerID     = "BACKEND_PEER_ID"          // Replace with actual backend peer ID

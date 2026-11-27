@@ -19,11 +19,11 @@ type IoFS interface {
 
 // FS implements the fs.FS interface with a FSHandle.
 type FS struct {
-	// ctx is the context to use for ops
+	// ctx is the context to use for ops.
 	ctx context.Context
-	// handle is the reference to the unixfs
+	// handle is the reference to the unixfs.
 	handle *unixfs.FSHandle
-	// ignorePath ignores the passed path in Open
+	// ignorePath ignores the passed path in Open.
 	ignorePath bool
 }
 

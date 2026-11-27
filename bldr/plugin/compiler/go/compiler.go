@@ -560,7 +560,8 @@ func (c *Controller) BuildPlugin(
 	// Start the embedded config set for the plugin startup controllers.
 	embedConfigSet := make(configset_proto.ConfigSetMap)
 
-	// applyToConfigSet applies the config to the target config set if it does not already exist
+	// applyToConfigSet applies the config to the target config set if the config
+	// does not already exist.
 	applyToConfigSet := func(id string, conf config.Config) error {
 		// Skip if this config ID already exists in the map
 		if _, ok := embedConfigSet[id]; ok {
@@ -638,7 +639,8 @@ func (c *Controller) BuildPlugin(
 
 		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
 		if len(webPkgs) != 0 {
-			// NOTE: add the actual config later after we build the web pkgs
+			// NOTE: add the actual config after the compiler builds the web
+			// pkgs
 			addGoPkg("github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-assets")
 		}
 	}
@@ -744,9 +746,9 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// track web pkg refs
-	// NOTE: We specify the list of web pkgs in the parameters to BuildPlugin.
-	// NOTE: However: we only actually build the web pkgs that are referenced by the code.
-	// NOTE: This is because we need to tree-shake which imports are referenced.
+	// NOTE: The caller specifies the list of web pkgs in BuildPlugin parameters.
+	// NOTE: However, the compiler only builds web pkgs referenced by the code.
+	// NOTE: Building only referenced web pkgs tree-shakes unreferenced imports.
 	var webPkgRefs web_pkg.WebPkgRefSlice
 
 	// parse bldr:esbuild comments and build import path definition list
@@ -892,7 +894,7 @@ func (c *Controller) BuildPlugin(
 	// sort go variable defs
 	vardef.SortPluginVars(goVariableDefs)
 
-	// NOTE: we add the Go pkgs to the list earlier in this function.
+	// NOTE: BuildPlugin adds the Go pkgs to the list earlier in the function.
 	webPkgIDs := webPkgRefs.ToWebPkgIDList()
 	if useGoScript && buildGoScriptSharedProvider && !slices.Contains(webPkgIDs, goScriptSharedWebPkgID) {
 		webPkgIDs = append(webPkgIDs, goScriptSharedWebPkgID)
@@ -909,7 +911,8 @@ func (c *Controller) BuildPlugin(
 		}
 
 		// add the web packages UnixFS-backed resolver to the config set.
-		// we know the list of included web pkg ids, so provide it explicitly.
+		// The compiler knows the included web pkg ids, so provide the list
+		// explicitly.
 		// resolves LookupWebPkg directive
 		if err := applyToConfigSet(
 			"web-pkgs-fs",
@@ -923,7 +926,8 @@ func (c *Controller) BuildPlugin(
 			return nil, err
 		}
 
-		// tell the web plugin to forward web pkgs to our plugin assets fs.
+		// tell the web plugin to forward web pkgs to the compiled plugin assets
+		// fs.
 		if webPluginID != "" {
 			if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg_assets.Config{
 				WebPluginId:    webPluginID,
@@ -1012,7 +1016,7 @@ func (c *Controller) BuildPlugin(
 		timeStart := time.Now()
 		// Raw GoScript browser plugin bundles can be hundreds of megabytes
 		// before Oxc compaction. Keep dev FetchManifest output runnable by
-		// always serving the mangled entrypoint; the generated package tree
+		// always serving the mangled entrypoint. The generated package tree
 		// remains under the working path for source-level inspection. Dev
 		// builds skip the compress pass, which costs most of the minify time
 		// for a few percent of output size.
@@ -1420,9 +1424,11 @@ func newBuildTagsForAnalyze(
 	return buildTags
 }
 
-// FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.
-// Assumes we are in dev mode (not release mode).
-// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
+// FastRebuildPlugin compiles the plugin once skipping running the Go compiler
+// if possible.
+// Assumes the compiler is in dev mode (not release mode).
+// Assumes the previous result is already checked out to outDistPath and
+// outAssetsPath.
 // Returns nil, nil if fast rebuild is not applicable.
 func (c *Controller) FastRebuildPlugin(
 	ctx context.Context,
@@ -1449,7 +1455,7 @@ func (c *Controller) FastRebuildPlugin(
 	// If any Go or Asset files changed, skip fast rebuild.
 	// The manifest builder will be restarted when the sub-manifest changes.
 	// Those changed files won't appear in the changedFiles set.
-	// Therefore if changedFiles has anything in it, we changed an Asset or a Go file.
+	// Therefore a nonempty changedFiles set means an Asset or a Go file changed.
 	if len(changedFiles) != 0 {
 		// Skip fast rebuild: non-esbuild asset changed.
 		return nil, nil
@@ -1570,7 +1576,8 @@ func (c *Controller) FastRebuildPlugin(
 	web_pkg.SortWebPkgRefs(updatedWebPkgRefs)
 
 	// Compare the web pkg refs to see if they changed.
-	// If so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
+	// If so, the compiler must rebuild fully to pick up the new refs and rebuild
+	// the web pkgs.
 	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
 		le.Info("references to web pkgs changed: forcing a full re-build")
 		return nil, nil
@@ -1604,7 +1611,8 @@ func (c *Controller) FastRebuildPlugin(
 	updatedInputManifest := prevInputManifest.CloneVT()
 	updatedInputMeta := inputMeta.CloneVT()
 	if updatedInputMeta.DevInfo == nil {
-		// Ensure DevInfo exists, though it should if we got this far from a previous build
+		// Ensure DevInfo exists, though the previous build should have created
+		// DevInfo.
 		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
 	}
 
@@ -1662,9 +1670,10 @@ func buildEsbuildGoVariableDefs(
 	esbuildBundleVarMeta []*EsbuildBundleVarMeta,
 	esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta,
 ) ([]*vardef.PluginVar, error) {
-	// Index the script outputs by entrypoint ID, first output winning; the
-	// script, not the css bundle, is the entrypoint a variable names.
-	// TODO: is there a better way to determine the "actual" entrypoint (not the css bundle)?
+	// Index the script outputs by entrypoint ID, first output winning. The
+	// script, not the css bundle, is the entrypoint a variable selects.
+	// TODO: is there a better way to determine the "actual" entrypoint
+	// (not the css bundle)?
 	outputsByEntrypointID := make(map[string]*bldr_web_bundler_esbuild.EsbuildOutputMeta, len(esbuildOutputMeta))
 	for _, output := range esbuildOutputMeta {
 		entrypointPath := output.GetPath()

@@ -345,7 +345,7 @@ func (a *ProviderAccount) createSessionTransportForSession(
 
 // authorizeDEXRequest retains the SharedObject authority source for one peer.
 func (a *ProviderAccount) authorizeDEXRequest(ctx context.Context, config *dex_solicit.Config, requester peer.ID) (dex_solicit.RequestAccess, error) {
-	// Mount only the SharedObject named by this DEX protocol context.
+	// Mount only the SharedObject referenced by this DEX protocol context.
 	ref := a.buildSharedObjectRef(string(config.GetProtocolContext()))
 	object, releaseObject, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {

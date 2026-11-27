@@ -100,7 +100,8 @@ func (r *SessionResource) WatchPluginApprovals(
 }
 
 // pluginApprovalPeer returns the peer that owns the session's plugin
-// decisions, or empty when the session has none, which refuses every root.
+// decisions, or an empty string when the session has no peer. Returning an
+// empty string refuses every root.
 func (r *SessionResource) pluginApprovalPeer() string {
 	peerID := r.session.GetPeerId()
 	if len(peerID) == 0 {

@@ -11,7 +11,8 @@ import (
 // keySpan selects the keys under a prefix whose next component lies between
 // two inclusive bounds. Each bound is an encoded component: 0 for NULL, or 1
 // and an ordered word (see orderedWord). The span may select more keys than its
-// range, never fewer; the engine filters the rest because PreciseMatch is false.
+// range, never fewer. The engine filters the rest because PreciseMatch is
+// false.
 type keySpan struct {
 	// lower is the least component, or nil to start at the prefix.
 	lower []byte
@@ -19,7 +20,8 @@ type keySpan struct {
 	upper []byte
 }
 
-// Components bounding the NULL and non-NULL keys of a column.
+// nullComponent bounds the NULL and non-NULL keys of a column together with
+// valueComponent and afterValues.
 var (
 	nullComponent  = []byte{0}
 	valueComponent = []byte{1}
@@ -56,7 +58,7 @@ func spanOf(ctx *sql.Context, typ sql.Type, column sql.MySQLRangeColumnExpr) key
 // holds every key of a value of typ within the range. Converting a number
 // rounds it to the nearest value of typ, which never passes the least value
 // above a lower bound or the greatest value below an upper bound. A bound past
-// either end of typ's range selects all or none of its values; GMS wraps a
+// either end of typ's range selects all or none of its values. GMS wraps a
 // negative into an unsigned type, so the converted value is not used there.
 // It returns nil, an open bound, when the key does not convert.
 func boundComponent(ctx *sql.Context, typ sql.Type, key any, lower bool) []byte {

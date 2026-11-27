@@ -14,7 +14,7 @@ test.describe('Beforeunload Snapshot Race', () => {
     expect(results.memMB).toBe(16)
 
     if (results.opfsAvailable === false) {
-      // OPFS not available (e.g. WebKit in Playwright).
+      // OPFS is not available (e.g. WebKit in Playwright).
       console.log('OPFS not available, IDB fallback only')
       console.log(`IDB write: ${results.idbWriteMs.toFixed(2)} ms`)
     } else {

@@ -24,10 +24,10 @@ export function useResourcesContext(): ResourcesContextValue | undefined {
 }
 
 /**
- * Hook that tracks the resource client's connection generation.
+ * useConnectionGeneration tracks the resource client's connection generation.
  * Returns a counter that increments each time the connection is lost and
- * resources are released. Use this as a dependency in useResource to trigger
- * re-creation of resources after reconnection.
+ * resources are released. Use this counter as a dependency in useResource to
+ * trigger re-creation of resources after reconnection.
  */
 export function useConnectionGeneration(client: ResourceClient | null): number {
   return useSyncExternalStore(

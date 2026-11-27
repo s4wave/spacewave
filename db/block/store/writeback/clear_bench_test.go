@@ -120,7 +120,7 @@ func withClearBatch(b *testing.B, batch ClearBatch) {
 // a range of transaction sizes: each transaction removes exactly the batch's
 // blocks, as a hold of 500 ms admits on this disk. A transaction's fixed cost
 // is its begin, the epoch and count reads, the queue head scan and the
-// commit; the rest grows with its blocks. It reports the writer's hold a
+// commit. The rest grows with its blocks. It reports the writer's hold a
 // block, the commit included, and the blocks a second of the whole clear,
 // the prefetch that holds no lock included. Each size clears its own part of
 // one queue.
@@ -152,12 +152,12 @@ func BenchmarkClearPerBlock(b *testing.B) {
 }
 
 // contendedWrites stands in for the production store's writer: each write
-// transaction on the markers first waits turnWait for its turn, as a
-// background writer did behind eviction, checkpoints and player commits, and
-// each Get under it costs getCost more, as a disk under load made each
-// cleared block cost: a cleared block reads its queue entry and whether its
-// eviction entry exists, two reads. It records the longest a transaction held the writer,
-// from its turn to its commit.
+// transaction on the markers first waits turnWait for its turn, as a background
+// writer waits behind eviction, checkpoints and player commits, and each Get
+// under the writer costs getCost more, as each cleared block costs on a disk
+// under load: a cleared block reads its queue entry and whether its eviction
+// entry exists, two reads. It records the longest a transaction held the
+// writer, from its turn to its commit.
 type contendedWrites struct {
 	kvtx.Store
 	turnWait, getCost time.Duration
@@ -185,7 +185,7 @@ func (w *contendedWrites) NewTransaction(ctx context.Context, write bool) (kvtx.
 	return &contendedTx{Tx: tx, w: w, start: time.Now()}, nil
 }
 
-// contendedTx costs each Get getCost and records its hold.
+// contendedTx adds getCost to each Get and records its hold.
 type contendedTx struct {
 	kvtx.Tx
 	w     *contendedWrites
@@ -245,8 +245,8 @@ func (t *contendedTx) record() {
 // 2026-11-09: each turn waited 0.28 s, and a 20 ms hold cleared about 45
 // blocks, so each block cost about 0.44 ms under the writer, two reads of
 // 0.22 ms. The holds run
-// from that 20 ms to 250 ms; it reports the blocks cleared a second, the
-// blocks a turn and the longest hold, the commit included.
+// from that 20 ms to 250 ms. The benchmark reports the blocks cleared a
+// second, the blocks a turn and the longest hold, the commit included.
 //
 //	go test -run '^$' -bench BenchmarkClearContended -benchtime 1x
 func BenchmarkClearContended(b *testing.B) {

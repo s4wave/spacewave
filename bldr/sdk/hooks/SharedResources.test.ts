@@ -166,7 +166,7 @@ describe('SharedResources', () => {
     expect(shared.getSnapshot('failed').error?.message).toBe('boom')
     releaseFailed()
 
-    // The next lease of each mounts again.
+    // The next lease of each key mounts again.
     shared.acquire('empty', empty, null)
     shared.acquire('failed', failed, null)
     expect(empty).toHaveBeenCalledTimes(2)
@@ -202,7 +202,7 @@ describe('SharedResources', () => {
     shared.acquire('k', mount, null)
     await flush()
 
-    // Two tabs see a new account; a passive follower passes none.
+    // Two tabs see a new account, but a passive follower passes no generation.
     shared.acquire('k', mount, null, 'account-b')
     shared.acquire('k', mount, null, 'account-b')
     shared.acquire('k', mount, null)
@@ -295,7 +295,7 @@ describe('useSharedResource', () => {
     const secondSeen: (FakeHandle | null)[] = []
     const otherSeen: (FakeHandle | null)[] = []
 
-    // Render one, two, or three tabs; the third is on another Session.
+    // Render one, two, or three tabs. The third is on another Session.
     const probe = (index: number, seen: (FakeHandle | null)[]) =>
       React.createElement(SessionProbe, { root, index, mount, seen })
     const render = (tabs: number) =>
@@ -316,7 +316,7 @@ describe('useSharedResource', () => {
     await act(flush)
     expect(firstSeen.at(-1)?.id).toBe(10)
 
-    // A second tab on Session 1 sees it on its first render; the third
+    // A second tab on Session 1 sees Session 1 on its first render. The third
     // tab mounts Session 2 separately.
     render(3)
     await act(flush)

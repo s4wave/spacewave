@@ -9,7 +9,7 @@ import (
 
 // fillParticipantAccounts records the account of each participant whose
 // config entry lacks one, when this session owns the Space. The local peer
-// belongs to this account; an admitted peer takes the account of its accepted
+// belongs to this account. An admitted peer takes the account of its accepted
 // mailbox entry. Peers with neither stay blank.
 func (t *sobjectTracker) fillParticipantAccounts(
 	ctx context.Context,
@@ -65,7 +65,7 @@ func (t *sobjectTracker) fillParticipantAccounts(
 	return so.FillParticipantAccounts(ctx, accounts)
 }
 
-// FillParticipantAccounts sets the account of each participant named in
+// FillParticipantAccounts sets the account of each participant listed in
 // accounts, keyed by peer ID, in one signed config change. It leaves a
 // participant that already has an account unchanged.
 func (s *SharedObject) FillParticipantAccounts(

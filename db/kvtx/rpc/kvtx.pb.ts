@@ -151,7 +151,7 @@ export interface KvtxTransactionComplete {
    */
   error?: string
   /**
-   * Committed indicates we successfully committed the transaction.
+   * Committed indicates the store successfully committed the transaction.
    * If error != "" this will be false.
    */
   committed?: boolean
@@ -440,7 +440,7 @@ export const KvtxScanPrefixRequest: MessageType<KvtxScanPrefixRequest> =
 export interface KvtxScanPrefixResponse {
   /**
    * Error is any error scanning the key/value pairs.
-   * If set, this is the final message in the stream.
+   * If set, this response is the final message in the stream.
    */
   error?: string
   /**
@@ -536,7 +536,7 @@ export const KvtxWatchEntry: MessageType<KvtxWatchEntry> =
 export interface KvtxWatchResponse {
   /**
    * Error is any error watching key/value changes.
-   * If set, this is the final message in the stream.
+   * If set, this response is the final message in the stream.
    */
   error?: string
   /**

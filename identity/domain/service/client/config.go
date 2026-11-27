@@ -21,7 +21,7 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 }
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This cursory validation checks if the values "look correct."
 func (c *Config) Validate() error {
 	if err := c.GetDomainInfo().Validate(); err != nil {
 		return err

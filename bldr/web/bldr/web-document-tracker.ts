@@ -53,20 +53,21 @@ interface OpfsWorkerOpenWaiter {
   reject: (err: Error) => void
 }
 
-// WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
+// WebDocumentTracker tracks a set of connected WebDocument and attempts to
 // connect to the remote WebRuntime via these documents, retrying when the
 // owning WebDocument lifecycle closes a stale route.
 //
 // onWebDocumentsExhausted is called if there are no available web documents to
-// connect to and we want a connection with the WebRuntime. Depending on the
-// environment, the callback should attempt to acquire new connections with at
-// least one WebDocument.
+// connect to and the tracker needs a connection with the WebRuntime. Depending
+// on the environment, the callback should attempt to acquire new connections
+// with at least one WebDocument.
 export class WebDocumentTracker {
   // clientUuid is the client uuid to use for WebRuntime clients.
   public readonly clientUuid: string
   // clientType is the client type to use for WebRuntime clients.
   public readonly clientType: WebRuntimeClientType
-  // webRuntimeClient is the client to the webRuntime which accesses via. the tracker.
+  // webRuntimeClient is the client that accesses the webRuntime via the
+  // tracker.
   public readonly webRuntimeClient: WebRuntimeClient
 
   // webDocuments is the list of active WebDocument MessagePorts.
@@ -115,10 +116,11 @@ export class WebDocumentTracker {
       | (() => Promise<void> | void)
       | null,
     logicalClientId?: string,
-    // onOpfsBridgeLost fires when the WebDocument hosting the OPFS bridge worker
-    // is removed, or the broker reports that worker died. The handler re-hosts
-    // the bridge. Removing a non-host WebDocument does not fire it, so an
-    // unrelated tab close never invalidates a healthy mounted volume's handles.
+    // onOpfsBridgeLost fires when the WebDocument hosting the OPFS bridge
+    // worker is removed, or the broker reports that worker died. The handler
+    // re-hosts the bridge. Removing a non-host WebDocument does not fire the
+    // callback, so an unrelated tab close never invalidates a healthy mounted
+    // volume's handles.
     private readonly onOpfsBridgeLost?: (() => Promise<void> | void) | null,
     private readonly onTerminalWebDocumentClose?:
       | (() => Promise<void> | void)
@@ -385,9 +387,9 @@ export class WebDocumentTracker {
   // waitForRuntimeFetchRelay resolves true once a runtime fetch relay becomes
   // available, or false if timeoutMs elapses, the signal aborts, or the tracker
   // closes. After a page client closes there is a brief gap before the next
-  // WebDocument establishes its relay; routing a static plugin asset fetch to
-  // the dying client during that gap fails an in-flight navigation. Callers wait
-  // for the next relay (driven by WebDocument attach and runtime-connected
+  // WebDocument establishes its relay. Routing a static plugin asset fetch to
+  // the dying client during that gap fails an in-flight navigation. Callers
+  // wait for the next relay (driven by WebDocument attach and runtime-connected
   // events, no polling) and retry instead of failing the fetch.
   public waitForRuntimeFetchRelay(
     timeoutMs: number,
@@ -411,7 +413,8 @@ export class WebDocumentTracker {
             settle(true)
             return
           }
-          // Relay still absent: re-arm for the next attach / runtime-connected event.
+          // The relay is still absent: re-arm for the next attach /
+          // runtime-connected event.
           this.webDocumentWaiters.push(waiter)
         },
         reject: () => settle(false),
@@ -434,11 +437,11 @@ export class WebDocumentTracker {
 
   // waitForRuntimeClientReady resolves true once the shared runtime client
   // channel reconnects, or false if timeoutMs elapses or the tracker closes.
-  // After the relaying WebDocument closes, removeWebDocument reroutes the client
-  // through a surviving document; a plugin-asset fetch that failed on the stale
-  // route waits for that reconnect to land before retrying instead of failing
-  // the navigation. waitConn drives and shares the reconnect, so a lost relay
-  // timer never beats a connect that is already in flight.
+  // After the relaying WebDocument closes, removeWebDocument reroutes the
+  // client through a surviving document. A plugin-asset fetch that failed on
+  // the stale route waits for that reconnect to land before retrying instead of
+  // failing the navigation. waitConn drives and shares the reconnect, so a lost
+  // relay timer never beats a connect that is already in flight.
   public async waitForRuntimeClientReady(timeoutMs: number): Promise<boolean> {
     if (this.closed) {
       return false
@@ -642,8 +645,9 @@ export class WebDocumentTracker {
           `WebDocumentTracker: ${this.clientUuid}: connecting via WebDocument: ${webDocumentId}`,
         )
 
-        // request that we open the connection to the web runtime.
-        // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.
+        // Request that the WebDocument open the connection to the web runtime.
+        // Posting the request does not necessarily throw an error if the remote
+        // WebDocument is closed.
         const connectMsg: ClientToWebDocument = {
           from: this.clientUuid,
           connectWebRuntime: {
@@ -694,7 +698,7 @@ export class WebDocumentTracker {
           hostGeneration: result.hostGeneration,
         }
       } catch (err) {
-        // message port must be closed.
+        // The message port must be closed.
         const expectedClose = isExpectedWebDocumentCloseError(err)
         if (expectedClose) {
           console.warn(
@@ -1004,10 +1008,11 @@ export class WebDocumentTracker {
     }
 
     // In the DedicatedWorker host fallback only the elected host document
-    // accepts a connectWebRuntime relay; every other document rejects it. So a
-    // successful relay open always tracks the host as activeRuntimeWebDocumentId,
-    // which makes wasActiveRuntimeDocument the host-lost signal. Keep that
-    // coupling: the tracker cannot otherwise identify the elected host.
+    // accepts a connectWebRuntime relay, but every other document rejects the
+    // relay. So a successful relay open always tracks the host as
+    // activeRuntimeWebDocumentId. Tracking the host makes
+    // wasActiveRuntimeDocument the host-lost signal. Keep that coupling: the
+    // tracker cannot otherwise identify the elected host.
     if (wasActiveRuntimeDocument) {
       this.notifyDedicatedRuntimeHostLost(
         webDocumentId,
@@ -1023,19 +1028,19 @@ export class WebDocumentTracker {
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
-      // The last relay closed. A terminal close is a runtime-directed discard of
-      // this worker (CreateWebWorker replacement or RemoveWebWorker removal): no
-      // WebDocument will ever relay to this orphaned worker again, so tear the
-      // tracker down now. Closing the client fails its active streams, and
-      // closing the tracker also rejects every caller parked waiting for the
-      // next WebDocument and refuses future opens, so orphaned work fails fast
-      // instead of hanging until worker reclamation. A non-terminal close is a
-      // reload transition: keep the logical client alive so in-flight work can
-      // reconnect through the next WebDocument instead of failing with a
-      // terminal close. The close message carries the discard intent because
-      // these two cases are otherwise the same signal; without it either a
-      // fast-fail breaks reload recovery or a keep-alive hangs orphaned workers
-      // for the teardown-latency window.
+      // The last relay closed. A terminal close is a runtime-directed discard
+      // of this worker (CreateWebWorker replacement or RemoveWebWorker
+      // removal): no WebDocument will ever relay to this orphaned worker again,
+      // so tear the tracker down now. Closing the client fails its active
+      // streams, and closing the tracker also rejects every caller parked
+      // waiting for the next WebDocument and refuses future opens, so orphaned
+      // work fails fast instead of hanging until worker reclamation. A
+      // non-terminal close is a reload transition: keep the logical client
+      // alive so in-flight work can reconnect through the next WebDocument
+      // instead of failing with a terminal close. The close message carries the
+      // discard intent because these two cases are otherwise the same signal.
+      // Without the discard intent, either a fast-fail breaks reload recovery
+      // or a keep-alive hangs orphaned workers for the teardown-latency window.
       if (wasActiveRuntimeDocument) {
         if (terminal) {
           this.close()
@@ -1056,7 +1061,7 @@ export class WebDocumentTracker {
       // document instead of tearing it down. Closing the client here would
       // surface RuntimeClientClosedError on every in-flight and subsequent
       // plugin-asset fetch the surviving documents relay, failing their
-      // navigation. This honors the tracker contract: retry when the owning
+      // navigation. Retrying honors the tracker contract: retry when the owning
       // WebDocument lifecycle closes a stale route.
       this.webRuntimeClient
         .rerouteChannel(rerouteOpts)

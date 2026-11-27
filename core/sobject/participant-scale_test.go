@@ -15,14 +15,14 @@ type scaleSpace struct {
 	host *SOHost
 	// state is the host's current state.
 	state **SOState
-	// peers are the participants in join order; peers[0] is the owner.
+	// peers are the participants in join order. peers[0] is the owner.
 	peers []peer.Peer
 	// keys are the private keys of peers.
 	keys []crypto.PrivKey
 }
 
 // newScaleSpace returns a Space of count new peers, owned by the first. The
-// first members peers are writers holding the current key; the rest may join.
+// first members peers are writers holding the current key. The rest may join.
 // The genesis state grants all members at once, since joining each through the
 // API costs more as the Space grows.
 func newScaleSpace(t testing.TB, count, members int) *scaleSpace {
@@ -143,7 +143,7 @@ func TestSpaceReachesThreeHundredParticipants(t *testing.T) {
 }
 
 // BenchmarkParticipantScale times one join and one departure with re-keying
-// in a Space of 100, 300 and 1000 participants. Run it with -benchtime=1x; each
+// in a Space of 100, 300 and 1000 participants. Run it with -benchtime=1x. Each
 // iteration builds a fresh Space outside the timer.
 func BenchmarkParticipantScale(b *testing.B) {
 	for _, size := range []int{100, 300, 1000} {

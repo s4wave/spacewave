@@ -211,11 +211,12 @@ func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner
 	}
 }
 
-// NewReadOperationCayleyHandle wraps a Cayley handle for a batched read operation.
+// NewReadOperationCayleyHandle wraps a Cayley handle for a batched read
+// operation.
 //
 // The returned handle caches ValueOf, NameOf, QuadIteratorSize, and
 // QuadDirection results for one read operation. It does not cache resolved
-// quad refs; batch reads resolve each quad ref at most once, so caching them
+// quad refs. Batch reads resolve each quad ref at most once, so caching them
 // only costs memory.
 func NewReadOperationCayleyHandle(h CayleyHandle) CayleyHandle {
 	return &cachedCayleyHandle{
@@ -321,7 +322,7 @@ func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad
 }
 
 // quadFromDirections resolves a quad ref through its four directions.
-// Direction refs are resolved on every Quad call; NameOf remains cached
+// Direction refs are resolved on every Quad call. NameOf remains cached
 // within the read operation.
 func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.Ref) (quad.Quad, bool, error) {
 	var q quad.Quad

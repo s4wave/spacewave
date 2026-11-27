@@ -39,7 +39,8 @@ type Generation struct {
 	terminal chan error
 	// done is closed after the generation is released.
 	done chan struct{}
-	// releases undoes the startup steps. release runs them in reverse order.
+	// releases holds functions that undo the startup steps. release runs
+	// them in reverse order.
 	releases []func()
 	// cancel cancels the generation context.
 	cancel context.CancelFunc
@@ -177,9 +178,9 @@ func (g *Generation) start(
 	}
 	g.bus = child
 
-	// plugin/space fetches manifests from the parent and, when the Space names a
-	// host plugin, loads its plugins through the parent. App plugins always load
-	// from the parent through the bridge.
+	// plugin/space fetches manifests from the parent and, when the Space
+	// selects a host plugin, loads its plugins through the parent. App
+	// plugins always load from the parent through the bridge.
 	resolver.AddFactory(volume_rpc_server.NewFactory(child))
 	factoryOpts := []plugin_space.FactoryOption{
 		plugin_space.WithManifestSource(parent),
@@ -231,16 +232,18 @@ func (g *Generation) start(
 	schedulerConf.ExternalPluginIds = appPluginIDs
 	schedulerConf.AllowedHostServiceIds = []string{sdk_world_engine.SpaceWorldServiceID}
 
-	// A Space lists plugins any member can name, so each root runs only once
-	// the release, the development build or the device's person admits it.
+	// A Space lists plugins any member can specify, so each root runs only
+	// once the release, the development build or the device's person admits
+	// it.
 	schedulerConf.RequireAdmission = true
 	if err := schedulerConf.Validate(); err != nil {
 		return err
 	}
 
-	// Start the scheduler and expose it to the parent. A Space that runs its own
-	// plugins also answers the parent's loads of its installation; a Space
-	// hosted in a plugin sends those loads to the parent, which answers them.
+	// Start the scheduler and expose it to the parent. A Space that runs
+	// its own plugins also answers the parent's loads of its installation.
+	// A Space hosted in a plugin sends those loads to the parent, which
+	// answers them.
 	scheduler := plugin_host_scheduler.NewController(le, child, schedulerConf)
 	scheduler.SetPluginHostBus(parent)
 	if err := g.addController(ctx, child, scheduler); err != nil {

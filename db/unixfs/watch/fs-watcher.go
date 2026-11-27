@@ -40,17 +40,17 @@ type FSWatcher struct {
 	cb     FSWatcherCb
 	access unixfs_access.AccessUnixFSFunc
 
-	// bcast is broadcast to wake up the Execute loop
-	// guards below fields
+	// bcast is broadcast to wake up the Execute loop.
+	// guards below fields.
 	bcast broadcast.Broadcast
 	// pathPts is the split path to lookup in the fs.
-	// nil until resolved
+	// nil until resolved.
 	pathPts *[]string
-	// handles are the current fs handles
-	// index 0 is the location at access()
-	// index 1->len(pathPts) correspond to pathPts
+	// handles are the current fs handles.
+	// index 0 is the location at access().
+	// index 1->len(pathPts) correspond to pathPts.
 	handles []*unixfs.FSHandle
-	// handleRel releases the handle
+	// handleRel releases the handle.
 	handleRel func()
 }
 
@@ -85,7 +85,7 @@ func (w *FSWatcher) SetPath(pathStr string) ([]string, bool) {
 func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 	var changed bool
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		// If the old path was empty, set & return.
+		// If the old path was empty, set the new path & return.
 		prevPathPtsPtr := w.pathPts
 		if prevPathPtsPtr == nil {
 			w.pathPts = &pathPts
@@ -103,7 +103,7 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 		}
 
 		// Find the first index where the paths diverge, then release all
-		// handles from that depth. handles[0] is the access handle;
+		// handles from that depth. handles[0] is the access handle.
 		// prevPathPts[i] corresponds to handles[i+1], so a divergence at i
 		// releases every handle past i+1.
 		diverged := len(prevPathPts)
@@ -194,7 +194,7 @@ watch:
 			}
 		}
 
-		// currHandles is a copy of w.handles
+		// currHandles is a copy of w.handles.
 		var currHandles []*unixfs.FSHandle
 		var currPath *[]string
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -253,7 +253,7 @@ watch:
 				}
 
 				// The error must be some problem accessing this fs node.
-				// Return the handles we got so far
+				// Return the handles acquired so far
 				fsError = err
 				break
 			}
@@ -284,11 +284,12 @@ watch:
 			if err == unixfs_errors.ErrReleased {
 				continue
 			}
-			// otherwise return the error (we can't wait for changes if fsOps is nil)
+			// otherwise return the error (Execute can't wait for changes
+			// if fsOps is nil)
 			return err
 		}
 
-		// make sure ctx is still active and no errors
+		// make sure ctx is still active and no errors are pending
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -298,7 +299,7 @@ watch:
 		}
 
 		// wait for the cursor to be released
-		// note: we will want to keep lookupHandle alive for this callback!
+		// note: keep lookupHandle alive for the cursor change callback!
 		nextWaitCursorChanged := make(chan struct{})
 		lookupHandleCursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
 			close(nextWaitCursorChanged)
@@ -338,7 +339,7 @@ watch:
 
 // getStateLocked returns the current state while mtx is locked by the caller.
 // returns the current fs handle and path string
-// releases the handle if the path is not currently set.
+// releases the handle if the path is not set.
 // unsets the handle if the handle is released.
 func (w *FSWatcher) getStateLocked() ([]*unixfs.FSHandle, *[]string) {
 	// if the path is not set, drop all of the handles.
@@ -360,7 +361,7 @@ func (w *FSWatcher) getStateLocked() ([]*unixfs.FSHandle, *[]string) {
 		w.releaseLocked()
 	}
 
-	// return whatever handles we have
+	// return the remaining handles
 	return w.handles, w.pathPts
 }
 

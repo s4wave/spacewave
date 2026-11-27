@@ -22,14 +22,14 @@ func NewRwcOverlay(rwc io.ReadWriteCloser, nc net.Conn) *RwcOverlay {
 
 // Read reads data from the connection.
 // Read can be made to time out and return an error after a fixed
-// time limit; see SetDeadline and SetReadDeadline.
+// time limit. See SetDeadline and SetReadDeadline.
 func (r *RwcOverlay) Read(b []byte) (n int, err error) {
 	return r.rwc.Read(b)
 }
 
 // Write writes data to the connection.
 // Write can be made to time out and return an error after a fixed
-// time limit; see SetDeadline and SetWriteDeadline.
+// time limit. See SetDeadline and SetWriteDeadline.
 func (r *RwcOverlay) Write(b []byte) (n int, err error) {
 	return r.rwc.Write(b)
 }
@@ -67,8 +67,9 @@ func (r *RwcOverlay) RemoteAddr() net.Addr {
 //
 // If the deadline is exceeded a call to Read or Write or to other
 // I/O methods will return an error that wraps os.ErrDeadlineExceeded.
-// This can be tested using errors.Is(err, os.ErrDeadlineExceeded).
-// The error's Timeout method will return true, but note that there
+// The deadline error can be tested using
+// errors.Is(err, os.ErrDeadlineExceeded).
+// The error's Timeout method will return true, but there
 // are other possible errors for which the Timeout method will
 // return true even if the deadline has not been exceeded.
 //

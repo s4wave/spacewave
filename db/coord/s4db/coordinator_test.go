@@ -18,7 +18,7 @@ import (
 	db_s4db "github.com/s4wave/spacewave/db/s4db"
 )
 
-// childEnv names the database file a child process of
+// childEnv selects the database file a child process of
 // TestCoordinatorProcesses opens.
 const childEnv = "SPACEWAVE_COORD_S4DB_CHILD"
 

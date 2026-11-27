@@ -9,8 +9,9 @@ interface ShellTabLabelProps {
 }
 
 // ShellTabLabel renders a tab label that supports inline rename.
-// The tab is in rename while the shell tab context's renamingTabId names it;
-// double-click or "Rename Tab" from the context menu starts the rename.
+// The tab is in rename while the shell tab context's renamingTabId selects
+// the tab. A double-click or "Rename Tab" from the context menu starts the
+// rename.
 // Press Enter or blur to save. Press Escape to cancel.
 // Clearing the input reverts to the auto-derived default name.
 export function ShellTabLabel({ tab }: ShellTabLabelProps) {
@@ -24,7 +25,8 @@ export function ShellTabLabel({ tab }: ShellTabLabelProps) {
         name={displayName}
         label="Tab name"
         onSave={(name) => {
-          // Empty string clears custom name, reverting to default
+          // An empty string clears the custom name, reverting to the
+          // default name.
           updateTabName(tab.id, name)
           stopRenaming()
         }}

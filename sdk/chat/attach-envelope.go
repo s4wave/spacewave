@@ -43,7 +43,8 @@ func (o *AttachChatEnvelopeOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry
 		return false, nil
 	}
 
-	// The envelope's ID must not name a message stored under its envelope key.
+	// The envelope's ID must not identify a message stored under its
+	// envelope key.
 	envelopeKey, err := EnvelopeMessageKey(o.GetObjectKey(), o.GetEnvelope().GetId())
 	if err != nil {
 		return false, world.NewOpRefusedError(err)
@@ -58,7 +59,8 @@ func (o *AttachChatEnvelopeOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry
 	}
 
 	// Attach the envelope, in its redacted form when the message is redacted,
-	// and apply a redaction that named the envelope before it was attached.
+	// and apply a redaction that identified the envelope before it was
+	// attached.
 	message.Envelope = o.GetEnvelope().CloneVT()
 	if message.GetRedactedByKey() != "" {
 		message.Envelope.Data, message.Envelope.RedactedData = message.Envelope.GetRedactedData(), nil

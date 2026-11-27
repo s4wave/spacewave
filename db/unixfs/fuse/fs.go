@@ -28,21 +28,21 @@ const (
 
 // RootFS mounts the root userspace filesystem resources.
 type RootFS struct {
-	// ctx is the root context
+	// ctx is the root context.
 	ctx context.Context
-	// ctxCancel is the context cancel
+	// ctxCancel is the context cancel.
 	ctxCancel context.CancelFunc
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// rootPath is the path to mount the FUSE filesystem
+	// rootPath is the path to mount the FUSE filesystem.
 	rootPath string
 	// readOnly serves an unchanging tree through the kernel page cache.
 	readOnly bool
-	// root is the root inode
+	// root is the root inode.
 	root *Inode
-	// conn is the fuse connection
+	// conn is the fuse connection.
 	conn *fuse.Conn
-	// server is the root filesystem server
+	// server is the root filesystem server.
 	server *fs.Server
 }
 
@@ -115,12 +115,12 @@ func (r *RootFS) Serve() error {
 	return r.server.Serve(r)
 }
 
-// GetConn returns the fuse connection
+// GetConn returns the fuse connection.
 func (r *RootFS) GetConn() *fuse.Conn {
 	return r.conn
 }
 
-// GetServer returns the root filesystem server
+// GetServer returns the root filesystem server.
 func (r *RootFS) GetServer() *fs.Server {
 	return r.server
 }

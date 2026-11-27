@@ -51,7 +51,7 @@ func (p *targetProcess) Execute(_ *s4wave_process.ExecuteRequest, stream s4wave_
 		return err
 	}
 
-	// Read the scrape config; stop when there is nothing to scrape.
+	// Read the scrape config. Stop when there is nothing to scrape.
 	cfg, err := p.readScrapeConfig(ctx)
 	if err != nil {
 		return send(s4wave_process.ExecutionState_ExecutionState_ERROR, err)
@@ -60,7 +60,7 @@ func (p *targetProcess) Execute(_ *s4wave_process.ExecuteRequest, stream s4wave_
 		return send(s4wave_process.ExecutionState_ExecutionState_STOPPED, nil)
 	}
 
-	// Open the source the config names.
+	// Open the source the config selects.
 	source, release, err := p.openSource(ctx, cfg)
 	if err != nil {
 		return send(s4wave_process.ExecutionState_ExecutionState_ERROR, err)
@@ -105,9 +105,9 @@ func (p *targetProcess) scrape(ctx context.Context, cfg *s4wave_prom.ScrapeConfi
 	return newScraper(p.le, store, cfg, p.peerID, p.group.window, source).run(ctx)
 }
 
-// standBy waits until the target's status is gone, names this Device, or goes
-// stale, waking on each commit to the World and when the status would go
-// stale.
+// standBy waits until the target's status is gone, records this Device's peer
+// ID, or goes stale, waking on each commit to the World and when the status
+// would go stale.
 func (p *targetProcess) standBy(ctx context.Context) error {
 	for {
 		// Read the status as of the current seqno.
@@ -143,9 +143,9 @@ func (p *targetProcess) standBy(ctx context.Context) error {
 	}
 }
 
-// openSource returns the scrape source cfg names and the function that
+// openSource returns the scrape source cfg selects and the function that
 // releases it. DeviceMetricsURL gathers the root resource of the core plugin
-// this process reaches; any other URL is a metrics page.
+// this process reaches. Any other URL is a metrics page.
 func (p *targetProcess) openSource(ctx context.Context, cfg *s4wave_prom.ScrapeConfig) (scrapeSource, func(), error) {
 	// A metrics page needs no connection.
 	if cfg.GetUrl() != s4wave_prom.DeviceMetricsURL {

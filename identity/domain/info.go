@@ -14,8 +14,8 @@ func UnmarshalDomainInfo(ctx context.Context, bcs *block.Cursor) (*DomainInfo, e
 	return block.UnmarshalBlock[DomainInfo](ctx, bcs)
 }
 
-// Filter value is the value we use when filtering against this item when
-// we're filtering the list.
+// FilterValue returns the value used to filter the list against this
+// DomainInfo.
 func (d *DomainInfo) FilterValue() string {
 	return d.GetName()
 }

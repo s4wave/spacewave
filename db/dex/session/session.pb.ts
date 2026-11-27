@@ -23,7 +23,7 @@ export interface BlockTransfer {
   ref?: BlockRef
   /**
    * TotalSize is the total block size in bytes (set in Init message).
-   * Receiver rejects if over max_block_size.
+   * The receiver rejects the block if TotalSize exceeds max_block_size.
    */
   totalSize?: bigint
   /**
@@ -31,7 +31,7 @@ export interface BlockTransfer {
    */
   data?: Uint8Array
   /**
-   * Complete indicates this is the last chunk for this block.
+   * Complete indicates this chunk is the last chunk for this block.
    */
   complete?: boolean
   /**

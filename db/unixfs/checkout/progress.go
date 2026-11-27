@@ -30,8 +30,8 @@ type Progress struct {
 	// written while assembling. It is zero while checking or waiting.
 	Done uint64
 	// Total is the size of the files found so far. While fetching it grows
-	// as the walk discovers files and then holds; while assembling it is the
-	// fixed size of the files being written.
+	// as the walk discovers files and then stays constant. While assembling
+	// it is the fixed size of the files being written.
 	Total uint64
 }
 

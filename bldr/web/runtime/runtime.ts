@@ -10,13 +10,15 @@ import { WebRuntimeClientType } from './runtime.pb.js'
 // ClientToWebRuntime is a message sent to the WebRuntime.
 export interface ClientToWebRuntime {
   // openStream contains a request to open a new stream.
-  // receiver should ack the stream immediately.
-  // the port is passed in the event.ports field
+  // The receiver should ack the stream immediately.
+  // The port is passed in the event.ports field.
   openStream?: true
   // close indicates the client is closing.
   close?: boolean
-  // armWebLock tells the WebRuntime to start watching the Web Lock for disconnect detection.
-  // The WebDocument sends this after acquiring its lock to avoid a race condition.
+  // armWebLock tells the WebRuntime to start watching the Web Lock for
+  // disconnect detection.
+  // The WebDocument sends armWebLock after acquiring its lock to avoid a race
+  // condition.
   armWebLock?: true
 }
 
@@ -50,8 +52,8 @@ export function buildWebRuntimeClientLockName(
 // WebRuntimeToClient is a message sent to the runtime client.
 export interface WebRuntimeToClient {
   // openStream contains a request to open a new stream.
-  // receiver should ack the stream immediately.
-  // the port is passed in the event.ports field
+  // The receiver should ack the stream immediately.
+  // The port is passed in the event.ports field.
   openStream?: true
   // connected acks that the runtime registered this client successfully.
   // sent as the first message on the channel from WebRuntimeClientInstance.
@@ -76,7 +78,7 @@ export interface WebDocumentToWebRuntime {
   // from is the identifier of the WebDocument.
   from: string
   // initWebRuntime contains a request to init the WebRuntime if necessary.
-  // contains the web runtime id
+  // contains the web runtime id.
   initWebRuntime?: {
     // webRuntimeId is the web runtime identifier.
     webRuntimeId: string
@@ -211,13 +213,13 @@ export interface OpenOpfsWorkerAck {
 
 // WebDocumentToWorker is a message sent from the WebDocument to the ServiceWorker, Worker, or SharedWorker.
 export interface WebDocumentToWorker {
-  // from is the identifier of the WebDocument
+  // from is the identifier of the WebDocument.
   from: string
   // initData contains an optional message passed with addl. init data.
   initData?: Uint8Array
   // initPort initializes the port to communicate with the WebDocument.
-  // Worker sends ClientToWebDocument
-  // Document sends WebDocumentToClient
+  // The Worker sends ClientToWebDocument.
+  // The Document sends WebDocumentToClient.
   initPort?: MessagePort
   // connectDedicatedRuntimeHost asks the ServiceWorker tracker to connect this
   // non-host document to the elected DedicatedWorker runtime host generation.
@@ -239,7 +241,7 @@ export interface WebDocumentToWorker {
 
 // WebDocumentToClient is a message sent to a WebDocument client.
 export interface WebDocumentToClient {
-  // from is the identifier of the WebDocument
+  // from is the identifier of the WebDocument.
   from: string
   // requestId identifies direct acks that are not nested in an ack field.
   requestId?: string
@@ -248,10 +250,10 @@ export interface WebDocumentToClient {
   // terminal marks a close as a runtime-directed discard of this worker (a
   // CreateWebWorker replacement or a RemoveWebWorker removal) rather than
   // ordinary page teardown. A discarded worker is orphaned forever, so its
-  // runtime client must fail fast; a plain close, which also fires on reload,
+  // runtime client must fail fast. A plain close, which also fires on reload,
   // gets a replacement WebDocument, so the client reroutes and waits. Without
-  // this intent the two close signals are indistinguishable, and either choice
-  // is wrong for the other case.
+  // this discard intent the two close signals are indistinguishable, and
+  // either choice is wrong for the other case.
   terminal?: true
   // closeAckPort receives a message after the client removes this WebDocument
   // and completes its close handling.

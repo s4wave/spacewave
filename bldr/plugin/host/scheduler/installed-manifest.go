@@ -93,7 +93,8 @@ func (t *pluginInstance) releaseInstallationLocked() (stop *pluginInstance) {
 		}
 	}
 
-	// Stop a worker the installation started; a catalog worker keeps running.
+	// Stop a worker the installation started. A catalog worker keeps
+	// running.
 	restore := t.activeArgs
 	if restore != nil && restore.installation != nil {
 		restore, stop = nil, t.activeExecution
@@ -116,7 +117,8 @@ func (t *pluginInstance) selectInstalledManifestLocked(hosts *pluginHostSet) {
 		return
 	}
 
-	// Select the preferred runnable artifact; older ones are its fallbacks.
+	// Select the preferred runnable artifact. Older artifacts are its
+	// fallbacks.
 	candidates := installedManifestCandidates(selected, t.platformHosts(hosts))
 	candidates[0].fallbacks = candidates[1:]
 	t.setExecutePluginStateLocked(candidates[0])
@@ -135,7 +137,8 @@ func (t *pluginInstance) selectInstalledManifestLocked(hosts *pluginHostSet) {
 // platforms are skipped. If no artifact is selectable, it returns the newest
 // one without a host to report it as unrunnable.
 func installedManifestCandidates(selected *installedManifests, platforms map[string]bldr_plugin_host.PluginHost) []*executePluginArgs {
-	// Rank the artifacts of the selectable platforms; skip foreign platforms.
+	// Rank the artifacts of the selectable platforms. Skip foreign
+	// platforms.
 	type rankedCandidate struct {
 		args       *executePluginArgs
 		platformID string
@@ -189,8 +192,8 @@ func installedManifestCandidates(selected *installedManifests, platforms map[str
 // replacing an explicitly installed artifact. The admitted worker may remain
 // older while its selected replacement prepares or reports an error. An
 // installation's candidate is accepted only while its installation is the
-// selection, so a released installation never starts; a removal or catalog
-// candidate only while nothing is selected.
+// selection, so a released installation never starts. A removal or catalog
+// candidate is accepted only while nothing is selected.
 func (t *pluginInstance) acceptsManifest(args *executePluginArgs) bool {
 	selected := t.selectedManifest.Load()
 	if args == nil || args.installation == nil {

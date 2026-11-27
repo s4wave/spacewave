@@ -8,7 +8,8 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 option go_package = "github.com/s4wave/spacewave/core/git;s4wave_git";
 
 // CreateGitRepoWizardOp creates a git repository from wizard configuration.
-// Dispatches to GitInitOp (new repo) or GitCloneOp (clone) based on mode.
+// The operation dispatches to GitInitOp (new repo) or GitCloneOp (clone)
+// based on mode.
 message CreateGitRepoWizardOp {
   option (typeid.id) = "spacewave/git/repo/create";
 
@@ -16,10 +17,10 @@ message CreateGitRepoWizardOp {
   string object_key = 1;
   // Name is the repository display name.
   string name = 2;
-  // Clone indicates this is a clone operation (vs new empty repo).
+  // Clone indicates the operation is a clone (vs new empty repo).
   bool clone = 3;
   // CloneOpts contains the clone configuration (URL, ref, depth, etc).
-  // Only used when clone is true.
+  // CloneOpts is only used when clone is true.
   .git.block.CloneOpts clone_opts = 4;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 5;

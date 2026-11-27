@@ -8,7 +8,7 @@ import (
 
 // Options configures a Cache.
 type Options struct {
-	// LimitBytes bounds the local packs' total size; the evictor works the
+	// LimitBytes bounds the local packs' total size. The evictor works the
 	// Log back under it. Zero keeps every pack.
 	LimitBytes int64
 	// Log configures the Log the cache keeps.

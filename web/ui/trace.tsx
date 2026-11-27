@@ -27,7 +27,7 @@ function Trace({ className, ...props }: React.ComponentProps<'div'>) {
 
 /**
  * TraceLine is one step, with an optional running, done, error, or pending
- * status. A running line pulses its icon; its title stays plain text so it
+ * status. A running line pulses its icon. Its title stays plain text so it
  * keeps full contrast.
  */
 function TraceLine({

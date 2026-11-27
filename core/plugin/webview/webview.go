@@ -16,7 +16,8 @@ package plugin_webview
 import "regexp"
 
 // ObjectViewerWebViewIDPrefix is the prefix for ObjectType viewer web view IDs.
-// Web views for ObjectType viewers use the pattern: "object-viewer:{typeID}:{objectKey}"
+// Web views for ObjectType viewers use the pattern:
+// "object-viewer:{typeID}:{objectKey}".
 const ObjectViewerWebViewIDPrefix = "object-viewer:"
 
 // ObjectViewerWebViewIDRegex returns the regex pattern for matching

@@ -13,31 +13,31 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
-// DeletePayloadEnv names the environment variable that, set to "off", turns off
-// the removal of a Secret's payload copies. DeleteSecret then deletes only the
-// name, as the generic World delete did before it, leaves every copy in place,
-// lists none in Removed and sets OthersMayExist. The reread that leaves a newer
-// Secret at the key untouched stays on, since it loses no data.
+// DeletePayloadEnv identifies the environment variable that, set to "off",
+// turns off the removal of a Secret's payload copies. DeleteSecret then deletes
+// only the name, as the generic World delete did before it, leaves every copy
+// in place, lists none in Removed and sets OthersMayExist. The reread that
+// leaves a newer Secret at the key untouched stays on, since it loses no data.
 const DeletePayloadEnv = "SPACEWAVE_SECRET_DELETE_PAYLOAD"
 
 // deletePayloadOff selects DeletePayloadEnv's old behavior. It is read once,
 // here, at startup.
 var deletePayloadOff = os.Getenv(DeletePayloadEnv) == "off"
 
-// ErrSecretReplaced is returned when a Secret created at the key after the
-// delete read it now holds the name. The delete removed the copies it read
+// ErrSecretReplaced is returned when the key references a newer Secret created
+// after the delete read the key. The delete removed the copies it read
 // and leaves the newer Secret in place.
 var ErrSecretReplaced = errors.New("secret: the key now names a newer Secret; it was left in place")
 
 // ErrNotSecretPayload is returned when a held account lists the Secret's
 // nested SharedObject id under another body type. The delete removes nothing,
-// since the id names some other object and not this Secret's payload.
+// since the id references some other object and not this Secret's payload.
 var ErrNotSecretPayload = errors.New("secret: the nested SharedObject is not a Secret payload; nothing was deleted")
 
 // ErrSecretRefMismatch is returned when a Secret's nested_shared_object_id and
-// ref name different SharedObjects. Ref is the identity readers mount, but a
-// Secret that disagrees with itself cannot say which object is its payload, so
-// the delete removes nothing.
+// ref reference different SharedObjects. Ref is the identity readers mount,
+// but a Secret that disagrees with itself cannot say which object is its
+// payload, so the delete removes nothing.
 var ErrSecretRefMismatch = errors.New("secret: nested_shared_object_id and ref name different SharedObjects; nothing was deleted")
 
 // DeleteResult reports what a Secret delete removed.
@@ -54,26 +54,26 @@ type DeleteResult struct {
 
 // DeleteSecret deletes the Secret at objectKey in the World of Space spaceID:
 // the payload copy in every account in held that lists the Secret's nested
-// SharedObject and whose payload names this Space as its owner, then the
+// SharedObject and whose payload records this Space as its owner, then the
 // Secret's World metadata object. The copies go only when no other Secret in
-// this World names the same payload. held names the provider accounts this
-// device holds; an account outside it is never opened, since opening an
-// account id creates it.
+// this World references the same payload. held lists the provider accounts this
+// device holds. An account outside held is never opened, since opening an
+// account id creates the account.
 //
 // A payload is deleted only when the Space that owns it has no other Secret
-// naming it. The owner is the Space id the payload's first state records,
-// which no later write can change. A key is not an owner: a Secret can be
-// renamed, and any writer of the Space can copy a Secret's body to another
-// key, in this Space or another, so neither the key nor the ref proves which
-// name a payload belongs to.
+// referencing the payload. The owner is the Space id the payload's first
+// state records, which no later write can change. A key is not an owner: a
+// Secret can be renamed, and any writer of the Space can copy a Secret's body
+// to another key, in this Space or another, so neither the key nor the ref
+// proves which name a payload belongs to.
 //
-// The states it handles:
+// The states DeleteSecret handles:
 //   - No Secret at the key: Found is false and nothing is touched.
 //   - Every copy held here: each is deleted, then the name.
-//   - Another Secret in this World names the same payload, as a copy or as
+//   - Another Secret in this World references the same payload, as a copy or as
 //     a name planted at a renamed Secret's old key: every copy is kept, the
 //     name is deleted, and OthersMayExist is set. A Secret of that type
-//     whose body cannot be read counts as naming it.
+//     whose body cannot be read counts as referencing the payload.
 //   - Interrupted between copies or before the name: the Secret stays named
 //     and a rerun deletes the copies left and the name. A copy already gone
 //     counts as deleted and is not listed in Removed.
@@ -84,11 +84,12 @@ type DeleteResult struct {
 //     copies may remain.
 //   - Replaced between the copies and the name: ErrSecretReplaced, and the
 //     newer Secret is untouched.
-//   - Its ref names a SharedObject of another body type: ErrNotSecretPayload,
-//     or, when its two ids disagree, ErrSecretRefMismatch. Nothing is deleted.
-//   - A copy whose payload names another Space, names none (created before
-//     owners were recorded, or outside a Space), or cannot be read: the copy
-//     is kept, the name is deleted, and OthersMayExist is set.
+//   - Its ref references a SharedObject of another body type:
+//     ErrNotSecretPayload, or, when its two ids disagree, ErrSecretRefMismatch.
+//     Nothing is deleted.
+//   - A copy whose payload records another Space as its owner, records none
+//     (created before owners were recorded, or outside a Space), or cannot be
+//     read: the copy is kept, the name is deleted, and OthersMayExist is set.
 //
 // A non-nil error returns a nil result.
 //
@@ -96,26 +97,26 @@ type DeleteResult struct {
 // first copy read lists more than one participant, when a copy was kept, or
 // when no copy was read.
 // A Secret never shared lists only its creator, so a false value means no
-// other device held a copy as far as this device knows; it can be stale when
-// a member's enrollment has not replicated here yet.
+// other device held a copy as far as this device knows. That knowledge can be
+// stale when a member's enrollment has not replicated here yet.
 //
 // Invariants:
 //   - A payload copy is deleted only when its account lists it with the
-//     Secret body type, its payload names spaceID as its owner, and no other
-//     Secret in this World named it when the delete read the Secret. When
-//     unsure, the copy is kept.
+//     Secret body type, its payload records spaceID as its owner, and no other
+//     Secret in this World referenced the payload when the delete read the
+//     Secret. When unsure, the copy is kept.
 //   - Every held copy goes before the name, so an interrupted delete leaves
 //     the Secret named and a rerun completes it.
-//   - The name is deleted only while it still names the nested SharedObject
-//     this delete read, checked and deleted in one write transaction, so a
-//     newer Secret at the key is never touched.
+//   - The name is deleted only while the name still references the nested
+//     SharedObject this delete read, checked and deleted in one write
+//     transaction, so a newer Secret at the key is never touched.
 //   - Only that one World object is deleted, never another Secret's name.
 //   - A Secret whose nested_shared_object_id and ref disagree deletes
-//     nothing while copies are removed; with DeletePayloadEnv off it deletes
+//     nothing while copies are removed. With DeletePayloadEnv off it deletes
 //     only the name, as the generic World delete does.
 //   - Only the held accounts are opened, since opening an account id creates
 //     it.
-//   - Errors name keys and ids only, never payload bytes.
+//   - Errors list keys and ids only, never payload bytes.
 //
 // Inputs the delete reads before it removes a copy, who can write each, and
 // why that writer cannot steer the delete to a copy it could not already
@@ -125,41 +126,41 @@ type DeleteResult struct {
 //   - objectKey: the person deleting, who chooses what to delete.
 //   - The World object at objectKey, its type and its Secret body (ref and
 //     nested_shared_object_id): any writer of the Space. They only choose
-//     which id to look up. A payload of another Space is kept by its owner;
-//     a payload of this Space goes only when no other Secret here names it,
-//     so a name planted at a renamed Secret's old key keeps the payload the
-//     renamed Secret still names. The reread before the name is deleted only
-//     refuses.
+//     which id to look up. A payload of another Space is kept by its owner.
+//     A payload of this Space goes only when no other Secret here references
+//     the payload, so a name planted at a renamed Secret's old key keeps the
+//     payload the renamed Secret still references. The reread before the name
+//     is deleted only refuses.
 //   - The other Secret objects in this World, found through the type index:
 //     any writer of the Space can add one, which can only make the delete
 //     keep the copies.
 //   - held: the caller, the accounts this device holds.
 //   - The provider id in the Secret's ref: any writer of the Space. It picks
-//     which provider's held accounts are visited; a copy in them still goes
+//     which provider's held accounts are visited. A copy in them still goes
 //     only by the rules above.
 //   - The account's list entry for the id and its body type: the account's
 //     own sessions, or its provider. The id is taken from the ref, so the
-//     entry cannot point the delete elsewhere; a wrong body type only
+//     entry cannot point the delete elsewhere. A wrong body type only
 //     refuses.
 //   - The payload's owner: fixed by the payload's first state, which its
 //     creator writes. The fold every member runs rejects any operation that
 //     changes it, and a checkpoint carries state only under an owner's
 //     signature. An owner can already destroy the value by signing a
 //     checkpoint, though not delete the copies in other accounts. A write
-//     that names no owner keeps the current one.
+//     that records no owner keeps the current one.
 //   - The participant list: the payload's owners. It only sets
 //     OthersMayExist and never chooses what is deleted.
 //
 // The one window: the other Secrets are read once, with the Secret, before
 // any copy goes, and the copies cannot be removed in the World transaction
-// that deletes the name. A Secret that names the payload from after that
+// that deletes the name. A Secret that references the payload from after that
 // read until the copies are gone, such as a rename of objectKey to another
-// key or a copy of its body, is left naming a deleted payload: its reads
+// key or a copy of its body, is left referencing a deleted payload: its reads
 // fail and deleting it removes only the name. Such a name refers to the
 // Secret this delete was asked to remove, so no value outlives a delete
 // that was not asked for. Checking again in the name's transaction would
 // scan every Secret while holding the World's writer and could not bring
-// back the copies, so it is not done.
+// back the copies, so that check is not done.
 //
 // DeletePayloadEnv set to off keeps every copy and deletes only the name.
 func DeleteSecret(
@@ -198,7 +199,7 @@ func deleteSecret(
 	nestedID := nested.GetId()
 
 	// Delete the copy in each held account of the Secret's provider, unless
-	// another Secret here still names it.
+	// another Secret here still references the payload.
 	res := &DeleteResult{Found: true}
 	accounts := heldAccountIDs(held, nested.GetProviderId())
 	if deletePayloadOff || namedElsewhere {
@@ -238,7 +239,8 @@ func deleteSecret(
 		return nil, err
 	}
 
-	// Delete the name only while it still names the payload just deleted.
+	// Delete the name only while the name still references the payload just
+	// deleted.
 	if current == nil {
 		return res, nil
 	}
@@ -271,9 +273,9 @@ func heldAccountIDs(held []*provider.ProviderResourceRef, providerID string) []s
 }
 
 // lookupSecret reads the Secret at objectKey in one read transaction, and
-// whether another Secret in that view names its payload. It returns nil when
-// no object is at the key, and ErrSecretRefMismatch when the Secret's two ids
-// disagree while copies are removed.
+// whether another Secret in that view references its payload. It returns nil
+// when no object is at the key, and ErrSecretRefMismatch when the Secret's two
+// ids disagree while copies are removed.
 func lookupSecret(ctx context.Context, engine world.Engine, objectKey string) (*Secret, bool, error) {
 	// Read the Secret.
 	tx, err := engine.NewTransaction(ctx, false)
@@ -302,7 +304,7 @@ func lookupSecret(ctx context.Context, engine world.Engine, objectKey string) (*
 }
 
 // otherSecretNames reports whether a Secret other than the one at objectKey
-// names the SharedObject id by its ref or its nested_shared_object_id. It
+// references the SharedObject id by its ref or its nested_shared_object_id. It
 // walks the World's type index a page at a time and reads one Secret body at
 // a time, stopping at the first match. A Secret whose body cannot be read
 // counts as a match, so the delete keeps the copies when unsure.
@@ -343,11 +345,11 @@ func lookupSecretIn(ctx context.Context, ws world.WorldState, objectKey string) 
 }
 
 // deleteCopy deletes the SharedObject id from one held account when its
-// payload names spaceID as its owner. It returns the deleted
-// copy's ref, or nil when the account does not list it; kept is set when the
-// account lists it but the copy stays, because its payload names another
-// owner, names none or cannot be read. When readShared is set it also reports
-// whether the copy lists more than one participant.
+// payload records spaceID as its owner. It returns the deleted copy's ref,
+// or nil when the account does not list the copy. kept is set when the
+// account lists the copy but the copy stays, because its payload records
+// another owner, records none or cannot be read. When readShared is set,
+// deleteCopy also reports whether the copy lists more than one participant.
 func deleteCopy(
 	ctx context.Context,
 	b bus.Bus,
@@ -368,7 +370,8 @@ func deleteCopy(
 		return nil, false, false, err
 	}
 
-	// Find its copy, if it lists one, and keep it unless it proves its owner.
+	// Find the account's copy, if the account lists one, and keep the
+	// copy unless the copy proves its owner.
 	ref, err := listedRef(ctx, soProvider, id)
 	if err != nil || ref == nil {
 		return nil, false, false, err
@@ -378,7 +381,7 @@ func deleteCopy(
 		return nil, true, false, nil
 	}
 
-	// Delete it; a copy another delete removed first counts as gone.
+	// Delete the copy. A copy another delete removed first counts as gone.
 	if err := soProvider.DeleteSharedObject(ctx, id); err != nil {
 		if errors.Is(err, sobject.ErrSharedObjectNotFound) {
 			return nil, false, false, nil
@@ -410,9 +413,10 @@ func listedRef(ctx context.Context, soProvider sobject.SharedObjectProvider, id 
 	return nil, nil
 }
 
-// inspectCopy mounts the copy and reports whether its payload names spaceID
+// inspectCopy mounts the copy and reports whether its payload records spaceID
 // and objectKey as its owner, and whether its config lists more than its
-// creator. A copy it cannot read is not owned, so the delete keeps it.
+// creator. A copy inspectCopy cannot read is not owned, so the delete keeps
+// the copy.
 func inspectCopy(
 	ctx context.Context,
 	soProvider sobject.SharedObjectProvider,

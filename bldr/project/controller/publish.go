@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PublishTargets publishes to the given publish target(s)
+// PublishTargets publishes to the given publish target(s).
 // Filters manifests to the given build type.
 // If the given build type is empty, skips filtering.
 func (c *Controller) PublishTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType) error {
@@ -119,12 +119,14 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			}
 		}
 
-		// filter by platform ids if length > 1, if length == 1 we already filtered above
+		// filter by platform ids if length > 1, since length == 1 was
+		// filtered above
 		if len(platformIDs) > 1 {
 			bldr_manifest_world.FilterCollectedManifestsMapByPlatformID(cmanifests, platformIDs)
 		}
 
-		// filter to just the latest manifest (first in list) for each platform id
+		// filter to the latest manifest (first in list) for each
+		// platform id
 		if !publishTarget.GetAllManifestRevs() {
 			for manifestID, collectedManifests := range cmanifests {
 				cmanifests[manifestID] = bldr_manifest_world.FilterCollectedManifestsByFirst(collectedManifests)

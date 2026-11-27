@@ -397,7 +397,8 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 		return err
 	}
 
-	// Acquire the terminal object and discard the transaction if it is missing.
+	// Acquire the terminal object and discard the transaction if the object
+	// is missing.
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
 	defer world.ReleaseObjectState(writeState)
 	if err != nil {

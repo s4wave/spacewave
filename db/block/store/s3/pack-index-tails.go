@@ -35,7 +35,7 @@ const tailStepPause = 100 * time.Millisecond
 const tailStepPauseMax = time.Second
 
 // tailRowsOn turns on storing each tail a pack reader loads from the bucket in
-// its t/ row; see SetIndexTailRows.
+// its t/ row. See SetIndexTailRows.
 var tailRowsOn atomic.Bool
 
 func init() {
@@ -45,18 +45,18 @@ func init() {
 // SetIndexTailRows turns storing loaded index tails on or off for every
 // PackStore. On, the drain writes each tail a pack reader loaded from the
 // bucket to the pack's t/ row before it upgrades the pack's h rows, so the
-// pack's next load after a restart, or after its index was reclaimed, reads
-// the row and not the bucket. Off, as before, tails are queued for the h row
+// pack's next load after a restart, or after its index was reclaimed, reads the
+// row and not the bucket. Off, as before, tails are queued for the h row
 // upgrade alone and a dropped or drained tail is read from the bucket again.
 // Rows already stored are read either way.
 //
-// Invariant: a stored tail is the exact bytes of an immutable pack that
-// durable storage holds. Only Set, which the pack reader calls with the tail
-// it read from the bucket, stores one; the row is written only while the
-// pack's entry row exists, and removeRows deletes it with the pack. A pack id
-// is never reused, so a row never describes other bytes. The reader still
-// validates a stored tail like a fetched one, against the pack's size and
-// block count, and on failure reads the bucket and stores that tail over it.
+// Invariant: a stored tail is the exact bytes of an immutable pack that durable
+// storage holds. Only Set, which the pack reader calls with the tail it read
+// from the bucket, stores one. The row is written only while the pack's entry
+// row exists, and removeRows deletes it with the pack. A pack id is never
+// reused, so a row never describes other bytes. The reader still validates a
+// stored tail like a fetched one, against the pack's size and block count, and
+// on failure reads the bucket and stores that tail over it.
 func SetIndexTailRows(on bool) {
 	tailRowsOn.Store(on)
 }
@@ -65,8 +65,8 @@ func SetIndexTailRows(on bool) {
 type queuedTail struct {
 	// data is the tail.
 	data []byte
-	// store records that the tail came from the bucket and is to be stored in
-	// its t/ row; a writer's or the indexer's tail is not.
+	// store records that the tail came from the bucket and is to be stored
+	// in its t/ row. A writer's or the indexer's tail is not.
 	store bool
 }
 
@@ -76,8 +76,8 @@ type tailQueue struct {
 	// pending maps a pack id to its tail.
 	pending map[string]queuedTail
 	// stored holds the packs whose tail the drain stored in its t/ row and
-	// whose h rows it has not yet upgraded; their tails are read back from
-	// the rows.
+	// whose h rows the drain has not yet upgraded. Their tails are read
+	// back from the rows.
 	stored map[string]struct{}
 	// bytes is the summed size of pending.
 	bytes int
@@ -152,10 +152,10 @@ type tailUpgrade struct {
 // drainTails stores the queued bucket tails in their t/ rows and writes the
 // extents the queued tails hold into their blocks' h rows, a step of up to
 // tailBatchRows tails at a time paced by tailStepPause, until none are left.
-// Storing goes first, since it frees the queue's memory and saves a restart
-// the tails' bucket reads; the upgrade then reads each stored tail back from
-// its row. A row is upgraded only while it names the tail's pack and holds no
-// extent, so a row a later pack took keeps naming that pack.
+// Storing goes first, since it frees the queue's memory and saves a restart the
+// tails' bucket reads. The upgrade then reads each stored tail back from its
+// row. A row is upgraded only while it identifies the tail's pack and holds no
+// extent, so a row a later pack took keeps identifying that pack.
 //
 // An upgrade step reads its rows in a read transaction, which takes no writer
 // turn, and then writes them in transactions that each hold the turn for at
@@ -210,7 +210,8 @@ func (x *packIndex) storeTailStep(ctx context.Context) bool {
 
 	// Write each tail while its pack's entry row exists, so a pack removed
 	// meanwhile leaves no row, holding the writer turn for at most
-	// tailTurnBudget; a tail past it stays queued for the next step.
+	// tailTurnBudget. A tail past the budget stays queued for the next
+	// step.
 	written := make(map[string]struct{}, len(step))
 	err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return x.store.NewTransaction(ctx, true)
@@ -236,8 +237,8 @@ func (x *packIndex) storeTailStep(ctx context.Context) bool {
 	})
 
 	// Move a stored tail of a pack still queued to the stored set, whose
-	// upgrade reads it from its row; on failure, leave the step to the
-	// upgrade alone.
+	// upgrade reads the tail from its row. On failure, leave the step to
+	// the upgrade alone.
 	x.mtx.Lock()
 	q := &x.tails
 	for id := range written {
@@ -274,9 +275,9 @@ func (x *packIndex) upgradeTailStep(ctx context.Context) bool {
 		return false
 	}
 
-	// Take the next step with each tail's pack number. A tail stays readable,
-	// queued or in its row, until its step is written; a stored tail's data
-	// is nil and is read from its row.
+	// Take the next step with each tail's pack number. A tail stays
+	// readable, queued or in its row, until its step is written. A stored
+	// tail's data is nil and is read from its row.
 	step := make(map[string][]byte, tailBatchRows)
 	nums := make(map[string]uint32, tailBatchRows)
 	take := func(id string, data []byte) {
@@ -374,8 +375,8 @@ func (x *packIndex) writeTailUpgrades(ctx context.Context, plan []tailUpgrade) e
 }
 
 // planTailUpgrades appends to plan the h row of each block the tail of pack id
-// lists that names the pack as num and holds no extent, with its extent. The
-// pack's size, which the tail's offsets need, comes from its entry row.
+// lists that identifies the pack as num and holds no extent, with its extent.
+// The pack's size, which the tail's offsets need, comes from its entry row.
 func planTailUpgrades(ctx context.Context, tx kvtx.Tx, id string, num uint32, tail []byte, plan []tailUpgrade) ([]tailUpgrade, error) {
 	// Read the pack's size.
 	data, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
@@ -387,14 +388,15 @@ func planTailUpgrades(ctx context.Context, tx kvtx.Tx, id string, num uint32, ta
 		return plan, nil
 	}
 
-	// Plan each row that names this pack without an extent.
+	// Plan each row that identifies this pack without an extent.
 	err = packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(ie *kvfile.IndexEntry) error {
 		// Skip an extent a row cannot hold.
 		if ie.GetSize() > math.MaxUint32 {
 			return nil
 		}
 
-		// Read the row, and keep one that names another pack or has an extent.
+		// Read the row, and keep one that identifies another pack or
+		// has an extent.
 		rowKey := hashRowKey(ie.GetKey())
 		value, ok, err := tx.Get(ctx, rowKey)
 		if err != nil || !ok {

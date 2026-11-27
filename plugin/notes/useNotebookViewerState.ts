@@ -15,15 +15,15 @@ export type SourceEdit =
   | { kind: 'reorder'; order: number[]; seen: NotebookSource[] }
 
 // SourceEditState is the source edit control's state. One edit runs at a
-// time: idle offers every edit; sending disables every control that starts
-// an edit and keeps the sending edit's dialog open to show its result;
+// time: idle offers every edit. sending disables every control that starts
+// an edit and keeps the sending edit's dialog open to show its result.
 // changed means the edit was refused because another writer changed the
-// sources first, and the watch already shows their list; not-applied means
-// the host wrote nothing, for the reason in cause, and offers the same request
-// again; failed holds the request and what failed, which may or may not have
-// been written, and offers the same request again. changed, not-applied and
-// failed last until the next edit starts, or until the person closes the
-// dialog that shows them.
+// sources first, and the watch already shows that writer's list. not-applied
+// means the host wrote nothing, for the reason in cause, and offers the same
+// request again. failed holds the request and what failed. The request may or
+// may not have been written, and failed offers the same request again.
+// changed, not-applied and failed last until the next edit starts, or until
+// the person closes the dialog that shows them.
 export type SourceEditState =
   | { status: 'idle' }
   | { status: 'sending'; edit: SourceEdit }
@@ -32,7 +32,7 @@ export type SourceEditState =
   | { status: 'failed'; edit: SourceEdit; error: string }
 
 // UNKNOWN_OUTCOME_ERROR describes an edit whose outcome the notes plugin did
-// not report, which may or may not have been written.
+// not report. The edit may or may not have been written.
 const UNKNOWN_OUTCOME_ERROR =
   'the notes plugin did not say whether it was saved; check the sources before trying again'
 
@@ -99,7 +99,7 @@ export function useNotebookViewerState({
 }: UseNotebookViewerStateOptions) {
   const ns = useStateNamespace(['notes'])
 
-  // Persisted state for selected source and note.
+  // Persist the selected source and note.
   const [selectedSource, setSelectedSource] = useStateAtom<number>(
     ns,
     'selectedSource',
@@ -117,7 +117,7 @@ export function useNotebookViewerState({
   )
   const [editing, setEditing] = useStateAtom<boolean>(ns, 'editing', false)
 
-  // Tag filter state.
+  // Store the tag filter state.
   const [filterTag, setFilterTag] = useState<string | undefined>(undefined)
   const [filterStatus, setFilterStatus] = useState<string | undefined>(
     undefined,
@@ -125,7 +125,7 @@ export function useNotebookViewerState({
 
   const [sort, setSort] = useState<SavedView['sort']>('name')
 
-  // Responsive sidebar visibility.
+  // Track the responsive sidebar's visibility.
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addSourceOpen, setAddSourceOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null)
@@ -288,7 +288,7 @@ export function useNotebookViewerState({
   )
 
   // handleRemoveSource holds the source the person clicked with its index,
-  // so the confirm removes that source even if the list changes meanwhile.
+  // so the confirmation removes that source even if the list changes meanwhile.
   const handleRemoveSource = useCallback(
     (index: number) => {
       const source = sources[index]
@@ -315,7 +315,7 @@ export function useNotebookViewerState({
     if (!removeTarget) return
     const { index, source } = removeTarget
     // A Remove that failed or was not applied keeps its dialog open, so its
-    // confirm tries again.
+    // confirmation tries again.
     const result = await sendSourceEdit({ kind: 'remove', index, source })
     if (result === 'failed' || result === 'not-applied' || result === 'busy')
       return
@@ -362,8 +362,8 @@ export function useNotebookViewerState({
   )
 
   // handleRetryReorder resends a Reorder that failed or was not applied as
-  // the person first asked it; Add and Remove retry from their dialog's
-  // confirm.
+  // the person first asked it. Add and Remove retry from their dialog's
+  // confirmation.
   const handleRetryReorder = useCallback(() => {
     if (sourceEdit.status !== 'failed' && sourceEdit.status !== 'not-applied')
       return
@@ -456,7 +456,7 @@ function getParentPath(path: string): string {
 }
 
 // sourceEditProblem says why the last edit of kind was not done, when it
-// failed or was not applied; the person may send it again.
+// failed or was not applied. The person may send the edit again.
 export function sourceEditProblem(
   state: SourceEditState,
   kind: SourceEdit['kind'],
@@ -473,7 +473,7 @@ export function sourceEditProblem(
   return undefined
 }
 
-// applySourceEdit sends one source edit and returns its outcome; Add has no
+// applySourceEdit sends one source edit and returns its outcome. Add has no
 // list guard, so it is never changed.
 async function applySourceEdit(
   handle: NotebookHandle,

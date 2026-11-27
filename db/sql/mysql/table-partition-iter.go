@@ -8,10 +8,9 @@ import (
 
 // TablePartitionIter is a table partition iterator.
 type TablePartitionIter struct {
-	// t is the table
+	// t is the table.
 	t *Table
-	//  i is the partition index
-	// -1 if closed
+	// i is the partition index, or -1 if closed.
 	i int
 }
 

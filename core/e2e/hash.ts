@@ -25,21 +25,21 @@ export async function testHashFunctions(
     },
   }
 
-  // format ObjectRef to base58 string
+  // format the ObjectRef to a base58 string
   const refStr = await formatObjectRef(rootResource, testObjectRef, abortSignal)
   console.log('formatted ObjectRef to base58:', refStr)
   if (!refStr) {
     throw new Error('formatObjectRef returned empty string')
   }
 
-  // parse base58 string back to ObjectRef
+  // parse the base58 string back to an ObjectRef
   const parsedRef = await parseObjectRef(rootResource, refStr, abortSignal)
   console.log('parsed ObjectRef from base58')
   if (!parsedRef?.rootRef?.hash) {
     throw new Error('parseObjectRef failed to return valid ObjectRef')
   }
 
-  // verify hash matches
+  // verify the parsed hash matches the original hash
   const originalHash = testHash.hash
   const parsedHash = parsedRef.rootRef.hash.hash
   if (
@@ -74,7 +74,7 @@ export async function testHashFunctions(
   }
   console.log('HashSum test passed')
 
-  // test HashValidate with valid hash
+  // test HashValidate with a valid hash
   console.log('testing HashValidate with valid hash...')
   const validateResult = await rootResource.hashValidate(
     computedHash,
@@ -85,7 +85,7 @@ export async function testHashFunctions(
   }
   console.log('HashValidate (valid) test passed')
 
-  // test HashValidate with invalid hash
+  // test HashValidate with an invalid hash
   console.log('testing HashValidate with invalid hash...')
   const invalidHash: Hash = {
     hashType: HashType.HashType_BLAKE3,

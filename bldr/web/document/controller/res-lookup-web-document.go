@@ -18,9 +18,9 @@ func (c *Controller) resolveLookupWebDocument(
 
 // lookupWebDocumentResolver resolves LookupWebDocument with the controller.
 type lookupWebDocumentResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// d is the directive
+	// d is the directive.
 	d web_document.LookupWebDocument
 }
 

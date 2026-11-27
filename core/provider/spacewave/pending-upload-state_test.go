@@ -107,7 +107,8 @@ func TestPendingUploadCutoff(t *testing.T) {
 			}
 			seen[queued.sequence] = true
 		}
-		// New writes arrive after every pack; they cannot replace initial work.
+		// New writes arrive after every pack.
+		// They cannot replace initial work.
 		return syncer.MarkDirty(ctx, putQueueBlocks(t, syncer.upper, "later-"+strconv.Itoa(chunks)+"-", 1))
 	})
 	if err != nil {
@@ -120,7 +121,8 @@ func TestPendingUploadCutoff(t *testing.T) {
 
 // TestPendingUploadPagesFillPacks keeps a byte-limited pack open across a page boundary.
 func TestPendingUploadPagesFillPacks(t *testing.T) {
-	// Size each recorded block so exactly 3000 fit one pack; pages hold 4096.
+	// Size each recorded block so exactly 3000 fit one pack.
+	// Pages hold 4096.
 	ctx := t.Context()
 	const perPack = 3000
 	syncer := &syncController{
@@ -176,8 +178,8 @@ func TestPendingUploadFlushKeepsConcurrentMarks(t *testing.T) {
 		t.Fatal(laterErr)
 	}
 
-	// Every captured block uploaded; only the later one remains, under the
-	// original deadline, in the persisted counters and the records.
+	// Every captured block uploaded. Only the later block remains, under
+	// the original deadline, in the persisted counters and the records.
 	var uploaded int
 	for _, pack := range push.committed() {
 		uploaded += int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small

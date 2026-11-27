@@ -185,8 +185,8 @@ export function UpgradeRouter() {
 
   // Wait for the cloud account snapshot to load before deciding anything.
   // Without this gate a pre-fetch Onboarding Status response would fall through
-  // to the checkout flow below and auto-start a Stripe session for a user we
-  // already know is subscribed.
+  // to the checkout flow below and auto-start a Stripe session for a user the
+  // router already knows is subscribed.
   if (!onboarding || !isAccountStatusLoaded(onboarding.accountStatus)) {
     return null
   }

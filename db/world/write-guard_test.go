@@ -11,7 +11,7 @@ import (
 )
 
 // standInWorldState is a WorldState whose ApplyWorldOp runs apply instead of
-// an engine; its other methods are unused.
+// an engine. Its other methods are unused.
 type standInWorldState struct {
 	WorldState
 	apply func(ctx context.Context) error
@@ -33,7 +33,7 @@ func (s *standInWorldState) CreateObject(ctx context.Context, key string, rootRe
 	return nil, nil
 }
 
-// standInOp is an op that only names its type.
+// standInOp is an op that only reports its type.
 type standInOp struct{ Operation }
 
 // TypeID returns the op's type.
@@ -45,7 +45,7 @@ type keyGuard struct {
 	refusal error
 }
 
-// CheckWrite refuses a write naming the guard's key.
+// CheckWrite refuses a write to the guard's key.
 func (g *keyGuard) CheckWrite(ctx context.Context, ws WorldState, w *GuardedWrite) error {
 	if slices.Contains(w.ObjectKeys, g.key) {
 		return g.refusal
@@ -116,7 +116,7 @@ type passWorldState struct{ WorldState }
 // stacked on one engine state is checked by every guard in one apply the
 // engine takes: a write either guard refuses fails the nested op, and the op
 // whose handle it went through, even when the nested op swallows the
-// refusal, and nothing reaches the engine; a write both allow succeeds, and a
+// refusal, and nothing reaches the engine. A write both allow succeeds, and a
 // failure discards the transaction once. It stacks the outer guard on an op's
 // handle, holds both in one op's handle, stacks two guarded transactions, and
 // puts a wrapper the fold does not see between the guard and a handle, where
@@ -213,7 +213,7 @@ func boolInt(b bool) int {
 	return 0
 }
 
-// standInObjectState is an ObjectState whose ApplyObjectOp runs apply; it
+// standInObjectState is an ObjectState whose ApplyObjectOp runs apply. It
 // records IncrementRev.
 type standInObjectState struct {
 	ObjectState
@@ -246,7 +246,7 @@ type writeGuard struct {
 	refusal error
 }
 
-// CheckWrite refuses a write that names no op type.
+// CheckWrite refuses a write that has no op type.
 func (g *writeGuard) CheckWrite(ctx context.Context, ws WorldState, w *GuardedWrite) error {
 	if g.refuse && w.OpTypeID == "" {
 		return g.refusal

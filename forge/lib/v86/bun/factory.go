@@ -10,7 +10,7 @@ import (
 
 // Factory constructs a v86 bun subprocess controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

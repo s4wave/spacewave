@@ -84,9 +84,10 @@ func (p *PackFiles) hasRoom() bool {
 	return room == nil || (*room)()
 }
 
-// ReadRange reads a range of pack id, and queues a fill when it lacks the pack.
+// ReadRange reads a range of pack id, and queues a fill when the node lacks
+// the pack.
 func (p *PackFiles) ReadRange(id string, off int64, length uint32) ([]byte, bool) {
-	// Only a valid name reaches the disk: it comes off the wire.
+	// Only a valid name reaches the disk: the name comes off the wire.
 	if identity.ValidatePackID(id) != nil || off < 0 || length > maxReadBytes {
 		return nil, false
 	}

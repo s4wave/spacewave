@@ -60,7 +60,7 @@ func TestGetSharedObjectMetadataSingleflightAndWarmCache(t *testing.T) {
 		})
 	}
 
-	// Release the fetch; every reader shares it.
+	// Release the fetch. Every reader shares it.
 	<-hitStarted
 	close(release)
 	wg.Wait()
@@ -120,7 +120,7 @@ func TestGetSharedObjectMetadataInvalidationRefetch(t *testing.T) {
 		t.Fatalf("unexpected display name: %q", metadata.GetDisplayName())
 	}
 
-	// Invalidate it; the next read fetches again.
+	// Invalidate it. The next read fetches again.
 	acc.InvalidateSharedObjectMetadata("so-1")
 	metadata, err = acc.GetSharedObjectMetadata(ctx, "so-1")
 	if err != nil {
@@ -256,7 +256,7 @@ func TestSharedObjectMetadataReadPathsShareSeed(t *testing.T) {
 		}
 	}()
 
-	// Release the fetch; both paths share it.
+	// Release the fetch. Both paths share it.
 	<-hitStarted
 	close(release)
 	wg.Wait()

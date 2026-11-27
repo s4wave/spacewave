@@ -27,9 +27,10 @@ func NewKvfileBlock(ctx context.Context, kvkey *store_kvkey.KVKey, store *kvfile
 	return &KvfileBlock{ctx: ctx, kvkey: kvkey, store: store}
 }
 
-// NewBlockStoreBuilder constructs a new block store builder from a file open callback.
+// NewBlockStoreBuilder constructs a new block store builder from a file open
+// callback.
 //
-// le can be nil to disable logging
+// le can be nil to disable logging.
 func NewBlockStoreBuilder(
 	le *logrus.Entry,
 	blockStoreID string,
@@ -62,8 +63,8 @@ func NewBlockStoreBuilder(
 }
 
 // GetHashType returns the preferred hash type for the store.
-// This should return as fast as possible (called frequently).
-// If 0 is returned, uses a default defined by Hydra.
+// GetHashType should return as fast as possible (called frequently).
+// If 0 is returned, uses a default hash type defined by Hydra.
 func (k *KvfileBlock) GetHashType() hash.HashType {
 	return 0
 }
@@ -93,8 +94,8 @@ func (k *KvfileBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 }
 
 // GetBlock looks up a block in the store and verifies it against ref.
-// Returns data, found, and any unexpected error; ErrBlockCorrupt when the
-// stored bytes do not hash to ref.
+// Returns data, found, and any unexpected error. Returns ErrBlockCorrupt when
+// the stored bytes do not hash to ref.
 func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Build the block's key.
 	rm, err := ref.MarshalKey()

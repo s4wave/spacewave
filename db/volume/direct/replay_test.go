@@ -86,7 +86,7 @@ func replayTrace(t *testing.T, path string, ordered bool, fillBlocks, fillSize i
 	}
 	openTime := time.Since(openStart)
 
-	// Report.
+	// Report the replay statistics and open time.
 	t.Logf("records %d, wall %s, ordered commits %d", result.Ops, result.Wall.Round(time.Microsecond), result.OrderedCommits)
 	t.Logf(
 		"replay made %d reads, %d commits (%d durable), %d B",
@@ -100,7 +100,7 @@ func replayTrace(t *testing.T, path string, ordered bool, fillBlocks, fillSize i
 
 // envInt parses an optional integer environment variable.
 func envInt(t *testing.T, name string, def int) int {
-	// Read the optional workload setting with its default.
+	// Read the optional workload setting with its default value.
 	t.Helper()
 	raw := os.Getenv(name)
 	if raw == "" {

@@ -38,8 +38,8 @@ export interface UseStreamingResourceOptions<T> {
    * keepWhileLoading keeps the value of the previous deps while the stream
    * for new deps loads, for a query that grows in steps, such as a tree
    * level expanding. The kept value goes on the first value, failure or
-   * empty settle, and never becomes last. Without it a deps change shows no
-   * value while loading.
+   * empty settle, and never becomes last. Without keepWhileLoading a deps
+   * change shows no value while loading.
    */
   keepWhileLoading?: boolean
   /**
@@ -79,9 +79,9 @@ export function useStreamingResource<P, T>(
   const [retryCount, setRetryCount] = useState(0)
   const abortRetriedParentValueChangeRef = useRef<number | null>(null)
   const valueRef = useRef<T | null>(null)
-  // reconnectingRef is set once the stream yielded under the current key;
-  // quietRef is set while a capped stream reopens in the background, so it
-  // stays failed even with nothing kept.
+  // reconnectingRef is set once the stream yielded under the current key.
+  // quietRef is set while a capped stream reopens in the background, so the
+  // resource stays failed even with nothing kept.
   const reconnectingRef = useRef(false)
   const quietRef = useRef(false)
   // stallsRef counts the consecutive opens that missed their first-value
@@ -193,7 +193,8 @@ export function useStreamingResource<P, T>(
         }
 
         // Reopen after a backoff, keeping the value while waiting. At the
-        // maximum wait, report the failure and keep reopening quietly.
+        // maximum wait, report the failure and keep reopening in the
+        // background.
         if (reconnect && (emitted || reconnectingRef.current)) {
           reconnectingRef.current = true
           const wait = backoff()

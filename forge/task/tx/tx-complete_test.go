@@ -245,7 +245,7 @@ func TestTxUpdateInputsUnlinksReuse(t *testing.T) {
 		t.Fatalf("update inputs: %v", err)
 	}
 
-	// The reopened Task must no longer answer its old key or name its source,
+	// The reopened Task must no longer answer its old key or record its source,
 	// or a later Task with the old inputs would take the new outputs.
 	recorded, err := forge_task.CheckTaskReuseKey(ctx, tb.WorldState, taskKey, "old-inputs")
 	if err != nil {

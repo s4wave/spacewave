@@ -1,6 +1,6 @@
 // The Device's frame sender: what it does with each frame the source makes.
 
-// A TLA+ sequence arrives as an array, or as {} when empty.
+// Seq is a TLA+ sequence that arrives as an array, or as {} when empty.
 type Seq = number[] | Record<string, never>
 
 type Sender = { queue: Seq; open: boolean }

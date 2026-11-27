@@ -85,8 +85,8 @@ import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 const DEFAULT_SSH_PORT = 22
 const DEVICE_APPROVAL_CLOUD_REQUIRED =
   'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.'
-// DEVICE_KEY_MISSING refuses an approval from a responder too old to report
-// the key the approved Device takes.
+// DEVICE_KEY_MISSING is the error for refusing an approval from a responder
+// too old to report the key the approved Device takes.
 const DEVICE_KEY_MISSING =
   'This Spacewave version did not report the Device key. Update Spacewave and approve the ticket again.'
 const INSTALL_AGENT_UNAVAILABLE =
@@ -120,7 +120,7 @@ interface AddDeviceWizardConfig {
   ticket?: string
   completion?: string
   // deviceKey is the World key the approved device's Device object takes once
-  // it joins, as the approval reported it.
+  // the device joins, as the approval reported the key.
   deviceKey?: string
   preview?: {
     label?: string
@@ -130,14 +130,14 @@ interface AddDeviceWizardConfig {
   }
   ssh?: SshHostWizardConfig
   // secretObjectKeys are the credential Secret keys a Finish press recorded
-  // before creating them, so Cancel can delete the ones no SSH Host names.
+  // before creating them, so Cancel can delete the ones no SSH Host references.
   secretObjectKeys?: string[]
 }
 
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
 
 // deviceCommands builds the shell commands the wizard shows for pairing a
-// device named name into the shared object, and for completing it.
+// device named name into the shared object, and for completing the pairing.
 function deviceCommands(
   name: string,
   sharedObjectId: string,
@@ -241,8 +241,9 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const dashboardKey = computers?.dashboards[0] ?? ''
   const deviceJoin = deviceJoinState(deviceKey, computers?.deviceJoined)
 
-  // Finish moves the Space index off the wizard before deleting it, so it
-  // waits until the World has said which Computers dashboard takes its place.
+  // Finish moves the Space index off the wizard before deleting the wizard, so
+  // Finish waits until the World has said which Computers dashboard replaces
+  // the wizard.
   const computersKnown = computers !== null
 
   const sshLabel = (ws.localName || state?.name || 'SSH Host').trim()
@@ -324,8 +325,8 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   }, [mode, ws])
 
   // Finish for a linked device creates nothing: it moves a Space index that
-  // names the wizard to the Computers dashboard and deletes the wizard in one
-  // list, then opens the device.
+  // references the wizard to the Computers dashboard and deletes the wizard in
+  // one list, then opens the device.
   const finish = useWizardFinish(ws)
   const handleFinishSpaceLink = useCallback(async () => {
     if (!state || !computersKnown) return
@@ -334,8 +335,9 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       async () => {
         await ws.persistDraftState()
         // The device was paired before Finish, so it opens even when the
-        // wizard is already gone. Until it joins, the Computers dashboard
-        // opens in its place, and lists it once it does.
+        // wizard is already gone. Until the device joins, the Computers
+        // dashboard opens in the device's place, and lists the device once
+        // the device joins.
         return {
           creates: [],
           target: {
@@ -366,7 +368,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   // createSshHost writes the credential Secrets, then the SSH Host with the
   // wizard's link to it in one list, all under keys derived from the wizard,
   // label and endpoint. A host another tab landed first under those keys is
-  // returned in place of this press's.
+  // returned in place of this press's host.
   const createSshHost = useCallback(
     async (label: string, endpoint: SshHostEndpoint): Promise<SshHostMade> => {
       if (!space) throw new Error('Space resource is not ready')
@@ -377,7 +379,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       }
 
       // A host at the derived key that this wizard does not link was made
-      // by an earlier wizard under the same key; take the next keys.
+      // by an earlier wizard under the same key. Take the next keys.
       let keys = await deriveSshHostKeys(ws.objectKey, label, endpoint)
       for (
         let round = 1;
@@ -390,7 +392,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       }
 
       // Record the Secret keys before creating them, so a Cancel after a
-      // press that fails part way deletes the Secrets no host names.
+      // press that fails part way deletes the Secrets no host references.
       const recorded = config.secretObjectKeys ?? []
       const recordedSet = new Set(recorded)
       const added = sshHostSecretKeys(keys).filter(
@@ -472,9 +474,10 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   )
 
   // createSshHostTerminal creates the terminal that opens the host, under a
-  // key derived from the host's, with the wizard's link to it in one list,
-  // and returns its key, or an empty key when the host has no terminal. A
-  // terminal another tab landed first is returned in place of this one.
+  // key derived from the host's key, with the wizard's link to the terminal in
+  // one list, and returns its key, or an empty key when the host has no
+  // terminal. A terminal another tab landed first is returned in place of this
+  // one.
   const createSshHostTerminal = useCallback(
     async (made: SshHostMade, label: string, endpoint: SshHostEndpoint) => {
       const terminal = await buildCreateSshHostTerminalOpData({
@@ -506,11 +509,11 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   )
 
   // Adding an SSH Host writes its credential Secrets and host, then reads
-  // the World to build the terminal, so it cannot be one list. Each create
-  // commits with the wizard's link to what it made, under a key derived from
-  // the wizard and what the person entered, so a press reads the links first
-  // and carries on from the step that has not landed, whether after a failed
-  // Finish, a reload or in another tab. A host the person entered
+  // the World to build the terminal, so the operation cannot be one list. Each
+  // create commits with the wizard's link to what it made, under a key derived
+  // from the wizard and what the person entered, so a press reads the links
+  // first and carries on from the step that has not landed, whether after a
+  // failed Finish, a reload or in another tab. A host the person entered
   // differently is new, and the one made before stays.
   const handleCreateSshHost = useCallback(async () => {
     if (!state || !computersKnown) return
@@ -571,8 +574,9 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   }, [handleCreateSshHost, handleFinishSpaceLink, isSshInstallMode, mode])
 
   // Cancel stays available while the computers read is unknown: it then clears
-  // a Space index that names the wizard instead of waiting for the dashboard,
-  // since an empty index opens the object list and never names a deleted object.
+  // a Space index that references the wizard instead of waiting for the
+  // dashboard, since an empty index opens the object list and never references
+  // a deleted object.
   const handleCancel = useCallback(() => {
     void ws.handleCancel(dashboardKey)
   }, [dashboardKey, ws])
@@ -852,8 +856,9 @@ function wizardCopy(
 }
 
 // ComputersReadStatus tells the finishing step what Finish waits on: the read
-// of the Space's Computers dashboard and the approved Device, or its failure with Retry.
-// It shows only on the finishing step, and nothing once the read is known.
+// of the Space's Computers dashboard and the approved Device, or the read's
+// failure with Retry. ComputersReadStatus shows only on the finishing step,
+// and nothing once the read is known.
 function ComputersReadStatus({
   controller,
 }: {
@@ -1245,7 +1250,10 @@ function SshHostKeyTrustCard({
   )
 }
 
-/** SshSetupModeCard shows the setup actions; installing the agent is unavailable. */
+/**
+ * SshSetupModeCard shows the setup actions. Installing the agent is
+ * unavailable.
+ */
 function SshSetupModeCard({
   setupMode,
   onConfigChange,
@@ -1813,8 +1821,8 @@ function parsePortInput(value: string): number | undefined {
 }
 
 // deleteUnnamedSshSecrets deletes each credential Secret a Finish press
-// recorded on the wizard that no SSH Host the wizard made names. Deleting a
-// recorded key whose Secret was never created does nothing.
+// recorded on the wizard that no SSH Host the wizard made references. Deleting
+// a recorded key whose Secret was never created does nothing.
 async function deleteUnnamedSshSecrets(
   space: Space | null | undefined,
   { objectKey, spaceWorld, configData }: WizardCancelContext,

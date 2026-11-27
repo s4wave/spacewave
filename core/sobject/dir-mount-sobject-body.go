@@ -8,7 +8,8 @@ import (
 )
 
 // MountSharedObjectBody is a directive to mount the body of a shared object.
-// This typically signals to start a controller which validates + processes the sobject ops.
+// The directive typically signals to start a controller that validates and
+// processes the sobject ops.
 type MountSharedObjectBody interface {
 	// Directive indicates MountSharedObjectBody is a directive.
 	directive.Directive
@@ -23,7 +24,7 @@ type MountSharedObjectBody interface {
 
 // MountSharedObjectBodyValue is the result type for MountSharedObjectBody.
 //
-// This is the interface exposed by the shared object body handler on the "client side."
+// The shared object body handler exposes this interface on the "client side."
 type MountSharedObjectBodyValue[T comparable] interface {
 	// GetSharedObjectRef returns the shared object handle.
 	GetSharedObjectRef() *SharedObjectRef
@@ -35,7 +36,7 @@ type MountSharedObjectBodyValue[T comparable] interface {
 	GetSharedObjectBody() T
 }
 
-// mountSharedObjectBodyValue implements MountSharedObjectBodyValue
+// mountSharedObjectBodyValue implements MountSharedObjectBodyValue.
 type mountSharedObjectBodyValue[T comparable] struct {
 	ref      *SharedObjectRef
 	bodyType string
@@ -82,7 +83,8 @@ func (v *mountSharedObjectBodyValue[T]) GetSharedObjectBody() T {
 // object, with source, an already-mounted object or nil, available to
 // body-specific resolvers.
 //
-// If returnIfIdle is set, returns when the directive becomes idle.
+// If returnIfIdle is set, ExMountSharedObjectBody returns when the directive
+// becomes idle.
 func ExMountSharedObjectBody[T comparable](
 	ctx context.Context,
 	b bus.Bus,
@@ -108,7 +110,7 @@ func ExMountSharedObjectBody[T comparable](
 	return av.GetValue(), avRef, nil
 }
 
-// mountSharedObjectBody implements MountSharedObjectBody
+// mountSharedObjectBody implements MountSharedObjectBody.
 type mountSharedObjectBody struct {
 	ref      *SharedObjectRef
 	bodyType string
@@ -163,8 +165,9 @@ func (d *mountSharedObjectBody) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	// The optional source is a resolver hint for synthetic mounted objects; the
-	// directive's lifecycle identity remains the shared object ref plus body type.
+	// The optional source is a resolver hint for synthetic mounted objects.
+	// The directive's lifecycle identity remains the shared object ref plus
+	// body type.
 	return d.ref.EqualVT(od.MountSharedObjectBodyRef()) && d.bodyType == od.MountSharedObjectBodyType()
 }
 
@@ -175,14 +178,15 @@ func (d *mountSharedObjectBody) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *mountSharedObjectBody) GetName() string {
 	return "MountSharedObjectBody"
 }
 
 // GetDebugVals returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The arguments should be something like param1="test", param2="test".
+// The arguments are not necessarily unique, and are primarily intended for
+// display.
 func (d *mountSharedObjectBody) GetDebugVals() directive.DebugValues {
 	return directive.DebugValues{
 		"sobject-id":  []string{d.ref.GetProviderResourceRef().GetId()},

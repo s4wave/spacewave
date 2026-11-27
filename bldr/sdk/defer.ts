@@ -9,7 +9,7 @@ export class DisposableStack implements Disposable {
   private stack: (() => void)[] = []
 
   /**
-   * Adds a function to be executed when the stack is disposed.
+   * defer adds a function to be executed when the stack is disposed.
    * @param fn The function to defer.
    */
   defer(fn: () => void): void {
@@ -17,13 +17,13 @@ export class DisposableStack implements Disposable {
   }
 
   /**
-   * Disposes of the resources in the stack by executing the deferred functions
-   * in Last-In, First-Out (LIFO) order.
-   * If a deferred function throws an error, disposal stops, and the error is rethrown,
-   * similar to Go's panic behavior during defer execution.
+   * [Symbol.dispose] disposes of the resources in the stack by executing the
+   * deferred functions in Last-In, First-Out (LIFO) order.
+   * If a deferred function throws an error, disposal stops, and the error is
+   * rethrown, similar to Go's panic behavior during defer execution.
    */
   [Symbol.dispose](): void {
-    // Emulate Go: if a deferred throws, stop and rethrow
+    // Emulate Go: if a deferred function throws, stop and rethrow
     while (this.stack.length) {
       const fn = this.stack.pop()!
       fn()
@@ -40,7 +40,8 @@ export class AsyncDisposableStack implements AsyncDisposable {
   private stack: (() => Promise<void> | void)[] = []
 
   /**
-   * Adds a synchronous or asynchronous function to be executed when the stack is disposed.
+   * defer adds a synchronous or asynchronous function to be executed when the
+   * stack is disposed.
    * @param fn The function to defer. Can return void or a Promise<void>.
    */
   defer(fn: () => Promise<void> | void): void {
@@ -48,8 +49,10 @@ export class AsyncDisposableStack implements AsyncDisposable {
   }
 
   /**
-   * Asynchronously disposes of the resources in the stack by executing the deferred functions
-   * sequentially in Last-In, First-Out (LIFO) order. It awaits each function if it returns a promise.
+   * [Symbol.asyncDispose] asynchronously disposes of the resources in the stack
+   * by executing the deferred functions sequentially in Last-In, First-Out
+   * (LIFO) order. The method awaits each function if the function returns a
+   * promise.
    */
   async [Symbol.asyncDispose](): Promise<void> {
     // Execute in LIFO order, awaiting each potentially async function

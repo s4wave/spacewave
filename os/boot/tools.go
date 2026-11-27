@@ -12,8 +12,9 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
-// toolApplets is the fixed BusyBox interface expected by the serial-shell image.
-// The input build must implement these applets; Linux execution is checked later.
+// toolApplets is the fixed BusyBox interface expected by the serial-shell
+// image. The input build must implement these applets. Linux execution is
+// checked later.
 const toolApplets = "sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum sleep ps kill " +
 	"true false uname id stat mount umount poweroff reboot ip su chmod stty"
 
@@ -27,7 +28,8 @@ func buildTools(ctx context.Context, root *unixfs.FSHandle, busybox io.Reader) e
 		}
 	}
 
-	// Stream exactly one tool executable; applets share its immutable file content.
+	// Stream exactly one tool executable. Applets share its immutable file
+	// content.
 	bin, err := root.Lookup(ctx, "bin")
 	if err != nil {
 		return err
@@ -49,7 +51,8 @@ func buildTools(ctx context.Context, root *unixfs.FSHandle, busybox io.Reader) e
 // verifyTools checks the fixed layout and streams the entire required tool file.
 // Hash-addressed content comes from the retained root, not bootstrap tool pages.
 func verifyTools(ctx context.Context, root *unixfs.FSHandle) error {
-	// Require real empty mountpoints; the later scratch mount sets its own mode.
+	// Require real empty mountpoints. The later scratch mount sets its own
+	// mode.
 	for _, name := range []string{"bin", "data", "dev", "proc", "tmp"} {
 		dir, err := root.Lookup(ctx, name)
 		if err != nil {

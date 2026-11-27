@@ -13,7 +13,7 @@ func NewEncodedObjectBlock() block.Block {
 	return &EncodedObject{}
 }
 
-// Validate performs cursory validation of the EncodedObject.
+// Validate validates the EncodedObject cursorily.
 func (r *EncodedObject) Validate() error {
 	if r.GetDataHash().GetHashType() != hash.HashType_HashType_SHA1 ||
 		len(r.GetDataHash().GetHash()) != 20 {
@@ -25,9 +25,10 @@ func (r *EncodedObject) Validate() error {
 	return nil
 }
 
-// ValidateFull performs full validation of the EncodedObject.
-// This fetches all the data.
-// Note: this does not check the hash of the data, just block graph validity.
+// ValidateFull fully validates the EncodedObject.
+// ValidateFull fetches all the data.
+// Note: ValidateFull checks only block graph validity, not the hash of
+// the data.
 func (r *EncodedObject) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	if err := r.Validate(); err != nil {
 		return err
@@ -38,7 +39,7 @@ func (r *EncodedObject) ValidateFull(ctx context.Context, bcs *block.Cursor) err
 	return nil
 }
 
-// FollowDataBlob attempts to follow the blob field.
+// FollowDataBlob tries to follow the blob field.
 func (r *EncodedObject) FollowDataBlob(ctx context.Context, bcs *block.Cursor) (*blob.Blob, *block.Cursor, error) {
 	dataBlobBcs := bcs.FollowSubBlock(1)
 	bl, err := block.UnmarshalBlock[blob.Blob](ctx, dataBlobBcs)

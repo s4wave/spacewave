@@ -32,7 +32,7 @@ function toTransferable(dc: RTCDataChannel): Transferable {
   return dc
 }
 
-// Credential response returned by the trusted same-origin ICE credential
+// IceCredentialResponse is returned by the trusted same-origin ICE credential
 // endpoint. iceServers carries short-lived TURN/STUN servers and expiresAt is
 // the epoch-ms expiry of the credential set.
 interface IceCredentialResponse {
@@ -44,8 +44,8 @@ interface IceCredentialResponse {
 // temporary API failure still leaves time to retry before the current
 // credential expires.
 const refreshMarginMs = 60 * 60 * 1000
-// minRetryDelayMs / maxRetryDelayMs bound the exponential backoff between
-// failed credential fetches while a usable credential is still current.
+// minRetryDelayMs bounds the exponential backoff between failed credential
+// fetches with maxRetryDelayMs while a usable credential is still current.
 const minRetryDelayMs = 5_000
 const maxRetryDelayMs = 60_000
 // allowedIceUrlSchemes are the only URL schemes accepted from the credential
@@ -152,8 +152,8 @@ export class WebRTCBridgeEndpoint {
     Array<{ cmd: BridgeCommand }>
   >()
   private closed = false
-  // Pending stats promises keyed by pcId, awaited before close to avoid
-  // collecting stats on an already-closed PC.
+  // pendingStats contains stats promises keyed by pcId, awaited before close to
+  // avoid collecting stats on an already-closed PC.
   private pendingStats = new Map<string, Promise<void>>()
 
   constructor(
@@ -188,7 +188,7 @@ export class WebRTCBridgeEndpoint {
 
   // currentIceServers returns the trusted ICE servers to construct peer
   // connections with. When a credential endpoint is configured, it awaits the
-  // current credential fetch; concurrent callers share one request. The static
+  // current credential fetch. Concurrent callers share one request. The static
   // list remains the fallback when the fetch fails or the endpoint is unset.
   private async currentIceServers(): Promise<RTCIceServer[]> {
     if (!this.credentialEndpoint) return this.iceServers
@@ -222,7 +222,7 @@ export class WebRTCBridgeEndpoint {
         lifetimeMs > refreshMarginMs
           ? lifetimeMs - refreshMarginMs
           : Math.max(minRetryDelayMs, lifetimeMs / 2)
-      // Never schedule a refresh after the current credentials expire; an
+      // Never schedule a refresh after the current credentials expire. An
       // expired response is rejected, so retrying sooner is the only recovery.
       this.scheduleRefresh(Math.min(refreshDelayMs, Math.max(0, lifetimeMs)))
       this.applyIceServersToPCs()
@@ -247,7 +247,7 @@ export class WebRTCBridgeEndpoint {
   }
 
   // scheduleRefresh schedules the next credential fetch in delayMs. Only one
-  // timer is ever pending; the newest decision wins.
+  // timer is ever pending because the newest decision wins.
   private scheduleRefresh(delayMs: number) {
     if (this.closed) return
     if (this.refreshTimer) clearTimeout(this.refreshTimer)
@@ -382,7 +382,7 @@ export class WebRTCBridgeEndpoint {
         `WebRTCBridgeEndpoint: ice stats [${label}] pc=${pcId} local=[${locals.join(', ')}] remote=[${remotes.join(', ')}] pairs=[${pairs.join(', ')}]`,
       )
     } catch {
-      // ignore
+      // Ignore errors while collecting and logging ICE stats.
     }
   }
 
@@ -507,7 +507,7 @@ export class WebRTCBridgeEndpoint {
           iceServers: await this.currentIceServers(),
         }
         // The endpoint may have closed while the credential fetch was in
-        // flight; don't create PCs (or post) afterwards.
+        // flight, so don't create PCs (or post) afterwards.
         if (this.closed) return
         const pc = new RTCPeerConnection(safeConfig)
         this.pcs.set(pcId, pc)

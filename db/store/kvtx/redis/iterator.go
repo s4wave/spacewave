@@ -15,6 +15,6 @@ func NewIterator(
 	sort, reverse bool,
 ) kvtx.Iterator {
 	// TODO: implement a faster sorted iteration backed by a Redis sorted set
-	// of keys; this buffers all keys in memory via ScanPrefixKeys.
+	// of keys. The iterator buffers all keys in memory via ScanPrefixKeys.
 	return iterator.NewIterator(ctx, ops, prefix, sort, reverse)
 }

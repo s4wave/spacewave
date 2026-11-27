@@ -7,9 +7,9 @@ import (
 
 // DecodeBlockValue decodes a pack entry: the key is the BlockKey of the block
 // hash and the value is the encoded block.BlockObject of the block's bytes and
-// refs. It verifies the bytes against the key. A value that does not decode,
-// or whose bytes fail their hash, returns a block.CorruptError, so a reader
-// with another source tries it.
+// refs. DecodeBlockValue verifies the bytes against the key. For a value that
+// does not decode, or whose bytes fail their hash, DecodeBlockValue returns a
+// block.CorruptError, so a reader with another source tries that source.
 func DecodeBlockValue(key, value []byte) (*block.BlockRef, *block.StoredBlock, error) {
 	// Resolve the packed entry key to its expected block reference.
 	h, err := ParseBlockKey(key)

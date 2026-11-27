@@ -24,7 +24,7 @@ describe('InfoCard', () => {
       </InfoCard>,
     )
     expect(screen.getByTestId('test-icon')).toBeDefined()
-    // Icon should be inside the h3
+    // The icon should be inside the h3.
     const heading = screen.getByRole('heading', { level: 3 })
     expect(heading.querySelector('[data-testid="test-icon"]')).toBeTruthy()
   })

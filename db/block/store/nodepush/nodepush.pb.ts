@@ -47,15 +47,15 @@ export const Message: MessageType<Message> =
  */
 export interface Push {
   /**
-   * id names the push on this connection.
+   * Id identifies the push on this connection.
    */
   id?: bigint
   /**
-   * blocks are the blocks to hold.
+   * Blocks are the blocks to hold.
    */
   blocks?: Block[]
   /**
-   * sum is the SHA-256 of every block's key and data, in order.
+   * Sum is the SHA-256 of every block's key and data, in order.
    */
   sum?: Uint8Array
 }
@@ -76,11 +76,11 @@ export const Push: MessageType<Push> = /* @__PURE__ */ createMessageType<Push>(
  */
 export interface Block {
   /**
-   * key is the block's pack key.
+   * Key is the block's pack key.
    */
   key?: Uint8Array
   /**
-   * data is the block's stored bytes.
+   * Data is the block's stored bytes.
    */
   data?: Uint8Array
 }
@@ -98,7 +98,7 @@ export const Block: MessageType<Block> =
  */
 export interface Flushed {
   /**
-   * id is the Push's id.
+   * Id is the Push's id.
    */
   id?: bigint
 }
@@ -117,11 +117,11 @@ export const Flushed: MessageType<Flushed> =
  */
 export interface Refused {
   /**
-   * id is the Push's id.
+   * Id is the Push's id.
    */
   id?: bigint
   /**
-   * reason says why, for the log.
+   * Reason says why the node refused the Push, for the log.
    */
   reason?: string
 }
@@ -137,21 +137,22 @@ export const Refused: MessageType<Refused> =
 
 /**
  * PackReport says the remote holds a pack. It is everything the local store
- * needs to find the pack's blocks there, since it never lists the remote.
+ * needs to find the pack's blocks there, since the local store never lists
+ * the remote.
  *
  * @generated from message block.store.nodepush.PackReport
  */
 export interface PackReport {
   /**
-   * pack_id is the pack's name on the remote.
+   * PackId is the pack's name on the remote.
    */
   packId?: string
   /**
-   * entry is the encoded packfile entry.
+   * Entry is the encoded packfile entry.
    */
   entry?: Uint8Array
   /**
-   * keys are the pack's block keys.
+   * Keys are the pack's block keys.
    */
   keys?: Uint8Array[]
 }
@@ -173,12 +174,12 @@ export const PackReport: MessageType<PackReport> =
  */
 export interface PackApplied {
   /**
-   * pack_id is the reported pack's name.
+   * PackId is the reported pack's name.
    */
   packId?: string
   /**
-   * failed says the local store could not apply it yet, so the node tries
-   * again later rather than waiting out the report's turn.
+   * Failed says the local store could not apply the report yet, so the node
+   * tries again later rather than waiting out the report's turn.
    */
   failed?: boolean
 }
@@ -199,19 +200,19 @@ export const PackApplied: MessageType<PackApplied> =
  */
 export interface Read {
   /**
-   * id names the read on this connection.
+   * Id identifies the read on this connection.
    */
   id?: bigint
   /**
-   * pack_id is the pack's name.
+   * PackId is the pack's name.
    */
   packId?: string
   /**
-   * off is the offset of the range.
+   * Off is the offset of the range.
    */
   off?: bigint
   /**
-   * length is the length of the range.
+   * Length is the length of the range.
    */
   length?: number
 }
@@ -233,16 +234,16 @@ export const Read: MessageType<Read> = /* @__PURE__ */ createMessageType<Read>(
  */
 export interface ReadData {
   /**
-   * id is the Read's id.
+   * Id is the Read's id.
    */
   id?: bigint
   /**
-   * data holds the range, shorter when the pack ends first.
+   * Data holds the range, shorter when the pack ends first.
    */
   data?: Uint8Array
   /**
-   * miss says the node lacks the pack. It fills it in the background, and the
-   * local store reads the remote meanwhile.
+   * Miss says the node lacks the pack. The node fills the pack in the
+   * background, and the local store reads the remote meanwhile.
    */
   miss?: boolean
 }

@@ -7,7 +7,7 @@ let highlighter: Promise<Highlighter> | undefined
 
 /**
  * getHighlighter returns the shared Shiki highlighter. It starts with the code
- * theme and no languages; highlightCode loads each language on first use.
+ * theme and no languages. highlightCode loads each language on first use.
  */
 function getHighlighter(): Promise<Highlighter> {
   highlighter ??= import('shiki').then((shiki) =>
@@ -26,7 +26,7 @@ export async function highlightCode(
 ): Promise<string | null> {
   const shiki = await getHighlighter()
 
-  // Load the grammar on first use; an unknown language renders as plain text.
+  // Load the grammar on first use. An unknown language renders as plain text.
   if (!shiki.getLoadedLanguages().includes(lang)) {
     try {
       await shiki.loadLanguage(lang as BundledLanguage)

@@ -23,15 +23,16 @@ const SpacewaveCorePluginID = "spacewave-core"
 // It exposes the spacewave-core plugin's resource services for testing the complete app,
 // plus a standalone LayoutHost for simple layout component tests.
 type BrowserTestServer struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// server is the underlying browser testbed server
+	// server is the underlying browser testbed server.
 	server *browser_testbed.Server
-	// pluginClientRef releases the plugin client reference
+	// pluginClientRef releases the plugin client reference.
 	pluginClientRef func()
-	// layoutStateCtr holds the current layout model state for the standalone LayoutHost
+	// layoutStateCtr holds the current layout model state for the
+	// standalone LayoutHost.
 	layoutStateCtr *ccontainer.CContainer[*s4wave_layout.LayoutModel]
 }
 
@@ -62,12 +63,14 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 	s.le.Info("spacewave-core plugin loaded, creating browser server")
 
 	// Create ClientInvoker to proxy any unhandled service calls to the plugin.
-	// We need to handle both:
-	// 1. Calls with "plugin/spacewave-core/" prefix (from AppAPI through BldrContext)
-	// 2. Calls without prefix (from direct SDK tests like App.backend.e2e.test.tsx)
+	// The invoker needs to handle both:
+	// 1. Calls with "plugin/spacewave-core/" prefix
+	//    (from AppAPI through BldrContext)
+	// 2. Calls without prefix
+	//    (from direct SDK tests like App.backend.e2e.test.tsx)
 	//
-	// The pluginPrefixInvoker wraps the client and tries to strip the prefix first,
-	// falling back to the direct call if no prefix matches.
+	// The pluginPrefixInvoker wraps the client and tries to strip the prefix
+	// first, falling back to the direct call if no prefix matches.
 	clientInvoker := srpc.NewClientInvoker(pluginClient)
 	pluginServicePrefix := "plugin/" + SpacewaveCorePluginID + "/"
 	pluginPrefixInvoker := newFallbackPrefixInvoker(clientInvoker, pluginServicePrefix)
@@ -76,8 +79,9 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 	// Local services take precedence, unmatched calls go to the plugin
 	serverMux := srpc.NewMux(pluginPrefixInvoker)
 
-	// Register a standalone LayoutHost for simple layout tests
-	// This allows BaseLayout E2E tests to work without going through the full Resource protocol
+	// Register a standalone LayoutHost for simple layout tests.
+	// The standalone LayoutHost allows BaseLayout E2E tests to work without
+	// going through the full Resource protocol.
 	s.setupInitialLayoutModel()
 	layoutResource := resource_layout.NewLayoutResource(
 		s.layoutStateCtr,
@@ -96,7 +100,7 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 }
 
 // navigateTab handles a tab navigation request against the standalone layout.
-// It confirms the target tab exists; the standalone test host does not persist
+// It confirms the target tab exists. The standalone test host does not persist
 // per-tab path data.
 func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error) {
 	// Ignore navigation requests that do not identify a layout tab.
@@ -105,17 +109,18 @@ func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.
 		return &s4wave_layout.NavigateTabResponse{}, nil
 	}
 
-	// Get current model
+	// Get the current model
 	currentModel := s.layoutStateCtr.GetValue()
 	if currentModel == nil {
 		return &s4wave_layout.NavigateTabResponse{}, nil
 	}
 
-	// Clone the model for modification
+	// Clone the current model before walking and republishing it.
 	updatedModel := currentModel.CloneVT()
 
 	// Locate the tab by ID. This stub confirms the tab exists without rewriting
-	// its path data, which is sufficient for the layout navigation tests.
+	// its path data. Confirming the tab exists is sufficient for the layout
+	// navigation tests.
 	var tabFound bool
 	resource_layout.WalkLayoutModel(updatedModel, func(node any) bool {
 		// Find the requested tab among the layout model nodes.

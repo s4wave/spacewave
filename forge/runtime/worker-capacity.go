@@ -18,8 +18,8 @@ import (
 const workerCapacityObjectKeyPrefix = "forge/runtime/capacity/"
 
 // BuildWorkerCapacityObjectKey builds the deterministic capacity object key
-// for one Forge Worker. The Worker process owns this record; Forge validates
-// and debits it, callers never keep a parallel ledger.
+// for one Forge Worker. The Worker process owns this record. Forge validates
+// and debits the record, and callers never keep a parallel ledger.
 func BuildWorkerCapacityObjectKey(workerObjectKey string) string {
 	hash := sha256.Sum256([]byte(workerObjectKey))
 	return workerCapacityObjectKeyPrefix + hex.EncodeToString(hash[:12])
@@ -100,10 +100,10 @@ func (w *WorkerCapacity) matchingCardIDs(request *s4wave_device.GraphicsCardRequ
 	return ids
 }
 
-// describeCardRequest names a card request for a refusal or a wait, such as
+// describeCardRequest describes a card request for a refusal or a wait, such as
 // "1 AMD card with at least 8589934592 bytes".
 func describeCardRequest(request *s4wave_device.GraphicsCardRequest) string {
-	// Name the count and vendor, then the memory floor when there is one.
+	// Describe the count and vendor, then the memory floor when there is one.
 	vendor := "graphics"
 	if v := request.GetVendor(); v != s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_UNKNOWN {
 		vendor = strings.TrimPrefix(v.String(), "GRAPHICS_CARD_VENDOR_")
@@ -121,8 +121,9 @@ func describeCardRequest(request *s4wave_device.GraphicsCardRequest) string {
 // Validate validates the capacity record. Every owner field must be set, so
 // a half-written claim can never decode as available.
 func (w *WorkerCapacity) Validate() error {
-	// An ACTIVE record never over-commits; a DRAINING record may hold debits
-	// above shrunk declared totals until credits land or the claim deletes it.
+	// An ACTIVE record never over-commits. A DRAINING record may hold
+	// debits above shrunk declared totals until credits land or the claim
+	// deletes the record.
 	if w.OwnerState == CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		switch {
 		case w.MilliCpuReserved > w.MilliCpuTotal:
@@ -207,7 +208,7 @@ func containsAll(set map[string]struct{}, ids []string) bool {
 
 // validateCards checks the declared cards and the reserved card ids. Every
 // card has a unique id, a vendor and its device nodes, and no id is reserved
-// twice. An ACTIVE record reserves only cards it offers; a DRAINING record may
+// twice. An ACTIVE record reserves only cards it offers. A DRAINING record may
 // hold the id of a card that left the host until its reservation credits it.
 func (w *WorkerCapacity) validateCards() error {
 	// Require each declared card to be complete and declared once.

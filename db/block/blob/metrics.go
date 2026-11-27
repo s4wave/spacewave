@@ -4,7 +4,7 @@ import "context"
 
 // Metric records one blob-build memory-relevant decision point.
 type Metric struct {
-	// Stage names the build decision point.
+	// Stage records the build decision point.
 	Stage string
 	// InputBytes is the total input data size.
 	InputBytes int64

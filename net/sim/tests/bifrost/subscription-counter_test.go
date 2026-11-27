@@ -38,5 +38,5 @@ func (c *subscriptionCounter) Count() int {
 	return c.packets
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ logrus.Hook = (*subscriptionCounter)(nil)

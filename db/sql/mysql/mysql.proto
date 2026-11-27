@@ -159,7 +159,7 @@ message TableSchemaColumn {
   // Extra contains any additional information to put in the `extra` column under `information_schema.columns`.
   string extra = 9;
   // GeneratedExpr is the generated column expression, encoded to a string.
-  // Empty unless the column is generated; a generated column has no default.
+  // Empty unless the column is generated. A generated column has no default.
   string generated_expr = 10;
   // OnUpdateExpr is the ON UPDATE expression, stored unparenthesized.
   string on_update_expr = 11;

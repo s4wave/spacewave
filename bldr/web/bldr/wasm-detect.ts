@@ -1,4 +1,4 @@
-// detectWasmSupported checks if we can use wasm.
+// detectWasmSupported checks if the runtime can use wasm.
 export function detectWasmSupported(): boolean {
   // https://stackoverflow.com/a/47880734/431369
   try {

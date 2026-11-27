@@ -44,8 +44,9 @@ func TestWorldServicePluginLookup(t *testing.T) {
 	addTestController(t, child, bus_bridge.NewBusBridge(tb.Bus, bridgeFilter(&plugin_space.Config{EngineId: tb.EngineID}, nil)))
 	addTestController(t, child, newWorldService(tb.Logger, child, tb.EngineID, ""))
 
-	// Connect a plugin bus to the generation as the plugin host does, naming
-	// the plugin in the server ID: the service serves no unnamed lookup.
+	// Connect a plugin bus to the generation as the plugin host does,
+	// recording the plugin in the server ID: the service serves no unnamed
+	// lookup.
 	pluginBus, _, err := controllerbus_core.NewCoreBus(ctx, tb.Logger)
 	if err != nil {
 		t.Fatal(err)

@@ -23,11 +23,11 @@ import (
 	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
-// previousFixtures holds the files the previous engine wrote.
+// previousFixtures is the path to the files the previous engine wrote.
 const previousFixtures = "../../s4db/s4dbv1/testdata"
 
-// previousHolderEnv names the previous-format file a test process holds open
-// until its standard input closes.
+// previousHolderEnv selects the previous-format file a test process holds
+// open until its standard input closes.
 const previousHolderEnv = "SPACEWAVE_S4DBV1_HOLDER"
 
 // previousRow is one expected pair: its key, length and value hash.
@@ -340,7 +340,7 @@ func TestConvertPrevious(t *testing.T) {
 
 	// A disk without the live bytes plus a tenth free is refused.
 	t.Run("no space", func(t *testing.T) {
-		// One byte short refuses; the bound passes.
+		// Reject one byte below the bound and accept the bound.
 		err := checkConvertSpace(1000, 1099)
 		var noSpace *NoSpaceError
 		if !errors.As(err, &noSpace) || !errors.Is(err, ErrNoSpace) || noSpace.Need != 1100 || noSpace.Free != 1099 {

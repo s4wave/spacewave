@@ -146,8 +146,10 @@ func LookupObjectBody[T any, PT block.Ptr[T]](
 	// Read bytes directly when the transport can return the body in one response.
 	bodies, err := LookupObjectBodies[T, PT](ctx, ws, []string{objKey})
 	if err != nil {
-		// A batch RPC may reject a valid block larger than its response envelope.
-		// Remote errors need not retain their Go type; the object read remains authoritative.
+		// A batch RPC may reject a valid block larger than its response
+		// envelope.
+		// Remote errors need not retain their Go type. The object read
+		// remains authoritative.
 		var state ObjectState
 		out, state, err = LookupObject[T, PT](ctx, ws, objKey)
 		ReleaseObjectState(state)
@@ -214,7 +216,7 @@ func lookupObjectBodyFrom(ctx context.Context, ws WorldState, root *bucket_looku
 	}
 
 	// Follow the root only when it leaves the storage cursor's bucket or
-	// transform; otherwise read the root block in place.
+	// transform. Otherwise read the root block in place.
 	if !root.FollowsInPlace(rootRef) {
 		followed, err := root.FollowRef(ctx, rootRef)
 		if err != nil {

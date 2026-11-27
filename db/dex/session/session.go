@@ -32,8 +32,8 @@ type DexSession struct {
 }
 
 // NewDexSession constructs a new DexSession wrapping the given stream.
-// If chunkSize <= 0, uses the default (1KB).
-// If maxBlockSize <= 0, uses the default (10MB).
+// If chunkSize <= 0, uses the default chunk size (1KB).
+// If maxBlockSize <= 0, uses the default max block size (10MB).
 func NewDexSession(stream io.ReadWriteCloser, chunkSize int, maxBlockSize uint64) *DexSession {
 	if chunkSize <= 0 {
 		chunkSize = defaultChunkSize
@@ -42,8 +42,9 @@ func NewDexSession(stream io.ReadWriteCloser, chunkSize int, maxBlockSize uint64
 		maxBlockSize = defaultMaxBlockSize
 	}
 
-	// maxMessageSize must accommodate a single chunk plus proto framing overhead.
-	// We always chunk, so the largest single message is chunkSize + BlockTransfer fields.
+	// maxMessageSize must accommodate a single chunk plus proto framing
+	// overhead. The session always chunks, so the largest single message is
+	// chunkSize + BlockTransfer fields.
 	maxMsg := uint32(chunkSize) + 1024 //nolint:gosec
 	return &DexSession{
 		sess:      stream_packet.NewSession(stream, maxMsg),
@@ -127,7 +128,7 @@ func (d *DexSession) SendBlock(requestID uint64, ref *block.BlockRef, data []byt
 }
 
 // ReceiveBlock reads a complete block from the stream (Init + chunks).
-// If maxBlockSize is 0, uses the session default.
+// If maxBlockSize is 0, uses the session default max block size.
 // Returns the request ID, block reference, assembled data, and any error.
 func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef, []byte, error) {
 	// Resolve the maximum accepted block size.

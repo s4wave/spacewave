@@ -15,23 +15,23 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Record kinds. Each kind byte begins a key under the Volume's liveness
-// prefix. The child list keeps the kind and encoding of store format 6, so a
-// format 6 Volume carries its lists to format 7 in place. Format 10 adds the
-// up and down logs and moves the pop mark, in lower case outside the old
-// reference graph's kinds, which a Volume upgraded from a format before 7
-// deletes in the background; Format9Kinds lists the kinds it no longer
-// writes. Format 11 keeps a leased root's expiry on its lease, in the free
-// kinds 'e' and 'o', in place of format 10's index by expiry, 'E'.
+// Record kinds. Each kind byte begins a key under the Volume's liveness prefix.
+// The child list keeps the kind and encoding of store format 6, so a format 6
+// Volume carries its lists to format 7 in place. Format 10 adds the up and down
+// logs and moves the pop mark, in lower case outside the old reference graph's
+// kinds, which a Volume upgraded from a format before 7 deletes in the
+// background. Format9Kinds lists the kinds it no longer writes. Format 11 keeps
+// a leased root's expiry on its lease, in the free kinds 'e' and 'o', in place
+// of format 10's index by expiry, 'E'.
 const (
 	// kindChildren keys the child list of a block by the block. Its value
 	// packs the block keys of its children, sorted and distinct. The record
-	// exists from the put that stored the block until the collector frees it,
-	// so its presence is what "stored" means here. A list written from the
-	// block's content, by Land, a refill or the settle walk, begins with
-	// listMark; one an older store wrote does not, and may lack a child, as
-	// Generation_GENERATION_OPEN describes. A block key never begins with a
-	// zero byte, so the two cannot be confused.
+	// exists from the put that stored the block until the collector frees
+	// it, so its presence is what "stored" means here. A list written from
+	// the block's content, by Land, a refill or the settle walk, begins
+	// with listMark. One an older store wrote does not, and may lack a
+	// child, as Generation_GENERATION_OPEN describes. A block key never
+	// begins with a zero byte, so the two cannot be confused.
 	kindChildren byte = 'c'
 	// kindCount keys the count record of a block by the block. A block with
 	// no record has one holder, and a uvarint value n above zero gives it
@@ -58,9 +58,10 @@ const (
 	// first page left is the down log's cursor.
 	kindDownLog byte = 'd'
 	// kindQueue keys a block at zero holders by its big-endian ripe
-	// sequence, then the block. It holds no value. The free walks it in ripe
-	// order, stopping at the first entry the up cursor has not reached, and a
-	// Land that names a queued block deletes its entry, as Land describes.
+	// sequence, then the block. It holds no value. The free walks it in
+	// ripe order, stopping at the first entry the up cursor has not
+	// reached, and a Land that references a queued block deletes its entry,
+	// as Land describes.
 	kindQueue byte = 'Q'
 	// kindProof keys the completion proof of a block by the block: the graph
 	// under it is stored. It holds no value and goes with the block.
@@ -76,13 +77,14 @@ const (
 	// them. It holds no value, and SetRoot and DeleteRoot keep it with the
 	// root.
 	kindLeaseRoot byte = 'o'
-	// kindHole keys a hole the audit found under a live root, by the block: a
-	// block the store lost together with its child list, whose parents' lists
-	// still name it. It holds no value. Its children's counts may lack its
-	// holder: no recount reads a list for it, and an audit cannot tell whether
-	// the last one ran before the loss. A put of the block counts it as stored,
-	// as Land describes, gives its children its holder, and deletes the record;
-	// when the counts held it already, they stay one high until a recount.
+	// kindHole keys a hole the audit found under a live root, by the block:
+	// a block the store lost together with its child list, whose parents'
+	// lists still reference it. It holds no value. Its children's counts
+	// may lack its holder: no recount reads a list for it, and an audit
+	// cannot tell whether the last one ran before the loss. A put of the
+	// block counts it as stored, as Land describes, gives its children its
+	// holder, and deletes the record. When the counts held it already, they
+	// stay one high until a recount.
 	kindHole byte = 'O'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
@@ -101,33 +103,34 @@ const (
 	// The collector never requeues it, since the sweep deletes the block.
 	kindReleased byte = 'x'
 	// kindFront keys a block on the settle's front, by the block: a block
-	// with no list from content, stored or absent, named by a young or
+	// with no list from content, stored or absent, referenced by a young or
 	// verified block, a root or a down page not netted yet, which the walk
-	// still has to decode. It holds no value. Land and the walk push onto it
-	// while the generation is Open, as Generation_GENERATION_OPEN describes;
-	// a write that marks the block's list takes its entry off, and so does
-	// the collector once its free proof holds for the block. An entry whose
-	// block the store does not list stays while it has holders or its bytes
-	// remain, for the walk to list it; with neither the proof pops it.
+	// still has to decode. It holds no value. Land and the walk push onto
+	// it while the generation is Open, as Generation_GENERATION_OPEN
+	// describes. A write that marks the block's list takes its entry off,
+	// and so does the collector once its free proof holds for the block. An
+	// entry whose block the store does not list stays while it has holders
+	// or its bytes remain, for the walk to list it. With neither the proof
+	// pops it.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
 	// whose bytes or list the store holds without a list from content, or
-	// one the free parked while Open, as Records.park describes. Its
-	// value is empty, runReborn once a put stored the block again, or
-	// runSwept once the sweep deleted it. The run is built in slices while
-	// the generation is Open, and is complete once its runComplete entry
-	// exists; the flip makes each empty entry unmarked. While Sweeping no
+	// one the free parked while Open, as Records.park describes. Its value
+	// is empty, runReborn once a put stored the block again, or runSwept
+	// once the sweep deleted it. The run is built in slices while the
+	// generation is Open, and is complete once its runComplete entry
+	// exists. The flip makes each empty entry unmarked. While Sweeping no
 	// entry is deleted, so the run stays the run at the flip until it
 	// settles, as Generation_GENERATION_SWEEPING describes.
 	kindUnmarked byte = 'I'
 	// kindUnmarkedCount keys the count record of an unmarked block by the
 	// block, in kindCount's encoding, while the generation is Sweeping. The
-	// flip freezes an unmarked block's kindCount record; every holder the
-	// block gains or loses
-	// after the flip lands here instead, as Records.countKind routes it. A
-	// block without one has its implied holder alone, as at its birth. When
-	// the block leaves the run, by the sweep or a rebirth, Records.releaseOld
-	// moves the record over the frozen one.
+	// flip freezes an unmarked block's kindCount record. Every holder the
+	// block gains or loses after the flip lands here instead, as
+	// Records.countKind routes it. A block without one has its implied
+	// holder alone, as at its birth. When the block leaves the run, by the
+	// sweep or a rebirth, Records.releaseOld moves the record over the
+	// frozen one.
 	kindUnmarkedCount byte = 'T'
 	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
 	// by the block. It holds no value and lasts until the adoption ends.
@@ -153,13 +156,13 @@ const (
 	kindRewritten byte = 'Y'
 	// kindPopMark is one record, with no key past the kind, whose value is
 	// the big-endian latest ripe sequence of a block the settle's front
-	// popped while Open. A block at zero that names a popped child reached
-	// zero no later than the child, so the flip waits only for the queued
-	// blocks at or below the mark, as Collector.flip describes. A readoption
-	// after a pop gives such a block a new ripe sequence, so it raises the
-	// mark to the largest uint64 while it recounts and caps it at the up
-	// log's end once the recount is done, past every ripe sequence the
-	// recount gave, as Adopt describes. The flip deletes it.
+	// popped while Open. A block at zero that references a popped child
+	// reached zero no later than the child, so the flip waits only for the
+	// queued blocks at or below the mark, as Collector.flip describes. A
+	// readoption after a pop gives such a block a new ripe sequence, so it
+	// raises the mark to the largest uint64 while it recounts and caps it
+	// at the up log's end once the recount is done, past every ripe
+	// sequence the recount gave, as Adopt describes. The flip deletes it.
 	kindPopMark byte = 'k'
 	// kindAddRev is one record, with no key past the kind, whose value is
 	// the big-endian add revision: every transaction that writes a front
@@ -201,22 +204,21 @@ var (
 	// parent skips it, since the put took back what the old list held.
 	runReborn = []byte{'r'}
 	// runSwept is the value of a run entry whose block the sweep deleted.
-	// The entry stays until the run settles, so a child the block's old list
-	// named still reads as inside the run at the flip, and a put of the
-	// block after the sweep is a birth, not a rebirth.
+	// The entry stays until the run settles, so a child the block's old
+	// list referenced still reads as inside the run at the flip, and a put
+	// of the block after the sweep is a birth, not a rebirth.
 	runSwept = []byte{'s'}
 	// runComplete is the key after the kind of the entry that says the run
-	// names every block the store holds without a list from content. A block
-	// key is never empty, so no block's entry has this key.
+	// contains every block the store holds without a list from content. A
+	// block key is never empty, so no block's entry has this key.
 	runComplete = []byte{}
 )
 
 // Format9Kinds are the kinds store format 9 or an older one wrote that format
 // 10 neither writes nor reads: the journal ('J'), cascade records ('C'), the
 // fill records and marks ('F', 'L', 'N', 'M'), the up index ('U'), and the
-// retired verified, landed, reached and suspect marks ('V', 'W', 'K', 'Z').
-// The format upgrade deletes them in slices; none is a block or a block's
-// bytes.
+// retired verified, landed, reached and suspect marks ('V', 'W', 'K', 'Z'). The
+// format upgrade deletes them in slices. None is a block or a block's bytes.
 var Format9Kinds = []byte{'J', 'C', 'F', 'L', 'N', 'M', 'U', 'V', 'W', 'K', 'Z'}
 
 // format9PopMark is the key, after the prefix, of format 9's pop mark, which
@@ -231,23 +233,24 @@ const format9PopMark byte = 'p'
 const format10Lease byte = 'E'
 
 // CarryFormat9Counts rewrites up to limit of the zero records format 9 wrote
-// among the count and frozen count records, after the position after (the
-// kind byte and block key of the last record a call read, nil for the
-// first), into format 10's encoding, and returns the last position it read
-// and whether more may follow. Format 9 wrote the ripe sequence of a zero
-// record as a uvarint, format 10 as eight big-endian bytes; a record already
-// nine bytes long is format 10's, since a format 9 ripe sequence is far
-// below the 2^49 a nine-byte uvarint encoding needs, so a rerun rewrites
-// nothing twice. Every other record, holders beyond the implied one, keeps
-// its encoding. It changes no count and no ripe sequence, so a parked
-// block's parked key and a queued block's queue entry still match it.
+// among the count and frozen count records, after the position after (the kind
+// byte and block key of the last record a call read, nil for the first), into
+// format 10's encoding, and returns the last position it read and whether more
+// may follow. Format 9 wrote the ripe sequence of a zero record as a uvarint,
+// format 10 as eight big-endian bytes. A record already nine bytes long is
+// format 10's, since a format 9 ripe sequence is far below the 2^49 a nine-byte
+// uvarint encoding needs, so a rerun rewrites nothing twice. Every other
+// record, holders beyond the implied one, keeps its encoding. It changes no
+// count and no ripe sequence, so a parked block's parked key and a queued
+// block's queue entry still match it.
 func (r *Records) CarryFormat9Counts(ctx context.Context, after []byte, limit int) ([]byte, bool, error) {
 	// Gather the format 9 zero records of both count kinds, to limit.
 	type carry struct{ key, value []byte }
 	var carries []carry
 	n := 0
 	for _, kind := range []byte{kindCount, kindUnmarkedCount} {
-		// Skip a kind the position passed, and resume in the one it names.
+		// Skip a kind the position passed, and resume in the one the
+		// position selects.
 		var from []byte
 		switch {
 		case after != nil && after[0] > kind:
@@ -535,8 +538,8 @@ func (r *Records) DeleteChildren(ctx context.Context, ref *block.BlockRef) error
 	return r.tx.Delete(ctx, r.key(kindChildren, BlockKey(ref)))
 }
 
-// ScanChildren calls fn with each child list in key order. The audit's
-// release cursor depends on that order, so this walks a sorted iterator rather
+// ScanChildren calls fn with each child list in key order. The audit's release
+// cursor depends on that order, so ScanChildren walks a sorted iterator rather
 // than ScanPrefix, whose order a store such as Redis leaves undefined.
 func (r *Records) ScanChildren(ctx context.Context, fn func(ref *block.BlockRef, children []*block.BlockRef) error) error {
 	return r.scan(ctx, r.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
@@ -742,15 +745,15 @@ func (r *Records) Present(ctx context.Context, ref *block.BlockRef) (bool, error
 	return !hidden, err
 }
 
-// Hidden reports whether ref, a block with a child list, reads absent until
-// a put stores it again: while Sweeping, an unmarked block, whose put gives
-// birth to it again, as Records.rebirth describes, which includes every
-// block parked at the flip, since the park put it in the run; while Open,
-// a parked one, which the walk skips, so its list may lack a child the flip
-// leaves in the run, and a hold onto it would revive that list over a child
-// the sweep deletes. Settled, it reads only the
-// generation; while Sweeping, one run entry; while Open, the count record
-// and, for a zero one, its parked key.
+// Hidden reports whether ref, a block with a child list, reads absent until a
+// put stores it again: while Sweeping, an unmarked block, whose put gives birth
+// to it again, as Records.rebirth describes, including every block parked at
+// the flip, since the park put the block in the run. While Open, a parked
+// block, which the walk skips, so its list may lack a child the flip leaves in
+// the run, and a hold onto it would revive that list over a child the sweep
+// deletes. While Settled, Hidden reads only the generation. While Sweeping,
+// Hidden reads one run entry. While Open, Hidden reads the count record and,
+// for a zero record, its parked key.
 func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	gen, err := r.generation(ctx)
 	if err != nil {
@@ -1207,9 +1210,9 @@ type downPage struct {
 
 // appendLogs appends ups and downs, block keys gaining or losing one holder
 // each, to the up and down logs at now, in pages of logPageKeys, advancing
-// state's sequences; the caller writes state. A down page nets only in a
-// slice that drained the up log, as Collector.netLogs describes, so it nets
-// after these ups.
+// state's sequences. The caller writes state. A down page nets only in a slice
+// that drained the up log, as Collector.netLogs describes, so it nets after
+// these ups.
 func (r *Records) appendLogs(ctx context.Context, state *LivenessState, now time.Time, ups, downs [][]byte) error {
 	for len(ups) != 0 {
 		n := min(len(ups), logPageKeys)
@@ -1602,8 +1605,8 @@ func (c *releaseCursor) child(ctx context.Context) (*block.BlockRef, error) {
 	return c.page[within], nil
 }
 
-// has reports whether the release names the block at key, moving the cursor
-// past the children below it. Calls pass keys in ascending order, as
+// has reports whether the release references the block at key, moving the
+// cursor past the children below it. Calls pass keys in ascending order, as
 // ScanChildren yields them.
 func (c *releaseCursor) has(ctx context.Context, key []byte) (bool, error) {
 	for {

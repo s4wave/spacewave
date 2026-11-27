@@ -33,10 +33,10 @@ type daemonControlHandler struct {
 }
 
 // newDaemonControlHandler constructs a daemon control handler that requests
-// shutdown when the peer issues a granted Shutdown or Yield RPC; release must
+// shutdown when the peer issues a granted Shutdown or Yield RPC. release must
 // synchronously close the accepting listener. The CLI daemon always yields to
-// an explicit takeover; it yields to a manual start only after SetYieldPolicy
-// allows it.
+// an explicit takeover, but yields to a manual start only after SetYieldPolicy
+// allows the manual start.
 func newDaemonControlHandler(release func()) *daemonControlHandler {
 	return newDaemonControlHandlerWithPolicy(listener_control.AutoAllowPolicy, release)
 }
@@ -69,7 +69,7 @@ func (h *daemonControlHandler) requestShutdown() {
 }
 
 // requestDesktopQuit requests shutdown for a desktop Quit from requester,
-// whose Quit reply the serve loop lets it read before draining.
+// whose Quit reply the serve loop lets requester read before draining.
 func (h *daemonControlHandler) requestDesktopQuit(requester *trackedConn) {
 	h.desktopQuitConn.Store(requester)
 	h.requestShutdown()

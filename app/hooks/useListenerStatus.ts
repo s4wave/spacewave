@@ -16,10 +16,10 @@ export interface ListenerStatus {
   // path yet (e.g. the browser/WASM runtime where the controller is
   // a no-op).
   socketPath: string
-  // listening is true when the listener is currently bound and
+  // listening is true when the listener is bound and
   // accepting connections.
   listening: boolean
-  // connectedClients is the count of clients currently connected.
+  // connectedClients is the count of connected clients.
   connectedClients: number
 }
 

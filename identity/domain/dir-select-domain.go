@@ -40,9 +40,9 @@ func ExSelectIdentityDomain(ctx context.Context, b bus.Bus, purpose string) (Sel
 	return valObj, nil
 }
 
-// selectIdentityDomain implements SelectIdentityDomain
+// selectIdentityDomain implements SelectIdentityDomain.
 type selectIdentityDomain struct {
-	// purpose is the purpose id
+	// purpose is the purpose id.
 	purpose string
 }
 
@@ -60,7 +60,7 @@ func (s *selectIdentityDomain) SelectIdentityDomainPurpose() string {
 // Validate checks the directive.
 func (s *selectIdentityDomain) Validate() error { return nil }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *selectIdentityDomain) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		MaxValueCount:   1,

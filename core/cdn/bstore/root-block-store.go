@@ -11,21 +11,21 @@ import (
 //
 // The pointer carries the checkpoint a reader builds its world head from,
 // so every mount of a CDN Space needs one whether or not that mount owns the
-// CDN transport. CdnBlockStore owns transport, pack readers, and writeback;
+// CDN transport. CdnBlockStore owns transport, pack readers, and writeback.
 // SuppliedBlockStore reads through an owner that already holds them.
 type RootBlockStore interface {
 	// BlockStore reads blocks for the CDN Space.
 	bstore.BlockStore
 
-	// Pointer returns the currently-cached root pointer without
+	// Pointer returns the cached root pointer without
 	// triggering a fetch. Returns nil if no pointer has been fetched yet.
 	Pointer() *cdn.CdnRootPointer
 	// Refresh re-fetches the root pointer.
 	// Returns nil if the CDN Space has no published root.
 	Refresh(ctx context.Context) (*cdn.CdnRootPointer, error)
 	// WaitPointer blocks until the cached root pointer differs from prev and
-	// returns it. Every fetch that changes the pointer wakes it, including
-	// the pointer TTL refresh made by a block read.
+	// returns it. Every fetch that changes the pointer wakes WaitPointer,
+	// including the pointer TTL refresh made by a block read.
 	WaitPointer(ctx context.Context, prev *cdn.CdnRootPointer) (*cdn.CdnRootPointer, error)
 	// Close releases resources owned by the store.
 	Close()

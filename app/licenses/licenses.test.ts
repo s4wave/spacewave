@@ -7,7 +7,8 @@ import {
   reconstructText,
 } from './data.js'
 
-// Approved SPDX license identifiers for this project.
+// APPROVED_LICENSES contains the approved SPDX license identifiers for this
+// project.
 const APPROVED_LICENSES = new Set([
   'MIT',
   'MIT-0',

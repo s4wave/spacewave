@@ -24,11 +24,12 @@ message Config {
   // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 7;
   // CacheBytes bounds the s4db block cache of decoded run blocks, index
-  // partitions and filters. Zero selects the s4db default.
+  // partitions and filters. Zero selects the s4db default cache size.
   int64 cache_bytes = 8;
   // ReserveBytes is the free disk below which the volume refuses new writes
   // while reads, collection and deletes continue. Zero selects the disk one
-  // collection needs before it frees any; a negative value keeps no reserve.
+  // collection needs before freeing any disk space. A negative value keeps no
+  // reserve.
   int64 reserve_bytes = 11;
   // ReadOnly opens an existing file without the writer lock: every write
   // transaction fails, the volume writes no peer key, no format upgrade and

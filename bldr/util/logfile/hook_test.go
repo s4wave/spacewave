@@ -125,7 +125,7 @@ func TestFileHookLevelFiltering(t *testing.T) {
 		}
 	}
 
-	// Fire a warn entry -- should be written.
+	// Fire a warn entry: the entry should be written.
 	warnEntry := &logrus.Entry{
 		Logger:  logrus.StandardLogger(),
 		Level:   logrus.WarnLevel,
@@ -134,8 +134,9 @@ func TestFileHookLevelFiltering(t *testing.T) {
 	}
 	_ = hook.Fire(warnEntry)
 
-	// Fire a debug entry directly -- it would be written since Fire doesn't
-	// filter (logrus does the filtering via Levels()). This verifies Fire works.
+	// Fire a debug entry directly: the entry would be written since Fire
+	// doesn't filter (logrus does the filtering via Levels()). The direct call
+	// verifies Fire works.
 	_ = hook.Fire(entry)
 
 	// Drain the warning hook before inspecting its output.

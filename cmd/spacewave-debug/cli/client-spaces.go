@@ -46,7 +46,7 @@ func (a *ClientArgs) RunListSpaces(c *cli.Context) error {
 		id := sp.GetEntry().GetRef().GetProviderResourceRef().GetId()
 		name := sp.GetSpaceMeta().GetName()
 		w.WriteString(id)
-		// pad to 40 chars
+		// Pad the ID to 40 chars.
 		for i := len(id); i < 40; i++ {
 			w.WriteString(" ")
 		}

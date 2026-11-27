@@ -25,7 +25,7 @@ import (
 var errStopSearch = errors.New("stop search")
 
 // searchStream collects the pages a SearchObjectsWithType handler sends,
-// stopping after stopAfter pages when it is set.
+// stopping after stopAfter pages when stopAfter is set.
 type searchStream struct {
 	s4wave_world.SRPCWorldStateResourceService_SearchObjectsWithTypeStream
 	ctx       context.Context

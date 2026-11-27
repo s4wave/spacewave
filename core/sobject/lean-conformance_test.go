@@ -16,7 +16,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// leanOracleEnv names the environment variable holding the path of the Lean
+// leanOracleEnv holds the environment variable name for the path of the Lean
 // conformance oracle built from repos/spacewave/lean.
 const leanOracleEnv = "SPACEWAVE_LEAN_ORACLE"
 
@@ -69,7 +69,7 @@ type leanCase struct {
 	ok bool
 	// config is Go's resulting configuration for verifyChange, when accepted.
 	config *leanConfig
-	// field names an additional result field to compare as abstract JSON.
+	// field selects an additional result field to compare as abstract JSON.
 	field string
 	// value is the projected Go result for field.
 	value []byte
@@ -80,7 +80,7 @@ type leanCase struct {
 func checkLeanCases(t *testing.T, oracle string, cases []leanCase) {
 	t.Helper()
 
-	// Send every request in one batch; the oracle answers line for line.
+	// Send every request in one batch. The oracle answers line for line.
 	var input bytes.Buffer
 	for _, c := range cases {
 		input.Write(c.request)
@@ -141,7 +141,7 @@ type configChainScenario struct {
 	t *testing.T
 	// rng selects repeatable changes from the scenario seed.
 	rng *rand.Rand
-	// ids names each generated signer.
+	// ids holds the ID of each generated signer.
 	ids []string
 	// privs contains the matching signing keys.
 	privs []crypto.PrivKey
@@ -184,7 +184,7 @@ func runConfigChainScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 // run proposes a genesis and then leanScenarioSteps records, advancing the
 // held configuration through each record Go accepts.
 func (s *configChainScenario) run() {
-	// Start from a genesis entry; most scenarios produce a valid one.
+	// Start from a genesis entry. Most scenarios produce a valid one.
 	genesis := s.genesis()
 	chain := []*SOConfigChange{genesis}
 	if !s.checkChain(chain) {

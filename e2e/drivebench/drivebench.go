@@ -20,21 +20,21 @@ import (
 
 // Run is one bench cell artifact: the resolved build identity, wall-clock
 // milestones from navigation start to Drive content-ready, the browser-observed
-// quickstart timing, the served bundle size, the Resource SDK connection timing,
-// and optional trace/profile summaries. It is written as run.json per cell so
-// cells compare across runtime states and build modes. The bundled production
-// bench has no Resource SDK client, so ResourceConnection remains zero; an
-// opt-in startup trace may populate Trace.
+// quickstart timing, the served bundle size, the Resource SDK connection
+// timing, and optional trace/profile summaries. It is written as run.json per
+// cell so cells compare across runtime states and build modes. The bundled
+// production bench has no Resource SDK client, so ResourceConnection remains
+// zero. An opt-in startup trace may populate Trace.
 type Run struct {
 	// Timestamp is when the run was recorded.
 	Timestamp string `json:"timestamp"`
-	// Compiler names the toolchain that built the runtime.
+	// Compiler records the toolchain that built the runtime.
 	Compiler string `json:"compiler"`
-	// BuildMode names the bundled or unbundled build.
+	// BuildMode records the bundled or unbundled build.
 	BuildMode string `json:"buildMode"`
 	// RuntimeState is the state the run started from, such as cold or warm.
 	RuntimeState string `json:"runtimeState"`
-	// Cell names the bench cell, its runtime state and build mode.
+	// Cell identifies the bench cell, its runtime state and build mode.
 	Cell string `json:"cell"`
 	// Milestones holds the wall-clock boot milestones.
 	Milestones Milestones `json:"milestones"`
@@ -48,7 +48,8 @@ type Run struct {
 	Trace *Trace `json:"trace,omitempty"`
 	// OperationShape summarizes storage operations from the trace, when captured.
 	OperationShape *OperationShape `json:"operationShape,omitempty"`
-	// BrowserProfile records the browser JS profile, when attempted.
+	// BrowserProfile records the browser JS profile, when profiling was
+	// tried.
 	BrowserProfile *BrowserProfile `json:"browserProfile,omitempty"`
 }
 

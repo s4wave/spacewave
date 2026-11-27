@@ -43,12 +43,14 @@ var (
 	// ErrInvalidNonce is returned if the op nonce was unexpected.
 	ErrInvalidNonce = errors.New("invalid shared object op nonce")
 
-	// ErrCannotDecode is returned if our local peer cannot decode the inner data (no valid grant).
+	// ErrCannotDecode is returned if the local peer cannot decode the inner
+	// data (no valid grant).
 	ErrCannotDecode = errors.New("access denied: no valid grant for our peer")
 
 	// ErrKeyEpochUnavailable is returned if the local peer holds no grant for
-	// the key epoch an operation or checkpoint names. Replay stops instead of
-	// deciding an outcome, so members never diverge on what they could read.
+	// the key epoch an operation or checkpoint references. Replay stops
+	// instead of deciding an outcome, so members never diverge on what they
+	// could read.
 	ErrKeyEpochUnavailable = errors.New("no grant for the key epoch")
 
 	// ErrNotParticipant is returned if the peer is not a participant in the shared object.
@@ -62,7 +64,8 @@ var (
 
 	// ErrStateTooLarge is returned if a snapshot of the state is larger than
 	// one sync frame carries. The checkpointer shrinks the state by trimming the
-	// operation set; a peer that cannot fetch it recovers by other means.
+	// operation set. A peer that cannot fetch the state recovers by other
+	// means.
 	ErrStateTooLarge = errors.New("shared object state exceeds the sync frame")
 
 	// ErrMaxCountExceeded is returned if a count limit is exceeded.

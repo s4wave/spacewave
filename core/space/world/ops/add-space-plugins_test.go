@@ -44,8 +44,8 @@ func TestAddSpacePluginsKeepsEarlierAddsAndIndexPath(t *testing.T) {
 	addNotes := &AddSpacePluginsOp{PluginIds: []string{"notes"}, Timestamp: timestamp.New(time.Now())}
 	addSQL := &AddSpacePluginsOp{PluginIds: []string{"sql", "colors"}, Timestamp: timestamp.New(time.Now())}
 
-	// Both apply; neither drops the other's plugin or clears the index path,
-	// and the invalid ID is not written back.
+	// Both apply. Neither drops the other's plugin or clears the index
+	// path, and the invalid ID is not written back.
 	for _, op := range []*AddSpacePluginsOp{addNotes, addSQL} {
 		if err := op.Validate(); err != nil {
 			t.Fatal(err)

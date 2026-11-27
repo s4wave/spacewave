@@ -2,7 +2,7 @@
 //
 // When a tab sends "hello", the broker calls clients.matchAll() to find all
 // open tabs, creates a MessageChannel for each peer pair, and transfers one
-// port to each. After setup, the SW is out of the data path - tabs communicate
+// port to each. After setup, the SW is out of the data path. Tabs communicate
 // directly via the transferred MessagePorts. No in-memory state in the SW.
 //
 // Protocol:
@@ -39,8 +39,8 @@ export async function handleCrossTabMessage(
   msg: CrossTabClientMessage,
 ): Promise<void> {
   if (msg.crossTab === 'hello') {
-    // Only broker when the sender can receive its ends of the channels;
-    // otherwise peers would receive ports whose other end is dropped.
+    // Only broker when the sender can receive its ends of the channels.
+    // Otherwise peers would receive ports whose other end is dropped.
     const sender = await clients.get(senderId)
     if (!sender) return
     const allClients = await clients.matchAll({ type: 'window' })

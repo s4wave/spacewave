@@ -59,7 +59,7 @@ export function parseNote(content: string): ParsedNote {
 // reassembleNote prepends frontmatter back to the body.
 export function reassembleNote(rawFrontmatter: string, body: string): string {
   if (!rawFrontmatter) return body
-  // Ensure single newline between frontmatter and body.
+  // Ensure a single newline between frontmatter and body.
   const trimmedBody = body.replace(/^\n+/, '')
   return rawFrontmatter + '\n' + trimmedBody
 }

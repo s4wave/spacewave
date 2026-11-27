@@ -10,7 +10,7 @@ import (
 // Key layout. Every node has an 8-byte big-endian ID, allocated from the
 // tree's next ID, so a new node's keys sort together at the end of the tree.
 // The next ID only grows: a deleted node's ID is never allocated again, so a
-// key held by two trees names the same node and quad in both.
+// key held by two trees identifies the same node and quad in both.
 //
 //	n/next                               -> next node ID
 //	v/<value text>                       -> node ID

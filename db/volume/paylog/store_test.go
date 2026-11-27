@@ -24,7 +24,7 @@ var _ workload.Target = (*Store)(nil)
 
 // engine opens an index on a device.
 type engine struct {
-	// name names the engine.
+	// name is the engine's name.
 	name string
 	// open opens the index.
 	open func(ctx context.Context, d device.Device) (Index, error)
@@ -176,7 +176,8 @@ func testStore(t *testing.T, e engine) {
 		}
 	}
 
-	// Verify committed and removed blocks survive reopening with their expected state.
+	// Verify committed and removed blocks survive reopening with their
+	// expected state.
 	data, found, err := s.GetBlock(ctx, kept)
 	if err != nil || !found || string(data) != "kept" {
 		t.Fatalf("get kept block = %q, %v, %v", data, found, err)
@@ -193,7 +194,8 @@ func testStore(t *testing.T, e engine) {
 // WORKLOAD_FILL_BLOCKS first fills the volume with that many blocks of
 // WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
 func TestWorkloadReplayTraces(t *testing.T) {
-	// Select captured workload traces and replay them under both durability policies.
+	// Select captured workload traces and replay them under both durability
+	// policies.
 	paths := os.Getenv("WORKLOAD_TRACES")
 	if paths == "" {
 		t.Skip("set WORKLOAD_TRACES to replay captured traces")

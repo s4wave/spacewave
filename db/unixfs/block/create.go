@@ -39,12 +39,12 @@ func CopyFSToFSTree(
 ) error {
 	// stackElem is a element in the fs location stack.
 	type stackElem struct {
-		// srcPath is the path in the source fs
+		// srcPath is the path in the source fs.
 		srcPath string
-		// destNode is the destination node
+		// destNode is the destination node.
 		destNode *FSTree
-		// isDir indicates if this is a directory.
-		// otherwise we assume it's a file
+		// isDir indicates if the entry is a directory.
+		// Otherwise, the copy treats the entry as a file.
 		isDir bool
 	}
 

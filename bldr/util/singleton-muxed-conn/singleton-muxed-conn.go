@@ -14,18 +14,18 @@ import (
 // Only the most recent net.MultiplexedConn will be kept.
 // Calls are forwarded to the net.MultiplexConn.
 type SingletonMuxedConn struct {
-	// ctx is the listener context
+	// ctx is the listener context.
 	ctx       context.Context
 	ctxCancel context.CancelFunc
-	// outbound indicates if this is an inbound or outbound conn
+	// outbound indicates if the conn is inbound or outbound.
 	outbound bool
-	// trig triggers watchers when the state changes
+	// trig triggers watchers when the state changes.
 	trig chan struct{}
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// conn is the most recent conn
+	// conn is the most recent conn.
 	conn srpc.MuxedConn
-	// closedErr if set, indicates the conn is closed.
+	// closedErr indicates the conn is closed if set.
 	closedErr error
 }
 
@@ -123,7 +123,7 @@ func (l *SingletonMuxedConn) Close() error {
 }
 
 // CloseWithErr closes with an error.
-// returns the l.closedErr
+// returns the l.closedErr.
 func (l *SingletonMuxedConn) CloseWithErr(closeErr error) error {
 	// Record the close error under the lock, defaulting to io.EOF.
 	var err error
@@ -150,7 +150,7 @@ func (l *SingletonMuxedConn) CloseWithErr(closeErr error) error {
 }
 
 // doTrig triggers the listeners.
-// expects mtx to be locked
+// expects mtx to be locked.
 func (l *SingletonMuxedConn) doTrig() {
 	for {
 		select {
@@ -200,8 +200,9 @@ func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (srpc.MuxedConn, erro
 	}
 }
 
-// tryConn waits for l.conn, calls the callback, and closes the conn if it returns an error
-// keeps trying until ctx is canceled or the Singleton is closed.
+// tryConn waits for l.conn, calls the callback, and closes the conn if the
+// callback returns an error. tryConn keeps trying until ctx is canceled or the
+// Singleton is closed.
 func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn srpc.MuxedConn) error) error {
 	for {
 		conn, err := l.WaitConn(ctx)

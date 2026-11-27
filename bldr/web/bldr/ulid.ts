@@ -15,7 +15,8 @@ export function newULID(): string {
 }
 
 // parseULID parses and validates a lowercase ULID.
-// Rejects non-lowercase, invalid format, and timestamps before Nov 2009.
+// parseULID rejects non-lowercase ULIDs, invalid formats, and timestamps
+// before Nov 2009.
 export function parseULID(id: string): string {
   if (id.length !== ENCODED_SIZE) {
     throw ErrInvalidULID

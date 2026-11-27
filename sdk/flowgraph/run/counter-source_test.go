@@ -73,7 +73,7 @@ func (s *counterSource) WatchEvents(req *flowgraph_eventsource.WatchEventsReques
 		broadcast()
 	})
 
-	// Resume after the cursor; an empty cursor starts from the beginning.
+	// Resume after the cursor. An empty cursor starts from the beginning.
 	sent := 0
 	if len(req.GetCursor()) != 0 {
 		var err error

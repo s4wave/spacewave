@@ -205,7 +205,7 @@ func TestOperationLogVectors(t *testing.T) {
 	// Build the vectors from deterministic keys and signatures.
 	data := buildOperationLogVectors(t).marshalJSON()
 
-	// Regenerate on request; otherwise the committed file must match.
+	// Regenerate on request. Otherwise the committed file must match.
 	if os.Getenv("SPACEWAVE_WRITE_VECTORS") != "" {
 		if err := os.WriteFile(operationLogVectorsPath, data, 0o644); err != nil { //nolint:gosec
 			t.Fatal(err)
@@ -374,7 +374,7 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 		return op
 	}
 
-	// Each author starts a chain; A extends its own under B's head, and A
+	// Each author starts a chain. A extends its own under B's head, and A
 	// signs a second operation at its first sequence.
 	a1 := build(privA, vectorObjectID, "a1", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000001")
 	b1 := build(privB, vectorObjectID, "b1", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000002")
@@ -440,7 +440,8 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 
 // buildOperationSetVectors builds sets from the valid operations.
 func buildOperationSetVectors(t *testing.T, ops map[string]*SOOperation) []operationSetVector {
-	// Each set is built in the listed order; TypeScript also builds it reversed.
+	// Each set is built in the listed order. TypeScript also builds it
+	// reversed.
 	t.Helper()
 	sets := [][]string{
 		{"a1", "b1"},
@@ -482,7 +483,7 @@ func hexHashes(hashes [][]byte) []string {
 
 // buildConfigVectors adds the control chain and single transition cases.
 func buildConfigVectors(t *testing.T, vectors *operationLogVectors) {
-	// Owner A creates the object; B joins as a writer and C as an owner.
+	// Owner A creates the object. B joins as a writer and C as an owner.
 	t.Helper()
 	privA, peerA := vectorKey(t, "owner-a")
 	privB, peerB := vectorKey(t, "member-b")
@@ -626,7 +627,7 @@ type configChangeCase struct {
 // buildMergeVectorCases builds merges on cur2, which removed owner C after
 // add, of a concurrent branch from add: A appoints sequencer peerS, then C
 // drops A's writer. The merge keeps A's change and drops C's, since C no
-// longer owns.
+// longer is an owner.
 func buildMergeVectorCases(
 	t *testing.T,
 	privA, privC crypto.PrivKey,
@@ -770,7 +771,7 @@ func buildSequenceVectors(t *testing.T) []sequenceVector {
 // buildGroupVectors adds the group control cases: control records and
 // checkpoints decided by commit, and the messages a decision is made of.
 func buildGroupVectors(t *testing.T, vectors *operationLogVectors) {
-	// Four voters with equal weight decide; A and C are owners.
+	// Four voters with equal weight decide. A and C are owners.
 	t.Helper()
 	privA, peerA := vectorKey(t, "owner-a")
 	privB, peerB := vectorKey(t, "member-b")
@@ -875,7 +876,8 @@ func buildGroupCheckpointVectors(t *testing.T, group *SharedObjectConfig, privA,
 	sealing := group.CloneVT()
 	sealing.SealedCheckpoint = &SOCheckpointHead{Height: 5, Hash: bySealer.Hash()}
 
-	// A commit under the held config cannot decide a body naming another.
+	// A commit under the held config cannot decide a body referencing
+	// another config.
 	otherInner := inner.CloneVT()
 	otherInner.ConfigHash = bytes.Repeat([]byte{0xc1}, 32)
 
@@ -907,7 +909,7 @@ func buildGroupCheckpointVectors(t *testing.T, group *SharedObjectConfig, privA,
 // buildControlMessageVectors returns the control message cases for the
 // decision at height 5 under group, signed by privA and privB.
 func buildControlMessageVectors(t *testing.T, group *SharedObjectConfig, entry *SOConfigChange, privA, privB crypto.PrivKey) []controlMessageVector {
-	// Name the values a decision can carry.
+	// Specify the values a decision can carry.
 	t.Helper()
 	head := group.GetConfigChainHash()
 	checkpoint := mustMarshalVT(t, &SOCheckpointInner{SharedObjectId: vectorObjectID, Height: 5, ConfigHash: head})

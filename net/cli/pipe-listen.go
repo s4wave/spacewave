@@ -26,7 +26,7 @@ func (a *PipeArgs) runListen(ctx context.Context) error {
 	b := d.GetControllerBus()
 	peerID := d.GetNodePeerID()
 
-	// Print peer ID to stderr for client to use
+	// Print the peer ID to stderr for the client to use.
 	a.logStatus("Peer ID: %s", peerID.String())
 	a.logStatus("Listening on %s", a.ListenAddr)
 
@@ -54,7 +54,7 @@ func (a *PipeArgs) runListen(ctx context.Context) error {
 	case mstrm := <-streamCh:
 		a.logStatus("Accepted connection from %s", mstrm.GetPeerID().String())
 
-		// Pipe stream to stdin/stdout
+		// Pipe the stream to stdin/stdout.
 		return pipeStream(mstrm.GetStream(), os.Stdin, os.Stdout)
 	}
 }
@@ -114,19 +114,19 @@ func (c *pipeAcceptController) HandleDirective(
 		return nil, nil
 	}
 
-	// Check if protocol matches
+	// Check if the protocol matches.
 	if hms.HandleMountedStreamProtocolID() != c.protocolID {
 		return nil, nil
 	}
 
-	// Check if local peer matches (if set)
+	// Check if the local peer matches (if set).
 	if c.localPeer != peer.ID("") {
 		if hms.HandleMountedStreamLocalPeerID() != c.localPeer {
 			return nil, nil
 		}
 	}
 
-	// Return resolver that provides our stream handler
+	// Return a resolver that provides the pipe stream handler.
 	return directive.Resolvers(&pipeStreamResolver{
 		streamCh: c.streamCh,
 	}), nil

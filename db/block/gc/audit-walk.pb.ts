@@ -82,8 +82,8 @@ export enum HoleClass {
   LAPSED = 2,
 
   /**
-   * HOLE_CLASS_UNROOTED is a hole that a list holding its children names but
-   * no root reaches.
+   * HOLE_CLASS_UNROOTED is a hole that a list holding its children references
+   * but no root reaches.
    */
   UNROOTED = 3,
 }
@@ -164,7 +164,8 @@ export interface WalkCounts {
   unconfirmedUnrooted?: bigint
   /**
    * TailPairs counts the log entries the walk copied into its scratch
-   * store, so each check view reads only the log pages written since the last.
+   * store, so each check view reads only the log pages written since the last
+   * check view.
    */
   tailPairs?: bigint
   /**
@@ -217,7 +218,7 @@ export const WalkCounts: MessageType<WalkCounts> =
  */
 export interface WalkProgress {
   /**
-   * Run names the walk that owns the scratch store. A walk under another
+   * Run identifies the walk that owns the scratch store. A walk under another
    * name refuses the store.
    */
   run?: string

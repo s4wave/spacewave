@@ -16,7 +16,7 @@ const statusLabels: Record<TraceStatus, string> = {
   pending: 'Pending',
 }
 
-/** statusTitle names a run from its status and name. */
+/** statusTitle labels a run from its status and name. */
 export function statusTitle(status: TraceStatus, name: string) {
   return `${statusTitles[status]} ${name}`
 }

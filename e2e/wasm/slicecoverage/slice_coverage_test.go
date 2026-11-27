@@ -37,10 +37,11 @@ type wasmSlice struct {
 	Run     string  `json:"run"`
 }
 
-// No slice regex in either tier (PR or nightly) selects these tests, so CI
-// never runs them. This list exists so a new unenrolled test fails this check
-// instead of passing unnoticed. Entries leave the list as tests are enrolled,
-// and an addition is a deliberate decision a reviewer sees in the diff.
+// notEnrolledInAnySlice lists tests selected by no slice regex in either tier
+// (PR or nightly), so CI never runs them. This list exists so a new unenrolled
+// test fails this check instead of passing unnoticed. Entries leave the list as
+// tests are enrolled, and an addition is a deliberate decision a reviewer sees
+// in the diff.
 var notEnrolledInAnySlice = []string{
 	"TestBrowserHelpersAndRawAccess",
 	"TestBrowserLaunchFromGo",
@@ -72,7 +73,7 @@ var notEnrolledInAnySlice = []string{
 	"TestGoScriptSharedWorkerOPFSProbe",
 	"TestGoScriptUnixFSLargeMultiFileDropCompletes",
 	"TestGoScriptVolumeWorkloadTraces",
-	// Locally qualified on macOS; the paired build-device and Notes fixtures
+	// Locally qualified on macOS. The paired build-device and Notes fixtures
 	// still need Linux runner qualification before joining an automated slice.
 	"TestNotebookSavedViewsAcrossClients",
 	"TestSpaceCollectionsPlugin",
@@ -134,7 +135,7 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 			t.Fatalf("parse workflow %s job %s: %v", enrolled.file, enrolled.jobName, err)
 		}
 		for _, slice := range e2eWasm.Strategy.Matrix.Slice {
-			// A slice naming its own package runs TestScenarios under build
+			// A slice declaring its own package runs TestScenarios under build
 			// tags, so what it covers is a tag question rather than a name
 			// question. This check answers the name question only.
 			if slice.Package != nil {

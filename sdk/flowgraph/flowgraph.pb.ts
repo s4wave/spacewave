@@ -89,7 +89,7 @@ export enum FlowgraphBindingState {
   UNKNOWN = 0,
 
   /**
-   * FLOWGRAPH_BINDING_STATE_UNBOUND means the node names no object.
+   * FLOWGRAPH_BINDING_STATE_UNBOUND means the node references no object.
    */
   UNBOUND = 1,
 
@@ -258,7 +258,8 @@ export interface FlowgraphRequirements {
    */
   memoryBytes?: bigint
   /**
-   * RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+   * RuntimeBackend selects a Forge backend. An empty backend accepts any
+   * declared backend.
    */
   runtimeBackend?: string
   /**
@@ -266,7 +267,7 @@ export interface FlowgraphRequirements {
    */
   matchLabels?: { [key: string]: string }
   /**
-   * Replicas is the desired number of Devices; zero means one.
+   * Replicas is the desired number of Devices. Zero means one.
    */
   replicas?: number
 }
@@ -522,7 +523,8 @@ export interface FlowgraphBinding {
   state?: FlowgraphBindingState
   /**
    * Ports lists the ports the object's registered type declares. The node's
-   * connections may name these ports. It is empty unless the state is BOUND.
+   * connections may reference these ports. Ports is empty unless the state is
+   * BOUND.
    */
   ports?: FlowgraphPort[]
 }
@@ -539,7 +541,7 @@ export const FlowgraphBinding: MessageType<FlowgraphBinding> =
   )
 
 /**
- * FlowgraphSnapshot reads authored state and its placement edges together.
+ * FlowgraphSnapshot contains authored state and its placement edges together.
  *
  * @generated from message s4wave.flowgraph.FlowgraphSnapshot
  */
@@ -557,8 +559,8 @@ export interface FlowgraphSnapshot {
    */
   revision?: bigint
   /**
-   * Bindings contains the binding of each node that names an object, keyed by
-   * node ID. An unbound node has no entry.
+   * Bindings contains the binding of each node that references an object, keyed
+   * by node ID. An unbound node has no entry.
    */
   bindings?: { [key: string]: FlowgraphBinding }
 }
@@ -788,7 +790,8 @@ export const FlowgraphChange: MessageType<FlowgraphChange> =
  */
 export interface ListFlowgraphChangesRequest {
   /**
-   * Limit bounds the number of changes returned; zero returns all retained.
+   * Limit bounds the number of changes returned. Zero returns all retained
+   * changes.
    */
   limit?: number
 }
@@ -885,8 +888,9 @@ export interface FlowgraphRun {
   standing?: boolean
   /**
    * Cursor holds the opaque position after the last event delivered from each
-   * event-source node, by node ID. A delivery applies only when it names the
-   * stored cursor, so two readers of the same events deliver each once.
+   * event-source node, by node ID. A delivery applies only when the delivery
+   * references the stored cursor, so two readers of the same events deliver
+   * each once.
    */
   cursor?: { [key: string]: Uint8Array }
   /**
@@ -960,7 +964,7 @@ export interface FlowgraphActivation {
   lastInputSeq?: bigint
   /**
    * ActorKey is the immutable receipt of the actor started for this activation.
-   * RecordActivationActor sets it once; restarted execs reattach to this actor.
+   * RecordActivationActor sets it once. Restarted execs reattach to this actor.
    */
   actorKey?: string
 }
@@ -989,7 +993,7 @@ export const FlowgraphActivation: MessageType<FlowgraphActivation> =
  */
 export interface FlowgraphActivationContext {
   /**
-   * RunKey names the owning run, an immutable execution snapshot.
+   * RunKey references the owning run, an immutable execution snapshot.
    */
   runKey?: string
   /**
@@ -1001,8 +1005,8 @@ export interface FlowgraphActivationContext {
    */
   key?: string
   /**
-   * TemplateKey names the template in the run's immutable placement snapshot.
-   * It is empty unless the Step is placed on an actor template.
+   * TemplateKey references the template in the run's immutable placement
+   * snapshot. It is empty unless the Step is placed on an actor template.
    */
   templateKey?: string
 }
@@ -1086,7 +1090,7 @@ export const FlowgraphArrival: MessageType<FlowgraphArrival> =
   )
 
 /**
- * FlowgraphTaskOutput names an output of a Forge Task.
+ * FlowgraphTaskOutput references an output of a Forge Task.
  *
  * @generated from message s4wave.flowgraph.FlowgraphTaskOutput
  */
@@ -1111,7 +1115,7 @@ export const FlowgraphTaskOutput: MessageType<FlowgraphTaskOutput> =
   )
 
 /**
- * FlowgraphEvent names one event on a World object.
+ * FlowgraphEvent references one event on a World object.
  *
  * @generated from message s4wave.flowgraph.FlowgraphEvent
  */

@@ -14,7 +14,7 @@ import (
 
 // TestWaitRevInWriteTx checks that a watcher inside a write transaction wakes
 // on each revision of its object. Two revisions in a row are changes of one
-// type, so they share one seqno; a watcher that waited for the next seqno
+// type, so they share one seqno. A watcher that waited for the next seqno
 // never woke for the second, which hung the unixfs sync of a game files World.
 func TestWaitRevInWriteTx(t *testing.T) {
 	ctx := t.Context()
@@ -98,7 +98,7 @@ func newWaitRevEngine(t *testing.T) *world_block.Engine {
 
 // TestWaitObjectRevCreateInWriteTx checks that a wait for a missing object
 // inside a write transaction wakes when the object is created. The create
-// follows a create, so the two share one seqno; a wait for the next seqno
+// follows a create, so the two share one seqno. A wait for the next seqno
 // never woke.
 func TestWaitObjectRevCreateInWriteTx(t *testing.T) {
 	ctx := t.Context()

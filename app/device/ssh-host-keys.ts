@@ -6,7 +6,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { slugObjectKeySegment } from '../space/create-op-builders.js'
 
 // SshHostKeys are the object keys one Add Device wizard writes for one SSH
-// Host the person entered: the host and its credential Secrets; its
+// Host the person entered: the host and its credential Secrets. Its
 // terminal's key is the host's with a -terminal suffix. Every tab and every
 // press of that wizard derives the same keys for the same label and
 // endpoint, so a second create of any of them is refused as existing
@@ -20,8 +20,8 @@ export interface SshHostKeys {
 
 // deriveSshHostKeys returns the keys for the label and endpoint the person
 // entered in the wizard at wizardKey. A wizard key is reused once its wizard
-// is gone, so a key may already hold a host an earlier wizard made; round
-// picks the next set of keys past it.
+// is gone, so a key may already hold a host an earlier wizard made. round
+// picks the next set of keys past that host's keys.
 export async function deriveSshHostKeys(
   wizardKey: string,
   label: string,
@@ -64,8 +64,8 @@ export interface KeyedSecret {
 
 // putKeyedSecret stores the value as the Secret at its key. A Secret that
 // exists there was made by an earlier press whose host did not land, so this
-// press's value replaces its payload: the person may have corrected it. When
-// the create is refused, because another tab or a lost reply made the
+// press's value replaces its payload: the person may have corrected the value.
+// When the create is refused, because another tab or a lost reply made the
 // Secret first, the value replaces that one's payload.
 export async function putKeyedSecret(
   space: Pick<Space, 'createSecret' | 'writeSecretPayload'>,
@@ -93,7 +93,7 @@ export async function putKeyedSecret(
   }
 }
 
-// objectExists reports whether key names an object in the World.
+// objectExists reports whether key identifies an object in the World.
 export async function objectExists(
   world: IWorldState,
   key: string,

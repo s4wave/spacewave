@@ -1,7 +1,7 @@
 import { createCn } from 'cnfast'
 
 // textSizes are the font-size tokens app.css adds to the theme as --text-*.
-// cn must know them as sizes; otherwise it reads text-header as a color and
+// cn must know them as sizes. Otherwise it reads text-header as a color and
 // drops it whenever a text color follows in the same call.
 export const textSizes = [
   'dashboard',

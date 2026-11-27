@@ -222,13 +222,14 @@ func TestTraceServiceReplaceActive(t *testing.T) {
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
-	// Start first trace.
+	// Start the first trace.
 	_, err := client.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "first"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Replace with a second trace without stopping.
+	// Replace the first trace with a second trace without calling
+	// StopTrace first.
 	_, err = client.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: "second"})
 	if err != nil {
 		t.Fatal(err)
@@ -239,7 +240,7 @@ func TestTraceServiceReplaceActive(t *testing.T) {
 	runtime_trace.Log(traceCtx, "phase", "replace")
 	task.End()
 
-	// Stop and collect.
+	// Stop the trace and collect its bytes.
 	stopStrm, err := client.StopTrace(ctx, &s4wave_trace.StopTraceRequest{})
 	if err != nil {
 		t.Fatal(err)

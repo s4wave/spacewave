@@ -118,7 +118,7 @@ export const WorkbenchTab: MessageType<WorkbenchTab> =
  */
 export interface WorkbenchLayout {
   /**
-   * Mode names the viewer layout mode.
+   * Mode selects the viewer layout mode.
    */
   mode?: string
   /**

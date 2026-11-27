@@ -24,7 +24,7 @@ type BuildObjectStoreAPI interface {
 // The value is removed and replaced when any values change.
 type BuildObjectStoreAPIValue = ObjectStoreHandle
 
-// buildObjectStoreAPI implements BuildObjectStoreAPI
+// buildObjectStoreAPI implements BuildObjectStoreAPI.
 type buildObjectStoreAPI struct {
 	objectStoreID, volumeID string
 }
@@ -47,7 +47,7 @@ func (d *buildObjectStoreAPI) Validate() error {
 	return nil
 }
 
-// GetValueBuildObjectStoreAPIOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *buildObjectStoreAPI) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -97,14 +97,15 @@ func (d *buildObjectStoreAPI) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *buildObjectStoreAPI) GetName() string {
 	return "BuildObjectStoreAPI"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug values are not necessarily unique and are primarily intended
+// for display.
 func (d *buildObjectStoreAPI) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["store-id"] = []string{d.BuildObjectStoreAPIStoreID()}

@@ -31,8 +31,8 @@ enum HoleClass {
   // HOLE_CLASS_LAPSED is a hole that only roots whose lease lapsed reach,
   // such as the stage of a process that died.
   HOLE_CLASS_LAPSED = 2;
-  // HOLE_CLASS_UNROOTED is a hole that a list holding its children names but
-  // no root reaches.
+  // HOLE_CLASS_UNROOTED is a hole that a list holding its children references
+  // but no root reaches.
   HOLE_CLASS_UNROOTED = 3;
 }
 
@@ -73,7 +73,8 @@ message WalkCounts {
   // HOLE_CLASS_UNROOTED.
   uint64 unconfirmed_unrooted = 12;
   // TailPairs counts the log entries the walk copied into its scratch
-  // store, so each check view reads only the log pages written since the last.
+  // store, so each check view reads only the log pages written since the last
+  // check view.
   uint64 tail_pairs = 13;
   // Wide counts the named blocks with more edges than one view reads whose
   // undercount went unchecked: something that could change a namer moved
@@ -94,7 +95,7 @@ message WalkCounts {
 // WalkProgress is the one progress record of a streaming audit walk, kept in
 // its scratch store, so a restart of the same run resumes where it stopped.
 message WalkProgress {
-  // Run names the walk that owns the scratch store. A walk under another
+  // Run identifies the walk that owns the scratch store. A walk under another
   // name refuses the store.
   string run = 1;
   // Phase is the step the walk has reached.

@@ -23,7 +23,8 @@ type Release struct {
 	unknownFields []byte
 	// Authorization is the signer's peer.SignedMsg over the image's
 	// bucket.ObjectRef, in os/image's image authorization context. A Device
-	// stages the image only when a signer it pinned made it.
+	// stages the image only when a signer the Device pinned made the
+	// authorization.
 	Authorization *peer.SignedMsg `protobuf:"bytes,1,opt,name=authorization,proto3" json:"authorization,omitempty"`
 }
 

@@ -21,9 +21,9 @@ import {
 } from './CloudConfirmationPage.js'
 
 // MigrateDecisionPage renders the migration decision UI at /plan/migrate.
-// Shown when the user has an active subscription and a linked local session
-// with content. Offers two choices: migrate data to cloud, or keep sessions
-// separate (unlink the local session).
+// The page is shown when the user has an active subscription and a linked local
+// session with content. The page offers two choices: migrate data to cloud, or
+// keep sessions separate (unlink the local session).
 export function MigrateDecisionPage() {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)

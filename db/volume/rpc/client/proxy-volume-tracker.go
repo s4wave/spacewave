@@ -21,13 +21,13 @@ import (
 
 // proxyVolumeTracker tracks a ProxyVolume.
 type proxyVolumeTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// volumeID is the volume identifier.
 	volumeID string
-	// proxyVolCtr contains the proxy volume controller
+	// proxyVolCtr contains the proxy volume controller.
 	proxyVolCtr *ccontainer.CContainer[*ProxyVolumeController]
 }
 
@@ -114,7 +114,8 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID, false)
 	volClient := srpc.NewClient(openStreamFn)
 
-	// call WatchVolumeInfo to detect when we need to rebuild the volume controller
+	// call WatchVolumeInfo to detect when the volume controller needs
+	// rebuilding
 	infoClient, err := accessVolumes.WatchVolumeInfo(ctx, &volume_rpc.WatchVolumeInfoRequest{
 		VolumeId: volumeID,
 	})
@@ -150,7 +151,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 		}
 	}()
 
-	// routine
+	// Define the proxy volume controller routine.
 	var currVolInfo atomic.Pointer[volume.VolumeInfo]
 	startRoutine := func(ctx context.Context, volInfo *volume.VolumeInfo) {
 		// lookup configured volume id aliases
@@ -164,7 +165,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 		}
 	}
 
-	// routine cancel
+	// Cancel the proxy volume controller routine on exit.
 	var proxyCtxCancel context.CancelFunc
 	defer func() {
 		if proxyCtxCancel != nil {

@@ -46,8 +46,8 @@ func TestRefQuads(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The record has exactly its indexed references, unlabeled; the unindexed
-	// note and the empty references have none.
+	// The record has exactly its indexed references, unlabeled. The
+	// unindexed note and the empty references have none.
 	want := []string{
 		"<record> <mock/input> <input-1> ",
 		"<record> <mock/input> <input-2> ",

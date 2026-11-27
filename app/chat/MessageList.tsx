@@ -18,7 +18,8 @@ function formatTime(date: Date | undefined): string {
   return date ? timeFormatter.format(date) : ''
 }
 
-// MessageList renders channel history and follows new messages while the reader remains at the bottom.
+// MessageList renders channel history and follows new messages while the
+// reader remains at the bottom.
 export function MessageList({ messages }: { messages: ChatMessageInfo[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wasAtBottomRef = useRef(true)

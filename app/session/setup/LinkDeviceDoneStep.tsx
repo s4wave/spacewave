@@ -18,7 +18,8 @@ export interface LinkDeviceDoneStepProps {
 }
 
 // LinkDeviceDoneStep reads the durable account attachment. File-copy progress is
-// independent; a paired-device record never establishes either completion state.
+// independent. A paired-device record never establishes either completion
+// state.
 export function LinkDeviceDoneStep({
   session,
   remotePeerId,

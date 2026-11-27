@@ -45,7 +45,7 @@ func ExLookupProviderInfos(
 	return sess, nil
 }
 
-// lookupProviderInfo implements LookupProviderInfo
+// lookupProviderInfo implements LookupProviderInfo.
 type lookupProviderInfo struct {
 	id string
 }
@@ -63,7 +63,7 @@ func (d *lookupProviderInfo) Validate() error {
 	return nil
 }
 
-// GetValueLookupProviderInfoOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupProviderInfo) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -106,7 +106,7 @@ func (d *lookupProviderInfo) GetName() string {
 	return "LookupProviderInfo"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupProviderInfo) GetDebugVals() directive.DebugValues {

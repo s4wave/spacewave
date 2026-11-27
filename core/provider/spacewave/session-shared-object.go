@@ -14,7 +14,7 @@ import (
 )
 
 // sessionSharedObject is a shallow per-Session facade over one account-owned
-// SharedObject. Reads use the Session child bus; state and identity remain on
+// SharedObject. Reads use the Session child bus. State and identity remain on
 // the account-owned object.
 type sessionSharedObject struct {
 	*SharedObject
@@ -48,7 +48,8 @@ func (c *sessionSharedObjectMountController) GetControllerInfo() *controller.Inf
 	)
 }
 
-// Execute holds the controller until ctx ends; it only resolves directives.
+// Execute holds the controller until ctx ends. The controller only resolves
+// directives.
 func (c *sessionSharedObjectMountController) Execute(ctx context.Context) error {
 	<-ctx.Done()
 	return ctx.Err()
@@ -175,7 +176,7 @@ func (b *BlockStore) newSessionBlockStore(
 // Invariant: a block read never waits for a peer to connect. DEX reads run
 // under block.WithoutPeerWait, so with no peer session the solicit store
 // reports block.ErrUnavailable at once, or once a peer whose session just
-// ended is restored or its replace window ends; a read a departed peer could
+// ended is restored or its replace window ends. A read a departed peer could
 // not serve fails the same way. Either way the block is then read from Cloud.
 // A Cloud miss returns the DEX error rather than a miss, because no peer
 // answered for the block. With a peer session, peers are asked first and a
@@ -212,7 +213,7 @@ func (s *sessionDirectStore) GetBlock(ctx context.Context, ref *block.BlockRef) 
 // GetStoredBlock asks the peers without waiting for one, then Cloud when no
 // peer could answer.
 func (s *sessionDirectStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Ask the connected peers; with none, the read reports ErrUnavailable.
+	// Ask the connected peers. With none, the read reports ErrUnavailable.
 	dexCtx, skipped := block.WithoutPeerWait(ctx)
 	stored, err := s.StoreOps.GetStoredBlock(dexCtx, ref)
 	if !errors.Is(err, block.ErrUnavailable) || ctx.Err() != nil {

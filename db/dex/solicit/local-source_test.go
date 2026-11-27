@@ -74,7 +74,7 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 	defer cancel()
 
 	// The owner's Device holds one leaf in its Volume and one only in a
-	// linked file, under a root that names both.
+	// linked file, under a root that references both.
 	volumeLeaf := testDexBlockRef(t, "volume-leaf")
 	linkedLeaf := testDexBlockRef(t, "linked-leaf")
 	root := testDexBlockRef(t, "root")
@@ -105,9 +105,10 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 		}
 	}
 
-	// copy reads the graph through the DEX from the given peers, honouring
-	// linked answers from the owner's Device only, as account replication
-	// honours them from writers only, and returns what the destination holds.
+	// copyFrom reads the graph through the DEX from the given peers,
+	// honouring linked answers from the owner's Device only, as account
+	// replication honours them from writers only, and returns what the
+	// destination holds.
 	copyFrom := func(peers map[peer.ID]func(*DexMessage) *DexMessage) (block.StoreOps, error) {
 		c := newTestDexSolicitController()
 		for id, answer := range peers {

@@ -12,7 +12,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface PrepareRequest {
   /**
-   * PluginId names the plugin family whose registrations are replaced together.
+   * PluginId identifies the plugin family whose registrations are replaced
+   * together.
    */
   pluginId?: string
   /**
@@ -21,7 +22,8 @@ export interface PrepareRequest {
   manifestRoot?: string
   /**
    * InstanceKey scopes admission to the host's logical installation binding.
-   * Empty registers globally; a Space supplies its World engine ID.
+   * An empty InstanceKey registers globally. A Space supplies its World engine
+   * ID.
    */
   instanceKey?: string
 }

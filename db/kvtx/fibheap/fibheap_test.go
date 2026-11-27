@@ -1,6 +1,6 @@
 package fibheap_test
 
-// TODO: move this to a generic heap test package.
+// TODO: move these tests to a generic heap test package.
 
 import (
 	"context"
@@ -160,7 +160,7 @@ func assertEqual(t *testing.T, t1, t2 any) {
 	}
 }
 
-// assertZero asserts something is zero
+// assertZero asserts something is zero.
 func assertZero(t *testing.T, t1 any) {
 	// Check scalar values and nil references against their zero values.
 	vo := reflect.ValueOf(t1)
@@ -500,7 +500,7 @@ func TestMerge(t *testing.T) {
 }
 */
 
-// Runs in O(1) time
+// BenchmarkFibHeap_Enqueue runs in O(1) time.
 func BenchmarkFibHeap_Enqueue(b *testing.B) {
 	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)
@@ -519,7 +519,7 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 	}
 }
 
-// Runs in O(log(N)) time
+// BenchmarkFibHeap_DequeueMin runs in O(log(N)) time.
 func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)
@@ -550,7 +550,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 	}
 }
 
-// Runs in O(1) amortized time
+// BenchmarkFibHeap_DecreaseKey runs in O(1) amortized time.
 func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 	// Create a heap backed by the benchmark object store.
 	objs, _ := object_mock.BuildTestStore(nil)

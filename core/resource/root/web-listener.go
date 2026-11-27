@@ -46,7 +46,8 @@ const webCapabilityCookie = "spacewave_local_cap"
 
 const webListenerReadHeaderTimeout = 5 * time.Second
 
-// webResourcePath serves a native listener's Resource service over a websocket.
+// webResourcePath is the websocket path for a native listener's Resource
+// service.
 const webResourcePath = "/_spacewave/resource"
 
 // webAppPluginID is the plugin whose browser build a native listener serves.
@@ -296,7 +297,7 @@ type webListener struct {
 
 // newWebListener starts a web listener for spec. rootMux is the Root resource
 // mux a full listener serves whole and a bound listener serves through its
-// webBinding; an unbound listener and a listener without a bus ignore it.
+// webBinding. An unbound listener and a listener without a bus ignore it.
 func newWebListener(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -653,10 +654,10 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 	}
 
 	// Return the capability cookie and token to the bootstrap client. The
-	// cookie lasts the browser session; the listener holds the capability for
-	// its own life. The listener serves plain HTTP on a local host only, so the
-	// cookie is not Secure: WebKit drops Secure cookies on HTTP loopback even
-	// though it treats loopback as a secure context.
+	// cookie lasts the browser session, but the listener holds the capability
+	// for its own life. The listener serves plain HTTP on a local host only,
+	// so the cookie is not Secure: WebKit drops Secure cookies on HTTP loopback
+	// even though it treats loopback as a secure context.
 	http.SetCookie(rw, &http.Cookie{ //nolint:gosec // plain HTTP on a local host; see above.
 		Name:     webCapabilityCookie,
 		Value:    token,
@@ -697,8 +698,8 @@ func (l *webListener) isAuthorized(req *http.Request) bool {
 // isSameOriginRequest reports whether a browser request came from a page the
 // listener served. The capability cookie is SameSite, and any port on the
 // loopback host is the same site, so a page on another local port would carry
-// the cookie; its Origin names that port. A request without an Origin is not
-// from a browser page.
+// the cookie. The page's Origin identifies that port. A request without an
+// Origin is not from a browser page.
 func isSameOriginRequest(req *http.Request) bool {
 	origin := req.Header.Get("Origin")
 	return origin == "" || origin == "http://"+req.Host
@@ -789,10 +790,10 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // secret for the capability cookie and then starts the app. An unbound
 // listener starts the released WASM runtime. A bound or full listener skips
 // it: the shell loads the native app entry and renders it over the listener's
-// Resource websocket, opening the bound Space when no route is given. It first
-// unregisters any service worker on the origin, such as one an unbound listener
-// on the same port left behind, which would answer the app's asset requests
-// with 503 for a WASM runtime that is not running.
+// Resource websocket, opening the bound Space when no route is given. The shell
+// first unregisters any service worker on the origin, such as one an unbound
+// listener on the same port left behind, which would answer the app's asset
+// requests with 503 for a WASM runtime that is not running.
 func renderWebListenerBootShell(
 	metadata *webListenerReleaseBootMetadata,
 	spec *webListenSpec,
@@ -945,8 +946,8 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	// The upstream host is operator-configured (webAppEndpoint); JoinPath cleans dot
-	// segments, so the forwarded request path cannot escape that host.
+	// The upstream host is operator-configured (webAppEndpoint). JoinPath cleans
+	// dot segments, so the forwarded request path cannot escape that host.
 	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	remoteURL, err := url.JoinPath(webAppEndpoint(), releaseWebRemotePath(req.URL.Path))
 	if err != nil {
@@ -1054,7 +1055,7 @@ func parseWebListenRequest(req *s4wave_root.AccessWebListenerRequest) (*webListe
 }
 
 func parseWebListenSpec(listenMultiaddr string) (*webListenSpec, error) {
-	// Parse the requested web listen address or its default.
+	// Parse the requested web listen address or the default listen address.
 	raw := listenMultiaddr
 	if raw == "" {
 		raw = defaultWebListenMultiaddr

@@ -60,7 +60,7 @@ func NewKeyValueStore(impl KVImplType) *KeyValueStore {
 	if impl == 0 {
 		impl = DefaultKeyValueStoreImpl
 	}
-	// all other values are valid empty
+	// The zero value of every other field is valid for an empty store.
 	return &KeyValueStore{ImplType: impl}
 }
 
@@ -107,8 +107,8 @@ func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvt
 
 // layout returns the tree layout an implementation stores: IAVL, Okra or
 // inline Okra, or 0 when the implementation is unknown. The node graph tags
-// store the same layouts; they exist so a build that predates the node graph
-// World rejects its trees.
+// store the same layouts. The tags exist so a build that predates the node
+// graph World rejects its trees.
 func (i KVImplType) layout() KVImplType {
 	switch i {
 	case KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
@@ -129,7 +129,7 @@ func (i KVImplType) Validate() error {
 	return nil
 }
 
-// Validate performs cursory checks of the KeyValueStore object.
+// Validate checks basic properties of the KeyValueStore object.
 func (k *KeyValueStore) Validate() error {
 	if err := k.GetImplType().Validate(); err != nil {
 		return err

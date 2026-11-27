@@ -34,7 +34,8 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: { error: vi.fn(), info: vi.fn() },
 }))
 
-// handleOf is a handle whose hold is itself; release counts released holds.
+// handleOf returns a handle whose hold returns the handle. release counts
+// released holds.
 function handleOf(fields: Record<string, unknown>): FSHandle {
   const handle = { ...fields, released: false, release: vi.fn() }
   return { ...handle, hold: () => handle } as unknown as FSHandle
@@ -72,7 +73,7 @@ describe('documentation page save', () => {
       })
       await waitFor(() => expect(writeAt).toHaveBeenCalledTimes(1))
 
-      // A second press while it runs sends no second write.
+      // A second press while the save runs sends no second write.
       await view.result.current.toggleEdit()
       expect(writeAt).toHaveBeenCalledTimes(1)
 
@@ -95,7 +96,7 @@ describe('documentation page save', () => {
       await saved
       for (const release of releases) expect(release).toHaveBeenCalledTimes(1)
 
-      // A refusal the closed viewer missed shows in a toast; a landed save
+      // A refusal the closed viewer missed shows in a toast. A landed save
       // shows nothing.
       if (outcome === 'written') {
         expect(toast.error).not.toHaveBeenCalled()

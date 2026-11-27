@@ -91,7 +91,8 @@ func TestSyncAccountSettingsDeveloperSpace(t *testing.T) {
 		return readAccountSettingsForTest(ctx, t, so)
 	}
 
-	// An account without a developer Space receives the source's.
+	// An account without a developer Space receives the source's developer
+	// Space.
 	sourceSettings := record(sourceSO, "space-a", "")
 	targetSettings := readAccountSettingsForTest(ctx, t, targetSO)
 	if err := syncAccountSettingsState(ctx, sourceSettings, targetSettings, targetSO); err != nil {
@@ -327,7 +328,8 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 				}
 				return err
 			}
-			// The role correction landed; the next attempt succeeds.
+			// The role correction landed, so the next attempt
+			// succeeds.
 			return nil
 		}
 		ctr := newAccountSettingsSyncTestRoutine(t, run)

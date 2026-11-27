@@ -60,15 +60,19 @@ export const JsModuleKind_Enum = /* @__PURE__ */ createEnumType(
  *
  * There are two ways to specify code to include in the plugin:
  *
- * - Define in the "modules" list, which is a shortcut for configuring entrypoints and bundles.
- * - Define bundles in esbuild_bundles or vite_bundles and entrypoints that consume those bundles.
+ * - Define in the "modules" list, which is a shortcut for configuring
+ *   entrypoints and bundles.
+ * - Define bundles in esbuild_bundles or vite_bundles and entrypoints that
+ *   consume those bundles.
  *
  * The most common way to use this plugin is:
  *
- * - Define your plugin backend .ts (runs in a WebWorker) in modules with type BACKEND
- * - Define your app frontend .tsx (runs in a WebView) in modules with type FRONTEND
+ * - Define the plugin backend .ts (runs in a WebWorker) in modules with type
+ *   BACKEND
+ * - Define the app frontend .tsx (runs in a WebView) in modules with type
+ *   FRONTEND
  *
- * This will configure:
+ * Defining these modules configures:
  *
  * - Vite compiler with two bundle entrypoints: frontend and backend.
  * - Entrypoint which on the plugin backend:
@@ -77,7 +81,8 @@ export const JsModuleKind_Enum = /* @__PURE__ */ createEnumType(
  *   - applies any configured hostConfigSet
  *   - serves the plugin assets fs at /p/{plugin-id}/a/{asset-path}
  *
- * Alternatively you can manually configure the bundles and entrypoints for more control.
+ * Alternatively, configure the bundles and entrypoints manually for more
+ * control.
  *
  * TODO configuration for the plugin entrypoint bundle
  * - can reference bundles under esbuild_bundles and vite_bundles
@@ -149,7 +154,7 @@ export interface Config {
   /**
    * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
    * This ConfigSet is applied to the plugin host bus.
-   * This will be included in the plugin binary.
+   * The ConfigSet is included in the plugin binary.
    * Adds a config to configSet with ID bldr/plugin/host/configset
    * Merged with the plugin compiler HostConfigSet field.
    */
@@ -238,7 +243,8 @@ export interface InputManifestMeta {
    */
   webPkgRefs?: WebPkgRef[]
   /**
-   * WebPkgs is the list of web pkgs that we separate from the bundle.
+   * WebPkgs is the list of web pkgs that the compiler separates from the
+   * bundle.
    */
   webPkgs?: WebPkgRefConfig[]
   /**

@@ -10,7 +10,7 @@ import (
 // Domain implements the static identity domain.
 // Serves identity lookup requests with a static list.
 type Domain struct {
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 }
 

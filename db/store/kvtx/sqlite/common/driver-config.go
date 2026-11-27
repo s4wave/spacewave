@@ -29,8 +29,8 @@ type SQLiteReadOnlyDSN interface {
 }
 
 // SQLiteDriverPoolConfigurator optionally constrains the sql.DB pool created by
-// common.Open. Drivers with connection-bound semantics can use this to align
-// database/sql pooling with the underlying engine.
+// common.Open. Drivers with connection-bound semantics can use this interface
+// to align database/sql pooling with the underlying engine.
 type SQLiteDriverPoolConfigurator interface {
 	// ConfigureDBPool mutates the sql.DB pool settings after sql.Open.
 	ConfigureDBPool(db *sql.DB)

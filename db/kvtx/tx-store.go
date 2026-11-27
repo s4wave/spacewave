@@ -6,15 +6,15 @@ import (
 )
 
 // TxStore implements the Store interface backed by a single Tx instance.
-// This allows many transactions to be batched into one Tx.
+// The single Tx allows many transactions to be batched into one Tx.
 //
 // Discard of a write tx after changes were made returns an error.
-// Discard followed by Commit returns ErrDiscarded
+// Discard followed by Commit returns ErrDiscarded.
 // Commit followed by Discard returns nil.
 // If tx committed or discarded, operations return ErrDiscarded.
-// It's not possible to roll-back changes as we are proxying to 1 txops object.
+// Changes cannot be rolled back because TxStore proxies to 1 txops object.
 type TxStore struct {
-	// tx is the underlying tx
+	// tx is the underlying tx.
 	tx TxOps
 	// wrote is set once a transaction of the store writes to tx.
 	wrote atomic.Bool
@@ -27,7 +27,7 @@ func NewTxStore(ops TxOps) *TxStore {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after finishing with the transaction.
 func (t *TxStore) NewTransaction(ctx context.Context, write bool) (Tx, error) {
 	// Build the transaction and record its writes on the store.
 	tx, err := NewTxStoreTx(t.tx)
@@ -50,8 +50,8 @@ func (t *TxStore) Wrote() bool {
 }
 
 // writeBatchTxStoreTx advertises batch writes only when the underlying
-// operation supports them. It keeps the virtual transaction's lifecycle check;
-// never bypass it by unwrapping.
+// operation supports them. It keeps the virtual transaction's lifecycle check.
+// Never bypass the lifecycle check by unwrapping.
 type writeBatchTxStoreTx struct {
 	*TxStoreTx
 	// batch is the underlying transaction's write-batch capability.

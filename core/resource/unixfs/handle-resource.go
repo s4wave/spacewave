@@ -41,8 +41,8 @@ func validateUploadDataFrame(data []byte) error {
 type FSHandleResource struct {
 	// readOnly restricts writes on a detached handle and all handles it opens.
 	readOnly bool
-	// le is the logger entry for object-backed handle construction; may be nil
-	// only when no object path is bound.
+	// le is the logger entry for object-backed handle construction.
+	// May be nil only when no object path is bound.
 	le     *logrus.Entry
 	handle *unixfs.FSHandle
 	mux    srpc.Mux
@@ -56,15 +56,16 @@ type FSHandleResource struct {
 	// merges onto the other's committed root. Shared across child resources so
 	// an edit on a child and an upload on its parent serialize together.
 	writeMtx *sync.Mutex
-	// handleMtx fences read RPCs across batch root publication. Readers hold
-	// RLock for the complete handle operation; UploadTree holds Lock from before
-	// Commit until cursor shows what storage holds. Shared across child
-	// resources because one commit moves every handle in the resource tree.
+	// handleMtx fences read RPCs across batch root publication. Readers
+	// hold RLock for the complete handle operation. UploadTree holds Lock
+	// from before Commit until the cursor shows what storage holds. Shared
+	// across child resources because one commit moves every handle in the
+	// resource tree.
 	handleMtx *sync.RWMutex
 	// cursor is the World cursor every handle in the resource tree reads
-	// through. It follows the World object by its watch; a writer that
-	// publishes outside it waits for it to reach the published revision.
-	// Nil for a handle with no backing World object.
+	// through. The cursor follows the World object by its watch. A writer
+	// that publishes outside the cursor waits for the cursor to reach the
+	// published revision. Nil for a handle with no backing World object.
 	cursor *unixfs_world.FSCursor
 	ws     world.WorldState
 	objKey string
@@ -87,8 +88,8 @@ func NewReadOnlyFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
 // object path so batch tree uploads can target the same filesystem subtree.
-// handle reads through cursor, a watching cursor on objKey in ws, which the
-// caller keeps until the resource is released.
+// handle reads through cursor, a watching cursor on objKey in ws. The
+// caller keeps cursor until the resource is released.
 func NewFSHandleObjectResource(
 	le *logrus.Entry,
 	handle *unixfs.FSHandle,
@@ -228,8 +229,8 @@ func (r *FSHandleResource) joinHandlePath(relPath string) []string {
 // mutate serializes a filesystem mutation and its change broadcast against
 // every other writer (per-op writes and batch tree uploads) and against the
 // reloadHandle swap for this world object. It holds writeMtx across the whole
-// mutation so the read-merge-publish in world.AccessObjectState cannot interleave
-// with another writer and lose an update. fn performs the world mutation.
+// mutation so the read-merge-publish in world.AccessObjectState cannot
+// interleave with another writer and lose an update. fn mutates the world.
 func (r *FSHandleResource) mutate(fn func() error) error {
 	// Enforce the access requested for this detached handle.
 	if r.readOnly {
@@ -309,9 +310,9 @@ func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHan
 	if r.ws.GetReadOnly() {
 		fsCursor = unixfs_world.NewFSCursor(r.le, r.ws, r.objKey, r.fsType, nil, true)
 	} else {
-		// note: NewFSCursorWithWriter returns (cursor, writer) and cannot fail;
-		// the cursor retains the writer internally, so the second return value
-		// carries nothing new here.
+		// note: NewFSCursorWithWriter returns (cursor, writer) and
+		// cannot fail. The cursor retains the writer internally, so the
+		// second return value carries nothing new here.
 		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, r.ws, r.objKey, r.fsType, "")
 	}
 
@@ -501,7 +502,8 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 	bytesRead, err := handle.ReadAt(ctx, offset, data)
 
 	// Handle io.EOF specially: ReadAt may return both data AND io.EOF
-	// when reaching the end of file. This is valid Go io.ReaderAt semantics.
+	// when reaching the end of file. This result is valid Go io.ReaderAt
+	// semantics.
 	eof := false
 	if err != nil {
 		if err == io.EOF {
@@ -737,7 +739,7 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 		return err
 	}
 
-	// Send final message indicating completion
+	// Send the final message indicating completion
 	return strm.Send(&s4wave_unixfs.HandleReaddirResponse{
 		Done: true,
 	})
@@ -1022,7 +1024,7 @@ func dirEntryFromCursor(ent unixfs.FSCursorDirent) (*s4wave_unixfs.DirEntry, boo
 }
 
 // readEntryInfo sets the size, modification time and mode of entry from the
-// node of its child of handle, reading that one node.
+// child node of handle identified by entry, reading that one node.
 func readEntryInfo(ctx context.Context, handle *unixfs.FSHandle, entry *s4wave_unixfs.DirEntry) error {
 	// Read the child's node.
 	child, err := handle.Lookup(ctx, entry.GetName())
@@ -1098,13 +1100,13 @@ func readWatchEntries(
 }
 
 // WatchReaddir watches directory entries. The first response holds the whole
-// listing, and each later one the entries a change added or changed and the
-// names it removed.
+// listing, and each later response holds the entries a change added or changed
+// and the names the change removed.
 //
 // An object-backed watch keeps one cursor, which applies each World object
 // revision in place, and lists the directory only when its block reference
-// changes. Each entry carries the info of its node, which the watch reads again
-// only when the entry's node reference changes.
+// changes. Each entry carries the info of its node. The watch reads the info
+// again only when the entry's node reference changes.
 func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirRequest, strm s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirStream) error {
 	// Read the listing after each change and send what changed.
 	ctx := strm.Context()

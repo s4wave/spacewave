@@ -77,9 +77,9 @@ func main() {
 
 // chatHandler handles incoming chat streams and tracks connected peers.
 type chatHandler struct {
-	// mu guards remote
+	// mu guards remote.
 	mu sync.Mutex
-	// remote is the remote peer ID
+	// remote is the remote peer ID.
 	remote peer.ID
 }
 
@@ -121,9 +121,9 @@ func (h *chatHandler) getRemote() peer.ID {
 
 // chatResolver resolves HandleMountedStream directives.
 type chatResolver struct {
-	// h is the chat handler
+	// h is the chat handler.
 	h *chatHandler
-	// remote is the remote peer ID
+	// remote is the remote peer ID.
 	remote peer.ID
 }
 

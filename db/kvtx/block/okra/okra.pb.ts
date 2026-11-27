@@ -67,7 +67,7 @@ export interface Page {
    */
   lowerBound?: Uint8Array
   /**
-   * UpperBound is the exclusive upper key bound. Empty means unbounded.
+   * UpperBound is the exclusive upper key bound. An empty bound is unbounded.
    */
   upperBound?: Uint8Array
   /**
@@ -112,7 +112,7 @@ export interface Entry {
    */
   anchor?: boolean
   /**
-   * Key is the node key. Empty when Anchor is true.
+   * Key is the node key, empty when Anchor is true.
    */
   key?: Uint8Array
   /**
@@ -137,8 +137,8 @@ export interface Entry {
   valueIsBlob?: boolean
   /**
    * ValueBlob embeds a small value in the page instead of a separate block.
-   * Present only in stores tagged KV_IMPL_TYPE_OKRA_INLINE. ValueRef is empty
-   * and ValueIsBlob is true when this field is present.
+   * ValueBlob is present only in stores tagged KV_IMPL_TYPE_OKRA_INLINE.
+   * ValueRef is empty and ValueIsBlob is true when this field is present.
    */
   valueBlob?: Blob
 }

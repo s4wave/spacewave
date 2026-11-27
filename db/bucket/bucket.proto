@@ -11,7 +11,7 @@ message Config {
   // Id is the bucket identifier.
   string id = 1;
   // Rev is the configuration rev.
-  // increment by 1 on modification
+  // Increment Rev by 1 on modification.
   uint32 rev = 2;
   // PutOpts are the default put options for the bucket.
   .block.PutOpts put_opts = 4;
@@ -30,12 +30,12 @@ message BucketInfo {
 
 // LookupConfig configures the bucket behavior across multiple volumes.
 message LookupConfig {
-  // Disble indicates we should not service cross-volume calls against this
-  // bucket.
+  // Disable indicates that cross-volume calls against this bucket should not
+  // be serviced.
   bool disable = 1;
   // Controller contains the lookup controller configuration.
-  // If unset, will default to the node-default lookup controller.
-  // If disabled, this field will be ignored.
+  // If Controller is unset, the node-default lookup controller is used.
+  // If lookup is disabled, Controller is ignored.
   .configset.proto.ControllerConfig controller = 2;
 }
 
@@ -54,7 +54,7 @@ message ApplyBucketConfigResult {
   // Updated indicates if the value was updated.
   bool updated = 6;
   // Error contains any error applying the value.
-  // Note: all other values might be empty if this is set.
+  // Note: all other values might be empty if Error is set.
   string error = 7;
 }
 
@@ -66,11 +66,12 @@ message ObjectRef {
   // RootRef is the root block ref.
   .block.BlockRef root_ref = 1;
   // BucketId is the bucket id, if switching buckets.
-  // May be empty to indicate same bucket.
+  // BucketId may be empty to indicate the same bucket.
   string bucket_id = 2;
   // TransformConfRef is the transformation configuration block ref.
-  // Must be encoded with the same transformation config as the parent.
-  // May be empty to indicate same conf as parent.
+  // TransformConfRef must be encoded with the same transformation config
+  // as the parent. An empty TransformConfRef indicates the same conf as
+  // the parent.
   .block.BlockRef transform_conf_ref = 3;
   // TransformConf is an in-line transform configuration.
   .block.transform.Config transform_conf = 4;
@@ -81,6 +82,6 @@ message BucketOpArgs {
   // BucketId is the bucket ID to operate on.
   string bucket_id = 1;
   // VolumeId is the volume ID to operate on.
-  // If empty, will use the lookup controller.
+  // If VolumeId is empty, the lookup controller is used.
   string volume_id = 2;
 }

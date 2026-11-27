@@ -19,37 +19,39 @@ import type {
   WaitRevResponse,
 } from './world.pb.js'
 
-// IObjectState contains the object state interface.
-// Represents a handle a object in the store.
+// IObjectState is the object state interface.
+// The interface represents a handle to an object in the store.
 export interface IObjectState {
-  // GetKey returns the key this state object is for.
+  // getKey returns the key this state object is for.
   getKey(): string
 
-  // GetRootRef returns the root reference.
-  // Returns the revision number.
+  // getRootRef returns the root reference.
+  // getRootRef returns the revision number.
   getRootRef(abortSignal?: AbortSignal): Promise<GetRootRefResponse>
 
-  // SetRootRef changes the root reference of the object.
-  // Increments the revision of the object if changed.
-  // Returns revision just after the change was applied.
+  // setRootRef changes the root reference of the object.
+  // setRootRef increments the revision of the object if the root ref changed.
+  // setRootRef returns the revision just after the change was applied.
   setRootRef(
     rootRef: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<SetRootRefResponse>
 
-  // AccessWorldState builds a bucket lookup cursor with an optional ref.
-  // If the ref is empty, will default to the object RootRef.
-  // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
+  // If the ref is empty, accessWorldState defaults to the object RootRef.
+  // If the ref Bucket ID is empty, accessWorldState uses the same bucket +
+  // volume as the world.
   // The lookup cursor will be released after cb returns.
   accessWorldState(
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor>
 
-  // ApplyObjectOp applies a batch operation at the object level.
-  // The handling of the operation is operation-type specific.
-  // Returns the revision following the operation execution.
-  // Throws WorldOperationRejection when the operation refuses the change.
+  // applyObjectOp applies a batch operation at the object level.
+  // The operation is handled according to its type.
+  // applyObjectOp returns the revision after the operation executes.
+  // applyObjectOp throws WorldOperationRejection when the operation refuses
+  // the change.
   // If sysErr is set, the error is treated as a transient system error.
   applyObjectOp(
     opTypeId: string,
@@ -58,24 +60,24 @@ export interface IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<ApplyObjectOpResponse>
 
-  // IncrementRev increments the revision of the object.
-  // Returns revision just after the change was applied.
+  // incrementRev increments the revision of the object.
+  // incrementRev returns the revision just after the change was applied.
   incrementRev(abortSignal?: AbortSignal): Promise<IncrementRevResponse>
 
-  // WaitRev waits until the object rev is >= the specified.
-  // Returns ErrObjectNotFound if the object is deleted.
-  // If ignoreNotFound is set, waits for the object to exist.
-  // Returns the new rev.
+  // waitRev waits until the object rev is >= the specified revision.
+  // waitRev returns ErrObjectNotFound if the object is deleted.
+  // If ignoreNotFound is set, waitRev waits for the object to exist.
+  // waitRev returns the new rev.
   waitRev(
     rev: bigint,
     ignoreNotFound?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<WaitRevResponse>
 
-  // release releases the resource if it's a Resource-backed implementation
+  // release releases the resource if it's a Resource-backed implementation.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement
+  // Symbol.dispose supports use with the 'using' statement.
   [Symbol.dispose](): void
 }
 
@@ -102,21 +104,21 @@ export class ObjectState extends Resource implements IObjectState {
     this.objectKey = meta?.objectKey ?? ''
   }
 
-  // GetKey returns the key this state object is for.
-  // Returns stored metadata without RPC call.
+  // getKey returns the key this state object is for.
+  // getKey returns stored metadata without an RPC call.
   public getKey(): string {
     return this.objectKey
   }
 
-  // GetRootRef returns the root reference.
-  // Returns the revision number.
+  // getRootRef returns the root reference.
+  // getRootRef returns the revision number.
   public async getRootRef(abortSignal?: AbortSignal) {
     return await this.service.GetRootRef({}, abortSignal)
   }
 
-  // SetRootRef changes the root reference of the object.
-  // Increments the revision of the object if changed.
-  // Returns revision just after the change was applied.
+  // setRootRef changes the root reference of the object.
+  // setRootRef increments the revision of the object if the root ref changed.
+  // setRootRef returns the revision just after the change was applied.
   public async setRootRef(rootRef: ObjectRef, abortSignal?: AbortSignal) {
     const response = await this.service.SetRootRef(
       { rootRef, knownErrorCode: KNOWN_ERROR_CODE },
@@ -126,9 +128,10 @@ export class ObjectState extends Resource implements IObjectState {
     return response
   }
 
-  // AccessWorldState builds a bucket lookup cursor with an optional ref.
-  // If the ref is empty, will default to the object RootRef.
-  // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
+  // If the ref is empty, accessWorldState defaults to the object RootRef.
+  // If the ref Bucket ID is empty, accessWorldState uses the same bucket +
+  // volume as the world.
   // The lookup cursor will be released after cb returns.
   public async accessWorldState(
     ref?: ObjectRef,
@@ -141,10 +144,11 @@ export class ObjectState extends Resource implements IObjectState {
     )
   }
 
-  // ApplyObjectOp applies a batch operation at the object level.
-  // The handling of the operation is operation-type specific.
-  // Returns the revision following the operation execution.
-  // Throws WorldOperationRejection when the operation refuses the change.
+  // applyObjectOp applies a batch operation at the object level.
+  // The operation is handled according to its type.
+  // applyObjectOp returns the revision after the operation executes.
+  // applyObjectOp throws WorldOperationRejection when the operation refuses
+  // the change.
   // If sysErr is set, the error is treated as a transient system error.
   public async applyObjectOp(
     opTypeId: string,
@@ -160,8 +164,8 @@ export class ObjectState extends Resource implements IObjectState {
     return response
   }
 
-  // IncrementRev increments the revision of the object.
-  // Returns revision just after the change was applied.
+  // incrementRev increments the revision of the object.
+  // incrementRev returns the revision just after the change was applied.
   public async incrementRev(abortSignal?: AbortSignal) {
     const response = await this.service.IncrementRev(
       { knownErrorCode: KNOWN_ERROR_CODE },
@@ -171,10 +175,10 @@ export class ObjectState extends Resource implements IObjectState {
     return response
   }
 
-  // WaitRev waits until the object rev is >= the specified.
-  // Returns ErrObjectNotFound if the object is deleted.
-  // If ignoreNotFound is set, waits for the object to exist.
-  // Returns the new rev.
+  // waitRev waits until the object rev is >= the specified revision.
+  // waitRev returns ErrObjectNotFound if the object is deleted.
+  // If ignoreNotFound is set, waitRev waits for the object to exist.
+  // waitRev returns the new rev.
   public async waitRev(
     rev: bigint,
     ignoreNotFound?: boolean,

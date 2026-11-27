@@ -11,7 +11,7 @@ import (
 )
 
 // NewTxSetWaiting constructs a claim-fenced update of what the Execution waits
-// for; a nil waiting clears it.
+// for. A nil waiting clears the wait.
 func NewTxSetWaiting(waiting *forge_target.Waiting, claim *forge_execution.Claim) *Tx {
 	return &Tx{
 		TxType: TxType_TxType_SET_WAITING,

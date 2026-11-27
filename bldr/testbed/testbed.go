@@ -37,25 +37,25 @@ import (
 
 // Testbed contains a test environment for running plugins in-memory simulating a plugin host.
 type Testbed struct {
-	// ctx contains the context
+	// ctx contains the context.
 	ctx context.Context
-	// b contains the bus
+	// b contains the bus.
 	b bus.Bus
-	// le contains the root logger
+	// le contains the root logger.
 	le *logrus.Entry
-	// sr contains the static resolver for the plugin host
+	// sr contains the static resolver for the plugin host.
 	sr *static.Resolver
-	// worldEngineID is the world engine id for the devtool world
+	// worldEngineID is the world engine id for the devtool world.
 	worldEngineID string
-	// engineBucketID is the bucket used for world engine state storage
+	// engineBucketID is the bucket used for world engine state storage.
 	engineBucketID string
-	// engineObjectStoreID is the bucket used for root world engine state ref
+	// engineObjectStoreID is the bucket used for root world engine state ref.
 	engineObjectStoreID string
-	// vol is the volume used for state
+	// vol is the volume used for state.
 	vol volume.Volume
-	// volInfo is the volume info for the vol used for state
+	// volInfo is the volume info for the vol used for state.
 	volInfo *volume.VolumeInfo
-	// volCtrl is the volume controller used for state
+	// volCtrl is the volume controller used for state.
 	volCtrl volume.Controller
 	// pluginHostID is the plugin host ID.
 	pluginHostID string
@@ -67,13 +67,13 @@ type Testbed struct {
 	worldState world.WorldState
 	// scheduler is the plugin scheduler controller.
 	scheduler *plugin_host_scheduler.Controller
-	// mux is the RPC service mux
+	// mux is the RPC service mux.
 	mux srpc.Mux
-	// rpcServiceCtrl is the RPC service controller
+	// rpcServiceCtrl is the RPC service controller.
 	rpcServiceCtrl *bifrost_rpc.RpcServiceController
-	// rels are the release funcs
+	// rels are the release funcs.
 	rels []func()
-	// ctxCancel cancels ctx
+	// ctxCancel cancels ctx.
 	ctxCancel context.CancelFunc
 }
 
@@ -458,8 +458,8 @@ func (d *Testbed) Release() {
 	release(d.b, d.rels, d.ctxCancel)
 }
 
-// release calls rels newest first, cancels the base context, and closes b,
-// which joins every controller still attached. b may be nil.
+// release calls rels newest first, cancels the base context, and closes b.
+// Closing b joins every controller still attached. b may be nil.
 func release(b bus.Bus, rels []func(), cancel context.CancelFunc) {
 	for _, rel := range slices.Backward(rels) {
 		rel()

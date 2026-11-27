@@ -40,9 +40,9 @@ func (a *Approvals) WaitCh() <-chan struct{} {
 }
 
 // Set records peerID's decision about one root and wakes the watchers. The
-// decision must name its plugin and root and carry a known non-zero state.
+// decision must identify its plugin and root and carry a known non-zero state.
 func (a *Approvals) Set(ctx context.Context, peerID string, approval *s4wave_plugin_approval.PluginApproval) error {
-	// Refuse a decision that names no one or nothing.
+	// Refuse a decision without a peer, plugin, or root.
 	if peerID == "" {
 		return errors.New("peer id is required")
 	}
@@ -90,8 +90,8 @@ func (a *Approvals) Scan(ctx context.Context, peerID string, cb func(*s4wave_plu
 }
 
 // Admits reports whether peerID allowed the root. A missing record, a record
-// that does not decode, and any state but ALLOWED all refuse; the error says
-// why a record could not be read.
+// that does not decode, and any state but ALLOWED all refuse access. The error
+// says why a record could not be read.
 func (a *Approvals) Admits(ctx context.Context, peerID, pluginID, manifestRoot string) (bool, error) {
 	if peerID == "" {
 		return false, nil
@@ -104,7 +104,8 @@ func (a *Approvals) Admits(ctx context.Context, peerID, pluginID, manifestRoot s
 }
 
 // approvalAdmits reports whether a decoded record allows its root. Only
-// ALLOWED admits; nil and every other value, known or not, refuse.
+// ALLOWED admits the root. A nil record and every other value, known or not,
+// refuse access.
 func approvalAdmits(approval *s4wave_plugin_approval.PluginApproval) bool {
 	return approval.GetState() == s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED
 }

@@ -114,8 +114,9 @@ export function definePlugin<S extends Schema>(
         }),
         createHandler(WorldOpHandlerServiceDefinition, operations.handler),
         createHandler(ObjectTypeHandlerServiceDefinition, {
-          // Collections remain World-backed capabilities. This type marks the app
-          // object; its viewer attaches through the authorized World it receives.
+          // Collections remain World-backed capabilities. This type marks the
+          // app object. Its viewer attaches through the authorized World the
+          // viewer receives.
           InvokeObjectType: async (request, _abort, context) => {
             if (request.typeId !== appObjectTypeID(definition.app.schema))
               throw new Error('Unknown application type')

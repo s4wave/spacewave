@@ -56,8 +56,9 @@ func buildFactoryCall(pkg *Package) (gast.Expr, error) {
 //
 // configSetFiles will be embedded in the binary and parsed as a ConfigSet.
 //
-// devInfoFile will be loaded at runtime and used to populate variables init().
-// if devInfoFile is empty, the values of the go variable defs are hardcoded into init().
+// devInfoFile will be loaded at runtime and used to populate variables in
+// init(). if devInfoFile is empty, the values of the go variable defs are
+// hardcoded into init().
 func CodegenPluginWrapperFromAnalysis(
 	le *logrus.Entry,
 	a *Analysis,
@@ -97,7 +98,7 @@ func CodegenPluginWrapperFromAnalysis(
 		})
 	}
 
-	// Build list of static files for StaticFS
+	// Build the list of static files for StaticFS
 	var staticFSFiles []string
 	staticFSFiles = append(staticFSFiles, configSetFiles...)
 

@@ -8,7 +8,8 @@ import (
 )
 
 // RegisterApplication registers a paused product under platform administration.
-// Reusing the request ID with identical input returns the existing registration.
+// Reusing the request ID with identical input returns the existing
+// registration.
 func (c *SessionClient) RegisterApplication(ctx context.Context, req *api.RegisterApplicationRequest) (*api.RegisterApplicationResponse, error) {
 	// Encode the registration with the shared application contract.
 	body, err := req.MarshalVT()
@@ -30,8 +31,9 @@ func (c *SessionClient) RegisterApplication(ctx context.Context, req *api.Regist
 	return &resp, nil
 }
 
-// GetApplication reads a product registration visible to this Session's account.
-// The server permits the registered operator and platform administrators.
+// GetApplication reads a product registration visible to this Session's
+// account. The server permits the registered operator and platform
+// administrators.
 func (c *SessionClient) GetApplication(ctx context.Context, applicationID string) (*api.GetApplicationResponse, error) {
 	// Encode the selected registration without any caller identity override.
 	body, err := (&api.GetApplicationRequest{ApplicationId: applicationID}).MarshalVT()
@@ -53,8 +55,9 @@ func (c *SessionClient) GetApplication(ctx context.Context, applicationID string
 	return &resp, nil
 }
 
-// SetApplicationFunding accepts a payer through application and billing administration.
-// Retrying identical input returns its original assignment without changing current funding.
+// SetApplicationFunding accepts a payer through application and billing
+// administration. Retrying identical input returns its original assignment
+// without changing current funding.
 func (c *SessionClient) SetApplicationFunding(ctx context.Context, req *api.SetApplicationFundingRequest) (*api.SetApplicationFundingResponse, error) {
 	// Encode the payer and revision fence using the shared funding contract.
 	body, err := req.MarshalVT()
@@ -76,8 +79,9 @@ func (c *SessionClient) SetApplicationFunding(ctx context.Context, req *api.SetA
 	return &resp, nil
 }
 
-// ListApplicationFunding reads one bounded page of accepted funding assignments.
-// The server permits the registered operator and platform administrators.
+// ListApplicationFunding reads one bounded page of accepted funding
+// assignments. The server permits the registered operator and platform
+// administrators.
 func (c *SessionClient) ListApplicationFunding(ctx context.Context, req *api.ListApplicationFundingRequest) (*api.ListApplicationFundingResponse, error) {
 	// Encode the application and continuation cursor with the generated contract.
 	body, err := req.MarshalVT()
@@ -99,10 +103,12 @@ func (c *SessionClient) ListApplicationFunding(ctx context.Context, req *api.Lis
 	return &resp, nil
 }
 
-// SignManagedAccountEnrollment proves this credential's possession for a verified application identity.
-// The application integration authenticates the external identity before submitting the result.
+// SignManagedAccountEnrollment proves this credential's possession for a
+// verified application identity. The application integration authenticates the
+// external identity before submitting the result.
 func (c *EntityClient) SignManagedAccountEnrollment(ctx context.Context, enrollment *api.ManagedAccountEnrollment) (*api.EnrollManagedAccountRequest, error) {
-	// Bind the proof to this credential and the caller-selected application revision.
+	// Bind the proof to this credential and the caller-selected application
+	// revision.
 	if enrollment.GetKeypairPeerId() != c.signer.GetPeerID().String() {
 		return nil, errors.New("enrollment credential does not match entity client")
 	}
@@ -126,16 +132,19 @@ func (c *EntityClient) SignManagedAccountEnrollment(ctx context.Context, enrollm
 	}, nil
 }
 
-// EnrollManagedAccount authorizes a new credential after the application's verified login.
-// The server requires this Session's account to operate the selected application.
+// EnrollManagedAccount authorizes a new credential after the application's
+// verified login. The server requires this Session's account to operate the
+// selected application.
 func (c *SessionClient) EnrollManagedAccount(ctx context.Context, req *api.EnrollManagedAccountRequest) (*api.EnrollManagedAccountResponse, error) {
-	// Carry the independently signed credential proof through the operator's request.
+	// Carry the independently signed credential proof through the operator's
+	// request.
 	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal managed account enrollment request")
 	}
 
-	// Account creation and recovery share the provider's idempotent enrollment endpoint.
+	// Account creation and recovery share the provider's idempotent enrollment
+	// endpoint.
 	data, err := c.doPostBinary(ctx, "/api/applications/accounts/enroll", body, nil, SeedReasonMutation)
 	if err != nil {
 		return nil, errors.Wrap(err, "enroll managed account")
@@ -150,7 +159,7 @@ func (c *SessionClient) EnrollManagedAccount(ctx context.Context, req *api.Enrol
 }
 
 // SetApplicationState changes availability under the operator's revision fence.
-// Pausing preserves credentials; disabling revokes them before reactivation.
+// Pausing preserves credentials. Disabling revokes them before reactivation.
 func (c *SessionClient) SetApplicationState(ctx context.Context, req *api.SetApplicationStateRequest) (*api.SetApplicationStateResponse, error) {
 	body, err := req.MarshalVT()
 	if err != nil {

@@ -176,7 +176,8 @@ func (r *desktopTrayMirroredRuntime) Execute(ctx context.Context) error {
 	}
 }
 
-// Run the tray reconciler against the mirrored runtime.
+// executeDesktopTrayReconciler runs the tray reconciler against the mirrored
+// runtime.
 func (r *desktopTrayMirroredRuntime) executeDesktopTrayReconciler(ctx context.Context) error {
 	if r.reconcileDesktopTrayRaw != nil {
 		return runDesktopTrayReconcilerUntilCanceled(ctx, r.controller.le, func(ctx context.Context) error {

@@ -11,7 +11,7 @@ import { alarmStatus, holdText, type AlarmTone } from './alarm-view.js'
 export interface AlarmViewProps {
   alarm: Alarm
   nowMs: number
-  // who names the member of a peer ID.
+  // who returns the member name for a peer ID.
   who: (peerId: string) => string
   // canAcknowledge is set for a writer while the World is live.
   canAcknowledge: boolean
@@ -24,7 +24,7 @@ export interface AlarmViewProps {
 }
 
 // AlarmView shows an Alarm: its state, the condition, the actions that would
-// change it, and a writer's Acknowledge.
+// change the condition, and a writer's Acknowledge.
 export function AlarmView({
   alarm,
   nowMs,

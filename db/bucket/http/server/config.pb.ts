@@ -10,7 +10,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures the bucket store http server.
  *
- * Handles LookupHTTPHandler with the block store endpoints.
+ * Config handles LookupHTTPHandler with the block store endpoints.
  *
  * @generated from message bucket.http.server.Config
  */
@@ -21,8 +21,8 @@ export interface Config {
   bucketId?: string
   /**
    * VolumeId is the volume id to read/write from.
-   * If unset, uses the BucketLookup API to lookup blocks.
-   * Can be empty.
+   * If VolumeId is unset, the server uses the BucketLookup API to lookup
+   * blocks. VolumeId can be empty.
    */
   volumeId?: string
   /**
@@ -32,12 +32,13 @@ export interface Config {
   /**
    * PathPrefix is the path prefix to use for requests.
    * [path_prefix]/{get,put,exists,rm}
-   * Can be empty.
+   * PathPrefix can be empty.
    */
   pathPrefix?: string
   /**
    * ForceHashType forces writing the given hash type to the store.
-   * If unset, accepts any hash type the underlying bucket accepts.
+   * If ForceHashType is unset, the server accepts any hash type the
+   * underlying bucket accepts.
    */
   forceHashType?: HashType
 }

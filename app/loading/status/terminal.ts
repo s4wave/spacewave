@@ -5,7 +5,7 @@ export type TerminalStatus =
   | { kind: 'failed'; detail: string }
   | { kind: 'closed' }
 
-// TerminalSessionKind names what a terminal attaches to: the Spacewave CLI,
+// TerminalSessionKind declares what a terminal attaches to: the Spacewave CLI,
 // a terminal object's remote prompt, or a virtual machine's console.
 export type TerminalSessionKind = 'cli' | 'terminal' | 'console'
 

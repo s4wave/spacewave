@@ -10,9 +10,9 @@ import (
 
 // Operation wraps a world operation with a verbose logger.
 type Operation struct {
-	// Operation is the underlying world op
+	// Operation is the underlying world op.
 	world.Operation
-	// ble is the base logger
+	// ble is the base logger.
 	ble *logrus.Entry
 }
 
@@ -21,7 +21,7 @@ func NewOperation(le *logrus.Entry, op world.Operation) *Operation {
 	return &Operation{ble: le, Operation: op}
 }
 
-// le returns a logger with operation fields
+// le returns a logger with operation fields.
 func (o *Operation) le() *logrus.Entry {
 	return o.ble.WithField("op-type", o.TypeID())
 }

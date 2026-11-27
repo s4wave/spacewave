@@ -146,7 +146,7 @@ func (r *Immutable) Next(ctx context.Context, after []byte) ([]byte, []byte, err
 	return key, data, nil
 }
 
-// Close releases only the read-only connection; it runs no store upkeep.
+// Close releases only the read-only connection and runs no store upkeep.
 func (r *Immutable) Close() error {
 	return r.db.Close()
 }

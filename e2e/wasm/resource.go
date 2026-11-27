@@ -161,9 +161,11 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 }
 
 // knownBrowserPeer returns the browser peer the session's BrowserContext last
-// connected: the harness-wide peer for retained sessions, or the session's own.
-// It returns empty when a different peer has mounted since afterSeq, because
-// the context's identity changed, for example after its storage was cleared.
+// connected to: the harness-wide peer for retained sessions, or the session's
+// own peer.
+// It returns an empty peer ID when a different peer has mounted since afterSeq,
+// because the context's identity changed, for example after its storage was
+// cleared.
 func (h *Harness) knownBrowserPeer(s *TestSession, afterSeq uint64) peer.ID {
 	known := s.contextPeer
 	if s.retainedState {
@@ -270,8 +272,9 @@ func (c *sessionResourceClientContext) Cancel() {
 
 // Retain transfers responsibility for closure to the connected resource client.
 func (c *sessionResourceClientContext) Retain() {
-	// The retained resource client owns its own child context; canceling this
-	// parent would close the session immediately instead of on Client.Release.
+	// The retained resource client owns its own child context. Canceling
+	// this parent would close the session immediately instead of on
+	// Client.Release.
 	c.cancel = nil
 }
 

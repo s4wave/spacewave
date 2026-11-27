@@ -19,7 +19,7 @@ import (
 // message after a valid proof without reporting it as a remote access decision.
 func TestParticipantAuthenticationRequiresExplicitAdmission(t *testing.T) {
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	const soID = "authentication-admission"
@@ -113,7 +113,7 @@ func newObservedPeer(t *testing.T, soID string, key crypto.PrivKey, state *sobje
 // authenticationState establishes the trusted participants before the stream exists.
 func authenticationState(t *testing.T, soID string, owner, reader crypto.PrivKey) *sobject.SOState {
 
-	// helper.
+	// Mark the test helper.
 	t.Helper()
 	state := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
@@ -128,7 +128,7 @@ func authenticationState(t *testing.T, soID string, owner, reader crypto.PrivKey
 // TestParticipantAuthenticationRejectsReboundProof tests every signed binding field.
 func TestParticipantAuthenticationRejectsReboundProof(t *testing.T) {
 
-	// mustKeyPair key.
+	// Generate key with mustKeyPair.
 	key := mustKeyPair(t)
 	transcript := &SOSyncAuthTranscript{
 		SharedObjectId: "authentication-object", SenderTransport: []byte("sender"), ReceiverTransport: []byte("receiver"),
@@ -180,7 +180,7 @@ func TestParticipantAuthenticationDeniesBeforeDisclosure(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 
-			// withTimeout ctx,cancel via context.
+			// Create ctx and cancel with context.WithTimeout.
 			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 			defer cancel()
 			const soID = "authentication-stream"
@@ -211,7 +211,7 @@ func TestParticipantAuthenticationDeniesBeforeDisclosure(t *testing.T) {
 			t.Cleanup(func() { left.Close(); right.Close() })
 			observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 32)}
 
-			// make done.
+			// Make the done channel.
 			done := make(chan error, 2)
 			go func() { done <- local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
 			go func() { done <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
@@ -260,13 +260,13 @@ func TestParticipantAuthenticationDeniesBeforeDisclosure(t *testing.T) {
 // delivering an explicit denial over the already authenticated stream.
 func TestParticipantRevocationNotifiesConnectedPeer(t *testing.T) {
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	const soID = "authentication-live-revocation"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 
-	// authenticationState state.
+	// Build state with authenticationState.
 	state := authenticationState(t, soID, owner, reader)
 	denied := make(chan peer.ID, 1)
 	local := newAuthenticationPeer(t, soID, owner, state)
@@ -284,7 +284,7 @@ func TestParticipantRevocationNotifiesConnectedPeer(t *testing.T) {
 	go func() { done <- local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
 	go func() { done <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
 
-	// waitAuthenticationData.
+	// Wait for the first data frame with waitAuthenticationData.
 	waitAuthenticationData(t, ctx, observed.messages)
 	removed, err := sobject.RemoveSOParticipant(ctx, local.soHost, remote.localObjectPeerID.String(), owner, nil)
 	if err != nil || !removed {
@@ -332,20 +332,20 @@ func TestParticipantRevocationNotifiesConnectedPeer(t *testing.T) {
 // stop a stream whose authorized initial send is blocked in the transport.
 func TestParticipantRevocationClosesBlockedSnapshot(t *testing.T) {
 
-	// withTimeout ctx,cancel via context.
+	// Create ctx and cancel with context.WithTimeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	const soID = "authentication-revocation"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 
-	// authenticationState state.
+	// Build state with authenticationState.
 	state := authenticationState(t, soID, owner, reader)
 	local := newAuthenticationPeer(t, soID, owner, state)
 	remote := newAuthenticationPeer(t, soID, reader, state)
 	left, right := net.Pipe()
 	t.Cleanup(func() { left.Close(); right.Close() })
 
-	// make observed.
+	// Create the observed stream.
 	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 32)}
 	done := make(chan error, 1)
 	go func() { done <- local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
@@ -388,21 +388,21 @@ func TestParticipantAuthenticationRejectsPrematureData(t *testing.T) {
 	for _, reflectChallenge := range []bool{false, true} {
 		t.Run(map[bool]string{false: "premature snapshot", true: "reflected challenge"}[reflectChallenge], func(t *testing.T) {
 
-			// withTimeout ctx,cancel via context.
+			// Create ctx and cancel with context.WithTimeout.
 			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 			defer cancel()
 			const soID = "authentication-premature"
 			owner, reader := mustKeyPair(t), mustKeyPair(t)
 			local := newAuthenticationPeer(t, soID, owner, authenticationState(t, soID, owner, reader))
 
-			// pipe left,right via net.
+			// Connect left and right with net.Pipe.
 			left, right := net.Pipe()
 			t.Cleanup(func() { left.Close(); right.Close() })
 			observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 32)}
 			done := make(chan error, 1)
 			go func() { done <- local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
 
-			// newSession remote via stream_packet.
+			// Create remote with stream_packet.NewSession.
 			remote := stream_packet.NewSession(right, 64*1024)
 			challenge := &SOSyncMessage{}
 			if err := remote.RecvMsg(challenge); err != nil {

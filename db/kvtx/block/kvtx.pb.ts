@@ -15,17 +15,17 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export enum KVImplType {
   /**
-   * KEY_VALUE_IMPL_UNKNOWN is the zero value.
+   * KV_IMPL_TYPE_UNKNOWN is the zero value.
    */
   KV_IMPL_TYPE_UNKNOWN = 0,
 
   /**
-   * KEY_VALUE_IMPL_IAVL is the immutable avl tree value.
+   * KV_IMPL_TYPE_IAVL is the immutable avl tree value.
    */
   KV_IMPL_TYPE_IAVL = 1,
 
   /**
-   * KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
+   * KV_IMPL_TYPE_OKRA is the Okra-backed tree value.
    */
   KV_IMPL_TYPE_OKRA = 2,
 
@@ -52,8 +52,9 @@ export enum KVImplType {
   /**
    * KV_IMPL_TYPE_OKRA_NODE_GRAPH is an Okra tree holding the objects of a
    * World in the node graph layout. It stores the same bytes as
-   * KV_IMPL_TYPE_OKRA; only the World's meaning differs, so a reader that
-   * predates the layout rejects the tag as it does KV_IMPL_TYPE_IAVL_NODE_GRAPH.
+   * KV_IMPL_TYPE_OKRA. Only the World's meaning differs, so a reader that
+   * predates the layout rejects the tag as it does
+   * KV_IMPL_TYPE_IAVL_NODE_GRAPH.
    */
   KV_IMPL_TYPE_OKRA_NODE_GRAPH = 6,
 }

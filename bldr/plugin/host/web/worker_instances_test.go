@@ -52,9 +52,9 @@ const (
 	sweepTestOldGeneration  = "exec-old"
 )
 
-// TestTrackingStartupKeepsReadyOwnGenerationWorker fails before the
-// generation fence: tracking startup removed the ready worker the current
-// execution had just created, closing it under the app mid body mount.
+// TestTrackingStartupKeepsReadyOwnGenerationWorker fails without the
+// generation fence: tracking startup removes the ready worker the current
+// execution has just created, closing the worker under the app mid body mount.
 func TestTrackingStartupKeepsReadyOwnGenerationWorker(t *testing.T) {
 	// Build a document holding the ready own-generation worker and another plugin's worker.
 	own := &sweepTestWorker{

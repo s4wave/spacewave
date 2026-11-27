@@ -36,7 +36,7 @@ func (o *Object) DecodedBlockCacheTypeKey() string {
 }
 
 // UnmarshalObject unmarshals a Object block from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalObject(ctx context.Context, bcs *block.Cursor) (*Object, error) {
 	return block.UnmarshalBlock[Object](ctx, bcs)
 }

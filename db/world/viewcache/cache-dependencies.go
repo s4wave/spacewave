@@ -11,8 +11,9 @@ import (
 
 // entryParts collects the cached values one computation reuses.
 type entryParts struct {
-	// cache is the cache the computation's value is kept in; values of
-	// another World's cache are not parts, as its changes do not reach it.
+	// cache is the cache the computation's value is kept in. Values of
+	// another World's cache are not parts, as its changes do not reach
+	// cache.
 	cache *Cache
 	// mtx guards entries, as a computation may read its parts concurrently.
 	mtx     sync.Mutex
@@ -37,9 +38,10 @@ type partsKey struct{}
 // by reference: copying them would cost every value built from a large part,
 // such as each player's listing built from the route standings, the whole
 // part's keys. Any other evaluation adds entry's merged read set. Either way
-// the hold of ctx keeps entry's, so the blocks behind a value stay held while
-// a value or view built from it lives. A view reading a value that reaches a
-// part by facet waits on the value's retirement in place of its reads.
+// the hold of ctx keeps entry's hold, so the blocks behind a value stay held
+// while a value or view built from it lives. A view reading a value that
+// reaches a part by facet waits on the value's retirement in place of its
+// reads.
 func (c *Cache) addViewReads(ctx context.Context, entry *revisionEntry) {
 	block.RefHoldFromContext(ctx).Keep(entry.blocks)
 	if parts, ok := ctx.Value(partsKey{}).(*entryParts); ok && parts.cache == c {
@@ -103,7 +105,7 @@ func (c *Cache) withParts(ctx context.Context) (context.Context, *entryParts) {
 // collected returns the parts collected, once the computation ended, with
 // the ones it declared a facet of read apart. A part read several times is
 // read by facet only when every read declared one, and changes for the
-// computation when any declaration reports a change; a read without a
+// computation when any declaration reports a change. A read without a
 // declaration may need all of it, and so may a name read as two values.
 func (p *entryParts) collected() ([]*revisionEntry, []facetRead) {
 	// Group repeated part reads and their declared facets.
@@ -126,7 +128,8 @@ func (p *entryParts) collected() ([]*revisionEntry, []facetRead) {
 		declared[decl.name] = append(declared[decl.name], decl)
 	}
 
-	// Keep a plain dependency unless every read names an identical facet.
+	// Keep a plain dependency unless every read declares an identical
+	// facet.
 	var entries []*revisionEntry
 	var facets []facetRead
 	seen := make(map[*revisionEntry]bool, len(p.entries))

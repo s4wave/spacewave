@@ -10,7 +10,7 @@ import (
 
 // LoadPluginResolver resolves LoadPlugin with the controller.
 type LoadPluginResolver struct {
-	// c is the controller
+	// c is the controller.
 	c PluginHostScheduler
 	// dir is the directive being resolved.
 	dir bldr_plugin.LoadPlugin
@@ -66,7 +66,8 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		}
 		if next.GetInitialCapabilityRegistrationState() == bldr_plugin.InitialCapabilityRegistrationFailed {
 			if manifestRoot != "" {
-				// Pass a proven missing build on by type; anything else may pass.
+				// Pass a proven missing build on by type.
+				// Anything else may pass.
 				var missing *bldr_plugin.PinnedManifestMissingError
 				if errors.As(next.GetStartupError(), &missing) {
 					return missing

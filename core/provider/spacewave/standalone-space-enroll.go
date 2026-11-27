@@ -310,7 +310,8 @@ func (c *SessionClient) addStandalonePeerParticipant(
 			return false, errSharedObjectCurrentKeyEpochMissing
 		}
 
-		// Find the peer's entries; one entry with the role and a grant is done.
+		// Find the peer's entries. One entry with the role and a grant needs no
+		// change.
 		var entries []*sobject.SOParticipantConfig
 		for _, p := range currentCfg.GetParticipants() {
 			if p.GetPeerId() == targetPeerID {

@@ -44,8 +44,9 @@ func configChangeSignedBody(entry *SOConfigChange) ([]byte, error) {
 // Each entry must have:
 // 1. The shared object ID
 // 2. Monotonically increasing config_seqno (starting from 0)
-// 3. previous_hash matching the hash of the prior entry (genesis has zero previous_hash)
-// 4. Authorization by the prior config; genesis by an owner of its own
+// 3. previous_hash matching the hash of the prior entry (genesis has zero
+// previous_hash)
+// 4. Authorization by the prior config, or for genesis by an owner of its own
 // config, which must start under owner control.
 func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	// Require a chain before validating its bootstrap entry.
@@ -170,11 +171,13 @@ func configChangeResult(entry *SOConfigChange) (*SharedObjectConfig, error) {
 // nonempty checkpoint. Every transition must be authorized by its predecessor.
 // Genesis and self-enrollment are unavailable on this peer verification path.
 // A suffix that does not follow the checkpoint starts at the fork of a merge
-// that absorbs it; see ConfigSuffixBase. It must end above the checkpoint, as
-// a merge on the winning head does, so a merge never rolls a replica back.
+// that absorbs the checkpoint (see ConfigSuffixBase). The suffix must end above
+// the checkpoint, as a merge on the winning head does, so a merge never
+// rolls a replica back.
 // Empty suffixes require every candidate field to equal the checkpoint,
 // independent of participant order.
-// This verifies configuration authority only, not root or content acceptance.
+// VerifyConfigChainSuffix verifies configuration authority only, not root or
+// content acceptance.
 func VerifyConfigChainSuffix(sharedObjectID string, current, candidate *SharedObjectConfig, entries []*SOConfigChange) error {
 	// Trust must already exist at the receiver before remote history is examined.
 	if len(current.GetConfigChainHash()) == 0 {
@@ -245,7 +248,7 @@ func isGroupConfigChange(t SOConfigChangeType) bool {
 // VerifyConfigLineage authenticates changes, oldest first, that lead to an
 // authenticated target configuration. Each change links by hash to the next
 // and the last produced target, so target's head authenticates every earlier
-// change; each change after the first must also be authorized by the
+// change. Each change after the first must also be authorized by the
 // configuration before it. It returns the configuration the first change
 // produced, or target when lineage is empty.
 func VerifyConfigLineage(sharedObjectID string, target *SharedObjectConfig, lineage []*SOConfigChange) (*SharedObjectConfig, error) {
@@ -257,7 +260,7 @@ func VerifyConfigLineage(sharedObjectID string, target *SharedObjectConfig, line
 		return nil, ErrConfigHistoryUnavailable
 	}
 
-	// Derive the base from the first change; a genesis verifies on its own.
+	// Derive the base from the first change. A genesis verifies on its own.
 	first := lineage[0]
 	if first.GetSharedObjectId() != sharedObjectID {
 		return nil, errors.New("config lineage is bound to another shared object")

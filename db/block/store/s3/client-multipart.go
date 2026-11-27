@@ -25,8 +25,9 @@ const MinPartBytes = 5 << 20
 const maxParts = 10000
 
 // abortTimeout bounds the abort of a failed upload, which runs past the
-// caller's cancellation: a bucket that never answers it holds the caller only
-// this long, and the parts it leaves go to the bucket's lifecycle rule.
+// caller's cancellation: a bucket that never answers the abort request holds
+// the caller only this long, and the failed upload's parts go to the bucket's
+// lifecycle rule.
 const abortTimeout = 30 * time.Second
 
 // StreamOptions configures PutObjectStream.
@@ -36,13 +37,13 @@ type StreamOptions struct {
 	// PartBytes is the size of each part, at least MinPartBytes. The largest
 	// object is 10,000 of them.
 	PartBytes int
-	// Workers is the parts uploaded at once, which is what fills a fast link.
+	// Workers is the number of parts uploaded at once to fill a fast link.
 	// Memory use is Workers parts plus one.
 	Workers int
 }
 
 // PutObjectStream uploads r as one object without holding it whole, and
-// returns its size. A stream shorter than a part goes up as one PUT; a longer
+// returns its size. A stream shorter than a part goes up as one PUT. A longer
 // one goes as a multipart upload with parts in flight together. The object
 // appears only when every part has landed. On failure the upload is aborted
 // and no object appears.
@@ -139,7 +140,7 @@ func (c *Client) uploadParts(
 				return
 			}
 
-			// Record it.
+			// Record the completed part.
 			mtx.Lock()
 			parts = append(parts, completedPart{Number: number, ETag: etag})
 			mtx.Unlock()
@@ -181,7 +182,7 @@ func (c *Client) createMultipart(ctx context.Context, bucket, key, contentType s
 
 	// Read its id.
 	var result struct {
-		// UploadID names the upload.
+		// UploadID identifies the upload.
 		UploadID string `xml:"UploadId"`
 	}
 	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {

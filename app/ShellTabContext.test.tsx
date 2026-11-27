@@ -228,7 +228,8 @@ describe('ShellTabContext', () => {
     )
 
     expect(screen.getByTestId('tab-count').textContent).toBe('1')
-    // The record already holds the path, so the hash must still follow it.
+    // The record already has the path, so the hash must still follow the
+    // record.
     expect(onCommitted).toHaveBeenCalled()
   })
 
@@ -766,7 +767,7 @@ describe('ShellTabContext', () => {
   })
 
   it('creates its own tab when a reload saved no state beside another document', async () => {
-    // Another document's live record; this document failed before its Shell
+    // Another document has a live record. This document failed before its Shell
     // mounted, so its reload carries no saved Shell state.
     seedShellTabs([{ id: 'other-tab', name: 'Session', path: '/u/0' }])
     const reloadEntry = classifyShellDocumentEntry({

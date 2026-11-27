@@ -95,7 +95,7 @@ message CanvasLayoutMetadata {
   int32 rank = 3;
   // Group is the visual grouping key for related projected nodes.
   string group = 4;
-  // ProjectionOwner names the writer that owns this visual projection.
+  // ProjectionOwner identifies the writer that owns this visual projection.
   string projection_owner = 5;
 }
 

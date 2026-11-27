@@ -18,7 +18,7 @@ const CLIName = "spacewave-dev"
 // downstreamSrcPath is the default bldr-src-path for a downstream app. bldr-dist
 // must replace the app's own (unpublished) module with the local checkout so it
 // can import the app's bldr plugins. The path is relative to the dist sources
-// root (<state>/src); "../.." resolves to the app repo root for the default
+// root (<state>/src). "../.." resolves to the app repo root for the default
 // .bldr/ state dir. Overridable with --bldr-src-path.
 const downstreamSrcPath = "../.."
 

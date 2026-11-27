@@ -308,7 +308,7 @@ func TestValidateStopsEndlessEvaluation(t *testing.T) {
 }
 
 // TestValidateRefusesMemoryExhaustion refuses a bldr.star that doubles a string
-// until memory runs out, and keeps validating after it.
+// until memory runs out, and keeps validating after memory exhaustion.
 func TestValidateRefusesMemoryExhaustion(t *testing.T) {
 	// Validate a project that doubles a 1 MiB string 32 times.
 	files := acceptedFiles()

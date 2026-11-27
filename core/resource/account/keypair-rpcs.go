@@ -23,8 +23,8 @@ import (
 //
 // Account state and key-store unlock state are folded into one local broadcast
 // so the watch loop reads both inputs under the same HoldLock that obtains
-// the wait channel. This eliminates the missed-wakeup race that the previous
-// dual-channel select had to defend against and coalesces near-simultaneous
+// the wait channel. This shared read eliminates the missed-wakeup race
+// possible with a dual-channel select and coalesces near-simultaneous
 // changes (e.g. an account-state update landing alongside a key-store unlock)
 // into a single emission instead of one per source.
 func (r *AccountResource) WatchEntityKeypairs(
@@ -57,7 +57,7 @@ func (r *AccountResource) WatchEntityKeypairs(
 // entityKeypairsWatchState carries every input snapshot the keypairs watch
 // reads per emission, guarded by a single broadcast so the watch loop reads
 // all of them under the same HoldLock that obtains the wait channel. Both
-// bridge goroutines update fields under HoldLock and broadcast on change;
+// bridge goroutines update fields under HoldLock and broadcast on change, so
 // the watch never observes a stale wait channel paired with a fresh source
 // update.
 type entityKeypairsWatchState struct {
@@ -292,8 +292,8 @@ func (r *AccountResource) LockAllEntityKeypairs(
 
 // resolveOrSignWithStore builds the MultiSigActionEnvelope and produces
 // signatures over the envelope bytes using either a caller-supplied credential
-// or any keys currently unlocked in the key store. Returns the envelope
-// bytes plus the resolved signatures.
+// or any keys currently unlocked in the key store. resolveOrSignWithStore
+// returns the envelope bytes plus the resolved signatures.
 //
 // The precedence is:
 //  1. credential != nil: resolve entity key, sign envelope

@@ -6,23 +6,25 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 /** CollapsibleSectionProps configures a section and its optional header actions. */
 export interface CollapsibleSectionProps {
-  // Section title displayed in the header.
+  // title is the section title displayed in the header.
   title: string
-  // Icon rendered before the title.
+  // icon is rendered before the title.
   icon?: React.ReactNode
-  // Whether the section is currently open.
+  // open indicates whether the section is open.
   open: boolean
-  // Called when the open state changes.
+  // onOpenChange is called when the open state changes.
   onOpenChange: (open: boolean) => void
-  // Content rendered when expanded.
+  // children are rendered when the section is expanded.
   children: React.ReactNode
-  // Optional class name for the outer container.
+  // className is an optional class name for the outer container.
   className?: string
-  // Optional badge or count rendered after the title.
+  // badge is an optional badge or count rendered after the title.
   badge?: React.ReactNode
-  // Optional actions rendered in the header outside the trigger button.
+  // headerActions are optional actions in the header outside the trigger
+  // button.
   headerActions?: React.ReactNode
-  // Tightens header and content padding for a narrow container. Off by default.
+  // compact tightens header and content padding for a narrow container.
+  // Off by default.
   compact?: boolean
 }
 

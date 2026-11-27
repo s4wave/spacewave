@@ -221,7 +221,7 @@ const (
 )
 
 // Resource limit ids (getrlimit/setrlimit/prlimit64, asm-generic). Only the
-// ids needing a finite default are named; rlimitNlimits bounds the table.
+// ids needing a finite default are named. rlimitNlimits bounds the table.
 const (
 	rlimitStack   = 3
 	rlimitNofile  = 7

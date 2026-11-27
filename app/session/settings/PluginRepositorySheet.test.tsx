@@ -54,7 +54,7 @@ describe('PluginRepositorySheet', () => {
   it('shows what an accepted repository declares and builds on confirm', () => {
     const { onConfirm } = renderSheet(accepted)
 
-    // The sheet names the repository, commit, plugin and modules.
+    // The sheet lists the repository, commit, plugin and modules.
     expect(screen.getByText('Review acme/colors')).toBeDefined()
     expect(
       screen.getByText('Commit aaaaaaa. Nothing from this repository has run.'),
@@ -64,7 +64,8 @@ describe('PluginRepositorySheet', () => {
     expect(screen.getByText('Backend: ./backend.ts')).toBeDefined()
     expect(screen.getByText('Frontend: ./frontend.tsx')).toBeDefined()
 
-    // It lists the direct dependencies, counts the rest, and names the target.
+    // It lists the direct dependencies, counts the rest, and identifies the
+    // target.
     expect(
       screen.getByText(
         'left-pad@1.3.0 and 1 more package, each pinned by its content hash.',

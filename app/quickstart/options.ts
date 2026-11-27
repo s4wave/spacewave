@@ -18,7 +18,8 @@ import {
 } from 'react-icons/lu'
 import { isExperimentalCreatorVisible } from '../creator-visibility.js'
 
-// QuickstartOption is a type that represents a quickstart option for an app with preset space contents
+// QuickstartOption is a type that represents a quickstart option for an app
+// with preset space contents.
 export interface QuickstartOption {
   id: string
   name: string
@@ -251,8 +252,8 @@ export const PUBLIC_QUICKSTART_OPTIONS = getPublicQuickstartOptions(false)
 
 export type QuickstartId = (typeof QUICKSTART_OPTIONS)[number]['id']
 
-// QuickstartCreateId has quickstart IDs that create a new account as part of the option.
-// Excludes the navigation-only account and pairing entries.
+// QuickstartCreateId has quickstart IDs that create a new account as part of
+// the option. The type excludes the navigation-only account and pairing entries.
 export type QuickstartCreateId = Exclude<QuickstartId, 'account' | 'pair'>
 
 // QuickstartSpaceCreateId has quickstart IDs that create a new space (excludes 'local' which only creates a session).

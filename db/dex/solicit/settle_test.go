@@ -98,8 +98,9 @@ func TestStoreReadWaitsForSolicitation(t *testing.T) {
 
 // TestWaitSessionsReportsDeadline proves a wait for peer sessions that runs
 // out its deadline reports the deadline. A peer read bounded by a deadline
-// maps it to an unavailable block; reporting it as a cancellation made graph
-// copies, listings and pushes fail as if their caller had canceled them.
+// maps the deadline to an unavailable block. Reporting the deadline as a
+// cancellation makes graph copies, listings and pushes fail as if their caller
+// had canceled them.
 func TestWaitSessionsReportsDeadline(t *testing.T) {
 	// Wait on a controller whose solicitation never settles.
 	c := &Controller{}

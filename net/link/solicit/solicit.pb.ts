@@ -22,12 +22,12 @@ export interface SolicitProtocolRequest {
   context?: Uint8Array
   /**
    * PeerId constrains solicitation to a specific peer.
-   * If empty, solicits on all active links.
+   * If PeerId is empty, solicitation runs on all active links.
    */
   peerId?: string
   /**
    * TransportId constrains solicitation to a specific transport.
-   * If 0, solicits on all transports.
+   * If TransportId is 0, solicitation runs on all transports.
    */
   transportId?: bigint
 }
@@ -70,7 +70,7 @@ export const SolicitationOffer: MessageType<SolicitationOffer> =
 
 /**
  * SolicitationExchange is sent on the control stream.
- * Full hash set, re-sent each time the local set changes.
+ * The full hash set is re-sent each time the local set changes.
  *
  * @generated from message link.solicit.SolicitationExchange
  */
@@ -78,7 +78,7 @@ export interface SolicitationExchange {
   /**
    * ProtocolHashes contains sorted BLAKE3 hashes.
    * Each hash is 32 bytes.
-   * Max 256 entries.
+   * ProtocolHashes contains at most 256 entries.
    */
   protocolHashes?: Uint8Array[]
   /**

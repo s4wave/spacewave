@@ -23,8 +23,8 @@ import (
 // function" when the default export is missing.
 //
 // The test needs tinygo, bun, and a preinstalled bldr/dist/deps dependency
-// root; it skips instead of downloading anything when they are absent so the
-// default suite stays hermetic.
+// root. The test skips instead of downloading anything when the tools or
+// dependency root are absent so the default suite stays hermetic.
 func TestBuildWebWasmPluginScriptPreservesDefaultExport(t *testing.T) {
 	// Require the local tools needed to bundle the real TinyGo wrapper.
 	if testing.Short() {
@@ -52,8 +52,8 @@ func TestBuildWebWasmPluginScriptPreservesDefaultExport(t *testing.T) {
 	// Allocate an isolated distribution root for the wrapper sources.
 	distRoot := t.TempDir()
 
-	// The rolldown runner resolves its own module from the dist deps root;
-	// link the preinstalled dependency root so nothing downloads.
+	// The rolldown runner resolves its own module from the dist deps root.
+	// Link the preinstalled dependency root so nothing downloads.
 	if err := os.MkdirAll(filepath.Join(distRoot, "dist", "deps"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +79,9 @@ func TestBuildWebWasmPluginScriptPreservesDefaultExport(t *testing.T) {
 
 	// Copy the real wrapper sources so the bundle sees production inputs.
 	// The synced dist root flattens the bldr module contents to the top
-	// level: web/ carries the runtime and the rolldown runner, plugin/ and
-	// manifest/ the protobuf modules the wrapper reaches through @go/
-	// generated imports.
+	// level: web/ contains the runtime and the rolldown runner, and plugin/
+	// and manifest/ contain the protobuf modules the wrapper reaches through
+	// @go/ generated imports.
 	copyTree(t, filepath.Join(repoRoot, "bldr", "web"), filepath.Join(distRoot, "web"))
 	copyTree(t, filepath.Join(repoRoot, "bldr", "plugin"), filepath.Join(distRoot, "plugin"))
 	copyTree(t, filepath.Join(repoRoot, "bldr", "manifest"), filepath.Join(distRoot, "manifest"))
@@ -124,7 +124,7 @@ func TestBuildWebWasmPluginScriptPreservesDefaultExport(t *testing.T) {
 	assertCallableDefaultExport(t, outPath, data)
 }
 
-// assertCallableDefaultExport fails unless the built module carries a default
+// assertCallableDefaultExport fails unless the built module has a default
 // export shape and importing it yields a function.
 func assertCallableDefaultExport(t *testing.T, path string, data []byte) {
 	// Attribute default export failures to the calling test.

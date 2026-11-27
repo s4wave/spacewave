@@ -121,7 +121,7 @@ export interface Tx {
    */
   txObjectIncRev?: TxObjectIncRev
   /**
-   * TxDeleteObject to delete a object.
+   * TxDeleteObject deletes an object.
    * TxType_DELETE_OBJECT
    */
   txDeleteObject?: TxDeleteObject
@@ -241,7 +241,7 @@ export interface TxApplyObjectOp {
   opSender?: string
   /**
    * SetRoots are the same-bucket object roots the operation set when its
-   * author applied it; see TxApplyWorldOp.set_roots.
+   * author applied it. See TxApplyWorldOp.set_roots.
    */
   setRoots?: BlockRef[]
 }
@@ -341,7 +341,7 @@ export interface TxDeleteObject {
    */
   objectKey?: string
   /**
-   * FailIfNotFound indicates to error if not found.
+   * FailIfNotFound indicates to error if the object is not found.
    */
   failIfNotFound?: boolean
 }

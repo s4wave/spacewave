@@ -74,7 +74,7 @@ type Sorter struct {
 	runs []string
 	// spilled is the bytes written to runs.
 	spilled int64
-	// merged is set once Merge starts; Add then fails.
+	// merged is set once Merge starts, so Add then fails.
 	merged bool
 }
 
@@ -115,7 +115,7 @@ func (s *Sorter) Spilled() int64 {
 
 // Add buffers a copy of one record, spilling the buffer as a run when it
 // reaches the budget. An error from the spill, such as a full disk, leaves the
-// Sorter unusable; Close still removes its runs.
+// Sorter unusable, but Close still removes its runs.
 func (s *Sorter) Add(key, value []byte) error {
 	// Refuse records once the merge has begun, and keys or values too long
 	// for a run's length prefix.
@@ -216,7 +216,7 @@ func (s *Sorter) spill() error {
 // writeRun writes the buffered records to a new file at path and returns the
 // bytes written.
 func (s *Sorter) writeRun(path string) (int64, error) {
-	// Create the file; its close reports a write the disk deferred.
+	// Create the file. Its close reports a write the disk deferred.
 	f, err := os.Create(path)
 	if err != nil {
 		return 0, err
@@ -250,7 +250,7 @@ func (s *Sorter) writeRecords(out io.Writer) (int64, error) {
 }
 
 // Merge calls fn with every added record and every record of sorted, in
-// ascending key order. Each source in sorted must yield ascending keys; Merge
+// ascending key order. Each source in sorted must yield ascending keys. Merge
 // returns ErrUnsorted when one does not. key and value are valid only during
 // the call. An error from fn stops the merge and is returned. Merge runs once.
 func (s *Sorter) Merge(ctx context.Context, sorted []iter.Seq2[[]byte, []byte], fn func(key, value []byte) error) error {
@@ -305,7 +305,7 @@ func (s *Sorter) Merge(ctx context.Context, sorted []iter.Seq2[[]byte, []byte], 
 
 // Close removes the runs and releases the buffer.
 func (s *Sorter) Close() error {
-	// Drop the buffer; a Sorter that never spilled has no directory.
+	// Drop the buffer. A Sorter that never spilled has no directory.
 	s.arena, s.recs, s.runs = nil, nil, nil
 	if s.dir == "" {
 		return nil
@@ -333,7 +333,7 @@ func RemoveRuns(parent string) error {
 		return err
 	}
 
-	// Remove each with every run in it.
+	// Remove each directory with every run in it.
 	for _, e := range entries {
 		if e.IsDir() && strings.HasPrefix(e.Name(), runDirPrefix) {
 			if err := os.RemoveAll(filepath.Join(parent, e.Name())); err != nil {
@@ -375,7 +375,7 @@ func openRun(path string) (*runCursor, error) {
 }
 
 func (c *runCursor) next() (bool, error) {
-	// Read the lengths; a clean end of file ends the run.
+	// Read the lengths. A clean end of file ends the run.
 	klen, err := binary.ReadUvarint(c.r)
 	if err == io.EOF {
 		return false, nil
@@ -388,7 +388,7 @@ func (c *runCursor) next() (bool, error) {
 		return false, errors.Wrap(err, "extsort: read run")
 	}
 
-	// Read the record into the cursor's buffer; a length past maxLen is a
+	// Read the record into the cursor's buffer. A length past maxLen is a
 	// corrupt run.
 	if klen > maxLen || vlen > maxLen {
 		return false, errors.New("extsort: corrupt run")

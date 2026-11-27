@@ -12,8 +12,8 @@ import (
 )
 
 // TestWizardEndingLifetime checks that an ending reads only for the wizard
-// that recorded it: it ends with its target, and a wizard created again at the
-// same key starts with none.
+// that recorded it: the ending ends with its target, and a wizard created again
+// at the same key starts with none.
 func TestWizardEndingLifetime(t *testing.T) {
 	// Start a World over the storage testbed.
 	ctx := t.Context()

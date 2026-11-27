@@ -26,7 +26,7 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 	}
 	t.Cleanup(base.Release)
 
-	// Open the Engine on it.
+	// Open the Engine on the empty World.
 	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -99,7 +99,7 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 		t.Errorf("seqno = %d, want above %d", afterSeqno, seqno)
 	}
 
-	// Neither the object nor a quad naming it remains.
+	// Neither the object nor a quad referencing it remains.
 	reader, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

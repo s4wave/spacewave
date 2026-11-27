@@ -120,7 +120,8 @@ func TestStarpc(t *testing.T) {
 	// construct client which will use LookupRpcClient
 	tb1Client := bifrost_rpc.NewBusClient(tb1.Bus)
 
-	// prefix the service id so our controller forwards it to the remote
+	// prefix the service id so the client controller forwards it to the
+	// remote peer
 	serviceID := "test-server/" + echo.SRPCEchoerServiceID
 
 	// run a request

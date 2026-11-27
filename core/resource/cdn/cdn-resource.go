@@ -34,8 +34,8 @@ type CdnResource struct {
 }
 
 // NewCdnResource constructs a CdnResource bound to the supplied instance.
-// The caller retains ownership of the instance; CdnResource does not tear
-// it down on its own.
+// The caller retains ownership of the instance. CdnResource does not tear
+// down the instance on its own.
 func NewCdnResource(le *logrus.Entry, b bus.Bus, instance *CdnInstance) *CdnResource {
 	r := &CdnResource{le: le, b: b, instance: instance}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
@@ -95,8 +95,8 @@ func (r *CdnResource) MountCdnSpace(
 
 // CopyV86ImageToSpace copies a V86Image from this CDN Space into a user-owned
 // destination Space identified by session index + destination space id.
-// Source is a fresh read-only WorldEngine built from the bound CdnInstance;
-// destination is resolved via space_resolve.ResolveSpace using the caller's
+// Source is a fresh read-only WorldEngine built from the bound CdnInstance.
+// The destination is resolved via space_resolve.ResolveSpace using the caller's
 // session. Both engines are released before the RPC returns. Underlying
 // copy semantics (metadata block + five asset edges, dedupe by target key)
 // are handled by core/cdn.CopyV86ImageFromCdn.

@@ -66,7 +66,7 @@ type k8sBindArgs struct {
 }
 
 // Run creates the Space's k8s/cluster object when enabling, then records
-// this Device's binding decision for it.
+// this Device's binding decision for the cluster object.
 func (a *k8sBindArgs) Run(c *cli.Context) error {
 	idx, err := sessionIndexFromInt(a.sessionIdx)
 	if err != nil {
@@ -130,7 +130,8 @@ func (a *k8sKubeconfigArgs) BuildFlags() []cli.Flag {
 }
 
 // Run prints a kubeconfig with one context for the Space, whose server is the
-// loopback port of bkctl proxy, and the bkctl proxy command that serves it.
+// loopback port of bkctl proxy, and the bkctl proxy command that serves that
+// port.
 func (a *k8sKubeconfigArgs) Run(c *cli.Context) error {
 	// Resolve the Space through its cluster object, which must exist.
 	idx, err := sessionIndexFromInt(a.sessionIdx)
@@ -144,7 +145,8 @@ func (a *k8sKubeconfigArgs) Run(c *cli.Context) error {
 	spaceID := mount.SpaceID
 	mount.release()
 
-	// Name the daemon in the proxy command, since it runs from anywhere.
+	// Select the daemon in the proxy command, since the command runs from
+	// anywhere.
 	args := []string{"bkctl", "proxy", "--port", strconv.Itoa(a.port), "--space", spaceID, "--session-index", strconv.Itoa(a.sessionIdx)}
 	flag, path := "--socket-path", effectiveSocketPath(c, "")
 	if path == "" {
@@ -183,7 +185,7 @@ current-context: %[1]s
 		return err
 	}
 
-	// Print the command that serves it.
+	// Print the command that serves the port.
 	_, err = fmt.Fprintf(os.Stderr, "Serve %s for kubectl with:\n  %s\n", server, shellJoin(args))
 	return err
 }

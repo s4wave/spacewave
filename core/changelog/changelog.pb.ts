@@ -12,7 +12,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Changelog {
   /**
-   * releases is the list of releases, newest first.
+   * Releases is the list of releases, newest first.
    */
   releases?: Release[]
 }
@@ -29,39 +29,39 @@ export const Changelog: MessageType<Changelog> =
  */
 export interface Release {
   /**
-   * version is the semver version string (e.g. "0.1.0").
+   * Version is the semver version string (e.g. "0.1.0").
    */
   version?: string
   /**
-   * date is the release date in YYYY-MM-DD format.
+   * Date is the release date in YYYY-MM-DD format.
    */
   date?: string
   /**
-   * summary is a 1-2 sentence summary of the release.
+   * Summary is a 1-2 sentence summary of the release.
    */
   summary?: string
   /**
-   * summary_markdown is the display-ready markdown summary.
+   * SummaryMarkdown is the display-ready markdown summary.
    */
   summaryMarkdown?: string
   /**
-   * features is the list of new feature entries.
+   * Features is the list of new feature entries.
    */
   features?: ChangeEntry[]
   /**
-   * fixes is the list of bug fix entries.
+   * Fixes is the list of bug fix entries.
    */
   fixes?: ChangeEntry[]
   /**
-   * improvements is the list of improvement entries.
+   * Improvements is the list of improvement entries.
    */
   improvements?: ChangeEntry[]
   /**
-   * security is the list of security-related entries.
+   * Security is the list of security-related entries.
    */
   security?: ChangeEntry[]
   /**
-   * release_url is an optional public release URL.
+   * ReleaseUrl is an optional public release URL.
    */
   releaseUrl?: string
 }
@@ -86,11 +86,11 @@ export const Release: MessageType<Release> =
  */
 export interface ChangeEntry {
   /**
-   * description is the user-facing description.
+   * Description is the user-facing description.
    */
   description?: string
   /**
-   * description_markdown is the display-ready markdown description.
+   * DescriptionMarkdown is the display-ready markdown description.
    */
   descriptionMarkdown?: string
 }

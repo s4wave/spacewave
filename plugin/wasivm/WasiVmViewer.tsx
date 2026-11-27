@@ -93,8 +93,8 @@ async function readRootfsKey(
 }
 
 // requestWasiVmState asks the VM at objectKey for a target state. A start
-// first approves the VM's process binding, which has the Space run the VM;
-// the approval outlasts a stop. A start needs contents to approve the
+// first approves the VM's process binding, which has the Space run the VM.
+// The approval outlasts a stop. A start needs contents to approve the
 // binding.
 async function requestWasiVmState(
   world: IWorldState,
@@ -165,8 +165,8 @@ const screenViews = [
 ] as const
 
 // useWasiVmWindows watches the windows of the VM's Wayland display through
-// its handle, starting again for each run. It is undefined until the run
-// lists its windows.
+// its handle, starting again for each run. The result is undefined until the
+// run lists its windows.
 function useWasiVmWindows(
   handleResource: Resource<WasiVmHandle>,
   runGeneration: bigint,
@@ -250,7 +250,7 @@ function WasiVmShowDesktopButton({ onClick }: { onClick: () => void }) {
 }
 
 // WasiVmLoadingView holds the view until the VM record loads, so no default
-// stands in for it.
+// record stands in for the VM record.
 function WasiVmLoadingView({ loadError }: { loadError?: Error | null }) {
   return (
     <div className="bg-background-primary h-full w-full">

@@ -9,7 +9,7 @@ import (
 )
 
 // HoldsRoots reports whether the inner store holds roots.
-// Retiring a local root lets the collector sweep superseded blocks; a marker
+// Retiring a local root lets the collector sweep superseded blocks. A marker
 // whose block was swept is dropped without upload.
 func (m *MarkingStore) HoldsRoots() bool {
 	return block.HoldsRoots(m.store)

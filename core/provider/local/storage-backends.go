@@ -45,7 +45,7 @@ func (a *ProviderAccount) AddSQLStorageBackend(
 	return a.addStorageBackend(ctx, &account_settings.StorageBackend{DisplayName: displayName, Sql: location.CloneVT()}, creds, setDefault)
 }
 
-// addStorageBackend checks the location backend names, then keeps the
+// addStorageBackend checks the location backend references, then keeps the
 // credentials and records the backend with a new id.
 func (a *ProviderAccount) addStorageBackend(
 	ctx context.Context,
@@ -168,7 +168,7 @@ func (a *ProviderAccount) ReadStorageCredentials(
 }
 
 // RemoveStorageBackend removes a backend that holds no Space and deletes its
-// credential Secret. While Spaces are placed on it, the error names them.
+// credential Secret. While Spaces are placed on it, the error lists them.
 //
 // It first deletes the objects of the block stores released on the backend,
 // since removal drops the credentials. A failed delete leaves its objects in
@@ -251,8 +251,8 @@ func (a *ProviderAccount) SetStorageBackendPricing(
 	})
 }
 
-// ResolveNewSpaceStorageBackend returns the backend a new Space's blocks go
-// on: the requested backend, else the account's default, else none. When
+// ResolveNewSpaceStorageBackend returns the backend a new Space's blocks go on:
+// the requested backend, else the account's default backend, else none. When
 // accountStorage is set, returns none.
 func (a *ProviderAccount) ResolveNewSpaceStorageBackend(ctx context.Context, requestedID string, accountStorage bool) (string, error) {
 	// Choose the requested backend, the account default, or account storage.

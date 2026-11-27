@@ -510,7 +510,7 @@ func TestFilePermissions(t *testing.T) {
 	tests := []struct {
 		name string
 
-		perm string // expected permission string representation
+		perm string // perm is the expected permission string.
 	}{
 		{"README.md", "-rw-r--r--"},
 		{"build.sh", "-rwxr-xr-x"},
@@ -1124,7 +1124,7 @@ func TestExecutablePermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// executable should have 0755
+	// The executable file should have 0755 permissions.
 	if perm&0o111 == 0 {
 		t.Fatalf("expected executable bit set, got %s", perm.String())
 	}

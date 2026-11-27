@@ -78,8 +78,8 @@ func BuildTree(ctx context.Context, bls *bucket_lookup.Cursor, entries []*Entry)
 	return ref, err
 }
 
-// applyEntry creates one entry in the tree. A directory that exists is kept;
-// any other existing node at the path is replaced.
+// applyEntry creates one entry in the tree. A directory that exists is kept.
+// Any other existing node at the path is replaced.
 func applyEntry(ctx context.Context, root *unixfs_block.FSTree, ent *Entry) error {
 	// Find or create the parent directory.
 	parent, err := mkdirAll(root, path.Dir(ent.Path))

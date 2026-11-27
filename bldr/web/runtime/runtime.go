@@ -17,7 +17,7 @@ import (
 type WebRuntime interface {
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.
-	// This should only be called by the web runtime controller!
+	// Only the web runtime controller should call Execute.
 	Execute(ctx context.Context) error
 
 	// GetWebRuntimeStatusCtr contains a full snapshot of the web runtime status.
@@ -46,7 +46,8 @@ type WebRuntime interface {
 	ConnectDesktopRuntimeResourceClient(ctx context.Context) (*resource_client.Client, error)
 
 	// CreateWebDocument creates a new WebDocument.
-	// This usually corresponds to creating a new Tab or Window.
+	// Creating a WebDocument usually corresponds to creating a new Tab or
+	// Window.
 	//
 	// Returns false, nil if WebDocument cannot be created.
 	CreateWebDocument(ctx context.Context, webViewID string) (bool, error)
@@ -70,13 +71,14 @@ type WebRuntimeHandler interface {
 
 // WebRuntimeConfig is a configuration for the runtime controller.
 type WebRuntimeConfig interface {
-	// Config indicates this is a controllerbus config object.
+	// Config indicates WebRuntimeConfig is a controllerbus config object.
 	config.Config
 }
 
 // WebRuntimeController is a controller managing a WebRuntime.
 type WebRuntimeController interface {
-	// Controller indicates this is a controller bus controller.
+	// Controller indicates WebRuntimeController is a controller bus
+	// controller.
 	controller.Controller
 	// GetWebRuntime returns the controlled runtime, waiting for it to be non-nil.
 	GetWebRuntime(ctx context.Context) (WebRuntime, error)

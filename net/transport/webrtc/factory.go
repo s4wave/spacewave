@@ -16,7 +16,7 @@ import (
 
 // Factory constructs the transport.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 	// opts are extra transport options applied at construction.
 	opts []Option
@@ -24,7 +24,7 @@ type Factory struct {
 
 // NewFactory builds a transport factory.
 //
-// Extra options are an injection seam for tests; production callers pass none.
+// Extra options are an injection seam for tests. Production callers pass none.
 func NewFactory(bus bus.Bus, opts ...Option) *Factory {
 	return &Factory{bus: bus, opts: opts}
 }

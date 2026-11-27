@@ -24,9 +24,9 @@ var Version = controller.MustParseVersion("0.0.1")
 // WebSocketHttp serves the websocket transport and peer ID over
 // configured HTTP patterns.
 type WebSocketHttp struct {
-	// Controller is the transport controller
+	// Controller is the transport controller.
 	*transport_controller.Controller
-	// mux is the serve mux
+	// mux is the serve mux.
 	mux *http.ServeMux
 }
 
@@ -161,5 +161,5 @@ func (t *WebSocketHttp) ResolveLookupHTTPHandler(ctx context.Context, dir bifros
 	return directive.R(bifrost_http.NewLookupHTTPHandlerResolver(handler), nil)
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ transport.Controller = (*WebSocketHttp)(nil)

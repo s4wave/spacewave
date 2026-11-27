@@ -11,7 +11,7 @@ import (
 )
 
 // UnmarshalFile unmarshals the File block.
-// Returns nil, nil if empty
+// Returns nil, nil if empty.
 func UnmarshalFile(ctx context.Context, bcs *block.Cursor) (*File, error) {
 	return block.UnmarshalBlock[File](ctx, bcs)
 }
@@ -59,7 +59,7 @@ func (f *File) IsNil() bool {
 	return f == nil
 }
 
-// Validate performs cursory validation of the file object.
+// Validate cursorily validates the file object.
 func (f *File) Validate() error {
 	if err := f.GetRootBlob().Validate(); err != nil {
 		return errors.Wrap(err, "root_blob")

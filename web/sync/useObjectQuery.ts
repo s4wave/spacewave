@@ -18,7 +18,8 @@ export function useObjectQuery<T>(
   const result = useStreamingResource(
     world,
     async function* (state, signal) {
-      // Live viewers watch immutable snapshots; historical viewers read their supplied state.
+      // Live viewers watch immutable snapshots. Historical viewers read their
+      // supplied state.
       if (!objectKey) return
       const engine = state.getEngine?.()
       if (engine) {

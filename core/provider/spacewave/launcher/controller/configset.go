@@ -54,9 +54,9 @@ func (c *Controller) applyDistConfigSet(ctx context.Context) error {
 			resInfo := info
 			var changed atomic.Bool
 			go func() {
-				// Cancel resolution once the DistConfig changes. Fetch
-				// status updates also replace the launcher info and must
-				// not restart it.
+				// Cancel resolution once the DistConfig changes.
+				// Fetch status updates also replace the launcher
+				// info and must not restart resolution.
 				curr := resInfo
 				for {
 					next, err := c.launcherInfoCtr.WaitValueChange(resolveCtx, curr, nil)

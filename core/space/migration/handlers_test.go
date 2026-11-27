@@ -365,7 +365,8 @@ func TestFlowgraphHandlerRewritesTargetAndPlacementIdentities(t *testing.T) {
 		{Kind: space_migration.ReferenceObjectKey, Value: "actor-destination"},
 	})
 
-	// Verify the payload carries the destination identities and keeps the rest.
+	// Verify the payload carries the destination identities and keeps the other
+	// fields.
 	var rewritten s4wave_flowgraph.Flowgraph
 	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
 		t.Fatal(err)
@@ -491,7 +492,8 @@ func TestFlowgraphRunHandlerRewritesFlowgraphJobAndTaskKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify the payload carries the destination keys and keeps the rest.
+	// Verify the payload carries the destination keys and keeps the other
+	// fields.
 	want := run.CloneVT()
 	want.FlowgraphKey = "graph-destination"
 	want.JobKey = "run/job-destination"

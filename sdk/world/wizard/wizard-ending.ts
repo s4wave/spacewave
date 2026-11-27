@@ -6,7 +6,7 @@ import type { IWorldState } from '../world-state.js'
 export const WIZARD_ENDINGS_OBJECT_KEY = 'wizard-endings'
 
 // WIZARD_ENDING_PREDICATE_PREFIX starts the predicate IRI of every ending
-// quad; the wizard's key follows it.
+// quad. The wizard's key follows the prefix.
 export const WIZARD_ENDING_PREDICATE_PREFIX = '<wizard/ended/'
 
 // wizardEndingPredicate is the predicate IRI of the ending quad for the
@@ -16,7 +16,7 @@ export function wizardEndingPredicate(wizardKey: string): string {
 }
 
 // lookupWizardEnding returns the key of the object the wizard at wizardKey
-// finished as, or undefined when the World records no ending for it: the
+// finished as, or undefined when the World records no ending for that key: the
 // wizard exists, was deleted without a Finish, or its target was deleted
 // since. RecordWizardEndingOp writes the ending in the Finish transaction.
 export async function lookupWizardEnding(

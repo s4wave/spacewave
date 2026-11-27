@@ -160,7 +160,7 @@ func TestMmapForkExit(t *testing.T) {
 		t.Fatalf("host read %q, want the child's aCcd", got)
 	}
 
-	// The child's exit writes its memory back; the parent's follows.
+	// The child's exit writes its memory back. The parent's exit follows.
 	child.unmapAll()
 	if got := fileBytesTest(t, f); got != "aCcd" {
 		t.Fatalf("file after the child's exit %q, want aCcd", got)
@@ -192,7 +192,7 @@ func TestMemfdCreateFlags(t *testing.T) {
 }
 
 // TestMemfdSeals checks a sealable memfd takes seals that refuse the changes
-// they name, that a writable shared mapping blocks sealWrite, and that a
+// they specify, that a writable shared mapping blocks sealWrite, and that a
 // memfd created without MFD_ALLOW_SEALING takes none.
 func TestMemfdSeals(t *testing.T) {
 	// A mapped file cannot be write-sealed.

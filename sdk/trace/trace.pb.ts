@@ -166,7 +166,7 @@ export const CaptureMemoryProfileResponse: MessageType<CaptureMemoryProfileRespo
 export interface CaptureGoroutineProfileRequest {
   /**
    * Debug is the pprof output debug level. Zero writes the compressed pprof
-   * protobuf; 1 and 2 write text stack dumps.
+   * protobuf. Levels 1 and 2 write text stack dumps.
    */
   debug?: number
 }

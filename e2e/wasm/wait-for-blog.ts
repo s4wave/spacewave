@@ -1,5 +1,5 @@
 // Polls until the blog quickstart finishes navigation to a space route and the
-// reading view's Edit posts press is visible.
+// reading view's Edit posts button is visible.
 export default async function (args: { deadlineMs: number }): Promise<null> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + args.deadlineMs

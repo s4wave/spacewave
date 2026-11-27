@@ -11,15 +11,15 @@ import (
 
 // PendingOp contains a pending operation with arguments.
 type PendingOp struct {
-	// opType is the operation type
+	// opType is the operation type.
 	opType OpType
-	// key is the resolved key to apply to
+	// key is the resolved key to apply to.
 	key []byte
-	// value is the resolved value to assign at the key
+	// value is the resolved value to assign at the key.
 	value *forge_value.Value
 	// valueIsBlob indicates the value is a blob.
 	valueIsBlob bool
-	// outputName is the output to assign the result to
+	// outputName is the output to assign the result to.
 	outputName string
 }
 

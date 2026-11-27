@@ -45,6 +45,6 @@ enum State {
   // replaced with new Pass in PENDING state.
   JobState_RUNNING = 2;
   // JobState_COMPLETE is the normal terminal state of the job.
-  // This includes both success and failure termination states.
+  // This state includes both success and failure termination states.
   JobState_COMPLETE = 3;
 }

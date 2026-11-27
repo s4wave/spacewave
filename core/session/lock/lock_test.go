@@ -269,7 +269,7 @@ func TestWritePINLockReplaysIdentically(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Encode the persisted PIN parameters for comparison between transaction paths.
+		// Encode the persisted PIN parameters to compare the transaction paths.
 		configData, err := storedConfig.MarshalVT()
 		if err != nil {
 			t.Fatal(err)

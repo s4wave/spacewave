@@ -30,9 +30,9 @@ var validWasmSuffixes = []string{
 	".wasm.gz",
 
 	// go brotli decoder
-	// NOTE: We do not bundle go-brotli-decoder currently.
+	// NOTE: The bundle does not include go-brotli-decoder.
 	// See: github.com/s4wave/spacewave/db/unixfs/access/http/ext
-	// This can be enabled if using the Ext version.
+	// The .wasm.br extension can be enabled if using the Ext version.
 	// ".wasm.br",
 }
 
@@ -45,8 +45,8 @@ func HasValidWasmExtension(filePath string) bool {
 
 // BuildWebWasmPluginScript builds the web plugin runtime entrypoint script.
 //
-// outPath should have a .mjs suffix
-// entrypointPath should be foo.wasm (relative to script location)
+// outPath should have a .mjs suffix.
+// entrypointPath should be foo.wasm (relative to script location).
 func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, useTinygo, minify, sourcemaps bool) ([]string, error) {
 	// Require a supported Wasm entrypoint before preparing the plugin bundle.
 	if !HasValidWasmExtension(entrypointPath) {

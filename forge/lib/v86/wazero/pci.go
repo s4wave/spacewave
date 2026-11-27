@@ -11,6 +11,7 @@ const (
 )
 
 // pciDevice implements the PCI configuration address/data mechanism: the
+// address latch selects the configuration bytes returned in the response.
 type pciDevice struct {
 	host      *HostRuntime
 	addr      uint32
@@ -21,7 +22,7 @@ type pciDevice struct {
 	barProbes map[uint16]map[int]bool
 }
 
-// registerPCI wires the 0xcf8/0xcfc config ports and seeds the host bridge
+// registerPCI wires the 0xcf8/0xcfc config ports and seeds the host bridge.
 func (h *HostRuntime) registerPCI() {
 	// Seed the Host PCI bus with its host and ISA bridges.
 	pci := &pciDevice{
@@ -96,7 +97,7 @@ func (h *HostRuntime) registerPCI() {
 	}
 }
 
-// query resolves the latched config address into the response bytes,
+// query resolves the latched config address into the response bytes.
 func (p *pciDevice) query() {
 	// Default the PCI response to an absent device when access is disabled.
 	p.response = [4]byte{0xff, 0xff, 0xff, 0xff}
@@ -129,7 +130,8 @@ func (p *pciDevice) query() {
 	}
 }
 
-// write stores config-space bytes, detecting BAR sizing probes and moving
+// write stores config-space bytes, detects BAR sizing probes, and moves I/O
+// ports when a 32-bit write changes an I/O BAR.
 func (p *pciDevice) write(offset, value uint32, width int) {
 	// Ignore PCI configuration writes while the address latch is disabled.
 	if p.addr&0x80000000 == 0 {
@@ -180,7 +182,7 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 	p.query()
 }
 
-// setBARSize records a device BAR's size and IO/memory kind for sizing
+// setBARSize records a device BAR's size and IO/memory kind for sizing probes.
 func (p *pciDevice) setBARSize(bdf uint16, bar int, size uint32, isIO bool) {
 	if _, ok := p.barSizes[bdf]; !ok {
 		p.barSizes[bdf] = make(map[int]uint32)
@@ -192,7 +194,8 @@ func (p *pciDevice) setBARSize(bdf uint16, bar int, size uint32, isIO bool) {
 	p.barIO[bdf][bar] = isIO
 }
 
-// pciBARIndex returns the BAR index of a config-space offset, or -1 when
+// pciBARIndex returns the BAR index of a config-space offset, or -1 when the
+// offset is outside the BAR registers or is not aligned to four bytes.
 func pciBARIndex(addr int) int {
 	if addr < 0x10 || addr >= 0x28 || addr&3 != 0 {
 		return -1

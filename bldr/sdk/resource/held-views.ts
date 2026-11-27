@@ -22,11 +22,11 @@ const heldLimit = 64
 
 // HeldViews keeps the last whole view of each versioned watch by its watch
 // key, past the stream and the connection that carried it. A watch reopens
-// naming the version it holds; the backend answers an unchanged view with
+// declaring the version it holds. The backend answers an unchanged view with
 // the version alone, and the reader receives the held view again.
 // Construct one instance per authorization scope and discard it when access
-// changes. Persistent stores must use a distinct account/Space namespace;
-// only public views may use a namespace shared across sign-ins.
+// changes. Persistent stores must use a distinct account/Space namespace.
+// Only public views may use a namespace shared across sign-ins.
 export class HeldViews {
   // views holds the latest views, oldest first.
   private readonly views = new Map<string, Versioned>()
@@ -51,7 +51,7 @@ export class HeldViews {
       | T
       | undefined
     for await (const message of start(held?.view?.version ?? '', signal)) {
-      // An unchanged answer names the held view at a later revision.
+      // An unchanged answer selects the held view at a later revision.
       let view = message
       if (message.view?.unchanged) {
         if (!held || held.view?.version !== message.view.version) {
@@ -106,7 +106,7 @@ export class HeldViews {
     try {
       await this.store?.put(key, type.toBinary(view))
     } catch {
-      // A view the store cannot keep is fetched whole next load.
+      // A view the store cannot keep is fetched whole on the next load.
     }
   }
 }

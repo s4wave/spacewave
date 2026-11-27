@@ -149,7 +149,7 @@ func (r *SharedObjectResource) WatchSharedObjectHealth(
 }
 
 // GetSharedObjectTrim reports how far this device's state can trim the
-// history and which members hold it back.
+// history and which members hold trimming back.
 func (r *SharedObjectResource) GetSharedObjectTrim(
 	ctx context.Context,
 	req *s4wave_sobject.GetSharedObjectTrimRequest,
@@ -194,8 +194,8 @@ func (r *SharedObjectResource) GetSharedObjectTrim(
 		rosterMembers[peerID] = true
 	}
 
-	// Report each writer's latest operation and whether it built on the
-	// checkpointer's.
+	// Report each writer's latest operation and whether that operation built on
+	// the checkpointer's latest operation.
 	for _, peerID := range cfg.Writers() {
 		nonce, _ := set.AuthorHead(peerID)
 		trim.Writers = append(trim.Writers, &s4wave_sobject.SharedObjectTrimWriter{

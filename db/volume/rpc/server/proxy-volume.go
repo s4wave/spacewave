@@ -24,16 +24,17 @@ type ProxyVolume struct {
 	*rpc_bucket_server.BucketStore
 	*rpc_object_server.ObjectStore
 
-	// vol is the volume
+	// vol is the volume.
 	vol volume.Volume
 	// coordinatorLeases owns remote write leases acquired through this service.
 	coordinatorLeases *coordinatorLeases
-	// exposePrivKey controls if we allow exposing the private key
+	// exposePrivKey controls if the service allows exposing the private
+	// key.
 	exposePrivKey bool
 	// stageMtx guards stages.
 	stageMtx sync.Mutex
 	// stages are the stages this service's HoldStage streams hold, so a stage
-	// call names only a stage a client of this service opened.
+	// call takes only a stage a client of this service opened.
 	stages map[string]struct{}
 }
 
@@ -56,7 +57,8 @@ func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
 	return RegisterProxyVolumeWithPrefix(mux, proxyVol, "")
 }
 
-// RegisterProxyVolumeWithPrefix registers all ProxyVolume services with a service id prefix.
+// RegisterProxyVolumeWithPrefix registers all ProxyVolume services with a
+// service id prefix.
 func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix string) error {
 	// Register the volume service under the requested prefix.
 	// register ProxyVolume
@@ -214,7 +216,7 @@ func (v *ProxyVolume) GetCoordinatorSnapshot(
 	}, nil
 }
 
-// TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+// TryAcquireCoordinatorWriteLease tries to acquire the remote write lease.
 func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 	req *volume_rpc.TryAcquireCoordinatorWriteLeaseRequest,
 	strm volume_rpc.SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream,
@@ -224,7 +226,8 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 	scope := req.GetScope().ToCoordScope()
 	scope.VolumeID = v.vol.GetID()
 
-	// Attempt the volume write lease without waiting for another writer.
+	// Try to acquire the volume write lease without waiting for another
+	// writer.
 	lease, acquired, err := v.vol.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return err

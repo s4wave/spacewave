@@ -7,7 +7,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * HandoffRequest is sent by the device (desktop/CLI) to initiate
- * browser-delegated auth. Encoded as base64url in URL fragment.
+ * browser-delegated auth. The request is encoded as base64url in the URL
+ * fragment.
  *
  * @generated from message session.handoff.HandoffRequest
  */

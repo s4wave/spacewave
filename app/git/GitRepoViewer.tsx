@@ -94,7 +94,8 @@ function useGitRepoController({
     readmeContent,
   } = files
 
-  // Hold the entry being opened and the last listing while the next loads.
+  // Hold the entry being opened and the last listing while the next listing
+  // loads.
   const [pendingName, setPendingName] = useState<string | null>(null)
   const staleEntries = useDeferredValue(fileEntries)
 
@@ -257,7 +258,7 @@ type FileView = 'file' | 'loading' | 'error' | 'ready'
 
 /** fileViewFor picks what the path shows in place of its directory tree. */
 function fileViewFor(c: GitRepoController): FileView {
-  // A commit shows its own view; a file shows once it is stat'd.
+  // A commit shows its own view. A file shows once it is stat'd.
   if (c.route.mode === 'commit') return 'ready'
   if (c.isDir === false && c.statResource.value) return 'file'
   const isLoading =
@@ -339,7 +340,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
     )
   }
 
-  // Otherwise name the first resource that failed.
+  // Otherwise select the first resource that failed.
   const failed = fileResources(controller).find((resource) => resource.error)
   return (
     <GitViewerFrame {...bareFrameProps}>
@@ -460,7 +461,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
     return <GitRepoFileStatus controller={controller} view={view} />
   }
 
-  // The browsing views keep the facts in a side column; the log and a commit
+  // The browsing views keep the facts in a side column. The log and a commit
   // give the pane to their list and open the facts from Details.
   const isCommit = route.mode === 'commit'
   return (
@@ -483,7 +484,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
   )
 }
 
-// GitRepoViewer renders a Git repository object with branch/tag selector,
+// GitRepoViewer renders a Git repository object with a branch/tag selector,
 // file tree, last commit info, and README display.
 export function GitRepoViewer(props: ObjectViewerComponentProps) {
   const controller = useGitRepoController(props)

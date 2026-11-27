@@ -73,7 +73,7 @@ func prepareGuest(wasm []byte) ([]byte, []string, error) {
 }
 
 // addSignalTrampoline defines and exports the signal trampoline in m. A
-// guest without a table holds no function pointers, so it gets none.
+// guest without a table holds no function pointers, so it gets no trampoline.
 func addSignalTrampoline(m *guestModule) error {
 	// Find the types of a handler, (i32) -> (), and of the trampoline,
 	// (i32 i32) -> ().

@@ -34,7 +34,8 @@ func PackManifestBundle(
 	}
 
 	// Retain structural edges with the encoded bytes. The walker may
-	// visit siblings before descendants; physical output follows each subtree.
+	// visit siblings before descendants, but physical output follows each
+	// subtree.
 	blocks := make(map[string]packBlock)
 	graph := order.NewGraph()
 	var roots []*block.BlockRef

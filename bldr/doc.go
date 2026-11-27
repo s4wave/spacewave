@@ -6,7 +6,7 @@
 // configurations and build names to manifests and target platforms. A compiler
 // (bldr/plugin/compiler) turns each plugin and platform into a Manifest
 // (bldr/manifest): metadata, one entrypoint, and distribution and asset UnixFS
-// roots. A LoadPlugin directive (bldr/plugin) asks for a running plugin; the
+// roots. A LoadPlugin directive (bldr/plugin) asks for a running plugin. The
 // scheduler (bldr/plugin/host/scheduler) selects a Manifest and a PluginHost
 // (bldr/plugin/host) for its platform and executes the entrypoint. Each running
 // plugin gets its own controllerbus bus and reaches the host and other plugins

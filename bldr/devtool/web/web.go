@@ -56,7 +56,7 @@ func (i *DevtoolInitBrowser) Validate() error {
 	return nil
 }
 
-// ParseDevtoolPeerID parses the devtool peer id field.
+// ParsePeerID parses the devtool peer id field.
 func (i *DevtoolInitBrowser) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(i.GetDevtoolPeerId())
 }

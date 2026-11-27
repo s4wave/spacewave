@@ -121,7 +121,8 @@ func setupPluginClients(
 	}
 	t.Cleanup(relObjectTypeCtrl)
 
-	// Start both hosts; scheduler policy selects each plugin's permitted runtime.
+	// Start both hosts. Scheduler policy selects each plugin's permitted
+	// runtime.
 	_, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
 		ctx,
 		b,

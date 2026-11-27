@@ -142,7 +142,7 @@ func ApplyCommit(root *cdn.CdnRootPointer, c *Commit) (bool, error) {
 // replacePacks returns packs with c's replaced packs marked superseded by
 // c's one added pack and c's retired packs dropped, on a new list, and
 // reports whether it differs. A replaced pack already superseded by c's pack
-// is a retried commit; a retired pack packs lacks was dropped already.
+// is a retried commit. A retired pack packs lacks was dropped already.
 func replacePacks(packs []*packfile.PackfileEntry, c *Commit) ([]*packfile.PackfileEntry, bool, error) {
 	// A replacement adds the one pack that supersedes the others.
 	var by string
@@ -161,7 +161,7 @@ func replacePacks(packs []*packfile.PackfileEntry, c *Commit) ([]*packfile.Packf
 		retired[id] = true
 	}
 
-	// Copy the list, marking and dropping as c names.
+	// Copy the list, marking and dropping as c specifies.
 	out := make([]*packfile.PackfileEntry, 0, len(packs))
 	changed := false
 	for _, pack := range packs {
@@ -242,7 +242,7 @@ func CheckCheckpointFollows(root *cdn.CdnRootPointer, next *sobject.SOCheckpoint
 // checkpoint signed by owner. Later checkpoints are signed by owner too, as
 // the publisher signs them with the Space's owner key.
 func NewGenesis(spaceID string, owner crypto.PrivKey) (*cdn.CdnRootPointer, error) {
-	// Name the Space's config by its ID, since a CDN Space has no config
+	// Identify the Space's config by its ID, since a CDN Space has no config
 	// chain of its own.
 	configHash := sha256.Sum256([]byte("spacewave/cdn/space/" + spaceID))
 	genesis, err := sobject.BuildGenesisSOCheckpoint(owner, spaceID, configHash[:], nil)

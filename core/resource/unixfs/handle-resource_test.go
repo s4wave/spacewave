@@ -942,9 +942,9 @@ func TestFSHandleResourceConcurrentUploadTreeCommitsPreserveSiblings(t *testing.
 // object. The two writers touch different names, so a correct serialization of
 // the read-merge-publish yields one deterministic result regardless of commit
 // order: the removed sibling stays gone and the uploaded file is present. The
-// pre-fix lost update (each writer merges onto its own stale root snapshot and
-// the last publisher wins) would either resurrect the removed sibling or drop
-// the upload.
+// test rejects the pre-fix lost update (each writer merges onto its own stale
+// root snapshot and the last publisher wins), which either resurrects the
+// removed sibling or drops the upload.
 func TestFSHandleResourceUploadTreePreservesConcurrentSiblingRemove(t *testing.T) {
 	// Start the filesystem resource testbed for concurrent upload and removal.
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
@@ -1028,8 +1028,9 @@ func TestFSHandleResourceUploadTreePreservesConcurrentSiblingRemove(t *testing.T
 // upload commits its file entries against the parent it targets, so once the
 // parent is gone the commit must fail rather than merge onto a stale snapshot
 // that still holds the parent. The invariant: whenever the Remove reports
-// success, the parent directory is absent afterward. The pre-fix lost update
-// let the upload resurrect the deleted directory even though Remove succeeded.
+// success, the parent directory is absent afterward. The test rejects the
+// pre-fix lost update that lets the upload resurrect the deleted directory
+// even though Remove succeeds.
 func TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent(t *testing.T) {
 	// Start the filesystem resource testbed for upload and parent removal.
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
@@ -1089,7 +1090,7 @@ func TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent(t *testing.T) {
 		}()
 		close(start)
 		// The upload may legitimately fail when the parent it targets is
-		// removed before its commit; that is the delete winning the race.
+		// removed before its commit, which means the delete won the race.
 		_, _ = strm.CloseAndRecv()
 		rmErr := <-removeErr
 		targetRef.Release()
@@ -1108,8 +1109,8 @@ func TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent(t *testing.T) {
 // TestFSHandleResourceReadDuringUploadReloadRaceFree drives read RPCs on the
 // same directory resource that a tree upload reloads its handle on, exercising
 // the reloadHandle pointer swap against unsynchronized readers. Run under -race
-// this fails if a read observes a torn handle pointer or uses a handle after
-// its cursor is released.
+// the test fails if a read observes a torn handle pointer or uses a handle
+// after its cursor is released.
 func TestFSHandleResourceReadDuringUploadReloadRaceFree(t *testing.T) {
 	// Start the filesystem resource testbed for reads during handle reloads.
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
@@ -1191,8 +1192,8 @@ func (e *replayGateEngine) NewTransaction(ctx context.Context, write bool) (worl
 
 // TestFSHandleResourceUploadTreeReplayWaits checks that an upload sent while
 // replay waits, by a caller that skips the app's save hold, has its bytes read
-// and then fails the call with the replay wait at commit: it never answers
-// success, and the World holds nothing of it.
+// and then fails the call with the replay wait at commit: the upload never
+// answers success, and the World holds nothing of the upload.
 func TestFSHandleResourceUploadTreeReplayWaits(t *testing.T) {
 	gate := &replayGateEngine{}
 	ctx, _, rootHandle, rootResource, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
@@ -1244,7 +1245,7 @@ func TestFSHandleResourceUploadTreeReplayWaits(t *testing.T) {
 // a Truncate after a WriteAt with no Sync between them fails the call, and a
 // WriteAt, which answers once buffered, has its commit refused and reported
 // by the next Sync. Each refusal is the typed replay wait, and the World
-// holds nothing of them.
+// holds none of the refused writes.
 func TestFSHandleResourceWritesReplayWaits(t *testing.T) {
 	gate := &replayGateEngine{}
 	ctx, _, rootHandle, rootRes, cleanup := setupFSHandleResourceClientOn(t, func(eng world.Engine) world.Engine {
@@ -1715,9 +1716,9 @@ func uploadTreeFileViaResource(
 	})
 }
 
-// uploadTreeFileExpect uploads one file with the expectation start carries;
-// it fills the path, size and mode. An unset expectation asks for the path
-// to hold nothing.
+// uploadTreeFileExpect uploads one file with the expectation start carries.
+// The function fills the path, size and mode. An unset expectation asks for
+// the path to hold nothing.
 func uploadTreeFileExpect(
 	t *testing.T,
 	ctx context.Context,
@@ -2125,7 +2126,8 @@ func TestFSHandleResourceUploadTreeMovesOpenHandles(t *testing.T) {
 	otherDoc.Release()
 
 	// A save at the version read first is refused, and a read through the
-	// file resource opened before it returns the other writer's bytes.
+	// file resource opened before the save returns the other writer's
+	// bytes.
 	resp := uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("first draft"),
 		&s4wave_unixfs.HandleUploadTreeFileStart{
 			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: readVersion},

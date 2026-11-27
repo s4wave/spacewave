@@ -13,11 +13,11 @@ import (
 
 // MountedStreamHandler implements the mounted stream handler.
 type MountedStreamHandler struct {
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
-	// dialMa is the multiaddr to dial
+	// dialMa is the multiaddr to dial.
 	dialMa ma.Multiaddr
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

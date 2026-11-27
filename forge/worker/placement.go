@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// Validate checks that a placement names one Worker and one Device peer.
+// Validate checks that a placement selects one Worker and one Device peer.
 func (p *Placement) Validate() error {
 	// Require a Worker key, a peer ID, and a parseable peer ID.
 	if p.GetWorkerObjectKey() == "" {

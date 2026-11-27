@@ -18,7 +18,7 @@ type TransactionLifecycle interface {
 }
 
 // RetryPredicate reports whether an error permits a fresh transaction attempt.
-// Predicates must classify typed errors with errors.Is; diagnostic text is not
+// Predicates must classify typed errors with errors.Is. Diagnostic text is not
 // part of the transaction retry contract.
 type RetryPredicate func(error) bool
 
@@ -35,8 +35,8 @@ func RunOperation(ctx context.Context, body func(context.Context) error) error {
 
 // RunOperationWithRetry executes a complete logical operation with the
 // supplied typed retry policy. The body must not perform non-idempotent external
-// effects. Per-attempt mutable state must be created or reset inside the body;
-// immutable inputs may be captured from outside it.
+// effects. Per-attempt mutable state must be created or reset inside the body.
+// Immutable inputs may be captured from outside it.
 func RunOperationWithRetry(
 	ctx context.Context,
 	body func(context.Context) error,
@@ -75,7 +75,7 @@ func runOperationWithRetry(
 
 // RunTransaction executes body against a fresh transaction for each retryable
 // failure and retries only ErrInvalidSnapshot. A successful read body is
-// discarded without committing; a successful write body is committed before
+// discarded without committing. A successful write body is committed before
 // the attempt is discarded.
 //
 // The body must be safe to replay. It may use the transaction and perform

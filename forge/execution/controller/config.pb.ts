@@ -19,13 +19,13 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the Execution state object to attach to.
-   * If not exists, waits for it to exist.
+   * If the object does not exist, the controller waits for it to exist.
    */
   objectKey?: string
   /**
    * PeerId is the peer ID to use for the execution controller.
    * Must match the Execution peer except when reclaiming an expired claim.
-   * If not set, will look up the peer id from the state.
+   * If PeerId is not set, the controller looks up the peer id from the state.
    */
   peerId?: string
   /**
@@ -52,7 +52,7 @@ export interface Config {
   claimLease?: string
   /**
    * WorkerObjectKey selects the Worker's placement on reclaim. Required when
-   * reclaiming a placed Execution; the peer must be linked to this Worker.
+   * reclaiming a placed Execution. The peer must be linked to this Worker.
    */
   workerObjectKey?: string
 }

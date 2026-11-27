@@ -28,7 +28,7 @@ export function useForgeBlock<T extends Message<T>>(
 
 // useForgeBlockData is useForgeBlock's value alone, for a viewer that shows
 // nothing different while the block loads or fails: the decoded message, or
-// undefined if loading, failed or missing.
+// undefined if the block is loading, failed or missing.
 export function useForgeBlockData<T extends Message<T>>(
   objectState: IObjectState | undefined,
   blockTypeID: string,

@@ -39,7 +39,8 @@ interface QuickstartRouteRecord {
 
 const routeRecords = new Map<string, QuickstartRouteRecord>()
 
-// routeReleaseGraceMs keeps route facts across a remount of the route.
+// routeReleaseGraceMs is the grace period for route facts across a remount
+// of the route.
 const routeReleaseGraceMs = 5000
 
 function routeKey(

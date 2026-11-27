@@ -12,11 +12,11 @@ import (
 
 // InvokerController wraps a srpc.Invoker and serves LookupRpcService requests.
 type InvokerController struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
 	// invoker serves methods after the matched service prefix is stripped.
 	invoker srpc.Invoker
@@ -72,7 +72,8 @@ func (c *InvokerController) HandleDirective(
 			serviceID = stripped
 		}
 
-		// An empty namespace dispatches by method; otherwise require the service.
+		// An empty namespace dispatches by method. Otherwise require the
+		// service.
 		if queryable, ok := c.invoker.(srpc.QueryableInvoker); serviceID != "" && ok && !queryable.HasService(serviceID) {
 			return nil, nil
 		}

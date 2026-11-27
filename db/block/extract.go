@@ -8,7 +8,7 @@ import (
 // ExtractBlockRefs extracts all outgoing BlockRefs from a block by
 // walking BlockWithRefs and recursing into BlockWithSubBlocks.
 //
-// This captures refs at all nesting levels: direct refs on the block,
+// The traversal captures refs at all nesting levels: direct refs on the block,
 // refs inside sub-blocks (e.g., BlockRefSlice), and refs inside
 // nested sub-blocks. References and sub-blocks are visited in field-ID order,
 // preserving sequence order independently of Go map iteration.

@@ -11,7 +11,8 @@ import (
 )
 
 // TestEnrolledLinkIdentityBinding proves that the independently enrolled key
-// can replace its setup identity only on the connection named by both proofs.
+// can replace its setup identity only on the connection identified by both
+// proofs.
 func TestEnrolledLinkIdentityBinding(t *testing.T) {
 	// Generate the enrolled key, storage key, and their peer IDs.
 	source, receiving := newEngineTestPeer(t), newEngineTestPeer(t)

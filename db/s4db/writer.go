@@ -14,7 +14,7 @@ type writer struct {
 	db *DB
 	// admission grants one transaction or scheduler slice at a time.
 	admission writerAdmission
-	// backgroundSince starts this grant's background hold; zero is foreground.
+	// backgroundSince starts this grant's background hold. Zero is foreground.
 	backgroundSince time.Time
 }
 
@@ -80,7 +80,7 @@ func (w *writer) unlock() {
 // slots, an empty manifest in chunk 1, a log chunk at chunk 2 and the first
 // superblock. The caller holds the file's writer lock.
 func (w *writer) create() error {
-	// Leave an existing file alone; recreate one a crash left without a
+	// Leave an existing file alone. Recreate one a crash left without a
 	// header.
 	s := w.db.s
 	size, err := s.size()
@@ -97,7 +97,7 @@ func (w *writer) create() error {
 		}
 	}
 
-	// Write an empty slot table; the header goes last, so a crash during
+	// Write an empty slot table. The header goes last, so a crash during
 	// creation leaves a file without one that the next open recreates.
 	if _, err := s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err
@@ -214,7 +214,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 			continue
 		}
 		// A move always places its value, so a moved value is a reference and
-		// never carries an inline payload; values in a chunk exceed inlineMax.
+		// never carries an inline payload. Values in a chunk exceed inlineMax.
 		v := value{kind: valueInline, inline: c.data}
 		if len(c.data) > inlineMax || moves {
 			v, writes = r.place(next.m, c.key, c.data, writes, moves)
@@ -252,7 +252,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 // append places r after base in next, writes values, the link when r does
 // not fit its chunk, and r, and publishes next with r applied. The caller
 // holds the writer lock, base is the published state and next derives from
-// it, and r's kind and body are set; placement fills its header.
+// it, and r's kind and body are set. Placement fills its header.
 func (w *writer) append(ctx context.Context, base, next *state, r *record, writes []valueWrite) error {
 	// Reserve the log and its standby before writing values or publishing.
 	db := w.db
@@ -291,8 +291,8 @@ func (w *writer) append(ctx context.Context, base, next *state, r *record, write
 
 // place assigns data, stored under key, a position in the commit's open hot
 // value chunk, or the cold chunk for a cleaner's move, taking a new chunk
-// from m when it does not fit and a run of chunks when it exceeds one. It
-// records the write and returns the reference.
+// from m when it does not fit and a run of chunks when it exceeds one
+// chunk. It records the write and returns the reference.
 func (r *record) place(m *manifest, key, data []byte, writes []valueWrite, cold bool) (value, []valueWrite) {
 	// Build the entry.
 	hdr := valueEntryHeaderLen(len(key), len(data))
@@ -301,8 +301,8 @@ func (r *record) place(m *manifest, key, data []byte, writes []valueWrite, cold 
 	entry = append(entry, data...)
 	n := uint64(len(entry))
 
-	// Choose where it goes: its own chunks when longer than one, else the
-	// open chunk, replaced when the entry does not fit.
+	// Choose where the entry goes: its own chunks when longer than one chunk,
+	// else the open chunk, replaced when the entry does not fit.
 	var off uint64
 	open := &r.hot
 	if cold {

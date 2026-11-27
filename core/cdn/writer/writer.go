@@ -37,7 +37,7 @@ const maxReplaced = 32
 // expired admissions.
 const minAdmittedSweep = 1024
 
-// packHeader is stored with every pack. A pack's ID names its content, so
+// packHeader is stored with every pack. A pack's ID identifies its content, so
 // its bytes never change and an edge caches it for a year.
 var packHeader = http.Header{
 	"Content-Type":  {"application/octet-stream"},
@@ -50,7 +50,7 @@ type Config struct {
 	Store Store
 	// Bucket writes and reads the bucket holding the Spaces' packs.
 	Bucket *block_store_s3.Client
-	// BucketName names that bucket.
+	// BucketName identifies that bucket.
 	BucketName string
 	// Prefix is prepended to every object key, such as a staging prefix.
 	Prefix string
@@ -61,7 +61,7 @@ type Config struct {
 	// not taken by the other.
 	SigningEnv string
 	// BasePath is the path the routes sit under, as the session client's
-	// endpoint names it, or empty for the origin root.
+	// endpoint specifies it, or empty for the origin root.
 	BasePath string
 	// SupersededGrace is how long a pack a reclaim superseded stays in the
 	// bucket before a later commit deletes it and drops it from the pointer.
@@ -72,8 +72,8 @@ type Config struct {
 }
 
 // Writer writes the CDN Spaces it owns. A Space's pointer lives in the
-// Store and in memory; its packs live in the bucket under the paths readers
-// use.
+// Store and in memory. The Space's packs live in the bucket under the paths
+// readers use.
 type Writer struct {
 	// cfg is the configuration.
 	cfg Config
@@ -103,7 +103,7 @@ type ownedSpace struct {
 
 	// The fields below are guarded by Writer.mtx.
 
-	// root is the current pointer; it is replaced, never changed.
+	// root is the current pointer and is replaced, never changed.
 	root *cdn.CdnRootPointer
 	// listed holds each pack root lists by ID.
 	listed map[string]*packfile.PackfileEntry
@@ -185,7 +185,8 @@ func (w *Writer) Own(ctx context.Context, spaceID string, writers ...peer.ID) er
 
 // Create makes the writer the writer of the Space genesis starts, such as
 // one NewGenesis returns, with the given fixed writers. The first time, it
-// records genesis in the Store; later it serves the recorded pointer.
+// records genesis in the Store. On subsequent calls, it serves the recorded
+// pointer.
 func (w *Writer) Create(ctx context.Context, genesis *cdn.CdnRootPointer, writers ...peer.ID) error {
 	// Record the genesis unless the Store holds the Space.
 	spaceID := genesis.GetSpaceId()
@@ -289,7 +290,7 @@ func (w *Writer) readBucketRoot(ctx context.Context, spaceID string) (*cdn.CdnRo
 		return nil, errors.New("root pointer exceeds the size limit")
 	}
 
-	// Decode it and check it names the Space.
+	// Decode the pointer and check it identifies the Space.
 	raw, ok := packedmsg.DecodePackedMessage(string(data))
 	if !ok {
 		return nil, errors.New("decode root pointer: checksum mismatch")
@@ -476,7 +477,7 @@ func (w *Writer) hashObject(ctx context.Context, key string) ([]byte, error) {
 }
 
 // postCheckpoint moves spaceID to checkpoint. A fixed writer's checkpoint
-// carries the recorded owners' signatures; a writer admitted at runtime
+// carries the recorded owners' signatures. A writer admitted at runtime
 // signs its own.
 func (w *Writer) postCheckpoint(ctx context.Context, spaceID string, signer peer.ID, checkpoint *sobject.SOCheckpoint) error {
 	// Pick the signature the checkpoint must carry.
@@ -563,7 +564,7 @@ func (w *Writer) retire(ctx context.Context, sp *ownedSpace, now time.Time) []st
 	}
 	w.mtx.Unlock()
 
-	// Delete each one's object; the pointer drops only the deleted ones.
+	// Delete each pack's object. The pointer drops only the deleted packs.
 	retired := due[:0]
 	for _, id := range due {
 		if err := w.cfg.Bucket.DeleteObject(ctx, w.cfg.BucketName, w.PackKey(spaceID, id)); err != nil {

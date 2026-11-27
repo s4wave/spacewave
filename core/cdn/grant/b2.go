@@ -30,7 +30,7 @@ type B2Config struct {
 	// KeyID and ApplicationKey are a B2 application key that may share files
 	// of the bucket. They stay on the server.
 	KeyID, ApplicationKey string
-	// BucketID and BucketName name the private bucket.
+	// BucketID and BucketName identify the private bucket.
 	BucketID, BucketName string
 	// APIURL overrides B2APIURL.
 	APIURL string
@@ -185,5 +185,5 @@ func (b *B2) do(req *http.Request) (int, *fastjson.Value, error) {
 	return resp.StatusCode, v, err
 }
 
-// B2 is a download authorizer.
+// _ asserts that B2 is a download authorizer.
 var _ DownloadAuthorizer = (*B2)(nil)

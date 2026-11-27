@@ -60,7 +60,7 @@ func ExLookupProviders(
 	return bus.ExecCollectValues[LookupProviderValue](ctx, b, dir, waitOne, nil)
 }
 
-// lookupProvider implements LookupProvider
+// lookupProvider implements LookupProvider.
 type lookupProvider struct {
 	id string
 }
@@ -78,7 +78,7 @@ func (d *lookupProvider) Validate() error {
 	return nil
 }
 
-// GetValueLookupProviderOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupProvider) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -121,7 +121,7 @@ func (d *lookupProvider) GetName() string {
 	return "LookupProvider"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupProvider) GetDebugVals() directive.DebugValues {

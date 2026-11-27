@@ -1058,7 +1058,7 @@ func assertDistEmbedPlatform(
 
 // distEmbedManifestWant identifies one expected embedded executable tuple.
 type distEmbedManifestWant struct {
-	// manifestID names the executable producer.
+	// manifestID selects the executable producer.
 	manifestID string
 	// platformID selects its runtime artifact.
 	platformID string

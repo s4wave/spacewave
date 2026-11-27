@@ -22,19 +22,19 @@ import (
 // The source store retains its cache, transport caps, and foreground policy.
 const materializerReadAhead = 10 << 20
 
-// materializeManifest copies the selected manifest from src to dest through
-// the materializer plugin's typed streaming service.
+// materializeManifest copies the selected manifest from src to dest through the
+// materializer plugin's typed streaming service.
 //
 // The caller retains both cursors for the whole call, and dest writes through
 // storage that holds what it stores, such as a World stage, until the caller
-// names the copied root. The scheduler serves the source encoded blocks to the
-// plugin, and stores the destination encoded blocks for it into dest, over two
-// request-scoped BlockStore RPC services registered on the scheduler bus under
-// random service IDs, restricted to RPCs originating from the named plugin.
-// The plugin writes only through the destination service, so every block it
-// copies is held by dest's storage from its put on. The request carries the
-// resolved source transform configuration inline and the destination
-// transform configuration.
+// references the copied root. The scheduler serves the source encoded blocks to
+// the plugin, and stores the destination encoded blocks for it into dest, over
+// two request-scoped BlockStore RPC services registered on the scheduler bus
+// under random service IDs, restricted to RPCs originating from the named
+// plugin. The plugin writes only through the destination service, so every
+// block it copies is held by dest's storage from its put on. The request
+// carries the resolved source transform configuration inline and the
+// destination transform configuration.
 //
 // The response stream carries coalesced logical statistics and exactly one
 // terminal successful message with the copied root. The helper requires that
@@ -131,8 +131,8 @@ func (c *Controller) materializeManifest(
 	}
 
 	// Resolve the materializer plugin's RPC client. The lookup demands the
-	// plugin through the existing scheduler WaitPluginClient path; cancel the
-	// operation if the resolved client becomes invalid.
+	// plugin through the existing scheduler WaitPluginClient path. Cancel
+	// the operation if the resolved client becomes invalid.
 	clientSet, _, clientsRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, c.bus, materializerServiceID, "", true, cancel)
 	if err != nil {
 		return nil, stats, errors.Wrap(err, "resolve materializer rpc client")

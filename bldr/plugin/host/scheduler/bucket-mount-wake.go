@@ -9,12 +9,12 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
-// bucketMountWake wakes a manifest selection loop when a bucket named by an
-// unreadable startup candidate mounts. A returning visitor's World can link
+// bucketMountWake wakes a manifest selection loop when a bucket referenced by
+// an unreadable startup candidate mounts. A returning visitor's World can link
 // only manifests stored in a remote release bucket that mounts after the first
 // selection reads them, and the mount changes nothing in the World.
 type bucketMountWake struct {
-	// ctx bounds every lookup; canceling it releases them.
+	// ctx bounds every lookup. Canceling ctx releases the lookups.
 	ctx context.Context
 	// b resolves the bucket lookups.
 	b bus.Bus
@@ -30,8 +30,8 @@ func newBucketMountWake(ctx context.Context, b bus.Bus, wake func()) *bucketMoun
 	return &bucketMountWake{ctx: ctx, b: b, wake: wake, watched: make(map[string]struct{})}
 }
 
-// watch looks up, once per bucket, each unmounted bucket a candidate names,
-// and wakes the loop when a lookup yields a mounted bucket.
+// watch looks up, once per bucket, each unmounted bucket a candidate
+// references, and wakes the loop when a lookup yields a mounted bucket.
 func (w *bucketMountWake) watch(ctx context.Context, candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) error {
 	for _, candidate := range candidates {
 		// Look up each unmounted bucket once.

@@ -180,7 +180,7 @@ func (m *Manifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// The returned map does not include pending references (in a cursor).
 func (m *Manifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	n := make(map[uint32]*block.BlockRef)
 	n[3] = m.GetDistFsRef()
@@ -193,7 +193,7 @@ func (m *Manifest) FollowDistFs(bcs *block.Cursor) *block.Cursor {
 	return bcs.FollowRef(3, m.GetDistFsRef())
 }
 
-// FollowAssetsFs follows the AssetsFsRef.
+// FollowAssetsFsRef follows the AssetsFsRef.
 func (m *Manifest) FollowAssetsFsRef(bcs *block.Cursor) *block.Cursor {
 	return bcs.FollowRef(4, m.GetAssetsFsRef())
 }

@@ -15,10 +15,10 @@ import (
 // Tx implements the World transaction interface. A mutex makes its calls
 // concurrency safe.
 type Tx struct {
-	// state is the underlying root state object
+	// state is the underlying root state object.
 	state *WorldState
-	// rmtx guards the world operations, single-writer multi-reader
-	// not used for WaitSeqno
+	// rmtx guards the world operations, single-writer multi-reader.
+	// Not used for WaitSeqno.
 	rmtx csync.RWMutex
 }
 

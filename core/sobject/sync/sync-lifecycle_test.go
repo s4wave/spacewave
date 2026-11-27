@@ -32,9 +32,10 @@ import (
 // peer's running stream open, and that shutdown joins that stream.
 func TestSOSyncExecuteRenewsOnlyFailedPeer(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		// Pair the standing offer with two peers. Peer A's remote end is already
-		// closed, so its stream fails at once; peer B's remote end never reads,
-		// so its stream stays in authentication.
+		// Pair the standing offer with two peers. Peer A's remote end
+		// is already closed, so its stream fails at once. Peer B's
+		// remote end never reads, so its stream stays in
+		// authentication.
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		le := gateLogger()
@@ -201,7 +202,8 @@ func TestHeldWatchSeesChangeBeforeWatchStarts(t *testing.T) {
 		t.Fatal("unchanged authority lifted a history gap")
 	}
 
-	// The config advances before the watch starts; the watch sees it at once.
+	// The config advances before the watch starts. The watch sees the new
+	// config at once.
 	ctr.SetValue(&sobject.SOState{Config: &sobject.SharedObjectConfig{ConfigChainHash: []byte("head-2")}})
 	waitCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -345,7 +347,8 @@ func (trackedMountedLink) GetTransportUUID() uint64 { return 1 }
 // GetRemoteTransportUUID returns a fixed transport ID.
 func (trackedMountedLink) GetRemoteTransportUUID() uint64 { return 1 }
 
-// GetLocalPeer returns the local transport peer, which sorts below the remote.
+// GetLocalPeer returns the local transport peer, which sorts below the remote
+// peer.
 func (trackedMountedLink) GetLocalPeer() peer.ID { return "local" }
 
 // GetRemotePeer returns the remote transport peer.

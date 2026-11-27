@@ -20,8 +20,8 @@ var commitRefusals = []struct {
 }
 
 // NewCommitResponse returns the Commit result for a transaction's commit
-// error, for a client whose request names known as its known_error_code. A nil
-// error and a typed refusal return a response with a nil error; any other
+// error, for a client whose request specifies known as its known_error_code.
+// A nil error and a typed refusal return a response with a nil error. Any other
 // error returns as the RPC error.
 //
 // A typed refusal means nothing was committed. A commit whose outcome is

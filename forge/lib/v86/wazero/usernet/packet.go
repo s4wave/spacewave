@@ -30,7 +30,7 @@ var (
 	v86ASCII     = []byte{118, 56, 54}
 )
 
-// ethPacket is a parsed Ethernet frame with its decoded payload layered on
+// ethPacket is a parsed Ethernet frame with its decoded payload layered on top.
 type ethPacket struct {
 	dest      [6]byte
 	src       [6]byte
@@ -54,7 +54,7 @@ type arpPacket struct {
 	tpa   netip.Addr
 }
 
-// ipv4Packet is a parsed IPv4 datagram with its decoded payload layered on
+// ipv4Packet is a parsed IPv4 datagram with its decoded payload layered on top.
 type ipv4Packet struct {
 	tos     byte
 	id      uint16
@@ -377,7 +377,8 @@ func buildUDP(src netip.Addr, dest netip.Addr, sport uint16, dport uint16, data 
 	return msg
 }
 
-// buildTCP frames a TCP segment, splitting the payload by the MSS when
+// buildTCP frames a TCP segment around the whole payload, adding the MSS
+// option when mss is nonzero.
 func buildTCP(src netip.Addr, dest netip.Addr, tcp *tcpPacket, data []byte, mss uint16) []byte {
 	// Reserve TCP header space for an optional MSS field.
 	offset := tcpHeaderSize
@@ -410,7 +411,8 @@ func buildTCP(src netip.Addr, dest netip.Addr, tcp *tcpPacket, data []byte, mss 
 	return msg
 }
 
-// inetChecksum folds running sum into the ones-complement Internet
+// inetChecksum folds the running sum into the ones-complement Internet
+// checksum.
 func inetChecksum(dat []byte, checksum uint32) uint16 {
 	// Accumulate the Internet checksum over complete words and a trailing byte.
 	end := len(dat) &^ 1
@@ -428,7 +430,7 @@ func inetChecksum(dat []byte, checksum uint32) uint16 {
 	return ^uint16(checksum)
 }
 
-// pseudoHeaderChecksum seeds the TCP/UDP checksum with the IPv4
+// pseudoHeaderChecksum seeds the TCP/UDP checksum with the IPv4 pseudo-header.
 func pseudoHeaderChecksum(src netip.Addr, dest netip.Addr, proto byte, size int) uint32 {
 	sb := src.AsSlice()
 	db := dest.AsSlice()
@@ -588,7 +590,8 @@ func parseDNS(dat []byte) (*dnsPacket, error) {
 	return p, nil
 }
 
-// buildDNSResponse answers each question: A records resolve to the host
+// buildDNSResponse encodes a DNS response that repeats the request's questions
+// and carries the given answer records and response code.
 func buildDNSResponse(req *dnsPacket, answers [][]byte, rcode byte) []byte {
 	// Size the DNS response for its question and answer records.
 	size := 12

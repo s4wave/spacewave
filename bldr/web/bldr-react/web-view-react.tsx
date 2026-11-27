@@ -30,7 +30,7 @@ export interface IReactComponentContainerProps {
   scriptPath: string
   // componentProps is an optional props message to the component.
   componentProps?: Uint8Array
-  // onReady is called when the component is ready
+  // onReady is called when the component is ready.
   onReady?: () => void
 }
 

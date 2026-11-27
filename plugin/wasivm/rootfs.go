@@ -59,8 +59,8 @@ func resolveRootfs(
 }
 
 // resolveImageRootfs finds the root filesystem of the image imageKey in ws: its
-// wasivmimage/rootfs edge, else that edge on the published image named by its
-// cdn_source, whose CDN Space stays mounted until the source is released or
+// wasivmimage/rootfs edge, else that edge on the published image referenced by
+// its cdn_source, whose CDN Space stays mounted until the source is released or
 // ctx ends.
 func resolveImageRootfs(
 	ctx context.Context,

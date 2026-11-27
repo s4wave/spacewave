@@ -52,8 +52,8 @@ type CollectResult struct {
 	// which floors at its implied holder, so its own children keep it.
 	Leaked uint64
 	// Underflows counts the count changes that would have gone below zero,
-	// which the pass refused, keeping the block; any is an error in the
-	// logs.
+	// which the pass refused, keeping the block. Any such change is an
+	// error in the logs.
 	Underflows uint64
 	// Lapsed counts the leased roots the pass released.
 	Lapsed uint64

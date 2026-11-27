@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * CompressionLevel sets the gzip level from -2 to 9.
-   * Defaults to gzip.DefaultCompression.
+   * The compression level defaults to gzip.DefaultCompression.
    */
   compressionLevel?: number
 }

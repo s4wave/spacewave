@@ -7,7 +7,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
- * AppRead names one GET request the connector makes against its application.
+ * AppRead describes one GET request the connector makes against its
+ * application.
  *
  * @generated from message s4wave.appconnector.AppRead
  */
@@ -188,11 +189,13 @@ export interface CreateAppConnectorOp {
    */
   tokenSecretObjectKey?: string
   /**
-   * PollIntervalMs is the time between polls. Zero selects the default.
+   * PollIntervalMs is the time between polls. Zero selects the default
+   * interval.
    */
   pollIntervalMs?: number
   /**
-   * MaxBodyBytes is the largest retained response body. Zero selects the default.
+   * MaxBodyBytes is the largest retained response body. Zero selects the
+   * default body limit.
    */
   maxBodyBytes?: number
   /**

@@ -141,7 +141,7 @@ func (a *UtilArgs) RunDeriveSshPublic(_ *cli.Context) error {
 
 // RunGenerateCryptoKey writes a random cryptographic key as base64.
 func (a *UtilArgs) RunGenerateCryptoKey(_ *cli.Context) error {
-	// Resolve the requested key size or use the default.
+	// Resolve the requested key size or use the default key size.
 	keySize := a.KeySize
 	if keySize == 0 {
 		keySize = 32

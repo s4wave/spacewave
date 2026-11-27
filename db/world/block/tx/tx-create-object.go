@@ -50,8 +50,8 @@ func (t *TxCreateObject) GetEmpty() bool {
 	return t.GetObjectKey() == ""
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxCreateObject) Validate() error {
 	if len(t.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey

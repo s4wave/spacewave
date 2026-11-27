@@ -721,7 +721,7 @@ export function HDRDebug() {
   )
 }
 
-// Interactive demo for the status flash animation.
+// StatusFlashDemo renders an interactive demo for the status flash animation.
 function StatusFlashDemo() {
   return <StatusFlashDemoInner />
 }
@@ -746,7 +746,7 @@ function StatusFlashDemoInner() {
           onClick={(e) => {
             const el = e.currentTarget
             el.removeAttribute('data-status-changed')
-            // Force reflow to restart animation
+            // Force reflow to restart the animation
             void el.offsetWidth
             el.setAttribute('data-status-changed', '')
           }}

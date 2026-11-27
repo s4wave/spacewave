@@ -17,22 +17,22 @@ import (
 )
 
 const (
-	// forgeWorkerWorkerParameter names the parameter holding the object key of
-	// the Forge Worker the Device hosts.
+	// forgeWorkerWorkerParameter identifies the parameter holding the
+	// object key of the Forge Worker the Device hosts.
 	forgeWorkerWorkerParameter = "worker"
-	// forgeWorkerMilliCPUParameter names the parameter holding the declared CPU
-	// in milli-cores.
+	// forgeWorkerMilliCPUParameter identifies the parameter holding the
+	// declared CPU in milli-cores.
 	forgeWorkerMilliCPUParameter = "milli_cpu"
-	// forgeWorkerMemoryBytesParameter names the parameter holding the declared
-	// memory in bytes.
+	// forgeWorkerMemoryBytesParameter identifies the parameter holding the
+	// declared memory in bytes.
 	forgeWorkerMemoryBytesParameter = "memory_bytes"
-	// forgeWorkerBackendsParameter names the parameter holding the comma
-	// separated runtime backends the Worker supports.
+	// forgeWorkerBackendsParameter identifies the parameter holding the
+	// comma separated runtime backends the Worker supports.
 	forgeWorkerBackendsParameter = "backends"
-	// forgeWorkerCardsParameter names the parameter selecting the host's
-	// graphics cards the Worker offers: a comma separated list of PCI
-	// addresses, or "all". Unset offers none, since lending a card is the
-	// operator's choice.
+	// forgeWorkerCardsParameter identifies the parameter selecting the
+	// host's graphics cards the Worker offers: a comma separated list of
+	// PCI addresses, or "all". An unset parameter offers no cards, since
+	// lending a card is the operator's choice.
 	forgeWorkerCardsParameter = "cards"
 	// forgeWorkerAllCards selects every graphics card the host has.
 	forgeWorkerAllCards = "all"
@@ -87,7 +87,7 @@ func (forgeWorker) GetCapability(
 	}
 
 	// Offer the host's cards the node selects. The Device's own reconciler
-	// calls this, so the detected cards are this host's.
+	// calls GetCapability, so the detected cards are this host's.
 	selection, err := parseForgeWorkerCards(node.Node.GetParameters()[forgeWorkerCardsParameter])
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (forgeWorker) GetCapability(
 }
 
 // forgeWorkerDeclaration returns the declaration the node's parameters make, or
-// an error naming the parameter that is missing or malformed.
+// an error identifying the parameter that is missing or malformed.
 func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_device.ForgeWorkerDeclaration, error) {
 	// Read the parameters the declaration comes from.
 	params := node.GetParameters()
@@ -149,7 +149,7 @@ func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_devic
 	}
 
 	// Require at least one runtime backend, each named once. Sort them so the
-	// order the node lists them in does not change the declaration; a
+	// order the node lists them in does not change the declaration. A
 	// duplicate then sits beside its twin.
 	var backends []string
 	for backend := range strings.SplitSeq(params[forgeWorkerBackendsParameter], ",") {
@@ -210,8 +210,8 @@ func parseForgeWorkerCards(value string) (*forgeWorkerCards, error) {
 	return &forgeWorkerCards{ids: ids}, nil
 }
 
-// choose returns the detected cards the selection offers, or an error naming
-// each listed card the host does not have.
+// choose returns the detected cards the selection offers, or an error
+// identifying each listed card the host does not have.
 func (c *forgeWorkerCards) choose(detected []*s4wave_device.GraphicsCard) ([]*s4wave_device.GraphicsCard, error) {
 	// Offer every detected card for "all".
 	if c.all {

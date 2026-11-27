@@ -12,7 +12,7 @@ import type { ListState } from './ListState.js'
 import type { RowComponentProps } from './List.js'
 import type { ListItem } from './ListItem.js'
 
-// A simple row component for testing List in isolation.
+// TestRow renders a simple row for testing List in isolation.
 function TestRow<T>({ item, style, ariaAttributes }: RowComponentProps<T>) {
   return (
     <div role={ariaAttributes.role} style={style}>
@@ -316,10 +316,11 @@ describe('ListRow', () => {
 
 describe('translateIndicesToNewOrder', () => {
   it('moves indices held while the list was empty to the selected row', () => {
-    // A persisted focus and anchor name no row of an empty list.
+    // A persisted focus and anchor reference no row of an empty list.
     const stale: ListState = { focusedIndex: 2, lastSelectedIndex: 1 }
 
-    // With one selected id among the arrived items, both follow its row.
+    // With one selected id among the arrived items, both indices follow
+    // its row.
     expect(
       translateIndicesToNewOrder(
         { ...stale, selectedIds: ['item-2'] },
@@ -328,7 +329,8 @@ describe('translateIndicesToNewOrder', () => {
       ),
     ).toEqual({ focusedIndex: 1, lastSelectedIndex: 1 })
 
-    // With no selection, several, or one that did not arrive, both clear.
+    // With no selection, several selected ids, or one that did not arrive,
+    // both indices clear.
     const cleared = { focusedIndex: undefined, lastSelectedIndex: undefined }
     expect(translateIndicesToNewOrder(stale, [], mockItems)).toEqual(cleared)
     expect(
@@ -346,7 +348,7 @@ describe('translateIndicesToNewOrder', () => {
       ),
     ).toEqual(cleared)
 
-    // Nothing to change returns null.
+    // With no indices to change, translateIndicesToNewOrder returns null.
     expect(translateIndicesToNewOrder({}, [], mockItems)).toBeNull()
   })
 })

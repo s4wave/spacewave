@@ -28,11 +28,11 @@ import (
 
 // Provider implements the local provider.
 type Provider struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// storageID is the storage controller to use
+	// storageID is the storage controller to use.
 	storageID string
 	// signalingURL is the trusted cloud signaling base URL from the
 	// provider configuration. Empty disables standalone-session signaling.
@@ -45,9 +45,9 @@ type Provider struct {
 	// checkpointDeadline is the deadline of the checkpoints this device
 	// signs, as NewBodyCheckpointer describes. Set before any mount.
 	checkpointDeadline time.Duration
-	// info is the provider info
+	// info is the provider info.
 	info *provider.ProviderInfo
-	// sfs is the step factory set for block transforms
+	// sfs is the step factory set for block transforms.
 	sfs *block_transform.StepFactorySet
 
 	// localNetwork connects native sessions within this provider lifetime.
@@ -60,9 +60,9 @@ type Provider struct {
 	// sessionBcast is broadcast each time an account or its Session transport
 	// starts or stops.
 	sessionBcast broadcast.Broadcast
-	// peer is the peer instance
+	// peer is the peer instance.
 	peer peer.Peer
-	// handler is the provider handler
+	// handler is the provider handler.
 	handler provider.ProviderHandler
 	// linkedCloudAccountLoader loads linked cloud account state for a local
 	// account after the account is published.
@@ -73,9 +73,9 @@ type Provider struct {
 	// seedKeys holds session private key PEMs seeded by
 	// CreateLocalAccountAndSessionWithKey, keyed by
 	// providerID/accountID/sessionID. The account volume can restart before
-	// the caller re-opens the session, and an ephemeral storage backend then
-	// loses the stored key; the seed here keeps the session identity stable
-	// for the provider lifetime.
+	// the caller re-opens the session, and an ephemeral storage backend
+	// then loses the stored key. The seed here keeps the session identity
+	// stable for the provider lifetime.
 	seedKeys map[string][]byte
 
 	// fillBudget bounds the block data queued for fallback fills across
@@ -140,9 +140,9 @@ func NewProvider(
 }
 
 // SetPackDir keeps each block store's packahead log in a subdirectory of dir
-// and diverts the new values of the stores in divert to it, for every account
-// that registered no PackaheadConfig of its own. An empty dir opens no log. It
-// applies to stores as they mount.
+// and diverts the new values of the stores in divert to the log, for every
+// account that registered no PackaheadConfig of its own. An empty dir opens no
+// log. SetPackDir applies to stores as they mount.
 func (p *Provider) SetPackDir(dir string, divert []string) {
 	if dir == "" {
 		p.packs.Store(nil)
@@ -151,7 +151,7 @@ func (p *Provider) SetPackDir(dir string, divert []string) {
 	p.packs.Store(&PackaheadConfig{Dir: dir, DivertStoreIDs: slices.Clone(divert)})
 }
 
-// SetCheckpointCountOnly has the SharedObjects mounted after it checkpoint
+// SetCheckpointCountOnly has SharedObjects mounted after the call checkpoint
 // only at sobject.MinCheckpointOperations stable operations, with no
 // deadline, as Config.CheckpointCountOnly describes.
 func (p *Provider) SetCheckpointCountOnly(countOnly bool) {
@@ -193,7 +193,7 @@ func (p *Provider) CreateLocalAccountAndSession(ctx context.Context, cloudAccoun
 
 // CreateLocalAccountAndSessionWithKey initializes a local provider account and
 // session seeded with the given session private key PEM. The key is used only
-// when the session has no stored key yet; an existing stored key wins so the
+// when the session has no stored key yet. An existing stored key wins so the
 // session reopens with its durable identity. An empty keyPEM generates a key.
 func (p *Provider) CreateLocalAccountAndSessionWithKey(ctx context.Context, cloudAccountID string, keyPEM []byte) (*session.SessionRef, error) {
 	return p.createAccountSession(ctx, ulid.NewULID(), ulid.NewULID(), cloudAccountID, keyPEM)
@@ -225,7 +225,7 @@ func (p *Provider) createAccountSession(ctx context.Context, localAccountID, loc
 	}
 
 	// Access the tracker directly to set cloudAccountID before the session
-	// starts executing (the tracker blocks on ref.Await until we set it).
+	// starts executing (the tracker blocks on ref.Await until ref is set).
 	localAcc := provAcc.(*ProviderAccount)
 	tkrRef, tkr, _ := localAcc.sessions.AddKeyRef(localSessionID)
 	tkr.cloudAccountID = cloudAccountID
@@ -313,7 +313,8 @@ func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, session
 }
 
 // AccessProviderAccount accesses a provider account.
-// If accountID is empty, it will use the default or prompt the user.
+// If accountID is empty, AccessProviderAccount will use the default account
+// or prompt the user.
 // released may be nil.
 func (p *Provider) AccessProviderAccount(ctx context.Context, accountID string, released func()) (provider.ProviderAccount, func(), error) {
 	ref, providerAccTkr, _ := p.accountRc.AddKeyRef(accountID)

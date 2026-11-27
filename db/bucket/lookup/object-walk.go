@@ -27,7 +27,7 @@ type WalkObjectBlocksCb func(entry *WalkObjectBlocksEntry) (cntu bool, err error
 
 // WalkObjectBlocksEntry is a value passed to the callback for WalkObjectBlocks.
 type WalkObjectBlocksEntry struct {
-	// Depth is the number of refs we traversed to get to this entry.
+	// Depth is the number of refs the walk traversed to get to this entry.
 	// Depth starts at 0 for the root reference.
 	// Sub-blocks are counted in the depth.
 	Depth int
@@ -35,7 +35,7 @@ type WalkObjectBlocksEntry struct {
 	// Zero if there is no parent.
 	RefID uint32
 	// Ref is the block ref for this entry.
-	// If IsSubBlock this is the ref of the parent block.
+	// If IsSubBlock, Ref is the ref of the parent block.
 	// If GetBlockRefs returns an error, ref=nil and err=error.
 	Ref *block.BlockRef
 	// Ctor is the constructor for the block at this entry.
@@ -44,18 +44,18 @@ type WalkObjectBlocksEntry struct {
 	// Blk is the block or sub-block at this entry.
 	// May be nil if ctor was nil.
 	Blk any
-	// IsSubBlock indicates this is a sub-block.
+	// IsSubBlock indicates the entry is a sub-block.
 	// If set, found is also true and err is nil.
 	IsSubBlock bool
 	// Err is any error fetching the block.
-	// If err is set we will not traverse blk.
+	// If err is set the walk will not traverse blk.
 	Err error
 	// Found indicates if the block was found in storage or not.
 	Found bool
 	// Data is the data at this entry.
 	// May be empty if Err != nil or !Found or IsSubBlock
 	// May be empty if depth == 0 and blk != nil
-	// This is the data pre-transformation (at rest).
+	// Data is the data pre-transformation (at rest).
 	Data []byte
 	// XfrmData is the transformed data at this entry if any.
 	// Empty if there is no read transformer or if Blk is nil (not decoded).
@@ -137,7 +137,8 @@ func NewWalkObjectBlocksWithData(data []byte, ctor block.Ctor) *WalkObjectBlocks
 // If a block was not found, the callback is called with ErrNotFound.
 //
 // If alwaysDecode is false, skips decoding blocks if they have no refs within.
-// This can save time significantly if you don't need to check the block contents.
+// Skipping decoding can save time significantly if the caller does not need to
+// check the block contents.
 //
 // The callback can modify the block or change the block / ref in the Entry
 // before returning to adjust the next sub-graph that will be traversed.
@@ -188,7 +189,7 @@ func WalkObjectBlocks(
 	cancel()
 
 	// Join callbacks before releasing the caller's stores or callback state.
-	// Idle and the last worker's error can arrive together; inspect that
+	// Idle and the last worker's error can arrive together, so inspect that
 	// buffered error after joining even when WaitIdle observed idle first.
 	_ = queue.WaitIdle(context.WithoutCancel(ctx), nil)
 	if err != nil {
@@ -293,7 +294,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			return
 		}
 
-		// Defer enqueuing next entries until we return.
+		// Defer enqueuing next entries until the visit returns.
 		var toEnqueue []*WalkObjectBlocksEntry
 		enqueueEntry := func(ent *WalkObjectBlocksEntry) {
 			ent.Depth = e.Depth + 1

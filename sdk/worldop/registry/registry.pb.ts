@@ -85,7 +85,8 @@ export const RegisterWorldOpResponse: MessageType<RegisterWorldOpResponse> =
  */
 export interface WatchWorldOpsRequest {
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty InstanceKey lists
+   * global registrations.
    */
   instanceKey?: string
 }

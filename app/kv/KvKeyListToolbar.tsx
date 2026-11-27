@@ -7,8 +7,8 @@ interface KvKeyListToolbarProps {
   onPrefixChange: (prefix: string) => void
 }
 
-// KvKeyListToolbar renders the prefix filter for the key list, which narrows
-// the watched list as the person types.
+// KvKeyListToolbar renders the prefix filter for the key list. The filter
+// narrows the watched list as the person types.
 export function KvKeyListToolbar({
   prefix,
   onPrefixChange,

@@ -24,7 +24,8 @@ func (tb *Testbed) RunPassWithTarget(
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 
 	// create the Pass object in the world
-	// this can be done in any order (the controller waits for object to be present).
+	// Object creation and controller attachment can occur in any order
+	// (the controller waits for the object to be present).
 	passObjectKey := "pass/1"
 	peerID := tb.Volume.GetPeerID()
 	sender := peerID
@@ -76,7 +77,8 @@ func (tb *Testbed) RunPassWithTarget(
 	defer releaseOpCtrl()
 
 	// construct execution controller & attach to the object the pass controller
-	// will create. NOTE: this should eventually be replaced with the worker.
+	// will create. NOTE: the execution controller should eventually be replaced
+	// with the worker.
 	execObjKey := forge_pass.BuildPassExecutionObjKey(passObjectKey, peerID.String())
 	execCtrlCfg := exec_controller.NewConfig(
 		tb.EngineID,

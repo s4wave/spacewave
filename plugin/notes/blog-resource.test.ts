@@ -173,7 +173,7 @@ describe('BlogResource', () => {
     expect(blog.authorRegistryPath).toBe('authors.yaml')
     expect(blog.sources?.[0].ref).toBe('blog-fs/-/posts')
 
-    // It was read from the snapshot's object root, and the chain released.
+    // It was read from the snapshot's object root, and the chain was released.
     expect(snapshot.getObject).toHaveBeenCalledWith('my-blog', ac.signal)
     expect(objectState.accessWorldState).toHaveBeenCalled()
     expect(cursor.release).toHaveBeenCalled()

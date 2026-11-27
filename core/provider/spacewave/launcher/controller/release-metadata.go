@@ -287,7 +287,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	// bytes must never suppress the separately selected desktop artifact.
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
 
-	// Remove the older release copies; a failure leaves them to the next
+	// Remove the older release copies. A failure leaves them to the next
 	// staging and never withdraws this update.
 	if !c.keepStagedReleases {
 		if err := c.pruneStagedReleases(stagingDir, metadata.GetVersion()); err != nil {

@@ -13,15 +13,15 @@ const connPktSize = 2048
 
 // Conn implements a Conn with a buffered ReadWriteCloser.
 type Conn struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// ctxCancel is the context canceler
+	// ctxCancel is the context canceler.
 	ctxCancel context.CancelFunc
-	// rwc is the read-write-closer
+	// rwc is the read-write-closer.
 	rwc io.ReadWriteCloser
-	// laddr is the local addr
+	// laddr is the local addr.
 	laddr net.Addr
-	// raddr is the remote addr
+	// raddr is the remote addr.
 	raddr net.Addr
 
 	ar       sync.Pool    // packet arena
@@ -70,7 +70,7 @@ func (p *Conn) RemoteAddr() net.Addr {
 
 // Read reads data from the connection.
 // Read can be made to time out and return an error after a fixed
-// time limit; see SetDeadline and SetReadDeadline.
+// time limit. See SetDeadline and SetReadDeadline.
 func (p *Conn) Read(b []byte) (n int, err error) {
 	// Wait for a payload, observing deadline changes while blocked.
 	pkt, ok, err := p.rd.read(p.ctx, p.packetCh)
@@ -117,7 +117,7 @@ func (p *Conn) Write(pkt []byte) (n int, err error) {
 // SetDeadline sets the read deadline associated with the connection.
 // It is equivalent to calling SetReadDeadline.
 //
-// Write deadlines are not supported; see SetWriteDeadline.
+// Write deadlines are not supported. See SetWriteDeadline.
 //
 // A zero value for t means Read will not time out.
 func (p *Conn) SetDeadline(t time.Time) error {

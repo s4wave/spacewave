@@ -22,12 +22,12 @@ func NewTxCompleteCached(objKey, cachedTaskKey string) *Tx {
 	}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction's type.
 func (t *TxCompleteCached) GetTxType() TxType {
 	return TxType_TxType_COMPLETE_CACHED
 }
 
-// Validate performs a cursory check of the transaction.
+// Validate checks the transaction cursorily.
 func (t *TxCompleteCached) Validate() error {
 	if t.GetCachedTaskKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "cached_task_key")

@@ -12,13 +12,13 @@ import (
 
 // TablePartition is a table partition handle.
 type TablePartition struct {
-	// pt is the partition root
+	// pt is the partition root.
 	pt *TablePartitionRoot
-	// bcs is the block cursor at the partition sub-block
+	// bcs is the block cursor at the partition sub-block.
 	bcs *block.Cursor
-	// idx is the block index
+	// idx is the block index.
 	idx int
-	// schema is the table schema
+	// schema is the table schema.
 	schema sql.Schema
 }
 

@@ -68,7 +68,7 @@ func coldTailCharge(meta *packfile.ColdPackEntry) uint64 {
 // decodeColdTail builds a compact index using kvfile's decoder. It returns nil
 // without error for an extended key so those packs keep their exact wire keys.
 func decodeColdTail(ctx context.Context, r *kvfile.Reader, base uint64) ([]coldTailEntry, error) {
-	// This runs only for a charge-bounded tail. No parsed entry retains raw bytes.
+	// Decode only a charge-bounded tail. No parsed entry retains raw bytes.
 	entries := make([]coldTailEntry, r.Size())
 	for i := range entries {
 		// A corrupt extent or canceled fill must not publish a partial index.
@@ -138,7 +138,7 @@ func (t *coldTail) locate(key []byte) (off, length uint64, hit bool, err error) 
 type coldTailCache struct {
 	// store supplies the cold bucket and counters.
 	store *ColdPackStore
-	// mtx guards the pending fill set; it never guards I/O or parsing.
+	// mtx guards the pending fill set. It never guards I/O or parsing.
 	mtx sync.Mutex
 	// resident holds user and warming tails. A move never evicts or touches them.
 	resident *coldCache[uint16, *coldTail]
@@ -197,7 +197,8 @@ func (c *coldTailCache) queue(pack uint16) {
 
 // fill handles existence-driven tail warming, one range at a time.
 func (c *coldTailCache) fill(ctx context.Context, catalog *coldPackCatalog, warm []uint16) {
-	// Pace recovered-pack warming; explicit existence requests take priority.
+	// Pace recovered-pack warming. Explicit existence requests take
+	// priority.
 	timer := time.NewTimer(100 * time.Millisecond)
 	defer timer.Stop()
 	var tick <-chan time.Time
@@ -254,7 +255,7 @@ func (c *coldTailCache) cacheable(size uint64) bool {
 
 // read loads a tail on a foreground miss, never joining background work.
 func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack uint16, moving bool) (*coldTail, error) {
-	// Moves may queue for I/O; never let a user flight join that wait.
+	// Moves may queue for I/O. Never let a user flight join that wait.
 	if moving {
 		if tail := c.getForMove(pack); tail != nil {
 			return tail, nil
@@ -287,7 +288,7 @@ func (c *coldTailCache) read(ctx context.Context, catalog *coldPackCatalog, pack
 
 // fetch uses packfile's suffix reader, with a cold-specific first-read cap.
 func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, lane coldRangeLane, spareOnly bool) (*coldTail, error) {
-	// Size the first read without overflow; forbid a corrupt trailer from
+	// Size the first read without overflow. Forbid a corrupt trailer from
 	// requesting bytes outside the verified tail or the fixed first read.
 	meta := pack.meta
 	size, count := meta.Entry.SizeBytes, meta.Entry.BlockCount
@@ -323,8 +324,9 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, l
 		return nil, errors.New("cold index tail count does not match manifest")
 	}
 
-	// A move's fill must never displace a user tail. Use the selected cache's
-	// budget before decoding; an oversized index uses the exact raw reader.
+	// A move's fill must never displace a user tail. Use the selected
+	// cache's budget before decoding. An oversized index uses the exact
+	// raw reader.
 	cache := c.resident
 	if lane == coldMoveRange {
 		cache = c.moveResident
@@ -346,7 +348,8 @@ func (c *coldTailCache) fetch(ctx context.Context, pack *coldPack, num uint16, l
 		tail = &coldTail{entries: entries}
 		charge = count * coldTailEntryBytes
 	} else {
-		// Copy just this tail; the ranged response backing it can be larger.
+		// Copy only this tail because the ranged response backing it
+		// can be larger.
 		tail.reader, err = kvfile.BuildReaderWithIndexTail(bytes.Clone(raw), size)
 		if err != nil {
 			return nil, err

@@ -174,7 +174,7 @@ export function SpaceSyncSection() {
 // show. A choice shows as selected from the moment it is made, and stays
 // switching until the watched sharing state moves off the sequencer it
 // replaced. A failed change, no change, or one the group must approve first
-// ends it early.
+// ends switching early.
 function useSequencerChoice(
   space: Space | undefined | null,
   current: SpaceSequencer,
@@ -413,7 +413,7 @@ function oneOrderDescription(who: SpaceSequencer | undefined): string {
   }
 }
 
-// sequencerStatus says whose order the Space follows now.
+// sequencerStatus says whose order the Space follows.
 function sequencerStatus(
   state: SpaceSharingState,
   sequencer: SpaceSequencer,

@@ -4,7 +4,7 @@
 // This implementation focuses on basic file operations and intentionally omits
 // advanced FUSE-like features such as inode IDs, device IDs, and complex
 // filesystem metadata. While these features are fully implemented in the
-// unixfs fuse package, they add significant complexity and are not currently
+// unixfs fuse package, they add significant complexity and are not
 // needed for WebAssembly workloads running in Wazero. This simplified approach
 // provides the essential filesystem operations required for most use cases.
 package wazerofs
@@ -34,13 +34,14 @@ type FS struct {
 
 // NewFS constructs a new UnixFS FSHandle adapted to wazero FS.
 //
-// ctx is used for all fs operations
-// workdir is prepended to non-absolute file paths
+// ctx is used for all fs operations.
+// workdir is prepended to non-absolute file paths.
 func NewFS(ctx context.Context, fsh *unixfs.FSHandle, workdir []string) *FS {
 	return &FS{ctx: ctx, fsh: fsh, workdir: workdir}
 }
 
-// resolvePath resolves a path string to absolute path components, handling workdir prefix.
+// resolvePath resolves a path string to absolute path components, handling
+// the workdir prefix.
 // Returns the resolved path components and any validation error.
 func (f *FS) resolvePath(path string) ([]string, wazero_exp_sys.Errno) {
 	pathPts, isAbsolute := unixfs.SplitPath(path)
@@ -68,7 +69,7 @@ func FileInfoToStat(fileInfo fs.FileInfo) wazero_sys.Stat_t {
 	}
 }
 
-// OpenFile opens a file. It should be closed via Close on File.
+// OpenFile opens a file. The file should be closed via Close on File.
 //
 // # Errors
 //
@@ -88,8 +89,8 @@ func FileInfoToStat(fileInfo fs.FileInfo) wazero_sys.Stat_t {
 //
 // Some implementations choose whether to enforce read-only opens, namely
 // fs.FS. While fs.FS is supported (Adapt), wazero cannot runtime enforce
-// open flags. Instead, we encourage good behavior and test our built-in
-// implementations.
+// open flags. Instead, implementers are encouraged to enforce open flags,
+// and the built-in implementations are tested.
 //
 // # Notes
 //
@@ -217,7 +218,7 @@ func (f *FS) Lstat(path string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	}
 
 	// Look up the file/directory handle without following symlinks
-	// We need to traverse to the parent and then lookup the final component
+	// Traverse to the parent and then look up the final component
 	var fileFsh *unixfs.FSHandle
 	var err error
 	if len(pathPts) == 1 {
@@ -467,7 +468,7 @@ func (f *FS) Rename(from, to string) wazero_exp_sys.Errno {
 		toFilename = toPathPts[len(toPathPts)-1]
 	}
 
-	// Perform the rename operation
+	// Rename the file or directory
 	err = fromFsh.Rename(f.ctx, toParentFsh, toFilename, time.Now())
 	if err != nil {
 		return UnixfsErrorToWazeroErrno(err)
@@ -777,8 +778,8 @@ func (f *FS) Readlink(path string) (string, wazero_exp_sys.Errno) {
 // updated.
 //
 // The `atim` and `mtim` parameters refer to access and modification time
-// stamps as defined in sys.Stat_t. To retain one or the other, substitute
-// it with the pseudo-timestamp UTIME_OMIT.
+// stamps as defined in sys.Stat_t. To retain either timestamp, substitute
+// that timestamp with the pseudo-timestamp UTIME_OMIT.
 //
 // # Errors
 //

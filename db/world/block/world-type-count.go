@@ -10,7 +10,7 @@ import (
 // graph write queues one change per quad it adds or removes, so the counts
 // follow the type edges exactly.
 func (t *WorldState) noteTypeChange(w *WorldChange) {
-	// A set adds one and a delete removes one; other changes leave no type.
+	// A set adds one and a delete removes one. Other changes leave no type.
 	var delta int64
 	switch w.GetChangeType() {
 	case WorldChangeType_WorldChange_GRAPH_SET:

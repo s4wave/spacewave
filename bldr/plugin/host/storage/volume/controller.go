@@ -77,7 +77,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		hostVolumeConf = &volume_controller.Config{}
 	}
 
-	// Use an ID as an alias so we can access it via rpc.
+	// Use an ID as an alias so the RPC client can access the host volume.
 	hostVolumeConf.VolumeIdAlias = []string{hostVolumeID}
 	hostVolumeConf.DisablePeer = true
 	hostVolumeConf.DisableEventBlockRm = true
@@ -170,7 +170,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // GetVolume returns the controlled volume.
-// This may wait for the volume to be ready.
+// GetVolume may wait for the volume to be ready.
 func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
 	volCtrl, err := c.volProm.Await(ctx)
 	if err != nil {

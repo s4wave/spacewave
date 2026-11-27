@@ -17,12 +17,12 @@ import {
 // folder, cloned at addFiles time, so the manager can outlive the folder view
 // that started it (see SessionUploadManagerContext).
 
-// UploadStatus represents the state of a single upload item. waiting is an
-// item inside a dropped folder that has not opened it yet: one being created,
-// asking or failed; checking lists the item's folder before any byte is sent;
-// asking waits for the person to answer the item's conflict; skipped is an
-// item the person chose not to send; error is a failed listing or send, which
-// Retry runs again.
+// UploadStatus represents the state of a single upload item. waiting is an item
+// inside a dropped folder that has not opened its contents yet: a folder being
+// created, asking or failed. checking lists the item's folder before any byte
+// is sent. asking waits for the person to answer the item's conflict. skipped
+// is an item the person chose not to send. error is a failed listing or send,
+// which Retry runs again.
 export type UploadStatus =
   | 'waiting'
   | 'checking'
@@ -34,7 +34,7 @@ export type UploadStatus =
   | 'error'
 
 // UploadHolder is what already holds a dropped name, as the folder listing
-// names it.
+// identifies the entry.
 export type UploadHolder = 'file' | 'folder' | 'link'
 
 // UploadConflict is what holds an asking item's name, and for a file the
@@ -45,9 +45,9 @@ export interface UploadConflict {
 }
 
 // UploadAnswer is the person's answer to a conflict. replace sends a file
-// expecting the version the question showed; merge sends a dropped folder
-// into the folder of its name, its files asking as files do; keep sends the
-// item under the first free "name (n).ext"; skip leaves the name alone.
+// expecting the version the question showed. merge sends a dropped folder into
+// the folder of its name, its files asking as files do. keep sends the item
+// under the first free "name (n).ext". skip leaves the name alone.
 export type UploadAnswer = 'replace' | 'merge' | 'keep' | 'skip'
 
 // UploadStep is the step an item last ran, which Retry runs again after it
@@ -100,7 +100,7 @@ export interface UploadEvent {
   // fileCount is the number of files in the started burst, or the number of
   // items that completed successfully at completion.
   fileCount: number
-  // errorCount is the number of failed items at completion; always 0 for
+  // errorCount is the number of failed items at completion and is always 0 for
   // 'started'.
   errorCount: number
 }
@@ -156,16 +156,16 @@ function splitPath(path: string): [string, string] {
   return cut < 0 ? ['', path] : [path.slice(0, cut), path.slice(cut + 1)]
 }
 
-// holderOf names what a listing entry is.
+// holderOf identifies what a listing entry is.
 function holderOf(entry: DirEntry): UploadHolder {
   if (entry.isDir) return 'folder'
   if (entry.isSymlink) return 'link'
   return 'file'
 }
 
-// listFolder returns the entries of the folder at path below handle by name.
-// It rejects when the folder cannot be listed; an empty listing would send
-// into names it never saw.
+// listFolder returns the entries of the folder at path below handle by name. It
+// rejects when the folder cannot be listed, because an empty listing would
+// send into names it never saw.
 async function listFolder(
   handle: FSHandle,
   path: string,
@@ -185,7 +185,7 @@ function byName(entries: DirEntry[]): Map<string, DirEntry> {
 }
 
 // readVersion returns the version of the file at path below handle from a one
-// byte read, or null when it cannot be read; the store then reports the
+// byte read, or null when the file cannot be read. The store then reports the
 // version at commit.
 async function readVersion(
   handle: FSHandle,
@@ -273,28 +273,28 @@ function questionOf(items: UploadItem[]): UploadQuestion | null {
 }
 
 const missing: TreeUploadExpect = { kind: 'missing' }
-// overwrite sends a file over whatever holds its name; a folder sent so
-// merges into the folder of its name.
+// overwrite sends a file over whatever holds its name. A folder sent with
+// overwrite merges into the folder of its name.
 const overwrite: TreeUploadExpect = { kind: 'overwrite' }
 
-// UploadGroup is what the manager holds for one drop: the handle it was
-// dropped on, its clone of it, each folder's listing, read once and reused by
-// every question of the drop, and the tree of its items.
+// UploadGroup is what the manager holds for one drop: the handle the drop
+// targets, the drop's clone of that handle, each folder's listing, read once
+// and reused by every question of the drop, and the tree of its items.
 interface UploadGroup {
   source: FSHandle
   held: Promise<FSHandle>
-  // broken is set once held rejects; Retry then takes a new clone.
+  // broken is set once held rejects, so Retry then takes a new clone.
   broken: boolean
-  // abort ends the drop's shared listings when the drop ends; no one item's
+  // abort ends the drop's shared listings when the drop ends, but no one item's
   // cancel ends a read its siblings wait on.
   abort: AbortController
-  // listings holds each folder's listing read, by path below the drop's
-  // folder. A failed read leaves it, so the next one reads again.
+  // listings holds each folder's listing read, by path below the drop's folder.
+  // A failed read leaves the cache, so the next caller reads again.
   listings: Map<string, Promise<Map<string, DirEntry>>>
-  // children lists the items dropped directly inside each dropped folder,
-  // by the folder's item id, and the top of the drop under ''. A folder's
-  // items keep their names when Keep both renames it, so a walk builds each
-  // path from its parent's.
+  // children lists the items dropped directly inside each dropped folder, by
+  // the folder's item id, and the top of the drop under ''. A folder's items
+  // keep their names when Keep both renames it, so a walk builds each path from
+  // its parent's path.
   children: Map<string, UploadItem[]>
   // place is the display path of the drop's folder, which keys its claims.
   place: string
@@ -317,10 +317,10 @@ function hold(group: UploadGroup) {
   })
 }
 
-// Claims are the names the manager's drops send into each folder, keyed by
-// the folder's display path, with how many drops claim each. Keep both picks
-// past them, so no two drops into one folder pick the same name. A key two
-// Spaces share only moves a pick past a number it could have taken.
+// Claims are the names the manager's drops send into each folder, keyed by the
+// folder's display path, with how many drops claim each. Keep both picks past
+// them, so no two drops into one folder pick the same name. A key two Spaces
+// share only moves a pick past a number it could have taken.
 type Claims = Map<string, Map<string, number>>
 
 // folderKey returns the key of the folder at parent below the drop's place.
@@ -344,19 +344,19 @@ function release(group: UploadGroup, claims: Claims) {
 
 // useUploadManager projects the session-owned SDK upload pool into React state.
 // A dropped file is sent only where its name is free, or over the version a
-// Replace answer named; a dropped folder merges into one of its name only on
+// Replace answer selected. A dropped folder merges into one of its name only on
 // a Merge answer. The drop lists its folder first and asks about each taken
-// name before sending its bytes, and the store refuses at commit a name
-// another writer took meanwhile, which asks the same question. A new folder
-// is sent alone, and what was dropped inside it only once it commits, so no
-// file of the drop creates it first.
+// name before sending its bytes, and the store refuses at commit a name another
+// writer took meanwhile, so the manager asks the same question. A new folder is
+// sent alone, and what was dropped inside it only once it commits, so no file
+// of the drop creates it first.
 export function useUploadManager(): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
-  // itemsRef holds the manager's current items, with patchesRef the changes
-  // not yet applied to them; items is the last list published to render.
-  // Every press decides from these, never from a rendered list, so a second
-  // press on a settled item finds it settled.
+  // itemsRef holds the manager's current items, with patchesRef the changes not
+  // yet applied to them. items is the last list published to render. Every
+  // press decides from these, never from a rendered list, so a second press on
+  // a settled item finds it settled.
   const itemsRef = useRef(items)
   const patchesRef = useRef(new Map<string, Partial<UploadItem>>())
 
@@ -397,8 +397,9 @@ export function useUploadManager(): UploadManager {
   const question = useMemo(() => questionOf(items), [items])
 
   // Emit a completion event on the transition from any in-progress items to
-  // every item reaching a terminal state. Runs before the auto-clear below, so
-  // items are still present and consumers can anchor feedback to the indicator.
+  // every item reaching a terminal state. The effect runs before the auto-clear
+  // below, so items are still present and consumers can anchor feedback to the
+  // indicator.
   useEffect(() => {
     const inProgress = items.some((item) => !finished(item))
     if (inProgress) {
@@ -464,7 +465,7 @@ export function useUploadManager(): UploadManager {
 
   // update merges patch into the item id. Patches made in one task apply
   // together in one pass over the list, so opening a folder of n items costs
-  // one pass rather than n; a press flushes them first.
+  // one pass rather than n. A press flushes the patches first.
   const update = useCallback(
     (id: string, patch: Partial<UploadItem>) => {
       const patches = patchesRef.current
@@ -498,8 +499,8 @@ export function useUploadManager(): UploadManager {
     }
 
     // listing returns the drop's listing of parent, read once per drop under
-    // the drop's signal; a fresh listing reads it again. A failed read leaves
-    // the cache, so the next asker reads again.
+    // the drop's signal. A fresh listing reads parent again. A failed read
+    // leaves the cache, so the next asker reads again.
     const listing = (
       item: UploadItem,
       parent: string,
@@ -607,7 +608,7 @@ export function useUploadManager(): UploadManager {
 
     // send commits the item at its path expecting expect, recording step for
     // Retry, and returns whether it committed. A folder expecting missing is
-    // created only where nothing holds its path; any other folder merges into
+    // created only where nothing holds its path. Any other folder merges into
     // the folder there. A refusal or failure settles the item before send
     // returns false, as does a cancel.
     const send = async (
@@ -706,12 +707,12 @@ export function useUploadManager(): UploadManager {
         path: `${folder.path}/${child.name}`,
       }))
 
-    // open sends a dropped folder alone and, once it commits, what was
-    // dropped inside it, which waits until then. A new folder expects
-    // nothing at its path, so one another writer created after the listing
-    // is refused and asks. Files inside a newly created folder expect
-    // missing, and its subfolders can merge without asking. A folder
-    // merged into an existing folder places its contents against a listing.
+    // open sends a dropped folder alone and, once it commits, what was dropped
+    // inside it, which waits until then. A new folder expects nothing at its
+    // path, so a folder another writer created after the listing is refused and
+    // asks. Files inside a newly created folder expect missing, and its
+    // subfolders can merge without asking. A folder merged into an existing
+    // folder places its contents against a listing.
     const open = async (folder: UploadItem, fresh: boolean) => {
       if (!(await send(folder, fresh ? missing : overwrite, 'open'))) return
       if (fresh) {
@@ -740,11 +741,10 @@ export function useUploadManager(): UploadManager {
       if (await send(folder, overwrite, 'fill')) await fill(folder)
     }
 
-    // enter checks a dropped folder against its parent's listing: a free
-    // name opens as new; a folder of its name opens into it when the drop
-    // already merged its parent, and otherwise asks; a file or link of its
-    // name asks. What was dropped inside an asking or failed folder waits
-    // on it.
+    // enter checks a dropped folder against its parent's listing: a free name
+    // opens as new. A folder of its name opens into that folder when the drop
+    // already merged its parent, and otherwise asks. A file or link of its name
+    // asks. What was dropped inside an asking or failed folder waits on it.
     const enter = async (
       folder: UploadItem,
       merged: boolean,
@@ -767,10 +767,10 @@ export function useUploadManager(): UploadManager {
     }
 
     // keep sends the item under the first free "name (n).ext" in its folder.
-    // Names in the folder's listing and names any drop claims there are
-    // taken; a refused name moves the next pick past its number, so a
-    // listing that misses a taken name never picks it again. A kept folder
-    // takes what was dropped inside it along to the new name.
+    // Names in the folder's listing and names any drop claims there are taken.
+    // A refused name moves the next pick past its number, so a listing that
+    // misses a taken name never picks it again. A kept folder takes what was
+    // dropped inside it along to the new name.
     const keep = async (item: UploadItem, fresh = false) => {
       const signal = item.abortController.signal
       const from = item.kept?.from ?? item.path
@@ -812,9 +812,9 @@ export function useUploadManager(): UploadManager {
       await place(item, true)
     }
 
-    // check places a drop's top-level items against the destination's
-    // listing. A top-level folder whose name is free opens at once; a taken
-    // one asks, and what was dropped inside it waits on the answer.
+    // check places a drop's top-level items against the destination's listing.
+    // A top-level folder whose name is free opens at once. A folder whose name
+    // is taken asks, and what was dropped inside it waits on the answer.
     const check = async (group: UploadGroup) => {
       await Promise.all(
         (group.children.get('') ?? []).map((item) =>
@@ -854,8 +854,8 @@ export function useUploadManager(): UploadManager {
       return enter(item, splitPath(item.path)[0] !== '', true)
     }
 
-    // retry runs a failed item's step again; when the drop's clone of its
-    // handle failed, it takes a new clone and runs every failed item of the
+    // retry runs a failed item's step again. When the drop's clone of its
+    // handle failed, retry takes a new clone and runs every failed item of the
     // drop again.
     const retry = (item: UploadItem) => {
       const group = groups.get(item.groupId)
@@ -893,7 +893,7 @@ export function useUploadManager(): UploadManager {
         kept: null,
         conflict: null,
       }
-      // An item at the top of the drop is checked at once; one inside a
+      // An item at the top of the drop is checked at once. An item inside a
       // dropped folder waits until the folder opens.
       const statusOf = (path: string): UploadStatus =>
         path.includes('/') ? 'waiting' : 'checking'
@@ -936,10 +936,9 @@ export function useUploadManager(): UploadManager {
       const newItems = [...fileItems, ...dirItems]
       if (newItems.length === 0) return
 
-      // The drop holds its own handle on the destination until its last
-      // item ends; the browsing handle goes when the person navigates.
-      // The drop's tree indexes each item under its folder's item, read
-      // once per drop.
+      // The drop holds its own handle on the destination until its last item
+      // ends. The browsing handle goes when the person navigates. The drop's
+      // tree indexes each item under its folder's item, read once per drop.
       const byPath = new Map(newItems.map((item) => [item.path, item]))
       const children = new Map<string, UploadItem[]>()
       for (const item of newItems) {
@@ -988,9 +987,9 @@ export function useUploadManager(): UploadManager {
     [check, fail, publish],
   )
 
-  // answer applies only to items asking in the manager's current state; the
-  // first step of every answer leaves asking at once, so a second press on
-  // the same question finds nothing to answer.
+  // answer applies only to items asking in the manager's current state. The
+  // first step of every answer leaves asking at once, so a second press on the
+  // same question finds nothing to answer.
   const answer = useCallback(
     (id: string, choice: UploadAnswer, all: boolean) => {
       flush()

@@ -96,7 +96,7 @@ func inspectColdEntry(ctx context.Context, root *os.Root, name string) (*packfil
 		subpath += "/"
 	}
 
-	// Decode the writer’s entry and check it describes this object name.
+	// Decode the writer's entry and check it describes this object name.
 	raw, err := root.ReadFile(name)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,8 @@ func inspectColdEntry(ctx context.Context, root *os.Root, name string) (*packfil
 		return nil, errors.New("entry pack ID or count disagrees with its object")
 	}
 
-	// Open the pack paired with this entry; one handle supplies tail and payloads.
+	// Open the pack paired with this entry so one handle supplies tail and
+	// payloads.
 	meta := &packfile.ColdPackEntry{Subpath: subpath, Entry: entry}
 	f, err := root.Open(subpath + packDir + id)
 	if err != nil {
@@ -183,7 +184,8 @@ func readLocalColdTail(f *os.File, meta *packfile.ColdPackEntry) ([]byte, error)
 // exact bytes it checks. The kvfile writer lays extents end-to-end, with the
 // sorted index after them. Only one pack's offsets and one value are live.
 func verifyColdPayloads(ctx context.Context, f *os.File, r *kvfile.Reader, tail []byte, base uint64) ([]byte, error) {
-	// Gather this pack's physical order; the index is sorted by key instead.
+	// Gather this pack's physical order because the index is sorted by key
+	// instead.
 	extents := make([]*kvfile.IndexEntry, 0, r.Size())
 	for pos := range r.Size() {
 		e, err := r.ReadIndexEntry(pos)
@@ -274,7 +276,8 @@ func verifyColdExport(ctx context.Context, root *os.Root, catalog *coldPackCatal
 			return errors.Errorf("exported key %x (line %d) does not match the pack set", key, seen+1)
 		}
 		for copies := 0; len(active) != 0 && bytes.Equal(active[0].entry.Key, key); copies++ {
-			// Verify every pack's copy; the exported key names the set, not its multiplicity.
+			// Verify every pack's copy because the exported key
+			// identifies the set, not its multiplicity.
 			if err := active.consume(); err != nil {
 				return err
 			}

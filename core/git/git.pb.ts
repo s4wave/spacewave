@@ -9,7 +9,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * CreateGitRepoWizardOp creates a git repository from wizard configuration.
- * Dispatches to GitInitOp (new repo) or GitCloneOp (clone) based on mode.
+ * The operation dispatches to GitInitOp (new repo) or GitCloneOp (clone)
+ * based on mode.
  *
  * @generated from message s4wave.git.CreateGitRepoWizardOp
  */
@@ -23,12 +24,12 @@ export interface CreateGitRepoWizardOp {
    */
   name?: string
   /**
-   * Clone indicates this is a clone operation (vs new empty repo).
+   * Clone indicates the operation is a clone (vs new empty repo).
    */
   clone?: boolean
   /**
    * CloneOpts contains the clone configuration (URL, ref, depth, etc).
-   * Only used when clone is true.
+   * CloneOpts is only used when clone is true.
    */
   cloneOpts?: CloneOpts
   /**

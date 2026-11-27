@@ -38,7 +38,7 @@ message Dependency {
   string name = 1;
   // Version is the locked version.
   string version = 2;
-  // Direct is set when package.json names the package.
+  // Direct is set when package.json declares the package.
   bool direct = 3;
 }
 

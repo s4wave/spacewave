@@ -46,7 +46,8 @@ func TestPackAheadSyncPoisons(t *testing.T) {
 	}
 	defer l.Close()
 
-	// The first batch syncs; the second's sync fails and poisons the pack.
+	// The first batch syncs, then the second's sync fails and poisons the
+	// pack.
 	a, b := testBlock(t, 1, 3000), testBlock(t, 2, 3000)
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.opts.Linger = 0
@@ -65,7 +66,7 @@ func TestPackAheadSyncPoisons(t *testing.T) {
 	}
 
 	// A put of the durable value writes a new copy, which a later pack
-	// finalizes; the poisoned pack stays unfinalized.
+	// finalizes, but the poisoned pack stays unfinalized.
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.opts.Linger = 10 * time.Millisecond
 	})
@@ -177,7 +178,8 @@ func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
 		l.opts.Linger = 0
 	})
 
-	// Batch a syncs; batch b is written but not synced, then a write fails.
+	// Batch a syncs, then batch b is written but not synced, then a write
+	// fails.
 	a, b, c := testBlock(t, 1, 3000), testBlock(t, 2, 3000), testBlock(t, 3, 3000)
 	if err := l.Append(ctx, []Block{a}); err != nil {
 		t.Fatal(err)
@@ -199,7 +201,7 @@ func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
 	})
 	release()
 
-	// The next Append rotates; the failed pack's index sync fails.
+	// The next Append rotates, then the failed pack's index sync fails.
 	armed.Store(true)
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.opts.Linger = 10 * time.Millisecond
@@ -234,7 +236,8 @@ func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
 }
 
 // TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch holds an append's
-// sync open until a later write fails and recovery can no longer keep it.
+// sync open until a later write fails and recovery can no longer keep the
+// batch.
 func TestPackAheadFailedWriteCannotAcknowledgeCorruptBatch(t *testing.T) {
 	// Pause the first append after its write and before publishing its sync.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -448,7 +451,8 @@ func TestPackAheadCrashAfterGapRepair(t *testing.T) {
 	}
 
 	// Let a write failure trigger live recovery. Its index must keep both
-	// intact batches before we test the same bytes without a durable rename.
+	// intact batches before the test checks the same bytes without a
+	// durable rename.
 	if err := FailAppendWrite(t, l, []Block{testBlock(t, 4, 64)}); !errors.Is(err, syscall.EBADF) {
 		t.Fatalf("failed write returned %v", err)
 	}

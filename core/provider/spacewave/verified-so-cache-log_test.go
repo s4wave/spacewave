@@ -61,7 +61,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A write whose commit fails stores nothing; the next write must still
+	// A write whose commit fails stores nothing. The next write must still
 	// store its op, which a delta over the failed write would leave out.
 	store.failCommit = true
 	if err := w.write(ctx, withVerifiedOps(cache, 8, 9), nil); err == nil {
@@ -74,9 +74,9 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	}
 	assertVerifiedCache(t, acc, "so-1", cache)
 
-	// Invalidating the chain deletes the logs under the live writer; its next
-	// write must store the whole state, which a delta over the deleted logs
-	// would leave partial.
+	// Invalidating the chain deletes the logs under the live writer. Its
+	// next write must store the whole state, which a delta over the deleted
+	// logs would leave partial.
 	if err := acc.InvalidateVerifiedChain(ctx, "so-1"); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 		t.Fatalf("a whole write left %d log keys", n)
 	}
 
-	// A remount in the log layout moves them back out of the record.
+	// A remount in the log layout moves the states back out of the record.
 	verifiedStateLog = true
 	_, written, err = acc.loadVerifiedSOStateCacheFrom(ctx, "so-1")
 	if err != nil {
@@ -129,8 +129,8 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	}
 }
 
-// testVerifiedCache returns a cache whose peer state holds ops from to
-// before to, and whose cloud state holds the first of them.
+// testVerifiedCache returns a cache whose peer state holds ops starting at from
+// and ending before to, and whose cloud state holds the first of them.
 func testVerifiedCache(from, to int) *api.VerifiedSOStateCache {
 	peer := &sobject.SOState{Config: &sobject.SharedObjectConfig{ConfigChainSeqno: 1}}
 	cache := &api.VerifiedSOStateCache{
@@ -143,8 +143,8 @@ func testVerifiedCache(from, to int) *api.VerifiedSOStateCache {
 	return cache
 }
 
-// withVerifiedOps returns a copy of cache whose peer state adds ops from to
-// before to, sharing the held op records as SOState.Clone does.
+// withVerifiedOps returns a copy of cache whose peer state adds ops starting at
+// from and ending before to, sharing the held op records as SOState.Clone does.
 func withVerifiedOps(cache *api.VerifiedSOStateCache, from, to int) *api.VerifiedSOStateCache {
 	next := *cache
 	next.PeerState = cache.GetPeerState().Clone()

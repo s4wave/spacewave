@@ -8,11 +8,11 @@ import (
 
 // BusHandler implements http.Handler by calling LookupHTTPHandler.
 type BusHandler struct {
-	// b is the bus to use for lookups
+	// b is the bus to use for lookups.
 	b bus.Bus
-	// clientID is the client id to use for lookups
+	// clientID is the client id to use for lookups.
 	clientID string
-	// notFoundIfIdle indicates to return 404 not found if the lookup is idle
+	// notFoundIfIdle indicates to return 404 not found if the lookup is idle.
 	notFoundIfIdle bool
 }
 

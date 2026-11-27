@@ -7,8 +7,8 @@ import { appScenarios } from '../debug/scenarios/registry.js'
 import { ScenarioPage } from '../debug/scenarios/ScenarioPage.js'
 
 // debugPage returns a component that loads the debug page named name from its
-// module when it first renders, so the debug index loads no page. The route
-// table renders inside AppRoutes' Suspense boundary.
+// module when the component first renders, so the debug index loads no page.
+// The route table renders inside AppRoutes' Suspense boundary.
 function debugPage<K extends string>(
   load: () => Promise<Record<K, ComponentType>>,
   name: K,

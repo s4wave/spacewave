@@ -33,7 +33,7 @@ func (t *SeriesTable) Lookup(lset labels.Labels) (uint64, bool) {
 }
 
 // Add appends lset as the next series and returns its number.
-// The caller checks Lookup first; Add does not look for duplicates.
+// The caller checks Lookup first. Add does not look for duplicates.
 func (t *SeriesTable) Add(lset labels.Labels) uint64 {
 	num := t.Len()
 	t.byKey[string(lset.Bytes(nil))] = num

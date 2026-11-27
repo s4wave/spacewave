@@ -60,7 +60,7 @@ message CaptureMemoryProfileResponse {
 // CaptureGoroutineProfileRequest is the request for CaptureGoroutineProfile.
 message CaptureGoroutineProfileRequest {
   // Debug is the pprof output debug level. Zero writes the compressed pprof
-  // protobuf; 1 and 2 write text stack dumps.
+  // protobuf. Levels 1 and 2 write text stack dumps.
   int32 debug = 1;
 }
 

@@ -66,7 +66,10 @@ export interface QueryEvaluation<R> {
   readonly dependencies: readonly CollectionDependencies[]
 }
 
-/** RecordChange carries accepted before/after values; undefined represents absence. */
+/**
+ * RecordChange carries accepted before/after values. undefined represents
+ * absence.
+ */
 export interface RecordChange {
   readonly collection: string
   readonly key: string
@@ -77,7 +80,8 @@ export interface RecordChange {
 /**
  * evaluateQuery traces ordinary property reads, predicates, sorting, and branches.
  * Returning a complete record materializes every returned field. Queries may
- * await snapshot reads; external effects and mutation of read values are forbidden.
+ * await snapshot reads. External effects and mutation of read values are
+ * forbidden.
  */
 export async function evaluateQuery<S extends Schema, R>(
   source: QueryContext<S>,

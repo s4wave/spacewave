@@ -67,7 +67,7 @@ message MountAppRequest {
   // WorldResourceId selects a caller-owned World Engine Resource.
   uint32 world_resource_id = 2;
   // ObjectPrefix separates this installation's named Volumes in the World.
-  // Required with world_resource_id.
+  // ObjectPrefix is required with world_resource_id.
   string object_prefix = 3;
   // Ephemeral creates a private in-memory World owned by this attachment.
   bool ephemeral = 4;
@@ -286,14 +286,14 @@ message HashValidateRequest {
 message HashValidateResponse {
   // Valid is true if the hash is valid.
   bool valid = 1;
-  // Error contains the validation error message if not valid.
+  // Error contains the validation error message if the hash is not valid.
   string error = 2;
 }
 
 // AccessStateAtomRequest is the request for AccessStateAtom.
 message AccessStateAtomRequest {
   // StoreId is the identifier for the state store.
-  // If empty, uses the default "ui-state" store.
+  // If StoreId is empty, the default "ui-state" store is used.
   string store_id = 1;
 }
 
@@ -483,7 +483,7 @@ message GetChangelogRequest {}
 
 // GetChangelogResponse is the response type for GetChangelog.
 message GetChangelogResponse {
-  // changelog is the application changelog.
+  // Changelog is the application changelog.
   .changelog.Changelog changelog = 1;
 }
 
@@ -508,9 +508,9 @@ message GetDebugDbResponse {
 
 // GetCdnRequest is the request type for GetCdn.
 message GetCdnRequest {
-  // CdnId selects the CDN instance. Empty selects the default CDN. Unknown
-  // ids cause GetCdn to fail with an ErrUnknownCdn-wrapped error so callers
-  // can distinguish misconfigured ids from transport errors.
+  // CdnId selects the CDN instance. An empty CdnId selects the default CDN.
+  // Unknown ids cause GetCdn to fail with an ErrUnknownCdn-wrapped error so
+  // callers can distinguish misconfigured ids from transport errors.
   string cdn_id = 1;
 }
 
@@ -518,23 +518,24 @@ message GetCdnRequest {
 message GetCdnResponse {
   // ResourceId is the client resource id of the mounted CdnResource.
   uint32 resource_id = 1;
-  // CdnSpaceId is the CDN Space ULID for the selected instance. Returned in
-  // the same round-trip so callers do not need a follow-up RPC.
+  // CdnSpaceId is the CDN Space ULID for the selected instance. CdnSpaceId is
+  // returned in the same round-trip so callers do not need a follow-up RPC.
   string cdn_space_id = 2;
 }
 
 // AccessWebListenerRequest is the request type for AccessWebListener.
 message AccessWebListenerRequest {
-  // ListenMultiaddr is the requested listener bind address. Empty defaults to
-  // /ip4/127.0.0.1/tcp/0.
+  // ListenMultiaddr is the requested listener bind address. An empty
+  // ListenMultiaddr defaults to /ip4/127.0.0.1/tcp/0.
   string listen_multiaddr = 1;
   // Background keeps the listener in the daemon registry after the CLI exits.
   bool background = 2;
   // SpaceId binds the listener to one Space. A bound listener serves a
   // read-only Resource service at /_spacewave/resource limited to this Space
-  // in session session_idx. Empty serves no Resource service.
+  // in session session_idx. An empty SpaceId serves no Resource service.
   string space_id = 3;
-  // SessionIdx is the session holding space_id. Required with space_id.
+  // SessionIdx is the session holding space_id. SessionIdx is required with
+  // space_id.
   uint32 session_idx = 4;
   // Full serves the native app over the daemon's whole Resource service at
   // /_spacewave/resource, with the same access as the daemon socket. It
@@ -573,7 +574,7 @@ message WebListenerInfo {
   bool background = 4;
   // SpaceId is the Space the listener is bound to, or empty.
   string space_id = 5;
-  // SessionIdx is the session of the bound Space, or zero.
+  // SessionIdx is the session index of the bound Space, or zero.
   uint32 session_idx = 6;
   // Full is true when the listener serves the whole Resource service.
   bool full = 7;
@@ -670,8 +671,8 @@ message ReclaimRuntimeRequest {}
 
 // ReclaimRuntimeResponse is the response type for ReclaimRuntime.
 message ReclaimRuntimeResponse {
-  // Reclaimed is true when the reclaim signal was fired. False when
-  // there was no active handoff to reclaim from.
+  // Reclaimed is true when the reclaim signal was fired. Reclaimed is false
+  // when there was no active handoff to reclaim from.
   bool reclaimed = 1;
 }
 
@@ -685,15 +686,16 @@ message WatchListenerStatusRequest {}
 // command-line setup page.
 message WatchListenerStatusResponse {
   // SocketPath is the effective absolute path of the listener socket.
-  // Populated once the listener controller resolves the configured
-  // path, before the first bind attempt.
+  // SocketPath is populated once the listener controller resolves the
+  // configured path, before the first bind attempt.
   string socket_path = 1;
   // Listening is true when the listener currently has an open Unix
-  // socket accepting connections. False during startup before the
+  // socket accepting connections. Listening is false during startup before the
   // first bind, during reclaim-wait when the runtime is handed off,
   // and during teardown.
   bool listening = 2;
   // ConnectedClients is the count of clients currently connected to
-  // the listener socket. Updates on accept and on client disconnect.
+  // the listener socket. ConnectedClients updates on accept and on client
+  // disconnect.
   uint32 connected_clients = 3;
 }

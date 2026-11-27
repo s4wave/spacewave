@@ -16,8 +16,9 @@ import (
 // Capture is the first message on stdin and selects the source for this process.
 type Capture struct {
 	unknownFields []byte
-	// PipewireNodeId names a portal node on the remote inherited as descriptor 3.
-	// Zero selects the synthetic test pattern and requires no inherited descriptor.
+	// PipewireNodeId selects a portal node on the remote inherited as descriptor
+	// 3. Zero selects the synthetic test pattern and requires no inherited
+	// descriptor.
 	PipewireNodeId uint32 `protobuf:"varint,1,opt,name=pipewire_node_id,json=pipewireNodeId,proto3" json:"pipewireNodeId,omitempty"`
 }
 

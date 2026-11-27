@@ -121,8 +121,8 @@ function GalleryTile({
   )
 }
 
-// lightboxButtonClassName draws a lightbox press as a viewer float press,
-// light on the lightbox's dark backdrop.
+// lightboxButtonClassName is the class for a lightbox press styled as a
+// viewer float press, light on the lightbox's dark backdrop.
 const lightboxButtonClassName = cn(
   viewerFloatPressClass,
   'w-viewer-press px-0 text-white hover:bg-white/15 pointer-coarse:min-w-11',
@@ -233,8 +233,8 @@ export function galleryPreviewItems(
 }
 
 // galleryWatchOptions reopens the index watch after a failure and keeps the
-// last index, so the tiles found stay pressable while it reads again and
-// after it fails past its backoff.
+// last index, so the tiles found stay pressable while the watch reads again
+// and after the watch fails past its backoff.
 const galleryWatchOptions = { reconnect: true }
 
 interface GalleryScan {
@@ -390,11 +390,11 @@ export interface GalleryBodyProps {
  * GalleryBody draws the states of UnixFSGalleryViewer.tla: the wait or the
  * failure until the first index, then the tiles, or a row saying the index
  * holds no image. An index once arrived stays while the watch reads again,
- * and under the watch's failure once it gives up backing off, so the tiles
- * found stay pressable; a failed index never says it holds no image. Notes
- * above the tiles say the index stopped
- * at its limit, some folders could not be read, or previews need a session
- * and a Space: a tile opens only with a preview to show.
+ * and under the watch's failure once the watch gives up backing off, so the
+ * tiles found stay pressable. A failed index never says the index contains
+ * no image. Notes above the tiles say the index stopped at its limit, some
+ * folders could not be read, or previews need a session and a Space: a tile
+ * opens only with a preview to show.
  */
 export function GalleryBody({
   galleryState,

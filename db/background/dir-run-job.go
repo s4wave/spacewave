@@ -12,16 +12,16 @@ import (
 //
 // ctx is marked with block.WithBackground, so fetches the job causes yield to
 // foreground reads on the same store. ctx ends when the job is released. A nil
-// return finishes the job; an error retries it with backoff.
+// return finishes the job. An error retries the job with backoff.
 type JobFunc func(ctx context.Context) error
 
 // RunJob is a directive to run a background job.
 //
 // Equivalent directives, those with the same key, share one run with the
-// function of the first one added, so a key must name the same work for every
-// caller. Releasing the last of them cancels the run. A finished job stays done
-// while any registrant holds it; registering the key again after all of them
-// released it runs the job again.
+// function of the first one added, so a key must identify the same work for
+// every caller. Releasing the last of them cancels the run. A finished job
+// stays done while any registrant holds the job. Registering the key again
+// after all registrants released the job runs the job again.
 //
 // Value: *JobState, replaced on each transition.
 type RunJob interface {
@@ -49,7 +49,7 @@ func NewRunJob(key string, run JobFunc) RunJob {
 
 // AddJob registers a background job on the bus. The job runs until the
 // returned reference is released, unless another registrant of the same key
-// still holds it.
+// still holds the job.
 func AddJob(ctx context.Context, b bus.Bus, key string, run JobFunc) (directive.Reference, error) {
 	_, ref, err := b.AddDirective(ctx, NewRunJob(key, run), nil)
 	return ref, err

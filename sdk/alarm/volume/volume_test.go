@@ -16,7 +16,7 @@ import (
 
 // TestDefinitions checks that each definition's queries parse, that its node
 // parameters compile to a valid watch config, and that its function clears
-// with no series and fires naming each volume with one.
+// with no series and fires listing each volume with one series.
 func TestDefinitions(t *testing.T) {
 	// Run each function with one runner.
 	ctx := t.Context()

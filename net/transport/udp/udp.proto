@@ -6,7 +6,7 @@ import "github.com/s4wave/spacewave/net/transport/common/dialer/dialer.proto";
 
 // Config is the configuration for the udp transport.
 message Config {
-  // TransportPeerID sets the peer ID to attach the transport to.
+  // TransportPeerId sets the peer ID to attach the transport to.
   // If unset, attaches to any running peer with a private key.
   string transport_peer_id = 1;
   // ListenAddr contains the address to listen on.

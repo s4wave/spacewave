@@ -50,7 +50,7 @@ export type BrowserV86Runtime = {
 export type StartBrowserV86RuntimeOptions = {
   assets: V86BootAssets
   config?: V86Config
-  // objectKey is the VmV86 object key; it names the serial channel.
+  // objectKey is the VmV86 object key and identifies the serial channel.
   objectKey: string
   v86fsAdapter: V86fsAdapter
   // attachV86fsNotifier receives the guest filesystem device once the guest
@@ -65,10 +65,11 @@ const defaultGuestMemoryMb = 256
 const defaultVgaMemoryMb = 8
 const v86WasmMemoryHeadroomBytes = 16 * mib
 // v86BaseCmdline boots through /sbin/init so systemd runs the ttyS0 shell with
-// job control; bash as PID 1 breaks Ctrl-C and SIGINT. The empty rootflags
+// job control. Bash as PID 1 breaks Ctrl-C and SIGINT. The empty rootflags
 // clears the kernel's built-in 9p flags, which v86fs rejects. quiet keeps
 // kernel and systemd progress off the console, so the console opens on the
-// shell; boot args such as loglevel=7 come after it and restore the log.
+// shell. Boot args such as loglevel=7 come after v86BaseCmdline and restore
+// the log.
 const v86BaseCmdline =
   'rw init=/sbin/init root=v86fs rootfstype=v86fs rootflags= console=ttyS0 quiet'
 // v86minBootReadyMarker identifies the first guest output that proves the

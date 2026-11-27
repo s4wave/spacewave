@@ -97,7 +97,7 @@ func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, 
 	entrypoint := manifest.GetEntrypoint()
 	binaryPath := filepath.Join(distPath, entrypoint)
 
-	// ensure executable
+	// ensure the binary is executable
 	if err := os.Chmod(binaryPath, 0o755); err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 		// Handle CLI exit, manifest rebuild, or command cancellation.
 		select {
 		case err := <-proc.wait():
-			// subprocess exited on its own (not killed by us)
+			// subprocess exited on its own (not killed by the supervisor)
 			// propagate exit code to parent
 			cancelRun()
 			return exitWithChildCode(err)

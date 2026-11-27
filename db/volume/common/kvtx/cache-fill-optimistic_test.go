@@ -13,11 +13,11 @@ import (
 
 // TestCacheFillOptimistic runs cache fills on a store with optimistic
 // transactions while other writers commit. A fill reading without the writer
-// lets another write commit meanwhile. A fill lands through Land, which
-// reads and advances the log positions, so any commit that logs meanwhile
-// forces one rerun; a commit that stores the block a fill found absent forces
-// a rerun that finds it stored, so two writers never both give birth to one
-// block, and the block keeps its child list.
+// lets another write commit meanwhile. A fill lands through Land, which reads
+// and advances the log positions, so any commit that logs meanwhile forces one
+// rerun. A commit that stores the block a fill found absent forces a rerun that
+// finds it stored, so two writers never both give birth to one block, and the
+// block keeps its child list.
 func TestCacheFillOptimistic(t *testing.T) {
 	// Open a Volume over a store with optimistic transactions.
 	ctx := t.Context()
@@ -40,8 +40,8 @@ func TestCacheFillOptimistic(t *testing.T) {
 		return ref
 	}
 
-	// fill fills data naming refs, pausing its first attempt after the put
-	// so between can commit, and reports its attempts.
+	// fill fills data referencing refs, pausing its first attempt after the
+	// put so between can commit, and reports its attempts.
 	fill := func(data []byte, refs []*block.BlockRef, between func()) (attempts int, existed bool) {
 		t.Helper()
 		paused, resume := make(chan struct{}), make(chan struct{})
@@ -69,8 +69,8 @@ func TestCacheFillOptimistic(t *testing.T) {
 			t.Fatalf("fill ended before its first attempt paused: %v", err)
 		}
 
-		// Commit between while the fill reads; a fill holding the writer
-		// would block it.
+		// Commit between while the fill reads. A fill holding the
+		// writer would block between.
 		committed := make(chan struct{})
 		go func() {
 			between()
@@ -88,8 +88,8 @@ func TestCacheFillOptimistic(t *testing.T) {
 		return attempts, existed
 	}
 
-	// A commit that logs holders meanwhile forces one rerun, which
-	// lands the fill naming a stored child.
+	// A commit that logs holders meanwhile forces one rerun, which lands
+	// the fill referencing a stored child.
 	child := put("other", []byte("stored child"))
 	moved := put("other", []byte("moved root"))
 	attempts, existed := fill([]byte("filled interior"), []*block.BlockRef{child}, func() {

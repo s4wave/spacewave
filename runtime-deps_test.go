@@ -159,7 +159,7 @@ func TestRuntimeRootsLinkOnlyRuntimeModules(t *testing.T) {
 	}
 
 	// imports maps each package to its imports and module maps it to its
-	// module; reached starts as the roots and grows into the walk's queue.
+	// module. reached starts as the roots and grows into the walk's queue.
 	imports := make(map[string][]string)
 	module := make(map[string]string)
 	var reached []string

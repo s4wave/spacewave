@@ -25,7 +25,7 @@ type typedKeyIndex struct {
 
 // TypedKeys returns a reader of the keys of every object of typeID. With a
 // cache that still holds the changes since its last listing, it checks only
-// the objects those changes named, instead of reading every type edge again:
+// the objects those changes record, instead of reading every type edge again:
 // the full listing reads one log entry per object, which grows with every
 // object ever created.
 func (c *Cache) TypedKeys(typeID string) func(context.Context, world.WorldState) ([]string, error) {
@@ -93,8 +93,8 @@ func (c *Cache) typedIndex(typeID string) *typedKeyIndex {
 // changesSince merges the changes the cache passed after revision at, and
 // returns the revision they run through. It reports false when the history no
 // longer reaches back to at or the merged changes are unknown. The changes may
-// run past a reader's revision; each object they name is then checked in the
-// reader's snapshot.
+// run past a reader's revision. Each object the changes record is then checked
+// in the reader's snapshot.
 func (c *Cache) changesSince(at uint64) (*world.ChangeSet, uint64, bool) {
 	// Answer only while history covers the requested revision.
 	c.mtx.Lock()
@@ -120,7 +120,7 @@ func (c *Cache) changesSince(at uint64) (*world.ChangeSet, uint64, bool) {
 	return changes, through, !changes.Unknown
 }
 
-// patchTypedKeys returns keys with each object the changes named checked
+// patchTypedKeys returns keys with each object the changes record checked
 // again in tx: a changed type edge to typeID, or a changed key already listed.
 // It records the type's edge pattern in tx's reads, as the full listing does.
 func patchTypedKeys(ctx context.Context, tx world.WorldState, typeID string, keys []string, changes *world.ChangeSet) ([]string, error) {
@@ -192,7 +192,7 @@ func objectsWithType(ctx context.Context, tx world.WorldState, typeID string) ([
 
 // iriKey decodes an object-key relationship endpoint.
 func iriKey(v string) (string, error) {
-	// Reject a relationship endpoint that does not name an object key.
+	// Reject a relationship endpoint that does not refer to an object key.
 	iri, ok := quad.StringToValue(v).(quad.IRI)
 	if !ok {
 		return "", errors.New("relationship endpoint is not an object key")

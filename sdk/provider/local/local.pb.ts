@@ -29,7 +29,8 @@ export const AttachAccountRequest: MessageType<AttachAccountRequest> =
   )
 
 /**
- * AttachAccountResponse identifies the registered or previously attached Session.
+ * AttachAccountResponse identifies the registered or previously attached
+ * Session.
  *
  * @generated from message s4wave.provider.local.AttachAccountResponse
  */
@@ -55,8 +56,8 @@ export const AttachAccountResponse: MessageType<AttachAccountResponse> =
 export interface CompleteSpaceLinkEnrollmentRequest {
   /**
    * SessionPemPrivateKey is the Device's durable session private key. The
-   * local provider uses it only to seed this Device's own local session; it
-   * is never forwarded, logged, or copied to another peer.
+   * local provider uses it only to seed this Device's own local session. The
+   * key is never forwarded, logged, or copied to another peer.
    */
   sessionPemPrivateKey?: Uint8Array
   /**

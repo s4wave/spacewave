@@ -16,7 +16,7 @@ service ObjectTypeHandlerService {
 }
 
 // ObjectTypeBodyService renders a plugin's object bodies as JSON. A plugin
-// serves it on its handler root beside ObjectTypeHandlerService; the host
+// serves it on its handler root beside ObjectTypeHandlerService. The host
 // leaves the bodies of a plugin that does not serve it without JSON.
 service ObjectTypeBodyService {
   // MarshalBodiesJSON renders root block bodies of one ObjectType as JSON.
@@ -53,7 +53,8 @@ enum ObjectTypePortDirection {
 message ObjectTypePort {
   // Name is unique among the ObjectType's ports.
   string name = 1;
-  // Direction selects whether the port accepts or supplies.
+  // Direction selects whether the port accepts or supplies data or an
+  // activation.
   ObjectTypePortDirection direction = 2;
   // TypeId is the data contract of the port, such as stream or activation.
   string type_id = 3;
@@ -72,7 +73,8 @@ message ObjectTypeMetadata {
   // Ports declares the connection endpoints of the ObjectType's objects.
   repeated ObjectTypePort ports = 5;
   // Traits declares what the ObjectType's bodies declare about their
-  // objects. The host asks DeclareBodies only for a type that declares any.
+  // objects. The host asks DeclareBodies only for a type that declares any
+  // traits.
   ObjectTypeTraits traits = 6;
 }
 
@@ -80,7 +82,7 @@ message ObjectTypeMetadata {
 message ObjectTypeTraits {
   // Titled reports bodies that name their objects.
   bool titled = 1;
-  // Stateful reports bodies that name their objects' states.
+  // Stateful reports bodies that declare their objects' states.
   bool stateful = 2;
   // Dated reports bodies that carry the time their objects were made.
   bool dated = 3;
@@ -122,7 +124,8 @@ message RegisterObjectTypeResponse {
 
 // WatchObjectTypesRequest is the request for WatchObjectTypes.
 message WatchObjectTypesRequest {
-  // InstanceKey selects a logical installation; empty lists global registrations.
+  // InstanceKey selects a logical installation. An empty value lists global
+  // registrations.
   string instance_key = 1;
 }
 

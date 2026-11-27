@@ -281,8 +281,8 @@ export const EngineResourceServiceDefinition = {
     /**
      * WatchChanges streams each later World revision with the objects and graph
      * quads it changed since the previous message. The first request opens the
-     * stream; a stream opened with an interest takes later requests that change
-     * it, each acknowledged in order among the changes.
+     * stream. A stream opened with an interest takes later requests that change
+     * the interest, each acknowledged in order among the changes.
      *
      * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
      */
@@ -467,8 +467,8 @@ export interface EngineResourceService {
   /**
    * WatchChanges streams each later World revision with the objects and graph
    * quads it changed since the previous message. The first request opens the
-   * stream; a stream opened with an interest takes later requests that change
-   * it, each acknowledged in order among the changes.
+   * stream. A stream opened with an interest takes later requests that change
+   * the interest, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
@@ -662,8 +662,8 @@ export interface EngineResourceServiceHandler {
   /**
    * WatchChanges streams each later World revision with the objects and graph
    * quads it changed since the previous message. The first request opens the
-   * stream; a stream opened with an interest takes later requests that change
-   * it, each acknowledged in order among the changes.
+   * stream. A stream opened with an interest takes later requests that change
+   * the interest, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
@@ -990,8 +990,8 @@ export class EngineResourceServiceClient implements EngineResourceService {
   /**
    * WatchChanges streams each later World revision with the objects and graph
    * quads it changed since the previous message. The first request opens the
-   * stream; a stream opened with an interest takes later requests that change
-   * it, each acknowledged in order among the changes.
+   * stream. A stream opened with an interest takes later requests that change
+   * the interest, each acknowledged in order among the changes.
    *
    * @generated from rpc s4wave.world.EngineResourceService.WatchChanges
    */
@@ -3769,8 +3769,9 @@ export const TypedObjectResourceServiceDefinition = {
     },
     /**
      * WatchTypedObject reports initial and changing typed-handler availability.
-     * Live Worlds follow object creation, type changes and deletion; immutable
-     * World snapshots retain their object state while handler availability changes.
+     * Live Worlds follow object creation, type changes and deletion. Immutable
+     * World snapshots retain their object state while handler availability
+     * changes.
      * Loss or replacement releases the previous child before the next snapshot.
      * Canceling the stream releases its lookup demand and current child.
      * The stream never invokes or replays methods on a typed child.
@@ -3806,8 +3807,9 @@ export interface TypedObjectResourceService {
 
   /**
    * WatchTypedObject reports initial and changing typed-handler availability.
-   * Live Worlds follow object creation, type changes and deletion; immutable
-   * World snapshots retain their object state while handler availability changes.
+   * Live Worlds follow object creation, type changes and deletion. Immutable
+   * World snapshots retain their object state while handler availability
+   * changes.
    * Loss or replacement releases the previous child before the next snapshot.
    * Canceling the stream releases its lookup demand and current child.
    * The stream never invokes or replays methods on a typed child.
@@ -3841,8 +3843,9 @@ export interface TypedObjectResourceServiceHandler {
 
   /**
    * WatchTypedObject reports initial and changing typed-handler availability.
-   * Live Worlds follow object creation, type changes and deletion; immutable
-   * World snapshots retain their object state while handler availability changes.
+   * Live Worlds follow object creation, type changes and deletion. Immutable
+   * World snapshots retain their object state while handler availability
+   * changes.
    * Loss or replacement releases the previous child before the next snapshot.
    * Canceling the stream releases its lookup demand and current child.
    * The stream never invokes or replays methods on a typed child.
@@ -3891,8 +3894,9 @@ export class TypedObjectResourceServiceClient implements TypedObjectResourceServ
 
   /**
    * WatchTypedObject reports initial and changing typed-handler availability.
-   * Live Worlds follow object creation, type changes and deletion; immutable
-   * World snapshots retain their object state while handler availability changes.
+   * Live Worlds follow object creation, type changes and deletion. Immutable
+   * World snapshots retain their object state while handler availability
+   * changes.
    * Loss or replacement releases the previous child before the next snapshot.
    * Canceling the stream releases its lookup demand and current child.
    * The stream never invokes or replays methods on a typed child.

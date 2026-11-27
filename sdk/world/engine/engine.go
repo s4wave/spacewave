@@ -148,10 +148,10 @@ func (e *SDKEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches
 }
 
 // WatchIndexedChanges is WatchChanges for the changes interest accepts. When
-// the interest names every change it may accept, the remote engine indexes it
-// by those names and sends only the changes naming one; otherwise it sends
-// every change. Either way the interest filters here too, since a name may
-// match changes the interest rejects.
+// the interest lists every change it may accept, the remote engine indexes the
+// interest by those names and sends only the changes referencing one.
+// Otherwise the remote engine sends every change. Either way the interest
+// filters here too, since a name may match changes the interest rejects.
 func (e *SDKEngine) WatchIndexedChanges(ctx context.Context, afterSeqno uint64, interest *world.ChangeInterest, cb func(seqno uint64, changes *world.ChangeSet) error) error {
 	var delta *s4wave_world.ChangeInterestDelta
 	if keys, patterns, ok := interest.Names(); ok {

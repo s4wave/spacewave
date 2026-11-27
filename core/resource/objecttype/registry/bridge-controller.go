@@ -94,8 +94,9 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 				wait = getWait()
 			})
 
-			// Replace only this resolver's value; existing Resources keep their own
-			// handler lifetime and new lookups receive the admitted generation.
+			// Replace only this resolver's value. Existing Resources
+			// keep their own handler lifetime and new lookups receive
+			// the admitted generation.
 			if next != current {
 				if valueID != 0 {
 					handler.RemoveValue(valueID)
@@ -120,7 +121,7 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 
 // resolveMetadata resolves LookupObjectTypeMetadata from the registry. The value
 // is a copy of the visible registration's metadata, replaced when the
-// registration changes and removed when it is released.
+// registration changes and removed when the registration is released.
 func (c *BridgeController) resolveMetadata(dir s4wave_objecttype_registry.LookupObjectTypeMetadata) ([]directive.Resolver, error) {
 	typeID := dir.LookupObjectTypeMetadataTypeID()
 	if typeID == "" {
@@ -373,7 +374,8 @@ type pluginResourceSession struct {
 	caller objecttype.Caller
 
 	// openResources opens the ResourceClient generation. The alive callback
-	// reports whether the generation is still usable; nil means always.
+	// reports whether the generation is still usable. A nil callback means
+	// always.
 	openResources func(ctx context.Context) (*resource_client.Client, func(), func() bool, error)
 	// detachCtx outlives one request and is used to detach the engine.
 	detachCtx context.Context
@@ -526,7 +528,8 @@ func (s *pluginResourceSession) peekChildClient() srpc.Client {
 // currentClient returns a live child client, reconnecting when the session
 // was released or the plugin runtime dropped it.
 func (s *pluginResourceSession) currentClient(ctx context.Context) (srpc.Client, error) {
-	// Check the retained child before forwarding; Done closes after release drains.
+	// Check the retained child before forwarding. Done closes after release
+	// drains.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if s.childRef != nil && (s.alive == nil || s.alive()) {
@@ -605,7 +608,7 @@ type pluginObjectTypeInvoker struct {
 }
 
 // newPluginObjectTypeInvoker creates an invoker that connects to the plugin
-// instance named by reg and instanceKey and reconnects on released sessions.
+// instance selected by reg and instanceKey and reconnects on released sessions.
 func newPluginObjectTypeInvoker(
 	resourceClientCtx context.Context,
 	reg *s4wave_objecttype_registry.ObjectTypeRegistration,
@@ -635,7 +638,7 @@ func newPluginObjectTypeInvoker(
 }
 
 // InvokeMethod forwards one explicit method call and returns its original result.
-// Reconnection precedes the call; an invocation failure never replays the method.
+// Reconnection precedes the call. An invocation failure never replays the method.
 func (i *pluginObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	// Acquire the current child before starting the caller's explicit operation.
 	childClient, err := i.session.currentClient(strm.Context())
@@ -652,7 +655,7 @@ func (i *pluginObjectTypeInvoker) connect(ctx context.Context) error {
 	return i.session.connect(ctx)
 }
 
-// Close releases the currently connected plugin ObjectType resource.
+// Close releases the connected plugin ObjectType resource.
 func (i *pluginObjectTypeInvoker) Close() {
 	i.session.close()
 }

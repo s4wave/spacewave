@@ -202,7 +202,7 @@ func ValidateName(name string) error {
 	return nil
 }
 
-// Validate performs cursory checks of the Task object.
+// Validate checks the Task object cursorily.
 func (e *Task) Validate() error {
 	// Validate Task placement, state, timestamp, name, and replica requirements.
 	if p := e.GetPlacement(); p != nil {
@@ -294,7 +294,7 @@ func (e *Task) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor).
+// Note: the returned map does not include pending references (in a cursor).
 func (e *Task) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
 	m[7] = e.GetTargetRef()
@@ -333,7 +333,8 @@ func (e *Task) GetSubBlocks() map[uint32]block.SubBlock {
 }
 
 // GetSubBlockCtor returns a function which creates or returns the existing
-// sub-block at reference id. Can return nil to indicate invalid reference id.
+// sub-block at the reference id. Can return nil to indicate invalid reference
+// id.
 func (e *Task) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 8:

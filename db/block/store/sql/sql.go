@@ -32,7 +32,7 @@ import (
 // ErrAppendOnly is returned by RmBlock: the store never deletes a block.
 var ErrAppendOnly = errors.New("the SQL block store never deletes a block")
 
-// existsBatchSize bounds the hashes one existence query names.
+// existsBatchSize bounds the hashes one existence query selects.
 const existsBatchSize = 1000
 
 // minPacketBytes is the smallest statement budget assumed when the server's
@@ -55,7 +55,7 @@ func Open(conf *Config) (*sql.DB, error) {
 		port = 3306
 	}
 
-	// Name the login and database.
+	// Set the login and database.
 	mc := mysql.NewConfig()
 	mc.User, mc.Passwd = conf.User, conf.Password
 	mc.Net, mc.Addr = "tcp", net.JoinHostPort(conf.Host, strconv.FormatUint(uint64(port), 10))
@@ -282,12 +282,12 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 		return nil, errors.Wrap(err, "read block")
 	}
 
-	// Verify the bytes; a mismatch leaves the row as stored.
+	// Verify the bytes. A mismatch leaves the row as stored.
 	if err := block.VerifyRead(ref, data, string(s.storeID)); err != nil {
 		return nil, err
 	}
 
-	// Decode its refs; a NULL column means they are unknown.
+	// Decode the block's refs. A NULL column means the refs are unknown.
 	stored := &block.StoredBlock{Data: data}
 	if refs != nil {
 		if stored.Refs, err = decodeRefs(refs); err != nil {
@@ -312,7 +312,8 @@ func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, 
 func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	exists := make([]bool, len(refs))
 	for start := 0; start < len(refs); start += existsBatchSize {
-		// Name the chunk's hashes and map each back to its positions.
+		// Collect the chunk's hashes and map each back to its
+		// positions.
 		chunk := refs[start:min(start+existsBatchSize, len(refs))]
 		args := make([]any, 0, len(chunk)+1)
 		args = append(args, s.storeID)
@@ -355,11 +356,11 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 }
 
 // ListHashes returns up to limit row keys of the store after the key after
-// and before end, in key order; nil after lists from the first and nil end to
-// the last. A row key is the marshaled hash of the block.
+// and before end, in key order. Nil after lists from the first key and nil
+// end to the last key. A row key is the marshaled hash of the block.
 func (s *Store) ListHashes(ctx context.Context, after, end []byte, limit int) ([][]byte, error) {
-	// Read the next keys from the primary key; an empty key sorts first, where
-	// a NULL would match nothing.
+	// Read the next keys from the primary key. An empty key sorts first,
+	// where a NULL would match nothing.
 	if after == nil {
 		after = []byte{}
 	}
@@ -392,7 +393,8 @@ func (s *Store) ListHashes(ctx context.Context, after, end []byte, limit int) ([
 // overlap.
 func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
 	for start := 0; start < len(refs); start += existsBatchSize {
-		// Name the chunk's hashes and map each back to its positions.
+		// Collect the chunk's hashes and map each back to its
+		// positions.
 		chunk := refs[start:min(start+existsBatchSize, len(refs))]
 		args := make([]any, 0, len(chunk)+1)
 		args = append(args, s.storeID)
@@ -440,7 +442,8 @@ func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef,
 func (s *Store) passRows(ctx context.Context, rows *sql.Rows, refs []*block.BlockRef, at map[string][]int, gen uint64, fn block.StoredBlockFunc) error {
 	defer rows.Close()
 	for rows.Next() {
-		// Decode the row; a NULL refs column means they are unknown.
+		// Decode the row. A NULL refs column means the refs are
+		// unknown.
 		var key, encRefs, data []byte
 		if err := rows.Scan(&key, &encRefs, &data); err != nil {
 			return errors.Wrap(err, "read blocks")
@@ -454,7 +457,7 @@ func (s *Store) passRows(ctx context.Context, rows *sql.Rows, refs []*block.Bloc
 			stored.RefsSource = block.RefsListed
 		}
 
-		// Pass it to each position that names it.
+		// Pass the block to each position that references the block.
 		idx := at[string(key)]
 		delete(at, string(key))
 		for _, i := range idx {

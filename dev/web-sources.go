@@ -27,8 +27,8 @@ const (
 // ensureWebSources materializes the spacewave web sources for a downstream app.
 // go mod vendor strips spacewave's pure-TS web dirs from the vendor tree, so the
 // bldr build cannot resolve @s4wave/web from .bldr/src/vendor. The full source
-// lives in the spacewave module dir (module cache, or a local replace target);
-// link it to .s4wave/web, where the bldr web pkg resolver looks for a
+// lives in the spacewave module dir (module cache, or a local replace target).
+// Link the source to .s4wave/web, where the bldr web pkg resolver looks for a
 // materialized "@scope/name". Best effort: on failure the existing resolver
 // stages run and surface the original build error.
 func ensureWebSources(ctx context.Context, args *bldr_devtool.DevtoolArgs) {

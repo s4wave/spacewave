@@ -17,7 +17,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the Cluster object to attach to.
-   * If not exists, waits for it to exist.
+   * If the Cluster object does not exist, the controller waits for it to exist.
    *
    * Executions are created at <object-key>/execution/<object-rev>/<replica>
    */

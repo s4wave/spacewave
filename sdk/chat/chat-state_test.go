@@ -89,7 +89,8 @@ func TestChatStateConditionalWrite(t *testing.T) {
 		t.Fatalf("rejected writes changed history count to %d, want 2", info.GetMessageCount())
 	}
 
-	// An accepted retry keeps its identity; a fresh matching condition can clear state.
+	// An accepted retry keeps its identity. A fresh matching condition can
+	// clear state.
 	retried, err := cleaner.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)

@@ -248,7 +248,7 @@ describe('watchKeyedSet', () => {
     await set.settled()
     w.ack(1n, w.seqno)
 
-    // b is linked and read at R; its own names are followed only from the
+    // b is linked and read at R. Its own names are followed only from the
     // ack's L, so a change to b between R and L reaches the set only
     // through the re-read the ack causes.
     w.link('b', true, 'b1')
@@ -273,7 +273,7 @@ describe('watchKeyedSet', () => {
     expect(rowsOf(await set.settled())).toEqual({ a: 'a1' })
 
     // b is linked after the listing, in a commit the stream passes before
-    // it follows the pattern; the ack past the listing lists again.
+    // it follows the pattern. The ack past the listing lists again.
     w.join('b', 'b1')
     w.ack(2n, w.seqno)
     expect(rowsOf(await set.settled())).toEqual({ a: 'a1', b: 'b1' })

@@ -73,7 +73,7 @@ func TestBasicWriter(t *testing.T) {
 		t.Fatalf("output mismatch: %v != %v", ob, testBuf)
 	}
 
-	// truncate down to 4 characters - "test"
+	// truncate down to 4 characters: "test"
 	writer = NewWriter(w1handle, btx, nil)
 	err = writer.Truncate(4)
 	if err == nil {
@@ -93,7 +93,7 @@ func TestBasicWriter(t *testing.T) {
 	}
 
 	// truncate to extend file len back up to 8 characters.
-	// expect the last 4 to be zeros
+	// expect the last 4 characters to be zeros
 	err = writer.Truncate(8)
 	if err == nil {
 		_, err = w1handle.Seek(0, io.SeekStart)

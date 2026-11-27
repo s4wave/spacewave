@@ -52,7 +52,7 @@ func (r *BlockTransactionResource) Write(ctx context.Context, req *s4wave_block_
 		RootRef: rootRef,
 	}
 
-	// If we didn't clear the tree, return the root cursor resource
+	// Return the root cursor resource if the transaction retained the tree.
 	if !req.GetClearTree() && rootCursor != nil {
 		// Find the resource client that will retain the returned root cursor.
 		resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)

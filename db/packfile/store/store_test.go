@@ -33,7 +33,7 @@ type bytesTransport struct {
 	bcast broadcast.Broadcast
 	// calls records each (off, len) pair.
 	calls []fetchCall
-	// blockFn optionally blocks Fetch until it returns.
+	// blockFn optionally blocks Fetch until blockFn returns.
 	blockFn func()
 	// rewriteFn optionally rewrites the returned bytes per call index.
 	rewriteFn func(call int, off int64, data []byte) []byte
@@ -222,7 +222,7 @@ func openerFromBytes(data []byte) (Opener, *bytesTransport) {
 }
 
 // waitFor retries a condition only after its owner broadcasts a state change.
-// The timeout is a hang backstop; successful waits depend on notifications.
+// The timeout is a hang backstop. Successful waits depend on notifications.
 func waitFor(t *testing.T, cond func() (bool, <-chan struct{})) bool {
 	t.Helper()
 	waitCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
@@ -791,9 +791,9 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	}
 }
 
-// TestPackfileStoreProbeSurvivesManifestChange verifies a lookup whose pack a
-// compaction replaces while the lookup reads it finds the block in the merged
-// pack instead of failing with the closed reader.
+// TestPackfileStoreProbeSurvivesManifestChange verifies that a lookup finds
+// the block in the merged pack when compaction replaces its pack during the
+// read, instead of failing with the closed reader.
 func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
 	// Publish an old pack whose index read waits for its reader to close.
 	ctx := t.Context()
@@ -1866,7 +1866,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 	// Attach the writeback target for trailer-promoted blocks.
 	wb := newWritebackStore(nil)
 
-	// Window of 1 means target-only semantic alignment; but the trailer
+	// A window of 1 means target-only semantic alignment, but the trailer
 	// fetch already covered everything so promotion should still publish
 	// all blocks.
 	store.SetWriteback(ctx, wb, 1)
@@ -2152,7 +2152,8 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 		done1 <- err
 	}()
 
-	// Ensure first goroutine is in the transport before starting second.
+	// Ensure the first goroutine is in the transport before starting the
+	// second.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		return transport.callCountAtLeast(1)
 	}) {

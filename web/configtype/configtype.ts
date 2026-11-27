@@ -13,8 +13,8 @@ export interface ConfigEditorProps<T> {
 
 // StaticConfigTypeRegistration describes a config type editor registration.
 // Static (compiled-in) registrations provide messageType for automatic
-// bytes<->typed conversion; the editor receives ConfigEditorProps<T>.
-// Dynamic (plugin SRPC) registrations omit messageType; the editor receives
+// bytes<->typed conversion. The editor receives ConfigEditorProps<T>.
+// Dynamic (plugin SRPC) registrations omit messageType. The editor receives
 // ConfigEditorProps<Uint8Array> and handles its own proto serialization.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface StaticConfigTypeRegistration<T extends Message<T> = any> {
@@ -25,7 +25,8 @@ export interface StaticConfigTypeRegistration<T extends Message<T> = any> {
   // category groups the config type in the UI (e.g. "Forge", "Code").
   category?: string
   // messageType is the protobuf MessageType for bytes<->typed conversion.
-  // Optional for dynamic registrations that handle serialization internally.
+  // messageType is optional for dynamic registrations that handle serialization
+  // internally.
   messageType?: MessageType<T>
   // component is the React component that edits this config type.
   component: ComponentType<ConfigEditorProps<T>>

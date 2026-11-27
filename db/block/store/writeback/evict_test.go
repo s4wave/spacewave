@@ -373,8 +373,9 @@ func TestEvictRefusedRetry(t *testing.T) {
 					t.Fatalf("local read after restart retry = %q, %v, %v", got, found, err)
 				}
 
-				// Restore remote possession without synthesizing an upload for
-				// the unmarked block; clear a real marker through Upload.
+				// Restore remote possession without
+				// synthesizing an upload for the unmarked block.
+				// Clear a real marker through Upload.
 				if _, _, err := remote.PutBlock(ctx, data, leafOpts); err != nil {
 					t.Fatal(err)
 				}
@@ -403,7 +404,7 @@ func TestEvictRefusedRetry(t *testing.T) {
 // TestEvictPermanentRefusalDoesNotStarve crosses a batch boundary of refused
 // entries at a one-byte target and still reaches a remotely held value.
 func TestEvictPermanentRefusalDoesNotStarve(t *testing.T) {
-	// Queue only unmarked fills; every entry but the last lacks a remote copy.
+	// Queue only unmarked fills. Every entry but the last lacks a remote copy.
 	SetEvictRefusedRetry(true)
 	t.Cleanup(func() { SetEvictRefusedRetry(false) })
 	ctx := t.Context()
@@ -435,8 +436,8 @@ func TestEvictPermanentRefusalDoesNotStarve(t *testing.T) {
 	}
 	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(entries)) })
 
-	// Each refused entry is counted once while the held block is evicted;
-	// another pass returns despite the permanently absent remote copies.
+	// Each refused entry is counted once while the held block is evicted.
+	// Another pass returns despite the permanently absent remote copies.
 	result, err := s.Evict(ctx, remote, 1, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -611,7 +612,7 @@ func (c *countingMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.
 
 // TestEvictBatchesByBytes checks that once the drop writes run fast, one
 // eviction batch carries 8,192 blocks of 3 KiB, 24 MiB, in one drop write and
-// one queue commit, where a batch of 1,024 blocks took eight of each; and that
+// one queue commit, where a batch of 1,024 blocks took eight of each, and that
 // the batch limit follows the drop write's time, halving when a write runs
 // long and staying within its bounds.
 func TestEvictBatchesByBytes(t *testing.T) {
@@ -749,8 +750,8 @@ func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
 
 	t.Logf("drop writes of %v blocks took %v", values.writes, values.took)
 
-	// The first write takes the open's limit of 1,024 blocks; from the
-	// fourth on, each takes near the target, never several times it.
+	// The first write takes the open's limit of 1,024 blocks. From the
+	// fourth write on, each takes near the target, never several times it.
 	if values.writes[0] != evictBatchStartBlocks {
 		t.Fatalf("first drop write took %d blocks, want %d", values.writes[0], evictBatchStartBlocks)
 	}
@@ -1224,7 +1225,7 @@ func TestMarkedRefusalDuplicateEpochCounterexample(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Marker creation already removed H; the second one-byte pass evicts B.
+	// Marker creation already removed H. The second one-byte pass evicts B.
 	result, err = s.Evict(ctx, remote, 1, nil, nil)
 	if err != nil || result.Refused != 0 || result.Evicted != 1 {
 		t.Fatalf("second pass = %+v, %v", result, err)

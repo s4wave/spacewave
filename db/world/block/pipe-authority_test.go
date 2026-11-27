@@ -73,7 +73,8 @@ func (a *pipeAuthority) Begin(ctx context.Context) (world.Turn, error) {
 	return &pipeTurn{a: a, base: base, release: release}, nil
 }
 
-// waitAdmitted waits until n candidates were admitted and returns the nth.
+// waitAdmitted waits until n candidates were admitted and returns the nth
+// candidate.
 func (a *pipeAuthority) waitAdmitted(t *testing.T, n int) *pipeAdmission {
 	t.Helper()
 	for {
@@ -209,7 +210,7 @@ func (a *pipeAdmission) resolve(head world.Head, decision world.Decision) {
 // Seqno returns the candidate's seqno.
 func (a *pipeAdmission) Seqno() uint64 { return a.candidate.Seqno }
 
-// Head returns the decided head, or the zero Head before.
+// Head returns the decided head, or the zero Head before the decision.
 func (a *pipeAdmission) Head() world.Head {
 	select {
 	case <-a.decided:

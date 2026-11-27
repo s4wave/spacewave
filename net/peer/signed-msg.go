@@ -94,7 +94,7 @@ func (m *SignedMsg) ExtractPubKey() (crypto.PubKey, ID, error) {
 	return pubKey, fromPeerID, nil
 }
 
-// ExtractAndVerify extracts public key & uses it to verify message
+// ExtractAndVerify extracts the public key & uses it to verify the message.
 //
 // encContext must match the context used when creating the signature.
 func (m *SignedMsg) ExtractAndVerify(encContext string) (crypto.PubKey, ID, error) {

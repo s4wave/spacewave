@@ -22,14 +22,14 @@ import (
 
 // Daemon implements the Hydra daemon.
 type Daemon struct {
-	// Peer contains the peer private key
+	// Peer contains the peer private key.
 	peer.Peer
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
 	// bus is the controller bus.
 	bus bus.Bus
 
-	// closeCbs are funcs to call when we close the daemon
+	// closeCbs are funcs to call when the daemon closes.
 	closeCbs []func()
 }
 

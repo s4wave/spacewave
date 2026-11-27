@@ -26,8 +26,8 @@ func rootSetOp(t *testing.T, fence []byte, roots ...*block.BlockRef) []byte {
 	return op
 }
 
-// testRef returns the reference of a block with data, which the fence only
-// collects.
+// testRef returns the reference of a block with data. The fence only collects
+// the reference.
 func testRef(t *testing.T, data string) *block.BlockRef {
 	t.Helper()
 	ref, err := block.BuildBlockRef([]byte(data), nil)
@@ -74,11 +74,11 @@ func waitFence(ctx context.Context, t *testing.T, so sobject.SharedObject, skip 
 	return fence
 }
 
-// TestAdapterStorageFence checks the storage fence against the ways it could
-// let a pass delete a live block: it waits for every writer, the trimming
-// roster's dropped ones included; an answer to an earlier fence does not
-// count; a device that joins after the fence does not hold the pass; and a
-// writer that never answers fails the pass, which then returns no roots.
+// TestAdapterStorageFence checks the storage fence against the ways the fence
+// could let a pass delete a live block. The fence waits for every writer,
+// including writers the trimming roster dropped. An answer to an earlier fence
+// does not count. A device that joins after the fence does not hold the pass.
+// A writer that never answers fails the pass, so the pass returns no roots.
 func TestAdapterStorageFence(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -132,8 +132,8 @@ func TestAdapterStorageFence(t *testing.T) {
 	pending("with a stale answer")
 	addDevice(t, so)
 
-	// The other writer's answer completes it with every writer's roots and
-	// this device's own.
+	// The other writer's answer completes the fence with every writer's
+	// roots and this device's own roots.
 	d2.write(t, so, rootSetOp(t, fence, r2), false, false)
 	r := <-done
 	if r.err != nil {
@@ -204,7 +204,7 @@ func opCount(ctx context.Context, t *testing.T, so sobject.SharedObject) int {
 
 // TestReplayWorldIgnoresFence checks that replay encodes a Space's World to
 // the same bytes every time, and after a fence and its answer, which change
-// nothing in the World. A transfer names the World it moved by the hash of
+// nothing in the World. A transfer identifies the World it moved by the hash of
 // those bytes, so a replay that differed would move the Space again, and a
 // fence that changed them would keep a moved source from being deleted.
 func TestReplayWorldIgnoresFence(t *testing.T) {

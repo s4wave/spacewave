@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// buildBucketAPIResolver resolves BuildBucketAPI directives
+// buildBucketAPIResolver resolves BuildBucketAPI directives.
 type buildBucketAPIResolver struct {
 	c   *Controller
 	dir bucket.BuildBucketAPI
@@ -23,7 +23,7 @@ func (o *buildBucketAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
-	// remove any old values we pushed
+	// Remove any old values the resolver pushed.
 	handler.ClearValues()
 
 	// make sure the volume ID matches
@@ -37,12 +37,12 @@ func (o *buildBucketAPIResolver) Resolve(
 		return nil
 	}
 
-	// add reference to bucket
+	// Add a reference to the bucket.
 	bucketID := o.dir.BuildBucketAPIBucketID()
 	ref, ht, _ := o.c.bucketHandles.AddKeyRef(bucketID)
 	defer ref.Release()
 
-	// wait for bucket api to be built
+	// Wait for the bucket API to be built.
 	var handle *bucketHandle
 	for {
 		handle, err = ht.handleCtr.WaitValueChange(ctx, handle, nil)
@@ -63,7 +63,7 @@ func (c *Controller) resolveBuildBucketAPI(
 	di directive.Instance,
 	dir bucket.BuildBucketAPI,
 ) (directive.Resolver, error) {
-	// check if we can immediately reject this directive.
+	// Check if the controller can immediately reject this directive.
 	if vb := c.volume.GetValue(); vb != nil {
 		vol := vb.vol
 		volID := vol.GetID()
@@ -73,7 +73,7 @@ func (c *Controller) resolveBuildBucketAPI(
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &buildBucketAPIResolver{c: c, dir: dir}, nil
 }
 

@@ -24,7 +24,7 @@ type Constructor func(
 // Volume stores data with an associated peer ID.
 type Volume interface {
 	// GetID returns the volume ID.
-	// Usually this is derived from the peer ID and volume type.
+	// Usually the volume ID is derived from the peer ID and volume type.
 	GetID() string
 
 	// GetPeerID returns the volume peer ID.
@@ -120,7 +120,7 @@ func WaitDurable(ctx context.Context, vol Volume) error {
 
 // NewVolumeID constructs a new volume ID with a store type id and a peer id.
 //
-// storeTypeID should be like "hydra/volume/kvtxinmem"
+// storeTypeID should be like "hydra/volume/kvtxinmem".
 func NewVolumeID(storeTypeID string, peerID peer.ID) string {
 	return strings.Join([]string{
 		storeTypeID,
@@ -134,7 +134,7 @@ type Controller interface {
 	controller.Controller
 
 	// GetVolume returns the controlled volume.
-	// This may wait for the volume to be ready.
+	// This call may wait for the volume to be ready.
 	GetVolume(ctx context.Context) (Volume, error)
 	// BuildBucketAPI builds an API handle for the bucket ID in the volume.
 	// Returns the handle & a release function, or (nil, nil, err).
@@ -153,5 +153,5 @@ type ObjectStoreHandle interface {
 	GetObjectStore() object.ObjectStore
 }
 
-// this assertion ensure LookupBlockStore matches Volume
+// _ asserts that LookupBlockStore matches Volume.
 var _ block_store.Store = Volume(nil)

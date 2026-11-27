@@ -106,7 +106,8 @@ func TestMySQLWorldEndpoint(t *testing.T) {
 		t.Fatalf("reconnect body=%q err=%v", body, err)
 	}
 
-	// A command whose client left while it waited for the writer never executes.
+	// A command whose client left while the command waited for the writer never
+	// executes.
 	held, err := other.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -176,9 +177,10 @@ func (w *heldWorld) ApplyWorldOp(ctx context.Context, op world.Operation, sender
 }
 
 // abandonMySQLCommand sends query on its own connection and leaves without
-// reading the reply, after working closes when it is non-nil. It returns once
-// the server has closed the connection. The server cancels an abandoned command
-// before it closes the socket, so by then the endpoint has seen the client go.
+// reading the reply, after working closes when working is non-nil.
+// abandonMySQLCommand returns once the server has closed the connection.
+// The server cancels an abandoned command before it closes the socket, so by
+// then the endpoint has seen the client go.
 func abandonMySQLCommand(t *testing.T, ctx context.Context, addr, query string, working <-chan struct{}) {
 	// Select no database: that would wait behind the writer a caller may hold.
 	t.Helper()

@@ -35,7 +35,8 @@ import (
 // buildTypes adds the types whose packages differ between builds. Plugins
 // resolve the operations and block types they own, such as SQL, themselves.
 // A native program that hosts Git objects adds their types by importing
-// core/space/world/optypes/git; one that does not links no Git code.
+// core/space/world/optypes/git. A native program without that import links no
+// Git code.
 var schema = world.NewSchema(
 	space_world_ops.Types,
 	s4wave_kv_world.WorldTypes,

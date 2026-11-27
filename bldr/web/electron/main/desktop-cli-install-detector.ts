@@ -20,8 +20,8 @@ export interface DesktopCLIInstallProbe {
   ): Promise<DesktopCLIEntrypointIdentity | undefined>
 }
 
-// DesktopCLIInstallDetectionOpts configures a desktop CLI install state
-// detection pass.
+// DesktopCLIInstallDetectionOpts configures a pass to detect the desktop CLI
+// install state.
 export interface DesktopCLIInstallDetectionOpts {
   homeDir: string
   pathEntries: string[]
@@ -31,7 +31,7 @@ export interface DesktopCLIInstallDetectionOpts {
   probe: DesktopCLIInstallProbe
 }
 
-// CLIInstallStateGenerationOpts carries the install-action gating flags
+// CLIInstallStateGenerationOpts has the install-action gating flags
 // for one state generation.
 export interface CLIInstallStateGenerationOpts {
   installActionsEnabled?: boolean

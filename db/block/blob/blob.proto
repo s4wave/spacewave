@@ -85,11 +85,11 @@ enum ChunkerType {
 //
 // ChunkerType_RABIN
 message RabinArgs {
-  // Rabin polynomial.
+  // Pol is the Rabin polynomial.
   // Optional.
   uint64 pol = 1;
   // RandomPol enables randomizing pol instead of using the default.
-  // This is not recommended.
+  // Randomizing pol is not recommended.
   // If pol != 0 this field is ignored.
   bool random_pol = 4;
 

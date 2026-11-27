@@ -42,7 +42,8 @@ func TestRefusedParticipantAdoptsConfigSuffix(t *testing.T) {
 			t.Cleanup(staleHost.ClearContext)
 			stalePeer := NewSOSync(gateLogger(), nil, nil, soID, mustPeerID(t, stale), stale, staleHost, nopPeerObserver{})
 
-			// The added key holds a config one change later that lists it.
+			// The peer with the added key holds a config one change
+			// later that lists the key.
 			aheadState, aheadGenesis := staleState.CloneVT(), staleGenesis
 			signer := owner
 			if test.unrelated {

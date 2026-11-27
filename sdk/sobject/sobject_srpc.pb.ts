@@ -87,8 +87,8 @@ export const SharedObjectResourceServiceDefinition = {
     /**
      * InspectSharedObjectOrder walks the mounted Space's agreed order from its
      * checkpoint to the head and reports what this build reads of each
-     * operation. It reads the state and the saved replay cursor and writes
-     * nothing.
+     * operation. InspectSharedObjectOrder reads the state and the saved replay
+     * cursor and writes nothing.
      *
      * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
      */
@@ -157,8 +157,8 @@ export interface SharedObjectResourceService {
   /**
    * InspectSharedObjectOrder walks the mounted Space's agreed order from its
    * checkpoint to the head and reports what this build reads of each
-   * operation. It reads the state and the saved replay cursor and writes
-   * nothing.
+   * operation. InspectSharedObjectOrder reads the state and the saved replay
+   * cursor and writes nothing.
    *
    * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
    */
@@ -229,8 +229,8 @@ export interface SharedObjectResourceServiceHandler {
   /**
    * InspectSharedObjectOrder walks the mounted Space's agreed order from its
    * checkpoint to the head and reports what this build reads of each
-   * operation. It reads the state and the saved replay cursor and writes
-   * nothing.
+   * operation. InspectSharedObjectOrder reads the state and the saved replay
+   * cursor and writes nothing.
    *
    * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
    */
@@ -355,8 +355,8 @@ export class SharedObjectResourceServiceClient implements SharedObjectResourceSe
   /**
    * InspectSharedObjectOrder walks the mounted Space's agreed order from its
    * checkpoint to the head and reports what this build reads of each
-   * operation. It reads the state and the saved replay cursor and writes
-   * nothing.
+   * operation. InspectSharedObjectOrder reads the state and the saved replay
+   * cursor and writes nothing.
    *
    * @generated from rpc s4wave.sobject.SharedObjectResourceService.InspectSharedObjectOrder
    */

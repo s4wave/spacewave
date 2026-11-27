@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestSimpleGraph tests constructing a simple network graph
+// TestSimpleGraph tests constructing a simple network graph.
 func TestSimpleGraph(t *testing.T) {
 	// Create two disconnected LANs in the simulated network graph.
 	g := NewGraph()
@@ -22,7 +22,7 @@ func TestSimpleGraph(t *testing.T) {
 		return p
 	}
 
-	// assertLinkedPeerCount asserts the number of linked peers
+	// assertLinkedPeerCount asserts the number of linked peers.
 	assertLinkedPeerCount := func(p1 *Peer, count int) {
 		lp := p1.GetLinkedPeers(g)
 		if len(lp) != count {
@@ -94,7 +94,7 @@ func TestSimpleGraph(t *testing.T) {
 		assertReachability(p2, p1, expected)
 	}
 
-	// Connect the LANs together (we expect reachability now).
+	// Connect the LANs together (reachability is expected now).
 	assertNetworkCrossCommunication(false)
 	lan1.AddConnectionToLAN(g, lan2)
 	assertNetworkCrossCommunication(true)

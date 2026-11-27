@@ -7,7 +7,7 @@ message Config {
   string web_runtime_id = 1;
   // ForceDedicatedWorkers overrides the default SharedWorker mode to use
   // dedicated Workers instead. Useful for testing with Playwright which
-  // can capture console output from dedicated workers but not shared.
+  // can capture console output from dedicated workers but not shared workers.
   bool force_dedicated_workers = 2;
   // PlatformId is the plugin platform this host serves.
   string platform_id = 3;

@@ -711,8 +711,8 @@ func readRaceFile(ctx context.Context, t *testing.T, fsHandle *unixfs.FSHandle, 
 
 // TestBatchFSWriter_RaceConflictRefuses has a second writer create a path the
 // upload expects missing, just before each of the upload's four attempts, with
-// unrelated writes losing the races before it. The upload must refuse with a
-// FileConflictError and leave the other writer's bytes in place.
+// unrelated writes losing the races before the conflict. The upload must refuse
+// with a FileConflictError and leave the other writer's bytes in place.
 func TestBatchFSWriter_RaceConflictRefuses(t *testing.T) {
 	for k := 1; k <= 4; k++ {
 		t.Run(fmt.Sprintf("attempt-%d", k), func(t *testing.T) {
@@ -811,7 +811,8 @@ func TestBatchFSWriter_RaceUnrelatedPublishes(t *testing.T) {
 }
 
 // TestBatchFSWriter_CancelledCommitLeavesRoot cancels a Commit after its merge
-// and before its publication; the filesystem root must not change.
+// and before its publication, and checks that the filesystem root does not
+// change.
 func TestBatchFSWriter_CancelledCommitLeavesRoot(t *testing.T) {
 	// Start a filesystem and an upload, and record the root before it.
 	ctx := context.Background()
@@ -863,9 +864,9 @@ func (c *stageRootCounter) RecordBatchFSWriterMetric(metric unixfs_world.BatchFS
 // TestBatchFSWriter_StageHoldsTreeTop uploads 30,000 files in 300 directories
 // and counts the stage roots left when the upload publishes: once with every
 // file small enough for its file node to embed, which builds no blob, and once
-// with every tenth file over that size, whose blob its directory's put names
-// through the stage that holds it. Either way the stage keeps only the top of
-// the tree for its release, not a root per file.
+// with every tenth file over that size, whose blob its directory's put
+// references through the stage that holds it. Either way the stage keeps only
+// the top of the tree for its release, not a root per file.
 func TestBatchFSWriter_StageHoldsTreeTop(t *testing.T) {
 	for _, tc := range []struct {
 		name string

@@ -25,7 +25,8 @@ export interface INotebookHandle {
     abortSignal?: AbortSignal,
   ): Promise<NotebookEditOutcome>
 
-  // removeSource removes the source at index while it is still source.
+  // removeSource removes the source at index while that source still equals
+  // source.
   removeSource(
     index: number,
     source: NotebookSource,
@@ -42,7 +43,7 @@ export interface INotebookHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose supports the 'using' statement.
   [Symbol.dispose](): void
 }
 
@@ -84,7 +85,8 @@ export class NotebookHandle extends Resource implements INotebookHandle {
     return resp.outcome ?? 0
   }
 
-  // removeSource removes the source at index while it is still source.
+  // removeSource removes the source at index while that source still equals
+  // source.
   public async removeSource(
     index: number,
     source: NotebookSource,

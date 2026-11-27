@@ -8,7 +8,7 @@ export interface LoadingRate {
 }
 
 // LoadingView is the contract between adapters and primitives. Adapters in
-// app/loading/status/* produce these views; primitives in web/ui/loading/*
+// app/loading/status/* produce these views. Primitives in web/ui/loading/*
 // consume them. Optional fields render nothing when absent.
 export interface LoadingView {
   state: LoadingState

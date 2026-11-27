@@ -388,7 +388,7 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (*exec.Cmd, strin
 	// Build the holder subprocess command and pipe identity output.
 	t.Helper()
 
-	// The subprocess is this test binary; no external input reaches argv.
+	// The subprocess is this test binary. No external input reaches argv.
 	cmd := exec.Command(os.Args[0], "-test.run=^TestStatePathLeaseHolderProcess$") //nolint:gosec
 
 	// Wire the environment, stdout, and stdin pipes for the holder.
@@ -442,7 +442,8 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (*exec.Cmd, strin
 }
 
 // TestStateLeasePrecedesSocketCleanup rejects another socket under the same
-// writable root before it can remove the first runtime's socket pathname.
+// writable root before the second starter can remove the first runtime's
+// socket pathname.
 func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
 	// Hold a runtime lease while a second starter sees a stale-looking socket.
 	statePath := shortSocketDir(t)

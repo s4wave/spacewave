@@ -52,7 +52,7 @@ func setupTestbed(t *testing.T) (context.Context, *unixfs.FSHandle, billy.Filesy
 	return ctx, rref, outFs
 }
 
-// TestSyncSimpleFile tests syncing a single file
+// TestSyncSimpleFile tests syncing a single file.
 func TestSyncSimpleFile(t *testing.T) {
 	// Start the source and destination filesystems for the file sync.
 	ctx, rref, outFs := setupTestbed(t)
@@ -84,7 +84,7 @@ func TestSyncSimpleFile(t *testing.T) {
 	}
 }
 
-// TestSyncDirectory tests syncing a directory structure
+// TestSyncDirectory tests syncing a directory structure.
 func TestSyncDirectory(t *testing.T) {
 	// Start the source and destination filesystems for the directory sync.
 	ctx, rref, outFs := setupTestbed(t)
@@ -131,7 +131,7 @@ func TestSyncDirectory(t *testing.T) {
 	}
 }
 
-// TestSyncDeleteModes tests different delete modes
+// TestSyncDeleteModes tests different delete modes.
 func TestSyncDeleteModes(t *testing.T) {
 	// Cover each deletion policy with an independent filesystem pair.
 	testCases := []struct {
@@ -190,7 +190,8 @@ func TestSyncDeleteModes(t *testing.T) {
 	}
 }
 
-// TestSyncLargeFileWithAppend tests syncing a large file and then appending to it
+// TestSyncLargeFileWithAppend tests syncing a large file and then appending
+// to it.
 func TestSyncLargeFileWithAppend(t *testing.T) {
 	// Start a UnixFS destination for the disk file sync.
 	ctx, rref, _ := setupTestbed(t)
@@ -346,7 +347,7 @@ func TestSyncSymlinksToBilly(t *testing.T) {
 }
 
 // TestSyncSymlinksToUnixfs verifies that SyncToUnixfs round-trips symlinks
-// across two independent UnixFS testbeds. This exercises the billy wrapper
+// across two independent UnixFS testbeds. This test exercises the billy wrapper
 // that SyncToUnixfs interposes over the destination handle so symlink writes
 // land as UnixFS symlink nodes rather than being silently dropped.
 func TestSyncSymlinksToUnixfs(t *testing.T) {
@@ -427,7 +428,7 @@ func TestSyncSymlinksToUnixfs(t *testing.T) {
 	}
 }
 
-// TestSyncWithFilter tests syncing with a filter callback
+// TestSyncWithFilter tests syncing with a filter callback.
 func TestSyncWithFilter(t *testing.T) {
 	// Start a filesystem pair for the filtered sync.
 	ctx, rref, outFs := setupTestbed(t)

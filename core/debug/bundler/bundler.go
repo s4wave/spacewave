@@ -76,7 +76,7 @@ func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error)
 		return "", err
 	}
 
-	// Make script path absolute then relative to source root.
+	// Make the script path absolute then relative to the source root.
 	absScript, err := filepath.Abs(scriptPath)
 	if err != nil {
 		return "", errors.Wrap(err, "resolve script path")
@@ -86,7 +86,7 @@ func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error)
 		return "", errors.Errorf("script %s is outside project root %s", scriptPath, b.sourcePath)
 	}
 
-	// Create output directory.
+	// Create the output directory.
 	outDir := filepath.Join(b.workingPath, "out")
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return "", errors.Wrap(err, "create output dir")
@@ -231,7 +231,7 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 		return err
 	}
 
-	// Create pipe listener for IPC.
+	// Create a pipe listener for IPC.
 	pipeListener, err := pipesock.BuildPipeListener(b.le, b.workingPath, pipeUuid)
 	if err != nil {
 		ready <- viteStartResult{err: errors.Wrap(err, "create pipe listener")}

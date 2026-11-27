@@ -42,7 +42,8 @@ const (
 	bootOrderCDFirst    = 0x123
 )
 
-// cmosDevice models the MC146818 CMOS RTC: index/data register pairs, the
+// cmosDevice models the MC146818 CMOS RTC: its index/data register pair, the
+// clock, and interrupts.
 type cmosDevice struct {
 	host                  *HostRuntime
 	index                 byte
@@ -172,7 +173,7 @@ func (c *cmosDevice) read(ctx context.Context) byte {
 	}
 }
 
-// write stores an indexed register byte; status-register writes reprogram
+// write stores an indexed register byte. Status-register writes reprogram
 // the periodic, alarm, and update interrupt schedule.
 func (c *cmosDevice) write(_ context.Context, value byte) {
 	switch c.index {
@@ -236,7 +237,9 @@ func (c *cmosDevice) decodeTime(value byte) int {
 	return bcdUnpack(value)
 }
 
-// timer returns the milliseconds until the next periodic or update
+// timer advances the clock, raises each due periodic, alarm or update
+// interrupt, and returns the milliseconds until the next enabled one, at most
+// 100.
 func (c *cmosDevice) timer(ctx context.Context) float64 {
 	// Advance the CMOS clock by elapsed host time.
 	now := time.Now().UnixMilli()
@@ -280,7 +283,8 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 	return next
 }
 
-// alarmTime converts the programmed alarm registers into the next alarm
+// alarmTime converts the programmed alarm registers into a time on the UTC day
+// of nowMillis.
 func (c *cmosDevice) alarmTime(nowMillis int64) int64 {
 	now := time.UnixMilli(nowMillis).UTC()
 	return time.Date(

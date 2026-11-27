@@ -99,7 +99,7 @@ func TestRequirementPlacement(t *testing.T) {
 		reconcilers[deviceKey] = r
 	}
 
-	// One selector matches; oversized and unsupported requests remain waiting.
+	// One selector matches. Oversized and unsupported requests remain waiting.
 	updateRequirements(t, ctx, engine, &s4wave_flowgraph.UpdateFlowgraphRequest{SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
 		"selected":  requirementNode(250, "docker", map[string]string{"gpu": "true"}),
 		"too-large": requirementNode(3000, "docker", nil),
@@ -223,7 +223,8 @@ func TestRequirementPlacement(t *testing.T) {
 		t.Fatal("claim did not retry its stale World transaction")
 	}
 
-	// Removal releases in the same write, before either reconciler observes it.
+	// Removal releases the grant in the same write, before either reconciler
+	// observes the removal.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		if _, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{RemovePlacementNodeIds: []string{"race"}, RemoveNodeIds: []string{"race"}}); err != nil {
 			return err

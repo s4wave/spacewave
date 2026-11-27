@@ -29,11 +29,12 @@ const nodeClearQueue = 32
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
 type NodePushConfig struct {
-	// StoreID names the one block store to push: a node serves one connection,
-	// so a second store, on any account, would keep replacing the first. The
-	// node uploads to one backend, so the store must not move to another while
-	// the push runs: a report in flight could clear a block the new backend
-	// lacks, which only the old one would then hold.
+	// StoreID selects the one block store to push: a node serves one
+	// connection, so a second store, on any account, would keep replacing
+	// the first. The node uploads to one backend, so the store must not
+	// move to another while the push runs: a report in flight could clear
+	// a block the new backend lacks, which only the old one would then
+	// hold.
 	StoreID string
 	// Dial connects to the node. It must return when ctx ends.
 	Dial func(ctx context.Context) (net.Conn, error)
@@ -100,7 +101,7 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 		return err
 	}
 
-	// Name the pack's blocks for the clear. They stay queued for the upload
+	// List the pack's blocks for the clear. They stay queued for the upload
 	// when the clear is too far behind to take them.
 	hashes := make([]*hash.Hash, len(keys))
 	for i, key := range keys {
@@ -149,7 +150,7 @@ func (t *bstoreTracker) nodePushConfig() *NodePushConfig {
 		return nil
 	}
 
-	// It applies only to the stores it names.
+	// The config applies only to the stores it selects.
 	conf := value.(*NodePushConfig)
 	if conf.StoreID != t.id {
 		return nil
@@ -167,7 +168,7 @@ func (t *bstoreTracker) nodeReads() block_store_s3.RangeCache {
 	return block_store_nodepush.NewReads(conf.ReadWait, conf.On, &t.nodeClient)
 }
 
-// startNodePush starts pushing handle's publications when the account names
+// startNodePush starts pushing handle's publications when the account selects
 // this store, and returns the function that stops it.
 func (t *bstoreTracker) startNodePush(
 	ctx context.Context,
@@ -176,7 +177,7 @@ func (t *bstoreTracker) startNodePush(
 	placement *placementState,
 	handle *BlockStore,
 ) func() {
-	// Push only a store the config names.
+	// Push only a store the config selects.
 	conf := t.nodePushConfig()
 	if conf == nil || conf.On == nil {
 		return func() {}
@@ -210,7 +211,7 @@ func (t *bstoreTracker) startNodePush(
 // The pack store then reads through the node's range cache as nodeReads
 // describes. The release disconnects it.
 func (t *bstoreTracker) startNodeReads(ctx context.Context, le *logrus.Entry) func() {
-	// Read only a store the config names.
+	// Read only a store the config selects.
 	conf := t.nodePushConfig()
 	if conf == nil || conf.On == nil {
 		return func() {}

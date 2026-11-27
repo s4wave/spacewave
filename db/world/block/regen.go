@@ -20,7 +20,7 @@ import (
 
 // A regeneration keeps its state in two named roots beside the World root, so
 // each step lands atomically with the roots it moves and a restart derives the
-// stage from the roots alone. WorldRegen.tla models the lifecycle; here one
+// stage from the roots alone. WorldRegen.tla models the lifecycle. Here one
 // SetRoots moves the World root with both names, so the crash windows the
 // model has between the Authority's decision and its record cannot occur.
 //
@@ -32,12 +32,12 @@ import (
 //     pin, then each round's catch-up. After the swap it is the root the swap
 //     installed, then the head each switch back round reached.
 //
-// The two always hold one content in two formats. Neither name holding a root
-// is idle; base alone is building, restarted from the pin after a crash since
-// the sort's runs are disposable; both are catching up while the head is in
-// the old format and switched once it is in the new. built alone is switched
-// back: the head is the old format again, and built keeps the new-format root
-// it left for inspection until Release.
+// The two always hold one content in two formats. With no root held by either
+// name, regeneration is idle. base alone is building, restarted from the pin
+// after a crash since the sort's runs are disposable. Both are catching up
+// while the head is in the old format and switched once it is in the new. built
+// alone is switched back: the head is the old format again, and built keeps the
+// new-format root it left for inspection until Release.
 
 // regenChunkKeys is the most changed log records a catch-up reads, and the
 // most quad changes it applies, before it writes the new World.
@@ -193,7 +193,7 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 // reached and the time it took. Done releases the old root once the new World
 // is proven equal to it. Each step lands in the roots before the next starts,
 // so a Run after a crash resumes from the last step. A new World that differs
-// from the old root is switched back and Run returns ErrRegenMismatch; a
+// from the old root is switched back and Run returns ErrRegenMismatch. A
 // regeneration switched back returns ErrRegenSwitchedBack until Release.
 func (r *Regenerator) Run(ctx context.Context, until RegenStage, step func(RegenStage, time.Duration)) error {
 	// Trace the whole regeneration.
@@ -221,7 +221,7 @@ func (r *Regenerator) Run(ctx context.Context, until RegenStage, step func(Regen
 // it reached: the pin from idle, the build, a catch-up round and the swap it
 // may lead to, or the comparison and the release of the old root from
 // switched. A comparison that finds a difference returns ErrRegenMismatch and
-// stays switched; a switch back returns ErrRegenSwitchedBack; done takes no
+// stays switched. A switch back returns ErrRegenSwitchedBack. Done takes no
 // step. Every step but the swap is background work that yields to commits.
 func (r *Regenerator) Step(ctx context.Context) (RegenStage, error) {
 	// Take the stage's step.
@@ -349,7 +349,7 @@ func (r *Regenerator) build(ctx context.Context, s regenState) error {
 // swaps when the round was small enough that the last one should be too. The
 // swap runs as foreground work, since commits wait on its turn.
 func (r *Regenerator) catchUp(ctx context.Context, s regenState, way regenWay) error {
-	// Refuse a round on a disk below the floor; the old tree stays live.
+	// Refuse a round on a disk below the floor. The old tree stays live.
 	if err := newRegenFloor(r.cfg).check(); err != nil {
 		return err
 	}
@@ -410,7 +410,7 @@ func (r *Regenerator) swap(ctx context.Context, way regenWay) error {
 // one to the result, and with install the World root to the result, freeing
 // base on a switch back. limit bounds the changes applied, or is negative for
 // no bound. A round, which installs nothing, runs off the writer turn and
-// yields to the writers between slices; the swap holds the turn and does not.
+// yields to the writers between slices. The swap holds the turn and does not.
 // Returns the result and the number of changes applied.
 func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, limit int, install bool) (*block.BlockRef, int, error) {
 	// Pick the trailing World and the root it reflects.
@@ -479,7 +479,8 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 		format = w.GetFormat()
 	}
 
-	// Delete the quads only from holds, then add those only to holds.
+	// Delete the quads only from's graph holds, then add those only to's
+	// graph holds.
 	for _, action := range []graph.Procedure{graph.Delete, graph.Add} {
 		err := walkQuadChanges(ctx, format, cursors[0], cursors[1], action, func(q quad.Quad) error {
 			if err := pace.step(ctx); err != nil {
@@ -499,15 +500,16 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 
 // walkQuadChanges calls fn with the quads of one pass of a catch-up between
 // the graphs of the decoded Worlds before and after, both in format: on the
-// delete pass those only before holds, on the add pass those only after
-// holds. It streams the tree diff in chunks of regenChunkKeys.
+// delete pass those only before's graph holds, on the add pass those only
+// after's graph holds. It streams the tree diff in chunks of regenChunkKeys.
 func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *block.Cursor, action graph.Procedure, fn func(quad.Quad) error) error {
 	switch format {
 	case WorldFormat_WORLD_FORMAT_CAYLEY_KV:
-		// A changed log record names its quad in the World that holds it. An
-		// old store can hold several physical copies of one quad, and one
-		// logical write changes them all in the same commit, so the pass
-		// passes each quad once; seen grows with the round's changes.
+		// A changed log record references its quad in the World that
+		// holds it. An old store can hold several physical copies of
+		// one quad, and one logical write changes them all in the same
+		// commit, so the pass passes each quad once. seen grows with
+		// the round's changes.
 		side := before
 		if action == graph.Add {
 			side = after
@@ -528,7 +530,7 @@ func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *blo
 			})
 		})
 	case WorldFormat_WORLD_FORMAT_NODE_GRAPH:
-		// A changed out key names its quad in the tree that holds it.
+		// A changed out key references its quad in the tree that holds it.
 		var txs [2]kvtx.BlockTx
 		for i, c := range []*block.Cursor{before, after} {
 			tx, err := kvtx_block.BuildKvTransaction(ctx, c.FollowSubBlock(2), false)
@@ -589,8 +591,8 @@ func (r *Regenerator) openWorld(ctx context.Context, store block.StoreOps, ref *
 
 // readWorld opens the World root at ref in a read-only transaction, reading
 // through store as openWorld does, and decodes it. A walk of its graph tree
-// follows stored pages through ReadCursor, bounded by the decoded-block cache;
-// on a writable transaction each page it loaded would stay on the cursor tree.
+// follows stored pages through ReadCursor, bounded by the decoded-block cache.
+// On a writable transaction each page it loaded would stay on the cursor tree.
 func (r *Regenerator) readWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Cursor, *World, error) {
 	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
 	tx.SetReadOnly()

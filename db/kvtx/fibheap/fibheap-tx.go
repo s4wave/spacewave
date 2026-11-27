@@ -14,7 +14,7 @@ var (
 	fibRootKey  = []byte("r")
 )
 
-// tx is a internal fibheap tx holder
+// tx is an internal fibheap tx holder.
 type tx struct {
 	tx kvtx.Tx
 	// entryCache map[[]byte]*Entry
@@ -45,7 +45,7 @@ func (h *FibbonaciHeap) startTx(ctx context.Context, write bool) (*tx, error) {
 	return tx, nil
 }
 
-// finish finishes the tx populating rerr if necessary
+// finish finishes the tx, populating rerr if necessary.
 func (t *tx) finish(ctx context.Context, rerr *error) {
 	// Discard the backing transaction unless a successful write needs committing.
 	defer t.tx.Discard()

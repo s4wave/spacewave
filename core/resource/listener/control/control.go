@@ -8,8 +8,8 @@
 // takeover and a Yield RPC for a manual start, each answered by a
 // caller-supplied YieldPolicy. If the policy allows the request, the
 // handler invokes the caller-supplied shutdown callback and returns
-// success to the peer; if the policy denies it, the handler returns the
-// policy's error to the peer so the caller can surface a clear message.
+// success to the peer. If the policy denies the request, the handler returns
+// the policy's error to the peer so the caller can surface a clear message.
 package control
 
 import (
@@ -42,7 +42,7 @@ const DenyErrorMarker = "spacewave.daemon.shutdown.denied:"
 
 // YieldPolicy decides whether an incoming Shutdown or Yield RPC should be
 // honored. Returning nil means the handler will fire its shutdown
-// callback and acknowledge the peer; returning a non-nil error causes
+// callback and acknowledge the peer. Returning a non-nil error causes
 // the handler to reply with that error so the peer sees a clear
 // denial.
 type YieldPolicy func(ctx context.Context) error
@@ -75,7 +75,7 @@ type Handler struct {
 }
 
 // NewHandler constructs a daemon control handler. policy decides
-// whether to honor a Shutdown RPC; every Yield RPC is denied until
+// whether to honor a Shutdown RPC. Every Yield RPC is denied until
 // SetYieldPolicy allows it. For the one permitted requester,
 // shutdown runs before the completion acknowledgement and must
 // synchronously release the listener and its socket path.

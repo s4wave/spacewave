@@ -9,7 +9,7 @@ import (
 
 const maxProjectedActivity = 5
 
-// SyncState names the coarse sync state used for desktop activity projection.
+// SyncState is the coarse sync state used for desktop activity projection.
 type SyncState uint8
 
 const (
@@ -23,7 +23,7 @@ const (
 	SyncStateError
 )
 
-// SyncDirection names the active sync direction used in desktop copy.
+// SyncDirection is the active sync direction used in desktop copy.
 type SyncDirection uint8
 
 const (

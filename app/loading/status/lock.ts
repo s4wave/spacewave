@@ -11,7 +11,7 @@ interface LockViewInput {
 }
 
 // toLockView describes the current session lock state. Unlocked sessions
-// never render a loading surface; locked sessions show 'active' (awaiting PIN
+// never render a loading surface. Locked sessions show 'active' (awaiting PIN
 // / auto-unlock) or 'error' when unlock fails.
 export function toLockView(input: LockViewInput): LoadingView {
   const { mode, locked, unlocking, errorMessage, onRetry, onCancel } = input

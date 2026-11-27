@@ -175,13 +175,13 @@ export enum DeviceCapabilityState {
   AVAILABLE = 4,
 
   /**
-   * DEVICE_CAPABILITY_STATE_ACTIVE means the capability currently has active work.
+   * DEVICE_CAPABILITY_STATE_ACTIVE means the capability has active work.
    */
   ACTIVE = 5,
 
   /**
    * DEVICE_CAPABILITY_STATE_REJECTED means the daemon declined or failed to run the
-   * capability; Detail carries the reason.
+   * capability. Detail carries the reason.
    */
   REJECTED = 6,
 }
@@ -242,12 +242,14 @@ export enum DeviceCapabilityGrantState {
   UNKNOWN = 0,
 
   /**
-   * DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+   * DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy allows the
+   * capability.
    */
   ALLOWED = 1,
 
   /**
-   * DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+   * DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy blocks the
+   * capability.
    */
   BLOCKED = 2,
 }
@@ -293,8 +295,8 @@ export const DeviceCheckoutRootAccess_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * GraphicsCardVendor names the maker of a graphics card, which decides the
- * device nodes and drivers a container needs.
+ * GraphicsCardVendor identifies the maker of a graphics card. The maker decides
+ * the device nodes and drivers a container needs.
  *
  * @generated from enum s4wave.device.GraphicsCardVendor
  */
@@ -561,7 +563,7 @@ export interface DeviceCheckoutRootCapability {
    */
   selectionRef?: string
   /**
-   * Access is the read/write mode currently exposed by the Device policy.
+   * Access is the read/write mode exposed by the Device policy.
    */
   access?: DeviceCheckoutRootAccess
   /**
@@ -637,7 +639,7 @@ export interface GraphicsCardRequest {
    */
   count?: number
   /**
-   * Vendor limits the request to one maker; UNKNOWN accepts any vendor.
+   * Vendor limits the request to one maker. UNKNOWN accepts any vendor.
    */
   vendor?: GraphicsCardVendor
   /**
@@ -961,7 +963,8 @@ export const ReportDeviceStatusResponse: MessageType<ReportDeviceStatusResponse>
  */
 export interface AccessCheckoutRootRequest {
   /**
-   * Name is the checkout-root selector. Empty selects the first readable root.
+   * Name is the checkout-root selector. An empty Name selects the first
+   * readable root.
    */
   name?: string
   /**

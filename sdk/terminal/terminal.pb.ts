@@ -185,7 +185,8 @@ export interface Terminal {
    */
   devicePeerId?: string
   /**
-   * Command is the optional command to run; empty opens the default shell.
+   * Command is the optional command to run. An empty command opens the default
+   * shell.
    */
   command?: string
   /**

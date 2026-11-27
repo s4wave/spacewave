@@ -13,9 +13,9 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
-// walkCtors are the block types a saved walk position names by Go type: the
-// types a World's refs name. A block of another type is saved untyped, and a
-// resume types it from its parent's decode.
+// walkCtors are the block types a saved walk position records by Go type:
+// the types a World's refs declare. A block of another type is saved untyped,
+// and a resume types it from its parent's decode.
 var walkCtors = []block.Ctor{
 	world_block.NewWorldBlock,
 	world_block.NewObjectBlock,
@@ -40,13 +40,13 @@ func ctorName(ctor block.Ctor) string {
 		return name.(string)
 	}
 
-	// Build a block to learn its type, and cache it.
+	// Build a block to learn its type, and cache the type name.
 	name := reflect.TypeOf(ctor()).String()
 	ctorNames.Store(ptr, name)
 	return name
 }
 
-// walkRegistry maps the Go types a saved position may name to their
+// walkRegistry maps the Go types a saved position may record to their
 // constructors: walkCtors and the root types of the walk's objects.
 func walkRegistry(roots RootTypes) map[string]block.Ctor {
 	reg := make(map[string]block.Ctor, len(walkCtors)+len(roots))
@@ -86,9 +86,9 @@ func newTypeSaver(reg map[string]block.Ctor) *typeSaver {
 }
 
 // savableType reports whether a resume can rebuild typ from its saved form:
-// no type, or one whose ctors reg names.
+// no type, or one whose ctors reg contains.
 func savableType(reg map[string]block.Ctor, typ any) bool {
-	// No type saves as untyped; a type of another typer does not save.
+	// No type saves as untyped, but a type of another typer does not save.
 	if typ == nil {
 		return true
 	}
@@ -97,7 +97,7 @@ func savableType(reg map[string]block.Ctor, typ any) bool {
 		return false
 	}
 
-	// Each constructor must be one reg names.
+	// Each constructor must be one reg contains.
 	if _, ok := reg[ctorName(nt.ctor)]; !ok {
 		return false
 	}
@@ -178,7 +178,7 @@ type xfrmPair struct {
 // load rebuilds a saved type. It reports false for a type this build cannot
 // rebuild, which the resume takes from the parent instead.
 func (l *typeLoader) load(wt *WalkType) (any, bool) {
-	// No saved type is a type to take from the parent; no ctor is an
+	// No saved type is a type to take from the parent. No ctor is an
 	// untyped block.
 	if wt == nil {
 		return nil, false

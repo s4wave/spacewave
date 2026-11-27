@@ -15,7 +15,8 @@ type FileHook struct {
 	level     logrus.Level
 	bcast     broadcast.Broadcast
 	buf       []*logrus.Entry
-	// closed is set under bcast once Close starts; later entries are dropped.
+	// closed is set under bcast once Close starts. Entries fired afterward
+	// are dropped.
 	closed    bool
 	closeOnce sync.Once
 	done      chan struct{}
@@ -101,7 +102,7 @@ func (h *FileHook) writeLoop() {
 
 		select {
 		case <-h.done:
-			// drain remaining
+			// drain remaining entries
 			h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				entries = h.buf
 				h.buf = nil

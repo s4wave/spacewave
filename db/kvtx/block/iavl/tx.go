@@ -16,9 +16,10 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Node
-	// readBranches reads the two stored children of a read-only block
-	// transaction's inline root. They are nil for writers, for a read on a
-	// writable block transaction and for staged children, which live on bcs.
+	// readBranches holds read cursors for the two stored children of a
+	// read-only block transaction's inline root. The cursors are nil for
+	// writers, for a read on a writable block transaction and for staged
+	// children, which live on bcs.
 	readBranches [2]*block.ReadCursor
 
 	t          *AVLTree
@@ -27,16 +28,16 @@ type Tx struct {
 	commitOnce atomic.Bool
 
 	// rootChangedCb is called if the root cursor changed.
-	// may be nil
+	// rootChangedCb can be nil.
 	rootChangedCb func(*block.Cursor)
 }
 
 // NewTx constructs a new IAVL transaction decoupled from the tree, commit and
 // discard will be no-op. Note: the root of the tree will change after many set
-// operations, it will be necessary to update any references as well.
+// operations, so references to the root must be updated as well.
 //
-// btx may be nil, if set, will call Write() on it when Commit() is called.
-// ctx is used to fetch and unmarshal the node only
+// btx may be nil. If set, Commit() calls Write() on btx.
+// ctx is used to fetch and unmarshal the node only.
 func NewTx(
 	ctx context.Context,
 	bcs *block.Cursor, btx *block.Transaction,
@@ -263,7 +264,7 @@ func (t *Tx) Set(ctx context.Context, key []byte, val []byte) (err error) {
 		valueCursor = t.bcs.Detach(false)
 		valueCursor.ClearAllRefs()
 		rdr := bytes.NewReader(val)
-		// stores into valueCursor
+		// Store the blob in valueCursor.
 		_, err = blob.BuildBlob(
 			ctx,
 			int64(len(val)), rdr,
@@ -625,7 +626,8 @@ func (t *Tx) setNodeValue(ctx context.Context, cs *block.Cursor, nod *Node, valC
 				// ref was empty and blk was empty. set a empty blob
 				valCursor.SetBlock(blob.NewBlobBlock(), false)
 			} else {
-				// unmarshal the blob at the ref before setting as a sub-block.
+				// unmarshal the blob at the ref before
+				// setting the blob as a sub-block.
 				if _, err := blob.UnmarshalBlob(ctx, valCursor); err != nil {
 					return err
 				}
@@ -705,12 +707,14 @@ func (t *Tx) setFromNode(
 		// ncs points to the new block containing key and value.
 		var ncs *block.Cursor
 		if keyCmp < 0 {
-			// key is less than the node's key; set nroot's right child to the current node.
+			// key is less than the node's key, so set nroot's
+			// right child to the current node.
 			nrootNod.Key = nod.Key
 			nroot.SetRef(6, bcs)
 			ncs = nroot.FollowRef(5, nil)
 		} else {
-			// key is greater than the node's key; set nroot's left child to the current node.
+			// key is greater than the node's key, so set nroot's
+			// left child to the current node.
 			nrootNod.Key = key
 			nroot.SetRef(5, bcs)
 			ncs = nroot.FollowRef(6, nil)
@@ -760,14 +764,14 @@ func (t *Tx) setFromNode(
 	return nroot, nrootCs, true, err
 }
 
-// removeFromNode recursively removes the key balancing the tree
+// removeFromNode recursively removes the key, balancing the tree.
 // returns:
 // - a cursor to the node that replaces the original
 // - the new leftmost key for the tree
 // - the key that replaces the orig. node after remove
 // - the orphaned cursor to the old node
 // - the old node
-// - error
+// - error.
 func (t *Tx) removeFromNode(
 	ctx context.Context,
 	bcs *block.Cursor,
@@ -806,7 +810,7 @@ func (t *Tx) removeFromNode(
 		return lcs, nil, removedCursor, removedNode, err
 	}
 
-	// Set the left or right node to new child.
+	// Set the left or right node to the new child.
 	if left {
 		bcs.SetRef(5, ncs)
 	} else {
@@ -877,8 +881,8 @@ func (t *Tx) calcNodeBalance(ctx context.Context, nod *Node, bcs *block.Cursor) 
 	return int(leftNod.GetHeight()) - int(rightNod.GetHeight()), nil
 }
 
-// rotateNodeRight rotates the tree rooted at the node to the right
-// the parent link to nod needs to be replaced with a link to the new root
+// rotateNodeRight rotates the tree rooted at the node to the right.
+// The parent link to nod needs to be replaced with a link to the new root.
 func (t *Tx) rotateNodeRight(ctx context.Context, nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
 	// new root node will be nod->left
 	leftNod, leftNodCs, err := nod.FollowLeft(ctx, bcs)
@@ -918,8 +922,8 @@ func (t *Tx) rotateNodeRight(ctx context.Context, nod *Node, bcs *block.Cursor) 
 	return leftNod, leftNodCs, nil
 }
 
-// rotateNodeLeft rotates the tree rooted at the node to the left
-// the parent link to nod needs to be replaced with a link to the new root
+// rotateNodeLeft rotates the tree rooted at the node to the left.
+// The parent link to nod needs to be replaced with a link to the new root.
 func (t *Tx) rotateNodeLeft(ctx context.Context, nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
 	// new root node will be nod->right
 	rightNod, rightNodCs, err := nod.FollowRight(ctx, bcs)
@@ -1011,7 +1015,8 @@ func (t *Tx) balanceFromLoadedChildren(
 	return nod, bcs, nil
 }
 
-// nodeToValue converts a node into a []byte value, depending on isBlob flag.
+// nodeToValue converts a node into a []byte value, depending on the isBlob
+// flag.
 func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byte, error) {
 	valueCursor, isBlob := n.FollowValue(bcs)
 	if isBlob {

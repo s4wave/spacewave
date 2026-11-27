@@ -10,10 +10,11 @@ import (
 
 // LoadOpPlugins asks the holders of a World engine's plugin runtime to run
 // the plugins its replay waits for, for replay only and only once the host's
-// scheduler admits each plugin's manifest root. The Space adapter keeps one while replay
-// waits at an operation whose type no handler resolves, naming the plugin a
-// pinned type names or the plugins the World before the operation lists, and
-// releases it once a handler for the type resolves. A holder resolves a
+// scheduler admits each plugin's manifest root. The Space adapter keeps one
+// while replay waits at an operation whose type no handler resolves, selecting
+// the plugin a pinned type specifies or the plugins the World before the
+// operation lists, and releases it once a handler for the type resolves.
+// A holder resolves a
 // LoadOpPluginsValue while the scheduler shows some of the plugins awaiting
 // approval.
 type LoadOpPlugins interface {
@@ -45,7 +46,7 @@ func NewLoadOpPlugins(engineID string, pluginIDs []string) LoadOpPlugins {
 	return &loadOpPlugins{engineID: engineID, pluginIDs: pluginIDs}
 }
 
-// Validate checks that the directive names a plugin.
+// Validate checks that the directive selects a plugin.
 func (d *loadOpPlugins) Validate() error {
 	if len(d.pluginIDs) == 0 {
 		return errors.New("no plugins to load")

@@ -32,8 +32,9 @@ func TestStartAndWaitPreservesFullStderr(t *testing.T) {
 		t.Fatal("expected error from failing helper")
 	}
 
-	// The real cause is the first stderr line; the upstream last-line heuristic
-	// would have dropped it in favor of the trailing processTicksAndRejections frame.
+	// The real cause is the first stderr line. The upstream last-line heuristic
+	// would drop the cause in favor of the trailing processTicksAndRejections
+	// frame.
 	if !strings.Contains(err.Error(), "real bundler failure message") {
 		t.Fatalf("expected error to preserve the top stderr message, got %q", err.Error())
 	}

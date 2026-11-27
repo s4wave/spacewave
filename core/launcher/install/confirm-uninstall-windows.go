@@ -102,7 +102,7 @@ func ConfirmUninstall() (confirmed, deleteData bool, err error) {
 
 // ShowError reports a failed operation in a message box.
 func ShowError(title string, err error) {
-	// MB_ICONERROR shows the error icon with an OK button.
+	// mbIconError shows the MB_ICONERROR error icon with an OK button.
 	const mbIconError = 0x10
 	caption, _ := windows.UTF16PtrFromString(title)
 	message, _ := windows.UTF16PtrFromString(err.Error())

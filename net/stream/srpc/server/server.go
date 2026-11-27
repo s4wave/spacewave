@@ -18,24 +18,24 @@ type RegisterFn func(mux srpc.Mux) error
 
 // Server handles incoming streams for a peer id.
 type Server struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// protocolIDs is list of protocol id to listen on.
+	// protocolIDs is the list of protocol ids to listen on.
 	// cannot be empty
 	protocolIDs []protocol.ID
-	// peerIDs is the list of local peer ids to listen on
+	// peerIDs is the list of local peer ids to listen on.
 	// if empty, allows any
 	peerIDs []string
-	// disableEstablishLink disables adding an establish link directive
+	// disableEstablishLink disables adding an establish link directive.
 	disableEstablishLink bool
 
-	// mux is the srpc mux
+	// mux is the srpc mux.
 	mux srpc.Mux
-	// server is the srpc server
+	// server is the srpc server.
 	server *srpc.Server
 }
 

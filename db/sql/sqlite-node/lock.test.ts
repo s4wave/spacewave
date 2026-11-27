@@ -49,7 +49,7 @@ if (childMode === 'worker-hold') {
 }
 
 function runTests(): void {
-  // bundlePath is this emitted test bundle; children run it as their entry.
+  // bundlePath is this emitted test bundle. Children run it as their entry.
   const bundlePath = fileURLToPath(import.meta.url)
 
   function spawnWorker(mode: string, dir: string): Worker {

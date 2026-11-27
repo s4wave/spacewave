@@ -12,8 +12,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config is the configuration for cloning Git repositories to a world.
- * If the target object already exists, fetches the cloned branch again with
- * the clone's remote, depth and tag mode, leaving the worktree on its commit.
+ * If the target object already exists, Config fetches the cloned branch again
+ * with the clone's remote, depth and tag mode, leaving the worktree on its
+ * commit.
  *
  * Inputs:
  *  - world: the target World engine or state.
@@ -37,7 +38,7 @@ export interface Config {
   authOpts?: AuthOpts
   /**
    * WorktreeOpts are options for creating the worktree.
-   * If cloneOpts.DisableCheckout is set, disables this step.
+   * If cloneOpts.DisableCheckout is set, worktree creation is disabled.
    */
   worktreeOpts?: GitCreateWorktreeOp
 }

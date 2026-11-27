@@ -10,11 +10,11 @@ import (
 
 // RotatingAccess provides a stable AccessUnixFSFunc whose backing provider can rotate.
 type RotatingAccess struct {
-	// mtx guards current and waiters
+	// mtx guards current and waiters.
 	mtx sync.Mutex
-	// current is the active access function
+	// current is the active access function.
 	current AccessUnixFSFunc
-	// waiters are release callbacks from active access attempts
+	// waiters are release callbacks from active access attempts.
 	waiters []func()
 }
 

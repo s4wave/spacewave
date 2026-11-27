@@ -13,7 +13,7 @@ import (
 
 // Factory constructs a in-memory volume.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

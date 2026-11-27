@@ -80,9 +80,9 @@ type changeSubscriber struct {
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// idle is set while a WatchSlot keeps the subscriber between calls; it
-	// merges no changes then, since the next call catches up from its own
-	// afterSeqno.
+	// idle is set while a WatchSlot keeps the subscriber between calls. The
+	// subscriber merges no changes then, since the next call catches up from
+	// its own afterSeqno.
 	idle bool
 	// seqno is the seqno of the newest head merged into changes.
 	seqno uint64
@@ -137,7 +137,7 @@ func (e *Engine) WatchChanges(
 
 // WatchIndexedChanges is WatchChanges for the changes interest accepts. The
 // change watch indexes the subscriber by the names in interest, so a change
-// naming none of them never tests or wakes it.
+// referencing none of those names never tests or wakes the subscriber.
 func (e *Engine) WatchIndexedChanges(
 	ctx context.Context,
 	afterSeqno uint64,
@@ -209,18 +209,19 @@ func (e *Engine) WatchIndexedChanges(
 }
 
 // subscribeChanges joins the change watch with a subscriber indexed by
-// interest, and returns done, which ends the call with the seqno it covered. A subscriber keeps the
-// watch running until it leaves.
+// interest, and returns done, which ends the call with the seqno the call
+// covered. A subscriber keeps the watch running until the subscriber leaves.
 //
-// With a WatchSlot in ctx, it reuses the subscriber the slot kept from an
-// earlier call on the same watch, emptied of what it merged, and moves its
-// index entry by the difference between the interests, so a view that reruns
-// after each change touches only the names its reads gained or lost; done
-// puts the subscriber back in the slot with the seqno the call covered, and
-// the slot leaves the watch when it closes. The reuse keeps a fresh subscriber's order, indexing before the
-// caller reads the watch's base, so the caller's catch-up from afterSeqno
-// covers every change the emptied subscriber dropped. Without a slot, done
-// leaves the watch.
+// With a WatchSlot in ctx, subscribeChanges reuses the subscriber the slot
+// kept from an earlier call on the same watch, emptied of the changes the
+// subscriber merged, and moves its index entry by the difference between
+// the interests, so a view that reruns after each change touches only the
+// names its reads gained or lost. done puts the subscriber back in the slot
+// with the seqno the call covered, and the slot leaves the watch when the
+// slot closes. The reuse keeps a fresh subscriber's order, indexing before
+// the caller reads the watch's base, so the caller's catch-up from
+// afterSeqno covers every change the emptied subscriber dropped. Without a
+// slot, done leaves the watch.
 func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInterest) (*engineChangeWatch, *changeSubscriber, func(covered uint64), error) {
 	// Claim the slot and the subscriber it kept on this Engine.
 	slot := world.WatchSlotFromContext(ctx)
@@ -238,7 +239,7 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 	}
 
 	// Join the running watch, keeping the subscriber when it joined the same
-	// one; a stopped watch took its subscribers with it.
+	// one. A stopped watch took its subscribers with it.
 	locked := e.bcast.Lock()
 	w, err := e.startChangeWatchLocked()
 	var stale *slotSubscriber

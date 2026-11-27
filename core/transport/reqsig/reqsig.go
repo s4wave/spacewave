@@ -32,7 +32,7 @@ var ErrTimeOutOfRange = errors.New("request time is out of range")
 
 // Verify returns the peer whose key signed r with body at a time near now,
 // for the signing environment env. The caller reads the body, so it chooses
-// the size limit; the signature covers r.URL.Path as the server sees it, so
+// the size limit. The signature covers r.URL.Path as the server sees it, so
 // mount a verifying handler without stripping a path prefix.
 func Verify(r *http.Request, body []byte, env string, now time.Time) (peer.ID, error) {
 	// Read the claimed peer, its public key and the signing time.
@@ -52,7 +52,7 @@ func Verify(r *http.Request, body []byte, env string, now time.Time) (peer.ID, e
 		return "", ErrTimeOutOfRange
 	}
 
-	// Hash the body, and hold a claimed hash to it.
+	// Hash the body, and compare any claimed hash with the body hash.
 	digest := sha256.Sum256(body)
 	bodyHash := hex.EncodeToString(digest[:])
 	if claimed := r.Header.Get("X-Sw-Hash"); claimed != "" && claimed != bodyHash {
@@ -90,10 +90,10 @@ func Verify(r *http.Request, body []byte, env string, now time.Time) (peer.ID, e
 	return pid, nil
 }
 
-// signedHeaders returns the "k=v,k=v" form of the headers X-Signed-Headers
-// names, which must be sorted and distinct.
+// signedHeaders returns the "k=v,k=v" form of the headers selected by
+// X-Signed-Headers. The header names must be sorted and distinct.
 func signedHeaders(r *http.Request) (string, error) {
-	// Read the named list; no list signs no header.
+	// Read the named list. An empty list signs no header.
 	list := r.Header.Get("X-Signed-Headers")
 	if list == "" {
 		return "", nil

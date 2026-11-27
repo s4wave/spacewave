@@ -111,7 +111,8 @@ func main() {
 		}
 	}
 
-	// Interactive mode is guest-only; hosted probes retain their bounded lifecycle.
+	// Interactive mode is guest-only. Hosted probes retain their bounded
+	// lifecycle.
 	var err error
 	stop := boot.PowerOff
 	if console {
@@ -422,7 +423,7 @@ func stageImage(dir, source, authPath string) (retErr error) {
 
 // installCard writes the installable card for the image in dir, the Space's
 // signers and its bootstrap grant, then publishes the owner's authorization,
-// which must name the store's built image, as the accepted revision.
+// which must identify the store's built image, as the accepted revision.
 func installCard(dir, signersPath, authorizationPath, grantPath string) error {
 	// Read the card inputs and the root they must authorize.
 	signers, err := os_image.ReadSigners(signersPath)
@@ -438,7 +439,7 @@ func installCard(dir, signersPath, authorizationPath, grantPath string) error {
 		return err
 	}
 
-	// Read the built image the authorization must name.
+	// Read the built image the authorization must identify.
 	ctx := context.Background()
 	image, err := boot.ReadImage(ctx, dir)
 	if err != nil {

@@ -93,7 +93,7 @@ func SyncTargetDbQuad(ctx context.Context, ws world.WorldState, objectKey string
 	))
 }
 
-// Validate performs cursory checks on the SQL query root.
+// Validate checks the SQL query root cursorily.
 func (q *Query) Validate() error {
 	return nil
 }

@@ -1,12 +1,12 @@
-// serial-channel.ts - VmV86 serial bridge channel naming and frame shape.
+// serial-channel.ts: VmV86 serial bridge channel naming and frame shape.
 //
 // The v86 backend (SharedWorker) posts guest-emitted bytes onto a
-// BroadcastChannel keyed by the VmV86 object key; the VmV86Viewer subscribes
+// BroadcastChannel keyed by the VmV86 object key. The VmV86Viewer subscribes
 // to the same channel to render the bytes in an xterm terminal and posts
 // user-typed text back as input frames.
 
 // SerialFrame is the wire shape carried on the v86-serial broadcast channel.
-// dir="out" frames carry the bytes the guest emitted in one emulator slice;
+// dir="out" frames carry the bytes the guest emitted in one emulator slice.
 // dir="in" frames carry text chunks to push into the emulator's COM1 port.
 export interface SerialFrame {
   dir: 'out' | 'in'

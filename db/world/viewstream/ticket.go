@@ -13,8 +13,8 @@ import (
 // install it with block.WithColdReadGate on the run's context, and Close it
 // when the run ends. Once taken, the slot stays held to the run's end, so it
 // still bounds the CPU a heavy view spends, unless the run lends it back
-// while it waits on another reader's work; the run's next cold read takes a
-// slot again.
+// while the run waits on another reader's work. The run's next cold read takes
+// a slot again.
 //
 // A Ticket is idle, acquiring, held or closed. Concurrent cold reads of one
 // run share one acquisition. While another run waits on this run's work, the
@@ -147,7 +147,7 @@ func (t *Ticket) Lend() {
 	}
 }
 
-// Close ends the run's claim and gives back its slot; later reads pass.
+// Close ends the run's claim and gives back its slot. Subsequent reads pass.
 func (t *Ticket) Close() {
 	t.mtx.Lock()
 	t.closed = true

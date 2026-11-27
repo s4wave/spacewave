@@ -32,7 +32,7 @@ export interface TerminalViewProps {
 
 // TerminalView shows a terminal session: one bar with its name, state and
 // target, its facts behind Details, and the screen filling the pane under it.
-// The bar names a target only once the session state says what it is.
+// The bar shows a target only once the session state identifies the target.
 export function TerminalView({
   view,
   detailsOpen,
@@ -83,14 +83,14 @@ export function TerminalView({
   )
 }
 
-// TerminalTarget names the Device or SSH host a session runs on.
+// TerminalTarget identifies the Device or SSH host a session runs on.
 interface TerminalTarget {
   label: 'device' | 'ssh host'
   key: string
 }
 
-// terminalTarget reads the Device or SSH host a session names, or null
-// when it names none.
+// terminalTarget reads the Device or SSH host a session identifies, or null
+// when the session identifies no target.
 function terminalTarget(state: Terminal): TerminalTarget | null {
   const ssh = state.targetKind === TerminalTargetKind.SSH_HOST
   const key = ssh ? state.sshHostObjectKey : state.deviceObjectKey
@@ -151,7 +151,7 @@ function TerminalFacts({
   )
 }
 
-// formatTerminalState names a session state as the bar shows it.
+// formatTerminalState labels a session state as the bar shows it.
 function formatTerminalState(state?: TerminalSessionState): string {
   switch (state) {
     case TerminalSessionState.CONNECTING:

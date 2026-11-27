@@ -95,7 +95,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 	// blocks' liveness in each put.
 	results.Suites = append(results.Suites, sr.runBlockStorePut(staged))
 
-	// Collect block refs for get benchmark.
+	// Collect block refs for the get benchmark.
 	var refs []*block.BlockRef
 	for i := range 20 {
 		data := make([]byte, 4096)

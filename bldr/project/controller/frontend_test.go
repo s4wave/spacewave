@@ -35,8 +35,9 @@ func TestFrontendWatchWaitsForConfiguration(t *testing.T) {
 		t.Fatal(ctx.Err())
 	}
 
-	// A frontend module enables the compiler; its ready error makes the
-	// post-configuration Watch path observable without launching Vite.
+	// A frontend module enables the compiler. The compiler's ready error
+	// makes the post-configuration Watch path observable without launching
+	// Vite.
 	project := &bldr_project.ProjectConfig{}
 	const projectJSON = `{"id":"colors","manifests":{"colors":{"builder":{"id":"bldr/plugin/compiler/js","config":{"modules":[{"kind":"JS_MODULE_KIND_FRONTEND","path":"./Viewer.ts"}]}}}}}`
 	if err := bldr_project.UnmarshalProjectConfig([]byte(projectJSON), project); err != nil {
@@ -48,7 +49,8 @@ func TestFrontendWatchWaitsForConfiguration(t *testing.T) {
 	wantErr := errors.New("compiler unavailable")
 	service.ready.SetResult(nil, wantErr)
 
-	// Watch must reach the configured compiler instead of sending disabled.
+	// Watch must reach the configured compiler instead of sending a
+	// disabled session.
 	select {
 	case event := <-stream.events:
 		t.Fatalf("configured Watch sent a disabled session: %v", event)

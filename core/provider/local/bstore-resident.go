@@ -19,7 +19,7 @@ const residentSaveInterval = 5 * time.Minute
 // residentSaveWait bounds the save at unmount, which delays the unmount.
 const residentSaveWait = 10 * time.Second
 
-// residentWarmup turns the resident list's save and warm-up on; see
+// residentWarmup turns the resident list's save and warm-up on. See
 // SetResidentWarmup.
 var residentWarmup atomic.Bool
 
@@ -64,7 +64,8 @@ type batchReader interface {
 // every block, and fills only the cache, which holds copies alone: a stale or
 // lost list costs reads and never a block.
 func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *placementState, decodedBlocks *block.DecodedBlockCache) (stop func()) {
-	// Keep lists only in a fill cache that can, with the warm-up on.
+	// Keep lists only in a fill cache that can keep lists, with the warm-up
+	// on.
 	cache, ok := p.cache.(ResidentCache)
 	if !ok || !residentWarmup.Load() {
 		return func() {}
@@ -89,7 +90,8 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 	var wg sync.WaitGroup
 	wg.Go(func() { t.warmResident(ctx, le, p, cache) })
 	wg.Go(func() {
-		// The interval bounds what a crash loses of the list; it polls no state.
+		// The interval bounds what a crash loses of the list. The timer
+		// polls no state.
 		//gostyle:timer deadline
 		ticker := time.NewTicker(residentSaveInterval)
 		defer ticker.Stop()
@@ -112,9 +114,10 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 	}
 }
 
-// warmResident reads the blocks the last mount's list names and neither the
-// cache nor the local store holds from the backend into the cache, once the backend opens, when the
-// backend reads batches. The blocks it does not read read on demand.
+// warmResident reads blocks from the backend into the cache once the backend
+// opens, when the backend reads batches. The blocks are those referenced by
+// the last mount's list that neither the cache nor the local store holds. The
+// blocks warmResident does not read are read on demand.
 func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache ResidentCache) {
 	// Wait for the backend to open, and warm only from one that reads batches.
 	store, err := p.waitBackend(ctx)
@@ -149,11 +152,10 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 // skipLocal returns a ReadBatch that reads with read only the refs local lacks,
 // adding the count it skipped to skipped. A block local holds is served from
 // local on a cache miss, so fetching it from the bucket would cost a bucket
-// read to save a local one; the list names such blocks, as the decoded cache
-// sits above both.
-// Each call costs one batched existence probe of local. A failed probe fails
-// the call, ending the warm-up, rather than reading the whole slice from the
-// bucket.
+// read to save a local one. The list references such blocks, as the decoded
+// cache sits above both. Each call costs one batched existence probe of local.
+// A failed probe fails the call, ending the warm-up, rather than reading the
+// whole slice from the bucket.
 func skipLocal(local block.StoreOps, read block_store_fillcache.ReadBatch, skipped *int) block_store_fillcache.ReadBatch {
 	var want []*block.BlockRef
 	return func(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error {

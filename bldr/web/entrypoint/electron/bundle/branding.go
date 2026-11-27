@@ -202,9 +202,10 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 //
 // resedit-cli (jet2jet/resedit-js-cli) replaces the deprecated rcedit
 // wrapper. Unlike rcedit, resedit does not operate in-place: it reads
-// <in> and writes <out>. We emit directly to {appName}.exe and drop the
-// original electron.exe when resedit succeeds; on failure we fall back
-// to a plain rename so the build still produces an (unbranded) binary.
+// <in> and writes <out>. applyWindowsBranding emits directly to {appName}.exe
+// and drops the original electron.exe when resedit succeeds. On failure, the
+// function falls back to a plain rename so the build still produces an
+// (unbranded) binary.
 func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPath, stateDir, appName, iconPath string) (string, error) {
 	// Locate the original and branded Windows executables.
 	exePath := filepath.Join(electronDistPath, "electron.exe")
@@ -240,7 +241,7 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 
 	// Retain only the branded executable, using a plain rename if resedit failed.
 	if edited {
-		// resedit wrote newExePath from exePath; drop the original.
+		// resedit wrote newExePath from exePath, so drop the original.
 		if err := os.Remove(exePath); err != nil && !os.IsNotExist(err) {
 			return "", errors.Wrap(err, "remove original electron.exe")
 		}
@@ -255,7 +256,8 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 }
 
 // convertPngToIco converts a PNG to ICO using png-to-ico via bunx.
-// png-to-ico outputs .ico to stdout, so we capture and write to file.
+// png-to-ico outputs .ico to stdout, so convertPngToIco captures the output
+// and writes the output to a file.
 func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, destIco string) error {
 	// Prepare the PNG converter with the source icon.
 	cmd, err := npm.BunTool(ctx, le, stateDir, "png-to-ico@3.0.2", "png-to-ico", srcPng)
@@ -263,8 +265,8 @@ func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, de
 		return errors.Wrap(err, "setup png-to-ico")
 	}
 
-	// NewCmd presets Stdout to os.Stdout; clear it so Output() can bind its
-	// own buffer (Cmd.Output refuses to run when Stdout is already set).
+	// NewCmd presets Stdout to os.Stdout. Clear Stdout so Output() can bind
+	// its own buffer (Cmd.Output refuses to run when Stdout is already set).
 	cmd.Stdout = nil
 	outData, err := cmd.Output()
 	if err != nil {

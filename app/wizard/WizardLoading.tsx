@@ -2,7 +2,9 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { WizardGone } from './WizardGone.js'
 
-/** WizardLoadingProps names the wait a wizard shows before its state arrives. */
+/**
+ * WizardLoadingProps describes the wait a wizard shows before its state arrives.
+ */
 export interface WizardLoadingProps {
   // wizardKey is the wizard object's key.
   wizardKey: string

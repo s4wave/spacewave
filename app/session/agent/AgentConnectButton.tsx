@@ -276,7 +276,7 @@ async function readSpaceName(
       return entry?.spaceMeta?.name || undefined
     }
   } catch {
-    // The name is optional; the prompt carries the Space ID regardless.
+    // The name is optional. The prompt carries the Space ID regardless.
   } finally {
     controller.abort()
   }

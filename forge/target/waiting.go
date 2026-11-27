@@ -20,8 +20,8 @@ func NewCapacityWaiting(workerObjectKey string, request *forge_runtime.ResourceR
 	}}}
 }
 
-// Validate checks that the wait names its plugin or Worker. A nil wait or one
-// with no reason is no wait and is valid.
+// Validate checks that the wait identifies its plugin or Worker. A nil wait or
+// one with no reason is no wait and is valid.
 func (w *Waiting) Validate() error {
 	switch reason := w.GetReason().(type) {
 	case *Waiting_PluginId:
@@ -37,8 +37,8 @@ func (w *Waiting) Validate() error {
 	return nil
 }
 
-// Describe names what the wait needs and where, completing "Waiting for": "a
-// graphics card on <Worker>", "2 graphics cards on <Worker>", or "CPU and
+// Describe describes what the wait needs and where, completing "Waiting for":
+// "a graphics card on <Worker>", "2 graphics cards on <Worker>", or "CPU and
 // memory on <Worker>" when the request asks for no cards.
 func (c *CapacityWait) Describe() string {
 	what := "CPU and memory"

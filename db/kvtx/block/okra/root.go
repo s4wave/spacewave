@@ -25,7 +25,7 @@ func (r *Root) IsNil() bool {
 	return r == nil
 }
 
-// Validate performs cursory checks of the Okra root object.
+// Validate checks basic properties of the Okra root object.
 func (r *Root) Validate() error {
 	if r.GetSize() == 0 {
 		if r.GetHeight() != 0 || len(r.GetRootHash()) != 0 ||

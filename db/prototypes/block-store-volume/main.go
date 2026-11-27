@@ -43,7 +43,7 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	le.Info("storage volume resolved")
 	baseVolCtr := av.(volume.Controller)
 
-	// Construct wrapper for base storage volume.
+	// Construct the wrapper for the base storage volume.
 	vcConfig := &vc.Config{}
 	volCtr, err := vc.NewController(
 		le,

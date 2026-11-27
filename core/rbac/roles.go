@@ -28,8 +28,9 @@ var SOParticipantRoleRequiredVerbs = map[int32][]string{
 	1: {VerbRead},
 }
 
-// BuiltinRoles returns the built-in permission catalog. Cloud migrations own deployed roles.
-// Subscription roles permit creation; resource access requires a scoped grant.
+// BuiltinRoles returns the built-in permission catalog. Cloud migrations own
+// deployed roles.
+// Subscription roles permit creation. Resource access requires a scoped grant.
 func BuiltinRoles() []*RbacRole {
 	return []*RbacRole{
 		{

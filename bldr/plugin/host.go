@@ -41,8 +41,8 @@ func PluginServerID(pluginID, remoteServerID string) string {
 
 // PluginServiceIDPrefix is the prefix used for calling services on other plugins.
 //
-// ID can be prepended to RPC service IDs to indicate the service is located on
-// another plugin.
+// The prefix can be prepended to RPC service IDs to indicate the service is
+// located on another plugin.
 //
 // For example: LookupRpcService<plugin/foo/my.Service> will access the
 // my.Service service on the plugin with ID "foo".

@@ -28,7 +28,7 @@ type PackResult struct {
 	PackBytesDigest []byte
 	// PolicyTag is the pack construction policy tag used for v1 identity.
 	PolicyTag string
-	// ValueOrderPolicy names how physical kvfile values were ordered.
+	// ValueOrderPolicy records how physical kvfile values were ordered.
 	ValueOrderPolicy string
 }
 
@@ -38,7 +38,7 @@ type BlockIterator func() (h *hash.Hash, blk *block.StoredBlock, err error)
 
 // PackBlocks packs blocks from the iterator into a kvfile, in the order it
 // yields them, and computes a bloom filter sized to the packed block count.
-// Each value is the encoded block.BlockObject of the block's bytes and refs; a
+// Each value is the encoded block.BlockObject of the block's bytes and refs. A
 // block without known refs is stored marked so, and reads back with its refs
 // unknown.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {

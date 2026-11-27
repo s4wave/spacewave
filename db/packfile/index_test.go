@@ -67,7 +67,9 @@ func TestReadIndexTail(t *testing.T) {
 					t.Fatalf("tail = %d bytes, want %d", len(got), len(want))
 				}
 
-				// The first read ends the pack; each later read ends where the last began.
+				// The first read ends at the pack's end.
+				// Each subsequent read ends where the
+				// last began.
 				if reads[0].end != int64(size) || uint64(reads[0].end-reads[0].off) != firstRead {
 					t.Fatalf("first read = %+v, want the last %d bytes", reads[0], firstRead)
 				}

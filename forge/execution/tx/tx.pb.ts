@@ -217,8 +217,8 @@ export const TxSetWaiting: MessageType<TxSetWaiting> =
 export interface TxStart {
   /**
    * PeerId is the peer identifier to set as the executor.
-   * Must be the same as the sender of the transaction.
-   * Must match peer_id on the Execution if it's not empty.
+   * PeerId must be the same as the sender of the transaction.
+   * PeerId must match peer_id on the Execution if peer_id is not empty.
    */
   peerId?: string
   /**
@@ -343,12 +343,13 @@ export interface TxReclaim {
   expectedClaimEpoch?: bigint
   /**
    * ObservedAt is the time the sender observed the claim lease expired. The
-   * transaction applies only when the current lease expires at or before it.
+   * transaction applies only when the current lease expires at or before
+   * ObservedAt.
    */
   observedAt?: Date
   /**
    * LeaseExpiresAt is the initial lease expiry of the new claim.
-   * Must be after observed_at.
+   * LeaseExpiresAt must be after observed_at.
    */
   leaseExpiresAt?: Date
   /**
@@ -356,8 +357,9 @@ export interface TxReclaim {
    */
   executionObjectKey?: string
   /**
-   * Placement selects the reclaiming Worker's custody. Required when replacing
-   * an existing placement; its peer must match PeerId and be linked to the Worker.
+   * Placement selects the reclaiming Worker's custody. Placement is required
+   * when replacing an existing placement. Placement's peer must match PeerId
+   * and be linked to the Worker.
    */
   placement?: Placement
 }

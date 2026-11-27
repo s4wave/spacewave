@@ -22,15 +22,17 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-// Files a conversion from the previous format keeps beside the Volume file.
+// convertingSuffix and the other constants are suffixes for files a conversion
+// from the previous format keeps beside the Volume file.
 const (
-	// convertingSuffix names the new file while it is built and verified.
+	// convertingSuffix is the suffix of the new file while the file is
+	// built and verified.
 	convertingSuffix = ".converting"
-	// convertedMarkerSuffix names the marker holding the new file's digest,
-	// written once every pair read back.
+	// convertedMarkerSuffix is the suffix of the marker holding the new
+	// file's digest, written once every pair is read back.
 	convertedMarkerSuffix = ".converting.ok"
-	// preRewriteSuffix names the hard link that keeps the previous file
-	// until a person removes it.
+	// preRewriteSuffix is the suffix of the hard link that keeps the
+	// previous file until a person removes the link.
 	preRewriteSuffix = ".pre-rewrite"
 )
 
@@ -79,17 +81,18 @@ func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.
 // the current format holding the same pairs, and keeps the previous file as
 // <path>.pre-rewrite, so going back is a rename and the previous binary.
 //
-// It holds the previous file's writer lock and a slot through installation, so
-// no process writes it meanwhile; a file another process has open fails with
-// ErrMigrateShared. The new file is built as <path>.converting, read back
-// whole and compared with the stream before <path>.converting.ok records its
-// digest, then linked and renamed into place. A crash before the marker
-// leaves the previous file in place and a stale file the next open removes;
-// a crash after it leaves a copy the next open checks against the current source; a crash
-// between the link and the rename leaves the previous file under both names,
-// and the next open keeps the link. At no point is there less than one
-// complete copy of the data. A file another process converted meanwhile is
-// left for the caller to reopen.
+// It holds the previous file's writer lock and a slot through installation,
+// so no process writes the previous file meanwhile. A file another process
+// has open fails with ErrMigrateShared. The new file is built as
+// <path>.converting, read back whole and compared with the stream before
+// <path>.converting.ok records its digest, then linked and renamed into
+// place. A crash before the marker leaves the previous file in place and a
+// stale file the next open removes. A crash after the marker leaves a copy
+// the next open checks against the current source. A crash between the link
+// and the rename leaves the previous file under both names, and the next open
+// keeps the link. At every point there is at least one complete copy of the
+// data. A file another process converted meanwhile is left for the caller to
+// reopen.
 func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr error) {
 	// Open the previous file, taking its locks for the build.
 	src, err := s4dbv1.OpenExclusive(path)
@@ -102,8 +105,9 @@ func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr
 		return err
 	}
 
-	// Keep the source locked through install: every acknowledged source write
-	// must precede the stream we verify, and the original remains in pre-rewrite.
+	// Keep the source locked through install: every acknowledged source
+	// write must precede the stream convertPrevious verifies, and the
+	// original remains in pre-rewrite.
 	defer func() { retErr = errors.Join(retErr, src.Close()) }()
 	le = le.WithField("path", path)
 	start := time.Now()

@@ -71,7 +71,7 @@ func TestWriteBatchMatchesScalarRoots(t *testing.T) {
 					t.Fatalf("round %d: batch root differs from scalar root", round)
 				}
 
-				// Overwrite the caller buffers after return; published bytes must
+				// Overwrite the caller buffers after return. Published bytes must
 				// belong to the tree, including its keys and inline values.
 				for _, entry := range entries {
 					clear(entry.Key)

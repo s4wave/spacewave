@@ -13,7 +13,7 @@ import (
 // TestMainDeviceHandoff checks that an owner makes its device the main device,
 // that only the main device places operations, that another owner replaces a
 // lost main device from the sequence it holds, and that positions the lost
-// device signed after that are ignored.
+// device signed after the replacement are ignored.
 func TestMainDeviceHandoff(t *testing.T) {
 	// Owners A and B and writer C share a Space. A makes itself the main
 	// device, once.
@@ -96,7 +96,7 @@ func TestMainDeviceHandoff(t *testing.T) {
 }
 
 // TestSequenceWatchesAppointment checks that the main device places
-// operations when the state names it the sequencer.
+// operations when the state appoints it as the sequencer.
 func TestSequenceWatchesAppointment(t *testing.T) {
 	// A is the sequencer and B has edited.
 	peers := createMockPeers(t, 2)

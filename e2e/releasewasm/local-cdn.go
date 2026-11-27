@@ -362,7 +362,7 @@ func (h *localCDNHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.next.ServeHTTP(rw, req)
 }
 
-// holdCDN stalls every CDN request until the returned release runs.
+// holdCDN stalls every CDN request until the returned release function runs.
 func (h *localCDNHandler) holdCDN() (release func()) {
 	held := make(chan struct{})
 	h.cdnHeld.Store(&held)

@@ -43,7 +43,8 @@ export const ResourceServiceDefinition = {
     /**
      * ResourceRpc is a rpc request for an open resource handle.
      * Exposes service(s) depending on the resource type.
-     * The first request selects a resource; one typed acknowledgement precedes data.
+     * The first request selects a resource. One typed acknowledgement precedes
+     * data.
      *
      * @generated from rpc resource.ResourceService.ResourceRpc
      */
@@ -92,7 +93,8 @@ export interface ResourceService {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * The first request selects a resource; one typed acknowledgement precedes data.
+   * The first request selects a resource. One typed acknowledgement precedes
+   * data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */
@@ -138,7 +140,8 @@ export interface ResourceServiceHandler {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * The first request selects a resource; one typed acknowledgement precedes data.
+   * The first request selects a resource. One typed acknowledgement precedes
+   * data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */
@@ -199,7 +202,8 @@ export class ResourceServiceClient implements ResourceService {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * The first request selects a resource; one typed acknowledgement precedes data.
+   * The first request selects a resource. One typed acknowledgement precedes
+   * data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */

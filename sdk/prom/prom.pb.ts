@@ -219,7 +219,8 @@ export interface TargetMeta {
   /**
    * RetentionMs is how long the target keeps samples, measured back from its
    * latest sample. Expired samples are dropped every two hours, so they can
-   * outlive it by that much. Zero keeps 15 days, as Prometheus does.
+   * outlive the retention period by that much. Zero keeps 15 days, as
+   * Prometheus does.
    */
   retentionMs?: bigint
 }
@@ -363,7 +364,7 @@ export const TargetInfo: MessageType<TargetInfo> =
 export interface LabelNamesRequest {
   /**
    * Match holds series selectors such as up{job="node"}. A series matches
-   * when any selector matches it; none matches every series.
+   * when any selector matches it. With no selectors, every series matches.
    */
   match?: string[]
 }
@@ -614,7 +615,7 @@ export const WatchDashboardRequest: MessageType<WatchDashboardRequest> =
 export interface PutPanelRequest {
   /**
    * Panel is the panel to store. An empty id adds it at the end under a new
-   * id; any other id replaces that panel, and fails with ErrPanelRemoved when
+   * id. Any other id replaces that panel, and fails with ErrPanelRemoved when
    * another writer removed it.
    */
   panel?: Panel

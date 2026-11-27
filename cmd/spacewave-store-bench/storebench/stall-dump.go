@@ -19,8 +19,8 @@ const maxStallDumps = 32
 const stallTraceDelay = 8 * time.Second
 
 // startFlight starts the execution trace flight recorder when stall dumps
-// are on. The caller stops the returned recorder after the window; it is nil
-// when dumps are off.
+// are on. The caller stops the returned recorder after the window. The
+// recorder is nil when dumps are off.
 func (l *load) startFlight() *trace.FlightRecorder {
 	// Skip the recorder when dumps are off.
 	if l.conf.StallDumpDir == "" || l.conf.StallThreshold <= 0 {

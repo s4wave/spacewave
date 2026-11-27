@@ -35,7 +35,7 @@ func (r revisions) of(meta *bldr_manifest.ManifestMeta) []byte {
 // storeRevision stores a manifest of each app platform at rev with a fresh
 // random executable, recording it in revs.
 func storeRevision(t *testing.T, w *publisher.LocalWorld, d publisher.Deployment, rev uint64, revs revisions) {
-	// Open a write transaction; the first revision creates the store.
+	// Open a write transaction. The first revision creates the store.
 	ctx := t.Context()
 	tx, err := w.Engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -117,7 +117,7 @@ func spaceBytes(t *testing.T, r *writertest.Rig) uint64 {
 // retention, then rolls one platform back by reissuing its oldest retained
 // revision. The release World keeps three revisions per platform, the Space
 // supersedes the packs of the rest, and a launcher reads the reissued
-// executable at a revision above the newest.
+// executable at a revision above the newest revision.
 func TestReleaseRetainsAndReissues(t *testing.T) {
 	// Release five revisions of every platform.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
@@ -167,7 +167,8 @@ func TestReleaseRetainsAndReissues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The channel selects the copy above the newest, beside windows' newest.
+	// The channel selects the copy above the newest revision, beside
+	// windows' newest revision.
 	selected := make(map[string]uint64)
 	for _, ref := range released.Metadata.GetManifestRefs() {
 		selected[ref.GetMeta().GetPlatformId()] = ref.GetMeta().GetRev()

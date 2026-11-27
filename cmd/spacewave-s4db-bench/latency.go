@@ -14,6 +14,6 @@ type Latency struct {
 	P50 time.Duration
 	// P99 is the 99th percentile.
 	P99 time.Duration
-	// Max is the longest.
+	// Max is the longest duration.
 	Max time.Duration
 }

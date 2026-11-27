@@ -18,7 +18,7 @@ const ControllerID = "hydra/bucket/http/server"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// controllerDescrip is the controller description
+// controllerDescrip is the controller description.
 var controllerDescrip = "serves bucket via http"
 
 // Controller is the bucket http server controller.

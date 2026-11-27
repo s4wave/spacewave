@@ -1,22 +1,22 @@
 // Package s4db is a single-file embedded key-value engine.
 //
-// Every commit appends its values over inlineMax to an open value chunk and
-// one record to a log inside the file, and shares one durable flush with the
+// Every commit appends its values over inlineMax to an open value chunk and one
+// record to a log inside the file, and shares one durable flush with the
 // commits beside it. Each process keeps the records since the last flush in a
-// memtable; a background flush writes the memtable as one sorted run and reads
-// nothing; background merges keep a key in a handful of runs; a cleaner
+// memtable. A background flush writes the memtable as one sorted run and reads
+// nothing. Background merges keep a key in a handful of runs. A cleaner
 // evacuates value chunks whose live fraction fell. The file is whole 1 MiB
 // chunks, allocated lowest first, so it shrinks by truncation and nothing is
 // punched.
 //
-// One process may open the file writable; other processes may open it read-only.
-// Read-only handles publish their oldest snapshot in reader slots and tail the
-// log when the file changes. The writer tracks its oldest snapshot locally.
-// Stop older writable processes before
-// upgrading: every writer must implement the owner lock. Ownership locks the
-// inode; removing or replacing its pathname requires stopping its users first.
-// A write transaction holds the writer lock, so commits from this process form
-// one sequence, and every background step appends its record under the same lock.
+// One process may open the file writable. Other processes may open it
+// read-only. Read-only handles publish their oldest snapshot in reader slots
+// and tail the log when the file changes. The writer tracks its oldest snapshot
+// locally. Stop older writable processes before upgrading: every writer must
+// implement the owner lock. Ownership locks the inode. Removing or replacing
+// its pathname requires stopping its users first. A write transaction holds the
+// writer lock, so commits from this process form one sequence, and every
+// background step appends its record under the same lock.
 package s4db
 
 import (
@@ -70,7 +70,7 @@ type DB struct {
 	// budget is the file's memtable budget, from its header.
 	budget int64
 	// super is the newest superblock this handle read at open or made
-	// durable; the release step trusts its seq. superMtx serializes it.
+	// durable. The release step trusts its seq. superMtx serializes it.
 	super    superblock
 	superMtx sync.Mutex
 	// sched runs the background jobs.
@@ -87,7 +87,7 @@ type DB struct {
 	// waiters when a state is published or the database closes. It is held
 	// only for memory work.
 	bcast broadcast.Broadcast
-	// retired holds the replaced states that snapshots still read; publish
+	// retired holds the replaced states that snapshots still read. publish
 	// drops the rest.
 	retired []*state
 	// leases holds the lock bytes of this handle's leases and lease waits.
@@ -313,7 +313,7 @@ func (db *DB) readManifest(sb superblock) (*manifest, error) {
 }
 
 // writeSuper writes and flushes the next superblock generation. superMtx
-// serializes this process's publishers and readers of db.super; the lifetime
+// serializes this process's publishers and readers of db.super. The lifetime
 // writer-owner lock excludes every other publisher.
 func (db *DB) writeSuper(sb superblock) error {
 	// Serialize this process's superblock publishers.
@@ -375,9 +375,9 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	}
 
 	// Apply them to a copy, and forget the readers and cached blocks of the
-	// runs a merge removed, as the merging process does; a snapshot that
-	// still reads one reloads its reader from the chunks, which stay pending
-	// until no pin needs them.
+	// runs a merge removed, as the merging process does. A snapshot that
+	// still reads one reloads its reader from the chunks, which stay
+	// pending until no pin needs them.
 	next := st.derive()
 	for _, r := range kept {
 		next.apply(r, db.budget)
@@ -412,7 +412,8 @@ func (db *DB) verify(ops []op) bool {
 }
 
 // tailLoop applies the writable process's records on a read-only handle.
-// A failed tail leaves the published state; the next file change retries it.
+// A failed tail leaves the published state. The next file change retries the
+// tail.
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
 		_ = db.refresh(ctx)
@@ -584,7 +585,7 @@ func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 
 	// Wait while the memtable is past its ceiling, then count the writer so
 	// Close waits for it. An optimistic transaction reads the published
-	// state and takes the writer lock at Commit; any other takes the lock
+	// state and takes the writer lock at Commit. Any other takes the lock
 	// now and reads the state it caught up to.
 	if err := db.waitMemtable(ctx, block.IsBackground(ctx)); err != nil {
 		return nil, err
@@ -686,7 +687,7 @@ func (db *DB) Sync(ctx context.Context) error {
 }
 
 // WaitDurable returns once every earlier commit is durable without forcing
-// a flush. An ordered commit is flushed within a second of completing; a
+// a flush. An ordered commit is flushed within a second of completing. A
 // commit that was not ordered was durable when it returned.
 func (db *DB) WaitDurable(ctx context.Context) error {
 	return db.flush.waitDurable(ctx, db.orderedSeq.Load())
@@ -694,7 +695,7 @@ func (db *DB) WaitDurable(ctx context.Context) error {
 
 // Close flushes and closes the file. It leaves the memtable in the log for
 // the next open to replay, which is bounded by the flush budget.
-// Transactions should end first; Close refuses new write transactions and
+// Transactions should end first. Close refuses new write transactions and
 // waits a bounded time for open ones to commit or discard. A lease still held
 // ends with the file, which drops its lock, and releasing it afterwards
 // returns nil. Close waits for an abandoned lease wait to return.

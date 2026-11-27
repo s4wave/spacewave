@@ -19,7 +19,7 @@ type ImportReport struct {
 	Exports   []string
 }
 
-// CompileImportReport compiles a wasm artifact and reports the host surface
+// CompileImportReport compiles a wasm artifact and reports the host surface.
 func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, error) {
 	// Read the v86 wasm artifact for compilation and import inspection.
 	wasmBytes, err := os.ReadFile(wasmPath)
@@ -42,6 +42,7 @@ func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, e
 }
 
 // importReport summarizes the imports of a compiled v86 module and verifies
+// the wasm table import encoding.
 func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportReport, error) {
 	// Record the imported v86 function signatures.
 	report := &ImportReport{}
@@ -96,6 +97,7 @@ func valueTypes(types []api.ValueType) string {
 }
 
 // wasmExternImports collects the memory and table externs the v86 module
+// imports.
 type wasmExternImports struct {
 	Memories []wasmMemoryImport
 	Tables   []wasmTableImport
@@ -126,6 +128,7 @@ func (i wasmTableImport) String() string {
 }
 
 // wasmLimits holds the min and optional max size of an imported memory or
+// table.
 type wasmLimits struct {
 	Min uint32
 	Max *uint32
@@ -141,6 +144,7 @@ func (l wasmLimits) String() string {
 }
 
 // parseWasmExternImports walks the wasm binary's import section and returns
+// the memory and table imports.
 func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 	// Validate the wasm header before traversing its sections.
 	r := wasmReader{data: wasmBytes}
@@ -173,6 +177,7 @@ func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 }
 
 // parseImportedExterns decodes one import-section payload into the externs
+// for imported memories and tables.
 func parseImportedExterns(section []byte) (*wasmExternImports, error) {
 	// Read the wasm import count before decoding its entries.
 	r := wasmReader{data: section}

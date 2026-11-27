@@ -40,7 +40,7 @@ func NormalizeSshHostEndpoint(endpoint *SshHostEndpoint) *SshHostEndpoint {
 	return out
 }
 
-// Validate performs cursory checks on the SSH Host block.
+// Validate cursorily checks the SSH Host block.
 func (h *SshHost) Validate() error {
 	// Require a label for the SSH Host.
 	if strings.TrimSpace(h.GetLabel()) == "" {

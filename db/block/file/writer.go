@@ -135,7 +135,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 
 	// Extend a contiguous range when no higher-nonce range would overlap.
 	// optimization: extend the range at the location
-	// to do this properly, need to assert that:
+	// to extend the range properly, assert that:
 	// - the range is the highest nonce for that position
 	// - there is no range following the range w/ a higher nonce within the write len
 	// Locate a candidate range and inspect its overlap boundary.
@@ -173,7 +173,8 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 				}
 			}
 
-			// if found = true, we can't extend this range, it will collide with another.
+			// if found = true, extending this range would collide
+			// with another range.
 			if !found {
 				// append to the range
 				_, rcs := w.rangeSet.Get(rngIdx)
@@ -496,7 +497,8 @@ func (w *Writer) moveRootBlobToRange() error {
 // blob. A larger raw blob is stored as its own block and referenced by a range,
 // so a file written from an already stored blob does not copy its bytes. A
 // writer that builds a file's contents ahead of the file can keep contents of
-// this size or less as bytes, since a blob block built for them is never named.
+// this size or less as bytes, since a blob block built for them is never
+// referenced.
 const MaxInlineRawBlobSize = 4096
 
 // inlineBlob returns whether the file block embeds b as its root blob.
@@ -528,7 +530,8 @@ func (w *Writer) normalize() error {
 }
 
 // moveRangeToRootBlob embeds the blob of a single range starting at zero into
-// the file block when inlineBlob allows it. Otherwise it does nothing.
+// the file block when inlineBlob allows the blob.
+// Otherwise moveRangeToRootBlob does nothing.
 func (w *Writer) moveRangeToRootBlob() error {
 	// Require a single range starting at the file origin.
 	ranges := w.root.GetRanges()

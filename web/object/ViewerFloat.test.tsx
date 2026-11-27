@@ -47,7 +47,7 @@ describe('ViewerStage', () => {
     )
     expect(floatState()).toBe('shown')
 
-    // Nobody touches it, so they leave.
+    // Nobody touches the moving content, so the floats leave.
     act(() => vi.advanceTimersByTime(1000))
     expect(floatState()).toBe('hidden')
 
@@ -67,7 +67,8 @@ describe('ViewerStage', () => {
     act(() => vi.advanceTimersByTime(1000))
     expect(floatState()).toBe('hidden')
 
-    // A pause shows them, and a play begun off the stage keeps them a window.
+    // A pause shows the floats, and a play begun off the stage keeps them for
+    // one idle window.
     const stage = (media: ViewerMedia) => (
       <ViewerStage media={media} idleMs={1000}>
         <ViewerFloat at="bc" label="Pages">
@@ -87,7 +88,8 @@ describe('ViewerStage', () => {
     // The idle window runs on fake time.
     vi.useFakeTimers()
 
-    // Over moving content nobody touched, they leave after the idle window.
+    // Over moving content nobody touched, the floats leave after the idle
+    // window.
     renderStage('moving')
     expect(floatState()).toBe('shown')
     act(() => vi.advanceTimersByTime(1000))

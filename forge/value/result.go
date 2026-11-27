@@ -100,7 +100,7 @@ func (r *Result) Equals(ot *Result) bool {
 	return r.EqualVT(ot)
 }
 
-// Outcome names a complete result for listings: passed, failed or canceled,
+// Outcome returns a complete result for listings: passed, failed or canceled,
 // or complete when the result is empty.
 func (r *Result) Outcome() string {
 	switch {

@@ -99,7 +99,7 @@ func (p *Process) deliverSignal(sig uint32) {
 	}
 
 	// Count the delivery for rt_sigsuspend and take the disposition. SIGKILL
-	// and SIGSTOP always take the default.
+	// and SIGSTOP always take the default disposition.
 	p.sigUnblockedDeliveries++
 	p.wakeSigWaitersLocked()
 	handler := p.sigActions[sig].handler

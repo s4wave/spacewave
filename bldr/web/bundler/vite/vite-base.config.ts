@@ -7,7 +7,8 @@ import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// Detect if we are running in a monorepo checkout or a generated .bldr tree.
+// Detect whether the build runs in a monorepo checkout or a generated
+// .bldr tree.
 const bldrProjectRoot =
   process.env['BLDR_PROJECT_ROOT'] || resolve(__dirname, '../../../../')
 const bldrSourceRoot = resolve(__dirname, '../../../')
@@ -63,7 +64,7 @@ export default defineConfig({
         find: /^@aptre\/bldr$/,
         replacement: resolveBldrDistPath('web/bldr/index.js'),
       },
-      // The Bldr harness ships the SDK inside the dist root; map both the
+      // The Bldr harness ships the SDK inside the dist root, so map both the
       // plugin entry and explicit .js imports onto the packaged sources so
       // apps need no local SDK install or tsconfig paths. The .js imports
       // resolve to an extensionless path so Vite picks the packaged .ts or

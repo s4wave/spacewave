@@ -33,12 +33,12 @@ import (
 const (
 	// dataBucket scopes the writable filesystem's blocks and retention.
 	dataBucket = "os-data"
-	// dataHeadStore selects the controller's object-store slot; current heads
-	// are held by the World authority's named root.
+	// dataHeadStore selects the controller's object-store slot. Current
+	// heads are held by the World authority's named root.
 	dataHeadStore = "os-data"
 	// dataRootKey selects the writable UnixFS object, separate from the image.
 	dataRootKey = "os/data"
-	// dataStore names the data Volume's database file in its directory.
+	// dataStore selects the data Volume's database file in its directory.
 	dataStore = "data.s4wave"
 )
 
@@ -46,7 +46,7 @@ const (
 // Normal FSHandle.Sync waits for coordinated durable block/head/retention
 // publication. Controller failure may stop filesystem operations, but cannot
 // physically close storage under users. The caller must contain users and join
-// its FUSE server before Close; Wait reports when containment is needed.
+// its FUSE server before Close. Wait reports when containment is needed.
 type Data struct {
 	// volume stays open until handles and controllers have been released.
 	volume *volume_s4db.Volume
@@ -175,8 +175,9 @@ func openData(ctx context.Context, le *logrus.Entry, path string, create bool) (
 		return nil, err
 	}
 
-	// Separate retained controllers from constructor/request cancellation. The bus
-	// joins them on Close; their callbacks also interrupt a failed startup wait.
+	// Separate retained controllers from constructor/request cancellation.
+	// The bus joins them on Close. Their callbacks also interrupt a failed
+	// startup wait.
 	lifeCtx := context.WithoutCancel(ctx)
 	readyCtx, failStartup := context.WithCancelCause(ctx)
 	defer failStartup(nil)
@@ -258,8 +259,9 @@ func openData(ctx context.Context, le *logrus.Entry, path string, create bool) (
 		return nil, errors.Join(err, context.Cause(readyCtx))
 	}
 
-	// Initialize only a freshly claimed fixture; reopen follows the persisted
-	// generated head without a recovery flag, alternate head or reset operation.
+	// Initialize only a freshly claimed fixture. Reopen follows the
+	// persisted generated head without a recovery flag, alternate head or
+	// reset operation.
 	ws := world.NewEngineWorldState(engine, true)
 	if create {
 		if _, _, err := unixfs_world.FsInit(ctx, ws, vol.GetPeerID(), dataRootKey,
@@ -301,7 +303,8 @@ func (d *Data) mountConsole(ctx context.Context, cancel context.CancelCauseFunc,
 }
 
 // Wait reports a controller stop requiring the caller to contain filesystem
-// users. It does not close storage; Close follows only after those users stop.
+// users. Wait does not close storage. Close follows only after those users
+// stop.
 func (d *Data) Wait(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
@@ -322,10 +325,12 @@ func (d *Data) Close() error {
 		}
 		d.stopWrites(context.Canceled)
 
-		// FUSE may omit Forget on unmount. Release the cursor explicitly so cached
-		// child handles cannot retain World watchers or storage after server join.
-		// The World cursor releases its block FS (including child cursors) and
-		// joins its watchers; releasing only the root handle leaves child refs live.
+		// FUSE may omit Forget on unmount. Release the cursor
+		// explicitly so cached child handles cannot retain World
+		// watchers or storage after server join. The World cursor
+		// releases its block FS (including child cursors) and joins its
+		// watchers. Releasing only the root handle leaves child refs
+		// live.
 		if d.cursor != nil {
 			d.cursor.Release()
 		}

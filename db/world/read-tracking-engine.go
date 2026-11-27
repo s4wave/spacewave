@@ -63,7 +63,8 @@ func (e *ReadTrackingEngine) BuildStorageCursor(ctx context.Context) (*bucket_lo
 
 // AccessWorldState records a root read whose dependencies are otherwise opaque.
 func (e *ReadTrackingEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
-	// A root read can depend on any World record; immutable refs cannot change.
+	// A root read can depend on any World record. Immutable refs cannot
+	// change.
 	if reads := getViewReads(ctx); reads != nil && ref.GetEmpty() {
 		reads.reads.markAll()
 	}

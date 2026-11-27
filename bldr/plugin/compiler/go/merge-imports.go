@@ -25,8 +25,8 @@ func mergeImports(f *ast.File) {
 			first = gen
 			continue // Don't touch the first one.
 		}
-		// We now know there is more than one package in this import
-		// declaration. Ensure that it ends up parenthesized.
+		// There is now more than one package in this import declaration.
+		// Ensure that it ends up parenthesized.
 		first.Lparen = first.Pos()
 		// Move the imports of the other import declaration to the first one.
 		for _, spec := range gen.Specs {

@@ -19,8 +19,8 @@ const chunkSize = 64 * 1024
 // Each Put is one UploadTree call, so the blob is ingested outside the
 // object's write lock and the file and its shard directories land in one
 // commit. Concurrent Puts from several agents overlap their ingest. Puts
-// commit ordered; the pre-push hook's flush makes them durable before git
-// sends refs.
+// commit ordered. The pre-push hook's flush makes them durable before git sends
+// refs.
 type UnixFSStore struct {
 	// root is the root handle service of the UnixFS object.
 	root s4wave_unixfs.SRPCFSHandleResourceServiceClient
@@ -41,7 +41,7 @@ func NewUnixFSStore(
 //
 // Errors cross the resource RPC as strings, so a missing path cannot be told
 // apart from another lookup failure. Every failure reports the object as
-// missing; the Put that follows surfaces a real failure.
+// missing. The Put that follows surfaces a real failure.
 func (s *UnixFSStore) Has(ctx context.Context, oid string, size int64) (bool, error) {
 	// Look up the object path and adopt its resource reference.
 	resp, err := s.root.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: ObjectPath(oid)})

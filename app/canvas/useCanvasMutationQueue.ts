@@ -24,7 +24,7 @@ interface CanvasMutation {
   removeLayoutMetadataNodeIds?: string[]
 }
 
-// SendMutationFn sends a mutation to the backend. Resolves on success.
+// SendMutationFn sends a mutation to the backend and resolves on success.
 export type SendMutationFn = (mutation: {
   setNodes?: Map<string, CanvasNodeData>
   removeNodeIds?: string[]
@@ -302,7 +302,7 @@ export function useCanvasMutationQueue(
     serverStateRef.current = serverState
   }, [serverState])
 
-  // Ref for sendMutation so the enqueue callback stays stable.
+  // Keep a ref for sendMutation so the enqueue callback stays stable.
   useEffect(() => {
     sendRef.current = sendMutation
   }, [sendMutation])
@@ -324,7 +324,7 @@ export function useCanvasMutationQueue(
           setQueue((prev) => confirmMutation(prev, seq, serverStateRef.current))
         },
         (err) => {
-          // On failure, remove this mutation from queue.
+          // On failure, remove this mutation from the queue.
           setQueue((prev) => prev.filter((m) => m.seq !== seq))
           onError?.(err)
         },

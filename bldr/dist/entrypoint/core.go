@@ -48,7 +48,7 @@ func NewCoreBus(
 
 // AddFactories adds factories to an existing static resolver.
 // NOTE: Only add a factory here if it is absolutely needed by the entrypoint.
-// The project composition adds its own factories; see BuildDistBus.
+// The project composition adds its own factories. See BuildDistBus.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// Resolve plugin loading, service forwarding, and backing nodes.
 	sr.AddFactory(bldr_plugin_load.NewFactory(b))

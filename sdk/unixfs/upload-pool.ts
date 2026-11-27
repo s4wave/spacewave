@@ -1,8 +1,8 @@
 import type { IFSHandle, TreeUploadEntry, TreeUploadResult } from './handle.js'
 
 // TreeUploadTaskCallbacks projects one entry's lifecycle to an upload consumer.
-// onConflict receives a refusal of the entry's expectation, which committed
-// nothing; with no onConflict a refusal reaches onError.
+// onConflict receives a refusal of the entry's expectation. The refusal
+// committed nothing. With no onConflict a refusal reaches onError.
 export interface TreeUploadTaskCallbacks {
   onStart?: () => void
   onComplete?: () => void
@@ -22,7 +22,8 @@ interface TreeUploadTask {
 }
 
 // treeUploadConcurrency is how many UnixFS uploads a TreeUploadPool runs at
-// once by default; a consumer bounds the reads it makes beside them to it.
+// once by default. A consumer bounds the reads it makes beside the uploads
+// to treeUploadConcurrency.
 export const treeUploadConcurrency = 3
 
 // TreeUploadPool limits concurrent UnixFS uploads and commits each entry through

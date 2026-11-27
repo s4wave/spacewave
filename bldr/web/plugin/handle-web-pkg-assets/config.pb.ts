@@ -8,7 +8,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures a controller to serve LookupWebPkg from a plugin assets fs.
  * webPluginId should correspond to a bldr/web/plugin plugin.
- * Resolves the LookupWebPkg directive on the web plugin bus.
+ * The web plugin resolves the LookupWebPkg directive on the web plugin bus.
  *
  * @generated from message bldr.web.plugin.handle_web_pkg_assets.Config
  */

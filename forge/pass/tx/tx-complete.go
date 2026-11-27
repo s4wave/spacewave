@@ -29,13 +29,13 @@ func NewTxCompleteTxn() Transaction {
 	return &TxComplete{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction type.
 func (t *TxComplete) GetTxType() TxType {
 	return TxType_TxType_COMPLETE
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxComplete) Validate() error {
 	if err := t.GetResult().Validate(); err != nil {
 		return err

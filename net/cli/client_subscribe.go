@@ -16,7 +16,7 @@ import (
 	pubsub_api "github.com/s4wave/spacewave/net/pubsub/api"
 )
 
-// publishTimeout is the timeout to wait for ack of publish.
+// publishTimeout is the timeout to wait for a publication acknowledgment.
 var publishTimeout = time.Second * 30
 
 // RunSubscribe runs the subscription command.
@@ -54,7 +54,7 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 		return err
 	}
 
-	// Start publisher loop.
+	// Start the publisher loop.
 	input := os.Stdin
 	errCh := make(chan error, 10)
 	publishAckCh := make(chan uint32, 10)

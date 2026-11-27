@@ -102,8 +102,9 @@ func (r *FSHandleResource) UploadTree(
 	r.handleMtx.Lock()
 	defer r.handleMtx.Unlock()
 
-	// Commit buffered file writes first, so none lands on the root between the
-	// read and the publish below. WriteAt holds writeMtx, so none buffers more.
+	// Commit buffered file writes first, so no buffered write lands on the
+	// root between the read and the publish below. WriteAt holds writeMtx,
+	// so no writer buffers more writes.
 	if err := r.handle.Sync(ctx); err != nil {
 		return nil, err
 	}
@@ -161,8 +162,8 @@ func (r *FSHandleResource) UploadTree(
 	}, nil
 }
 
-// uploadTreeConflict answers an UploadTree whose commit found a file other
-// than the one a file start expected, naming the path relative to this handle.
+// uploadTreeConflict answers an UploadTree whose commit found a file other than
+// the one a file start expected, reporting the path relative to this handle.
 func (r *FSHandleResource) uploadTreeConflict(conflict *unixfs_world.FileConflictError) (*s4wave_unixfs.HandleUploadTreeResponse, error) {
 	var version []byte
 	if conflict.Version != nil {
@@ -184,8 +185,9 @@ func newUploadTreeConflict(path string, version []byte) *s4wave_unixfs.HandleUpl
 }
 
 // expectUploadTreeFile records what a file start requires its path to hold
-// when the batch commits: the version it names, nothing when it names neither
-// a version nor overwrite, and anything when it asks to overwrite.
+// when the batch commits: the version the file start specifies, nothing when
+// the file start specifies neither a version nor overwrite, and anything when
+// the file start asks to overwrite.
 func expectUploadTreeFile(
 	b *unixfs_world.BatchFSWriter,
 	parentPath []string,

@@ -240,7 +240,8 @@ func TestEvictIndexStaleSnapshot(t *testing.T) {
 	}
 	s.addEvictStatus(int64(len(data)), 0)
 
-	// Delete the obsolete key twice; neither deletion may subtract or clear the move.
+	// Delete the obsolete key twice. Neither deletion may subtract or clear
+	// the move.
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		n, err := queueEvict(ctx, tx, 1, ref.GetHash(), int64(len(data)))
 		if err != nil {
@@ -301,7 +302,8 @@ func TestEvictIndexWorkerLifecycle(t *testing.T) {
 	waitStatus(t, s, func(st Status) bool { return st.EvictableBytes == int64(len(data)) })
 	checkEvictIndex(t, s, 1, int64(len(data)))
 
-	// Legacy mutation invalidates the completed walk; enabling starts from zero.
+	// Legacy mutation invalidates the completed walk. Enabling starts from
+	// zero.
 	SetEvictQueueIndex(false)
 	if _, err := s.Evict(ctx, newInmemBlockStore(), 0, nil, nil); err != nil {
 		t.Fatal(err)

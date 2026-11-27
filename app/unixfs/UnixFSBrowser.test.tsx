@@ -1131,7 +1131,7 @@ describe('UnixFSBrowser drag gating', () => {
       setup()
       renderBrowser({ currentPath: '/test' })
 
-      // The diagnostics name its stage.
+      // The diagnostics show the loading stage.
       expect(screen.getByTestId('unixfs-loading-diagnostics')).toBeTruthy()
       expect(screen.getByText(expectedStage)).toBeTruthy()
     },

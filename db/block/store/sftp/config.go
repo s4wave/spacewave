@@ -2,7 +2,7 @@ package block_store_sftp
 
 // Config configures a Client.
 type Config struct {
-	// Addr is the server's host:port; a bare host uses port 22.
+	// Addr is the server's host:port. A bare host uses port 22.
 	Addr string
 	// User is the login name.
 	User string
@@ -16,6 +16,6 @@ type Config struct {
 	// connection of the Client.
 	HostKey string
 	// Conns is the number of SSH connections the client holds, each carrying
-	// many requests at once; zero uses DefaultConns.
+	// many requests at once. Zero uses DefaultConns.
 	Conns int
 }

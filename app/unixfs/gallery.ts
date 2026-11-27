@@ -41,7 +41,7 @@ const galleryExtensions = [
 ]
 
 // resolveGalleryScope opens the directory the gallery indexes: the requested
-// path, or its parent when it names a file.
+// path, or its parent when the path selects a file.
 async function resolveGalleryScope(
   rootHandle: FSHandle,
   requestedScopePath: string,
@@ -103,7 +103,7 @@ function compareGalleryCandidates(
 
 // streamUnixFSGalleryCandidates streams the image index of the scoped UnixFS
 // subtree. The server indexes the subtree and sends the images each change
-// adds and removes; each yielded state is the complete current index.
+// adds and removes. Each yielded state is the complete current index.
 export async function* streamUnixFSGalleryCandidates(
   rootHandle: FSHandle,
   requestedScopePath: string,

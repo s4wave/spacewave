@@ -14,19 +14,19 @@ import (
 // WatchLoop is a utility for building Controllers which bind to world state,
 // running reconciliation loops until the world reaches a desired state.
 type WatchLoop struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// objectKey is the object to monitor, if any. When unset the loop
 	// monitors what the handler reads.
 	objectKey string
-	// handler is the watch loop handler
+	// handler is the watch loop handler.
 	handler WatchLoopHandler
 
 	wake watchLoopWakeState
 }
 
 type watchLoopWakeState struct {
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
 	// waiter cancels the active world wait when one is registered.
 	waiter *watchLoopWaiter
@@ -163,8 +163,8 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 }
 
 // executeOnce runs one iteration: it reads the watched object, calls the
-// handler, then waits for a change to what the iteration read. done reports that the loop is
-// finished and Execute should return err.
+// handler, then waits for a change to what the iteration read. done reports
+// that the loop is finished and Execute should return err.
 //
 // The object-state handle lives for exactly one iteration. A remote world state
 // allocates a server-side resource per GetObject, so a loop that watches a
@@ -185,7 +185,7 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 	// Track every read of this iteration, the watched object's record
 	// included, so the wait below wakes for a change to the object or to
 	// anything the handler read, such as the object's relationships. A quad
-	// change does not move the revision of the objects it names.
+	// change does not move the revision of the objects the quad references.
 	reads := world.NewReadSet()
 	handlerWs := reads.Track(ws)
 

@@ -13,11 +13,11 @@ import (
 // newHostKeyCallback returns the callback that verifies the server's host key,
 // and the host key algorithms to offer, nil for the defaults. A pin is a
 // "SHA256:..." fingerprint or an authorized_keys style public key line, and the
-// server must show exactly that key. A fingerprint does not name the key's
-// type, so the server may show another of its keys and fail the pin; a public
-// key line restricts the handshake to its own type. Without a pin the callback
-// trusts the first key it sees and requires the same one afterwards, so a
-// reconnect cannot be redirected to another server.
+// server must show exactly that key. A fingerprint does not specify the
+// key's type, so the server may show another of its keys and fail the pin. A
+// public key line restricts the handshake to its own type. Without a pin the
+// callback trusts the first key it sees and requires the same one afterwards,
+// so a reconnect cannot be redirected to another server.
 func newHostKeyCallback(pin string) (ssh.HostKeyCallback, []string, error) {
 	// Ignore the whitespace around a pin copied from a file.
 	pin = strings.TrimSpace(pin)

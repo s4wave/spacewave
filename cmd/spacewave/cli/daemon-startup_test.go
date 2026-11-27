@@ -46,7 +46,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout, "", nil, "", NewCollectorFrees(), &device_policy.PolicyStore{})
 	}()
 
-	// Require the startup error to name the idle-timeout variable.
+	// Require the startup error to identify the idle-timeout variable.
 	waitCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	startupErr := daemon.WaitStartup(waitCtx, pipeListener)

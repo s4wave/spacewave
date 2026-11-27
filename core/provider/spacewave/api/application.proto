@@ -31,9 +31,10 @@ message Application {
   string display_name = 2;
   // OperatorAccountId identifies the account authorized to administer this registration.
   string operator_account_id = 3;
-  // BillingAccountId is the authorized payer; empty means funding is not configured.
+  // BillingAccountId is the authorized payer. An empty BillingAccountId means
+  // funding is not configured.
   string billing_account_id = 4;
-  // State controls current access; new registrations start paused.
+  // State controls current access. New registrations start paused.
   ApplicationState state = 5;
   // Revision fences concurrent configuration changes and advances on each mutation.
   uint64 revision = 6;
@@ -45,8 +46,9 @@ message Application {
   ApplicationFunding funding = 9;
 }
 
-// RegisterApplicationRequest asks a platform administrator to approve a product.
-// Registration creates no paid resources; the operator separately accepts funding.
+// RegisterApplicationRequest asks a platform administrator to approve a
+// product. Registration creates no paid resources. The operator separately
+// accepts funding.
 message RegisterApplicationRequest {
   // DisplayName is the product name, with at most 128 UTF-8 bytes.
   string display_name = 1;
@@ -83,7 +85,8 @@ message SetApplicationFundingRequest {
   string billing_account_id = 2;
   // Funding distinguishes operator payment from platform-authorized sponsorship.
   ApplicationFunding funding = 3;
-  // ExpectedRevision fences concurrent changes; an identical retry returns its assignment.
+  // ExpectedRevision fences concurrent changes. An identical retry returns its
+  // assignment.
   uint64 expected_revision = 4;
 }
 
@@ -127,9 +130,10 @@ message ListApplicationFundingResponse {
   uint64 next_after_revision = 2;
 }
 
-// ManagedAccountEnrollment binds a new credential to a verified application identity.
-// The credential signs the domain-separated binary message; the application integration
-// separately authenticates the issuer and subject before submitting it to the provider.
+// ManagedAccountEnrollment binds a new credential to a verified application
+// identity. The credential signs the domain-separated binary message. The
+// application integration separately authenticates the issuer and subject
+// before submitting the message to the provider.
 message ManagedAccountEnrollment {
   // ApplicationId identifies the application whose operator approves this enrollment.
   string application_id = 1;
@@ -143,8 +147,9 @@ message ManagedAccountEnrollment {
   uint64 expected_application_revision = 5;
 }
 
-// EnrollManagedAccountRequest asks the authenticated application operator to enroll a credential.
-// Only the approved integration submits verified external subjects; this is not a browser assertion.
+// EnrollManagedAccountRequest asks the authenticated application operator to
+// enroll a credential. Only the approved integration submits verified external
+// subjects. The request is not a browser assertion.
 message EnrollManagedAccountRequest {
   // Enrollment identifies the verified subject and credential being authorized.
   ManagedAccountEnrollment enrollment = 1;
@@ -162,7 +167,8 @@ message EnrollManagedAccountResponse {
   string domain_id = 3;
   // EntityId is the stable account name within its domain.
   string entity_id = 4;
-  // KeypairPeerId confirms the newly authorized credential; existing credentials remain valid.
+  // KeypairPeerId confirms the newly authorized credential. Existing
+  // credentials remain valid.
   string keypair_peer_id = 5;
 }
 
@@ -170,7 +176,8 @@ message EnrollManagedAccountResponse {
 message SetApplicationStateRequest {
   // ApplicationId selects the approved application.
   string application_id = 1;
-  // State selects Active, Paused, or Disabled; Active requires accepted funding.
+  // State selects Active, Paused, or Disabled. Active requires accepted
+  // funding.
   ApplicationState state = 2;
   // ExpectedRevision fences concurrent configuration changes.
   uint64 expected_revision = 3;
@@ -178,6 +185,7 @@ message SetApplicationStateRequest {
 
 // SetApplicationStateResponse returns current availability after the durable transition.
 message SetApplicationStateResponse {
-  // Application contains the new configuration; disabled credentials are never restored.
+  // Application contains the new configuration. Disabled credentials are never
+  // restored.
   Application application = 1;
 }

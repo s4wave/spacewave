@@ -28,7 +28,8 @@ func NewWebRTCSignalHandler(t *WebRTC) *WebRTCSignalHandler {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns resolver(s). If not, returns nil.
+// If the handler can resolve the directive, the handler returns resolver(s).
+// Otherwise, the handler returns nil.
 // It is safe to add a reference to the directive during this call.
 // The passed context is canceled when the directive instance expires.
 // NOTE: the passed context is not canceled when the handler is removed.
@@ -95,7 +96,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 		}
 
 		// Hand the signal to the tracker, which reads it between sessions and
-		// during one.
+		// during a session.
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -106,12 +107,12 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 
 // resolveHandleSignalPeer resolves the HandleSignalPeer directive.
 func (c *WebRTCSignalHandler) resolveHandleSignalPeer(dir signaling.HandleSignalPeer) ([]directive.Resolver, error) {
-	// Check signaling id matches
+	// Check that the signaling id matches.
 	if dir.HandleSignalingID() != c.t.conf.GetSignalingId() {
 		return nil, nil
 	}
 
-	// Check local peer ID matches
+	// Check that the local peer ID matches.
 	localPeerID := dir.HandleSignalPeerSession().GetLocalPeerID()
 	localPeerIDStr := localPeerID.String()
 	actualLocalPeerIDStr := c.t.peerID.String()
@@ -120,13 +121,13 @@ func (c *WebRTCSignalHandler) resolveHandleSignalPeer(dir signaling.HandleSignal
 		return nil, nil
 	}
 
-	// Check remote peer id is not blocked
+	// Check that the remote peer id is not blocked.
 	remotePeerIDStr := dir.HandleSignalPeerSession().GetRemotePeerID().String()
 	if slices.Contains(c.t.conf.GetBlockPeers(), remotePeerIDStr) {
 		return nil, nil
 	}
 
-	// Return resolver
+	// Return the resolver.
 	return directive.R(&handleSignalPeerResolver{
 		t:    c.t,
 		sess: dir.HandleSignalPeerSession(),

@@ -11,10 +11,11 @@ import (
 )
 
 // TestOverlayFSCursorRename proves rename works through the overlay via the
-// FSHandle.Rename path the v86fs server uses. Both cases were unimplemented:
-// overlay MoveTo/MoveFrom returned (false, nil), so FSHandle.Rename fell through
-// to ErrCrossFsRename, which the guest saw as EIO and which corrupted apt's
-// package cache when it renamed its temp file over the read-only lower copy.
+// FSHandle.Rename path the v86fs server uses. Both cases need overlay
+// MoveTo/MoveFrom support: returning (false, nil) makes FSHandle.Rename fall
+// through to ErrCrossFsRename. The guest sees that error as EIO, corrupting
+// apt's package cache when apt renames its temp file over the read-only lower
+// copy.
 func TestOverlayFSCursorRename(t *testing.T) {
 	t.Run("upper temp over lower target", func(t *testing.T) {
 		// Construct an overlay with a lower target for the temporary-file rename.

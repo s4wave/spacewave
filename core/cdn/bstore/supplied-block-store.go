@@ -27,7 +27,7 @@ type SuppliedOptions struct {
 	// HttpClient overrides the default http.Client for root pointer fetches.
 	HttpClient *http.Client
 	// PointerTTL is the age at which a read re-fetches the root pointer. Zero
-	// falls back to DefaultPointerTTL; negative disables the re-fetch.
+	// falls back to DefaultPointerTTL. Negative disables the re-fetch.
 	PointerTTL time.Duration
 	// Store serves every block read. Another owner holds the CDN transport,
 	// pack readers, and durable writeback behind it.
@@ -59,15 +59,16 @@ type SuppliedBlockStore struct {
 	bcast broadcast.Broadcast
 	// pointer is the most recently fetched root pointer.
 	pointer *cdn.CdnRootPointer
-	// pointerTime is when pointer was fetched; zero before the first Refresh.
+	// pointerTime is when pointer was fetched. Zero before the first
+	// Refresh.
 	pointerTime time.Time
 	// refreshing is set while a read re-fetches an aged pointer.
 	refreshing bool
 }
 
 // NewSuppliedBlockStore constructs a SuppliedBlockStore. The pointer is not
-// fetched until Refresh is called; reads re-fetch it once it is older than
-// PointerTTL.
+// fetched until Refresh is called. Reads re-fetch the pointer once the pointer
+// is older than PointerTTL.
 func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 	// Require the CDN origin, Space, and supplied store.
 	if opts.CdnBaseURL == "" {
@@ -97,7 +98,7 @@ func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 	}, nil
 }
 
-// GetID returns the block store id; CDN block stores use the Space ULID
+// GetID returns the block store id. CDN block stores use the Space ULID
 // verbatim because the mount is 1:1 with a Space.
 func (s *SuppliedBlockStore) GetID() string {
 	return s.spaceID
@@ -120,7 +121,7 @@ func (s *SuppliedBlockStore) ReclaimStorage(context.Context, bstore.ReclaimFence
 	return time.Time{}, nil
 }
 
-// Pointer returns the currently-cached root pointer without triggering a
+// Pointer returns the cached root pointer without triggering a
 // refresh. Returns nil if no pointer has been fetched yet.
 func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {
 	// Read the cached pointer under the broadcast lock.

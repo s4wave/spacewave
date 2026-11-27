@@ -77,7 +77,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 	// Share a context across the testbed RPC scenarios.
 	ctx := context.Background()
 
-	// Test 1: Create testbed resource server and access root
+	// Test 1: Create a testbed resource server and access the root
 	t.Run("AccessRootResource", func(t *testing.T) {
 		// Create a fresh RPC fixture for the root resource check.
 		f := setupRPCWorldFixture(ctx, t)
@@ -96,7 +96,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		t.Logf("Successfully accessed root resource with ID: %d", rootID)
 	})
 
-	// Test 2: Create world engine via CreateWorld RPC
+	// Test 2: Create a world engine via the CreateWorld RPC
 	t.Run("CreateWorld", func(t *testing.T) {
 		// Create a fresh RPC fixture for World creation.
 		f := setupRPCWorldFixture(ctx, t)
@@ -116,7 +116,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		t.Logf("Created world engine with resource_id: %d", resp.ResourceId)
 	})
 
-	// Test 3: Get engine info from created engine resource
+	// Test 3: Get engine info from the created engine resource
 	t.Run("GetEngineInfo", func(t *testing.T) {
 		// Create a World engine reference for its metadata check.
 		f := setupRPCWorldFixture(ctx, t)
@@ -143,7 +143,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			infoResp.GetEngineInfo().GetEngineId(), infoResp.GetEngineInfo().GetBucketId())
 	})
 
-	// Test 4: Access WorldState operations via transaction
+	// Test 4: Access WorldState operations via a transaction
 	t.Run("WorldStateOperations", func(t *testing.T) {
 		// Create a World engine for transaction operations.
 		f := setupRPCWorldFixture(ctx, t)
@@ -153,7 +153,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		// Connect to the World engine RPC service.
 		ec, _ := engineClient(t, engineRef)
 
-		// Test GetSeqno via engine
+		// Test GetSeqno via the engine
 		seqnoResp, err := ec.GetSeqno(ctx, &s4wave_world.GetSeqnoRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
@@ -168,11 +168,11 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Create reference to transaction resource
+		// Create a reference to the transaction resource
 		txRef := f.resClient.CreateResourceReference(txResp.ResourceId)
 		defer txRef.Release()
 
-		// Create WorldStateResourceService client on the transaction
+		// Create a WorldStateResourceService client on the transaction
 		txSrpcClient, err := txRef.GetClient()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -188,18 +188,18 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Create reference to object resource
+		// Create a reference to the object resource
 		objRef := f.resClient.CreateResourceReference(createObjResp.ResourceId)
 		defer objRef.Release()
 
-		// Create ObjectStateResourceService client
+		// Create an ObjectStateResourceService client
 		objSrpcClient, err := objRef.GetClient()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		objStateClient := s4wave_world.NewSRPCObjectStateResourceServiceClient(objSrpcClient)
 
-		// Increment revision via RPC
+		// Increment the revision via RPC
 		_, err = objStateClient.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
@@ -219,7 +219,8 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		}
 		newSeqno := newSeqnoResp.Seqno
 
-		// Wait for seqno via RPC (should return immediately since we already have the seqno)
+		// Wait for seqno via RPC (should return immediately because
+		// the engine already has the seqno).
 		waitResp, err := ec.WaitSeqno(ctx, &s4wave_world.WaitSeqnoRequest{
 			Seqno: newSeqno,
 		})
@@ -241,13 +242,13 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		// Create a fresh RPC fixture for independent World engines.
 		f := setupRPCWorldFixture(ctx, t)
 
-		// Create first engine
+		// Create the first engine
 		resp1, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
-		// Create second engine
+		// Create the second engine
 		resp2, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
@@ -262,7 +263,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		t.Logf("Created two engines with IDs: %d, %d", resp1.ResourceId, resp2.ResourceId)
 	})
 
-	// Test 6: WatchWorldState via transaction
+	// Test 6: WatchWorldState via a transaction
 	t.Run("WatchWorldStateViaTransaction", func(t *testing.T) {
 		// Create a World engine for the state watch.
 		f := setupRPCWorldFixture(ctx, t)
@@ -280,11 +281,11 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Create reference to transaction resource
+		// Create a reference to the transaction resource
 		txRef := f.resClient.CreateResourceReference(txResp.ResourceId)
 		defer txRef.Release()
 
-		// Create WatchWorldStateResourceService client on the engine
+		// Create a WatchWorldStateResourceService client on the engine
 		watchClient := s4wave_world.NewSRPCWatchWorldStateResourceServiceClient(engineSrpcClient)
 
 		// Start watching
@@ -293,7 +294,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Should receive initial resource_id
+		// The stream should receive the initial resource_id
 		msg, err := stream.Recv()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -313,15 +314,16 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		// Create a fresh RPC fixture for explicit engine cleanup.
 		f := setupRPCWorldFixture(ctx, t)
 
-		// Manual lifecycle: this test releases the engine ref explicitly
-		// during the body, so we do not register Release with t.Cleanup.
+		// Manual lifecycle: this test releases the engine ref
+		// explicitly during the body, so the test does not register
+		// Release with t.Cleanup.
 		createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		engineRef := f.resClient.CreateResourceReference(createResp.ResourceId)
 
-		// Create WatchWorldStateResourceService client on the engine
+		// Create a WatchWorldStateResourceService client on the engine
 		engineSrpcClient, err := engineRef.GetClient()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -334,7 +336,8 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Receive initial message with tracked WorldState resource
+		// Receive the initial message with a tracked WorldState
+		// resource
 		_, err = stream.Recv()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -343,7 +346,8 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		// Release the engine reference
 		engineRef.Release()
 
-		// Next Recv should fail because engine resource is cleaned up
+		// The next Recv should fail because the engine resource is
+		// cleaned up
 		_, err = stream.Recv()
 		if err == nil {
 			t.Fatal("expected error after releasing engine resource")
@@ -388,7 +392,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 	// Share a context across the SDK World scenarios.
 	ctx := context.Background()
 
-	// Test 1: Create world engine and get engine info
+	// Test 1: Create a world engine and get engine info
 	t.Run("CreateWorldAndGetInfo", func(t *testing.T) {
 		// Create an SDK engine for the metadata check.
 		f := setupSDKEngine(ctx, t)
@@ -412,7 +416,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 		t.Logf("Engine info - ID: %s, Bucket: %s", info.GetEngineId(), info.GetBucketId())
 	})
 
-	// Test 2: Create and commit transaction
+	// Test 2: Create and commit a transaction
 	t.Run("CreateAndCommitTransaction", func(t *testing.T) {
 		// Create an SDK engine for the commit check.
 		f := setupSDKEngine(ctx, t)
@@ -678,8 +682,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 7: Resource cleanup
 	t.Run("ResourceCleanupViaSDK", func(t *testing.T) {
-		// Manual engine lifecycle: this test releases the engine in the body,
-		// so we do not use the t.Cleanup-based setupSDKEngine helper.
+		// Manual engine lifecycle: this test releases the engine in
+		// the body, so the test does not use the t.Cleanup-based
+		// setupSDKEngine helper.
 		f := setupRPCWorldFixture(ctx, t)
 		createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
@@ -757,7 +762,8 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 	// Share a context across the state atom RPC scenarios.
 	ctx := context.Background()
 
-	// Trivial single-RPC checks: shape state via RPC, assert observable result.
+	// Trivial single-RPC checks: shape state via RPC, assert the observable
+	// result.
 	type stateAtomCase struct {
 		name string
 		run  func(t *testing.T, sf *stateAtomFixture)
@@ -766,8 +772,9 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		{
 			name: "AccessStateAtom",
 			run: func(t *testing.T, sf *stateAtomFixture) {
-				// AccessStateAtom is exercised inside setupStateAtom; verify
-				// the resulting client can issue a GetState call.
+				// AccessStateAtom is exercised inside
+				// setupStateAtom. Verify the resulting client
+				// can issue a GetState call.
 				resp, err := sf.stateClient.GetState(ctx, &resource_state.GetStateRequest{})
 				if err != nil {
 					t.Fatal(err.Error())
@@ -835,7 +842,8 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		})
 	}
 
-	// Test 4: WatchState receives updates - non-trivial case kept as its own run.
+	// Test 4: WatchState receives updates (non-trivial case kept as its own
+	// run).
 	t.Run("WatchStateUpdates", func(t *testing.T) {
 		// Create a state atom fixture for streaming updates.
 		sf := setupStateAtom(ctx, t, "")
@@ -846,7 +854,7 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		// Should receive initial state
+		// The stream should receive the initial state
 		msg, err := stream.Recv()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -869,10 +877,10 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 			}
 		}()
 
-		// Wait for the set to complete
+		// Wait for the state update to complete
 		<-done
 
-		// Should receive updated state
+		// The stream should receive the updated state
 		msg, err = stream.Recv()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -892,10 +900,10 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		t.Logf("Received updated state: %s, seqno: %d", msg.StateJson, msg.Seqno)
 	})
 
-	// Test 5: Custom store ID - non-trivial case kept as its own run.
-	// Both stores must live in the same testbed/resClient for isolation to be
-	// observable, so this case shares the rpcWorldFixture rather than calling
-	// setupStateAtom twice.
+	// Test 5: Custom store ID (non-trivial case kept as its own run).
+	// Both stores must live in the same testbed/resClient for isolation
+	// to be observable, so this case shares the rpcWorldFixture rather than
+	// calling setupStateAtom twice.
 	t.Run("CustomStoreId", func(t *testing.T) {
 		// Create one RPC fixture to compare custom and default stores.
 		f := setupRPCWorldFixture(ctx, t)
@@ -938,7 +946,7 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		}
 		defaultClient := resource_state.NewSRPCStateAtomResourceServiceClient(defaultSrpcClient)
 
-		// Default store should still have empty state
+		// The default store should still have empty state
 		getResp, err := defaultClient.GetState(ctx, &resource_state.GetStateRequest{})
 		if err != nil {
 			t.Fatal(err.Error())

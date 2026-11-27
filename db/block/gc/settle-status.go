@@ -38,9 +38,9 @@ type SettleStatus struct {
 	HolesMore bool
 	// HoleSample holds the first recorded holes' blocks.
 	HoleSample []*block.BlockRef
-	// RipeQueued reports that a block queued to free at or below the pop mark
-	// and the up cursor is not parked yet, which holds the flip until a free
-	// parks it.
+	// RipeQueued reports that a block queued to free at or below the pop
+	// mark and the up cursor is not parked yet. That queued block holds the
+	// flip until a free parks the block.
 	RipeQueued bool
 }
 

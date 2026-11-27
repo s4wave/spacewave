@@ -67,7 +67,7 @@ func followedCache(t *testing.T, engine world.Engine) *Cache {
 // key's change: each edit to the key's edges reruns it to the World's answer,
 // including an edge written while the index still stood behind the view.
 func TestKeyIndexViewReruns(t *testing.T) {
-	// b has an edge before the index builds; a has none.
+	// b has an edge before the index builds. a has none.
 	_, engine := readsStore(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -139,8 +139,8 @@ func TestKeyIndexViewReruns(t *testing.T) {
 	editEdge(t, engine, "a", "m1", false)
 	next(0)
 
-	// b's edges never name a, so the view answers from the index once it
-	// patches past a's removal.
+	// b's edges never refer to a, so the view answers from the index once
+	// it patches past a's removal.
 	editEdge(t, engine, "b", "m2", true)
 	deadline := time.After(10 * time.Second)
 	for {
@@ -192,7 +192,7 @@ func TestKeyIndexBehindWalks(t *testing.T) {
 // TestKeyIndexPatches checks the set the worker keeps against the World as
 // edges come and go, and as an object it lists is deleted.
 func TestKeyIndexPatches(t *testing.T) {
-	// a names m1 before the index builds.
+	// a has an edge to m1 before the index builds.
 	_, engine := readsStore(t)
 	for _, key := range []string{"a", "b", "m1"} {
 		seed(t, engine, key)
@@ -204,7 +204,8 @@ func TestKeyIndexPatches(t *testing.T) {
 		t.Fatalf("object index holds %d keys, want m1", keys)
 	}
 
-	// m1 stays while b also names it, and leaves with the last edge.
+	// m1 stays while b also has an edge to m1, and leaves with the last
+	// edge.
 	expect := func(m1 bool) {
 		t.Helper()
 		seqno := mustSeqno(t, engine)
@@ -230,7 +231,7 @@ func TestKeyIndexPatches(t *testing.T) {
 	editEdge(t, engine, "b", "m1", false)
 	expect(false)
 
-	// Deleting m1 while b names it takes it out too.
+	// Deleting m1 while b has an edge to m1 takes m1 out too.
 	editEdge(t, engine, "b", "m1", true)
 	expect(true)
 	tx, err := engine.NewTransaction(t.Context(), true)

@@ -12,7 +12,7 @@ type Visit struct {
 	// was read, or its bytes when the walker keeps them.
 	Leaf bool
 	// Unsure reports a guessed type the walker could not confirm, as
-	// Node.Guess describes: it read no refs and does not descend.
+	// Node.Guess describes: the walker read no refs and does not descend.
 	Unsure bool
 	// DecodeErr is why the block did not decode as its type.
 	DecodeErr error
@@ -32,8 +32,8 @@ type Visit struct {
 	// Opaque reports an untyped block whose bytes are not a message, so the
 	// scan read no refs from it.
 	Opaque bool
-	// Data is the block as stored, before any transform decodes it, when the
-	// walker keeps bytes and the block was found; nil otherwise.
+	// Data is the block as stored, before any transform decodes it, when
+	// the walker keeps bytes and the block was found, or nil otherwise.
 	Data []byte
 	// blk is the decoded block, nil for a leaf or an undecodable block.
 	blk any

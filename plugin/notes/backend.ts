@@ -189,8 +189,8 @@ async function resolveAssetPath(
 }
 
 // NotesObjectTypeHandler implements ObjectTypeHandlerService for all
-// notes plugin object types (notebook, blog, docs). Dispatches on typeId to
-// create the appropriate resource handler.
+// notes plugin object types (notebook, blog, docs). The handler dispatches
+// on typeId to create the appropriate resource handler.
 class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
   constructor(private readonly revision: Promise<AppRevision>) {}
 
@@ -260,7 +260,8 @@ class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
 }
 
 // NotesWorldOpHandler implements WorldOpHandlerService for the notes plugin.
-// Handles world-level and object-level operations for notes types.
+// The handler handles world-level and object-level operations for notes
+// types.
 class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   constructor(private readonly savedViews: SavedViewOperations) {}
 
@@ -387,8 +388,8 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   }
 
   // applyCreateBlog handles the create-blog operation.
-  // Creates a Blog world object with inline source and a UnixFS object with an
-  // initial post file.
+  // The handler creates a Blog world object with inline source and a UnixFS
+  // object with an initial post file.
   private async applyCreateBlog(
     request: ApplyWorldOpRequest,
     signal: AbortSignal,
@@ -480,9 +481,9 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
   // The op keeps a whole earlier seed, found by its primary object having its
   // type, so seeding a Space again, as Retry does after a later quickstart
   // step failed, completes without a second copy or an overwrite. Any other
-  // object at a seed key rejects the op; see applySeed.
-  // The batch carries no Space settings ops; the caller writes the index
-  // after this returns.
+  // object at a seed key rejects the op. See applySeed.
+  // The batch carries no Space settings ops. The caller writes the index
+  // after SeedQuickstart returns.
   async SeedQuickstart(
     request: SeedQuickstartRequest,
     _abortSignal: AbortSignal,
@@ -632,8 +633,8 @@ export function startNotesBackend(
   const releaseRetained = retainUntilAbort(signal, refs, retained)
   let scope: ClientResourceRef | undefined
 
-  // Startup is the registration pass: the host reports the worker running only
-  // after every capability is registered.
+  // startup is the registration pass: the host reports the worker running
+  // only after every capability is registered.
   const startup = (async () => {
     // Historical workers replay their exact operations without current registrations.
     const host = await savedViews.info

@@ -49,21 +49,21 @@ var Version = controller.MustParseVersion("0.0.1")
 //
 // Only one of these controllers should be running.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// hostBus supplies live hosts; it is bound before Execute.
+	// hostBus supplies live hosts. The bus is bound before Execute.
 	hostBus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 	// hostClient is a srpc client for the host mux for serving rpcs originating from the plugins.
 	hostClient srpc.Client
-	// objKey is the PluginHost object key (from the config)
+	// objKey is the PluginHost object key (from the config).
 	objKey string
-	// peerID is the parsed peer id for sending world ops
+	// peerID is the parsed peer id for sending world ops.
 	peerID peer.ID
-	// peerIDStr is the parsed peer id string
+	// peerIDStr is the parsed peer id string.
 	peerIDStr string
 
 	// these values are set during Execute()
@@ -74,7 +74,7 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginHostsCtr is a container with the set of available plugin hosts.
 	pluginHostsCtr *ccontainer.CContainer[*pluginHostSet]
-	// manifestCopyGate delays startup copies until runtime readiness.
+	// manifestCopyGateCtr delays startup copies until runtime readiness.
 	manifestCopyGateCtr *ccontainer.CContainer[ManifestCopyGate]
 	// manifestStoreMtx guards manifest store initialization state.
 	manifestStoreMtx sync.Mutex
@@ -384,8 +384,8 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 // resolveLoadPlugin resolves a LoadPlugin directive.
 //
 // A directive without an instance key loads the configured instance. Other
-// keys start further instances on this scheduler; the bus the scheduler runs
-// on bounds which callers can reach them.
+// keys start further instances on this scheduler. The bus the scheduler runs
+// on bounds which callers can reach the instances.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
 	if !c.conf.SchedulesPlugin(dir.LoadPluginID()) {
 		return nil, nil
@@ -403,7 +403,7 @@ func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Re
 // scheduler's own instance, which holds the whole host bus and volume. A load
 // of one under another key, such as a Space's, binds to that instance, so no
 // key starts a second copy with host powers. Such a load may not select its
-// build: one naming manifests or a manifest root is refused, so a Space's
+// build: one referencing manifests or a manifest root is refused, so a Space's
 // admitted manifest never replaces the host's build.
 func (c *Controller) loadBindingKey(dir bldr_plugin.LoadPlugin) (string, error) {
 	// Any plugin outside the host set, or any load at the own key, keeps its key.
@@ -447,7 +447,7 @@ func (c *Controller) HandleDirective(
 //
 // Invariant: no call that originated in a plugin outside the host's set
 // reaches another plugin's root client. On the host bus the identity of a call
-// is the server ID the host itself assigned, never bytes the plugin sent; a
+// is the server ID the host itself assigned, never bytes the plugin sent. A
 // plugin outside the set reaches other plugins only through its own host
 // invoker, which delivers through PluginRpc under its binding. A lookup the
 // rule refuses fails at once instead of waiting for another resolver.
@@ -529,8 +529,10 @@ func (c *Controller) AddPinnedPluginReference(pluginID, instanceKey, manifestRoo
 	return plg, ref.Release
 }
 
-// AddSelectedPluginReference retains a desired artifact without replacing the binding.
-// The newest retained selection wins; removing it restores the preceding demand.
+// AddSelectedPluginReference retains a desired artifact without replacing the
+// binding.
+// The newest retained selection wins. Removing the selection restores the
+// preceding demand.
 // Each root runs only once AdmitPluginRoot admits it for peerID.
 func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey, peerID string, selected ...*bldr_manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func()) {
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
@@ -629,8 +631,9 @@ func (c *Controller) buildPluginMux(
 	)
 	hostServer.SetPrepared(prepared)
 
-	// A plugin trusted to run plugins on these hosts may also name the peer
-	// whose approvals decide its loads; every other plugin's loads use none.
+	// A plugin trusted to run plugins on these hosts may also select the
+	// peer whose approvals decide its loads. Every other plugin's loads use
+	// none.
 	hostServer.SetNamesPeers(slices.Contains(c.conf.GetHostExportPluginIds(), pluginID))
 
 	// Bind the registration and scheduler, then register the service.
@@ -680,7 +683,7 @@ func (c *Controller) buildPluginMux(
 }
 
 // SetPluginHostBus binds host discovery before Execute. Hosts remain owned by
-// their publishing bus; the scheduler owns their watch and selection lifetime.
+// their publishing bus. The scheduler owns their watch and selection lifetime.
 func (c *Controller) SetPluginHostBus(hostBus bus.Bus) {
 	c.hostBus = hostBus
 }

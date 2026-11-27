@@ -33,9 +33,9 @@ type Client struct {
 	// peerID is the peer ID derived from the private key.
 	peerID peer.ID
 
-	// peers is keyed by peer id in string format
+	// peers is keyed by peer id in string format.
 	peers *keyed.KeyedRefCount[string, *clientPeerTracker]
-	// listenRoutine is the routine for the Listen RPC
+	// listenRoutine is the routine for the Listen RPC.
 	// only enabled if listenHandler != nil
 	listenRoutine *routine.RoutineContainer
 }
@@ -66,13 +66,15 @@ func NewClient(
 		peerID:  peerID,
 	}
 
-	// Listen routine connects & waits for remote peers to contact us.
+	// Listen routine connects & waits for remote peers to contact
+	// the client.
 	client.listenRoutine = routine.NewRoutineContainer(
 		routine.WithBackoff(backoffConf.Construct()),
 		routine.WithExitLogger(le.WithField("routine", "signaling-client-listen")),
 	)
 
-	// Peer trackers start when we want to send or receive signals from/to a remote peer.
+	// Peer trackers start when the client wants to send or receive signals
+	// from/to a remote peer.
 	client.peers = keyed.NewKeyedRefCount[string, *clientPeerTracker](
 		client.newPeerTracker,
 		keyed.WithExitLogger[string, *clientPeerTracker](le),
@@ -208,19 +210,19 @@ func (c *Client) AddPeerRef(remotePeerID string) *ClientPeerRef {
 
 // clientPeerTracker wraps an ongoing signaling clientPeer with a peer.
 type clientPeerTracker struct {
-	// txNonce is the transmission nonce counter
+	// txNonce is the transmission nonce counter.
 	txNonce atomic.Uint64
-	// c is the client
+	// c is the client.
 	c *Client
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// key is the string encoding of the peer id.
 	key string
-	// peerID is the parsed version of the peer id
+	// peerID is the parsed version of the peer id.
 	peerID peer.ID
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// open indicates the session is open
+	// open indicates the session is open.
 	open *uint64
 	// presence numbers each open of the session, so a presence epoch never
 	// repeats while this tracker lives, even when the server restarts.
@@ -231,7 +233,7 @@ type clientPeerTracker struct {
 	outSent bool
 	// outAcked indicates out was acked.
 	outAcked bool
-	// outCancel indicates we should try to cancel sending out.
+	// outCancel indicates the client should try to cancel sending out.
 	outCancel bool
 	// recv contains the next message to receive.
 	recv *signaling_rpc.SessionMsg
@@ -241,7 +243,7 @@ type clientPeerTracker struct {
 
 // newPeerTracker constructs a new clientPeerTracker.
 func (c *Client) newPeerTracker(peerIDStr string) (keyed.Routine, *clientPeerTracker) {
-	// note: we confirmed that peerIDStr is valid before adding a key.
+	// peerIDStr is validated before a key is added.
 	peerID, err := peer.IDB58Decode(peerIDStr)
 	if err != nil {
 		return nil, nil

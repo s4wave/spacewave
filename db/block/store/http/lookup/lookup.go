@@ -22,11 +22,11 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller looks up blocks via an HTTP service for LookupBlockFromNetwork directives.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// store is the http-backed block store
+	// store is the http-backed block store.
 	store *ccontainer.CContainer[block_store.Store]
 }
 

@@ -8,7 +8,8 @@ import (
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
-// DialTptAddr is a directive to establish a link with a peer via a transport address.
+// DialTptAddr is a directive to establish a link with a peer via a transport
+// address.
 //
 // Value: Link
 type DialTptAddr interface {
@@ -30,7 +31,7 @@ type DialTptAddr interface {
 // DialTptAddrValue is the type emitted when resolving DialTptAddr.
 type DialTptAddrValue = link.Link
 
-// dialTptAddr implements DialTptAddr
+// dialTptAddr implements DialTptAddr.
 type dialTptAddr struct {
 	dialerOpts *dialer.DialerOpts
 	src, dest  peer.ID
@@ -78,7 +79,8 @@ func (d *dialTptAddr) GetValueOptions() directive.ValueOptions {
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
-// old, then the new directive will be merged (de-duplicated) into the old.
+// old directive, then the new directive will be merged (de-duplicated) into
+// the old directive.
 func (d *dialTptAddr) IsEquivalent(other directive.Directive) bool {
 	od, ok := other.(DialTptAddr)
 	if !ok {
@@ -116,5 +118,5 @@ func (d *dialTptAddr) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ DialTptAddr = (*dialTptAddr)(nil)

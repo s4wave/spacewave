@@ -159,7 +159,7 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldPath, newPath string, 
 }
 
 // StatWithPath calls Stat on a path in a FSHandle.
-// Note: this will traverse Symbolic links.
+// StatWithPath traverses Symbolic links.
 func StatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, error) {
 	// Resolve a root path directly to its file information.
 	name = path.Clean(name)
@@ -335,10 +335,10 @@ func ReadFile(ctx context.Context, h *FSHandle) ([]byte, error) {
 }
 
 // WriteFile writes data to the filesystem handle, which must be a file, and
-// commits it.
+// commits the file.
 //
-// Since WriteFile requires multiple system calls to complete, a failure mid-operation
-// can leave the file in a partially written state.
+// Since WriteFile requires multiple system calls to complete, a failure
+// mid-operation can leave the file in a partially written state.
 func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) error {
 	// Size chunks to the file's optimal write size.
 	optimalWriteSize, err := fsh.GetOptimalWriteSize(ctx)
@@ -347,7 +347,7 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 	}
 	if optimalWriteSize == 0 {
 		// copy the const here to avoid the blob import
-		optimalWriteSize = 2048 * 125 // 256KB - blob.DefChunkingMinSize
+		optimalWriteSize = 2048 * 125 // 256KB (blob.DefChunkingMinSize)
 	}
 
 	// Truncate the file.

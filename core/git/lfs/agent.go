@@ -41,7 +41,7 @@ func NewAgent(store Store, tmpDir string) *Agent {
 
 // Run reads protocol events from r and writes responses to w until git-lfs
 // sends terminate or closes r. A failed transfer is reported to git-lfs and
-// does not end Run; a malformed event or a write failure does.
+// does not end Run, but a malformed event or a write failure does.
 func (a *Agent) Run(ctx context.Context, r io.Reader, w io.Writer) error {
 	rd := bufio.NewReader(r)
 	out := &events{w: bufio.NewWriter(w)}
@@ -184,7 +184,7 @@ func ValidateOid(oid string) error {
 
 // events writes protocol messages to git-lfs, one JSON object per line.
 type events struct {
-	// w buffers output; every message is flushed when sent.
+	// w buffers output. Every message is flushed when sent.
 	w *bufio.Writer
 	// arena allocates the values of one message and is reset after each.
 	arena fastjson.Arena

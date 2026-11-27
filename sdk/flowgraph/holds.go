@@ -74,7 +74,7 @@ func HoldsObject(node *FlowgraphNode, placements *FlowgraphPlacements) bool {
 
 // graphHolds returns the objects the snapshot's nodes hold, mapped to the
 // holding node ID. The error reports two nodes holding one object, or a
-// holding node that would run more than one copy; the map is complete either
+// holding node that would run more than one copy. The map is complete either
 // way.
 func graphHolds(snapshot *FlowgraphSnapshot) (map[string]string, error) {
 	holds := make(map[string]string)
@@ -181,17 +181,16 @@ func syncHolds(ctx context.Context, ws world.WorldState, key string, previous, n
 
 // CheckHold returns an error unless the node nodeID of the Flowgraph at
 // graphKey, placed on a Device, holds its bound object in ws, binds none, or
-// reads it. A
-// Device runs a holding node only while the World names it the holder, so a
-// node whose object was deleted and then taken by another node does not run
-// beside it.
+// reads the object. A Device runs a holding node only while the World
+// identifies the node as the holder, so a node whose object was deleted and
+// then taken by another node does not run beside that node.
 func CheckHold(ctx context.Context, ws world.WorldState, graphKey, nodeID string, node *FlowgraphNode) error {
 	// A placed standing node holds the object it binds, unless it reads it.
 	if node.GetObjectKey() == "" || node.GetStep() != nil || node.GetReads() {
 		return nil
 	}
 
-	// Require the World's edge to name this node.
+	// Require the World's edge to reference this node.
 	holderGraph, holder, err := LookupHolder(ctx, ws, node.GetObjectKey())
 	if err != nil {
 		return err

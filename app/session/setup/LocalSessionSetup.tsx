@@ -55,8 +55,8 @@ export function LocalSessionSetup({
   }
 
   // Compute the path to the setup wizard relative to the current route.
-  // Mode 'cloud' is at /plan/free, so ../../setup. Mode 'local' is at
-  // /setup/free-local, so ../ (already inside /setup/).
+  // Mode 'cloud' is at /plan/free, so use ../../setup. Mode 'local' is at
+  // /setup/free-local, so use ../ (already inside /setup/).
   const setupPath = mode === 'cloud' ? '../../setup' : '../'
 
   return (

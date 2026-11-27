@@ -18,26 +18,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// The image store's revision roots, as OSRevision.tla models them. A revision
-// slot names its authorization block: the signed image reference, stored with
-// the image's root as its one child, so one named root holds the revision's whole block
-// graph and a single publish moves a revision with its authorization.
+// The image store's revision roots follow OSRevision.tla's model. A revision
+// slot selects its authorization block: the signed image reference, stored with
+// the image's root as its one child, so one named root holds the revision's
+// whole block graph and a single publish moves a revision with its
+// authorization.
 const (
-	// acceptedRoot names the revision the Device falls back to.
+	// acceptedRoot selects the revision the Device falls back to.
 	acceptedRoot = "accepted"
-	// trialRoot names a staged revision to boot once.
+	// trialRoot selects a staged revision to boot once.
 	trialRoot = "trial"
-	// attemptedRoot names the trial's authorization once a boot has tried it.
+	// attemptedRoot records the trial's authorization once a boot has tried
+	// it.
 	attemptedRoot = "attempted"
-	// rolledBackRoot names a record of the root block of the last trial that
-	// failed, until the next trial is staged. The record has no children, so
-	// it keeps none of that revision.
+	// rolledBackRoot selects a record of the root block of the last trial
+	// that failed, until the next trial is staged. The record has no
+	// children, so it keeps none of that revision.
 	rolledBackRoot = "rolled-back"
 )
 
 // stageReads is the number of source reads a staging keeps in flight. A source
 // across the network serves one block per round trip, so the copy needs many
-// reads at once; a test sets one to cut a staging at a known block.
+// reads at once. A test sets one to cut a staging at a known block.
 var stageReads = block.DefaultGraphCopyReads
 
 // revision is one revision slot: its authorization block and, once verified
@@ -60,7 +62,8 @@ type revisions struct {
 	// attempted and rolledBack are the named roots of the same names, nil
 	// when free.
 	attempted, rolledBack *block.BlockRef
-	// failed is the image root the rolled-back record names, nil when free.
+	// failed is the image root the rolled-back record references, nil
+	// when free.
 	failed *block.BlockRef
 }
 
@@ -105,10 +108,10 @@ func (s *Selection) AcceptArgs(dir string) []string {
 }
 
 // RunAcceptTrial accepts the trial that the four arguments after accept-trial
-// name, as AcceptArgs wrote them: the image directory, the served root, and
+// specify, as AcceptArgs wrote them: the image directory, the served root, and
 // the accepted and trial authorizations the boot selected.
 func RunAcceptTrial(args []string) error {
-	// Decode the selection; an absent accepted slot is an empty argument.
+	// Decode the selection. An absent accepted slot is an empty argument.
 	sel := &Selection{Image: &bucket.ObjectRef{}}
 	for i, ref := range []**block.BlockRef{&sel.Image.RootRef, &sel.accepted, &sel.trial} {
 		var err error
@@ -129,8 +132,8 @@ type blockReader interface {
 
 // SelectRevision chooses the revision this boot serves from the image store in
 // dir, verifying each authorization against the pinned signers. A pending trial
-// that no boot has tried is marked attempted, durably, before it is returned;
-// a trial already tried, or one no pinned signer authorized, is dropped and
+// that no boot has tried is marked attempted, durably, before being returned.
+// A trial already tried, or one no pinned signer authorized, is dropped and
 // recorded as rolled back, and the accepted revision is served. The store is
 // written only in those two cases, so an ordinary boot changes no byte.
 func SelectRevision(ctx context.Context, le *logrus.Entry, dir string, pinned []peer.ID) (*Selection, error) {
@@ -195,7 +198,7 @@ func AcceptTrial(ctx context.Context, le *logrus.Entry, dir string, sel *Selecti
 // AuthorizeImage makes the image a seed built the accepted revision, with
 // signed as its authorization, in one publish that also frees the built
 // image's name. The caller verifies signed against the signers its card
-// pins; image must be the image signed names and the store's built image.
+// pins. image must be the image signed specifies and the store's built image.
 func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *peer.SignedMsg, image *bucket.ObjectRef) error {
 	// Build the authorization block that will hold the built image.
 	auth, err := authorizationBlock(signed, image)
@@ -260,7 +263,7 @@ func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.
 
 // copyRevision copies every block of root's graph that vol lacks from src and
 // returns how many it wrote. block.CopyGraph walks the graph, stops at every
-// block vol already holds and writes each block after its children; the
+// block vol already holds and writes each block after its children. The
 // buffer commits those writes to vol in batches, in the same order. So a held
 // block always holds its whole graph: a repeated staging copies nothing, and a
 // staging cut short keeps what it completed and resumes where it stopped.
@@ -282,8 +285,8 @@ func copyRevision(ctx context.Context, vol *volume_s4db.Volume, src block.StoreO
 // OpenImageStore opens the image store in dir read-only, as a staging's
 // source, and returns it with the image its seed built. Close releases it.
 func OpenImageStore(ctx context.Context, le *logrus.Entry, dir string) (_ *volume_s4db.Volume, _ *bucket.ObjectRef, retErr error) {
-	// Open the store without its writer lock; it refuses a store that needs
-	// a conversion or a format upgrade.
+	// Open the store without its writer lock. Opening refuses a store that
+	// needs a conversion or a format upgrade.
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
 		Path:          filepath.Join(dir, "image.s4wave"),
 		NoGenerateKey: true,
@@ -324,8 +327,8 @@ func rollBack(ctx context.Context, le *logrus.Entry, dir string, revs *revisions
 		reason = trial.err.Error()
 	}
 
-	// Record the root the trial named, verified or not, so the node that
-	// staged it does not stage it again.
+	// Record the root the trial specified, verified or not, so the node
+	// that staged it does not stage it again.
 	var entries []*block.PutBatchEntry
 	root := trial.image.GetRootRef()
 	if root == nil {
@@ -400,7 +403,7 @@ func readRevisions(ctx context.Context, dir string, pinned []peer.ID) (_ *revisi
 		return nil, err
 	}
 
-	// Read the root the rolled-back record names.
+	// Read the root the rolled-back record references.
 	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
 	if revs.rolledBack != nil {
 		data, found, err := store.GetBlock(ctx, revs.rolledBack)
@@ -415,7 +418,7 @@ func readRevisions(ctx context.Context, dir string, pinned []peer.ID) (_ *revisi
 		}
 	}
 
-	// Verify each occupied slot; a slot that fails keeps its reason.
+	// Verify each occupied slot. A slot that fails keeps its reason.
 	for _, slot := range []*revision{&revs.accepted, &revs.trial} {
 		if slot.auth != nil {
 			slot.image, slot.signer, slot.err = verifyRevision(ctx, store, slot.auth, pinned)
@@ -445,9 +448,10 @@ func verifyRevision(ctx context.Context, store blockReader, auth *block.BlockRef
 	return image, signer, nil
 }
 
-// claimedRoot returns the image root the authorization block auth names,
-// without verifying it, or nil when it names none. It serves only the
-// rolled-back record of a trial that failed verification.
+// claimedRoot returns the image root the authorization block auth records,
+// without verifying the authorization, or nil when auth records no image root.
+// claimedRoot serves only the rolled-back record of a trial that failed
+// verification.
 func claimedRoot(ctx context.Context, dir string, auth *block.BlockRef) (root *block.BlockRef) {
 	// Read the block from a fresh read-only handle.
 	db, err := s4db.Open(filepath.Join(dir, "image.s4wave"), s4db.Options{ReadOnly: true})
@@ -481,7 +485,7 @@ func readAuthorization(ctx context.Context, store blockReader, auth *block.Block
 }
 
 // authorizationBlock returns the block that stores signed with image's root
-// as its one child, after checking that signed names image.
+// as its one child, after checking that signed specifies image.
 func authorizationBlock(signed *peer.SignedMsg, image *bucket.ObjectRef) (*block.PutBatchEntry, error) {
 	// Refuse an authorization of another image.
 	want, err := os_image.MarshalImage(image)

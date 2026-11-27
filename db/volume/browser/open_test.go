@@ -13,7 +13,7 @@ import (
 )
 
 // heldDevice is a memory device opened through a heldOpener. Its first List
-// runs fail, which models a failure after the device opened.
+// runs fail to model a failure after the device opened.
 type heldDevice struct {
 	*device.Memory
 	// o is the opener that holds the device.
@@ -43,7 +43,7 @@ func (d *heldDevice) Close() error {
 }
 
 // heldOpener opens one memory device for one opener at a time, as the Web
-// Lock does, failing with device.ErrHeld while it is held.
+// Lock does, failing with device.ErrHeld while the device is held.
 type heldOpener struct {
 	// mem holds the device's files across opens.
 	mem *device.Memory

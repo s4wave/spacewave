@@ -18,9 +18,9 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller mounts a bifrost stream srpc client to a bus.
 type Controller struct {
 	*bifrost_rpc.ClientController
-	// b is the controller bus
+	// b is the controller bus.
 	b bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 

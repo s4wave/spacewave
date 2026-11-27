@@ -10,11 +10,11 @@ import (
 )
 
 // Discard deletes an immutable checkout whole or not at all. The caller must
-// hold its exclusive DestinationLease. It first
+// hold its exclusive DestinationLease. Discard first
 // moves path to a staging name, which Windows refuses while the game or a
 // host holds one of its files open, so a directory still in use stays
 // complete instead of losing the files deleted before the one held. Deleting
-// the staging copy may still stop partway; the next eviction finishes it.
+// the staging copy may still stop partway. The next eviction finishes deletion.
 func Discard(path string) error {
 	staging := filepath.Join(filepath.Dir(path), "."+filepath.Base(path)+"-Discard-"+strconv.FormatInt(time.Now().UnixNano(), 36))
 	if err := os.Rename(path, staging); err != nil {

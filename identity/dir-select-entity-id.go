@@ -46,7 +46,7 @@ func ExSelectEntityId(ctx context.Context, b bus.Bus, purpose, domainID string, 
 	return valObj, nil
 }
 
-// selectEntityId implements SelectEntityId
+// selectEntityId implements SelectEntityId.
 type selectEntityId struct {
 	purpose  string
 	domainID string
@@ -78,7 +78,7 @@ func (s *selectEntityId) SelectEntityIdPrevError() error {
 // Validate checks the directive.
 func (s *selectEntityId) Validate() error { return nil }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *selectEntityId) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		MaxValueCount:   1,

@@ -12,7 +12,7 @@ import (
 // walkPage is a decoded page a walk reads: *Page on the mutable cursor tree,
 // or *flatPage on a ReadCursor.
 type walkPage interface {
-	// GetLevel returns the page height; zero is a leaf.
+	// GetLevel returns the page height. Zero is a leaf.
 	GetLevel() uint32
 	// Len returns the number of entries.
 	Len() int
@@ -174,7 +174,7 @@ func loadFlatPage(ctx context.Context, cursor block.ReadCursor) (*flatPage, erro
 	return page, err
 }
 
-// errMissingPage reports a page reference that names no block.
+// errMissingPage reports a page reference that points to no block.
 var errMissingPage = fmt.Errorf("okra page: %w", block.ErrNotFound)
 
 // childPage loads the child page of entry index of page through r.
@@ -268,9 +268,10 @@ func lastPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], ro
 }
 
 // pageEnter is called as a descent enters each page above its target level,
-// before it loads the page's child at index, with the page's depth in the
-// path. It returns the context the descent loads that child and the pages
-// below it on, such as one carrying a batch read of the page's next children.
+// before the descent loads the page's child at index, with the page's depth
+// in the path. pageEnter returns the context the descent loads that child and
+// the pages below the child on, such as one carrying a batch read of the
+// page's next children.
 type pageEnter[P walkPage, C any] func(ctx context.Context, depth int, page P, cursor C, index int) (context.Context, error)
 
 // previousPagePath returns the path of the page preceding path's leaf at

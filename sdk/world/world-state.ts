@@ -38,9 +38,9 @@ import type {
 
 // ListObjectsWithTypePage selects one page of a type's objects.
 export interface ListObjectsWithTypePage {
-  // startAfter resumes after this key; empty starts at the first key.
+  // startAfter resumes after this key. An empty key starts at the first key.
   startAfter?: string
-  // limit bounds the page; zero lets the server choose.
+  // limit bounds the page. Zero lets the server choose.
   limit?: number
   // declared asks for each object's title and state beside its key.
   declared?: boolean
@@ -79,13 +79,16 @@ export interface ListGraphEdgeBucketsOptions {
 // IWorldState contains the world state interface.
 // Represents the full state read/write operations interface to the world.
 export interface IWorldState {
-  /** getEngine borrows the live owner when available; immutable snapshots have no Engine. */
+  /**
+   * getEngine borrows the live owner when available. Immutable snapshots have
+   * no Engine.
+   */
   getEngine?(): Engine
 
   /**
    * bindObject returns a handle to the object at key without checking that it
-   * exists; each call on it reads the current revision. Only a live World,
-   * one with getEngine, has it.
+   * exists. Each call on it reads the current revision. Only a live World,
+   * one with getEngine, has bindObject.
    */
   bindObject?(key: string): IObjectState
 
@@ -93,36 +96,36 @@ export interface IWorldState {
   // This is used to create typed object resources from accessTypedObject results.
   getResourceRef(): ClientResourceRef
 
-  // GetReadOnly returns if the state is read-only
+  // getReadOnly returns if the state is read-only.
   getReadOnly(): boolean
 
-  // GetSeqno returns the current seqno of the world state
-  // This is also the sequence number of the most recent change
-  // Initializes at 0 for initial world state
+  // getSeqno returns the current seqno of the world state.
+  // This is also the sequence number of the most recent change.
+  // Initializes at 0 for initial world state.
   getSeqno(abortSignal?: AbortSignal): Promise<{ seqno: bigint }>
 
-  // WaitSeqno waits for the seqno of the world state to be >= value
-  // Returns the seqno when the condition is reached
-  // If value == 0, this might return immediately unconditionally
+  // waitSeqno waits for the seqno of the world state to be >= value.
+  // Returns the seqno when the condition is reached.
+  // If value == 0, this might return immediately unconditionally.
   waitSeqno(
     seqno: bigint,
     abortSignal?: AbortSignal,
   ): Promise<{ seqno: bigint }>
 
-  // BuildStorageCursor builds a cursor to the world storage with an empty ref
-  // The cursor should be released independently of the WorldState
-  // Be sure to call Release on the cursor when done
+  // buildStorageCursor builds a cursor to the world storage with an empty ref.
+  // The cursor should be released independently of the WorldState.
+  // Be sure to call Release on the cursor when done.
   buildStorageCursor(abortSignal?: AbortSignal): Promise<BucketLookupCursor>
 
-  // AccessWorldState builds a bucket lookup cursor with an optional ref
-  // If the ref is empty, returns a cursor pointing to the root world state
-  // The lookup cursor will be released after cb returns
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
+  // If the ref is empty, returns a cursor pointing to the root world state.
+  // The lookup cursor will be released after cb returns.
   accessWorldState(
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor>
 
-  // StageWorldState opens a staging scope for writes outside a transaction.
+  // stageWorldState opens a staging scope for writes outside a transaction.
   // Build through the stage, adopt the result through this state, then
   // release the stage after the adopting call returns. A write transaction's
   // stage writes through the transaction. A read-only state rejects it.
@@ -137,54 +140,54 @@ export interface IWorldState {
   /** openOuterWorld grants the enclosing Space World under the same authority. Dispose of it independently. */
   openOuterWorld(abortSignal?: AbortSignal): Promise<IWorldState & Disposable>
 
-  // CreateObject creates a object with a key and initial root ref
-  // Returns ErrObjectExists if the object already exists
-  // Appends a OBJECT_SET change to the changelog
+  // createObject creates a object with a key and initial root ref.
+  // Returns ErrObjectExists if the object already exists.
+  // Appends a OBJECT_SET change to the changelog.
   createObject(
     key: string,
     rootRef: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<IObjectState>
 
-  // GetObject looks up an object by key
-  // Returns null if not found
+  // getObject looks up an object by key.
+  // Returns null if not found.
   getObject(
     key: string,
     abortSignal?: AbortSignal,
   ): Promise<IObjectState | null>
 
-  // IterateObjects returns an iterator with the given object key prefix
+  // iterateObjects returns an iterator with the given object key prefix.
   // The prefix is NOT clipped from the output keys
-  // Keys are returned in sorted order
-  // Must call Next() or Seek() before valid
-  // Call Close when done with the iterator
-  // Any init errors will be available via the iterator's Err() method
+  // Keys are returned in sorted order.
+  // Must call Next() or Seek() before the iterator is valid.
+  // Call Close when done with the iterator.
+  // Any init errors will be available via the iterator's Err() method.
   iterateObjects(
     prefix?: string,
     reversed?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<ObjectIterator>
 
-  // RenameObject renames an object key and associated graph quads.
+  // renameObject renames an object key and associated graph quads.
   renameObject(
     oldKey: string,
     newKey: string,
     options?: RenameObjectOptions,
   ): Promise<IObjectState>
 
-  // DeleteObject deletes an object and associated graph quads by ID
-  // Calls DeleteGraphObject internally
-  // Returns deleted=false if not found
+  // deleteObject deletes an object and associated graph quads by ID.
+  // Calls DeleteGraphObject internally.
+  // Returns deleted=false if not found.
   deleteObject(
     key: string,
     abortSignal?: AbortSignal,
   ): Promise<{ deleted: boolean }>
 
-  // SetGraphQuad sets a quad in the graph store
+  // setGraphQuad sets a quad in the graph store.
   // Subject: must be an existing object IRI: <object-key>
   // Predicate: a predicate string, e.g. IRI: <ref>
   // Object: an existing object IRI: <object-key>
-  // If already exists, returns nil
+  // If already exists, returns nil.
   setGraphQuad(
     subject: string,
     predicate: string,
@@ -193,8 +196,8 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<void>
 
-  // DeleteGraphQuad deletes a quad from the graph store
-  // Note: if quad did not exist, returns nil
+  // deleteGraphQuad deletes a quad from the graph store.
+  // Note: if quad did not exist, returns nil.
   deleteGraphQuad(
     subject: string,
     predicate: string,
@@ -203,10 +206,10 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<void>
 
-  // LookupGraphQuads searches for graph quads in the store
-  // If the filter fields are empty, matches any for that field
-  // If not found, returns empty list
-  // If limit is set, stops after finding that number of matching quads
+  // lookupGraphQuads searches for graph quads in the store.
+  // If the filter fields are empty, matches any for that field.
+  // If not found, returns empty list.
+  // If limit is set, stops after finding that number of matching quads.
   lookupGraphQuads(
     subject?: string,
     predicate?: string,
@@ -216,7 +219,8 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<LookupGraphQuadsResponse>
 
-  // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  // listGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin
+  // object keys.
   // The response contains one bucket per requested origin in request order.
   listGraphEdgeBuckets(
     originObjectKeys: string[],
@@ -300,8 +304,8 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<ObjectBody[]>
 
-  // DeleteGraphObject deletes all quads with Subject or Object set to value
-  // Note: value should be the object key, NOT the object key <iri> format
+  // deleteGraphObject deletes all quads with Subject or Object set to value.
+  // Note: value should be the object key, NOT the object key <iri> format.
   deleteGraphObject(objectKey: string, abortSignal?: AbortSignal): Promise<void>
 
   // setObjectType, when present, sets an object's one type in one write:
@@ -313,9 +317,9 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<void>
 
-  // ApplyWorldOp applies a batch operation at the world level.
+  // applyWorldOp applies a batch operation at the world level.
   // The handling of the operation is operation-type specific.
-  // Returns the seqno following the operation execution.
+  // Returns the seqno after the operation executes.
   // Throws WorldOperationRejection when the operation refuses the change.
   // If sysErr is set, the error is treated as a transient system error.
   // Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
@@ -326,10 +330,13 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<{ seqno: bigint; sysErr: boolean }>
 
-  // AccessTypedObject looks up an object, determines its type via graph quad,
-  // and returns access to a typed resource that implements the type-specific RPC service.
-  // The returned resourceId can be used with resourceRef.createRef() to access the typed resource.
-  // For example, an ObjectLayout object returns access to a LayoutHost resource.
+  // accessTypedObject looks up an object, determines its type via graph quad,
+  // and returns access to a typed resource that implements the type-specific
+  // RPC service.
+  // The returned resourceId can be used with resourceRef.createRef() to access
+  // the typed resource.
+  // For example, an ObjectLayout object returns access to a LayoutHost
+  // resource.
   accessTypedObject(
     objectKey: string,
     abortSignal?: AbortSignal,
@@ -364,7 +371,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     return this.resourceRef
   }
 
-  // GetReadOnly returns if the transaction is read-only.
+  // getReadOnly returns if the transaction is read-only.
   // Returns stored metadata without RPC call.
   public getReadOnly(): boolean {
     return this.readOnly
@@ -372,7 +379,7 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // WorldWaitSeqno implementation
 
-  // GetSeqno returns the current sequence number of the world state.
+  // getSeqno returns the current sequence number of the world state.
   // This is also the sequence number of the most recent change.
   // Initializes at 0 for initial world state.
   public async getSeqno(abortSignal?: AbortSignal): Promise<{ seqno: bigint }> {
@@ -380,7 +387,8 @@ export class WorldStateResource extends Resource implements IWorldState {
     return { seqno: response.seqno ?? 0n }
   }
 
-  // WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
+  // waitSeqno waits for the world state sequence number to reach or exceed the
+  // specified value.
   // Returns the seqno when the condition is reached.
   // If seqno == 0, this might return immediately unconditionally.
   public async waitSeqno(
@@ -413,7 +421,7 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // WorldStorage implementation
 
-  // BuildStorageCursor builds a cursor to the world storage with an empty ref.
+  // buildStorageCursor builds a cursor to the world storage with an empty ref.
   // The cursor should be released independently of the Tx.
   // Be sure to call Release on the cursor when done.
   public async buildStorageCursor(
@@ -426,7 +434,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // AccessWorldState builds a bucket lookup cursor with an optional ref.
+  // accessWorldState builds a bucket lookup cursor with an optional ref.
   // If the ref is empty, returns a cursor pointing to the root world state.
   // The lookup cursor will be released after cb returns.
   public async accessWorldState(
@@ -440,7 +448,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // StageWorldState opens a staging scope for writes outside a transaction.
+  // stageWorldState opens a staging scope for writes outside a transaction.
   // Release the stage after the call that adopts its build returns.
   public async stageWorldState(abortSignal?: AbortSignal): Promise<WorldStage> {
     const response = await this.service.StageWorldState({}, abortSignal)
@@ -477,7 +485,8 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // WorldStateObject implementation
 
-  // CreateObject creates a new object in the world with the specified key and initial data.
+  // createObject creates a new object in the world with the specified key and
+  // initial data.
   // Returns ErrObjectExists if the object already exists.
   // Appends a OBJECT_SET change to the changelog.
   // Returns an ObjectState resource for the created object.
@@ -498,7 +507,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // GetObject retrieves an object from the world by its key.
+  // getObject retrieves an object from the world by its key.
   // Returns an ObjectState resource if found, or null if not found.
   public async getObject(
     key: string,
@@ -518,10 +527,10 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // IterateObjects returns an iterator with the given object key prefix.
+  // iterateObjects returns an iterator with the given object key prefix.
   // The prefix is NOT clipped from the output keys.
   // Keys are returned in sorted order.
-  // Must call Next() or Seek() before valid.
+  // Must call Next() or Seek() before the iterator is valid.
   // Call Close when done with the iterator.
   // Any init errors will be available via the iterator's Err() method.
   // Returns an ObjectIterator resource for iterating over matching objects.
@@ -543,7 +552,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // RenameObject renames an object key and associated graph quads.
+  // renameObject renames an object key and associated graph quads.
   public async renameObject(
     oldKey: string,
     newKey: string,
@@ -566,7 +575,8 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // DeleteObject removes an object and all associated graph quads from the world.
+  // deleteObject removes an object and all associated graph quads from the
+  // world.
   // Calls DeleteGraphObject internally.
   // Returns deleted=false if not found.
   public async deleteObject(
@@ -583,7 +593,7 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // WorldStateGraph implementation
 
-  // SetGraphQuad adds or updates a quad in the graph store.
+  // setGraphQuad adds or updates a quad in the graph store.
   // Subject: must be an existing object IRI: <object-key>
   // Predicate: a predicate string, e.g. IRI: <ref>
   // Object: an existing object IRI: <object-key>
@@ -605,7 +615,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     throwOperationError(response)
   }
 
-  // DeleteGraphQuad removes a specific quad from the graph store.
+  // deleteGraphQuad removes a specific quad from the graph store.
   // Note: if quad did not exist, returns nil.
   public async deleteGraphQuad(
     subject: string,
@@ -624,7 +634,8 @@ export class WorldStateResource extends Resource implements IWorldState {
     throwOperationError(response)
   }
 
-  // LookupGraphQuads searches for graph quads matching the specified filter criteria.
+  // lookupGraphQuads searches for graph quads matching the specified filter
+  // criteria.
   // If the filter fields are empty, matches any for that field.
   // If not found, returns empty list.
   // If limit is set, stops after finding that number of matching quads.
@@ -645,7 +656,8 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin object keys.
+  // listGraphEdgeBuckets lists grouped inbound/outbound graph edges for origin
+  // object keys.
   public async listGraphEdgeBuckets(
     originObjectKeys: string[],
     limitPerOrigin: number,
@@ -667,7 +679,7 @@ export class WorldStateResource extends Resource implements IWorldState {
   /**
    * getObjectBodies reads object root bodies from one World revision, in
    * request order. A body reports exists=false for a missing object. The
-   * server streams large responses in pages; a write between pages restarts
+   * server streams large responses in pages. A write between pages restarts
    * the read. A body too large for one page fails the read.
    */
   public async getObjectBodies(
@@ -809,7 +821,8 @@ export class WorldStateResource extends Resource implements IWorldState {
     return response.metadata ?? []
   }
 
-  // DeleteGraphObject removes all graph quads that reference the specified object key.
+  // deleteGraphObject removes all graph quads that reference the specified
+  // object key.
   // Note: objectKey should be the object key, NOT the object key <iri> format.
   public async deleteGraphObject(
     objectKey: string,
@@ -824,9 +837,9 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // WorldStateOp implementation
 
-  // ApplyWorldOp applies a batch operation at the world level.
+  // applyWorldOp applies a batch operation at the world level.
   // The handling of the operation is operation-type specific.
-  // Returns the seqno following the operation execution.
+  // Returns the seqno after the operation executes.
   // If nil is returned for the error, implies success.
   // If sysErr is set, the error is treated as a transient system error.
   // Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
@@ -846,10 +859,13 @@ export class WorldStateResource extends Resource implements IWorldState {
 
   // TypedObjectResourceService implementation
 
-  // AccessTypedObject looks up an object, determines its type via graph quad,
-  // and returns access to a typed resource that implements the type-specific RPC service.
-  // The returned resourceId can be used with resourceRef.createRef() to access the typed resource.
-  // For example, an ObjectLayout object returns access to a LayoutHost resource.
+  // accessTypedObject looks up an object, determines its type via graph quad,
+  // and returns access to a typed resource that implements the type-specific
+  // RPC service.
+  // The returned resourceId can be used with resourceRef.createRef() to access
+  // the typed resource.
+  // For example, an ObjectLayout object returns access to a LayoutHost
+  // resource.
   public async accessTypedObject(
     objectKey: string,
     abortSignal?: AbortSignal,
@@ -901,12 +917,12 @@ export class Tx extends WorldStateResource {
 
   // Transaction operations (tx.Tx interface)
 
-  // Commit commits the transaction.
+  // commit commits the transaction.
   // After commit, the transaction should be discarded.
-  // A commit the World refused throws WorldCommitError; its superseded field
+  // A commit the World refused throws WorldCommitError. Its superseded field
   // says whether another writer advanced the World first. A commit whose
-  // outcome is unknown throws DurabilityUnknownError, which is never one to
-  // send again.
+  // outcome is unknown throws DurabilityUnknownError. A commit with an unknown
+  // outcome must never be sent again.
   public async commit(abortSignal?: AbortSignal): Promise<void> {
     throwCommitError(
       await this.txService.CommitTx(
@@ -916,7 +932,7 @@ export class Tx extends WorldStateResource {
     )
   }
 
-  // Discard discards the transaction without committing changes.
+  // discard discards the transaction without committing changes.
   // Always call this when done with the transaction.
   public async discard(abortSignal?: AbortSignal): Promise<void> {
     await this.txService.Discard({}, abortSignal)

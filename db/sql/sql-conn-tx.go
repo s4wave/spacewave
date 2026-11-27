@@ -7,7 +7,7 @@ import (
 )
 
 // ConnTx implements driver.Tx attached to a Conn.
-// NOTE: you should use BeginTx to construct this.
+// NOTE: callers should use BeginTx to construct ConnTx.
 type ConnTx struct {
 	conn *Conn
 	tx   SqlTransaction

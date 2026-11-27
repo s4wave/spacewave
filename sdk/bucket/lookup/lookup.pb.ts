@@ -508,7 +508,7 @@ export interface UnmarshalRequest {
   ref?: ObjectRef
   /**
    * Data is the raw block data to unmarshal.
-   * If empty, will fetch the block first.
+   * If Data is empty, the cursor fetches the block first.
    */
   data?: Uint8Array
   /**

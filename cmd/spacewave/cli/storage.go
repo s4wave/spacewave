@@ -370,7 +370,7 @@ func newStorageDefaultCommand(statePath *string, sessionIdx *uint) *cli.Command 
 	}
 }
 
-// priceFlags names the flags of storage pricing that set one price.
+// priceFlags lists the flags of storage pricing that set one price.
 var priceFlags = []string{"storage", "egress", "class-a", "class-b", "min-storage-days"}
 
 // newStoragePricingCommand builds the storage pricing command.
@@ -695,7 +695,7 @@ func readStorageBackends(ctx context.Context, sess *s4wave_session.Session) (*s4
 }
 
 // readSpaceStorage reads where a Space's blocks are stored, or nil when the
-// session's provider does not report it.
+// session's provider does not report the storage placement.
 func readSpaceStorage(ctx context.Context, sess *s4wave_session.Session, spaceID string) *s4wave_session.WatchSpaceStorageResponse {
 	// Count the pending blocks and describe the upload state.
 	ctx, cancel := context.WithCancel(ctx)
@@ -713,10 +713,10 @@ func readSpaceStorage(ctx context.Context, sess *s4wave_session.Session, spaceID
 
 // formatSpaceStorage describes where a Space's blocks are stored and what
 // remains to upload. The account's own storage is this device's disk: other
-// devices receive the Space through sync, not uploads, so it reports pending
-// blocks only while a write-back from a former backend drains.
+// devices receive the Space through sync, not uploads, so formatSpaceStorage
+// reports pending blocks only while a write-back from a former backend drains.
 func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) string {
-	// Name the backend, or the account's own storage on this device.
+	// Describe the backend, or the account's own storage on this device.
 	name := storage.GetStorageBackendName()
 	settled := name + ", uploaded"
 	if name == "" {

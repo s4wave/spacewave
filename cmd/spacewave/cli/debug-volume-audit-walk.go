@@ -19,7 +19,8 @@ import (
 type debugVolumeAuditWalkArgs struct {
 	// scratch is the path of the walk's scratch store.
 	scratch string
-	// run names the walk, so a second run refuses a scratch store in use.
+	// run identifies the walk, so a second run refuses a scratch store in
+	// use.
 	run string
 	// delay is how long a hole candidate waits before the walk rereads it.
 	delay time.Duration
@@ -67,9 +68,10 @@ func (a *debugVolumeAuditWalkArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// auditWalkVolume walks the stopped volume at path read-only with its
-// scratch store at scratch, which it removes once the walk finishes. A walk
-// that fails keeps the scratch store, so the same run resumes it.
+// auditWalkVolume walks the stopped volume at path read-only with its scratch
+// store at scratch. The function removes the scratch store once the walk
+// finishes. A walk that fails keeps the scratch store, so the same run resumes
+// the walk.
 func auditWalkVolume(ctx context.Context, le *logrus.Entry, path, scratch string, opts block_gc.WalkOptions) (*block_gc.WalkResult, error) {
 	// Open the stopped volume read-only and the scratch store.
 	vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
@@ -158,8 +160,8 @@ func auditWalkFields(path string, res *block_gc.WalkResult) [][2]string {
 		}
 	}
 
-	// Name a sample of the undercounted, listed-without-bytes and unconfirmed
-	// blocks.
+	// List a sample of the undercounted, listed-without-bytes and
+	// unconfirmed blocks.
 	fields = appendRefSample(fields, "Undercount sample", res.UndercountSample)
 	fields = appendRefSample(fields, "Listed without bytes sample", res.ListedAbsentSample)
 	for _, h := range res.UnconfirmedSample {

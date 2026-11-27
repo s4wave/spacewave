@@ -69,8 +69,8 @@ type BufferedStore struct {
 	inFlight int
 
 	// drainErr poisons the buffer after a written root's reader pin fails to
-	// hold. A failed batch write does not set it; the batch stays queued and a
-	// later drain retries it.
+	// hold. A failed batch write does not set drainErr, so the batch
+	// stays queued and a later drain retries it.
 	drainErr error
 	// writeFailures counts the batch writes that failed in a row, which sets
 	// the drain's back-off. A written batch resets it.
@@ -334,7 +334,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 }
 
 // containsBlockRefs checks dependency coverage independently of ordering.
-// Empty requested refs are ignored; duplicate requests need only one match.
+// Empty requested refs are ignored. Duplicate requests need only one match.
 func containsBlockRefs(have, want []*BlockRef) bool {
 	// Keep single-dependency merges allocation-free and ignore empty requests.
 	if len(want) == 0 {
@@ -376,7 +376,7 @@ func containsBlockRefs(have, want []*BlockRef) bool {
 }
 
 // PutBlockBatch buffers verified entries without per-block existence probes.
-// Pending entries deduplicate locally; durable duplicates resolve during drain.
+// Pending entries deduplicate locally. Durable duplicates resolve during drain.
 // A block is reported as existing only when a pending entry already holds it.
 func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	existed := make([]bool, len(entries))
@@ -640,8 +640,9 @@ func (s *BufferedStore) drainForCapacity(ctx context.Context) error {
 	}
 	defer release()
 
-	// Another writer may have drained while we waited for drainMu. A missing
-	// batch is not terminal; the caller retries the enqueue path.
+	// Another writer may have drained while the caller waited for drainMu.
+	// A missing batch is not terminal, so the caller retries
+	// the enqueue path.
 	_, err = s.drainNextBatch(ctx)
 	return err
 }
@@ -851,8 +852,9 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 		pending.borrowed = true
 		batch.pending = append(batch.pending, pending)
 
-		// Pending content is immutable after enqueue; replacements allocate a
-		// new pendingBlock. The drain borrows the same content as its data bytes.
+		// Pending content is immutable after enqueue. Replacements
+		// allocate a new pendingBlock. The drain borrows the same
+		// content as its data bytes.
 		batch.entries = append(batch.entries, &PutBatchEntry{
 			Ref:       pending.ref,
 			Data:      pending.data,
@@ -875,8 +877,8 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 // completeBatchLocked releases immutable borrowed content after its writer has
 // stopped using it. Failure restores it for retry without poisoning the buffer:
 // a rejected head CAS is not a block-storage failure. drained marks a capacity
-// drain, whose writes reached the inner store; a publication's did not, so a
-// reused buffer reports no drain it never made.
+// drain, whose writes reached the inner store. A publication's writes did not,
+// so a reused buffer reports only drains it made.
 func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error, drained bool) {
 	s.inFlight--
 	var retry []string
@@ -1015,8 +1017,9 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 }
 
 // bufferedMetadataSize charges reference bytes and conservative fixed object,
-// slice/map, and queue overhead. This is an admission accounting bound, not a
-// claim about allocator RSS. Stop once oversized rather than overflow the sum.
+// slice/map, and queue overhead. This size is an admission accounting bound,
+// not a claim about allocator RSS. Stop once oversized rather than overflow
+// the sum.
 func bufferedMetadataSize(key string, ref *BlockRef, refs []*BlockRef, limit int) int {
 	size := len(key) + ref.SizeVT() + 256
 	if size > limit {

@@ -18,8 +18,8 @@ import {
 } from './account-status.js'
 
 // RouterLoadingGate renders the shared session loading card for a router gate
-// that is waiting on asynchronous state. Matches AppSession's loading shell so
-// the card reads as a continuous transition into the router.
+// that is waiting on asynchronous state. The card matches AppSession's loading
+// shell so the card reads as a continuous transition into the router.
 function RouterLoadingGate({ detail }: { detail: string }) {
   return (
     <div

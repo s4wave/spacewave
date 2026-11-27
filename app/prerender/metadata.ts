@@ -11,7 +11,7 @@ export interface PageMetadata {
   jsonLd?: object
 }
 
-// PAGE_METADATA maps prerendered pathnames to their route metadata; the
+// PAGE_METADATA maps prerendered pathnames to their route metadata. The
 // inventory itself lives in STATIC_ROUTES.
 export const PAGE_METADATA: Record<string, PageMetadata> = Object.fromEntries(
   STATIC_ROUTES.map((route) => [route.path, route.metadata]),

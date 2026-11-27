@@ -9,10 +9,10 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/framedstream"
 )
 
-// AcceptServiceWorkerRpcStreams accepts streams from a muxed connection and handles
-// RpcStream protocol, routing them to the ServiceWorkerHost mux.
-// This is used for the saucer fetch connection where C++ FetchClient sends
-// RpcStream-protocol requests directly to ServiceWorkerHost/Fetch.
+// AcceptServiceWorkerRpcStreams accepts streams from a muxed connection and
+// handles RpcStream protocol, routing them to the ServiceWorkerHost mux.
+// The handler is used for the saucer fetch connection where C++ FetchClient
+// sends RpcStream-protocol requests directly to ServiceWorkerHost/Fetch.
 func (r *Remote) AcceptServiceWorkerRpcStreams(ctx context.Context, mc srpc.MuxedConn) error {
 	for {
 		muxedStream, err := mc.AcceptStream()

@@ -19,7 +19,7 @@ export interface TerminalOpData {
 }
 
 // findOpenableTerminalCapability returns the Device's remote shell capability
-// when a Terminal can open on it now.
+// when a Terminal can open on the Device now.
 export function findOpenableTerminalCapability(
   device?: Device,
 ): DeviceCapability | undefined {
@@ -38,8 +38,8 @@ export function isOpenableTerminalCapability(
 }
 
 // buildTerminalOpData encodes one CreateTerminalOp for a resolved terminal
-// target, at objectKey when given, else at a free key read from world;
-// labelFallback names the target kind when the source has no label.
+// target, at objectKey when given, else at a free key read from world.
+// labelFallback labels the target kind when the source has no label.
 async function buildTerminalOpData({
   label,
   labelFallback,

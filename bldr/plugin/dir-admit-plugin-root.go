@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AdmitSource names why a plugin manifest root is admitted.
+// AdmitSource records why a plugin manifest root is admitted.
 type AdmitSource uint8
 
 const (
@@ -41,7 +41,7 @@ type AdmitPluginRoot interface {
 	directive.Directive
 
 	// AdmitPluginRootPeerID returns the b58 peer ID of the scheduler asking,
-	// which names the session the root would run for.
+	// which identifies the session the root would run for.
 	AdmitPluginRootPeerID() string
 	// AdmitPluginRootPluginID returns the plugin ID.
 	AdmitPluginRootPluginID() string

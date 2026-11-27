@@ -29,7 +29,7 @@ func TestTransferSOOwnershipOwnerDeparture(t *testing.T) {
 		t.Fatal("owner committed its own departure while participants remain")
 	}
 
-	// Promote the earliest writer; only the successor completes the departure.
+	// Promote the earliest writer. Only the successor completes the departure.
 	if _, err := TransferSOOwnership(ctx, host, keys[0], "", request); err != nil {
 		t.Fatal(err)
 	}

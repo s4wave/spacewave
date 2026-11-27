@@ -6,7 +6,7 @@ message Config {
   // EngineId is the world engine id.
   string engine_id = 1;
   // ObjectKey is the Cluster object to attach to.
-  // If not exists, waits for it to exist.
+  // If the Cluster object does not exist, the controller waits for it to exist.
   //
   // Executions are created at <object-key>/execution/<object-rev>/<replica>
   string object_key = 2;

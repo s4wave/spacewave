@@ -145,10 +145,11 @@ interface TableViewBodyProps {
 
 /**
  * TableViewBody shows the row grid once rows arrive, and the read's state
- * until then. A failed read takes the body only when no rows arrived;
- * otherwise its notice sits above the grid, so a failed metadata read never
- * hides rows. A resource keeps its value while it is read again and drops it
- * when that read fails, so a failed refresh shows the failure with its Retry.
+ * until then. A failed read takes the body only when no rows arrived.
+ * Otherwise the failure notice sits above the grid, so a failed metadata read
+ * never hides rows. A resource keeps its value during a reread and drops the
+ * value when that read fails, so a failed refresh shows the failure with its
+ * Retry button.
  */
 function TableViewBody({
   metaResource,

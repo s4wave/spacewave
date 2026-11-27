@@ -5,8 +5,9 @@ import {
 } from '@s4wave/sdk/git/worktree.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
-// The Space resource stores each GitHub repository at plugin-repos/<owner>/<repo>
-// with its worktree beneath it.
+// repositoryKeyPrefix and worktreeKeySuffix place each GitHub repository the
+// Space resource stores at plugin-repos/<owner>/<repo>, with its worktree
+// beneath it.
 const repositoryKeyPrefix = 'plugin-repos/'
 const worktreeKeySuffix = '/worktree'
 

@@ -8,10 +8,10 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// Op performs an operation on the TxOps
+// Op performs an operation on the TxOps.
 type Op func(ops kvtx.TxOps) error
 
-// opsSorter sorts ops
+// opsSorter sorts ops.
 type opsSorter struct {
 	opsSet  []Op
 	opsKeys [][]byte

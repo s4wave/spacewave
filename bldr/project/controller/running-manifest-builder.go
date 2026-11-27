@@ -4,11 +4,11 @@ package bldr_project_controller
 
 // runningManifestBuilder contains information about a running manifest builder.
 type runningManifestBuilder struct {
-	// key is the b58 encoded conf
+	// key is the b58 encoded conf.
 	key string
-	// conf is the builder config
+	// conf is the builder config.
 	conf *ManifestBuilderConfig
-	// tracker is the manifest builder tracker
+	// tracker is the manifest builder tracker.
 	tracker *manifestBuilderTracker
 }
 

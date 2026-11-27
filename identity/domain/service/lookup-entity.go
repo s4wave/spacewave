@@ -86,7 +86,7 @@ func (r *LookupEntityReq) SignReq(privKey crypto.PrivKey) (*peer.SignedMsg, erro
 	return peer.NewSignedMsg(lookupEntityReqEncContext, privKey, hash.RecommendedHashType, dat)
 }
 
-// UnmarshalFrom attempts to unmarshal the request from the SignedMsg.
+// UnmarshalFrom tries to unmarshal the request from the SignedMsg.
 func (r *LookupEntityReq) UnmarshalFrom(req *peer.SignedMsg) (crypto.PubKey, error) {
 	pubKey, _, err := req.ExtractAndVerify(lookupEntityReqEncContext)
 	if err != nil {

@@ -65,7 +65,7 @@ export enum FSChangeType {
   FSChangeType_FILE_WRITE = 2,
 
   /**
-   * FSChangeType_REMOVE removes one or more nodes.
+   * FSChangeType_FILE_REMOVE removes one or more nodes.
    */
   FSChangeType_FILE_REMOVE = 3,
 }
@@ -260,7 +260,7 @@ export const FSHostVolume: MessageType<FSHostVolume> =
 export interface FSConfig {
   /**
    * DisableChangelog indicates the changelog is not in use.
-   * Watchers will perform a full cache flush on every block change.
+   * Watchers fully flush their caches on every block change.
    */
   disableChangelog?: boolean
 }
@@ -308,12 +308,12 @@ export interface FSChange {
    */
   prevRef?: BlockRef
   /**
-   * ChangeType is the type of change this is.
+   * ChangeType is the type of this change.
    */
   changeType?: FSChangeType
   /**
    * TransactionRef is the reference to the associated transaction.
-   * This is transparent to the core registry code.
+   * TransactionRef is transparent to the core registry code.
    */
   transactionRef?: BlockRef
   /**
@@ -331,7 +331,7 @@ export interface FSChange {
   /**
    * ValueRef are the reference(s) to the updated value.
    * Mknod: the references to the new inodes.
-   * Write: this is the reference to the updated file inode.
+   * Write: ValueRef is the reference to the updated file inode.
    */
   valueRef?: BlockRef[]
 }

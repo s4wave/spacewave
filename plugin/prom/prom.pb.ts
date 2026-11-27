@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export enum ChunkEncoding {
   /**
-   * CHUNK_ENCODING_UNKNOWN is the zero value; a stored chunk never carries it.
+   * CHUNK_ENCODING_UNKNOWN is the zero value. A stored chunk never carries it.
    */
   UNKNOWN = 0,
 

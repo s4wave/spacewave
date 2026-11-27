@@ -81,7 +81,7 @@ export function V86ConfigStep({
   )
 }
 
-// describeImage names the image the config boots.
+// describeImage identifies the image the config boots.
 function describeImage(
   cfg: V86WizardConfig,
   inSpaceImages: V86ImageEntry[],

@@ -29,7 +29,7 @@ func (o *AddSpacePluginsOp) Validate() error {
 //
 // The union is taken under the World writer, so an ID another writer added
 // before this op is kept, and every other setting, such as the index path, is
-// unchanged. Missing settings are created; settings that already list every
+// unchanged. Missing settings are created. Settings that already list every
 // ID are not rewritten.
 func (o *AddSpacePluginsOp) ApplyWorldOp(
 	ctx context.Context,

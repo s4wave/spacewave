@@ -80,9 +80,9 @@ var (
 	ErrReservationTerminal = errors.New("reservation already released")
 	// ErrRequestMismatch is returned when an existing reservation conflicts with the request.
 	ErrRequestMismatch = errors.New("reservation request mismatch")
-	// ErrReservationExpired is returned when an idempotent retry hits a live
-	// reservation whose lease already expired but is not swept yet. Run the
-	// expiry sweep; the retry then reserves the next generation.
+	// ErrReservationExpired is returned when an idempotent retry hits a
+	// live reservation whose lease already expired but is not swept yet.
+	// Run the expiry sweep. The retry then reserves the next generation.
 	ErrReservationExpired = errors.New("reservation lease expired")
 	// ErrCapacityOwned is returned when a different Device holds the live
 	// owner claim on a capacity record.
@@ -119,7 +119,7 @@ func IsRefusal(err error) bool {
 }
 
 // RuntimeAdmission atomically reserves Worker capacity and reconciles fenced
-// backend runtimes. Forge owns this boundary; callers never keep their own
+// backend runtimes. Forge owns this boundary. Callers never keep their own
 // capacity ledger.
 type RuntimeAdmission interface {
 	// Reserve atomically debits Worker capacity for one Execution attempt.
@@ -130,12 +130,12 @@ type RuntimeAdmission interface {
 	// LookupReservation loads one persisted reservation. Reconcile after a
 	// restart reads the same object and resumes observation without relaunch.
 	LookupReservation(ctx context.Context, reservationObjectKey string) (*Reservation, error)
-	// StopAndRelease stops the fenced runtime, credits capacity exactly once,
-	// and returns the persisted cleanup facts. The caller must present the
-	// live owner claim (ref and current owner epoch) of the Worker's capacity
-	// record; a deposed or stale instance is rejected before the stopper runs.
-	// A stale reservation generation is rejected without touching the current
-	// runtime or capacity. Until the stop is confirmed the reservation sits in
-	// the durable pending-stop state.
+	// StopAndRelease stops the fenced runtime, credits capacity exactly
+	// once, and returns the persisted cleanup facts. The caller must
+	// present the live owner claim (ref and current owner epoch) of the
+	// Worker's capacity record. A deposed or stale instance is rejected
+	// before the stopper runs. A stale reservation generation is rejected
+	// without touching the current runtime or capacity. Until the stop is
+	// confirmed the reservation sits in the durable pending-stop state.
 	StopAndRelease(ctx context.Context, ref WorkerClaimRef, ownerEpoch uint64, reservationObjectKey string, generation uint64) (*CleanupReceipt, error)
 }

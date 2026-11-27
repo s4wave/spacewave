@@ -39,7 +39,7 @@ type Admission interface {
 	// Release drops the admission.
 	// Call it once, after WaitDurable returns, or to abandon the candidate.
 	// Releasing a candidate the Authority has not accepted releases what
-	// Admit holds of it; an accepted candidate stays the Authority's promise
-	// and becomes durable regardless.
+	// Admit holds of it. An accepted candidate stays the Authority's
+	// promise and becomes durable regardless.
 	Release()
 }

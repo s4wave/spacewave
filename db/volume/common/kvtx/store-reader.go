@@ -19,7 +19,7 @@ type storeReader struct {
 	// scoped is set in a read scope, which reads one store snapshot.
 	scoped bool
 	// gen is the removal generation recorded before a read scope's snapshot
-	// opened. Outside a read scope each read records its own.
+	// opened. Outside a read scope each read records its own generation.
 	gen uint64
 }
 
@@ -57,7 +57,7 @@ func (r storeReader) readGen() uint64 {
 }
 
 // GetBlock reads the store and marks a found block durable. A corrupt read
-// names the volume and counts in its health.
+// identifies the volume and counts in its health.
 func (r storeReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Read the block, counting a corrupt read in the health.
 	gen := r.readGen()

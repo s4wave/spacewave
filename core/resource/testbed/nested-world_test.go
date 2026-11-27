@@ -108,7 +108,7 @@ func TestNestedWorldResource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A new transaction reads the update; the first keeps its snapshot.
+	// A new transaction reads the update, but the first keeps its snapshot.
 	second, err := nested.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

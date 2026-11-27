@@ -18,7 +18,7 @@ import (
 )
 
 // TestSession holds one browser page and optional resource connections for a
-// single test. Clean-session helpers allocate a fresh BrowserContext; retained
+// single test. Clean-session helpers allocate a fresh BrowserContext. Retained
 // state helpers reuse the harness-owned warm BrowserContext.
 type TestSession struct {
 	h              *Harness
@@ -136,7 +136,7 @@ func (h *Harness) NewCleanPageSession(t testing.TB) *TestSession {
 
 // NewRetainedStateBlankSession creates a blank page on the package-level warm
 // BrowserContext. Each call creates a fresh Page and registers cleanup for
-// page-owned handles only; the retained context is released by Harness.Release.
+// page-owned handles only. The retained context is released by Harness.Release.
 // Use this only when the test can run against retained browser storage and the
 // existing WASM process.
 func (h *Harness) NewRetainedStateBlankSession(t testing.TB) *TestSession {
@@ -187,7 +187,7 @@ func (h *Harness) NewSharedPageSession(t testing.TB) *TestSession {
 }
 
 // NewRetainedStateSession creates a Resource SDK session on the warm retained
-// BrowserContext. This is an opt-in startup optimization helper; clean-session
+// BrowserContext. This is an opt-in startup optimization helper. Clean-session
 // helpers keep strict BrowserContext, storage, and WASM process isolation.
 func (h *Harness) NewRetainedStateSession(t testing.TB) *TestSession {
 	// Report failures at the caller.
@@ -223,7 +223,7 @@ func (s *TestSession) Page() playwright.Page { return s.page }
 func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.browserCtx }
 
 // ReplacePageInCurrentContext closes the current page and opens a fresh page in
-// the same BrowserContext. Clean sessions keep their isolated context; retained
+// the same BrowserContext. Clean sessions keep their isolated context. Retained
 // sessions keep the retained warm context.
 func (s *TestSession) ReplacePageInCurrentContext() error {
 	// Disconnect resources and close the current page.

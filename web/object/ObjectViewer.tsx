@@ -47,12 +47,12 @@ export interface ObjectViewerProps {
 // ObjectView is what the viewer body shows of its object:
 //
 // - loading: nothing has answered yet, or the World waits on its parent.
-// - ready: the object and its type arrived; object is its handle, or
+// - ready: the object and its type arrived. object is its handle, or
 //   undefined for a viewer that needs none.
-// - reopening: the watch failed after answering and is reopening; the
-//   content stays drawn under a notice that it may be out of date.
+// - reopening: the watch failed after answering and is reopening. The
+//   content stays drawn under a notice that the content may be out of date.
 // - missing: the watch answered that the object is absent.
-// - failed: reading the object failed; kept is what arrived before, drawn
+// - failed: reading the object failed. kept is what arrived before, drawn
 //   under the failure, or null when nothing did.
 // - worldFailed: the World the object lives in failed to open.
 type ObjectView =
@@ -75,12 +75,13 @@ type ObjectView =
 // objectView derives what the viewer shows from the World and the object's
 // watch, in this order: the World, then the watch's failure, then the
 // object's presence. Every World object key is watched, whatever viewer is
-// selected, so the watch answers presence and failure for every viewer;
+// selected, so the watch answers presence and failure for every viewer.
 // requiresObjectState decides only whether the viewer also waits for the
 // object's handle. Missing is shown only when the watch has answered that
 // the object is absent, never for a failed or unanswered watch, and never
-// for a source that names no World object, such as a UnixFS path, which has
-// no object to be missing and shows its viewer as soon as its type is known.
+// for a source that references no World object, such as a UnixFS path,
+// which has no object to be missing and shows its viewer as soon as its type
+// is known.
 function objectView(
   objectInfo: ObjectInfo,
   worldState: ObjectViewerProps['worldState'],
@@ -99,10 +100,10 @@ function objectView(
 
   // The World comes first: without it nothing about the object is known. A
   // World with no value and no error is waiting on its parent, or reopening
-  // after its handle was released, so it is loading; only an error has a
-  // Retry that can open it. No World here has settled empty: the containers
-  // render a viewer only below a mounted SharedObject and body, through
-  // SharedObjectRouteState's mounted branch on the Space route and
+  // after its handle was released, so the World is loading. Only an error has a
+  // Retry that can open the World. No World here has settled empty: the
+  // containers render a viewer only below a mounted SharedObject and body,
+  // through SharedObjectRouteState's mounted branch on the Space route and
   // isSpaceMounting on the Display route, and the Space and World mounts
   // below them never settle to null.
   if (!worldState.value) {

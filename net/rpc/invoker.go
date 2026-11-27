@@ -7,7 +7,7 @@ import (
 
 // Invoker implements the RPC invoker with a directive.
 type Invoker struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
 	// serverID is the server identifier.
 	// can be empty

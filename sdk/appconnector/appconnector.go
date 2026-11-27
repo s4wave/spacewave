@@ -67,7 +67,7 @@ func NewAppConnectorBlock() block.Block {
 	return &AppConnector{}
 }
 
-// Validate performs cursory checks on the AppConnector block.
+// Validate checks the AppConnector block cursorily.
 func (c *AppConnector) Validate() error {
 	// Require a label and a Secret holding the API token.
 	if strings.TrimSpace(c.GetLabel()) == "" {

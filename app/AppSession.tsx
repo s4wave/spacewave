@@ -79,7 +79,7 @@ function useSessionAttachmentVersion(
 //
 // Always try to mount. If the session is already unlocked (or auto-unlock),
 // mount succeeds immediately. If PIN-locked, mount blocks until unlock.
-// Tabs on the same Session share the mount; a tab that saw the Session move
+// Tabs on the same Session share the mount. A tab that saw the Session move
 // to another account remounts it once under the new attachment.
 function useAttachedSession(
   rootResource: Resource<Root>,

@@ -9,7 +9,7 @@ import (
 )
 
 // SyncFromGitWorkdir calls "git ls-files" using os/exec to determine the list of
-// files in a Git workdir. Includes untracked and ignores gitignored files.
+// files in a Git workdir. Includes untracked files and ignores gitignored files.
 // It synchronizes the files from the list to the destination UnixFS.
 func SyncFromGitWorkdir(
 	ctx context.Context,

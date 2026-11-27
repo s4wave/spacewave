@@ -1,9 +1,14 @@
 import type { Input } from '@s4wave/core/frametrack/frametrack.pb.js'
 
-/** maxPendingInputs bounds keyboard and button transitions waiting to be sent. */
+/**
+ * maxPendingInputs bounds keyboard and button transitions waiting to be sent.
+ */
 const maxPendingInputs = 32
 
-/** PendingInput records which pointer moves can be replaced without losing a button transition. */
+/**
+ * PendingInput records which pointer moves can be replaced without losing a
+ * button transition.
+ */
 interface PendingInput {
   input: Input
   motionButtons?: number
@@ -45,7 +50,7 @@ export class FrameInput implements AsyncIterable<Input> {
     this.wake?.()
   }
 
-  /** The iterator waits for input or for the connection to close. */
+  /** [Symbol.asyncIterator] waits for input or for the connection to close. */
   public async *[Symbol.asyncIterator](): AsyncIterator<Input> {
     while (!this.ended) {
       const next = this.pending.shift()

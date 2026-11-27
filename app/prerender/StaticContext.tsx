@@ -4,7 +4,8 @@ import { useSessionIndex } from '@s4wave/web/contexts/SessionIndexContext.js'
 import { sessionPagePath } from '@s4wave/app/routes/session-page-path.js'
 
 // StaticContext signals whether the app is in static prerender mode.
-// When true, hooks that depend on the Go runtime return safe defaults.
+// When StaticContext is true, hooks that depend on the Go runtime return
+// safe defaults.
 const StaticContext = createContext(false)
 
 // StaticProvider wraps children in static mode context.
@@ -17,7 +18,8 @@ export function useIsStaticMode(): boolean {
   return use(StaticContext)
 }
 
-// useStaticHref returns a crawlable public path or a hash path in the current session.
+// useStaticHref returns a crawlable public path or a hash path in the
+// current session.
 export function useStaticHref(path: string): string {
   const isStatic = use(StaticContext)
   const sessionIndex = useSessionIndex()

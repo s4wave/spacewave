@@ -153,7 +153,7 @@ export const WatchWebDocumentStatusRequest: MessageType<WatchWebDocumentStatusRe
  */
 export interface WebDocumentStatus {
   /**
-   * Snapshot indicates this is a full snapshot of the lists.
+   * Snapshot indicates the status is a full snapshot of the lists.
    */
   snapshot?: boolean
   /**
@@ -215,7 +215,7 @@ export interface WebViewStatus {
    */
   parentId?: string
   /**
-   * Permanent indicates that this is a "root" webview and cannot be closed.
+   * Permanent indicates that the webview is a "root" and cannot be closed.
    */
   permanent?: boolean
 }
@@ -256,7 +256,8 @@ export interface WebWorkerStatus {
   ready?: boolean
   /**
    * Failed indicates the worker closed because of a runtime failure.
-   * Normal explicit worker removal or browser lifecycle close leaves this unset.
+   * Normal explicit worker removal or browser lifecycle close leaves Failed
+   * unset.
    */
   failed?: boolean
   /**
@@ -295,7 +296,7 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> =
  */
 export interface CreateWebViewRequest {
   /**
-   * id is the identifier for the new WebView.
+   * Id is the identifier for the new WebView.
    */
   id?: string
 }
@@ -314,7 +315,7 @@ export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
 export interface CreateWebViewResponse {
   /**
    * Created indicates the web view was created.
-   * If this is not set, assumes we cannot create WebViews.
+   * If Created is not set, the caller assumes WebViews cannot be created.
    */
   created?: boolean
 }
@@ -337,7 +338,7 @@ export interface CreateWebWorkerRequest {
   id?: string
   /**
    * Path is the path to the source to load into the worker.
-   * This is passed to the shared-worker.ts loader.
+   * Path is passed to the shared-worker.ts loader.
    * Used as the path after the current host. For example /path/to/script.mjs
    */
   path?: string
@@ -378,7 +379,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
 export interface CreateWebWorkerResponse {
   /**
    * Created indicates the WebWorker was created.
-   * If this is not set, assumes we cannot create WebWorkers.
+   * If Created is not set, the caller assumes WebWorkers cannot be created.
    */
   created?: boolean
   /**

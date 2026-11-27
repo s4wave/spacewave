@@ -198,7 +198,7 @@ func (p *unixProxy) finish(err error) {
 	}
 }
 
-// proxyCopy treats copy failures as connection-local; closing the pair makes
+// proxyCopy treats copy failures as connection-local. Closing the pair makes
 // the canonical Resource client observe the failure and own reconnection.
 func proxyCopy(dst net.Conn, src net.Conn, result chan<- struct{}) {
 	_, _ = io.Copy(dst, src)

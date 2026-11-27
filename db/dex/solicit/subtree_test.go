@@ -15,7 +15,7 @@ import (
 )
 
 // newTestLinkedSessions connects a session of asker to a session of server
-// over one pipe, starts both, and returns the asker's.
+// over one pipe, starts both, and returns the asker's session.
 func newTestLinkedSessions(t *testing.T, ctx context.Context, asker, server *Controller) *peerSession {
 	t.Helper()
 	a, b := net.Pipe()
@@ -32,8 +32,8 @@ func newTestLinkedSessions(t *testing.T, ctx context.Context, asker, server *Con
 
 // newSubtreeTestTree builds a tree of the given depth, each structure block
 // with fanout children and every block about size bytes, in a store that keeps
-// each block's refs, as a Volume's does. It returns the store, the root, each
-// block's children, every block's ref and the total data bytes.
+// each block's refs, as a Volume's store does. It returns the store, the root,
+// each block's children, every block's ref and the total data bytes.
 func newSubtreeTestTree(t *testing.T, depth, fanout, size int) (linkedServeStore, *block.BlockRef, map[string][]*block.BlockRef, []*block.BlockRef, int) {
 	t.Helper()
 	store := linkedServeStore{blocks: make(map[string]*block.StoredBlock)}
@@ -180,9 +180,9 @@ func checkSubtreeCopied(ctx context.Context, t *testing.T, dst block.StoreOps, a
 
 // TestSubtreeKeepsOnlyNamedVerifiedBlocks tries to make an asker keep a block
 // the stream did not earn: a peer answers a subtree request with a block no
-// kept block names, then a named block, then a named block whose data fails
-// its hash, then a block the corrupt one would have named. Only the named,
-// verified block is kept, and the stream ends at the corrupt one.
+// kept block references, then a named block, then a named block whose data
+// fails its hash, then a block the corrupt one would have referenced. Only the
+// named, verified block is kept, and the stream ends at the corrupt one.
 func TestSubtreeKeepsOnlyNamedVerifiedBlocks(t *testing.T) {
 	ctx := t.Context()
 	unnamed, named, corrupt := testDexBlockRef(t, "unnamed"), testDexBlockRef(t, "named"), testDexBlockRef(t, "corrupt")

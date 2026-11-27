@@ -47,8 +47,9 @@ type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) (
 // when the handler is ready.
 type AcceptPluginHostStreamsFunc func(ctx context.Context, srv *srpc.Server, ready func()) error
 
-// EntrypointOriginID names the plugin entrypoint as a directive origin.
-// It covers directives the entrypoint and its served streams add outside a controller.
+// EntrypointOriginID identifies the plugin entrypoint as a directive origin.
+// It covers directives the entrypoint and its served streams add outside a
+// controller.
 const EntrypointOriginID = "bldr/plugin/entrypoint"
 
 // ExecutePluginEntrypoint builds the bus & starts common controllers.
@@ -73,7 +74,8 @@ func ExecutePluginEntrypoint(
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// Name the entrypoint as the origin of what it adds outside a controller.
+	// Record the entrypoint as the origin of directives it adds outside a
+	// controller.
 	ctx = directive.WithOriginController(ctx, EntrypointOriginID)
 
 	// Look up the plugin information.
@@ -257,8 +259,8 @@ func ExecutePluginEntrypoint(
 	}
 
 	// Start the plugin storage controller and use the default storage id.
-	// On js/wasm this resolves to direct OPFS access, and on native it
-	// proxies through the plugin host via RPC.
+	// On js/wasm the default storage resolves to direct OPFS access, and on
+	// native it proxies through the plugin host via RPC.
 	storages := buildPluginStorages(b, sr, pluginInfo.GetHostStorageId())
 	hostStorageCtrl := storage_controller.BuildStorageController(
 		bldr_plugin.HostStorageID,
@@ -276,7 +278,7 @@ func ExecutePluginEntrypoint(
 	}
 	defer relHostStorageCtrl()
 
-	// we have to use a separate goroutine because AcceptMuxedConn might not
+	// A separate goroutine is required because AcceptMuxedConn might not
 	// notice ctx is canceled until after a connection arrives.
 	select {
 	case <-ctx.Done():

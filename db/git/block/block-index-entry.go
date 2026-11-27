@@ -41,7 +41,7 @@ func (i *IndexEntry) IsNil() bool {
 	return i == nil
 }
 
-// Validate performs cursory validation of the IndexEntry.
+// Validate validates the IndexEntry cursorily.
 func (i *IndexEntry) Validate() error {
 	if err := i.GetDataHash().Validate(); err != nil {
 		return errors.Wrap(err, "data_hash")

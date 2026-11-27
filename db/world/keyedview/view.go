@@ -9,12 +9,13 @@ import (
 )
 
 // View is one result of a keyed view: each record's digest by key, and the
-// version that names them all. A View is immutable once built.
+// version that identifies them all. A View is immutable once built.
 type View struct {
-	// Version names the result's scope and content; equal results share it.
+	// Version identifies the result's scope and content.
+	// Equal results share it.
 	Version string
-	// scope names what the records belong to; views of different scopes share
-	// no records.
+	// scope identifies what the records belong to.
+	// Views of different scopes share no records.
 	scope string
 	// digests holds each record's digest by key.
 	digests map[string]uint64
@@ -37,7 +38,8 @@ func Build[T Record](scope string, records map[string]T) (*View, error) {
 
 // name sets the View's version from its scope, keys and digests.
 func (v *View) name() {
-	// Name the view by its scope, keys and digests, in key order.
+	// Compute the view's version from its scope, keys and digests, in key
+	// order.
 	scope := v.scope
 	keys := slices.Sorted(func(yield func(string) bool) {
 		for key := range v.digests {

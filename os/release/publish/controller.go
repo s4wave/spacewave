@@ -24,20 +24,20 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "os/release/publish"
 
-// InputAuthorization names the input holding the sign Step's tree with the
+// InputAuthorization identifies the input holding the sign Step's tree with the
 // authorization file.
 const InputAuthorization = "authorization"
 
-// OutputRelease names the output holding the os/release block.
+// OutputRelease identifies the output holding the os/release block.
 const OutputRelease = "release"
 
 // Controller publishes one authorization as a release.
 type Controller struct {
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the authorization input.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -78,7 +78,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrapf(err, "input %q", InputAuthorization)
 	}
 
-	// Refuse an authorization that names no complete image, then store the
+	// Refuse an authorization that references no complete image, then store the
 	// release as the output's root block.
 	release, err := os_release.NewRelease(signed)
 	if err != nil {

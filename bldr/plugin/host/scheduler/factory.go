@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 )
 
-// Factory constructs the controller factory
+// Factory constructs the controller factory.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

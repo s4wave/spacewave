@@ -109,7 +109,8 @@ type Config struct {
 	unknownFields []byte
 	// ProviderId is the provider identifier.
 	// Defaults to "local" if unset.
-	// NOTE: Many places in the codebase expect this to be "local" so change carefully!
+	// NOTE: Many places in the codebase expect ProviderId to be "local", so
+	// change carefully!
 	ProviderId string `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"providerId,omitempty"`
 	// PeerId is the peer id to use.
 	// If empty, uses the first value returned from GetPeer
@@ -119,7 +120,7 @@ type Config struct {
 	StorageId string `protobuf:"bytes,3,opt,name=storage_id,json=storageId,proto3" json:"storageId,omitempty"`
 	// SignalingUrl is the trusted Spacewave Cloud signaling base URL used by
 	// standalone local sessions without a linked cloud account. Each session
-	// signs its own short-lived ticket request with its session keypair; no
+	// signs its own short-lived ticket request with its session keypair. No
 	// cloud account or provider credential is involved. Empty disables WebRTC
 	// signaling for standalone sessions.
 	SignalingUrl string `protobuf:"bytes,4,opt,name=signaling_url,json=signalingUrl,proto3" json:"signalingUrl,omitempty"`
@@ -219,7 +220,8 @@ type AccountReplicaCopyState struct {
 	Bytes uint64 `protobuf:"varint,4,opt,name=bytes,proto3" json:"bytes,omitempty"`
 	// Complete is set only after all reachable blocks cross the durability fence.
 	Complete bool `protobuf:"varint,5,opt,name=complete,proto3" json:"complete,omitempty"`
-	// Error describes why this head could not finish; a later attempt resumes from local blocks.
+	// Error describes why this head could not finish. A later attempt resumes
+	// from local blocks.
 	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
 	// LinkedProofs is set before a walk that counts an own Device's linked
 	// file chunks as present, and stays set across heads until a walk that
@@ -290,7 +292,7 @@ func (x *AccountReplicaCopyState) GetLinkedProofs() bool {
 type SharedObjectOrigin struct {
 	unknownFields []byte
 	// Generation is the list entry generation of the object the origin was
-	// written for. An origin naming another generation belongs to an earlier
+	// written for. An origin referencing another generation belongs to an earlier
 	// lifetime of the id and counts as no origin.
 	Generation string `protobuf:"bytes,1,opt,name=generation,proto3" json:"generation,omitempty"`
 	// Arriving is set from the listing until the caller writes the object's

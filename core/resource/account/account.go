@@ -301,11 +301,11 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 
 // watchCloudBcast drives a bcast-based watch loop. snapshot reads
 // broadcast-guarded state and the wait channel atomically inside one HoldLock
-// per iteration; it must not read state guarded by other locks since that
-// would risk missed-wakeup races. build runs outside the lock and produces
-// the response sent to the client when changed returns true. send is only
-// invoked when snapshot returns valid=true and changed returns true. The
-// loop exits when ctx is canceled or send returns an error.
+// per iteration. snapshot must not read state guarded by other locks because
+// reading such state would risk missed-wakeup races. build runs outside the
+// lock and produces the response sent to the client when changed returns true.
+// send is only invoked when snapshot returns valid=true and changed returns
+// true. The loop exits when ctx is canceled or send returns an error.
 func watchCloudBcast[S any, T any](
 	ctx context.Context,
 	bcast accountBroadcaster,
@@ -725,7 +725,8 @@ func (r *AccountResource) buildMultiSigEnvelope(kind api.MultiSigActionKind, met
 }
 
 // signAndSubmit builds a multi-sig envelope, signs it with the entity key,
-// and submits to the cloud. Returns the parsed MultiSigActionResponse envelope.
+// and submits the envelope to the cloud. signAndSubmit returns the parsed
+// MultiSigActionResponse envelope.
 func (r *AccountResource) signAndSubmit(
 	ctx context.Context,
 	method, reqPath string,
@@ -753,8 +754,8 @@ func (r *AccountResource) signAndSubmit(
 }
 
 // sendMultiSig wraps envelope bytes and signatures into a MultiSigRequest and
-// sends it to the given cloud path without session-key auth headers. Returns
-// the parsed MultiSigActionResponse envelope.
+// sends the request to the given cloud path without session-key auth headers.
+// sendMultiSig returns the parsed MultiSigActionResponse envelope.
 func (r *AccountResource) sendMultiSig(
 	ctx context.Context,
 	method, reqPath string,
@@ -913,9 +914,9 @@ func (r *AccountResource) SetSecurityLevel(
 // RevokeSession revokes a session by peer ID.
 //
 // When credential is nil and the requested session_peer_id matches the
-// current session, uses the session self-revoke endpoint (no entity key
-// needed). Otherwise falls through to the entity multi-sig path, with
-// key-store fallback.
+// current session, RevokeSession uses the session self-revoke endpoint (no
+// entity key needed). Otherwise RevokeSession falls through to the entity
+// multi-sig path, with key-store fallback.
 func (r *AccountResource) RevokeSession(
 	ctx context.Context,
 	req *s4wave_account.RevokeSessionRequest,

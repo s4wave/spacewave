@@ -20,7 +20,8 @@ interface CanvasObjectNodeProps {
 }
 
 // CanvasObjectNode renders a full interactive ObjectViewer for a world object
-// embedded in a canvas node. Uses standalone mode with its own bottom bar.
+// embedded in a canvas node. The viewer uses standalone mode with its own
+// bottom bar.
 export function CanvasObjectNode({
   objectKey,
   canvasObjectKey,

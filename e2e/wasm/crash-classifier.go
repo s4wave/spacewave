@@ -44,17 +44,17 @@ func (r *CrashReport) AddMessage(msg string) {
 // isBenignTeardownAbort reports whether a page-error line is the document
 // cancelling its own in-flight resource-release RPCs during a normal close.
 // On a page reload the runtime client closes with normal-close and
-// releaseAllResources aborts the pending release calls, which surfaces as an
-// uncaught ERR_RPC_ABORT. This teardown abort appears only when the worker
-// outlives the document (Config A/F shared worker), so it is benign and must
-// not be classified as a crash.
+// releaseAllResources aborts the pending release calls. The cancellation
+// surfaces as an uncaught ERR_RPC_ABORT. This teardown abort appears only when
+// the worker outlives the document (Config A/F shared worker), so it is benign
+// and must not be classified as a crash.
 //
 // The two-token match is precise rather than coarse: releaseAllResources is the
 // runtime client's teardown-only resource-release method, so an ERR_RPC_ABORT
 // raised inside its frame is by construction the close race (a pending release
 // call cancelled because the client is closing), not a product fault. A real
-// crash surfaces with a different error code or outside the release path, which
-// this guard leaves untouched. The argument is already lowercased.
+// crash surfaces with a different error code or outside the release path. The
+// guard leaves those crashes untouched. The argument is already lowercased.
 func isBenignTeardownAbort(lower string) bool {
 	return strings.Contains(lower, "err_rpc_abort") &&
 		strings.Contains(lower, "releaseallresources")

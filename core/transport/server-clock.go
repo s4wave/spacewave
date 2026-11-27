@@ -19,7 +19,7 @@ const clockTolerance = time.Minute
 // trusts the local clock until an answer shows otherwise, and is safe for
 // concurrent use.
 type serverClock struct {
-	// local reads the local clock; nil reads time.Now.
+	// local reads the local clock. Nil reads time.Now.
 	local func() time.Time
 	// offset is the server's clock minus the local one in nanoseconds, or
 	// zero while they agree within clockTolerance.

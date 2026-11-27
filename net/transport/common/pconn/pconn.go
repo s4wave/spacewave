@@ -16,32 +16,32 @@ import (
 // Transport implements a bifrost transport with a Quic-based packet conn.
 // Transport UUIDs are deterministic and based on the LocalAddr() of the pconn.
 type Transport struct {
-	// Transport is the underlying quic transport
+	// Transport is the underlying quic transport.
 	*transport_quic.Transport
-	// ctx is the root context
+	// ctx is the root context.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// peerID is the local peer id
+	// peerID is the local peer id.
 	peerID peer.ID
-	// privKey is the local private key
+	// privKey is the local private key.
 	privKey crypto.PrivKey
 	// pc is the underlying packet conn.
 	pc net.PacketConn
-	// handler is the transport handler
+	// handler is the transport handler.
 	handler transport.TransportHandler
-	// opts are extra options
+	// opts are extra options.
 	opts *Opts
-	// addrParser parses an address from a string
+	// addrParser parses an address from a string.
 	// if nil, the dialer will not function
 	addrParser func(addr string) (net.Addr, error)
-	// staticPeerMap is a map of peer ids to dialing addresses
+	// staticPeerMap is a map of peer ids to dialing addresses.
 	// may be nil
 	staticPeerMap map[string]*dialer.DialerOpts
 
-	// quicConfig is the quic configuration
+	// quicConfig is the quic configuration.
 	quicConfig *quic.Config
-	// quicTpt is the quic transport
+	// quicTpt is the quic transport.
 	quicTpt *quic.Transport
 }
 

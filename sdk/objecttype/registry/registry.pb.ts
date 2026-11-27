@@ -86,7 +86,8 @@ export interface ObjectTypePort {
    */
   name?: string
   /**
-   * Direction selects whether the port accepts or supplies.
+   * Direction selects whether the port accepts or supplies data or an
+   * activation.
    */
   direction?: ObjectTypePortDirection
   /**
@@ -133,7 +134,8 @@ export interface ObjectTypeMetadata {
   ports?: ObjectTypePort[]
   /**
    * Traits declares what the ObjectType's bodies declare about their
-   * objects. The host asks DeclareBodies only for a type that declares any.
+   * objects. The host asks DeclareBodies only for a type that declares any
+   * traits.
    */
   traits?: ObjectTypeTraits
 }
@@ -162,7 +164,7 @@ export interface ObjectTypeTraits {
    */
   titled?: boolean
   /**
-   * Stateful reports bodies that name their objects' states.
+   * Stateful reports bodies that declare their objects' states.
    */
   stateful?: boolean
   /**
@@ -283,7 +285,8 @@ export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse>
  */
 export interface WatchObjectTypesRequest {
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty value lists global
+   * registrations.
    */
   instanceKey?: string
 }

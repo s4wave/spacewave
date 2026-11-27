@@ -370,7 +370,7 @@ func nameIn(dir, node *VNode) string {
 }
 
 // mkDirAll creates the in-memory directories along an absolute path and
-// returns the last.
+// returns the last directory.
 func (v *VFS) mkDirAll(path string) *VNode {
 	cur := v.root
 	for name := range strings.SplitSeq(path, "/") {

@@ -27,7 +27,7 @@ func TestGetTransferInventory(t *testing.T) {
 	env.createSpaceOnAccount(ctx, t, acc, "Notes")
 	env.createSpaceOnAccount(ctx, t, acc, "Projects")
 
-	// Create a second session to serve as "our" session for making the RPC call.
+	// Create a second session to serve as the caller for the RPC call.
 	ourRef, _ := env.createSession(ctx, t)
 	resource := env.buildSessionResource(ctx, t, ourRef)
 
@@ -67,7 +67,7 @@ func TestStartTransfer(t *testing.T) {
 
 	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
-	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
+	_ = env.accessAccount(ctx, t, tgtRef) // keep the account alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
 	// Start a local-to-local transfer.
@@ -96,7 +96,7 @@ func TestStartTransfer(t *testing.T) {
 		<-ch
 	}
 
-	// Verify target has the space.
+	// Verify the target has the space.
 	invResp, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{
 		SessionIndex: tgtIdx,
 	})
@@ -121,7 +121,7 @@ func TestWatchTransferProgress(t *testing.T) {
 
 	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
-	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
+	_ = env.accessAccount(ctx, t, tgtRef) // keep the account alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
 	// Start a local-to-local transfer.
@@ -176,7 +176,7 @@ func TestCancelTransfer(t *testing.T) {
 
 	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
-	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
+	_ = env.accessAccount(ctx, t, tgtRef) // keep the account alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
 	// Start a local-to-local transfer.
@@ -195,8 +195,9 @@ func TestCancelTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify the transfer is done. A tiny in-memory transfer may complete before
-	// CancelTransfer observes it, but it must leave a final state behind.
+	// Verify the transfer is done. A tiny in-memory transfer may complete
+	// before CancelTransfer observes the transfer, but the transfer must leave
+	// a final state behind.
 	xfer := resource.GetActiveTransfer()
 	if xfer == nil {
 		t.Fatal("expected active transfer reference")
@@ -204,15 +205,17 @@ func TestCancelTransfer(t *testing.T) {
 	state := xfer.GetState()
 	phase := state.GetPhase()
 
-	// After cancellation, transfer may be COMPLETE (if it finished fast) or FAILED (if canceled mid-operation).
+	// After cancellation, the transfer may be COMPLETE (if the transfer
+	// finished fast) or FAILED (if canceled mid-operation).
 	if phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE &&
 		phase != provider_transfer.TransferPhase_TransferPhase_FAILED {
 		t.Fatalf("expected COMPLETE or FAILED after cancel, got %s", phase)
 	}
 }
 
-// TestLocalToCloudMigrate verifies MIGRATE mode transfers spaces and cleans up source.
-// Uses local-to-local as a stand-in; the cloud target is tested separately.
+// TestLocalToCloudMigrate verifies MIGRATE mode transfers spaces and cleans
+// up the source.
+// Uses local-to-local as a stand-in. The cloud target is tested separately.
 func TestLocalToCloudMigrate(t *testing.T) {
 	// Start a test environment.
 	ctx := context.Background()
@@ -225,7 +228,7 @@ func TestLocalToCloudMigrate(t *testing.T) {
 
 	// Create the target session and its resource.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
-	_ = env.accessAccount(ctx, t, tgtRef) // keep alive
+	_ = env.accessAccount(ctx, t, tgtRef) // keep the account alive
 	resource := env.buildSessionResource(ctx, t, tgtRef)
 
 	// Start a migrate transfer.
@@ -254,7 +257,7 @@ func TestLocalToCloudMigrate(t *testing.T) {
 		<-ch
 	}
 
-	// Verify target has the space.
+	// Verify the target has the space.
 	invResp, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{
 		SessionIndex: tgtIdx,
 	})
@@ -265,7 +268,8 @@ func TestLocalToCloudMigrate(t *testing.T) {
 		t.Fatalf("expected 1 space on target, got %d", len(invResp.GetSpaces()))
 	}
 
-	// Verify source spaces were cleaned up (inventory should be empty or session gone).
+	// Verify source spaces were cleaned up (the inventory should be empty or
+	// the session gone).
 	srcInv, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{
 		SessionIndex: srcIdx,
 	})
@@ -395,7 +399,7 @@ func TestReadLinkedCloudAccountID(t *testing.T) {
 		t.Fatalf("expected cloud account ID %q, got %q", cloudAccountID, got)
 	}
 
-	// Verify a session without the key returns empty.
+	// Verify a session without the key returns an empty string.
 	otherRef, otherIdx := env.createSession(ctx, t)
 	otherAcc := env.accessAccount(ctx, t, otherRef)
 	otherEntry, err := env.sessCtrl.GetSessionByIdx(ctx, otherIdx)
@@ -470,7 +474,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 		t.Fatalf("expected linked cloud account before merge, got %q", cloudAccID)
 	}
 
-	// Create target and run merge.
+	// Create the target and run the merge.
 	tgtRef, tgtIdx := env.createSession(ctx, t)
 	_ = env.accessAccount(ctx, t, tgtRef)
 	resource := env.buildSessionResource(ctx, t, tgtRef)
@@ -485,12 +489,13 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wait for transfer goroutine to complete (includes post-transfer cleanup).
+	// Wait for the transfer goroutine to complete (includes post-transfer
+	// cleanup).
 	if err := resource.WaitTransferDone(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify cleanup failure is reported through transfer state.
+	// Verify the cleanup failure is reported through transfer state.
 	xfer := resource.GetActiveTransfer()
 	if xfer == nil {
 		t.Fatal("expected active transfer")
@@ -503,7 +508,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 		t.Fatalf("expected cleanup failure, got %q", state.GetErrorMessage())
 	}
 
-	// Verify source session was not deleted after cleanup failed.
+	// Verify the source session was not deleted after cleanup failed.
 	srcEntry, err := env.sessCtrl.GetSessionByIdx(ctx, srcIdx)
 	if err != nil {
 		t.Fatal(err)
@@ -512,7 +517,7 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 		t.Fatal("source session should remain when cleanup fails")
 	}
 
-	// Verify target has the space.
+	// Verify the target has the space.
 	inv, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{
 		SessionIndex: tgtIdx,
 	})

@@ -3,7 +3,7 @@ export type BackoffFn = () => number
 
 // constantBackoff constructs a new constant BackoffFn.
 //
-// argument is the number of milliseconds to wait.
+// The argument is the number of milliseconds to wait.
 export function constantBackoff(waitMs: number = 500): BackoffFn {
   return () => {
     return waitMs
@@ -48,17 +48,17 @@ export function exponentialBackoff(
 // RetryOpts are options passed to Retry.
 export interface RetryOpts {
   // backoffFn controls backoff timing.
-  // defaults to exponentialBackoff with its default bounds.
+  // backoffFn defaults to exponentialBackoff with its default bounds.
   backoffFn?: BackoffFn
   // errorCb is an optional callback for when the function returns an error.
   errorCb?: (err: unknown) => void
   // abortSignal is an optional signal to use to cancel retries.
   abortSignal?: AbortSignal
   // setTimeout is an optional function to use for setting timeouts.
-  // defaults to global setTimeout.
+  // setTimeout defaults to global setTimeout.
   setTimeout?: typeof setTimeout
   // clearTimeout is an optional function to use for clearing timeouts.
-  // defaults to global clearTimeout.
+  // clearTimeout defaults to global clearTimeout.
   clearTimeout?: typeof clearTimeout
 }
 
@@ -72,7 +72,7 @@ export class Retry<T = void> {
     return this._canceled
   }
 
-  // _backoffFn is the backoff function (if any)
+  // _backoffFn is the backoff function (if any).
   private _backoffFn: BackoffFn
   // _errorCb is the error callback.
   private _errorCb?: (err: unknown) => void
@@ -81,7 +81,7 @@ export class Retry<T = void> {
   // _abortListener cancels retry when the abort signal fires.
   private _abortListener?: () => void
 
-  // _canceled indicates retrying this has been canceled
+  // _canceled indicates retrying the function has been canceled.
   private _canceled?: boolean
   // _resolve resolves the promise.
   private _resolve?: (val: T) => void

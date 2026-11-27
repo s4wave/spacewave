@@ -76,7 +76,7 @@ export interface Config {
   backoff?: Backoff
   /**
    * Dialers maps peer IDs to dialers.
-   * This allows mapping which peer ID should be dialed via this transport.
+   * The map selects which peer ID should be dialed via this transport.
    */
   dialers?: { [key: string]: DialerOpts }
   /**
@@ -86,7 +86,7 @@ export interface Config {
   allPeers?: boolean
   /**
    * DisableListen disables listening for incoming Links.
-   * If set, we will only dial out, not accept incoming links.
+   * If set, the transport will only dial out, not accept incoming links.
    */
   disableListen?: boolean
   /**
@@ -151,7 +151,7 @@ export const WebRtcConfig: MessageType<WebRtcConfig> =
   ])
 
 /**
- * IceServer is a WebRTC ICE server config.
+ * IceServerConfig is a WebRTC ICE server config.
  *
  * @generated from message webrtc.IceServerConfig
  */
@@ -264,7 +264,7 @@ export interface WebRtcSdp {
   sdp?: string
   /**
    * OfferId is the SHA-256 of the exact offer SDP bytes this description
-   * belongs to. Offers carry their own digest; answers echo the digest of
+   * belongs to. Offers carry their own digest. Answers echo the digest of
    * the offer they answer. Signals whose offer_id does not match the active
    * generation are rejected before Pion.
    */

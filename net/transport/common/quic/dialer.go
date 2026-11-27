@@ -9,21 +9,21 @@ import (
 
 // Dialer represents an ongoing attempt to dial an address.
 type Dialer struct {
-	// t is the transport
+	// t is the transport.
 	t *Transport
-	// rootCtx is the root context
+	// rootCtx is the root context.
 	rootCtx context.Context
-	// ctx is the dialer ctx
+	// ctx is the dialer ctx.
 	ctx context.Context
-	// ctxCancel cancels ctx
+	// ctxCancel cancels ctx.
 	// called when execute() exits
 	ctxCancel context.CancelFunc
-	// peerID is the peer id
+	// peerID is the peer id.
 	// can be empty to indicate any peer
 	peerID peer.ID
-	// addr is the address
+	// addr is the address.
 	addr string
-	// result is the result promise
+	// result is the result promise.
 	result *promise.Promise[*Link]
 }
 

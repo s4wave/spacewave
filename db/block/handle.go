@@ -6,7 +6,7 @@ type handle struct {
 	parents []*refHandle
 	// ref is the base block reference, or nil before assignment.
 	ref *BlockRef
-	// isSubBlock indicates if this is a sub-block.
+	// isSubBlock indicates if the handle contains a sub-block.
 	isSubBlock bool
 	// refHandles indexes traversed outgoing references by their field IDs.
 	refHandles map[uint32]*refHandle
@@ -26,7 +26,7 @@ type handle struct {
 }
 
 // Clone clones the handle object.
-// The traversed references are cleared; the decoded block is shared.
+// The traversed references are cleared, and the decoded block is shared.
 func (h *handle) Clone() *handle {
 	return &handle{
 		ref:         h.ref.Clone(),

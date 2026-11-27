@@ -80,8 +80,8 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 }
 
 // Put writes a key-value pair to the database.
-// New value will immediately be visible by Get on the same Tx,
-// but implementation might buffer the write until transaction is committed.
+// The new value will immediately be visible by Get on the same Tx,
+// but the implementation might buffer the write until the transaction commits.
 func (t *Tx) Put(ctx context.Context, k kv.Key, v kv.Value) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey
@@ -98,7 +98,7 @@ func (t *Tx) Del(ctx context.Context, k kv.Key) error {
 }
 
 // Scan will iterate over all key-value pairs.
-// Expects them to arrive in order in the hidalgo kvtest.
+// The hidalgo kvtest expects the key-value pairs to arrive in order.
 // Use hidalgo/options.WithKVPrefix to specify a prefix for scanning.
 func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 	return t.scan(ctx, nil, opts...)

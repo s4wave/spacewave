@@ -9,8 +9,8 @@ import (
 )
 
 // RefStore keeps the references each put declares and serves them with the
-// bytes, so graph walks such as DiffGraph can read it. A block put without
-// references reads as byte-only.
+// bytes, so graph walks such as DiffGraph can read the store. A block put
+// without references reads as byte-only.
 type RefStore struct {
 	block.StoreOps
 

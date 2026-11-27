@@ -9,12 +9,12 @@ import (
 )
 
 // The roots table holds the store's named roots. The store frees nothing by
-// liveness, so a root only names a block for its holder: SetRoots moves the
-// roots in the same SQL transaction as the blocks it inserts, comparing each
-// root with its Previous, and needs no journal. It keeps no leases: a root is
-// held until a writer releases it, and the table's expires column, kept so
-// tables created before leases moved to the Volume still accept inserts,
-// always holds zero.
+// liveness, so a root only references a block for its holder: SetRoots moves
+// the roots in the same SQL transaction as the blocks it inserts, comparing
+// each root with its Previous, and needs no journal. The store keeps no
+// leases: a root is held until a writer releases it, and the table's expires
+// column, kept so tables created before leases moved to the Volume still
+// accept inserts, always holds zero.
 
 // GetRoot returns the block name holds, or nil when it is free.
 func (s *Store) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
@@ -66,7 +66,8 @@ func (s *Store) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, ro
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	// Insert the entries, so a root never names a block the store lacks.
+	// Insert the entries, so a root never references a block the store
+	// lacks.
 	if err := s.insert(ctx, tx, entries); err != nil {
 		return err
 	}
@@ -127,7 +128,7 @@ func (s *Store) writeRoot(ctx context.Context, db execer, root block.NamedRoot) 
 		return errors.Wrapf(err, "release root %s", root.Name)
 	}
 
-	// Set it.
+	// Set the root's row.
 	data, err := root.Ref.MarshalVT()
 	if err != nil {
 		return err
@@ -138,7 +139,8 @@ func (s *Store) writeRoot(ctx context.Context, db execer, root block.NamedRoot) 
 	return errors.Wrapf(err, "set root %s", root.Name)
 }
 
-// refsEqual reports whether a and b name the same block, empty matching empty.
+// refsEqual reports whether a and b reference the same block, empty matching
+// empty.
 func refsEqual(a, b *block.BlockRef) bool {
 	if a.GetEmpty() || b.GetEmpty() {
 		return a.GetEmpty() == b.GetEmpty()

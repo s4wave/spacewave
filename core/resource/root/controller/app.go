@@ -53,7 +53,7 @@ import (
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
-// AppBackingEngineID names the app backing World, the one World every app
+// AppBackingEngineID identifies the app backing World, the one World every app
 // opener and lookup uses.
 const AppBackingEngineID = "app-backing-world"
 
@@ -338,7 +338,7 @@ func (c *appWorldController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo("app/world", Version, "app backing World")
 }
 
-// Execute does nothing; the controller only resolves directives.
+// Execute does nothing because the controller only resolves directives.
 func (c *appWorldController) Execute(context.Context) error { return nil }
 
 // Close releases nothing.

@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// releaseUpgradePatchEnv names a patch applied to the checkout to build the
+// releaseUpgradePatchEnv selects a patch applied to the checkout to build the
 // newer release. The patch is reverted when the test ends.
 const releaseUpgradePatchEnv = "E2E_RELEASE_WASM_UPGRADE_PATCH"
 

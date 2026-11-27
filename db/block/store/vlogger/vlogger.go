@@ -27,7 +27,7 @@ func (s *VLoggerStore) GetID() string {
 }
 
 // GetHashType returns the preferred hash type for the store.
-// This should return as fast as possible (called frequently).
+// GetHashType should return as fast as possible (called frequently).
 // If 0 is returned, uses a default defined by Hydra.
 func (s *VLoggerStore) GetHashType() hash.HashType {
 	return s.st.GetHashType()

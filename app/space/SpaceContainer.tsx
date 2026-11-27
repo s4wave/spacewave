@@ -142,7 +142,7 @@ function useSpaceContainerController() {
     SpaceState.equals,
   )
   const spaceContentsResource = useSpaceContentsMount(spaceResource)
-  // Subscribe this component to contents resource updates; consumers read
+  // Subscribe this component to contents resource updates. Consumers read
   // the resource through SpaceContentsContext.
   const _spaceContents = useResourceValue(spaceContentsResource)
   const resourcesList = useWatchStateRpc(
@@ -230,7 +230,8 @@ function useSpaceContainerController() {
     navigate({ path: joinPath([...parentPaths], true) })
   }, [navigate, parentPaths])
 
-  // Namespace for space-specific state within the tab's state atom
+  // spaceNamespace is the namespace for space-specific state within the tab's
+  // state atom.
   const spaceNamespace = useMemo(
     () => (sharedObjectId ? ['space', sharedObjectId] : []),
     [sharedObjectId],
@@ -558,8 +559,9 @@ export function SpaceContainer() {
     titleSpaceName,
   } = useSpaceContainerController()
 
-  // The bottom bar item and its details overlay. The overlay renders inside
-  // this level, so it reads the same Space state and contexts as the body.
+  // Render the bottom bar item and its details overlay. The overlay renders
+  // inside this level, so it reads the same Space state and contexts as the
+  // body.
   const renderLevel = (overlay: ReactNode, children: ReactNode) => (
     <BottomBarLevel
       id="sharedObject"

@@ -35,7 +35,7 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, req *volume_rpc.SetBuc
 		moves = append(moves, root.ToNamedRoot())
 	}
 
-	// Move the roots; a volume that holds none refuses holds.
+	// Move the roots. A volume that holds none refuses holds.
 	err := v.vol.SetBucketRoots(ctx, req.GetBucketId(), entries, moves)
 
 	// Report the refusals the client acts on in the result.
@@ -75,8 +75,8 @@ func (v *ProxyVolume) HoldPin(req *volume_rpc.HoldPinRequest, strm volume_rpc.SR
 	return nil
 }
 
-// HoldStage opens a stage, names it to the client, and holds it until the
-// client ends the stream.
+// HoldStage opens a stage, reports its identifier to the client, and holds the
+// stage until the client ends the stream.
 func (v *ProxyVolume) HoldStage(_ *volume_rpc.HoldStageRequest, strm volume_rpc.SRPCProxyVolume_HoldStageStream) error {
 	// Open the stage and record it as this service's.
 	ctx := strm.Context()
@@ -94,7 +94,8 @@ func (v *ProxyVolume) HoldStage(_ *volume_rpc.HoldStageRequest, strm volume_rpc.
 		release()
 	}()
 
-	// Name it, then hold it until the stream ends.
+	// Report the stage identifier, then hold the stage until the stream
+	// ends.
 	if err := strm.Send(&volume_rpc.HoldStageResponse{Stage: stage}); err != nil {
 		return err
 	}

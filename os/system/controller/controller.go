@@ -36,7 +36,7 @@ const ControllerID = "os/system"
 // Controller runs a placed os/system node. While its World engine is up it
 // serves the Stager and the Space's blocks, read only, on the bus, and shows
 // the release the node binds as its status. A release it cannot read shows
-// as rejected; the console judges the signature, since only the Device's
+// as rejected. The console judges the signature, since only the Device's
 // pins can.
 type Controller struct {
 	// le is the logger.
@@ -137,7 +137,7 @@ func (c *Controller) showRelease(r *os_release.Release, err error) {
 		err = ierr
 	}
 
-	// Wait for a missing release, and reject any other.
+	// Wait for a missing release, and reject any other release error.
 	if errors.Is(err, world.ErrObjectNotFound) {
 		c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, "waiting for a release")
 		return
@@ -156,7 +156,8 @@ func (c *Controller) GetNodeStatus() (s4wave_device.DeviceCapabilityState, strin
 
 // setStatus shows state and detail, waking the watchers when they change.
 func (c *Controller) setStatus(state s4wave_device.DeviceCapabilityState, detail string) {
-	// Store a changed status and wake its watchers; an unchanged one wakes none.
+	// Store a changed status and wake its watchers. An unchanged status wakes
+	// none.
 	l := c.status.Lock()
 	defer l.Unlock()
 	if c.state == state && c.detail == detail {
@@ -179,7 +180,7 @@ func (c *Controller) setRevision(r *os_system_stager.Revision) {
 	l.Broadcast()
 }
 
-// getRevision returns the last report, or nil before the first, and a
+// getRevision returns the last report, or nil before the first report, and a
 // channel closed at the next change.
 func (c *Controller) getRevision() (*os_system_stager.Revision, <-chan struct{}) {
 	l := c.reports.Lock()
@@ -187,7 +188,7 @@ func (c *Controller) getRevision() (*os_system_stager.Revision, <-chan struct{})
 	return c.revision, l.WaitCh()
 }
 
-// HandleDirective resolves no directives; the services resolve through the
+// HandleDirective resolves no directives. The services resolve through the
 // invoker controller serve adds.
 func (c *Controller) HandleDirective(context.Context, directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil

@@ -49,7 +49,7 @@ func NewStore() *Store {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// A reader takes the published tree at once.
 	if !write {

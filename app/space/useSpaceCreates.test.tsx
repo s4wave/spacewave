@@ -17,7 +17,7 @@ const plan: CreatePlan = {
   persistent: false,
 }
 
-// fakeWorld fails each send with the next of failures, then succeeds; a
+// fakeWorld fails each send with the next of failures, then succeeds. A
 // repeat finds no object at the planned key.
 function fakeWorld(failures: Error[]) {
   const applyWorldOp = vi.fn(() => {

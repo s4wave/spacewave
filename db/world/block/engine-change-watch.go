@@ -51,8 +51,8 @@ func (e *Engine) GetUnknownChangeCount() uint64 {
 // (advanceLocked) and hands the span out (handOut), and between heads it
 // waits (waitLocked). Once stopped (stopLocked) it cancels its comparisons
 // and wakes every watcher, and its loop releases the base (releaseBase). The
-// methods named Locked need bcast; the ones that take indexMtx must be called
-// without it.
+// methods named Locked need bcast. The ones that take indexMtx must be called
+// without bcast.
 type engineChangeWatch struct {
 	// ctx cancels a comparison in flight when the Engine closes.
 	ctx context.Context
@@ -72,11 +72,11 @@ type engineChangeWatch struct {
 	// reach every subscriber.
 	subs map[*changeSubscriber]struct{}
 	// indexMtx guards index. It is never held together with bcast: indexing
-	// a subscriber names every read its interest holds, and World writes and
-	// reads take bcast, so they must never wait behind it.
+	// a subscriber lists every read its interest holds, and World writes
+	// and reads take bcast, so they must never wait behind it.
 	indexMtx sync.Mutex
 	// index holds the subscribers by the names in their interests, so a
-	// ChangeSet tests only the subscribers it names.
+	// ChangeSet tests only the subscribers it selects.
 	index *world.ChangeIndex[*changeSubscriber]
 	// history holds the ChangeSets of the last compared spans, oldest first,
 	// each starting at the seqno the one before it reached and the last
@@ -89,9 +89,10 @@ type engineChangeWatch struct {
 	// idle closes when the last watcher leaves so the watch releases its base
 	// without waiting for another head.
 	idle chan struct{}
-	// handed is the seqno of the last span handed to the subscribers, stored
-	// after every subscriber it names received it. A subscriber holding no
-	// changes has seen every change through it that names it.
+	// handed is the seqno of the last span handed to the subscribers,
+	// stored after every subscriber the span selects received the span. A
+	// subscriber holding no changes has seen every change through that
+	// seqno that selects the subscriber.
 	handed atomic.Uint64
 }
 
@@ -410,7 +411,7 @@ func (e *Engine) compareWatchedObjectKeys(
 
 // readWatchedRevs reads, at head, the revision of each changed key some
 // waiter watches, once for all of the key's waiters. It returns nil when no
-// waiter watches a changed key or the read fails; the waiters then read the
+// waiter watches a changed key or the read fails. The waiters then read the
 // object themselves.
 func (e *Engine) readWatchedRevs(ctx context.Context, w *engineChangeWatch, head *bucket_lookup.Cursor, keys []string) map[string]objectKeyState {
 	// Keep the changed keys that have waiters.
@@ -514,13 +515,13 @@ func (w *engineChangeWatch) advanceLocked(
 }
 
 // handOut hands the span reaching seqno to the subscribers a changed key
-// names, and to the other named ones that accept it, then marks it handed.
+// selects, and to the other selected ones that accept it, then marks it handed.
 // It runs after advanceLocked recorded the span: a subscriber indexes itself
 // before it reads the base, so one missing from the index here reads a base
 // at or past this span and merges it from the history or its catch-up
 // instead. The caller must not hold bcast.
 func (w *engineChangeWatch) handOut(seqno uint64, changes *world.ChangeSet) {
-	// Find the subscribers the changes name.
+	// Find the subscribers the changes select.
 	w.indexMtx.Lock()
 	accepted, tested := w.index.Candidates(changes)
 	w.indexMtx.Unlock()

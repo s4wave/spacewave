@@ -34,7 +34,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The value will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	tc := t.tc
 	if tc == nil {
@@ -44,7 +44,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The deletion will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	tc := t.tc

@@ -255,8 +255,9 @@ func (a *ProviderAccount) InvalidateSharedObjectMetadataCache() {
 	})
 }
 
-// reconcileSharedObjectMetadata marks cached metadata stale when list shows a
-// newer revision, does not list the object, or the cached revision is unknown.
+// reconcileSharedObjectMetadata marks cached metadata stale when the list
+// shows a newer revision, does not list the object, or the cached revision is
+// unknown.
 // In-flight fetches of entries already stale repeat, since they may predate
 // the list.
 func (a *ProviderAccount) reconcileSharedObjectMetadata(list *sobject.SharedObjectList) {
@@ -268,7 +269,8 @@ func (a *ProviderAccount) reconcileSharedObjectMetadata(list *sobject.SharedObje
 
 	// Mark each cached entry stale unless it holds the listed revision.
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Deleted entries stay deleted; stale ones only repeat their fetch.
+		// Deleted entries stay deleted. Stale ones only repeat their
+		// fetch.
 		changed := false
 		for soID, state := range a.state.sharedObjectMetadata {
 			if state == nil || state.status == sharedObjectMetadataDeleted {

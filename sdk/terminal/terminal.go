@@ -29,7 +29,7 @@ func UnmarshalTerminal(ctx context.Context, bcs *block.Cursor) (*Terminal, error
 	return block.UnmarshalBlock[Terminal](ctx, bcs)
 }
 
-// Validate performs cursory checks on the Terminal block.
+// Validate checks the Terminal block cursorily.
 func (t *Terminal) Validate() error {
 	if strings.TrimSpace(t.GetName()) == "" {
 		return errors.New("terminal name is required")

@@ -37,9 +37,10 @@ type logEntry struct {
 type frame struct {
 	// kind is framePending or frameCommit.
 	kind byte
-	// through is the last block key the batch examined, relative to the block
-	// prefix: a run resumes after it. Blocks it passed without recording are
-	// ones Pack leaves to the copy, such as blocks outside the World.
+	// through is the last block key the batch examined, relative to the
+	// block prefix: a run resumes after that key. Blocks the batch passed
+	// without recording are ones Pack leaves to the copy, such as blocks
+	// outside the World.
 	through []byte
 	// entries are the blocks the batch packs and the bad ones it found, in
 	// key order, for a pending frame.
@@ -62,12 +63,12 @@ func (f frame) packed() uint64 {
 }
 
 // appendFrame appends the encoding of a frame to dst: the kind byte, the
-// payload length as a uvarint, the payload, then the payload's CRC-32C.
-// A pending payload is the examined-through key, the data size, the entry
-// count, then each entry as a flag byte, a key length and the key; the
-// lengths and counts are uvarints.
+// payload length as a uvarint, the payload, then the payload's CRC-32C. A
+// pending payload is the examined-through key, the data size, the entry count,
+// then each entry as a flag byte, a key length and the key. The lengths and
+// counts are uvarints.
 func appendFrame(dst []byte, f frame) []byte {
-	// Encode the payload of a pending frame; a commit frame has none.
+	// Encode the payload of a pending frame. A commit frame has none.
 	var payload []byte
 	if f.kind == framePending {
 		payload = binary.AppendUvarint(payload, uint64(len(f.through)))

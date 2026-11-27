@@ -47,13 +47,13 @@ func (l *levelIter) failure() error {
 	return l.err
 }
 
-// seek positions at the first key at or after k, or the last at or before
-// it when reverse, in the run that may hold it, moving on to the next run
-// in the direction when that run holds none; nil selects the level's first
-// or last key.
+// seek positions at the first key at or after k, or the last at or before it
+// when reverse, in the run that may hold it, moving on to the next run in the
+// direction when that run holds none. nil selects the level's first or last
+// key.
 func (l *levelIter) seek(k []byte, reverse bool) {
-	// Find the run: forward, the first ending at or after k; in reverse, the
-	// last starting at or before it.
+	// Find the run: forward, the first ending at or after k. In reverse,
+	// the last starting at or before it.
 	l.i = 0
 	switch {
 	case reverse && k == nil:
@@ -64,7 +64,7 @@ func (l *levelIter) seek(k []byte, reverse bool) {
 		l.i = sort.Search(len(l.runs), func(i int) bool { return bytes.Compare(l.runs[i].largest, k) >= 0 })
 	}
 
-	// Seek in it, then cross into the next runs until one holds a key.
+	// Seek in the run, then cross into the next runs until one holds a key.
 	l.open()
 	if l.cur != nil {
 		l.cur.seek(k, reverse)

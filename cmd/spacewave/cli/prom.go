@@ -190,7 +190,7 @@ func (a *promTargetCreateArgs) buildMeta() (*s4wave_prom.TargetMeta, error) {
 		byName[k] = v
 	}
 
-	// Store them sorted by name, as a label set requires.
+	// Store the labels sorted by name, as a label set requires.
 	names := make([]string, 0, len(byName))
 	for k := range byName {
 		names = append(names, k)
@@ -220,7 +220,7 @@ func (a *promDashboardCreateArgs) Run(c *cli.Context) error {
 		key = promDashboardKeyPrefix + key
 	}
 
-	// Create it with starter panels in one transaction.
+	// Create the Dashboard with starter panels in one transaction.
 	err := a.withSpace(c, func(_ *sdkClient, _ s4wave_space.SRPCSpaceResourceServiceClient, engine world.Engine) error {
 		return world.ExecTransaction(c.Context, engine, true, func(ctx context.Context, tx world.WorldState) error {
 			if err := requireNewObject(ctx, tx, key, "dashboard"); err != nil {
@@ -551,7 +551,7 @@ func discoverPromTarget(ctx context.Context, engine *sdk_engine.SDKEngine) (stri
 	}
 	defer tx.Discard()
 
-	// Take the first.
+	// Take the first target.
 	keys, err := s4wave_prom.ListTargets(ctx, tx)
 	if err != nil {
 		return "", errors.Wrap(err, "list targets")

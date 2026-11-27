@@ -59,7 +59,7 @@ func (m *txMarks) mark(ctx context.Context, blocks []kvtx.BlockMark) error {
 }
 
 // committed calls the markers' commit callbacks. Call it once the transaction
-// committed; a discarded transaction drops them.
+// committed. A discarded transaction drops them.
 func (m *txMarks) committed() {
 	// Take the callbacks under the lock and run them outside it.
 	m.mtx.Lock()

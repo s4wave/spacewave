@@ -7,13 +7,13 @@ import (
 
 // DirStream is a directory stream.
 type DirStream struct {
-	// ft is the fstree handle
+	// ft is the fstree handle.
 	ft *FSTree
-	// dirscs is the dirent slice cursor
+	// dirscs is the dirent slice cursor.
 	dirscs *block.Cursor
-	// dirs is the dirent slice
+	// dirs is the dirent slice.
 	dirs DirentSlice
-	// idx is the current dirent index
+	// idx is the current dirent index.
 	idx int
 }
 

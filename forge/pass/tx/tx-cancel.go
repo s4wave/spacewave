@@ -27,7 +27,7 @@ func NewTxCancelTxn() Transaction {
 	return &TxCancel{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction type.
 func (t *TxCancel) GetTxType() TxType {
 	return TxType_TxType_CANCEL
 }

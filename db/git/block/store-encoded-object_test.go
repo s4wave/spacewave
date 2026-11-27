@@ -139,7 +139,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	// Read the committed object and verify its size.
 	encObj = getObject(store, ph)
 
-	// check it exists
+	// Check the committed object exists.
 	size, err := store.EncodedObjectSize(ph)
 	if err != nil {
 		t.Fatal(err.Error())

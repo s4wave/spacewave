@@ -10,16 +10,16 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Opts {
   /**
-   * MaxIdleTimeoutDur is the duration of idle after which conn is closed.
+   * MaxIdleTimeoutDur is the duration of idle after which the conn is closed.
    *
-   * Defaults to 10s.
+   * MaxIdleTimeoutDur defaults to 10s.
    */
   maxIdleTimeoutDur?: string
   /**
    * MaxIncomingStreams is the maximum number of concurrent bidirectional
    * streams that a peer is allowed to open.
    *
-   * If unset or negative, defaults to 100000.
+   * If unset or negative, MaxIncomingStreams defaults to 100000.
    */
   maxIncomingStreams?: number
   /**
@@ -30,7 +30,7 @@ export interface Opts {
    * KeepAliveDur is the duration between keep-alive pings.
    *
    * If disable_keep_alive is set, this value is ignored.
-   * If unset, sets keep-alive to half of MaxIdleTimeout.
+   * If unset, keep-alive defaults to half of MaxIdleTimeout.
    */
   keepAliveDur?: string
   /**
@@ -44,7 +44,7 @@ export interface Opts {
   disablePathMtuDiscovery?: boolean
   /**
    * Verbose indicates to use verbose logging.
-   * Note: this is VERY verbose, logs every packet sent.
+   * Note: verbose logging is VERY verbose and logs every packet sent.
    */
   verbose?: boolean
   /**
@@ -54,8 +54,8 @@ export interface Opts {
    * largest size QUIC allows, which is 1452 bytes.
    *
    * Values above the largest size use the largest size.
-   * If unset, defaults to 1200, which fits every IP path including tunnels
-   * with a 1280 byte MTU.
+   * If unset, InitialPacketSize defaults to 1200, which fits every IP path
+   * including tunnels with a 1280 byte MTU.
    */
   initialPacketSize?: number
 }

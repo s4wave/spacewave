@@ -12,7 +12,7 @@ export function encodeUint32Le(value: number): Uint8Array {
 
 // decodeUint32Le decodes a uint32 from a 4 byte Uint8Array.
 // returns 0 if decoding failed.
-// callers should check that len(data) == 4
+// callers should check that len(data) == 4.
 export function decodeUint32Le(data: Uint8Array): number {
   let value = 0
   let nbytes = 4
@@ -36,7 +36,7 @@ export function prependPacketLen(msgData: Uint8Array): Uint8Array {
 }
 
 // compareUint8Arrays compares two Uint8Array for equality.
-// this is (unfortunately) the fastest known method for such a comparison.
+// This comparison method is (unfortunately) the fastest known method.
 export function compareUint8Arrays(
   a: Uint8Array | undefined | null,
   b: Uint8Array | undefined | null,

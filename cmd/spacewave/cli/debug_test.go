@@ -94,7 +94,8 @@ func TestDebugCommandsHonorGlobalSocketPath(t *testing.T) {
 		return nil, errDialed
 	}
 
-	// Run each capture with the socket on the root and require that it dials it.
+	// Run each capture with the socket on the root and require that the
+	// capture dials that socket.
 	sock := filepath.Join(t.TempDir(), "spacewave.sock")
 	for _, name := range []string{"trace", "cpu-profile", "mem-profile", "goroutine-profile"} {
 		dialed = ""

@@ -19,10 +19,11 @@ import (
 )
 
 // DeliverAccountTransition accepts only history descending from this account's
-// held authority. The new destination peer is authenticated by that history;
-// its transport identity alone grants no access and receives no account data.
+// held authority. The new destination peer is authenticated by that history.
+// Its transport identity alone grants no access and receives no account data.
 func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoint *pairing.SharedObject) (*provider_migration.AccountTransitionReceipt, error) {
-	// Require the delivered checkpoint to name this account's settings object.
+	// Require the delivered checkpoint to reference
+	// this account's settings object.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
@@ -40,8 +41,9 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 		}
 		for _, accepted := range settings.GetAcceptedMigrations() {
 			if accepted.GetDestination().EqualVT(ref.GetProviderResourceRef()) && accepted.GetSource().GetId() == checkpoint.GetEntry().GetRef().GetProviderResourceRef().GetId() && (slices.Contains(accepted.GetDestinationPeerIds(), stream.GetPeerID().String()) || slices.Contains(accepted.GetSessionPeerIds(), stream.GetPeerID().String())) {
-				// This Session already attached to the destination; the retained
-				// source redirect no longer needs to be delivered to it.
+				// This Session already attached to the
+				// destination. The retained source redirect
+				// no longer needs to be delivered to it.
 				return &provider_migration.AccountTransitionReceipt{}, nil
 			}
 		}
@@ -103,8 +105,9 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 			return err
 		}
 
-		// The signed redirect names Session transport identities. A migrated
-		// Session can deliver it without sharing its old local storage key.
+		// The signed redirect lists Session transport identities.
+		// A migrated Session can deliver it without sharing its old
+		// local storage key.
 		remote := stream.GetPeerID().String()
 		if !transition.GetSource().EqualVT(ref.GetProviderResourceRef()) || (!slices.Contains(transition.GetDestinationPeerIds(), remote) && !slices.Contains(transition.GetSessionPeerIds(), remote)) {
 			return errors.New("signed account redirect does not authorize this destination peer")
@@ -118,7 +121,7 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 }
 
 // deliverAccountTransitions sends retained signed redirects when an old Session
-// reconnects. It waits on transport events; offline clients create no traffic.
+// reconnects. It waits on transport events. Offline clients create no traffic.
 func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, sts *transport.SessionTransport, settings *account_settings.AccountSettings) error {
 	// Leave accounts without retained redirects idle.
 	if len(settings.GetAcceptedMigrations()) == 0 {

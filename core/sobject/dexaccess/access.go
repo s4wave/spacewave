@@ -13,8 +13,8 @@ import (
 
 // NewSharedObjectRequestAccess retains the SharedObject authority watch for
 // one authenticated DEX requester. sourceCtx ends when that authority source is
-// released; nil leaves the retained watch as the source. releaseObject releases
-// the caller's SharedObject mount.
+// released. A nil sourceCtx leaves the retained watch as the source.
+// releaseObject releases the caller's SharedObject mount.
 func NewSharedObjectRequestAccess(
 	ctx context.Context,
 	sourceCtx context.Context,
@@ -37,7 +37,8 @@ func NewSharedObjectRequestAccess(
 	}, nil
 }
 
-// sharedObjectDEXRequestAccess reads participant roles from the retained SOHost watch.
+// sharedObjectDEXRequestAccess reads participant roles from the retained
+// SOHost watch.
 type sharedObjectDEXRequestAccess struct {
 	// sourceCtx ends when the SharedObject's authority source is released.
 	sourceCtx context.Context

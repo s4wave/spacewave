@@ -102,7 +102,7 @@ func (c *Controller) serveTrace(w http.ResponseWriter, r *http.Request) {
 		dur = time.Duration(d) * time.Second
 	}
 
-	// Parse optional ?seconds=N query parameter.
+	// Parse the optional ?seconds=N query parameter.
 	if s := r.URL.Query().Get("seconds"); s != "" {
 		if parsed, err := time.ParseDuration(s + "s"); err == nil && parsed > 0 {
 			dur = parsed

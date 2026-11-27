@@ -18,15 +18,16 @@ import (
 // webEntrypointBrowserDir is the repo sub-dir for the browser entrypoint.
 const webEntrypointBrowserDir = "web/entrypoint/browser"
 
-// nodeStubsPath is the repo sub-dir for the node stubs
+// nodeStubsPath is the repo sub-dir for the node stubs.
 const nodeStubsPath = "web/runtime/wasm/node-stubs.js"
 
 // BuildWasmRuntimeEntrypoint builds the wasm runtime entrypoint.
 //
-// runtimeWasmPath should be the relative path to runtime.wasm from runtime-wasm.js
-// this defaults to "./runtime.wasm"
+// runtimeWasmPath should be the relative path to runtime.wasm from
+// runtime-wasm.js.
+// runtimeWasmPath defaults to "./runtime.wasm".
 //
-// builds to buildDir/runtime-wasm.mjs
+// builds to buildDir/runtime-wasm.mjs.
 func BuildWasmRuntimeEntrypoint(
 	ctx context.Context,
 	le *logrus.Entry,

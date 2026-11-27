@@ -308,7 +308,7 @@ func BuildDevtoolBus(
 		return nil, err
 	}
 
-	// Inspect existing devtool manifests. Native startup now preflights cached
+	// Inspect existing devtool manifests. Native startup preflights cached
 	// manifests before the scheduler starts, so startup keeps validated cached
 	// manifests instead of deleting everything up front.
 	inspectTx, err := eng.NewTransaction(ctx, true)

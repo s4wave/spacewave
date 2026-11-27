@@ -52,7 +52,7 @@ func NewFsInitOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsInitOp) Validate() error {
 	// Check the object key, timestamp, filesystem type and reference.
 	if len(o.GetObjectKey()) == 0 {
@@ -101,7 +101,7 @@ func (o *FsInitOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// check if exists
+	// check whether the fs object exists
 	objKey := o.GetObjectKey()
 	objState, exists, err := worldHandle.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)

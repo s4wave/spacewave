@@ -5,7 +5,7 @@
 // of the files tsconfig.json includes, then those of each module's own
 // TypeScript. Versions come from go.mod with its replace directives
 // followed. Each module zip comes from the public Go module proxy and is
-// checked against go.sum's h1 hash before anything is extracted; a module
+// checked against go.sum's h1 hash before anything is extracted. A module
 // replaced by a local path is copied from that path. Only .ts files,
 // .d.ts included, are written, at vendor/<module path>/..., the layout
 // `go mod vendor` uses, so a later `go mod vendor` replaces the result.
@@ -14,7 +14,7 @@
 // go.mod selects. A vendor/ written by `go mod vendor` (vendor/modules.txt
 // present, no vendor/.ts-modules.json) is checked against modules.txt and
 // never modified. A vendor/ written here records what it holds in
-// vendor/.ts-modules.json; modules that differ are fetched again. Each
+// vendor/.ts-modules.json. Modules that differ are fetched again. Each
 // module is staged under vendor/ and renamed into place, and the record is
 // written last, so an interrupted run leaves a module either absent from
 // the record or whole.
@@ -190,7 +190,7 @@ const goscriptModule = 'github.com/s4wave/goscript'
 const importPattern =
   /(?:\bfrom|\bimport)\s*\(?\s*['"](@go(?:script)?\/[^'"]+)['"]/g
 
-// goImports returns the Go import paths a TypeScript source names through
+// goImports returns the Go import paths a TypeScript source references through
 // @go/* and @goscript/*.
 export function goImports(source: string): string[] {
   const paths: string[] = []
@@ -214,7 +214,7 @@ export function modulesImported(mod: GoMod, sources: string[]): Set<string> {
     for (const path of goImports(source)) {
       if (path === mod.module || path.startsWith(mod.module + '/')) continue
       // A path no required module holds is left for the typecheck to
-      // report; the pattern also matches import text inside strings.
+      // report. The pattern also matches import text inside strings.
       const owner = moduleOf(mod, path)
       if (owner) modules.add(owner)
     }
@@ -240,7 +240,7 @@ export const maxModuleBytes = 500 << 20
 
 // readZip returns the files of a zip archive, stored or deflated. It refuses
 // zip64 archives, duplicate names, and archives whose declared sizes exceed
-// maxTotal, before inflating anything; no entry inflates past its declared
+// maxTotal, before inflating anything. No entry inflates past its declared
 // size.
 export function readZip(zip: Uint8Array, maxTotal = maxModuleBytes): ZipFile[] {
   const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
@@ -430,7 +430,7 @@ export function parseModulesTxt(
 }
 
 // staleModules returns the modules of wanted whose vendored source differs
-// from the one go.mod selects; a module vendored nowhere is stale.
+// from the one go.mod selects. A module vendored nowhere is stale.
 export function staleModules(
   mod: GoMod,
   wanted: Iterable<string>,
@@ -443,7 +443,7 @@ export function staleModules(
   return stale.sort()
 }
 
-// Fetch downloads one URL; tests replace it.
+// Fetch downloads one URL. Tests replace it.
 export type Fetch = (url: string) => Promise<Uint8Array>
 
 // fetchBytes downloads one URL from the proxy.
@@ -525,7 +525,7 @@ function writeRecord(vendorDir: string, record: Record) {
 export interface SyncResult {
   fetched: string[]
   bytes: number
-  // warning names a stale vendor/ that `go mod vendor` produced. The sync
+  // warning reports a stale vendor/ that `go mod vendor` produced. The sync
   // leaves such a tree untouched, since Go owns it, and the type check runs
   // against it as it stands.
   warning?: string
@@ -533,7 +533,7 @@ export interface SyncResult {
 
 // syncVendor brings vendor/ up to the import closure of sources. It
 // throws, naming what to run, when a module cannot be fetched or verified.
-// A vendor/ that `go mod vendor` produced is never written; when it is stale
+// A vendor/ that `go mod vendor` produced is never written. When it is stale,
 // the result carries a warning instead.
 export async function syncVendor(opts: {
   root: string

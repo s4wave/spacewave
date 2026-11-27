@@ -87,7 +87,8 @@ func (r *SpacewaveSessionResource) ReleaseSpaceHostedCopies(
 }
 
 // SetSpacePublicRead makes a Space publicly readable. The cloud requires the
-// display name on every metadata update, so the current one is sent with it.
+// display name on every metadata update, so the current display name is sent
+// with the metadata update.
 func (r *SpacewaveSessionResource) SetSpacePublicRead(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.SetSpacePublicReadRequest,

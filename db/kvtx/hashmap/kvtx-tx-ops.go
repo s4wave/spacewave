@@ -23,19 +23,19 @@ func (o *kvtxTxOps) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bo
 	return kvtx.GetBatchFallback(ctx, o, keys)
 }
 
-// Size returns number of keys in the store
+// Size returns number of keys in the store.
 func (o *kvtxTxOps) Size(ctx context.Context) (uint64, error) {
 	return o.m.m.Size(ctx)
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The value will not be committed until Commit is called.
 func (o *kvtxTxOps) Set(ctx context.Context, key, value []byte) error {
 	return o.m.m.Set(ctx, key, value)
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The deletion will not be committed until Commit is called.
 // Not found should not return an error.
 func (o *kvtxTxOps) Delete(ctx context.Context, key []byte) error {
 	return o.m.m.Delete(ctx, key)
@@ -82,7 +82,7 @@ var _ kvtx.TxOps = (*kvtxTxOps)(nil)
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (o *kvtxTxOps) Commit(ctx context.Context) error {
-	// noop: we already commit instantly.
+	// noop: the hashmap already commits instantly.
 	if o.commitDiscardFn != nil {
 		return o.commitDiscardFn(true)
 	}

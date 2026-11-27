@@ -10,7 +10,7 @@ import (
 // The extended attribute syscalls store Linux xattr name and value pairs on
 // the node. The path, link and descriptor variants share the node operations,
 // so the create and replace flags, size queries, missing attributes and the
-// list encoding behave the same through each.
+// list encoding behave the same through each variant.
 
 // sysSetxattr sets an extended attribute on a path, following symlinks.
 func (p *Process) sysSetxattr(pathPtr, namePtr, valuePtr, size, flags uint32) uint64 {

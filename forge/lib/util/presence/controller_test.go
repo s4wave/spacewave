@@ -91,7 +91,7 @@ exec:
 		t.Fatalf("job has %d tasks", len(tasks))
 	}
 
-	// The Task lists every declared output; an unset one stays empty.
+	// The Task lists every declared output. An unset one stays empty.
 	var outputs forge_value.ValueSlice
 	for _, output := range tasks[0].GetValueSet().GetOutputs() {
 		if !output.IsEmpty() {

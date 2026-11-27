@@ -104,14 +104,14 @@ func (e *engineWorldStateObject) SetRootRef(ctx context.Context, nref *bucket.Ob
 var errRootRefChanged = errors.New("object root changed during access")
 
 // stagedAccessAttempts is how many times accessObjectState builds off the
-// writer before it builds under it. Each lost race costs the caller one build;
-// past this many, steady writers to the object could starve it, so the last
-// attempt holds the writer for one build and always publishes.
+// writer before it builds under it. Each lost race costs the caller one build.
+// Past this many, steady writers to the object could starve the caller, so the
+// last attempt holds the writer for one build and always publishes.
 const stagedAccessAttempts = 3
 
 // accessObjectState applies cb to the object root and publishes the result
 // only when the object still has the revision cb read. Reading and publishing
-// are separate transactions so cb runs off the engine writer; a concurrent
+// are separate transactions so cb runs off the engine writer. A concurrent
 // change replays cb against the new root instead of overwriting it. After
 // stagedAccessAttempts lost races, cb runs once more inside a write
 // transaction, where no other writer can move the root.
@@ -124,8 +124,8 @@ const stagedAccessAttempts = 3
 //
 // Without updateWorld the caller publishes the returned root itself, so the
 // build is not staged here. A staged attempt builds through build when it is
-// set, and the caller holds its writes; otherwise each attempt opens a stage of
-// its own. The attempt under the writer builds through its transaction.
+// set, and the caller holds its writes. Otherwise each attempt opens a stage
+// of its own. The attempt under the writer builds through its transaction.
 func (e *engineWorldStateObject) accessObjectState(
 	ctx context.Context,
 	updateWorld bool,
@@ -171,7 +171,7 @@ func (e *engineWorldStateObject) accessObjectState(
 
 // publishObjectState builds through build, or a World stage of its own when
 // build is nil, and publishes the result onto the revision the build read. The
-// stage keeps the build alive until the publishing transaction returns; a
+// stage keeps the build alive until the publishing transaction returns. A
 // conflicting or failed publication leaves the build to the sweep once the
 // stage is released.
 func (e *engineWorldStateObject) publishObjectState(ctx context.Context, build AccessWorldStateFunc, cb AccessObjectCb) (*bucket.ObjectRef, bool, error) {
@@ -266,7 +266,7 @@ func (e *engineWorldStateObject) IncrementRev(ctx context.Context) (uint64, erro
 	return val, err
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified revision.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev.

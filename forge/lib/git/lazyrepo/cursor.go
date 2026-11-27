@@ -24,7 +24,8 @@ type AllocationRequest struct {
 	Operation string
 }
 
-// AllocationResult returns allocation provenance and a way to open writable cursors.
+// AllocationResult contains allocation provenance and a way to open writable
+// cursors.
 type AllocationResult struct {
 	// Allocation is the Forge/Git allocation record when one was persisted.
 	Allocation *forge_lib_git_allocation.Allocation
@@ -94,7 +95,7 @@ func (c *FSCursor) CheckReleased() bool {
 	return c == nil || c.released.Load() || c.base.CheckReleased()
 }
 
-// GetProxyCursor returns a writable cursor when this path has already allocated.
+// GetProxyCursor returns a writable cursor when this path has an allocation.
 func (c *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
 	if c.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased

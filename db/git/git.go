@@ -28,7 +28,7 @@ type Tx interface {
 type Engine interface {
 	// NewTransaction returns a new transaction against the store.
 	// Indicate write if the transaction will not be read-only.
-	// Always call Discard() after you are done with the transaction.
+	// Always call Discard() after the caller is done with the transaction.
 	// Check GetReadOnly, might not return a write tx if write=true.
 	// ctx is only used when constructing the transaction.
 	NewTransaction(ctx context.Context, write bool) (Tx, error)

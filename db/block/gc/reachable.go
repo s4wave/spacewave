@@ -24,20 +24,22 @@ type Mark struct {
 	// Live holds the block key of every block a root reaches.
 	Live map[string]struct{}
 	// Unknown counts the reached blocks whose bytes the store holds without
-	// a child list. The blocks they name are not reached and may be live, so
-	// a Volume with any is not adopted.
+	// a child list. The blocks they reference are not reached and may be
+	// live, so a Volume with any is not adopted.
 	Unknown int
-	// UnknownSample names up to sampleSize of the unknown blocks.
+	// UnknownSample lists up to sampleSize of the unknown blocks.
 	UnknownSample []*block.BlockRef
-	// Absent counts the reached blocks the store holds neither the bytes nor
-	// the child list of: holes, which name nothing a reader can reach.
+	// Absent counts the reached blocks the store holds neither the bytes
+	// nor the child list of: holes, which reference nothing a reader can
+	// reach.
 	Absent int
-	// AbsentRefs names every absent block a held root reaches: a root with
+	// AbsentRefs lists every absent block a held root reaches: a root with
 	// no lease, or whose lease has not lapsed.
 	AbsentRefs []*block.BlockRef
-	// LapsedRefs names every absent block that only roots whose lease lapsed
-	// reach, such as the child of a parent a dead process's stage stored
-	// ahead of it. No live holder names one. Absent counts them too.
+	// LapsedRefs lists every absent block that only roots whose lease
+	// lapsed reach, such as the child of a parent a dead process's stage
+	// stored ahead of it. No live holder references one. Absent counts them
+	// too.
 	LapsedRefs []*block.BlockRef
 }
 

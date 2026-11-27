@@ -10,7 +10,7 @@ import (
 
 // Factory constructs a plugin host.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

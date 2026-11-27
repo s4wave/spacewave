@@ -48,7 +48,7 @@ class Plugin implements SRPCPlugin {
 }
 
 /**
- * Main execution function for the browser plugin entrypoint.
+ * main executes the browser plugin entrypoint.
  * Initializes the connection to the host and sets up RPC handling.
  */
 export default async function main(

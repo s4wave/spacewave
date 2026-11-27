@@ -11,7 +11,7 @@ import {
   type StateAtomAccessor,
 } from './persist.js'
 
-// Test component that uses the namespace state
+// TestCounter is a test component that uses the namespace state.
 function TestCounter({ namespace }: { namespace?: string[] }) {
   return (
     <StateNamespaceProvider namespace={namespace}>
@@ -680,11 +680,12 @@ describe('StateNamespaceProvider', () => {
       test1: 1,
     })
 
-    // Reset value1 to default - key should be removed
+    // Reset value1 to the default value. The key should be removed.
     fireEvent.click(reset1)
     expect(JSON.parse(state.textContent || '{}')).toEqual({})
 
-    // Reset value2 when it's already default - nested object should be removed
+    // Reset value2 when value2 is already the default value.
+    // The nested object should be removed.
     fireEvent.click(reset2)
     expect(JSON.parse(state.textContent || '{}')).toEqual({})
   })

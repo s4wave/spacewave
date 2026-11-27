@@ -11,14 +11,15 @@ import (
 // AddSOParticipant adds a target peer as a participant on a single shared
 // object and grants it every key epoch the local peer holds, so it can replay
 // operations written before a rotation. A peer that is already a participant
-// at a lower role is raised to role; one that holds role or a higher one is
+// at a lower role is raised to role. A peer that holds role or a higher one is
 // left unchanged and nothing is written. A role is never lowered.
 //
 // It returns the target's grant for the current key epoch when it added the
-// peer, else nil; the outcome; and the role the peer holds after the call.
+// peer (else nil), the outcome, and the role the peer holds after the call.
 // Under group control localPriv, a voter, agrees to the addition or raise and
-// it returns ErrAwaitingGroup; a writer of an entity without a voter gets one
-// vote, and the voters hand a new peer the key once the group decides.
+// AddSOParticipant returns ErrAwaitingGroup. A writer of an entity without a
+// voter gets one vote, and the voters hand a new peer the key once the group
+// decides.
 //
 // localPriv must be the private key of an OWNER in the current config, which
 // the host checks when it verifies the change. localPeerIDStr is the base58
@@ -107,7 +108,8 @@ func addSOParticipant(
 	err = ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil, func(st *SOState) error {
 		current := st.CurrentKeyEpoch().GetEpoch()
 		for _, held := range st.GetKeyEpochs() {
-			// Skip an epoch the local peer cannot read; the current one is required.
+			// Skip an epoch the local peer cannot read. The current epoch
+			// is required.
 			i := slices.IndexFunc(held.GetGrants(), func(g *SOGrant) bool {
 				return g.GetPeerId() == localPeerIDStr
 			})
@@ -166,7 +168,8 @@ func raiseSOParticipant(
 		}
 	}
 
-	// Sign and apply the change; the host rejects a signer that is not an owner.
+	// Sign and apply the change. The host rejects a signer that is not an
+	// owner.
 	err := ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil, nil)
 	if err != nil {
 		return soParticipantAdd{}, err

@@ -34,7 +34,7 @@ message Config {
   // If empty, uses the default version from autobun.
   string bun_version = 6;
   // StateDir is the directory for autobun state (downloaded bun binary).
-  // If empty, uses a default under the working directory.
+  // If empty, uses a default directory under the working directory.
   string state_dir = 7;
   // ScriptDir is the directory containing boot.ts and its dependencies.
   // If set, boot.ts is run from this directory (imports resolve via bun).

@@ -26,12 +26,13 @@ const (
 	// ExecutionState_UNKNOWN is the unknown type.
 	State_ExecutionState_UNKNOWN State = 0
 	// ExecutionState_PENDING is the state before the execution starts.
-	// Transitions to RUNNING when the assigned peer acks exec start.
+	// ExecutionState_PENDING transitions to RUNNING when the assigned peer acks
+	// exec start.
 	State_ExecutionState_PENDING State = 1
 	// ExecutionState_RUNNING is the state when the execution is running.
 	State_ExecutionState_RUNNING State = 2
 	// ExecutionState_COMPLETE is the terminal state of the execution.
-	// This includes both success and failure termination states.
+	// This state includes both success and failure termination states.
 	State_ExecutionState_COMPLETE State = 3
 	// ExecutionState_CANCELING is the state while the executor drains custody.
 	State_ExecutionState_CANCELING State = 4
@@ -76,11 +77,11 @@ type Execution struct {
 	// ExecutionState is the current state of the execution.
 	ExecutionState State `protobuf:"varint,1,opt,name=execution_state,json=executionState,proto3" json:"executionState,omitempty"`
 	// PeerId is the identifier of the peer assigned to the execution.
-	// Can be empty.
+	// PeerId can be empty.
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// Timestamp is the time the parent object (usually Pass) was created.
-	// Used as a reference timestamp to make all ops deterministic.
-	// Must be set & is not updated.
+	// Timestamp is used as a reference timestamp to make all ops deterministic.
+	// Timestamp must be set and is not updated.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// ValueSet is the set of inputs and outputs used in the execution.
 	// Outputs are updated while the execution is RUNNING or CANCELING.
@@ -90,12 +91,13 @@ type Execution struct {
 	// Result is information about the outcome of a completed execution.
 	Result *value.Result `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
 	// LogEntries contains log output from the execution.
-	// Appended while the execution is RUNNING or CANCELING.
+	// LogEntries are appended while the execution is RUNNING or CANCELING.
 	LogEntries []*LogEntry `protobuf:"bytes,7,rep,name=log_entries,json=logEntries,proto3" json:"logEntries,omitempty"`
 	// Claim identifies the controller instance authorized to run and write back.
 	Claim *Claim `protobuf:"bytes,8,opt,name=claim,proto3" json:"claim,omitempty"`
-	// Waiting names what blocks this Execution before its work starts, such as
-	// a plugin load or Worker capacity. It is unset once nothing blocks it.
+	// Waiting records what blocks this Execution before its work starts, such as
+	// a plugin load or Worker capacity. Waiting is unset once nothing blocks the
+	// Execution.
 	Waiting *target.Waiting `protobuf:"bytes,11,opt,name=waiting,proto3" json:"waiting,omitempty"`
 	// Placement is the immutable Worker and Device peer authorized for this Execution.
 	Placement *worker.Placement `protobuf:"bytes,10,opt,name=placement,proto3" json:"placement,omitempty"`
@@ -185,8 +187,9 @@ type Claim struct {
 	// Epoch is the monotonic fencing token for this claim.
 	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	// LeaseExpiresAt is when the claim stops being live unless its holder renews
-	// it. Once it has passed, a peer that observed the expiry may reclaim the
-	// Execution, which advances the epoch and fences the previous holder.
+	// the lease. Once LeaseExpiresAt has passed, a peer that observed the expiry
+	// may reclaim the Execution. Reclaiming advances the epoch and fences the
+	// previous holder.
 	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
 }
 
@@ -259,13 +262,13 @@ func (x *LogEntry) GetMessage() string {
 type Spec struct {
 	unknownFields []byte
 	// PeerId is the identifier of the peer assigned to the execution.
-	// Can be empty.
+	// PeerId can be empty.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// ValueSet is the set of inputs and outputs used in the execution.
 	// Specified output values are used as initial values, and can be overridden.
 	ValueSet *target.ValueSet `protobuf:"bytes,2,opt,name=value_set,json=valueSet,proto3" json:"valueSet,omitempty"`
 	// TargetRef is the target to run in the Execution.
-	// Overrides "target" field if set.
+	// TargetRef overrides the "target" field if set.
 	TargetRef *block.BlockRef `protobuf:"bytes,3,opt,name=target_ref,json=targetRef,proto3" json:"targetRef,omitempty"`
 }
 

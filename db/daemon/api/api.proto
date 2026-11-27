@@ -32,12 +32,12 @@ message ApplyBucketConfigRequest {
   .bucket.Config config = 1;
   // VolumeIdRe is a regex string to match volume IDs.
   // Set to '.*' to match all volumes.
-  // If empty, will update volumes that already have the config only.
+  // If empty, the server updates only volumes that already have the config.
 	// If VolumeIDList is set, it will override this field.
-	// Cannot be specified if VolumeIDList is set.
+	// VolumeIdRe cannot be specified if VolumeIDList is set.
   string volume_id_re = 2;
   // VolumeIdList is a list of volume IDs to match.
-	// Cannot be specified if VolumeIDRe is set.
+	// VolumeIdList cannot be specified if VolumeIDRe is set.
   repeated string volume_id_list = 3;
 }
 
@@ -62,29 +62,29 @@ message BucketOpRequest {
   .bucket.BucketOpArgs bucket_op_args = 2;
 
   // BlockRef is the block ref to lookup.
-  // Used when op == BLOCK_GET || op == BLOCK_RM
+  // BlockRef is used when op == BLOCK_GET || op == BLOCK_RM.
   .block.BlockRef block_ref = 3;
 
   // PutOpts are overriding put options.
   // Defaults are specified by the bucket.
-  // Used when op == BLOCK_PUT
+  // PutOpts are used when op == BLOCK_PUT.
   .block.PutOpts put_opts = 4;
   // Data is the data to put in the block.
-  // May be constrained by the bucket block size limit.
-  // Used when op == BLOCK_PUT
+  // Data may be constrained by the bucket block size limit.
+  // Data is used when op == BLOCK_PUT.
   bytes data = 5;
 }
 
 // BucketOpResponse is the response type for BucketOp.
 message BucketOpResponse {
   // Event is the bucket event, if any.
-  // Used when op == BLOCK_PUT
+  // Event is used when op == BLOCK_PUT.
   .bucket.event.Event event = 1;
   // Data is the returned data, if any.
-  // Used when op == BLOCK_GET
+  // Data is used when op == BLOCK_GET.
   bytes data = 2;
   // Found indicates if the data field is filled.
-  // Used when op == BLOCK_GET
+  // Found is used when op == BLOCK_GET.
   bool found = 3;
 }
 
@@ -111,21 +111,21 @@ message ObjectStoreOpRequest {
   // StoreName is the object store name.
   string store_name = 3;
   // Key is the key to get, put, or delete.
-  // Field is the prefix if a list request.
+  // The field is the prefix for a list request.
   string key = 4;
   // Data is the data to put.
-  // May be constrained by a size limit.
-  // Used when op == PUT_KEY
+  // Data may be constrained by a size limit.
+  // Data is used when op == PUT_KEY.
   bytes data = 5;
 }
 
 // ObjectStoreOpResponse is the response type for ObjectStoreOp.
 message ObjectStoreOpResponse {
   // Data is the returned data, if any.
-  // Used when op == BLOCK_GET
+  // Data is used when op == BLOCK_GET.
   bytes data = 1;
   // Found indicates if the data field is filled.
-  // Used when op == BLOCK_GET
+  // Found is used when op == BLOCK_GET.
   bool found = 2;
   // Keys are the output keys from the list call.
   repeated bytes keys = 3;

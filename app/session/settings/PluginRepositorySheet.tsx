@@ -138,12 +138,12 @@ function PluginItem({ plugin }: { plugin: Plugin }) {
   )
 }
 
-/** dependencySummary names the direct dependencies and counts the rest. */
+/** dependencySummary lists the direct dependencies and counts the rest. */
 function dependencySummary(direct: Dependency[], total: number): string {
   // A repository without packages installs nothing.
   if (total === 0) return 'None.'
 
-  // Name the direct dependencies, then count the packages they pull in.
+  // List the direct dependencies, then count the packages they pull in.
   const names = direct.map(({ name, version }) => `${name}@${version}`)
   const indirect = total - direct.length
   const pinned = `each pinned by its content hash`

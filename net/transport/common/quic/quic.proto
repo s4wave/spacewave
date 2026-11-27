@@ -2,14 +2,14 @@ syntax = "proto3";
 package transport.quic;
 
 message Opts {
-  // MaxIdleTimeoutDur is the duration of idle after which conn is closed.
+  // MaxIdleTimeoutDur is the duration of idle after which the conn is closed.
   //
-  // Defaults to 10s.
+  // MaxIdleTimeoutDur defaults to 10s.
   string max_idle_timeout_dur = 1;
 	// MaxIncomingStreams is the maximum number of concurrent bidirectional
 	// streams that a peer is allowed to open.
   //
-  // If unset or negative, defaults to 100000.
+  // If unset or negative, MaxIncomingStreams defaults to 100000.
   int32 max_incoming_streams = 2;
   // DisableKeepAlive disables the keep alive packets.
   //
@@ -17,7 +17,7 @@ message Opts {
   // KeepAliveDur is the duration between keep-alive pings.
   //
   // If disable_keep_alive is set, this value is ignored.
-  // If unset, sets keep-alive to half of MaxIdleTimeout.
+  // If unset, keep-alive defaults to half of MaxIdleTimeout.
   string keep_alive_dur = 7;
   // DisableDatagrams disables the unreliable datagrams feature.
   // Both peers must support it for it to be enabled, regardless of this flag.
@@ -25,7 +25,7 @@ message Opts {
   // DisablePathMtuDiscovery disables sending packets to discover max packet size.
   bool disable_path_mtu_discovery = 5;
   // Verbose indicates to use verbose logging.
-  // Note: this is VERY verbose, logs every packet sent.
+  // Note: verbose logging is VERY verbose and logs every packet sent.
   bool verbose = 6;
   // InitialPacketSize is the packet size used before path MTU discovery, and
   // the only size when discovery is disabled. Transports that carry each
@@ -33,7 +33,7 @@ message Opts {
   // largest size QUIC allows, which is 1452 bytes.
   //
   // Values above the largest size use the largest size.
-  // If unset, defaults to 1200, which fits every IP path including tunnels
-  // with a 1280 byte MTU.
+  // If unset, InitialPacketSize defaults to 1200, which fits every IP path
+  // including tunnels with a 1280 byte MTU.
   uint32 initial_packet_size = 8;
 }

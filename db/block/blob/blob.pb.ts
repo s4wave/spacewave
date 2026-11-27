@@ -195,13 +195,13 @@ export const ChunkerArgs: MessageType<ChunkerArgs> =
  */
 export interface RabinArgs {
   /**
-   * Rabin polynomial.
+   * Pol is the Rabin polynomial.
    * Optional.
    */
   pol?: bigint
   /**
    * RandomPol enables randomizing pol instead of using the default.
-   * This is not recommended.
+   * Randomizing pol is not recommended.
    * If pol != 0 this field is ignored.
    */
   randomPol?: boolean

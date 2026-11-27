@@ -9,7 +9,7 @@ import { useParams } from '@s4wave/web/router/router.js'
 const noop = () => {}
 
 // base is the wizard every fixture starts from: a two-step Git repository
-// wizard on its first step, named.
+// wizard on its first step, with a name.
 const base: WizardShellProps = {
   wizardKey: 'wizard/git-repo-1',
   icon: <LuGitBranch />,
@@ -58,7 +58,7 @@ const fixtures: Record<string, Partial<WizardShellProps>> = {
 
 // WizardShellDebug renders WizardShell in one fixture state, with the viewport
 // as its pane, for the viewer sweep. The route's state segment picks the
-// fixture; an unknown or missing one shows the named first step.
+// fixture. An unknown or missing one shows the named first step.
 export function WizardShellDebug() {
   const { state: name } = useParams()
   const fixture = fixtures[name ?? ''] ?? fixtures.name

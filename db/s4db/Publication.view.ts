@@ -6,7 +6,7 @@ type PublicationState = {
   released: number[]
 }
 
-// title names the publication and reuse boundary.
+// title describes the publication and reuse boundary.
 export const title = 'Publish a durable manifest before reusing old chunks'
 
 // state groups jobs by the boundary a crash or reader can observe.

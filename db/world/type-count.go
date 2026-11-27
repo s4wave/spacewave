@@ -12,7 +12,7 @@ import (
 // typePredicateValue is the graph value of the type predicate.
 var typePredicateValue = quad.IRI(TypePredicate).String()
 
-// TypeEdgeTypeID returns the type ID named by a quad with predicate pred and
+// TypeEdgeTypeID returns the type ID declared by a quad with predicate pred and
 // object obj, as graph values, when the quad is a type edge: the <type>
 // predicate to a types/<id> key. ok is false for any other quad.
 func TypeEdgeTypeID(pred, obj string) (typeID string, ok bool) {
@@ -30,7 +30,7 @@ func TypeEdgeTypeID(pred, obj string) (typeID string, ok bool) {
 
 // AddTypeCounts returns new counts holding counts plus deltas, sorted by type
 // ID, without the types whose count reaches zero. A count never goes below
-// zero. counts must be sorted by type ID; neither argument is changed.
+// zero. counts must be sorted by type ID. Neither argument is changed.
 func AddTypeCounts(counts []*TypeCount, deltas map[string]int64) []*TypeCount {
 	// Sum the deltas into a copy of the counts.
 	sums := make(map[string]int64, len(counts)+len(deltas))

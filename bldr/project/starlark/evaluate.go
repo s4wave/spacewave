@@ -31,9 +31,9 @@ type options struct {
 	vars map[string]string
 }
 
-// WithVars passes named inputs to the evaluation, which a project reads with
-// var(name, default). They are the only way the caller's state reaches the
-// project: evaluation never reads the process environment.
+// WithVars passes named inputs to the evaluation. A project reads the inputs
+// with var(name, default). The inputs are the only way the caller's state
+// reaches the project: evaluation never reads the process environment.
 func WithVars(vars map[string]string) Option {
 	return func(o *options) { o.vars = vars }
 }
@@ -41,7 +41,7 @@ func WithVars(vars map[string]string) Option {
 // lookupFunc returns the value of a named input and whether it was passed.
 type lookupFunc func(name string) (string, bool, error)
 
-// newOptions applies opts to the defaults.
+// newOptions applies opts to the default options.
 func newOptions(opts []Option) *options {
 	o := &options{}
 	for _, opt := range opts {
@@ -108,7 +108,7 @@ func Evaluate(path string, opts ...Option) (*Result, error) {
 // WithVars, and has no other effect.
 // LoadedFiles holds slash paths relative to the root of fsys. Cancelling ctx
 // stops the evaluation. The evaluation runs in this process with no memory
-// limit; use EvaluateFSBounded for a project that is not trusted.
+// limit. Use EvaluateFSBounded for a project that is not trusted.
 func EvaluateFS(ctx context.Context, fsys fs.FS, name string, opts ...Option) (*Result, error) {
 	return evaluate(ctx, func(name string) ([]byte, error) { return fs.ReadFile(fsys, name) }, newOptions(opts).lookup, name)
 }

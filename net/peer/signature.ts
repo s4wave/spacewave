@@ -14,7 +14,7 @@ const SIGN_SEP = ' - SIGN - '
 
 // verifySignature checks a peer signature over data under encContext and
 // returns the signer's peer ID, or null when the signature is invalid.
-// The signature must carry its public key; only Ed25519 keys are supported.
+// The signature must carry its public key. Only Ed25519 keys are supported.
 // The signed body matches Go peer.NewSignature: the context, the hash type and
 // the digest of data, joined by SIGN_SEP.
 export async function verifySignature(

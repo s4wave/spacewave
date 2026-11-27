@@ -5,12 +5,12 @@ import (
 	namedsbset "github.com/s4wave/spacewave/db/block/sbset"
 )
 
-// rootDbsSetContainer maps named ref slice to root dbs list.
+// dbRootTablesSetContainer maps the named ref slice to the root dbs list.
 type dbRootTablesSetContainer struct {
 	r *DatabaseRoot
 }
 
-// newDbRootTableSetContainer builds a new db root table set container
+// newDbRootTableSetContainer builds a new db root table set container.
 func newDbRootTableSetContainer(r *DatabaseRoot, bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 	if r == nil {
 		return nil

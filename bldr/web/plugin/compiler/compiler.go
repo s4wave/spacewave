@@ -36,7 +36,7 @@ import (
 // ControllerID is the controller ID.
 const ControllerID = "bldr/web/plugin/compiler"
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // SkipNativeWebRendererEnvVar disables native renderer bundling for web-server
@@ -152,25 +152,28 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// Do nothing if we are not targeting a supported platform.
+	// Do nothing if the compiler is not targeting a supported platform.
 	//
-	// TODO: how do we definitively know that the plugin host will run the web plugin?
+	// TODO: how can the compiler definitively determine that the plugin host
+	// will run the web plugin?
 	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); !ok {
 		c.GetLogger().Warnf("skipping build for non-go platform: %v", buildPlatform.GetInputPlatformID())
 		return nil, nil
 	}
 
-	// When targeting native/js/wasm or js we assume that we are on the web platform.
+	// When targeting native/js/wasm or js, the compiler assumes the target is
+	// the web platform.
 	//
-	// The web platform has the WebRuntime running on the plugin host. This is
-	// because the web browser is responsible for loading the app and as such
+	// The web platform has the WebRuntime running on the plugin host because
+	// the web browser is responsible for loading the app and as such
 	// the WebRuntime must already be running before starting plugins.
 	//
-	// Instead of bundling an entire Go program for the plugin in this case, we
-	// can instead include a small .mjs shim which will load the desired config
-	// sets to the host plugin bus via the WebRuntimeClient.
+	// Instead of bundling an entire Go program for the plugin in this case,
+	// the compiler can include a small .mjs shim that will load the desired
+	// config sets to the host plugin bus via the WebRuntimeClient.
 	//
-	// TODO: how do we definitively know that the plugin host will run the web plugin?
+	// TODO: how can the compiler definitively determine that the plugin host
+	// will run the web plugin?
 	if bldr_platform.IsWebPlatform(buildPlatform) {
 		return c.buildBrowserShimManifest(ctx, args)
 	}
@@ -473,7 +476,7 @@ func (c *Controller) BundleSaucerHook(
 
 	// Build web packages to generate the import map for the bootstrap HTML.
 	// The web pkgs are also built later by BuildDirectWebPkgs to the final
-	// assets directory; Vite caching makes the second build fast.
+	// assets directory. Vite caching makes the second build fast.
 	distSrcDir := builderConf.GetDistSourcePath()
 	sourcePath := builderConf.GetSourcePath()
 	webPkgWorkDir := filepath.Join(buildDir, "web-pkgs")
@@ -536,7 +539,7 @@ func (c *Controller) BundleSaucerHook(
 
 // buildBrowserShimManifest attempts to compile the web browser shim manifest once.
 //
-// TODO: replace the below code with a call to the js plugin compiler
+// TODO: replace the below code with a call to the js plugin compiler.
 func (c *Controller) buildBrowserShimManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,

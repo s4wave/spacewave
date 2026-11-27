@@ -15,9 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// A result is shaped like a Hyperline course result: an object with a body of
-// resultBodyBytes and three quads, to its type, the player it scores and the
-// host that ran it. The players and hosts are hubs of many incoming edges.
+// resultBodyBytes is the body size of a result shaped like a Hyperline course
+// result: an object with a body and three quads, to its type, the player it
+// scores and the host that ran it. The players and hosts are hubs of many
+// incoming edges.
 const (
 	resultBodyBytes = 512
 	resultPlayers   = 50_000
@@ -34,7 +35,7 @@ func resultKey(i int) string {
 	return fmt.Sprintf("%s%010d", resultPrefix, i)
 }
 
-// playerKey and hostKey name the hubs.
+// playerKey returns a player hub's key. hostKey returns a host hub's key.
 func playerKey(i int) string { return fmt.Sprintf("p/%05d", i) }
 func hostKey(i int) string   { return fmt.Sprintf("h/%02d", i) }
 
@@ -80,8 +81,8 @@ func writeHubs(ctx context.Context, ws world.WorldState) error {
 // way Hyperline writes course results: inside one World operation, holding the
 // quads of every result it creates for one graph index update. A result
 // written before is written again unchanged, so a commit a kill left
-// unacknowledged can be retried; its quads exist already, so it sets them one
-// at a time, which keeps them.
+// unacknowledged can be retried. The result's quads exist already, so
+// writeResults sets them one at a time, preserving them.
 func writeResults(ctx context.Context, ws world.WorldState, start, end int) error {
 	_, _, err := ws.ApplyWorldOp(ctx, &blockWorldOp{fn: func(ctx context.Context, bws *world_block.WorldState) error {
 		quads := make([]world.GraphQuad, 0, 3*(end-start))
@@ -146,7 +147,7 @@ type blockWorldOp struct {
 	fn func(ctx context.Context, ws *world_block.WorldState) error
 }
 
-// TypeID names the operation.
+// TypeID identifies the operation.
 func (*blockWorldOp) TypeID() string { return "spacewave-world-regen-bench/block" }
 
 // MarshalVT refuses: the operation is never encoded.

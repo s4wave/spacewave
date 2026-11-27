@@ -29,7 +29,7 @@ func (c *Config) Clone() *Config {
 	return c.CloneVT()
 }
 
-// Validate performs cursory validation of the config.
+// Validate checks the config cursorily.
 func (c *Config) Validate() error {
 	for i, s := range c.GetSteps() {
 		if err := s.Validate(); err != nil {

@@ -156,7 +156,7 @@ func (c *UnixConn) RemoteAddr() net.Addr {
 	return &net.UnixAddr{Name: c.path, Net: "unix"}
 }
 
-// SetDeadline is unsupported; Close ends a waiting read or write.
+// SetDeadline is unsupported. Close ends a waiting read or write.
 func (c *UnixConn) SetDeadline(time.Time) error {
 	return errNoDeadline
 }

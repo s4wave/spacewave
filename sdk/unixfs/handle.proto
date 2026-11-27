@@ -123,8 +123,8 @@ message HandleReadAtRequest {
   int64 offset = 1;
   // Length is the number of bytes to read. A positive length may be capped by
   // the resource response limit. A length <= 0 reads the remaining file only if
-  // it fits in one response; large callers should GetSize and issue chunked
-  // positive-length ReadAt calls.
+  // the remaining file fits in one response. Large callers should GetSize
+  // and issue chunked positive-length ReadAt calls.
   int64 length = 2;
 }
 
@@ -248,7 +248,7 @@ message HandleMknodRequest {
   MknodType node_type = 2;
   // Mode is the file mode/permissions.
   uint32 mode = 3;
-  // CheckExist if true, returns error if entry already exists.
+  // CheckExist, if true, returns an error if the entry already exists.
   bool check_exist = 4;
 }
 
@@ -336,9 +336,10 @@ message HandleUploadTreeDirectory {
   // Mode is the directory permissions.
   uint32 mode = 2;
   // ExpectMissing creates the directory only if the path holds nothing when
-  // the upload commits, checked in the commit's transaction; otherwise the
-  // upload ends in a conflict and nothing is committed. Unset, an existing
-  // directory at the path is reused and the entries under it merge into it.
+  // the upload commits, checked in the commit's transaction. Otherwise the
+  // upload ends in a conflict and nothing is committed. With ExpectMissing
+  // unset, an existing directory at the path is reused and the entries under
+  // the directory merge into the directory.
   bool expect_missing = 3;
 }
 
@@ -349,8 +350,8 @@ message HandleUploadTreeFileStart {
   // TotalSize is the total file size in bytes.
   int64 total_size = 2;
   // Mode is the permissions of a file the upload creates, zero for the
-  // default. A file the path already holds keeps its stored mode, so an
-  // upload never undoes another writer's chmod.
+  // default permissions. A file the path already holds keeps its stored mode,
+  // so an upload never undoes another writer's chmod.
   uint32 mode = 3;
   // Expect is what the path must hold when the upload commits, checked in
   // the commit's transaction against the root it applies to. With neither
@@ -417,8 +418,8 @@ message HandleUploadTreeFileVersion {
   bytes version = 2;
 }
 
-// HandleUploadTreeConflict names the first entry whose path did not hold what
-// the upload expected.
+// HandleUploadTreeConflict identifies the first entry whose path did not hold
+// what the upload expected.
 message HandleUploadTreeConflict {
   // Path is the entry's slash-separated path relative to the handle.
   string path = 1;
@@ -447,7 +448,7 @@ message HandleWatchFilesRequest {
   // ignores case.
   repeated string extensions = 1;
   // Limit bounds the number of matched paths, taken in path order. Zero
-  // selects the server default.
+  // selects the server default limit.
   uint32 limit = 2;
 }
 

@@ -26,16 +26,16 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the rpc volume server.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// cc is controller config
+	// cc is controller config.
 	cc *Config
-	// matchVolumeIdRe is the regexp to match volume ids
+	// matchVolumeIdRe is the regexp to match volume ids.
 	// if nil, match any
 	matchVolumeIdRe *regexp.Regexp
-	// mux is the srpc mux with the AccessVolumes service
+	// mux is the srpc mux with the AccessVolumes service.
 	mux srpc.Mux
 	// proxyVolumes is the list of proxy volume trackers.
 	proxyVolumes *keyed.KeyedRefCount[string, *proxyVolumeTracker]
@@ -150,7 +150,7 @@ func (c *Controller) WatchVolumeInfo(
 		}
 
 		if currProxyVol == nil {
-			// became not-found when previously found
+			// Report the previously found volume as not found.
 			err := strm.Send(&volume_rpc.WatchVolumeInfoResponse{
 				NotFound: true,
 			})
@@ -173,7 +173,7 @@ func (c *Controller) WatchVolumeInfo(
 	}
 }
 
-// VolumeRpc uses the LookupVolume directive access a Volume handle.
+// VolumeRpc uses the LookupVolume directive to access a Volume handle.
 // Exposes the ProxyVolume service.
 // Id: volume id
 func (c *Controller) VolumeRpc(strm volume_rpc.SRPCAccessVolumes_VolumeRpcStream) error {

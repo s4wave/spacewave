@@ -97,7 +97,8 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	return resp.Seqno, nil
 }
 
-// WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
+// WaitSeqno waits for the world state sequence number to reach or exceed the
+// specified value.
 // Returns the seqno when the condition is reached.
 // If seqno == 0, this might return immediately unconditionally.
 func (e *Engine) WaitSeqno(ctx context.Context, seqno uint64) (uint64, error) {
@@ -134,8 +135,8 @@ func (e *Engine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef) (u
 
 // WatchWorldState creates a streaming watch of the WorldState.
 // Returns a stream that sends a tracked snapshot resource ID whenever a tracked
-// access changes. Each replacement is sent before its predecessor is released;
-// see WatchWorldStateResponse for the supersession contract.
+// access changes. Each replacement is sent before its predecessor is released.
+// See WatchWorldStateResponse for the supersession contract.
 func (e *Engine) WatchWorldState(ctx context.Context) (SRPCWatchWorldStateResourceService_WatchWorldStateClient, error) {
 	return e.watchService.WatchWorldState(ctx, &WatchWorldStateRequest{})
 }

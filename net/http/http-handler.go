@@ -21,11 +21,11 @@ const httpHandlerResolveTimeout = 30 * time.Second
 
 // HTTPHandler implements a HTTP handler which deduplicates with a reference count.
 type HTTPHandler struct {
-	// handleCtr is the refcount handle to the UnixFS
+	// handleCtr is the refcount handle to the UnixFS.
 	handleCtr *ccontainer.CContainer[http.Handler]
-	// errCtr contains any error building FSHandle
+	// errCtr contains any error building FSHandle.
 	errCtr *ccontainer.CContainer[*error]
-	// rc is the refcount container
+	// rc is the refcount container.
 	rc *refcount.RefCount[http.Handler]
 }
 

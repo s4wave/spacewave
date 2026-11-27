@@ -20,9 +20,9 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller forwards RPC services to a remote plugin.
 type Controller struct {
 	*bifrost_rpc_access.ClientController
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 
@@ -32,7 +32,8 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
-	// note: checked in Validate()
+	// Validate() checks the service ID regex. Both parse errors are ignored
+	// here.
 	serviceIdRe, _ := conf.ParseServiceIdRe()
 	serverIdRe, _ := conf.ParseServerIdRe()
 	c := &Controller{

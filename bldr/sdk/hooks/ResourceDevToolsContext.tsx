@@ -87,7 +87,8 @@ function hasWatchDebugInfo(value: unknown): value is {
 }
 
 // ResourceDevToolsProvider provides resource tracking for DevTools.
-// Always renders the same element structure to avoid remounting children when enabled changes.
+// The provider always renders the same element structure to avoid remounting
+// children when enabled changes.
 export function ResourceDevToolsProvider({
   children,
   enabled = true,
@@ -120,7 +121,7 @@ function ResourceDevToolsProviderInner({
     return () => subscribersRef.current.delete(callback)
   }, [])
 
-  // Notify subscribers synchronously - they will then call getSnapshot
+  // Notify subscribers synchronously so the subscribers then call getSnapshot,
   // which will return the updated resourcesRef.current
   const notifySubscribers = useCallback(() => {
     subscribersRef.current.forEach((cb) => cb())
@@ -166,9 +167,9 @@ function ResourceDevToolsProviderInner({
       }
 
       const next = new Map(prev)
-      // Preserve existing state/resourceId/resourceType/debug info if re-registering
-      // This can happen when parentTrackingIds changes but the resource
-      // has already loaded
+      // Preserve existing state/resourceId/resourceType/debug info if
+      // re-registering. Re-registration can happen when parentTrackingIds
+      // changes but the resource has already loaded
       next.set(id, {
         id,
         resourceId: existing?.resourceId ?? null,
@@ -308,7 +309,8 @@ function ResourceDevToolsProviderInner({
   // getResources returns the current resources map.
   const getResources = useCallback(() => resourcesRef.current, [])
 
-  // Stable context value - does NOT include selectedId to avoid re-render cascade
+  // Keep the context value stable, excluding selectedId to avoid a re-render
+  // cascade.
   const contextValue = useMemo(
     () => ({
       register,
@@ -352,7 +354,8 @@ export function useResourceDevToolsContext() {
   return use(ResourceDevToolsContext)
 }
 
-// Empty map singleton for when devtools is not available
+// EMPTY_RESOURCES_MAP is the empty map singleton for when devtools is not
+// available.
 const EMPTY_RESOURCES_MAP = new Map<TrackingId, TrackedResource>()
 
 // useTrackedResources subscribes to resource changes and returns the current resources.

@@ -17,7 +17,7 @@ interface DocsLayoutProps {
   currentSlug?: string
   mobileTitle?: string
   // contentWidth selects the content column measure. 'reading' is the prose
-  // measure for article pages; 'wide' is the card-grid measure so hub and
+  // measure for article pages. 'wide' is the card-grid measure so hub and
   // section index pages fill a desktop viewport instead of stranding a gutter.
   contentWidth?: 'reading' | 'wide'
 }
@@ -103,7 +103,7 @@ export function DocsLayout({
       ref={setPortalContainer}
       className="bg-background-landing @container relative flex w-full flex-1 flex-col overflow-hidden"
     >
-      {/* Navigation drawer - narrow widths only */}
+      {/* Navigation drawer: narrow widths only */}
       <DocsMobileNav
         key={currentSlug ?? 'docs-root'}
         portalContainer={portalContainer}
@@ -112,7 +112,7 @@ export function DocsLayout({
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar - wide widths only */}
+        {/* Sidebar: wide widths only */}
         <aside className="hidden w-58 shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
           {sidebar}
         </aside>

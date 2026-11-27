@@ -60,7 +60,7 @@ export { CanvasTypeID }
 const graphLinkLookupLimit = 100
 
 // canvasWatchOptions reopens the state watch after a failure and keeps the
-// last canvas while it backs off.
+// last canvas while the watch backs off.
 const canvasWatchOptions = { reconnect: true }
 
 function isAbortError(err: unknown): boolean {
@@ -256,9 +256,10 @@ export function CanvasViewer({
 
   // Watch canvas state via streaming RPC. The watch reports the handle's
   // failure as its own, with the handle's Retry, so the viewer reads one
-  // failure from it. After a canvas the watch reconnects on a failure,
-  // keeping the canvas drawn while it backs off; past the backoff it fails
-  // and the canvas stays drawn from its last value under the failure.
+  // failure from the watch. After a canvas arrives, the watch reconnects on a
+  // failure, keeping the canvas drawn while the watch backs off. Past the
+  // backoff the watch fails, and the canvas stays drawn from the watch's last
+  // value under the failure.
   // CanvasViewer.tla holds these states.
   const canvasStateResource = useStreamingResource(
     canvasResource,

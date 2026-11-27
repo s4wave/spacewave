@@ -27,28 +27,30 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "os/image/build"
 
-// InputBoot names the input whose init file becomes the image's workload.
+// InputBoot identifies the input whose init file becomes the image's workload.
 const InputBoot = "boot"
 
-// InputBusybox names the input whose busybox file supplies the image's tools.
+// InputBusybox identifies the input whose busybox file supplies the image's
+// tools.
 const InputBusybox = "busybox"
 
-// OutputSystem names the output holding the image's UnixFS tree in the Space.
+// OutputSystem identifies the output holding the image's UnixFS tree in the
+// Space.
 const OutputSystem = "system"
 
-// OutputImage names the output holding the image store, a tree with
+// OutputImage identifies the output holding the image store, a tree with
 // image.s4wave.
 const OutputImage = "image"
 
 // Controller builds one image from its inputs.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the boot and busybox inputs.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -73,7 +75,7 @@ func (c *Controller) InitForgeExecController(
 }
 
 // Execute writes the image tree into the Space under the World's transform,
-// exports its blocks into an image store naming it as the built image, and
+// exports its blocks into an image store recording it as the built image, and
 // outputs both. The store is a second copy of the tree's blocks, kept until
 // the rehearsal and install read the tree from the Space.
 func (c *Controller) Execute(ctx context.Context) error {

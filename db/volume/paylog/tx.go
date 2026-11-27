@@ -93,7 +93,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 }
 
 // CommitOrdered commits with write ordering only, unless a block put waits
-// for publication, which needs a durable commit.
+// for publication. Publishing a block put needs a durable commit.
 func (t *Tx) CommitOrdered(ctx context.Context) error {
 	return t.commit(ctx, true)
 }

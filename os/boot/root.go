@@ -65,7 +65,7 @@ func NewRoot(ctx context.Context, le *logrus.Entry, executable io.Reader) (_ *Ro
 // serveImage serves image from store read-only. Root.Close calls closeStorage
 // once fs releases, and serveImage calls it on failure.
 func serveImage(ctx context.Context, le *logrus.Entry, store bucket.BucketOps, image *bucket.ObjectRef, closeStorage func() error, tools bool) (_ *Root, retErr error) {
-	// Keep the tree's lifetime apart from request cancellation; each FUSE
+	// Keep the tree's lifetime apart from request cancellation. Each FUSE
 	// operation still receives its own request context.
 	ctx = context.WithoutCancel(ctx)
 	r := &Root{closeStorage: closeStorage, tools: tools}

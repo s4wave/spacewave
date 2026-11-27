@@ -13,7 +13,7 @@ import (
 //
 // Use hidalgo/kv/flat.Upgrade if [][]byte keys are needed.
 type KV struct {
-	// store is the KVTx store
+	// store is the KVTx store.
 	store kvtx.Store
 }
 
@@ -49,8 +49,8 @@ func (k *KV) Update(ctx context.Context, fn func(tx kv.Tx) error) error {
 }
 
 // Close closes the store.
-// NOTE: we return nil here and do nothing!
-// We may re-use the same kvtx.Store for multiple KV handles.
+// NOTE: Close returns nil here and does nothing!
+// Multiple KV handles may re-use the same kvtx.Store.
 func (k *KV) Close() error {
 	return nil
 }

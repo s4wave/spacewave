@@ -13,9 +13,10 @@ import {
 } from './registry.pb.js'
 
 // ViewerRegistry is a resource that provides viewer registration for plugins.
-// Plugins register viewers via registerViewer and watch for changes via watchViewers.
+// Plugins register viewers via registerViewer and watch for changes via
+// watchViewers.
 export class ViewerRegistry extends Resource {
-  // service is the viewer registry resource service
+  // service is the viewer registry resource service.
   private service: ViewerRegistryResourceService
 
   constructor(resourceRef: ClientResourceRef) {

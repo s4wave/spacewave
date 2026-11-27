@@ -33,7 +33,7 @@ func LoadValue[T any](
 	value *forge_value.Value,
 	ctor func() T,
 ) (T, error) {
-	// Return the requested default when the msgpack value is empty.
+	// Return the requested default value when the msgpack value is empty.
 	if value.IsEmpty() {
 		if ctor == nil {
 			var empty T

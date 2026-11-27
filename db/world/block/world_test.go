@@ -29,7 +29,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestWorldEngine performs a simple test of operations against world engine.
+// TestWorldEngine performs a simple test of operations against the world
+// engine.
 func TestWorldEngine(t *testing.T) {
 	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
@@ -407,7 +408,8 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		}
 	}
 
-	// Retain the object used to check that a relationship leaves its revision.
+	// Retain the object used to check that a relationship leaves its revision
+	// unchanged.
 	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
 	retained, err := world.MustGetObject(ctx, ws, "explicit/a")
 	if err != nil {
@@ -771,7 +773,7 @@ func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
 	}
 }
 
-// TestWorldState_DeleteObject tests the DeleteObject functionality
+// TestWorldState_DeleteObject tests the DeleteObject functionality.
 func TestWorldState_DeleteObject(t *testing.T) {
 	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
@@ -1090,7 +1092,7 @@ func TestWorldState_ReadGraphHandleRefusesWrites(t *testing.T) {
 				t.Errorf("read handle field %s is reachable", hv.Type().Field(i).Name)
 			}
 		}
-		// Closing the borrowed handle leaves the lender's open.
+		// Closing the borrowed handle leaves the lender's handle open.
 		if err := h.Close(); err != nil {
 			t.Errorf("Close on a read handle: %v", err)
 		}
@@ -1325,7 +1327,9 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 
 // TestWorldEngine_Fork tests forking the block-backed world state.
 //
-// Applies the result to the original WorldState & checks.
+// It applies an operation to the fork, checks that the original keeps the
+// object at revision 1, then commits the fork and checks that the state
+// reopened from the forked root has the object at revision 2.
 func TestWorldEngine_Fork(t *testing.T) {
 	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
@@ -1594,7 +1598,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	t.Log("tests successful")
 }
 
-// TestWorldState_Basic performs a simple test of operations against world.
+// TestWorldState_Basic performs a simple test of operations against the world.
 func TestWorldState_Basic(t *testing.T) {
 	// Prepare the context and logger for the block World test.
 	ctx := context.Background()
@@ -1913,7 +1917,7 @@ var preNodeGraphImpls = []kvtx_block.KVImplType{
 // whose format field and tree tags disagree.
 //
 // The older build ignores the format field. Its load opens only the object
-// tree; had only the graph tree been tagged, it could commit an object-only
+// tree. Had only the graph tree been tagged, it could commit an object-only
 // write whose root no longer records the graph tree's blocks.
 func TestNodeGraphWorldRefusesOldReader(t *testing.T) {
 	// Open an empty storage cursor and write a node graph World root.
@@ -1955,7 +1959,7 @@ func TestNodeGraphWorldRefusesOldReader(t *testing.T) {
 
 	// Load the committed root as the older build does: decode it, ignore the
 	// format field, and open the object tree from storage. Its tag is outside
-	// the older build's set, so that load fails before any read or write; the
+	// the older build's set, so that load fails before any read or write. The
 	// graph tree's tag is outside it too.
 	_, bcs = ocs.BuildTransaction(nil)
 	root, err := world_block.UnmarshalWorld(ctx, bcs)

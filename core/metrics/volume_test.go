@@ -68,7 +68,7 @@ type flowVolume struct {
 	heldVolume
 }
 
-// GetFlows returns one write path's flow and one key family's.
+// GetFlows returns one write path's flow and one key family's flow.
 func (v *flowVolume) GetFlows() *volume.VolumeFlows {
 	return &volume.VolumeFlows{
 		VolumeID: "test/held",

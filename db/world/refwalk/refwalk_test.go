@@ -137,7 +137,7 @@ func TestPayloadNodeBlob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The root is certain and names every chunk.
+	// The root is certain and references every chunk.
 	if len(visits) == 0 || visits[0].Node.Ref.MarshalString() != ref.MarshalString() {
 		t.Fatal("walk did not visit the payload root first")
 	}
@@ -199,7 +199,8 @@ func TestPayloadNodeBlob(t *testing.T) {
 		"jc args":      edit(func(index *blob.ChunkIndex) { index.ChunkerArgs = &blob.ChunkerArgs{JcArgs: jc} }),
 	}
 
-	// Each still names every chunk as a blob, and the walk trusts none.
+	// Each still references every chunk as a blob, and the walk trusts
+	// none.
 	for name, data := range foreign {
 		guessed := &blob.Blob{}
 		if err := guessed.UnmarshalVT(data); err != nil || guessed.Validate() != nil || len(guessed.GetChunkIndex().GetChunks()) != len(chunks) {

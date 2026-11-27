@@ -13,8 +13,8 @@ import (
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 )
 
-// ErrNoPeerAuthorizer refuses remote peers when the transport's owner supplied
-// no rule for admitting them.
+// ErrNoPeerAuthorizer reports that remote peers are refused when the
+// transport's owner supplied no rule for admitting them.
 var ErrNoPeerAuthorizer = errors.New("session transport has no peer authorizer")
 
 // PeerAuthorizationWatch runs until ctx ends and calls changed after each
@@ -43,9 +43,9 @@ func WithPeerAuthorizationWatch(watch PeerAuthorizationWatch) SessionTransportOp
 	}
 }
 
-// WithLinkAuthorizer supplies a rule that admits to the links of a listener
-// started without NamedOnly the peers the peer authorizer refuses, such as the
-// members of the Spaces the owner serves. It grants no service authority:
+// WithLinkAuthorizer supplies a rule that admits peers the peer authorizer
+// refuses, such as the members of the Spaces the owner serves, to the links of
+// a listener started without NamedOnly. The rule grants no service authority:
 // ServeAuthorized and AdmitStream still apply only the peer authorizer.
 func WithLinkAuthorizer(authorize transport_controller.PeerAuthorizer) SessionTransportOption {
 	return func(t *SessionTransport) {
@@ -154,7 +154,7 @@ type authorizedStreamHandler struct {
 	t *SessionTransport
 	// next handles admitted streams.
 	next link.MountedStreamHandler
-	// refuse reports refusals to the remote peer; nil closes without a report.
+	// refuse reports refusals to the remote peer. Nil closes without a report.
 	refuse StreamRefuser
 }
 

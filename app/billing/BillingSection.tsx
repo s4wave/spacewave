@@ -18,7 +18,7 @@ export interface BillingSectionProps {
 }
 
 // BillingSection shows a collapsible billing section with personal and org
-// billing account cards. Cloud-only.
+// billing account cards. The section is Cloud-only.
 export function BillingSection({
   isLocal,
   open,

@@ -34,7 +34,7 @@ func TestPluginExecFailsWhenResourceServiceIsSilent(t *testing.T) {
 	}, bound))
 	tb, peerID := setupIntegrationTest(t, registry)
 
-	// Create an Execution that attaches the World, which opens the Resource client.
+	// Create an Execution that opens the Resource client to attach the World.
 	conf := &PluginExecConfig{PluginId: "silent-plugin", ControllerId: "example-controller", AttachWorld: true}
 	configData, err := conf.MarshalVT()
 	if err != nil {

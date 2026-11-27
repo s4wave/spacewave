@@ -247,7 +247,7 @@ export interface CanvasLayoutMetadata {
    */
   group?: string
   /**
-   * ProjectionOwner names the writer that owns this visual projection.
+   * ProjectionOwner identifies the writer that owns this visual projection.
    */
   projectionOwner?: string
 }

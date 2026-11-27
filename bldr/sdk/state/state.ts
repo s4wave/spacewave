@@ -12,7 +12,7 @@ import {
 
 // StateAtom provides access to a persisted state atom.
 export class StateAtom extends Resource {
-  // service is the state atom resource service
+  // service is the state atom resource service.
   private service: StateAtomResourceService
 
   constructor(resourceRef: ClientResourceRef) {

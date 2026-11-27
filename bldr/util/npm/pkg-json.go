@@ -6,9 +6,11 @@ import (
 	"github.com/aperturerobotics/fastjson"
 )
 
-// LoadPackageVersion loads the version of the given package from a specified package.json file.
-// Returns the version if successful, otherwise an empty string and the error if any.
-// If not found, returns "", nil
+// LoadPackageVersion loads the version of the given package from a specified
+// package.json file.
+// Returns the version if successful, otherwise an empty string and the error
+// if any.
+// If not found, returns "", nil.
 func LoadPackageVersion(filePath, packageName string) (string, error) {
 	// Read package.json, treating an absent manifest as an absent dependency.
 	fileContent, err := os.ReadFile(filePath)

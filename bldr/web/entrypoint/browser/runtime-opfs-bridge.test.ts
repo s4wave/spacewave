@@ -17,9 +17,9 @@ function installedClient(): OpfsBridgeClient | undefined {
 
 // installControllableLocks replaces navigator.locks so a tracked WebDocument
 // lock stays held until the test releases it, matching a live document that
-// holds its liveness lock while alive. Without this the real Web Lock would be
-// granted immediately and the bridge would treat every document as already
-// gone.
+// holds its liveness lock while alive. Without these controlled locks, the
+// real Web Lock would be granted immediately and the bridge would treat every
+// document as already gone.
 function installControllableLocks(): { release(name: string): void } {
   const releasers = new Map<string, () => void>()
   vi.stubGlobal('navigator', {
@@ -50,8 +50,8 @@ type FakeDocMode = 'ok' | 'error' | 'silent'
 
 // FakeWebDocument plays the WebDocument end of a broker port. In 'ok' mode it
 // answers each openOpfsWorker request with an openOpfsWorkerAck carrying a fresh
-// bridge MessagePort; in 'error' mode it answers with an error ack and no port,
-// modeling a live document whose OPFS worker cannot start; in 'silent' mode it
+// bridge MessagePort. In 'error' mode it answers with an error ack and no port,
+// modeling a live document whose OPFS worker cannot start. In 'silent' mode it
 // never replies, modeling a request still in flight. It counts requests so a
 // test can prove which document served a (re-)host.
 class FakeWebDocument {

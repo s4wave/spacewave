@@ -72,7 +72,8 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 		}
 	}
 
-	// Mount the existing World interface; UnixFS owns traversal and file updates.
+	// Mount the existing World interface.
+	// UnixFS owns traversal and file updates.
 	ctx := c.Context
 	engine, release, resolvedSpaceID, err := mountSpaceWorldEngine(ctx, c, a.statePath, uint(uri.sessionIdx), uri.spaceID)
 	if err != nil {
@@ -125,7 +126,8 @@ func syncFsDir(ctx context.Context, ws world.WorldState, uri fsURI, localPath st
 	}
 	defer root.Release()
 
-	// Resolve the requested directory below the root; it must already exist.
+	// Resolve the requested directory below the root.
+	// The directory must already exist.
 	handle := root
 	if uri.path != "" {
 		handle, _, err = root.LookupPath(ctx, uri.path)

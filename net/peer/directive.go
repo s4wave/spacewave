@@ -9,7 +9,7 @@ type GetPeer interface {
 	// Directive indicates GetPeer is a directive.
 	directive.Directive
 
-	// GetPeerIDConstraint returns a specific peer ID node we are looking for.
+	// GetPeerIDConstraint returns the specific peer ID node to look for.
 	// If empty, any node is matched.
 	GetPeerIDConstraint() ID
 }
@@ -27,14 +27,14 @@ func NewGetPeer(peerID ID) GetPeer {
 	return &getPeer{peerIDConstraint: peerID}
 }
 
-// GetPeerIDConstraint returns a specific peer ID node we are looking for.
+// GetPeerIDConstraint returns the specific peer ID node to look for.
 // If empty, any node is matched.
 func (d *getPeer) GetPeerIDConstraint() ID {
 	return d.peerIDConstraint
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// Validate does a cursory check to see if the values "look correct."
 func (d *getPeer) Validate() error {
 	return nil
 }
@@ -63,14 +63,15 @@ func (d *getPeer) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *getPeer) GetName() string {
 	return "GetPeer"
 }
 
 // GetDebugVals returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug values should be something like param1="test", param2="test".
+// The debug values are not necessarily unique, and are primarily intended
+// for display.
 func (d *getPeer) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if pid := d.GetPeerIDConstraint(); pid != ID("") {
@@ -79,8 +80,8 @@ func (d *getPeer) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ GetPeer = (*getPeer)(nil)
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ directive.Debuggable = (*getPeer)(nil)

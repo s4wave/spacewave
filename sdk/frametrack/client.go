@@ -33,7 +33,7 @@ type Client struct {
 	ws world.WorldState
 	// sessionPeer is the local Session identity of the viewer.
 	sessionPeer peer.ID
-	// deviceKey names the Device object serving the track.
+	// deviceKey references the Device object serving the track.
 	deviceKey string
 	// capabilityID selects the capability on the Device.
 	capabilityID string
@@ -63,7 +63,7 @@ func (c *Client) Play(
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	// Read the Device and find the protocol its capability serves today.
+	// Read the Device and find the protocol its capability serves.
 	devicePeer, protocolID, err := c.resolveLink(ctx)
 	if err != nil {
 		return err

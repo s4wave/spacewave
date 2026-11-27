@@ -192,7 +192,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 
 // TestSetBucketRootsRefusesDuplicateName moves 3 and 30,000 roots in one
 // change, with one name repeated at the first, middle or last position. Each
-// change is refused whole with the duplicate's error and lands no root; the
+// change is refused whole with the duplicate's error and lands no root. The
 // same roots without the duplicate all land.
 func TestSetBucketRootsRefusesDuplicateName(t *testing.T) {
 	// Every root holds one leaf block, carried by each change.
@@ -224,7 +224,8 @@ func TestSetBucketRootsRefusesDuplicateName(t *testing.T) {
 
 	for _, n := range []int{3, 30000} {
 		for _, pos := range []int{1, n / 2, n - 1} {
-			// Repeat the first root's name at pos; the change is refused.
+			// Repeat the first root's name at pos, so the change is
+			// refused.
 			prefix := "dup-" + strconv.Itoa(n) + "-" + strconv.Itoa(pos) + "/"
 			change := roots(prefix, n)
 			change[pos].Name = change[0].Name

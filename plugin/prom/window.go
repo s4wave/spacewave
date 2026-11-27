@@ -18,10 +18,11 @@ const ChunkSamples = 120
 //
 // A window holds only samples that are not yet committed, so the bytes a
 // commit writes follow the window, not the history of the series. A Window is
-// not safe for concurrent use; the Store that owns it serializes access.
+// not safe for concurrent use. The Store that owns it serializes access.
 type Window struct {
 	// firstSeries is the series number of the first series the window
-	// introduced; the window's series table entries run from it to the table end.
+	// introduced. The window's series table entries run from it to the table
+	// end.
 	firstSeries uint64
 	// series holds the window's samples by series number.
 	series map[uint64]*windowSeries
@@ -35,7 +36,7 @@ type Window struct {
 
 // windowSeries is one series' samples within a window.
 type windowSeries struct {
-	// chunks are the series' chunks in time order; the last one is open.
+	// chunks are the series' chunks in time order. The last one is open.
 	chunks []*windowChunk
 	// lastTime is the timestamp of the series' latest sample.
 	lastTime int64
@@ -92,7 +93,8 @@ func (w *Window) Append(num uint64, t int64, v float64) error {
 		return nil
 	}
 
-	// Open the series, or cut its chunk once it holds ChunkSamples samples.
+	// Open the series, or cut its chunk once the chunk holds ChunkSamples
+	// samples.
 	if s == nil {
 		s = &windowSeries{}
 		w.series[num] = s

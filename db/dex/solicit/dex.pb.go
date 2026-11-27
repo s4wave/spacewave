@@ -82,7 +82,7 @@ type DexMessage struct {
 	// More marks a response that further responses to the same request follow
 	// (response only).
 	More bool `protobuf:"varint,15,opt,name=more,proto3" json:"more,omitempty"`
-	// Prune names, in refs, blocks under a subtree request's ref that its
+	// Prune lists, in refs, blocks under a subtree request's ref that its
 	// requester holds, so the responder walks none of them (prune only).
 	Prune bool `protobuf:"varint,16,opt,name=prune,proto3" json:"prune,omitempty"`
 }

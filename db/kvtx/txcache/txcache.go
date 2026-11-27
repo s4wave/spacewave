@@ -26,17 +26,17 @@ type TXCache struct {
 	remove     *btree.BTreeG[*cacheItem]
 }
 
-// NewTXCache implements the transaction cache in-memory.
+// cacheItem represents an item in the cache.
 //
-// if sortScan is set, ScanPrefix results will be sorted (costs memory)
-// cacheItem represents an item in the cache
+// NewTXCache implements the transaction cache in-memory.
+// if sortScan is set, ScanPrefix results will be sorted (costs memory).
 type cacheItem struct {
 	key []byte
 	val []byte
 }
 
-// cacheItemLess implements the less function for cacheItem comparison
-// may be called with nil if we pass nil for the pivot
+// cacheItemLess implements the less function for cacheItem comparison.
+// may be called with nil if the caller passes nil for the pivot.
 func cacheItemLess(a, b *cacheItem) bool {
 	var aKey, bKey []byte
 	if a != nil {
@@ -48,7 +48,7 @@ func cacheItemLess(a, b *cacheItem) bool {
 	return bytes.Compare(aKey, bKey) < 0
 }
 
-// Less implements btree.Item interface
+// Less implements btree.Item interface.
 func (c *cacheItem) Less(than *cacheItem) bool {
 	return cacheItemLess(c, than)
 }
@@ -62,14 +62,14 @@ func NewTXCache(underlying kvtx.TxOps, sortScan bool) *TXCache {
 	}
 }
 
-// checkWasRemoved checks if the key was removed
+// checkWasRemoved checks if the key was removed.
 func checkWasRemoved(tree *btree.BTreeG[*cacheItem], key []byte) bool {
 	searchItem := &cacheItem{key: key}
 	_, ok := tree.Get(searchItem)
 	return ok
 }
 
-// checkWasAdded checks if the key was added
+// checkWasAdded checks if the key was added.
 func checkWasAdded(tree *btree.BTreeG[*cacheItem], key []byte) ([]byte, bool) {
 	searchItem := &cacheItem{key: key}
 	item, ok := tree.Get(searchItem)
@@ -205,7 +205,7 @@ func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The value will not be committed until Commit is called.
 func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
 	// Require a nonempty transaction key before buffering a write.
 	if len(key) == 0 {
@@ -225,7 +225,7 @@ func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The deletion will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TXCache) Delete(ctx context.Context, key []byte) error {
 	// Require a nonempty transaction key before buffering a delete.

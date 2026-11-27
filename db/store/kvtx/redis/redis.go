@@ -99,7 +99,8 @@ func (c *ClientConfig) Connect(ctx context.Context, opts ...redis.DialOption) (*
 	return Connect(ctx, c.GetUrl(), opts...)
 }
 
-// ConnectWithClientName connects to the redis store using the config and names clients.
+// ConnectWithClientName connects to the redis store using the config and
+// names clients.
 func (c *ClientConfig) ConnectWithClientName(
 	ctx context.Context,
 	clientName string,
@@ -108,7 +109,7 @@ func (c *ClientConfig) ConnectWithClientName(
 	return ConnectWithClientName(ctx, c.GetUrl(), clientName, opts...)
 }
 
-// Validate validates the client config
+// Validate validates the client config.
 func (c *ClientConfig) Validate() error {
 	// Require a Redis URL before parsing the client configuration.
 	rawurl := c.GetUrl()
@@ -152,7 +153,7 @@ func (s *Store) GetPool() *redis.Pool {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// Always call Discard() after the caller is done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	conn, err := s.buildConn(s.ctx, false)
 	if err != nil {
@@ -177,8 +178,8 @@ func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 	}
 
 	// Begin a Redis transaction for a write connection.
-	// Note: redigo is smart, and automatically cancels the MULTI if the transaction fails.
-	// it may be possible to send multi and defer reading the reply.
+	// Note: redigo automatically cancels the MULTI if the transaction
+	// fails. Sending multi and deferring the reply read may be possible.
 	if write {
 		if _, err := conn.Do("MULTI"); err != nil {
 			_ = conn.Close()

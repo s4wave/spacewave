@@ -2,7 +2,7 @@ syntax = "proto3";
 package bldr.web.bundler.rolldown;
 option go_package = "github.com/s4wave/spacewave/bldr/web/bundler/rolldown";
 
-// Entrypoint names one source file to bundle.
+// Entrypoint selects one source file to bundle.
 message Entrypoint {
   string name = 1;
   // InputPath is an absolute source file path.
@@ -14,7 +14,7 @@ message GoScriptPolicy {
   // OutputRoot is the root used for shared GoScript imports.
   string output_root = 1;
   bool shared_external_imports = 2;
-  // SharedImportURLPrefix is prepended to shared external import URLs.
+  // SharedImportUrlPrefix is prepended to shared external import URLs.
   string shared_import_url_prefix = 3;
 }
 
@@ -62,9 +62,9 @@ message BuildRequest {
   map<string, string> source_overrides = 27;
   // PrefixAliases map import-specifier prefixes to absolute source directories.
   map<string, string> prefix_aliases = 28;
-  // GlobalName names the object that receives exports from an IIFE build.
+  // GlobalName identifies the object that receives exports from an IIFE build.
   string global_name = 29;
-  // RouteCssImports reports CSS-bearing graphs without attempting to bundle CSS.
+  // RouteCssImports reports CSS-bearing graphs without trying to bundle CSS.
   bool route_css_imports = 30;
 }
 

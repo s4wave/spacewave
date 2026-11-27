@@ -5,7 +5,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// NewSigner constructs a new signer from a private key
+// NewSigner constructs a new signer from a private key.
 func NewSigner(privKey crypto.PrivKey) (ssh.Signer, error) {
 	cryptoPriv, err := crypto.PrivKeyToStdKey(privKey)
 	if err != nil {

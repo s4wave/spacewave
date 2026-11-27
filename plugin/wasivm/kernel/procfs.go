@@ -22,7 +22,7 @@ const memTotal = 2 << 30
 const pageSize = 4096
 
 // newProcFS creates the root of a proc filesystem: a directory for each
-// process, self naming the calling process's directory, and files that
+// process, self linking to the calling process's directory, and files that
 // describe the system.
 func (k *Kernel) newProcFS() *VNode {
 	// Add the system files.
@@ -64,7 +64,7 @@ func (k *Kernel) listProcs(dir *VNode) {
 		}
 	}
 
-	// Add the new ones.
+	// Add the new process directories.
 	for _, p := range k.procs.filter(nil) {
 		name := strconv.Itoa(p.pid)
 		if dir.children[name] == nil {
@@ -75,9 +75,9 @@ func (k *Kernel) listProcs(dir *VNode) {
 }
 
 // newProcDir creates the /proc directory of the process pid. Its files show
-// the process holding pid when they open, which exec can replace. Its task
-// directory lists the process's one thread, whose ID is pid, with the same
-// files, as Linux lists each thread of a process.
+// the process holding pid when the files open. An exec can replace that
+// process. Its task directory lists the process's one thread, whose ID is
+// pid, with the same files, as Linux lists each thread of a process.
 func (k *Kernel) newProcDir(pid int) *VNode {
 	// Fill the process directory.
 	v := k.vfs

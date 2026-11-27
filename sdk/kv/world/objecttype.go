@@ -36,7 +36,7 @@ func KvStoreFactory(
 		return nil, nil, err
 	}
 
-	// Open the store; it stages its writes until it publishes them.
+	// Open the store. The store stages its writes until it publishes them.
 	store, err := NewWorldBackedStore(ctx, le, ws, objectKey)
 	if err != nil {
 		return nil, nil, err

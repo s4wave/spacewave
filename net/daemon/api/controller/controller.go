@@ -19,13 +19,13 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller implements the API controller. The controller looks up the Node,
 // acquires its identity, listens and responds to incoming API calls.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// listenAddr is the listen address
+	// listenAddr is the listen address.
 	listenAddr string
-	// conf is the config
+	// conf is the config.
 	conf *Config
 }
 
@@ -65,7 +65,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	mux := srpc.NewMux()
 	api.RegisterAsSRPCServer(mux)
 
-	// controllerbus api
+	// Register the controllerbus API.
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
 		_ = bapi.RegisterAsSRPCServer(mux)

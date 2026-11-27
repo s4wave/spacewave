@@ -53,7 +53,7 @@ const entityTypeLabels: Record<string, string> = {
 }
 
 // ForgeDashboardViewer displays a Forge Dashboard unified control panel.
-// Uses client-side data access: useForgeBlockData for the dashboard block,
+// It uses client-side data access: useForgeBlockData for the dashboard block,
 // lookupGraphQuads for linked entities, SpaceContents for process bindings.
 export function ForgeDashboardViewer({
   objectInfo,
@@ -75,8 +75,8 @@ export function ForgeDashboardViewer({
     entities,
     entries: activityEntries,
   } = useForgeDashboardWork(worldState, objectKey, dashboard)
-  // Until the first read of the linked work lands, its failure is the
-  // dashboard's; after it, the rows stay and the watch reopens.
+  // Until the first read of the linked work succeeds, a read failure is the
+  // dashboard's failure. After that read, the rows stay and the watch reopens.
   const entitiesLoading = !resourceContent(members)
   const activityLoading = entitiesLoading
   const worldError =

@@ -36,7 +36,7 @@ func IsSocketInUse(err error) bool {
 // TakeoverSocket ensures that the Unix socket at sockPath is free to be
 // bound by requesting a live daemon to yield it or removing a stale file.
 // handedOff reports that a live daemon acknowledged the request and released
-// the socket; its runtime may still be releasing its other resources. A peer
+// the socket. Its runtime may still be releasing its other resources. A peer
 // that disconnects without acknowledging reports no handoff.
 func TakeoverSocket(
 	ctx context.Context,
@@ -47,7 +47,7 @@ func TakeoverSocket(
 }
 
 // EnsureSocketAvailable verifies that the Unix socket at sockPath is free to
-// be bound. A live listener is an error; a stale socket file is removed.
+// be bound. A live listener is an error. A stale socket file is removed.
 func EnsureSocketAvailable(ctx context.Context, le *logrus.Entry, sockPath string) error {
 	_, err := prepareSocket(ctx, le, sockPath, false)
 	return err
@@ -88,8 +88,8 @@ func prepareSocket(
 	// Connect to the daemon or reclaim a socket whose listener is gone.
 	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
 	if err != nil {
-		// Only a refused connection proves a stale socket; permission and other
-		// transport errors leave the existing path untouched.
+		// Only a refused connection proves a stale socket. Permission
+		// and other transport errors leave the existing path untouched.
 		if !NoListener(err) {
 			return false, errors.Wrap(err, "connect to daemon socket")
 		}
@@ -114,8 +114,9 @@ func prepareSocket(
 		}
 
 		// A yielded process can exit before its completion response
-		// reaches us. Connection failure is the event; a fresh dial
-		// distinguishes that completed exit from a still-live listener.
+		// reaches the requester. Connection failure is the event.
+		// A fresh dial distinguishes that completed exit from a
+		// still-live listener.
 		_ = conn.Close()
 		probe, probeErr := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
 		if probeErr == nil {

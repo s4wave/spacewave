@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// Wait for the page to finish all tests and collect results.
+// runAndCollect waits for the page to finish all tests and collects results.
 async function runAndCollect(page: any) {
   await page.goto('/webrtc-transfer.html')
   const logEl = page.locator('#log')
@@ -88,7 +88,7 @@ test.describe('RTCDataChannel direct transfer (after open)', () => {
       expect(['open', 'connecting']).toContain(r.received?.readyState)
       expect(r.neutered).toBe(true)
     }
-    // Firefox: expected to fail, just log
+    // The transfer is expected to fail in Firefox. Only log the result.
   })
 
   test('answerer DC with {transfer: [dc]} syntax', async ({
@@ -125,7 +125,7 @@ test.describe('RTCDataChannel direct transfer (after open)', () => {
     const { results } = await runAndCollect(page)
     const r = results['dc-transfer-offerer']
     console.log(`[${browserName}] dc-transfer-offerer: ${r.pass ? 'PASS' : 'FAIL'} ${r.error || ''}`)
-    // Expected to fail in all browsers: offerer DC is no longer
+    // The transfer is expected to fail in all browsers: offerer DC is no longer
     // transferable after establishment. Chrome says explicitly:
     // "Transfers must occur on creation, and before any calls to send()."
   })

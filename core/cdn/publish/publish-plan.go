@@ -11,9 +11,10 @@ type PublishPlan struct {
 	NeedCheckpoint bool
 }
 
-// BuildPublishPlan computes whether the destination needs a new checkpoint. Pack IDs are resource-scoped, so source IDs cannot be compared
-// directly to destination IDs; when the World differs, all source packs are
-// copied and destination-side v1 IDs make retries idempotent.
+// BuildPublishPlan computes whether the destination needs a new checkpoint.
+// Pack IDs are resource-scoped, so source IDs cannot be compared directly to
+// destination IDs. When the World differs, all source packs are copied and
+// destination-side v1 IDs make retries idempotent.
 func BuildPublishPlan(
 	srcPacks []*packfile.PackfileEntry,
 	_ []*packfile.PackfileEntry,

@@ -122,10 +122,10 @@ const ReasonRemoved = "its author was removed from the shared object"
 const ReasonEquivocated = "its author signed another operation at the same sequence"
 
 // PrepareReplayOp authorizes the author of inner under the config the
-// operation names, requires the current config to admit it, and decodes its
-// data with the key of its epoch. It returns the author's participant entry
-// and the decoded data, or the reason replay rejects the operation. A config
-// or key the member lacks is an error, not a rejection.
+// operation references, requires the current config to admit the operation,
+// and decodes its data with the key of its epoch. It returns the author's
+// participant entry and the decoded data, or the reason replay rejects the
+// operation. A config or key the member lacks is an error, not a rejection.
 func PrepareReplayOp(ctx context.Context, snap SharedObjectStateSnapshot, inner *SOOperationInner) (*SOParticipantConfig, []byte, string, error) {
 	// Authorize the author under the config the operation was written under.
 	cfg, err := snap.GetConfigByHash(ctx, inner.GetConfigHash())

@@ -18,7 +18,7 @@ export interface NodeMeta {
   value?: Value
   /**
    * Pinned marks a node used as a predicate or label. A pinned node is never
-   * deleted, since no range of its own shows whether a quad still names it.
+   * deleted, since no range of its own shows whether a quad still uses it.
    */
   pinned?: boolean
 }

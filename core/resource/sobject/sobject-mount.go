@@ -105,7 +105,8 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 
-	// Run the plugins its replay waits for until the client releases it.
+	// Run the plugins the Space resource's replay waits for until the client
+	// releases the resource.
 	releaseOpPlugins := spaceResource.StartOpPluginLoader(ctx)
 	release := func() {
 		releaseOpPlugins()

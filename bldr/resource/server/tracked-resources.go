@@ -2,9 +2,8 @@ package resource_server
 
 import "context"
 
-// CountTrackedResources returns the number of resource handles currently
-// tracked across all live clients, including root, owned, and attached
-// resources.
+// CountTrackedResources returns the number of resource handles tracked across
+// all live clients, including root, owned, and attached resources.
 //
 // Resource owners use it to prove release paths: an operation that acquires and
 // then releases a resource must leave the count unchanged.
@@ -38,7 +37,8 @@ func (s *ResourceServer) WaitTrackedResourceCount(ctx context.Context, want int)
 	}
 }
 
-// countTrackedResourcesLocked counts live client handles; the caller holds bcast.
+// countTrackedResourcesLocked counts live client handles.
+// The caller holds bcast.
 func (s *ResourceServer) countTrackedResourcesLocked() int {
 	var count int
 	for _, client := range s.clients {

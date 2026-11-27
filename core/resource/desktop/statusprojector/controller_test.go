@@ -36,7 +36,8 @@ func TestFactoryListenerStatus(t *testing.T) {
 			}
 			defer ctrl.Close()
 
-			// A hosted plugin has no listener broker; an injected broker is kept.
+			// A hosted plugin has no listener broker.
+			// An injected broker is kept.
 			projector := ctrl.(*Controller)
 			if len(test.opts) == 0 && projector.statusBroker != nil {
 				t.Fatal("hosted plugin projector has a listener status broker")

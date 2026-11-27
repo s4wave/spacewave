@@ -134,9 +134,10 @@ func TestFoldOfflineMembersConverge(t *testing.T) {
 
 // TestFoldPinsRemovedMember checks that replay applies a removed member's
 // operations up to the one the removal pinned and skips the later ones, even
-// though each is signed under a config that named the member.
+// though each is signed under a config that listed the member.
 func TestFoldPinsRemovedMember(t *testing.T) {
-	// The writer writes under the genesis config before the owner removes it.
+	// The writer writes under the genesis config before the owner removes
+	// the writer.
 	peers := createMockPeers(t, 2)
 	keys := mustPrivKeys(t, peers)
 	state, genesis := newTestSOState(t, peers)
@@ -229,7 +230,8 @@ func TestFoldCutsRemovedMember(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// The writer, still offline, writes again; that one never applies.
+			// The writer, still offline, writes again, but that
+			// write never applies.
 			writes["late"] = writeTestOp(t, state, keys[1], "late")
 			state.Config, err = VerifyConfigChange(mockSharedObjectID, state.GetConfig(), removal)
 			if err != nil {

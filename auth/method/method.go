@@ -26,10 +26,10 @@ type Handler any
 // The method likely produces Parameters to register.
 type Method interface {
 	// GetMethodID returns the auth method id.
-	// This is a unique identifier for this code / method.
+	// This ID is a unique identifier for this code / method.
 	GetMethodID() string
 	// Execute executes the auth method, yielding private keys to the handler.
-	// If returns nil, will not be retried.
+	// If Execute returns nil, the method will not be retried.
 	Execute(ctx context.Context) error
 	// UnmarshalParameters unmarshals+validates parameters from binary.
 	UnmarshalParameters(data []byte) (Parameters, error)

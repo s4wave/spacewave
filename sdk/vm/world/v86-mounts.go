@@ -28,7 +28,7 @@ const homeMountPath = "/home"
 //
 // Returns a cleanup closure that releases every opened FSHandle. Callers must
 // invoke cleanup during factory shutdown so handle refcounts drop cleanly.
-// A missing object or missing config is not an error; the returned cleanup is
+// A missing object or missing config is not an error. The returned cleanup is
 // a no-op in that case.
 func registerV86ConfigMounts(
 	ctx context.Context,

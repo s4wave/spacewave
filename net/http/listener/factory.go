@@ -13,9 +13,9 @@ import (
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
-// Factory constructs the http listener
+// Factory constructs the http listener.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

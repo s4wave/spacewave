@@ -24,7 +24,7 @@ func runMake(ctx context.Context, dir, logPath string, env []string, targets ...
 	}
 	defer logFile.Close()
 
-	// Run make in its own process group; cancel signals the whole group.
+	// Run make in its own process group. Cancel signals the whole group.
 	cmd := exec.CommandContext(ctx, "make", targets...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), env...)

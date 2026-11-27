@@ -89,7 +89,7 @@ func waitForCount(t *testing.T, name string, count *atomic.Int32, want int32) {
 // WatchWorldState snapshot transaction is discarded when the watch ends.
 func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 
-	// context ctx.
+	// Get the test context ctx.
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
@@ -100,12 +100,12 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 	watchCtx, watchCancel := context.WithCancel(resource_server.WithResourceClientContext(ctx, resourceCtx))
 	defer watchCancel()
 
-	// newEntry le via logrus.
+	// Create le via logrus.NewEntry.
 	le := logrus.NewEntry(logrus.New())
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
 	defer engineResource.Close()
 
-	// make stream.
+	// Make the stream.
 	stream := &watchWorldStateTestStream{ctx: watchCtx, sent: make(chan *s4wave_world.WatchWorldStateResponse, 1)}
 	errCh := make(chan error, 1)
 	go func() {
@@ -134,7 +134,7 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// watchCancel.
+	// Cancel the watch with watchCancel.
 	watchCancel()
 	select {
 	case <-errCh:
@@ -156,7 +156,7 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 // cursor stays inside its engine callback until the resource is released.
 func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
 
-	// context ctx.
+	// Get the test context ctx.
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
@@ -166,12 +166,12 @@ func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	rpcCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
 
-	// newEntry le via logrus.
+	// Create le via logrus.NewEntry.
 	le := logrus.NewEntry(logrus.New())
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
 	defer engineResource.Close()
 
-	// accessWorldState resp,err via engineResource.
+	// Get resp and err via engineResource.AccessWorldState.
 	resp, err := engineResource.AccessWorldState(rpcCtx, &s4wave_world.AccessWorldStateRequest{})
 	if err != nil {
 		t.Fatal(err.Error())

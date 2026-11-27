@@ -55,10 +55,11 @@ func TestResolveLookupRpcServiceDoesNotRouteRequesterServerID(t *testing.T) {
 }
 
 func TestResolveLookupRpcServiceHandlesNilReleaseFunc(t *testing.T) {
-	// Regression: WaitPluginClient/WaitPluginHostClient return a nil release func
-	// on the loopback and plugin-host client paths. Resolve must not defer a nil
-	// func call, which previously panicked (nil func value, pc=0x0) when the
-	// deferred ran and crashed the whole plugin process.
+	// Regression: WaitPluginClient/WaitPluginHostClient return a nil
+	// release func on the loopback and plugin-host client paths. Resolve
+	// must not defer a nil func call because that call panics (nil func
+	// value, pc=0x0) when the defer runs and crashes the whole plugin
+	// process.
 	resolver := NewLookupRpcServiceResolver(
 		&nilReleaseClientHandler{client: &testForwardingClient{}},
 		"mercury-core",

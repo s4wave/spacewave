@@ -20,7 +20,7 @@ import (
 type signalingPeerKey struct{}
 
 // registerE2ESignaling serves the real signaling protocol on the loopback fixture.
-// Tickets carry test peer identities; this endpoint is not a cloud auth server.
+// Tickets carry test peer identities. This endpoint is not a cloud auth server.
 func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 	// Share rendezvous state across all browser connections.
 	signaling := signaling_server.NewServerWithIdentify(logrus.NewEntry(logrus.New()), func(ctx context.Context) (peer.ID, error) {

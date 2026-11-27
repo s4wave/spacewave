@@ -49,8 +49,8 @@ func (t *TxRenameObject) Clone() *TxRenameObject {
 	}
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxRenameObject) Validate() error {
 	if len(t.GetOldObjectKey()) == 0 || len(t.GetNewObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey

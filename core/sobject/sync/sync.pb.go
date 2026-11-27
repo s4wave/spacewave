@@ -258,8 +258,8 @@ func (x *SOSyncSnapshot) GetRestore() *SOSyncRestore {
 	return nil
 }
 
-// SOSyncHeld names the records of a receiver's state by record hash: SHA-256
-// of the record's encoding.
+// SOSyncHeld identifies the records of a receiver's state by record hash:
+// SHA-256 of the record's encoding.
 type SOSyncHeld struct {
 	unknownFields []byte
 	// Config is the record hash of the config.
@@ -555,7 +555,8 @@ type SOSyncHead struct {
 	ConfigHash []byte `protobuf:"bytes,2,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
 	// ConfigSeqno is the configuration-chain sequence at ConfigHash.
 	ConfigSeqno uint64 `protobuf:"varint,3,opt,name=config_seqno,json=configSeqno,proto3" json:"configSeqno,omitempty"`
-	// StateHash is SHA-256 of the serialized transferable snapshot; it grants no authority.
+	// StateHash is SHA-256 of the serialized transferable snapshot. The hash
+	// grants no authority.
 	StateHash []byte `protobuf:"bytes,4,opt,name=state_hash,json=stateHash,proto3" json:"stateHash,omitempty"`
 }
 
@@ -603,8 +604,8 @@ type SOSyncHistoryRequest struct {
 	// FloorSeqno is the config sequence of the receiver's held checkpoint. A
 	// sender that does not hold base_hash sends its branch above it instead.
 	FloorSeqno uint64 `protobuf:"varint,3,opt,name=floor_seqno,json=floorSeqno,proto3" json:"floorSeqno,omitempty"`
-	// Held names the records the receiver holds, which the snapshot omits.
-	// It is empty when the names would not fit in one frame.
+	// Held identifies the records the receiver holds and the snapshot omits.
+	// Held is empty when the record hashes would not fit in one frame.
 	Held *SOSyncHeld `protobuf:"bytes,4,opt,name=held,proto3" json:"held,omitempty"`
 }
 
@@ -715,9 +716,9 @@ func (x *SOSyncHistoryPage) GetChanges() []*sobject.SOConfigChange {
 // SOSyncConfigSuffix carries the sender's newest retained config changes after
 // the receiver refused admission that the sender granted. The receiver adopts
 // the changes that follow its held head, each authorized by the config before
-// it, so a participant whose config predates the sender's key can admit it on
-// the next stream. Neither side discloses state, and the refusing receiver
-// discloses nothing.
+// each change, so a participant whose config predates the sender's key can
+// admit the sender on the next stream. Neither side discloses state, and the
+// refusing receiver discloses nothing.
 type SOSyncConfigSuffix struct {
 	unknownFields []byte
 	// Changes are contiguous, oldest-first signed transitions ending at the

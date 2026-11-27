@@ -74,7 +74,8 @@ func TestImportLocalRepoToRefRetainsPacks(t *testing.T) {
 		t.Fatalf("advanced import: head=%s, err=%v", gotHead, err)
 	}
 
-	// The second pack holds only the new commit, tree and blob; the first is shared.
+	// The second pack holds only the new commit, tree and blob.
+	// The first pack is shared.
 	advancedPacks := importedPacks(t, ctx, ws, third)
 	if len(initialPacks) != 1 || len(advancedPacks) != 2 {
 		t.Fatalf("pack counts: initial=%d, advanced=%d", len(initialPacks), len(advancedPacks))
@@ -213,7 +214,7 @@ func TestImportLocalRepoToRefCanceledExtensionKeepsSnapshot(t *testing.T) {
 		t.Fatalf("canceled extension: ref=%v, err=%v", ref, err)
 	}
 
-	// The retained World object still names the last verified snapshot.
+	// The retained World object still references the last verified snapshot.
 	state, exists, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(state)
 	if err != nil || !exists {

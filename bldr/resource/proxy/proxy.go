@@ -15,14 +15,14 @@ type Dialer func(ctx context.Context) (resource.SRPCResourceServiceClient, error
 
 // rootIDBase and childIDBase mark the root and child IDs the proxy issues. An
 // upstream server numbers its resources from 1, so the high bits keep a proxy
-// ID from naming an upstream resource.
+// ID from identifying an upstream resource.
 const (
 	rootIDBase  = 1 << 31
 	childIDBase = 1 << 30
 )
 
-// The proxy waits redialMin after the first upstream loss, doubling up to
-// redialMax while each new upstream fails before a client binds to it.
+// redialMin sets the proxy's wait after the first upstream loss, doubling up
+// to redialMax while each new upstream fails before a client binds to it.
 const (
 	redialMin = 100 * time.Millisecond
 	redialMax = 5 * time.Second
@@ -45,8 +45,9 @@ type Proxy struct {
 	dial Dialer
 	// limits cap the unary calls the proxy holds.
 	limits []*Limit
-	// resumed, when set, learns of each Resume call's first message after a
-	// reopen: quiet when the proxy dropped it as the view the client holds.
+	// resumed learns of each Resume call's first message after a reopen
+	// when set: quiet when the proxy dropped the message as the view the
+	// client holds.
 	resumed func(quiet bool)
 
 	// bcast guards the fields below and wakes their waiters.
@@ -132,7 +133,8 @@ func (p *Proxy) ResourceRpc(strm resource.SRPCResourceService_ResourceRpcStream)
 		return errors.New("expected ResourceRpc init")
 	}
 
-	// Find its generation; an ID the proxy did not issue names nothing.
+	// Find the route's generation. An ID the proxy did not issue identifies
+	// no resource.
 	id := init.GetResourceId()
 	var g *generation
 	var ch *child
@@ -271,7 +273,7 @@ func (p *Proxy) lose(up *upstream) {
 	})
 }
 
-// bound records that a generation bound to up, which resets the backoff.
+// bound records that a generation bound to up and resets the backoff.
 func (p *Proxy) bound(up *upstream) {
 	p.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if p.up == up {
@@ -287,7 +289,7 @@ func openRoute(
 	service resource.SRPCResourceServiceClient,
 	id uint32,
 ) (resource.SRPCResourceService_ResourceRpcClient, *resource.ResourceFailure, error) {
-	// Open the route and name its resource.
+	// Open the route and specify its resource.
 	route, err := service.ResourceRpc(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -319,5 +321,5 @@ func newAck(failure *resource.ResourceFailure) *resource.ResourceRpcPacket {
 	}}
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ resource.SRPCResourceServiceServer = (*Proxy)(nil)

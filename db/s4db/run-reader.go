@@ -21,7 +21,7 @@ type runReader struct {
 }
 
 // runs caches the readers of the runs this handle has read, by run id. A
-// run's footer is read once per handle; readers of runs a merge removed are
+// run's footer is read once per handle. Readers of runs a merge removed are
 // dropped when their chunks are freed.
 type runs struct {
 	// mtx guards readers.
@@ -74,7 +74,7 @@ func (db *DB) forgetRuns(ids []uint64) {
 }
 
 // readChecked reads the bytes at r into buf and checks them. With no buf the
-// read gets a buffer of its exact size; a reused buf too small is replaced by
+// read gets a buffer of its exact size. A reused buf too small is replaced by
 // one a quarter larger than r, so it settles at the largest block it holds.
 func (db *DB) readChecked(r ref, buf []byte) ([]byte, error) {
 	// Choose the buffer, then read and check.
@@ -208,7 +208,7 @@ func (rr *runReader) get(key []byte, sc *getScratch) (value, bool, error) {
 
 // lookupRuns returns the value of key in the newest run of st that holds it.
 // A tombstone found first hides the key. Level 0's runs overlap and are read
-// newest first; each lower level's runs do not, so only the one whose range
+// newest first. Each lower level's runs do not, so only the one whose range
 // covers the key is read, found by bisection. A lookup reads R0 + L runs at
 // most, and tests each one's range before it touches the run's reader. A
 // lookup through sc leaves the block cache alone.
@@ -311,37 +311,38 @@ func (db *DB) runLayers(st *state, prefix []byte) []layer {
 // runIter iterates one run as a merge layer, one block at a time. It steps in
 // the direction of its last seek. Forward, it decodes a block's entries as it
 // steps, from the restart point its seek starts at, so a short scan decodes a
-// few entries rather than every block it touches; in reverse it decodes each
-// block whole, since stepping back needs the entries before.
+// few entries rather than every block it touches. In reverse the iterator
+// decodes each block whole, since stepping back needs the entries before.
 type runIter struct {
 	// db reads the run.
 	db *DB
 	// meta describes the run.
 	meta runMeta
-	// cache reads through the block cache. Scans do; background jobs do not,
-	// so a merge never displaces the blocks foreground reads use, and read
-	// into indexBuf and blockBuf instead, which each load reuses. An entry
-	// of such a layer lasts only until its next step.
+	// cache reads through the block cache. Scans do. Background jobs do
+	// not, so a merge never displaces the blocks foreground reads use, and
+	// read into indexBuf and blockBuf instead, which each load reuses. An
+	// entry of such a layer lasts only until its next step.
 	cache bool
 	// indexBuf and blockBuf hold the index partition and block read around
 	// the cache.
 	indexBuf, blockBuf []byte
 	// rr is the run's reader, set on first use.
 	rr *runReader
-	// part is the current partition and index its index partition, empty
-	// before the first.
+	// part and index are the current partition and its index partition,
+	// empty before the first partition.
 	part  int
 	index fenceIndex
-	// blk is the current block's index among the fences and data the block.
+	// blk and data are the current block's index among the fences and the
+	// block itself.
 	blk  int
 	data dataBlock
-	// entries holds the block's decoded entries from where decoding started,
-	// keys their keys, reused by the next block, and more the offset of the
-	// first entry not yet decoded.
+	// entries, keys and more hold the block's decoded entries from where
+	// decoding started, their keys, reused by the next block, and the
+	// offset of the first entry not yet decoded, respectively.
 	entries []blockEntry
 	keys    []byte
 	more    int
-	// i indexes the current entry in entries; -1 before the first.
+	// i indexes the current entry in entries. -1 before the first.
 	i int
 	// ok reports whether the layer is on an entry.
 	ok bool
@@ -421,7 +422,7 @@ func (it *runIter) loadBlock(p, j int, reverse bool) bool {
 // held one. more is the block's start, a restart point, or the entry after
 // the last decoded one.
 func (it *runIter) decode() bool {
-	// Stop at the block's end; an entry after the first shares its prefix
+	// Stop at the block's end. An entry after the first shares its prefix
 	// with the one before.
 	if it.more >= len(it.data.data) {
 		return false
@@ -488,7 +489,7 @@ func (it *runIter) entry() ientry {
 }
 
 // seek positions at the first key at or after k, or the last at or before it
-// when reverse; nil selects the first or last key.
+// when reverse. nil selects the first or last key.
 func (it *runIter) seek(k []byte, reverse bool) {
 	// Find the partition and block for k, or the run's ends.
 	it.ok = false

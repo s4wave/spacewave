@@ -10,7 +10,8 @@ interface QuickstartCommandsProps {
   onQuickstart: (opt: QuickstartOption) => void
 }
 
-// QuickstartCommands registers quickstart commands for landing and dashboard.
+// QuickstartCommands registers quickstart commands for the landing page and
+// dashboard.
 export function QuickstartCommands({ onQuickstart }: QuickstartCommandsProps) {
   const isTabActive = useIsTabActive()
   const quickstartOptions = useVisibleQuickstartOptions()

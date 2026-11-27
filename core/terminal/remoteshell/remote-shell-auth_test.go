@@ -189,7 +189,7 @@ func openTestRemoteShell(
 		t.Fatal(err)
 	}
 
-	// A refused peer is answered before OPEN, so send it without waiting.
+	// A refused peer is answered before OPEN, so send OPEN without waiting.
 	client := stream_packet.NewSession(clientConn, deviceRemoteShellFrameMaxBytes)
 	go func() {
 		_ = client.SendMsg(&s4wave_terminal.TerminalFrame{

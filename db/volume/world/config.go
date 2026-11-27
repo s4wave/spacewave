@@ -24,7 +24,7 @@ func NewConfig(
 	}
 }
 
-// This is a cursory validation to see if the values "look correct."
+// Validate is a cursory check that the values "look correct."
 func (c *Config) Validate() error {
 	// Validate the optional init head reference.
 	initRef := c.GetInitHeadRef()

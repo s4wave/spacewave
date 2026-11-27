@@ -4,9 +4,10 @@ export const SUBPATH_DELIMITER = '/-/'
 export const PATH_SEPARATOR = '/'
 
 /**
- * Parses a URI path to extract object key and subpath components.
- * Uses /-/ as delimiter between object key and subpath.
- * A trailing /- is treated the same as /-/ with empty path.
+ * parseObjectUri parses a URI path to extract object key and subpath
+ * components.
+ * Uses /-/ as the delimiter between the object key and subpath.
+ * A trailing /- is treated the same as /-/ with an empty path.
  *
  * Examples:
  * - "some/object/key" -> {objectKey: "some/object/key", path: ""}
@@ -20,7 +21,7 @@ export function parseObjectUri(uri: string): {
   objectKey: string
   path: string
 } {
-  // Clean the path and force absolute
+  // Clean the path and force an absolute path
   uri = cleanPath('/' + uri)
 
   // Trim the / off the beginning
@@ -39,7 +40,7 @@ export function parseObjectUri(uri: string): {
   // Find the first occurrence of the full subpath delimiter
   const delimiterIndex = uri.indexOf(SUBPATH_DELIMITER)
   if (delimiterIndex !== -1) {
-    // We have an explicit delimiter; split into objectKey and subpath.
+    // Split at the explicit delimiter into objectKey and subpath.
     const objectKey = uri.slice(0, delimiterIndex)
     let path = uri.slice(delimiterIndex + SUBPATH_DELIMITER.length)
     // Remove a trailing marker ("-" or "/-") so it does not affect the path.
@@ -65,8 +66,8 @@ export function parseObjectUri(uri: string): {
 }
 
 /**
- * Joins path parts into a single path string, filtering out empty segments
- * and removing trailing "-" if present.
+ * joinObjectUriPath joins path parts into a single path string, filtering out
+ * empty segments and removing a trailing "-" if present.
  *
  * @param pathParts - Array of path segments to join
  * @param isAbsolute - If true, path will start with a separator
@@ -90,9 +91,9 @@ export function joinObjectUriPath(
 }
 
 /**
- * Escapes an object key for a spacewave:/// address, the inverse of
- * ParseSpacewaveURI in sdk/space/object-uri.go, which cleans the path, splits
- * it on /-/ and then percent-decodes each part. Each segment is
+ * escapeObjectKey escapes an object key for a spacewave:/// address, the
+ * inverse of ParseSpacewaveURI in sdk/space/object-uri.go, which cleans the
+ * path, splits it on /-/ and then percent-decodes each part. Each segment is
  * percent-encoded, and a whole ".", ".." or "-" segment is escaped so it reads
  * as neither a relative step nor a delimiter. A slash stays raw between two
  * nonempty segments and is "%2F" beside an empty one, so a leading, trailing

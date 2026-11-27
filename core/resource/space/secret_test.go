@@ -144,7 +144,8 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 		t.Fatalf("expected kind mismatch, got %v", err)
 	}
 
-	// A plugin this Space loaded reads; one bound to another Space is refused.
+	// A plugin this Space loaded reads, but one bound to another Space is
+	// refused.
 	ref := resource.space.GetSharedObjectRef()
 	own := bldr_plugin.WithPluginCaller(ctx, &bldr_plugin.PluginCaller{PluginId: "glados-core", BindingKey: space.SpaceEngineId(ref)})
 	if _, err := resource.ReadSecretPayload(own, &s4wave_space.ReadSecretPayloadRequest{

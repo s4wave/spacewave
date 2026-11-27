@@ -98,12 +98,12 @@ export const OutputType_Enum = /* @__PURE__ */ createEnumType(
 export interface Target {
   /**
    * Inputs is the mapping of inputs.
-   * Not necessarily sorted or unique, later values override earlier.
+   * Not necessarily sorted or unique, later values override earlier values.
    */
   inputs?: Input[]
   /**
    * Outputs is the mapping of outputs.
-   * Not necessarily sorted or unique, later values override earlier.
+   * Not necessarily sorted or unique, later values override earlier values.
    */
   outputs?: Output[]
   /**
@@ -314,13 +314,14 @@ export interface Exec {
    */
   controller?: ControllerConfig
   /**
-   * ReuseOutputs completes a Task with the outputs of an earlier successful
-   * Task whose Exec, Outputs and input values are equal, without running it.
+   * ReuseOutputs completes a Task without running the Task, using the outputs
+   * of an earlier successful Task whose Exec, Outputs and input values are
+   * equal.
    * Set it only when the controller's outputs depend on nothing else.
    */
   reuseOutputs?: boolean
   /**
-   * ReuseIgnoreInputs names inputs that do not affect the outputs and are
+   * ReuseIgnoreInputs lists inputs that do not affect the outputs and are
    * left out of the reuse key, such as a scheduler's per-activation context.
    */
   reuseIgnoreInputs?: string[]
@@ -363,8 +364,8 @@ export const ValueSet: MessageType<ValueSet> =
   ])
 
 /**
- * Waiting names what blocks a running Execution before its work can start. An
- * unset reason means nothing blocks it.
+ * Waiting describes what blocks a running Execution before its work can start.
+ * An unset reason means nothing blocks the Execution.
  *
  * @generated from message forge.target.Waiting
  */
@@ -386,7 +387,8 @@ export const Waiting: MessageType<Waiting> =
 
 /**
  * CapacityWait is a wait for Worker capacity that live reservations hold. The
- * Worker could hold the request; it waits until they release enough.
+ * Worker could hold the request. The Execution waits until the live
+ * reservations release enough capacity.
  *
  * @generated from message forge.target.CapacityWait
  */

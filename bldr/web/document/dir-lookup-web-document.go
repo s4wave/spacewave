@@ -16,17 +16,18 @@ type LookupWebDocument interface {
 	// LookupWebDocumentID is the web view ID to lookup.
 	// Cannot be empty.
 	LookupWebDocumentID() string
-	// LookupWebDocumentWait indicates we should wait for the view to exist.
+	// LookupWebDocumentWait indicates whether to wait for the view to
+	// exist.
 	//
-	// If unset, we expect the doc already exists, and will not be recreated
-	// after it is deleted (thus pointless to wait if not found).
+	// If unset, the caller expects the doc already exists and will not be
+	// recreated after it is deleted (thus pointless to wait if not found).
 	LookupWebDocumentWait() bool
 }
 
 // LookupWebDocumentValue is the result of LookupWebDocument.
 type LookupWebDocumentValue = WebDocument
 
-// lookupWebDocument implements LookupWebDocument
+// lookupWebDocument implements LookupWebDocument.
 type lookupWebDocument struct {
 	webViewID string
 	wait      bool
@@ -78,10 +79,10 @@ func (d *lookupWebDocument) LookupWebDocumentID() string {
 	return d.webViewID
 }
 
-// LookupWebDocumentWait indicates we should wait for the view to exist.
+// LookupWebDocumentWait indicates whether to wait for the view to exist.
 //
-// If unset, we expect the view already exists, and will not be recreated
-// after it is deleted (thus pointless to wait if not found).
+// If unset, the caller expects the view already exists and will not be
+// recreated after it is deleted (thus pointless to wait if not found).
 func (d *lookupWebDocument) LookupWebDocumentWait() bool {
 	return d.wait
 }

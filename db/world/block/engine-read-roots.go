@@ -6,9 +6,9 @@ import "github.com/s4wave/spacewave/db/block"
 // published head a holder still holds, including one a reader acquired and has
 // not registered yet, the root of each open read snapshot, and the base of the
 // write transaction. A store that forgets pages no root reaches, such as a
-// PendingStore sweep, keeps what these reach, so a reader of a replaced head
-// never finds its pages gone before the engine pins them. It reads one entry
-// per open transaction.
+// PendingStore sweep, keeps what these roots reach, so a reader of a replaced
+// head never finds its pages gone before the engine pins them. ReadRoots reads
+// one entry per open transaction.
 func (e *Engine) ReadRoots() []*block.BlockRef {
 	// Gather the published head and the writer's base.
 	var roots []*block.BlockRef

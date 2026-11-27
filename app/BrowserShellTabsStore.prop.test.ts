@@ -147,7 +147,7 @@ function genSequence(seed: number, steps: number): Event[] {
 
 // applyModel returns the error code the store must raise, or applies the event
 // to the model. freshId is the id the store chose for a replacement record,
-// which the model cannot predict.
+// an id the model cannot predict.
 function applyModel(
   model: Model,
   event: Event,
@@ -306,8 +306,8 @@ function dispatch(
 async function runSequence(events: Event[]): Promise<string | null> {
   localStorage.clear()
   const now = 1000
-  // stores[0] and stores[1] write; stores[2] only reads, so each writer keeps
-  // the view it last saw and a versioned write can be stale.
+  // stores[0] and stores[1] write, but stores[2] only reads, so each writer
+  // keeps the view it last saw and a versioned write can be stale.
   const stores = [0, 1, 2].map(
     () =>
       new BrowserShellTabsStore({

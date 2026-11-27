@@ -20,7 +20,8 @@ export interface AlarmStatus {
   sounding: boolean
 }
 
-// alarmStatus describes a at nowMs. who names the peer that acknowledged it.
+// alarmStatus describes a at nowMs. who returns the name of the peer that
+// acknowledged a.
 export function alarmStatus(
   a: Alarm,
   nowMs: number,
@@ -101,8 +102,8 @@ export function soundOrder(a: Alarm): number {
 }
 
 // linkedAlarms returns the Alarms whose reads edges reach a key in roots,
-// directly or through other Alarms. reads maps each Alarm key to the keys it
-// reads.
+// directly or through other Alarms. reads maps each Alarm key to the keys
+// that Alarm reads.
 export function linkedAlarms(
   reads: ReadonlyMap<string, readonly string[]>,
   roots: ReadonlySet<string>,

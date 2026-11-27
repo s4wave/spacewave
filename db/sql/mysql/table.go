@@ -240,7 +240,8 @@ func (t *Table) PartitionRows(ctx *sql.Context, part sql.Partition) (sql.RowIter
 	return pt.IterateRows(ctx)
 }
 
-// rowPartition returns the partition that stores every row; BuildTable creates one.
+// rowPartition returns the partition that stores every row. BuildTable creates
+// one.
 func (t *Table) rowPartition() (*TablePartition, error) {
 	return t.PartitionAtIndex(0)
 }

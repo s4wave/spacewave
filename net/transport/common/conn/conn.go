@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// defaultMtu is the default max packet size to use
+// defaultMtu is the default max packet size to use.
 const defaultMtu = 65000 // 65Kb
 
 // Transport implements a Bifrost transport with ordered conns.
@@ -22,19 +22,19 @@ const defaultMtu = 65000 // 65Kb
 // An example is a TCP connection: the OS provides an ordered stream of data as
 // the interface for the Go program to use.
 type Transport struct {
-	// Transport is the underlying quic transport
+	// Transport is the underlying quic transport.
 	*transport_quic.Transport
-	// ctx is the root context
+	// ctx is the root context.
 	ctx context.Context
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// handler is the transport handler
+	// handler is the transport handler.
 	handler transport.TransportHandler
-	// opts are extra options
+	// opts are extra options.
 	opts *Opts
-	// mtu is the max packet size to use
+	// mtu is the max packet size to use.
 	mtu uint32
-	// bufSize is the number of packets to keep in memory
+	// bufSize is the number of packets to keep in memory.
 	bufSize uint32
 }
 

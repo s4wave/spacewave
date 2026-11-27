@@ -73,7 +73,8 @@ type readCheckpointEngine struct {
 	le *logrus.Entry
 }
 
-// NewTransaction opens a read snapshot; a write request cannot acquire authority.
+// NewTransaction opens a read snapshot. A write request cannot acquire
+// authority.
 func (e *readCheckpointEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	if write {
 		return nil, tx.ErrNotWrite
@@ -95,7 +96,7 @@ func (e *readCheckpointEngine) BuildStorageCursor(ctx context.Context) (*bucket_
 	return e.readOnlyCursor(ctx, cursor, cursor.Release), nil
 }
 
-// StageWorldState rejects writes; a read checkpoint cannot stage them.
+// StageWorldState rejects writes because a read checkpoint cannot stage them.
 func (e *readCheckpointEngine) StageWorldState(context.Context) (world.WorldStage, error) {
 	return nil, tx.ErrNotWrite
 }

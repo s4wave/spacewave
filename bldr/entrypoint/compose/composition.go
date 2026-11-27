@@ -20,8 +20,8 @@ type Composition struct {
 	// Flags are the project's root CLI flags, accepted before any command.
 	Flags []cli.Flag
 	// ConfigureVolume adjusts each Volume config the host's storage builds.
-	// The bus is built after the command line is parsed, so it may read the
-	// project's flags.
+	// The bus is built after the command line is parsed, so ConfigureVolume
+	// may read the project's flags.
 	ConfigureVolume storage.ConfigureVolumeFunc
 	// Distribution is set by a distribution entrypoint's generated main, the
 	// app a person runs in dev and release builds alike, after Compose

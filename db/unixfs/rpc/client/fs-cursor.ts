@@ -29,7 +29,7 @@ export class RpcFSCursor implements FSCursor {
     return fsc.rootCursor
   }
 
-  // getCursorOps always returns null; delegates via getProxyCursor.
+  // getCursorOps always returns null and delegates via getProxyCursor.
   getCursorOps(_signal?: AbortSignal): Promise<FSCursorOps | null> {
     return Promise.resolve(null)
   }

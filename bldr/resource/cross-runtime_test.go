@@ -347,7 +347,8 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 		t.Fatalf("stream data = %q, want later", data)
 	}
 
-	// Open a cancellable child stream and verify the active data before canceling it.
+	// Open a cancellable child stream and verify the active data before
+	// canceling the stream.
 	canceled, err := childClient.NewStream(
 		ctx,
 		"test.Child",

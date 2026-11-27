@@ -18,7 +18,8 @@ func TestSessionTransportCreate(t *testing.T) {
 		t.Fatal("session private key is nil")
 	}
 
-	// Create transport with empty signaling URL (no WebRTC, but child bus + peer controller).
+	// Create a transport with an empty signaling URL (no WebRTC, but child bus
+	// + peer controller).
 	if err := acc.CreateSessionTransport(ctx, privKey, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func TestTransportCleanup(t *testing.T) {
 		t.Fatal("expected transport to be nil after stop")
 	}
 
-	// Verify we can create a new transport after stopping the old one.
+	// Verify the account can create a new transport after stopping the old one.
 	if err := acc.CreateSessionTransport(ctx, privKey, ""); err != nil {
 		t.Fatal(err)
 	}

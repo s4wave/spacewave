@@ -20,7 +20,7 @@ import (
 // ControllerID is the controller ID.
 const ControllerID = ConfigID
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -91,7 +91,7 @@ func (c *Controller) BuildManifest(
 	pluginCompilerConf.HostConfigSet = map[string]*configset_proto.ControllerConfig{}
 	configset_proto.MergeConfigSetMaps(pluginCompilerConf.HostConfigSet, conf.GetHostConfigSet())
 
-	// Cleanup list of web packages
+	// Clean up the list of web packages.
 	webPkgs := protobuf_go_lite.CloneVTSlice(conf.GetWebPkgs())
 	pluginCompilerConf.WebPkgs = webPkgs
 

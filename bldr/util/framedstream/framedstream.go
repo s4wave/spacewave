@@ -58,7 +58,7 @@ func (s *Stream) MsgRecv(msg srpc.Message) error {
 	return msg.UnmarshalVT(data)
 }
 
-// CloseSend signals to the remote that we will no longer send any messages.
+// CloseSend signals to the remote that the stream will no longer send messages.
 func (s *Stream) CloseSend() error {
 	return nil
 }

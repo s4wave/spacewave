@@ -31,7 +31,7 @@ type SubBlockSet struct {
 
 // NewSubBlockSet constructs a new SubBlockSet from a slice pointer.
 //
-// also contains an optional block cursor
+// also contains an optional block cursor.
 func NewSubBlockSet(sl SubBlockContainer, bcs *block.Cursor) *SubBlockSet {
 	return &SubBlockSet{sl: sl, bcs: bcs}
 }

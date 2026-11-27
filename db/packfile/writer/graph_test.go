@@ -57,8 +57,8 @@ type graphBlock struct {
 
 // randomGraph builds 2 to 80 blocks, each referring only to later ones, so
 // the graph is acyclic as content addressing makes it. A forest gives each
-// block at most one parent; otherwise children are shared freely. Some refs
-// name blocks outside the graph, and some blocks have unknown refs.
+// block at most one parent. Otherwise children are shared freely. Some refs
+// reference blocks outside the graph, and some blocks have unknown refs.
 func randomGraph(t *testing.T, rng *rand.Rand, forest bool) []graphBlock {
 	// Hash random data for each block.
 	n := 2 + rng.IntN(79)
@@ -113,7 +113,7 @@ func sliceIterator(blocks []graphBlock) BlockIterator {
 }
 
 // checkGraphPack checks a PackGraph pack of stream against the invariants
-// TestPackGraphKeepsEveryBlock names.
+// TestPackGraphKeepsEveryBlock states.
 func checkGraphPack(t *testing.T, seed uint64, data []byte, stream []graphBlock) {
 	t.Helper()
 
@@ -174,7 +174,8 @@ func checkGraphPack(t *testing.T, seed uint64, data []byte, stream []graphBlock)
 	}
 
 	// Each structure block below a structure block lies within its reach,
-	// unless a block placed earlier claimed it; roots keep the stream's order.
+	// unless a block placed earlier claimed it.
+	// Roots keep the stream's order.
 	byKey := make(map[string]graphBlock, len(stream))
 	referenced := make(map[string]bool)
 	for _, b := range stream {

@@ -6,7 +6,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * SubcribeRequest is a pubsub subscription request message.
+ * SubscribeRequest is a pubsub subscription request message.
  *
  * @generated from message pubsub.api.SubscribeRequest
  */
@@ -71,7 +71,7 @@ export const PublishRequest: MessageType<PublishRequest> =
   )
 
 /**
- * SubcribeResponse is a pubsub subscription response message.
+ * SubscribeResponse is a pubsub subscription response message.
  *
  * @generated from message pubsub.api.SubscribeResponse
  */
@@ -102,7 +102,7 @@ export const SubscribeResponse: MessageType<SubscribeResponse> =
   )
 
 /**
- * SubscripionStatus is the status of the subscription handle.
+ * SubscriptionStatus is the status of the subscription handle.
  *
  * @generated from message pubsub.api.SubscriptionStatus
  */

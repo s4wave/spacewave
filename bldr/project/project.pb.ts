@@ -18,8 +18,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 export interface ProjectConfig {
   /**
    * Id is the project identifier.
-   * Must be a valid-dns-label.
-   * Used to construct the application storage and dist bundle filenames.
+   * Id must be a valid-dns-label.
+   * Id is used to construct the application storage and dist bundle filenames.
    * The project id can usually be overridden in the manifest compilers as well.
    */
   id?: string
@@ -43,8 +43,9 @@ export interface ProjectConfig {
    */
   remotes?: { [key: string]: RemoteConfig }
   /**
-   * Publish contains configuration for build + publish manifests to destinations.
-   * Contains configuration for bldr publish... commands.
+   * Publish contains configuration for build + publish manifests to
+   * destinations.
+   * Publish contains configuration for bldr publish... commands.
    */
   publish?: { [key: string]: PublishConfig }
   /**
@@ -86,10 +87,11 @@ export interface ManifestConfig {
    * The controller will always scan for the latest manifest and add 1 to the
    * most recent rev when building to determine the resulting manifest rev.
    *
-   * However, if there is no existing manifest in the store, or if you want to
-   * override the minimum rev number, this field can be used.
+   * However, if there is no existing manifest in the store, or if the caller
+   * wants to override the minimum rev number, this field can be used.
    *
-   * Useful for forcing a manifest to be rebuilt/reloaded even if nothing changed.
+   * Rev is useful for forcing a manifest to be rebuilt/reloaded even if nothing
+   * changed.
    */
   rev?: bigint
   /**
@@ -98,23 +100,24 @@ export interface ManifestConfig {
   description?: string
   /**
    * Background declares that the plugin can run without an open view.
-   * Copied to the built manifest metadata.
+   * Background is copied to the built manifest metadata.
    */
   background?: boolean
   /**
    * PlatformIds limits this manifest to the listed base or fully qualified
-   * platform IDs. Empty allows every platform selected by the build target.
+   * platform IDs. An empty list allows every platform selected by the build
+   * target.
    * For example, ["desktop"] excludes JavaScript and browser WebAssembly.
    */
   platformIds?: string[]
   /**
    * NodeTypeIds hints at the Flowgraph node type IDs the plugin registers.
-   * Copied to the built manifest metadata.
+   * NodeTypeIds is copied to the built manifest metadata.
    */
   nodeTypeIds?: string[]
   /**
    * OpTypeIds lists the World operation type IDs the plugin handles.
-   * Copied to the built manifest metadata.
+   * OpTypeIds is copied to the built manifest metadata.
    */
   opTypeIds?: string[]
 }
@@ -144,21 +147,24 @@ export interface StartConfig {
    */
   plugins?: string[]
   /**
-   * DisableBuild disables running the manifest builders to resolve FetchManifest.
+   * DisableBuild disables running the manifest builders to resolve
+   * FetchManifest.
    */
   disableBuild?: boolean
   /**
-   * LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component to load on startup.
-   * Must be a relative path located within the project sources.
+   * LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component
+   * to load on startup.
+   * LoadWebStartup must be a relative path located within the project sources.
    * The file will be bundled with esbuild into the entrypoint bundle.
    * The component should contain a <WebView /> from @aptre/bldr-react.
    * The contents will be used for the children of BldrRoot.
    */
   loadWebStartup?: string
   /**
-   * AdmissionPluginId names the plugin that owns this device's plugin
+   * AdmissionPluginId selects the plugin that owns this device's plugin
    * approvals. The host builds its root admission controller asking that
-   * plugin in code at startup; empty leaves admission to the trusted roots.
+   * plugin in code at startup. An empty AdmissionPluginId leaves admission to
+   * the trusted roots.
    */
   admissionPluginId?: string
 }
@@ -186,7 +192,8 @@ export interface BuildConfig {
   manifests?: string[]
   /**
    * PlatformIds is the list of platforms to target.
-   * If targets is set, platform_ids are merged with the targets' platform lists.
+   * If targets is set, platform_ids are merged with the targets' platform
+   * lists.
    */
   platformIds?: string[]
   /**
@@ -197,13 +204,14 @@ export interface BuildConfig {
   targets?: string[]
   /**
    * ManifestOverrides replaces the builder config of a named manifest when
-   * built under this build target. Maps manifest_id to a ControllerConfig
-   * whose config bytes replace the manifest's static builder config.
+   * built under this build target. ManifestOverrides maps manifest_id to a
+   * ControllerConfig whose config bytes replace the manifest's static builder
+   * config.
    *
-   * The override's controller id is ignored; the manifest's declared builder
-   * id always wins. This is REPLACE semantics: the static manifest config is
-   * not merged with the override. Users compose shared fields in Starlark
-   * helper functions rather than via runtime merging.
+   * The override's controller id is ignored. The manifest's declared builder
+   * id always wins. The override uses REPLACE semantics: the static manifest
+   * config is not merged with the override. Users compose shared fields in
+   * Starlark helper functions rather than via runtime merging.
    *
    * Typical use: per-build-target embed_manifests selection for dist bundles
    * so a single dist manifest declaration can be reused across release
@@ -252,11 +260,12 @@ export interface RemoteConfig {
   peerId?: string
   /**
    * ObjectKey is the object key to deploy to.
-   * Creates the manifests with this key as a prefix.
+   * The manifests are created with this key as a prefix.
    */
   objectKey?: string
   /**
-   * LinkObjectKeys is a link of object keys to link to ObjectKey with <manifest>.
+   * LinkObjectKeys is a link of object keys to link to ObjectKey with
+   * <manifest>.
    */
   linkObjectKeys?: string[]
 }
@@ -281,13 +290,16 @@ export const RemoteConfig: MessageType<RemoteConfig> =
 export interface PublishConfig {
   /**
    * SourceObjectKeys is the list of object keys to collect manifests from.
-   * Gathers any manifest linked to with the <manifest> tag recursively.
-   * If empty uses objectKey from source remote config.
+   * The publisher gathers any manifest linked to with the <manifest> tag
+   * recursively.
+   * If SourceObjectKeys is empty, the publisher uses objectKey from the source
+   * remote config.
    */
   sourceObjectKeys?: string[]
   /**
    * Manifests is the list of manifests to publish.
-   * If empty publishes all manifests matched by object keys.
+   * If Manifests is empty, the publisher publishes all manifests matched by
+   * object keys.
    */
   manifests?: string[]
   /**
@@ -296,7 +308,8 @@ export interface PublishConfig {
   allManifestRevs?: boolean
   /**
    * PlatformIds is the list of platforms to target.
-   * If empty publishes all platform ids matched by object keys.
+   * If PlatformIds is empty, the publisher publishes all platform ids matched
+   * by object keys.
    */
   platformIds?: string[]
   /**
@@ -305,20 +318,24 @@ export interface PublishConfig {
   remotes?: string[]
   /**
    * DestObjectKey is the destination object key to deploy to.
-   * Creates the manifests with this key as a prefix.
-   * If unset, uses the object key from the destination remote config(s).
+   * The publisher creates the manifests with this key as a prefix.
+   * If DestObjectKey is unset, the publisher uses the object key from the
+   * destination remote config(s).
    */
   destObjectKey?: string
   /**
    * Storage overrides the storage for all manifests.
-   * Overrides the settings from the destination world.
-   * If empty, uses the destination world storage transform.
+   * Storage overrides the settings from the destination world.
+   * If Storage is empty, the publisher uses the destination world storage
+   * transform.
    */
   storage?: PublishStorageConfig
   /**
    * ManifestStorage maps manifest ID to publish storage configuration.
-   * Overrides the settings in the storage property, per-manifest.
-   * If empty, uses the destination world storage transform.
+   * ManifestStorage overrides the settings in the storage property,
+   * per-manifest.
+   * If ManifestStorage is empty, the publisher uses the destination world
+   * storage transform.
    */
   manifestStorage?: { [key: string]: PublishStorageConfig }
 }
@@ -339,7 +356,8 @@ export const PublishConfig: MessageType<PublishConfig> =
   )
 
 /**
- * PublishStorageConfig configures adjusting the storage transform config for an asset.
+ * PublishStorageConfig configures adjusting the storage transform config for an
+ * asset.
  *
  * @generated from message bldr.project.PublishStorageConfig
  */
@@ -347,28 +365,29 @@ export interface PublishStorageConfig {
   /**
    * TransformConfFromRef is an ObjectRef to inherit the transform config from.
    *
-   * If set, we will copy the transform config from this ref.
-   * If transform_config is set, it will override this value.
+   * If set, the publisher copies the transform config from this ref.
+   * If transform_config is set, transform_config overrides this value.
    * NOTE: only the transform field will be used, not the transformRef field.
    *
-   * If both transform_from_ref and transform are unset, uses the transform
-   * config config from the parent world.
+   * If both transform_from_ref and transform are unset, the publisher uses the
+   * transform config from the parent world.
    *
-   * Optional.
+   * TransformConfFromRef is optional.
    */
   transformConfFromRef?: ObjectRef
   /**
    * TransformConf is the transform configuration to use.
    *
-   * If set, overrides the transform configuration in transform_from_ref.
+   * If set, TransformConf overrides the transform configuration in
+   * transform_from_ref.
    *
-   * If both transform_from_ref and transform are unset, uses the transform
-   * config from the parent world.
+   * If both transform_from_ref and transform are unset, the publisher uses the
+   * transform config from the parent world.
    */
   transformConf?: Config
   /**
    * Timestamp sets the timestamp to use for unixfs timestamps.
-   * If empty, uses the current timestamp
+   * If Timestamp is empty, the publisher uses the current timestamp.
    */
   timestamp?: Date
 }

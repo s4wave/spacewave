@@ -34,7 +34,8 @@ export enum ExecutionState {
   ExecutionState_STOPPED = 3,
 
   /**
-   * ExecutionState_ERROR is the state when the process has exited with an error.
+   * ExecutionState_ERROR is the state when the process has exited with an
+   * error.
    */
   ExecutionState_ERROR = 4,
 }
@@ -70,7 +71,7 @@ export const ExecuteRequest: MessageType<ExecuteRequest> =
  */
 export interface ExecuteStatus {
   /**
-   * ExecutionState is the current state of the process.
+   * State is the current ExecutionState of the process.
    */
   state?: ExecutionState
   /**

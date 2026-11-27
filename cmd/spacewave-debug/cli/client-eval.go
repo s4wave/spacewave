@@ -85,7 +85,7 @@ func (a *ClientArgs) RunEval(c *cli.Context) error {
 
 // bundleTypeScript bundles a TypeScript file and returns the JS code.
 func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (string, error) {
-	// Find project root by walking up from cwd looking for bldr.yaml.
+	// Find the project root by walking up from cwd looking for bldr.yaml.
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		return "", err
@@ -96,7 +96,7 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 	distPath := filepath.Join(stateRoot, "src")
 	workingPath := filepath.Join(stateRoot, "debug", "eval")
 
-	// Check dist sources exist.
+	// Check that the dist sources exist.
 	if _, err := os.Stat(distPath); os.IsNotExist(err) {
 		return "", errors.New("bldr dist sources not found at .bldr/src/; run 'bldr setup' first")
 	}
@@ -112,7 +112,7 @@ func (a *ClientArgs) bundleTypeScript(ctx context.Context, filePath string) (str
 		le.WithError(err).Warn("failed to parse webPkgs from bldr.yaml")
 	}
 
-	// Merge CLI --web-pkgs.
+	// Merge the CLI --web-pkgs values.
 	webPkgs = bundler.MergeWebPkgStrings(webPkgs, a.WebPkgs.Value())
 	b.SetWebPkgs(webPkgs)
 

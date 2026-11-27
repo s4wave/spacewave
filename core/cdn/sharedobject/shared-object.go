@@ -106,7 +106,7 @@ func (s *CdnSharedObject) GetBlockStore() bstore.BlockStore {
 }
 
 // GetMeta returns the synthetic metadata used for display surfaces.
-// Display_name is CdnDisplayName; public_read is implicitly true because the
+// Display_name is CdnDisplayName. public_read is implicitly true because the
 // mount is anonymous and served from the public CDN.
 func (s *CdnSharedObject) GetMeta() *sobject.SharedObjectMeta {
 	return s.meta
@@ -184,7 +184,7 @@ func (s *CdnSharedObject) GetSharedObjectState(_ context.Context) (sobject.Share
 }
 
 // AccessSharedObjectState returns a watchable state container. Callers
-// observe refreshed CDN checkpoints by waiting on value changes; the session
+// observe refreshed CDN checkpoints by waiting on value changes. The session
 // layer invokes RefreshSnapshot after cdn-root-changed WS frames so a
 // fresh cdnStateSnapshot is emitted here.
 func (s *CdnSharedObject) AccessSharedObjectState(_ context.Context, _ func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
@@ -283,8 +283,8 @@ func (s *cdnStateSnapshot) GetConfig(_ context.Context) (*sobject.SharedObjectCo
 	return &sobject.SharedObjectConfig{}, nil
 }
 
-// GetOwnership returns settled ownership with no owners, as the empty config
-// the CDN mount holds names none.
+// GetOwnership returns settled ownership with no owners, as the CDN mount's
+// empty config declares none.
 func (s *cdnStateSnapshot) GetOwnership(_ context.Context) (*sobject.SOOwnership, error) {
 	return sobject.DeriveSOOwnership(&sobject.SharedObjectConfig{}, nil)
 }
@@ -302,7 +302,7 @@ func (s *cdnStateSnapshot) GetTransformer(_ context.Context) (*block_transform.T
 	return nil, ErrCdnReadOnly
 }
 
-// GetTransformInfo is not available on a CDN mount; see GetTransformer.
+// GetTransformInfo is not available on a CDN mount. See GetTransformer.
 func (s *cdnStateSnapshot) GetTransformInfo(_ context.Context) (*sobject.TransformInfo, error) {
 	return nil, ErrCdnReadOnly
 }
@@ -327,7 +327,7 @@ func (s *cdnStateSnapshot) DecodeOperation(_ context.Context, _ *sobject.SOOpera
 	return nil, ErrCdnReadOnly
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var (
 	_ sobject.SharedObject               = (*CdnSharedObject)(nil)
 	_ sobject.SignedOperationQueuer      = (*CdnSharedObject)(nil)

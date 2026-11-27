@@ -23,9 +23,10 @@ import (
 )
 
 // Main boots the CliBus and runs the CLI application. flags are added to the
-// root flags, so they are accepted before any command. configureVolume, nil
-// for none, adjusts each Volume config the bus's storage builds; the bus is
-// built after the command line is parsed, so it may read the flags.
+// root flags, so they are accepted before any command. configureVolume adjusts
+// each Volume config the bus's storage builds, unless configureVolume is nil.
+// The bus is built after the command line is parsed, so configureVolume may
+// read the flags.
 func Main(
 	appName string,
 	projectID string,
@@ -204,7 +205,7 @@ func Main(
 		}
 
 		// Auto-enable a DEBUG-level file hook under <storageRoot>/logs/.
-		// EnableAutoDefault no-ops when BLDR_LOG_FILE is set; the
+		// EnableAutoDefault no-ops when BLDR_LOG_FILE is set. The
 		// logFileCleanup guard covers the case where --log-file was
 		// passed on the command line without setting BLDR_LOG_FILE.
 		if logFileCleanup == nil {
@@ -318,16 +319,17 @@ type standaloneVersionIdentity struct {
 	SchemaVersion int
 	// ProjectID is the bldr project ID.
 	ProjectID string
-	// EntrypointRole names the kind of entrypoint, here standalone.
+	// EntrypointRole identifies the kind of entrypoint, here standalone.
 	EntrypointRole string
-	// ChannelKey is the release channel; empty outside a distribution.
+	// ChannelKey is the release channel and is empty outside a distribution.
 	ChannelKey string
 	// PlatformID is the host platform, as desktop/<os>/<arch>.
 	PlatformID string
-	// Revision is the source revision of the build; empty when the build
+	// Revision is the source revision of the build and is empty when the build
 	// recorded none.
 	Revision string
-	// Manifest identifies the release manifest; empty outside a distribution.
+	// Manifest identifies the release manifest and is empty outside a
+	// distribution.
 	Manifest struct {
 		// ManifestID is the manifest ID.
 		ManifestID string

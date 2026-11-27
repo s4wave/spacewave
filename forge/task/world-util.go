@@ -129,7 +129,7 @@ func EnsureTaskHasPass(ctx context.Context, w world.WorldState, taskKey, passKey
 }
 
 // ListTaskTargets lists all Target object keys that are linked to by the Tasks.
-// note: we only expect 1 target to be linked to each at any given time.
+// Only 1 target is expected to be linked to each Task at any given time.
 func ListTaskTargets(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
 	return world.CollectGraphPathStepWithKeys(
 		ctx,

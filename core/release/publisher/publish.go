@@ -22,7 +22,8 @@ const packUploads = 4
 // Publish uploads a committed release World, advances its public checkpoint,
 // then rewrites the destination packs that are mostly unreachable from it.
 // Every referenced block must exist before any network write begins. Failed
-// uploads leave the previous checkpoint intact; content-addressed packs are retryable.
+// uploads leave the previous checkpoint intact. Content-addressed packs are
+// retryable.
 // The caller must exclusively own the local World for the operation's lifetime,
 // and the destination Space must have one publisher at a time.
 func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SOCheckpointInner, error) {
@@ -52,7 +53,8 @@ func publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		return nil, nil, err
 	}
 
-	// Exact pack indexes prove presence; Bloom filters only narrow the search.
+	// Exact pack indexes prove presence.
+	// Bloom filters only narrow the search.
 	remote := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, opts.CdnBaseURL, opts.DstSpaceID), nil, nil)
 	defer remote.Close()
 	remote.UpdateManifest(entries)

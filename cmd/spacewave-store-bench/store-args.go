@@ -16,7 +16,7 @@ type StoreArgs struct {
 	Verbose bool
 }
 
-// BuildFlags binds the store flags. A zero size keeps the server's, so the
+// BuildFlags binds the store flags. A zero size keeps the server's size, so the
 // defaults run the store as a server does.
 func (a *StoreArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{

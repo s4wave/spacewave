@@ -7,7 +7,7 @@ import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
 
 // Config is the browser volume controller config.
 message Config {
-  // Name names the volume's storage: its OPFS directory path and its
+  // Name selects the volume's storage: its OPFS directory path and its
   // IndexedDB database name.
   string name = 1;
   // KvKeyOpts are key/value key constants.

@@ -337,7 +337,8 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		}
 		requireSessionHistory(t, page.GetMessages(), want)
 
-		// Conflicting retries fail; explicit reuse keeps the original accepted body.
+		// Conflicting retries fail. Explicit reuse keeps the original
+		// accepted body.
 		conflict := retryRequest.CloneVT()
 		conflict.Text = "changed retry"
 		if _, err := resource.SendMessage(ctx, conflict); err == nil {
@@ -401,9 +402,9 @@ func mountChatEngine(t *testing.T, ctx context.Context, tb *testbed.Testbed, ref
 	return engine
 }
 
-// waitOperationSet waits until the operation set the World engine of object
-// replays satisfies cond and returns the nonce of author's latest operation in
-// it.
+// waitOperationSet waits until the operation set replayed by object's World
+// engine satisfies cond and returns the nonce of author's latest operation in
+// the set.
 func waitOperationSet(t *testing.T, ctx context.Context, object sobject.SharedObject, cond func(*sobject.SOOperationSet) bool, author string) uint64 {
 	// Watch the state.
 	t.Helper()

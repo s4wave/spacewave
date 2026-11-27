@@ -320,7 +320,7 @@ func (r *Store) EncodedObjectByHash(ph plumbing.Hash) (plumbing.EncodedObject, e
 }
 
 // IterEncodedObjects returns loose and packed objects of the requested type.
-// AnyObject and InvalidObject include every type; duplicate hashes appear once.
+// AnyObject and InvalidObject include every type. Duplicate hashes appear once.
 func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObjectIter, error) {
 	// Open the loose-object iterator for the requested type.
 	var prefix []byte
@@ -468,7 +468,7 @@ func (o *StoreEncodedObject) SetType(ot plumbing.ObjectType) {
 }
 
 // Size returns the size of the encoded object.
-// Note: this is the size of the stored data, not the block graph.
+// Note: the returned size is the size of the stored data, not the block graph.
 func (o *StoreEncodedObject) Size() int64 {
 	if o.fetched || o.bcs == nil {
 		return int64((&o.buf).Len())

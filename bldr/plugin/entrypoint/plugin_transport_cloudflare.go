@@ -28,8 +28,8 @@ const (
 )
 
 // newPluginTransport resolves the plugin transport for the current runtime.
-// For Cloudflare Workers js/wasm builds this obtains the IO from the Worker
-// host runtime globals (see plugin-goscript-cloudflare.ts).
+// For Cloudflare Workers js/wasm builds the function obtains the IO from the
+// Worker host runtime globals (see plugin-goscript-cloudflare.ts).
 func newPluginTransport() (pluginTransport, error) {
 	global := js.Global()
 	if global.IsUndefined() {

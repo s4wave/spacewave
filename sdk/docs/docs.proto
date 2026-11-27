@@ -7,7 +7,8 @@ option go_package = "github.com/s4wave/spacewave/sdk/docs;s4wave_docs";
 
 // Documentation is a world object representing a documentation site.
 // Content is sourced from a UnixFS directory (markdown files) linked via
-// the doc/source graph edge. Optionally linked to a GitRepo for versioning.
+// the doc/source graph edge. Documentation is optionally linked to a GitRepo
+// for versioning.
 message Documentation {
   // Name is the display name of the documentation site.
   string name = 1;

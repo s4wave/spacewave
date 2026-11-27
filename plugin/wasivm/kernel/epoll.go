@@ -91,7 +91,7 @@ func (p *Process) sysEpollCtl(epfd, op, fd, eventPtr uint32) uint64 {
 }
 
 // sysEpollWait writes up to maxevents events of epoll file epfd to eventsPtr
-// and returns their count. With none it waits for one, for timeout
+// and returns their count. With no events it waits for an event, for timeout
 // milliseconds unless timeout is negative. A caught signal ends the wait
 // with EINTR.
 func (p *Process) sysEpollWait(ctx context.Context, epfd, eventsPtr uint32, maxevents, timeout int32) uint64 {

@@ -17,7 +17,7 @@ import (
 )
 
 // OpenV86Root builds a v86fs Server that serves the image's rootfs as the
-// guest root. A local archive is parsed into memory; a CDN rootfs object is
+// guest root. A local archive is parsed into memory. A CDN rootfs object is
 // read lazily from the published world. The returned release func drops the
 // root and any CDN mount and must run after the guest stops using the server.
 func OpenV86Root(ctx context.Context, mode RootMode, assets *AssetSet) (*unixfs_v86fs.Server, func(), error) {

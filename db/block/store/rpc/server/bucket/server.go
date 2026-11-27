@@ -19,7 +19,7 @@ const ControllerID = "hydra/block/store/rpc/server/bucket"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// controllerDescrip is the controller description
+// controllerDescrip is the controller description.
 var controllerDescrip = "serves bucket via rpc as block store"
 
 // Controller is the bucket block store rpc service controller.

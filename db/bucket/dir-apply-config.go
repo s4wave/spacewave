@@ -100,7 +100,7 @@ func CheckApplyBucketConfigMatchesVolume(dir ApplyBucketConfig, volID string, al
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// The validation is cursory to see if the values "look correct."
 func (d *applyBucketConfig) Validate() error {
 	if d.bucketConf == nil {
 		return errors.New("bucket config cannot be empty")
@@ -117,7 +117,7 @@ func (d *applyBucketConfig) Validate() error {
 	return nil
 }
 
-// GetValueApplyBucketConfigOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *applyBucketConfig) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -191,7 +191,7 @@ func (d *applyBucketConfig) GetName() string {
 	return "ApplyBucketConfig"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *applyBucketConfig) GetDebugVals() directive.DebugValues {
 	// Build the directive's display fields.
 	vals := directive.DebugValues{}

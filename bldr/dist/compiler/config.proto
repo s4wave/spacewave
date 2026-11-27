@@ -9,8 +9,9 @@ import "github.com/s4wave/spacewave/bldr/plugin/compiler/go/compiler.proto";
 //
 // Both fields are required: the manifest id and the exact platform id of the
 // manifest build to embed. There is no implicit resolution across the dist
-// build target's expanded platform list. This forces authors to decide
-// up-front which platform variant of each manifest ships inside the binary.
+// build target's expanded platform list. Requiring exact platform ids forces
+// authors to decide up-front which platform variant of each manifest ships
+// inside the binary.
 //
 // A dist binary may host multiple plugin runtimes (native + js + wasm), so
 // a single dist build can list multiple EmbedManifest entries pointing at
@@ -35,22 +36,24 @@ message IceServer {
 
 // Config configures the dist compiler controller.
 //
-// Builds an unpacked distribution bundle of the application.
-// Contains compressed & embedded static manifests for first-run.
+// The compiler builds an unpacked distribution bundle of the application.
+// The bundle contains compressed & embedded static manifests for first-run.
 message Config {
   // EmbedManifests is the list of (manifest_id, platform_id) pairs to embed
-  // in the dist binary. Creates a ManifestStore containing the named builds.
+  // in the dist binary. The compiler creates a ManifestStore containing the
+  // named builds.
   // The manifest contents will be embedded in the dist binary.
   repeated EmbedManifest embed_manifests = 1;
 
   // LoadPlugins is the list of plugins to load on startup.
-  // Note that plugins can also load other plugins with the LoadPlugin directive.
-  // Use this to load your entrypoint plugin which then loads other plugins.
-  // This will be included in the dist binary.
+  // Plugins can also load other plugins with the LoadPlugin directive.
+  // Use LoadPlugins to load the entrypoint plugin, which then loads other
+  // plugins. The plugin list will be included in the dist binary.
   repeated string load_plugins = 2;
 
-  // LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
-  // Must be a relative path located within the project sources.
+  // LoadWebStartup is a path to a .js or .ts or .tsx file with a React
+  // component to load on startup. The path must be relative and located
+  // within the project sources.
   // The file will be bundled with esbuild into the entrypoint bundle.
   // The component should contain a <WebView /> from @aptre/bldr-react.
   // The contents will be used for the children of BldrRoot.
@@ -58,7 +61,7 @@ message Config {
 
   // HostConfigSet is a ConfigSet to apply to the host on dist startup.
   // This ConfigSet is applied to the dist host bus on startup.
-  // This will be included in the dist binary.
+  // The ConfigSet will be included in the dist binary.
   map<string, .configset.proto.ControllerConfig> host_config_set = 3;
 
   // ProjectId overrides the project id set in the project config.
@@ -82,9 +85,9 @@ message Config {
   // GoCompiler selects the Go compiler used for the dist entrypoint.
   .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
 
-  // EnableCompression can optionally force-enable or force-disable binary compression.
-  // The default is ENABLE for release-mode only.
-  // Only applicable for the web platform (WebAssembly) (currently).
+  // EnableCompression can optionally force-enable or force-disable binary
+  // compression. The default value is ENABLE for release-mode only.
+  // Compression applies only to the web platform (WebAssembly).
   .enabled.Enabled enable_compression = 7;
 
   // CliPkgs is a list of Go packages providing native CLI commands.
@@ -99,7 +102,7 @@ message Config {
 
   // BrowserIceServersEndpoint is the optional trusted same-origin path that
   // returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
-  // document shell may use it; worker-provided servers remain ignored.
+  // document shell may use it. Worker-provided servers remain ignored.
   string browser_ice_servers_endpoint = 13;
 
   // EmbedNativeVolume embeds the assets.kvfile distribution volume inside the
@@ -110,9 +113,10 @@ message Config {
   // UpdateGuardPluginIds require the running plugin's UpdateGuard service to
   // authorize hot replacement. Initial startup does not require approval.
   repeated string update_guard_plugin_ids = 15;
-  // AdmissionPluginId names the plugin that owns this device's plugin
+  // AdmissionPluginId selects the plugin that owns this device's plugin
   // approvals. The host builds its root admission controller asking that
-  // plugin in code at startup; empty leaves admission to the trusted roots.
+  // plugin in code at startup. An empty AdmissionPluginId leaves admission
+  // to the trusted roots.
   string admission_plugin_id = 19;
 
   // GoscriptDeferredFunctions lists exported package/path.Function boundaries
@@ -120,20 +124,22 @@ message Config {
   repeated string goscript_deferred_functions = 16;
 
   // NativeRunnerPackage supplies Run with the dist_entrypoint.NativeRunner
-  // signature. It owns a native event loop around the existing distribution
-  // lifetime. Empty uses the default runner; browser builds ignore this field.
+  // signature. The package owns a native event loop around the existing
+  // distribution lifetime. An empty NativeRunnerPackage uses the default
+  // runner. Browser builds ignore this field.
   string native_runner_package = 17;
 
   // ComposePackage is a Go package exporting Compose() *compose.Composition
-  // from bldr/entrypoint/compose. The dist host calls it once at startup and
-  // adds the returned factories to its bus and, on native builds, the returned
-  // commands to its CLI. May be relative to the project module.
+  // from bldr/entrypoint/compose. The dist host calls Compose() once at
+  // startup and adds the returned factories to its bus and, on native builds,
+  // the returned commands to its CLI. The package path may be relative to
+  // the project module.
   string compose_package = 18;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
 message PreBuildHookResult {
   // Config is the configuration for the dist build step.
-  // Merged with the existing configuration.
+  // The hook configuration is merged with the existing configuration.
   Config config = 1;
 }

@@ -383,7 +383,7 @@ describe('WizardViewer', () => {
   })
 
   it('shows the gone screen, not a failure, when a Cancel finds the wizard gone', async () => {
-    // Another tab finished first; this tab's watch has not caught up.
+    // Another tab finished first, but this tab's watch has not caught up.
     const user = userEvent.setup()
     mocks.t.state.objects.delete('wizard/test-canvas')
     renderViewer()
@@ -527,7 +527,7 @@ describe('WizardViewer', () => {
   })
 
   it('shows the gone state, with no Retry, when another tab removed the wizard', async () => {
-    // Another tab finished first; this tab's watch has not caught up.
+    // Another tab finished first, but this tab's watch has not caught up.
     const user = userEvent.setup()
     mocks.t.state.objects.delete('wizard/test-canvas')
     renderViewer()

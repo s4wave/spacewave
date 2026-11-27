@@ -21,9 +21,10 @@ type LookupSessionController interface {
 // LookupSessionControllerValue is the result type for LookupSessionController.
 type LookupSessionControllerValue = SessionController
 
-// ExLookupSessionController executes a lookup for a single session controller on the bus.
+// ExLookupSessionController executes a lookup for a single session controller
+// on the bus.
 //
-// id should be set to filter to a specific session controller id
+// id should be set to filter to a specific session controller id.
 // If waitOne is set, waits for at least one value before returning.
 // Returns when the directive becomes idle.
 func ExLookupSessionController(
@@ -46,7 +47,7 @@ func ExLookupSessionController(
 	return av.GetValue(), avRef, nil
 }
 
-// lookupSessionController implements LookupSessionController
+// lookupSessionController implements LookupSessionController.
 type lookupSessionController struct {
 	id string
 }
@@ -64,7 +65,7 @@ func (d *lookupSessionController) Validate() error {
 	return nil
 }
 
-// GetValueLookupProviderOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupSessionController) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -107,7 +108,7 @@ func (d *lookupSessionController) GetName() string {
 	return "LookupSessionController"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupSessionController) GetDebugVals() directive.DebugValues {

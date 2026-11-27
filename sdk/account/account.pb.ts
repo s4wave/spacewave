@@ -1006,7 +1006,7 @@ export interface SSOCodeExchangeResponse {
    */
   authParams?: string
   /**
-   * Provider is set when linked=false.
+   * SsoProvider is set when linked=false.
    */
   ssoProvider?: string
   /**

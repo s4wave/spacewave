@@ -5,10 +5,11 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// The root blocks name their refs by id so a generic walker, such as
-// block.ExtractBlockRefs on a block the type registry decoded, sees the same
-// children the writer listed. A single ref uses its proto field number; the
-// entry i of a repeated field uses repeatedRefID(field, i).
+// repeatedRefShift is the bit shift that separates a repeated ref's field
+// number from its index. The root blocks identify their refs by id so a generic
+// walker, such as block.ExtractBlockRefs on a block the type registry decoded,
+// sees the same children the writer listed. A single ref uses its proto field
+// number. The entry i of a repeated field uses repeatedRefID(field, i).
 const repeatedRefShift = 24
 
 // repeatedRefID is the ref id of entry idx of the repeated ref field field.
@@ -17,7 +18,7 @@ func repeatedRefID(field uint32, idx int) uint32 {
 }
 
 // repeatedRefIndex returns the entry index of id within the repeated field
-// field of n entries, or false when id names no entry of it.
+// field of n entries, or false when id identifies no entry of that field.
 func repeatedRefIndex(id, field uint32, n int) (int, bool) {
 	if id>>repeatedRefShift != field {
 		return 0, false
@@ -55,7 +56,7 @@ func (h *HeldRoots) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 }
 
 // GetBlockRefCtor returns the earlier block's constructor. A held root's type
-// depends on the root that holds the block, so it has none.
+// depends on the root that holds the block, so a held root has no constructor.
 func (h *HeldRoots) GetBlockRefCtor(id uint32) block.Ctor {
 	if id == 2 {
 		return func() block.Block { return &HeldRoots{} }
@@ -82,7 +83,7 @@ func (s *ReplaySpan) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns the span's Worlds, payloads and earlier span.
 func (s *ReplaySpan) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	// Name the Worlds, then the payloads, then the earlier span.
+	// Record the Worlds, then the payloads, then the earlier span.
 	m := make(map[uint32]*block.BlockRef, len(s.GetWorlds())+len(s.GetPayloads())+1)
 	addRepeatedRefs(m, 1, s.GetWorlds())
 	addRepeatedRefs(m, 2, s.GetPayloads())

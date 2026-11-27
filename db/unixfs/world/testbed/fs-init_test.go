@@ -38,8 +38,9 @@ func TestFsInitAdoptsExistingRoot(t *testing.T) {
 	}
 	sourceRef := readRootRef(ctx, t, ws, "fs/source")
 
-	// Initialize a second object from the source root at a later time, which
-	// would produce a different root if FsInit created a new filesystem.
+	// Initialize a second object from the source root at a later time.
+	// The later time would produce a different root if FsInit created a new
+	// filesystem.
 	if _, _, err := unixfs_world.FsInit(ctx, ws, sender, "fs/adopted", fsType, sourceRef, false, created.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}

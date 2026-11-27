@@ -37,7 +37,8 @@ export interface BuilderConfig {
   engineId?: string
   /**
    * LinkObjectKeys is the list of object keys to link to the manifest.
-   * NOTE: also used to search for other manifests in the dist compiler.
+   * NOTE: LinkObjectKeys is also used to search for other manifests in the
+   * dist compiler.
    */
   linkObjectKeys?: string[]
   /**
@@ -46,15 +47,18 @@ export interface BuilderConfig {
   peerId?: string
   /**
    * ProjectId is the project identifier.
-   * Must be a valid-dns-label.
-   * Used to construct the application storage and dist bundle filenames.
+   * ProjectId must be a valid-dns-label.
+   * ProjectId is used to construct the application storage and dist bundle
+   * filenames.
    */
   projectId?: string
   /**
    * TargetPlatformIds contains all platform IDs from the build target.
-   * Used by the dist compiler to collect manifests from all compatible platforms.
+   * The dist compiler uses TargetPlatformIds to collect manifests from all
+   * compatible platforms.
    * For example, a browser target may include ["web/js/wasm", "js"].
-   * If empty, falls back to using only the platform_id from ManifestMeta.
+   * If TargetPlatformIds is empty, the dist compiler falls back to using only
+   * the platform_id from ManifestMeta.
    */
   targetPlatformIds?: string[]
   /**
@@ -106,7 +110,7 @@ export interface BuilderResult {
   manifestRef?: ManifestRef
   /**
    * InputManifest details which files were used to produce Manifest.
-   * Used for change detection.
+   * InputManifest is used for change detection.
    */
   inputManifest?: InputManifest
   /**
@@ -116,7 +120,7 @@ export interface BuilderResult {
   subManifestResults?: { [key: string]: BuilderResult }
   /**
    * SourceRef retains the exact Space source filesystem in this result's bucket.
-   * Native checkout builds omit it; Space builds store a local DAG reference.
+   * Native checkout builds omit it, but Space builds store a local DAG reference.
    */
   sourceRef?: ObjectRef
 }
@@ -141,17 +145,17 @@ export const BuilderResult: MessageType<BuilderResult> =
 export interface InputManifest {
   /**
    * Files is the list of consumed source files.
-   * Optional.
+   * Files is optional.
    */
   files?: InputManifest_File[]
   /**
    * Metadata is additional builder-specific metadata about the output.
-   * Optional.
+   * Metadata is optional.
    */
   metadata?: Uint8Array
   /**
    * StartupInputs are typed non-file inputs used for startup validation.
-   * Optional.
+   * StartupInputs is optional.
    */
   startupInputs?: InputManifest_StartupInput[]
 }
@@ -241,12 +245,12 @@ export interface InputManifest_File {
   path?: string
   /**
    * Metadata is additional builder-specific metadata about the file.
-   * Optional.
+   * Metadata is optional.
    */
   metadata?: Uint8Array
   /**
    * Identity is the publish-time file identity for startup validation.
-   * Optional.
+   * Identity is optional.
    */
   identity?: InputManifest_FileIdentity
   /**
@@ -257,9 +261,9 @@ export interface InputManifest_File {
   /**
    * DirSuffix marks Path as a directory whose files ending in DirSuffix,
    * such as ".sql", are read as inputs. The input is the list of those file
-   * names, so adding or removing one changes it; each file's content is an
+   * names, so adding or removing one changes it. Each file's content is an
    * input of its own.
-   * Optional.
+   * DirSuffix is optional.
    */
   dirSuffix?: string
 }
@@ -319,20 +323,21 @@ export const InputManifest_StartupInput: MessageType<InputManifest_StartupInput>
 export interface BuildManifestArgs {
   /**
    * BuilderConfig is the builder configuration.
-   * Must be set.
+   * BuilderConfig must be set.
    */
   builderConfig?: BuilderConfig
   /**
    * PrevBuilderResult is the previous builder result, if applicable.
-   * Set only if we are re-building the manifest after a file changed.
-   * May be nil.
+   * PrevBuilderResult is set only if the builder is re-building the manifest
+   * after a file changed.
+   * PrevBuilderResult may be nil.
    */
   prevBuilderResult?: BuilderResult
   /**
    * ChangedFiles is the list of files from PrevBuilderResult InputManifest
    * filtered to contain only files that changed since the previous build. //
-   * Set only if PrevBuilderResult is set.
-   * May be nil.
+   * ChangedFiles is set only if PrevBuilderResult is set.
+   * ChangedFiles may be nil.
    */
   changedFiles?: InputManifest_File[]
 }

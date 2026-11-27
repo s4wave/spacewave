@@ -31,7 +31,7 @@ func (v *ValueSet) IsNil() bool {
 	return v == nil
 }
 
-// Validate performs cursory checks of the ValueSet.
+// Validate cursorily checks the ValueSet.
 func (v *ValueSet) Validate() error {
 	// Validate the input and output values in the ValueSet.
 	for idx, inp := range v.GetInputs() {

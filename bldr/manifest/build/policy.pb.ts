@@ -23,19 +23,19 @@ export interface BuildPolicy {
   /**
    * JsSourcemaps controls JavaScript sourcemap emission.
    *
-   * DEFAULT preserves build-type defaults: dev builds emit sourcemaps where
-   * builders previously did, while release builds do not emit sourcemaps.
+   * DEFAULT preserves build-type defaults: dev builds preserve each builder's
+   * sourcemap behavior, while release builds do not emit sourcemaps.
    */
   jsSourcemaps?: Enabled
   /**
-   * GoScriptCodeSplitting controls Rolldown code splitting for GoScript
+   * GoscriptCodeSplitting controls Rolldown code splitting for GoScript
    * wrapper bundles.
    * DEFAULT emits split GoScript wrapper bundles. ENABLE also permits chunk
-   * output; DISABLE forces single-file output.
+   * output, while DISABLE forces single-file output.
    */
   goscriptCodeSplitting?: Enabled
   /**
-   * GoScriptDeadCodeElimination controls whether GoScript leaves the code a
+   * GoscriptDeadCodeElimination controls whether GoScript leaves the code a
    * program cannot reach out of its output.
    * DEFAULT eliminates dead code in release builds only, because elimination
    * compiles without the GoScript compiler cache.

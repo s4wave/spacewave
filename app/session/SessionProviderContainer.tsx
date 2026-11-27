@@ -7,7 +7,7 @@ import type { WatchOnboardingStatusResponse } from '@s4wave/sdk/provider/spacewa
 
 // SessionProviderContainer dispatches to provider-specific content wrappers
 // based on the session's provider ID. Spacewave sessions get Onboarding Status
-// route context and lapse banner; local sessions get the setup banner.
+// route context and lapse banner. Local sessions get the setup banner.
 export function SessionProviderContainer(props: {
   providerId?: string
   metadata?: SessionMetadata

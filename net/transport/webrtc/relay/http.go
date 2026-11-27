@@ -15,7 +15,7 @@ const maxResponseSize = 64 * 1024
 // ErrStatus is returned when the credentials route answers without credentials.
 var ErrStatus = errors.New("relay credentials route refused the request")
 
-// NewHandler serves issuer's credentials to the session auth names.
+// NewHandler serves issuer's credentials to the session auth identifies.
 //
 // auth returns the signed-in session's peer, or false to refuse the request.
 // The response is the binary Credentials message and is never cached. Issuer
@@ -37,7 +37,8 @@ func NewHandler(issuer Issuer, auth func(r *http.Request) (peer.ID, bool)) http.
 			return
 		}
 
-		// Issue for this session; the reason for a failure stays on the server.
+		// Issue for this session. The reason for a failure stays on the
+		// server.
 		creds, err := issuer.Issue(r.Context(), session)
 		if err != nil {
 			http.Error(w, "relay unavailable", http.StatusServiceUnavailable)

@@ -84,7 +84,7 @@ func SyncResultGraphQuads(ctx context.Context, ws world.WorldState, objectKey st
 	))
 }
 
-// Validate performs cursory checks on the SQL query result root.
+// Validate checks the SQL query result root cursorily.
 func (r *QueryResult) Validate() error {
 	return nil
 }

@@ -83,7 +83,8 @@ type transportCompositionOwner struct {
 	mtx      sync.Mutex
 	sessions map[string]*transportCompositionSession
 
-	// Hooks keep the state machine independently testable. Production hooks bind
+	// startDirect, stopDirect and transportState keep the state machine
+	// independently testable. Production hooks bind
 	// transportCompositionOwner to the account's SessionTransport and P2P
 	// lifecycle maps.
 	startDirect    func(context.Context, string, crypto.PrivKey, string) (transportCompositionLinkSource, error)
@@ -92,7 +93,8 @@ type transportCompositionOwner struct {
 }
 
 // init binds the owner to its account and production hooks. Idempotent: the
-// first caller constructs the shared state; later calls return it unchanged.
+// first caller constructs the shared state. Subsequent calls return it
+// unchanged.
 func (o *transportCompositionOwner) init(account *ProviderAccount) {
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
@@ -173,7 +175,7 @@ func (o *transportCompositionOwner) findSession(sessionID string) *transportComp
 }
 
 // ConfigureSessionTransport reconciles one mounted Session's direct policy.
-// Startup work is bound to ctx; the running link watcher outlives ctx and ends
+// Startup work is bound to ctx. The running link watcher outlives ctx and ends
 // only when the composition stops.
 func (a *ProviderAccount) ConfigureSessionTransport(ctx context.Context, sessionID string, sessionKey crypto.PrivKey, signalingURL string, enabled bool) error {
 	o := &a.transportComposition

@@ -32,7 +32,8 @@ func setTestXattr(p *Process, mem *memMemory, name, value string, flags uint32) 
 // TestSetxattrCreateAndReplace checks setxattr honors XATTR_CREATE and
 // XATTR_REPLACE.
 func TestSetxattrCreateAndReplace(t *testing.T) {
-	// Create, recreate, replace a missing attribute and replace.
+	// Create and recreate an attribute, replace a missing attribute and replace
+	// the existing attribute.
 	p, mem := xattrTestProcess()
 	tests := []struct {
 		name, value string

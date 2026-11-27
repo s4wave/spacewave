@@ -11,8 +11,8 @@ import (
 
 // Iterator iterates over SQLite results using direct SELECTs on the queryer.
 //
-// This intentionally does not hold an explicit read transaction open. Each
-// Seek/Next is a standalone query, which removes BEGIN/ROLLBACK overhead at the
+// Iterator intentionally does not hold an explicit read transaction open.
+// Each Seek/Next is a standalone query, removing BEGIN/ROLLBACK overhead at the
 // cost of allowing iteration to observe concurrent writes.
 type Iterator struct {
 	ctx     context.Context
@@ -24,17 +24,18 @@ type Iterator struct {
 	prefix  []byte
 	reverse bool
 
-	// Current position
+	// currentKey holds the key at the current position with currentValue.
 	currentKey   []byte
 	currentValue []byte
 
-	// State
+	// err holds iterator state along with valid, started, and closed.
 	err     error
 	valid   bool
 	started bool
 	closed  bool
 
-	// Precomputed queries for advance operation
+	// advanceForwardQuery and the following queries are precomputed for
+	// advancing.
 	advanceForwardQuery                 string
 	advanceForwardPrefixQuery           string
 	advanceForwardPrefixUnboundedQuery  string
@@ -42,7 +43,8 @@ type Iterator struct {
 	advanceBackwardPrefixQuery          string
 	advanceBackwardPrefixUnboundedQuery string
 
-	// Precomputed queries for seek operation
+	// seekForwardQuery and the following queries are precomputed for
+	// seeking.
 	seekForwardQuery                    string
 	seekForwardPrefixQuery              string
 	seekForwardPrefixNilQuery           string
@@ -106,7 +108,7 @@ func (i *Iterator) Valid() bool {
 	return !i.closed && i.valid && i.err == nil
 }
 
-// Key returns the current entry key, or nil if not valid.
+// Key returns the current entry key, or nil if the iterator is not valid.
 func (i *Iterator) Key() []byte {
 	if !i.Valid() {
 		return nil
@@ -114,7 +116,7 @@ func (i *Iterator) Key() []byte {
 	return i.currentKey
 }
 
-// Value returns the current entry value, or nil if not valid.
+// Value returns the current entry value, or nil if the iterator is not valid.
 func (i *Iterator) Value() ([]byte, error) {
 	if !i.Valid() {
 		return nil, i.Err()

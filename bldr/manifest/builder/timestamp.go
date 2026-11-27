@@ -17,7 +17,7 @@ const sourceDateEpochEnv = "SOURCE_DATE_EPOCH"
 // WithManifestCommitTimestampFromEnvironment fixes manifest construction time
 // for one builder lifecycle when SOURCE_DATE_EPOCH is present.
 func WithManifestCommitTimestampFromEnvironment(ctx context.Context) (context.Context, error) {
-	// Read SOURCE_DATE_EPOCH; without it the manifest uses the current time.
+	// Read SOURCE_DATE_EPOCH. Without it the manifest uses the current time.
 	value, ok := os.LookupEnv(sourceDateEpochEnv)
 	if !ok {
 		return ctx, nil

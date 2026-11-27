@@ -83,7 +83,8 @@ func (g *handlerWriteGuard) CheckWrite(ctx context.Context, ws world.WorldState,
 }
 
 // recordedWriteFields returns the log fields of a recorded write: the type of
-// the op it applies and the object keys it names, and nothing of its content.
+// the op the write applies and the object keys the write references, and
+// nothing of the write's content.
 // A quad contributes the keys of its subject and object, never a literal.
 func recordedWriteFields(w *world.GuardedWrite) logrus.Fields {
 	keys := w.ObjectKeys

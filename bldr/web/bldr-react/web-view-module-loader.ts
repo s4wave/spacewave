@@ -41,8 +41,9 @@ export interface LoadWebViewScriptModuleOptions<T> {
   importDeadlineMillis?: number
 }
 
-// Root-asset fetches and dynamic imports have no built-in timeout. The fetch
-// deadline bounds the diagnostic probe. The import deadline reports a stall:
+// rootAssetFetchDeadlineMillis bounds the diagnostic probe. Root-asset
+// fetches and dynamic imports have no built-in timeout. The import deadline
+// reports a stall:
 // the browser keeps loading the module, so a retry waits on the same import,
 // and the web view's reveal deadline remains the terminal bound.
 const rootAssetFetchDeadlineMillis = 45_000
@@ -135,7 +136,7 @@ async function closeResponseBody(response: Response) {
     await response.body?.cancel()
   } catch {
     // The root module is imported through the browser module loader after the
-    // diagnostic probe; failed cancellation should not mask the import result.
+    // diagnostic probe. Failed cancellation should not mask the import result.
   }
 }
 
@@ -154,7 +155,7 @@ export function recordWebViewRootAssetResult(result: WebViewRootAssetResult) {
         new CustomEvent(webViewRootAssetStatusEvent, { detail: snapshot }),
       )
     } catch {
-      // Status publication is diagnostic only; asset loading owns the result.
+      // Status publication is diagnostic only. Asset loading owns the result.
     }
   }
 }
@@ -193,7 +194,7 @@ export function recordWebViewModuleImportError(
         new CustomEvent(webViewModuleImportErrorEvent, { detail: snapshot }),
       )
     } catch {
-      // Status publication is diagnostic only; module loading owns the result.
+      // Status publication is diagnostic only. Module loading owns the result.
     }
   }
 }
@@ -256,7 +257,8 @@ export async function fetchWebViewRootAssetResult(
   }
 }
 
-// readWebViewRootAssetResult classifies the response without publishing partial results.
+// readWebViewRootAssetResult classifies the response without publishing
+// partial results.
 async function readWebViewRootAssetResult(
   scriptPath: string,
   fetchRootAsset: typeof fetch,
@@ -295,8 +297,8 @@ async function importWebViewScriptModule<T>(scriptPath: string): Promise<T> {
 }
 
 // withDeadline rejects with a timeout error if the wrapped promise does not
-// settle within deadlineMillis. The wrapped promise itself is left running;
-// its eventual result is ignored once the deadline has fired.
+// settle within deadlineMillis. The wrapped promise itself is left running.
+// Its eventual result is ignored once the deadline has fired.
 async function withDeadline<T>(
   promise: Promise<T>,
   deadlineMillis: number,
@@ -380,12 +382,13 @@ function recordModuleImportSuccess(scriptPath: string) {
       globalThis.sessionStorage.removeItem(moduleGraphReloadSessionKey)
     }
   } catch {
-    // Storage is unavailable; no reload guard was recorded.
+    // Storage is unavailable. No reload guard was recorded.
   }
 }
 
-// moduleGraphReloadSessionKey names the root script whose failed module graph
-// already reloaded this tab, so a persistent failure reloads only once.
+// moduleGraphReloadSessionKey is the storage key for the root script whose
+// failed module graph already reloaded this tab, so a persistent failure
+// reloads only once.
 const moduleGraphReloadSessionKey = 'bldr:webview-module-graph-reload'
 
 function isModuleFetchFailureMessage(message: string): boolean {
@@ -465,7 +468,8 @@ export function loadWebViewScriptModule<T>(
   return promise
 }
 
-// loadWebViewScriptModuleUncached imports once and probes HTTP details only on failure.
+// loadWebViewScriptModuleUncached imports once and probes HTTP details only
+// on failure.
 async function loadWebViewScriptModuleUncached<T>(
   scriptPath: string,
   moduleImportPath: string,

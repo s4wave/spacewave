@@ -2,7 +2,7 @@ import { pushable, Pushable } from 'it-pushable'
 import { PacketStream, castToError } from 'starpc'
 import { Source } from 'it-stream-types'
 
-// See wasm_exec.js from the Go standard library.
+// Go is described in wasm_exec.js from the Go standard library.
 declare class Go {
   importObject: WebAssembly.Imports
   env: Record<string, string>
@@ -11,7 +11,7 @@ declare class Go {
 }
 
 interface Global extends WindowOrWorkerGlobalScope {
-  // similar to OpenStreamFunc
+  // openStream is similar to OpenStreamFunc.
   openStream: (
     onMessage: (message: Uint8Array) => void,
     onClose: (errMsg?: string) => void,

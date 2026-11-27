@@ -198,7 +198,7 @@ func TestFetchDestinationHeadRefRejectsMalformedInnerState(t *testing.T) {
 	}
 }
 
-// testPublishHeadRef returns a head ref named by id.
+// testPublishHeadRef returns a head ref whose BucketId is id.
 func testPublishHeadRef(id string) *bucket.ObjectRef {
 	return &bucket.ObjectRef{
 		BucketId: id,

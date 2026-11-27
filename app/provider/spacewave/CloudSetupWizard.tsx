@@ -284,7 +284,7 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
 }
 
 // CloudSetupWizard renders the post-checkout welcome page for cloud sessions.
-// Single page with collapsible cards for backup key and PIN lock.
+// The single page has collapsible cards for backup key and PIN lock.
 export function CloudSetupWizard({
   wiz,
   exitPath,

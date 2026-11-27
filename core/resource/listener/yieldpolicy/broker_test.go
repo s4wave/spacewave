@@ -45,7 +45,7 @@ func TestPolicyAllow(t *testing.T) {
 }
 
 // TestPolicyDeny asserts that resolving a prompt with allow=false
-// produces a deny error that names the Spacewave desktop app.
+// produces a deny error that identifies the Spacewave desktop app.
 func TestPolicyDeny(t *testing.T) {
 	// Create the broker policy for a denied socket takeover.
 	b := NewBrokerWithTimeout(2 * time.Second)

@@ -130,8 +130,8 @@ vi.mock('@s4wave/sdk/world/types/types.js', () => ({
   setObjectType: vi.fn(),
 }))
 
-// SqlDatabase resolves to FakeDb via the handle mock dispatch by class name; the
-// viewer imports the real class, so rename it for the test dispatch.
+// SqlDatabase resolves to FakeDb via the handle mock dispatch by class name.
+// The viewer imports the real class, so rename the class for the test dispatch.
 vi.mock('@s4wave/sdk/sql/sql.js', () => ({
   SqlDatabase: class FakeDb {},
 }))

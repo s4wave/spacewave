@@ -9,11 +9,11 @@ import (
 // ChangeIndex holds a change feed's watchers by the names in their
 // ChangeInterests, so a ChangeSet finds the watchers it may concern with one
 // lookup per changed key and quad field, independent of the watcher count.
-// Watchers whose interest names nothing are candidates for every change.
+// Watchers whose interest records nothing are candidates for every change.
 //
 // A shared read set is indexed once by its own reads while a watcher or a held
 // set that joined it holds it, and links to the held sets it joined. A change
-// a set's reads name reaches the set's watchers and those of every held set
+// a set's reads select reaches the set's watchers and those of every held set
 // that joined it, directly or through others. A watcher holding a set built
 // from large ones thus subscribes and leaves at the cost of its own reads and
 // the sets it joins, never of every key below them. The caller synchronizes
@@ -29,7 +29,7 @@ type ChangeIndex[T comparable] struct {
 	held map[*ReadSet]*heldSet[T]
 }
 
-// heldSet is a read set the index names while a watcher or another held set
+// heldSet is a read set the index records while a watcher or another held set
 // holds it. Its names freeze when it is first held: a shared set is finished.
 type heldSet[T comparable] struct {
 	// set is the read set.
@@ -130,20 +130,20 @@ func (x *ChangeIndex[T]) releaseShared(w T, prev, next *ChangeInterest) {
 }
 
 // Candidates returns the watchers whose interest may accept changes, each
-// once, in two lists. accepted holds those a changed object key names, directly
-// or through a held set: a ChangeInterest's filter accepts any change to a key
-// it names, so these need no test. tested holds the rest that must be tested:
-// those named only by a changed quad field, whose pattern may still miss, and
-// those tested on every change, or every watcher for an unknown ChangeSet. A
-// watcher in neither rejects changes.
+// once, in two lists. accepted holds those a changed object key selects,
+// directly or through a held set: a ChangeInterest's filter accepts any change
+// to a key the interest names, so these need no test. tested holds the rest
+// that must be tested: those named only by a changed quad field, whose pattern
+// may still miss, and those tested on every change, or every watcher for an
+// unknown ChangeSet. A watcher in neither rejects changes.
 func (x *ChangeIndex[T]) Candidates(changes *ChangeSet) (accepted, tested []T) {
 	// An unknown ChangeSet reaches every watcher, to be tested.
 	if changes.Unknown {
 		return nil, slices.Collect(maps.Keys(x.interests))
 	}
 
-	// Gather the watchers and held sets the changed keys name, then those the
-	// other names reach.
+	// Gather the watchers and held sets the changed keys select, then those
+	// the other names reach.
 	sure, maybe := make(map[T]struct{}), make(map[T]struct{})
 	x.watchers.collectKeys(changes, sure)
 	x.watchers.collectOthers(changes, maybe)
@@ -152,11 +152,12 @@ func (x *ChangeIndex[T]) Candidates(changes *ChangeSet) (accepted, tested []T) {
 	x.sets.collectOthers(changes, named)
 
 	// Add the watchers of each named set and of every set that joined one. A
-	// set a changed key names is touched, and so is each set that joined it.
+	// set a changed key selects is touched, and so is each set that joined
+	// that set.
 	x.reachWatchers(keyed, sure, nil)
 	x.reachWatchers(named, maybe, keyed)
 
-	// Test only the watchers no changed key names.
+	// Test only the watchers no changed key selects.
 	for w := range maybe {
 		if _, ok := sure[w]; !ok {
 			tested = append(tested, w)
@@ -335,7 +336,7 @@ func replaceIndexed[K comparable, T comparable](index map[K]nameEntries[T], w T,
 	}
 }
 
-// collectKeys adds to found the entries a changed object key names.
+// collectKeys adds to found the entries a changed object key selects.
 func (x *nameIndex[T]) collectKeys(changes *ChangeSet, found map[T]struct{}) {
 	for _, key := range changes.Keys {
 		if entries, ok := x.keys[key]; ok {
@@ -344,7 +345,7 @@ func (x *nameIndex[T]) collectKeys(changes *ChangeSet, found map[T]struct{}) {
 	}
 }
 
-// collectOthers adds to found the entries a changed quad field names and
+// collectOthers adds to found the entries a changed quad field selects and
 // those collected for every change.
 func (x *nameIndex[T]) collectOthers(changes *ChangeSet, found map[T]struct{}) {
 	maps.Copy(found, x.all)
@@ -358,10 +359,10 @@ func (x *nameIndex[T]) collectOthers(changes *ChangeSet, found map[T]struct{}) {
 }
 
 // nameEntries are the entries one name indexes. Most names index one entry,
-// so the first is held inline and only the others take a map; an index of
+// so the first is held inline and only the others take a map. An index of
 // many names then costs no map per name.
 type nameEntries[T comparable] struct {
-	// first is an entry of the name; every name in an index has one.
+	// first is an entry of the name. Every name in an index has one.
 	first T
 	// rest holds the name's other entries, or nil.
 	rest map[T]struct{}

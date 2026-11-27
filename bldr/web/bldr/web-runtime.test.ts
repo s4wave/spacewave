@@ -726,8 +726,9 @@ describe('WebRuntime', () => {
           remoteOpen: true,
         })
         const requestPromise = (async () => {
-          // Channel streams are duplex; waiting for EOF or breaking a for-await
-          // loop can close the response path before the worker writes back.
+          // Channel streams are duplex. Waiting for EOF or breaking a
+          // for-await loop can close the response path before the worker
+          // writes back.
           const result =
             await workerStream.source[Symbol.asyncIterator]().next()
           return result.value ?? new Uint8Array()

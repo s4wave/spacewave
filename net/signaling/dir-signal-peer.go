@@ -27,7 +27,7 @@ type SignalPeer interface {
 // SignalPeerValue is the value of the SignalPeer directive.
 type SignalPeerValue = SignalPeerSession
 
-// signalPeer implements SignalPeer
+// signalPeer implements SignalPeer.
 type signalPeer struct {
 	signalingID  string
 	localPeerID  peer.ID

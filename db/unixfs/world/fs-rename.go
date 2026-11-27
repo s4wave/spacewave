@@ -14,7 +14,7 @@ import (
 
 // FsRename renames an inode from one location to another.
 // see the FsRename object for details on which fields can be empty.
-// NOTE: we use a World Op here to enable efficient cross-fs renames.
+// NOTE: FsRename uses a World Op to enable efficient cross-fs renames.
 func FsRename(
 	ctx context.Context,
 	ws world.WorldState,
@@ -27,7 +27,7 @@ func FsRename(
 	bpaths := unixfs_block.StringSlicesToPaths([][]string{srcPath, destPath})
 	wOp := NewFsRenameOp(objKey, fsType, bpaths[0], bpaths[1], ts)
 
-	// NOTE: we must return the object rev, not the world rev here.
+	// NOTE: FsRename must return the object rev, not the world rev here.
 	_, sysErr, err = ws.ApplyWorldOp(ctx, wOp, sender)
 	if err != nil {
 		return 0, sysErr, err
@@ -60,7 +60,7 @@ func NewFsRenameOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsRenameOp) Validate() error {
 	// Validate the rename timestamp, paths, object key, and filesystem type.
 	if err := o.GetTimestamp().Validate(false); err != nil {
@@ -92,7 +92,8 @@ func (o *FsRenameOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// TODO: make sure this is not is a cross-fs copy by looking at mountpoints
+	// TODO: check mountpoints to ensure the rename is within one fs,
+	// rather than a cross-fs copy.
 	return o.ApplyWorldObjectOp(ctx, le, fsObj, sender)
 }
 

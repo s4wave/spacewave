@@ -19,7 +19,7 @@ import (
 var VmV86Type = objecttype.NewObjectType(s4wave_vm.VmV86TypeID, vmV86Factory)
 
 // V86ImageType is the ObjectType for vm/image/v86 objects.
-// V86Image is metadata-only; block state is read through the objectState prop.
+// V86Image is metadata-only. Block state is read through the objectState prop.
 var V86ImageType = objecttype.NewObjectType(s4wave_vm.V86ImageTypeID, v86ImageReadOnlyFactory)
 
 // v86ImageReadOnlyFactory is a minimal factory for the read-only V86Image type.

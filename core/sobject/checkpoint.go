@@ -119,7 +119,7 @@ func (c *SOCheckpoint) UnmarshalInner() (*SOCheckpointInner, error) {
 
 // Validate checks the checkpoint body's structure.
 func (i *SOCheckpointInner) Validate() error {
-	// The body names an object, a config and a known replay rule.
+	// The body identifies an object, a config and a known replay rule.
 	if i.GetSharedObjectId() == "" {
 		return ErrEmptySharedObjectID
 	}
@@ -133,7 +133,8 @@ func (i *SOCheckpointInner) Validate() error {
 		return ErrMaxSizeExceeded
 	}
 
-	// Genesis starts the chain; every later checkpoint names its predecessor.
+	// Genesis starts the chain. Every later checkpoint references its
+	// predecessor.
 	if i.GetHeight() == 0 {
 		if len(i.GetPrevCheckpointHash()) != 0 || len(i.GetAuthors()) != 0 || i.GetSequence() != nil {
 			return errors.New("genesis checkpoint must not name previous operations")
@@ -149,7 +150,7 @@ func (i *SOCheckpointInner) Validate() error {
 	return validateAuthorHeads("authors", i.GetAuthors())
 }
 
-// validatePosition checks that pos names a real operation.
+// validatePosition checks that pos identifies a real operation.
 func validatePosition(pos *SOOperationPosition) error {
 	if _, err := parsePeerIDField(pos.GetPeerId()); err != nil {
 		return err
@@ -161,7 +162,7 @@ func validatePosition(pos *SOOperationPosition) error {
 }
 
 // validateAuthorHeads checks that each author appears once, in peer ID order,
-// at a real operation. field names the list in errors.
+// at a real operation. field identifies the list in errors.
 func validateAuthorHeads(field string, authors []*SOOperationPosition) error {
 	for j, author := range authors {
 		if err := validatePosition(author); err != nil {
@@ -176,7 +177,7 @@ func validateAuthorHeads(field string, authors []*SOOperationPosition) error {
 
 // Verify authenticates every signature on the checkpoint as written for
 // sharedObjectID and returns the body and the signers. It does not check that
-// a signer holds authority or verify the commit; ValidateAuthority does.
+// a signer holds authority or verify the commit. ValidateAuthority does.
 func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []string, error) {
 	// Decode the well-formed body bound to this object.
 	if len(c.GetInner()) == 0 {
@@ -187,7 +188,7 @@ func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []stri
 	}
 
 	// No config is in hand here, so the encoded size bounds the signature
-	// work; VerifyCommit bounds the commit by the voters of its config.
+	// work. VerifyCommit bounds the commit by the voters of its config.
 	if c.SizeVT() > MaxSyncStateSize {
 		return nil, nil, ErrMaxCountExceeded
 	}

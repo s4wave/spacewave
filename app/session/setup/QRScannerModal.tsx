@@ -5,11 +5,11 @@ import { LuX } from 'react-icons/lu'
 export interface QRScannerModalProps {
   title: string
   hint: string
-  // containerId names the element html5-qrcode renders the camera into.
+  // containerId identifies the element html5-qrcode renders the camera into.
   containerId: string
   qrboxSize: number
-  // onDecoded receives each decoded QR string. It returns true once it accepts
-  // the payload, which stops the scanner.
+  // onDecoded receives each decoded QR string and returns true once the
+  // callback accepts the payload. Returning true stops the scanner.
   onDecoded: (decoded: string) => boolean
   onClose: () => void
 }

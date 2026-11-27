@@ -139,7 +139,7 @@ func TestCreateInvite(t *testing.T) {
 		t.Fatal("invite_id mismatch")
 	}
 
-	// Duplicate should fail.
+	// Duplicate invite creation should fail.
 	err = host.CreateInvite(ctx, ownerPriv, invite)
 	if err == nil {
 		t.Fatal("expected error for duplicate invite_id")
@@ -187,7 +187,7 @@ func TestRevokeInvite(t *testing.T) {
 		t.Fatal("expected error for already-revoked invite")
 	}
 
-	// Revoking nonexistent should fail.
+	// Revoking a nonexistent invite should fail.
 	err = host.RevokeInvite(ctx, ownerPriv, "inv-999")
 	if err == nil {
 		t.Fatal("expected error for nonexistent invite")

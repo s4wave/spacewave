@@ -167,9 +167,10 @@ export const WebDocumentDefinition = {
     },
     /**
      * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
-     * If a worker already exists with that ID, it will be terminated before starting the new.
+     * If a worker already exists with that ID, the worker will be terminated
+     * before starting the new worker.
      * Returns created: false if unable to create WebWorkers.
-     * This usually creates a new SharedWorker.
+     * CreateWebWorker usually creates a new SharedWorker.
      * The worker is expected to close itself if it becomes disconnected or broken.
      * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
      *
@@ -236,9 +237,10 @@ export interface WebDocument {
 
   /**
    * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
-   * If a worker already exists with that ID, it will be terminated before starting the new.
+   * If a worker already exists with that ID, the worker will be terminated
+   * before starting the new worker.
    * Returns created: false if unable to create WebWorkers.
-   * This usually creates a new SharedWorker.
+   * CreateWebWorker usually creates a new SharedWorker.
    * The worker is expected to close itself if it becomes disconnected or broken.
    * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
    *
@@ -304,9 +306,10 @@ export interface WebDocumentHandler {
 
   /**
    * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
-   * If a worker already exists with that ID, it will be terminated before starting the new.
+   * If a worker already exists with that ID, the worker will be terminated
+   * before starting the new worker.
    * Returns created: false if unable to create WebWorkers.
-   * This usually creates a new SharedWorker.
+   * CreateWebWorker usually creates a new SharedWorker.
    * The worker is expected to close itself if it becomes disconnected or broken.
    * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
    *
@@ -404,9 +407,10 @@ export class WebDocumentClient implements WebDocument {
 
   /**
    * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
-   * If a worker already exists with that ID, it will be terminated before starting the new.
+   * If a worker already exists with that ID, the worker will be terminated
+   * before starting the new worker.
    * Returns created: false if unable to create WebWorkers.
-   * This usually creates a new SharedWorker.
+   * CreateWebWorker usually creates a new SharedWorker.
    * The worker is expected to close itself if it becomes disconnected or broken.
    * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
    *

@@ -14,7 +14,7 @@ const maxFetchRequestDataPacketBytes = 16 * 1024
 
 // Transport is an http.RoundTripper that sends each request over its own
 // Fetch RPC stream. The request body is sent in full before the response
-// headers are read, so it does not carry protocol upgrades.
+// headers are read, so the transport does not carry protocol upgrades.
 type Transport struct {
 	// caller opens one Fetch stream per request.
 	caller FetchCaller
@@ -26,8 +26,8 @@ func NewTransport(caller FetchCaller) *Transport {
 }
 
 // RoundTrip sends req and returns once the response headers arrive. The
-// response body reads the stream until its done packet; closing it closes
-// the stream.
+// response body reads the stream until its done packet. Closing the body
+// closes the stream.
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// The RoundTripper contract closes the request body on every path.
 	resp, err := roundTrip(req.Context(), t.caller, req)

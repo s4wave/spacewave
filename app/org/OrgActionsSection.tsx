@@ -21,7 +21,7 @@ export interface OrgActionsSectionProps {
   spaceCount: number
 }
 
-// OrgActionsSection renders owner-only actions (currently Delete) using the
+// OrgActionsSection renders owner-only actions (Delete) using the
 // same button-card layout as SessionDetails Actions.
 export function OrgActionsSection({
   orgId,

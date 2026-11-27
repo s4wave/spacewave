@@ -24,9 +24,9 @@ export function isAccountStatusLoaded(
 
 // isOnboardingReady returns true when the Onboarding Status route-status
 // projection is populated, account_status is out of the pre-fetch placeholder
-// states, AND the managed billing account summary has been loaded. Use this as
-// the gate before routing decisions that read subscription_status or the
-// managed_ba_count fields, so loading windows never drive a redirect.
+// states, AND the managed billing account summary has been loaded. Use this
+// predicate as the gate before routing decisions that read subscription_status
+// or the managed_ba_count fields, so loading windows never drive a redirect.
 export function isOnboardingReady(
   onboarding: WatchOnboardingStatusResponse | null | undefined,
 ): boolean {
@@ -38,10 +38,10 @@ export function isOnboardingReady(
 
 // hasReactivatableManagedBilling returns true when Onboarding Status reports
 // at least one managed billing account whose subscription_status is NOT NONE
-// (for example canceled, past_due, lapsed). Used to decide whether to route
-// inactive sessions to PlanSelectionPage (first-run or all-NONE) versus
-// NoActiveBillingAccountPage (reactivatable BAs exist). Assumes the projection
-// is ready (see isOnboardingReady).
+// (for example canceled, past_due, lapsed). The predicate decides whether to
+// route inactive sessions to PlanSelectionPage (first-run or all-NONE) versus
+// NoActiveBillingAccountPage (reactivatable BAs exist). The predicate assumes
+// the projection is ready (see isOnboardingReady).
 export function hasReactivatableManagedBilling(
   onboarding: WatchOnboardingStatusResponse,
 ): boolean {

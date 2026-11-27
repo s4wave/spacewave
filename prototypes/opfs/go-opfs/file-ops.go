@@ -106,5 +106,5 @@ func (fh *FileHandle) OpenFileOps() (FileOps, error) {
 	return newAsyncFileOps(fh)
 }
 
-// Verify SyncAccessHandle implements FileOps.
+// _ verifies that SyncAccessHandle implements FileOps.
 var _ FileOps = (*SyncAccessHandle)(nil)

@@ -13,7 +13,7 @@ import { afterEach, beforeEach } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup } from 'vitest-browser-react'
 
-// Import app CSS so individual e2e test files don't need to
+// Import app CSS so individual e2e test files don't need to import it
 import '@s4wave/web/style/app.css'
 
 // Force dark mode for consistent test rendering

@@ -217,7 +217,7 @@ export function PlanSelectionPage({
           : null,
       checkoutUrl: '',
     }),
-    // Only compute once on mount.
+    // Only compute the initial state once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
@@ -278,7 +278,7 @@ export function PlanSelectionPage({
         if (url) {
           const win = window.open(url, '_blank')
           if (!win) {
-            // Popup was blocked; show the button immediately so the user
+            // The popup was blocked, so show the button immediately so the user
             // can open Stripe with a direct click (user gesture).
             dispatch({ type: 'checkout_pending', checkoutUrl: url })
             dispatch({ type: 'popup_blocked' })
@@ -295,7 +295,8 @@ export function PlanSelectionPage({
           err instanceof ResourceClientError &&
           err.code === 'INVALID_RESOURCE'
         ) {
-          // Session resource was released during the async call; ignore.
+          // The session resource was released during the async call, so ignore
+          // the error.
           return
         }
         const msg =
@@ -306,7 +307,7 @@ export function PlanSelectionPage({
     [checkoutResultBaseUrl, session, navigate, path],
   )
 
-  // Clean up retry timer.
+  // Clean up the retry timer.
   useEffect(() => {
     return () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)

@@ -19,7 +19,7 @@ import (
 
 // FsRestoreArgs selects an exported World root and its S3 packfiles.
 type FsRestoreArgs struct {
-	// snapshotPath names the decrypted recovery root file.
+	// snapshotPath is the path to the decrypted recovery root file.
 	snapshotPath string
 	// endpoint is the S3 hostname.
 	endpoint string
@@ -62,7 +62,7 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 		return errors.New("restore destination already exists; choose a new directory")
 	}
 
-	// Read the recovery root that names the World to restore.
+	// Read the recovery root that identifies the World to restore.
 	data, err := os.ReadFile(a.snapshotPath)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 	}
 	defer tx.Discard()
 
-	// Open the UnixFS object to restore; it must be a directory.
+	// Open the UnixFS object to restore. The object must be a directory.
 	handle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, tx, "", &unixfs_world.UnixfsRef{ObjectKey: a.objectKey}, false, false, time.Time{})
 	if err != nil {
 		return err
@@ -120,7 +120,8 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 		return errors.New("recovery object must be a directory")
 	}
 
-	// Keep partially restored data on failure for inspection; success means every file copied.
+	// Keep partially restored data on failure for inspection.
+	// Success means every file was copied.
 	if err := os.Mkdir(destination, 0o700); err != nil {
 		return err
 	}

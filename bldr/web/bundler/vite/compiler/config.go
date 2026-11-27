@@ -179,7 +179,8 @@ func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
 	}
 
 	// None
-	// Apply base platform ID match second (if different from full).
+	// Apply base platform ID match second (if different from the full
+	// platform ID).
 	if baseID != fullID {
 		if conf, ok := platformTypes[baseID]; ok {
 			conf.PlatformTypes = nil

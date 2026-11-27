@@ -33,7 +33,7 @@ func (r *Chunk) Validate() error {
 }
 
 // FetchData fetches the data reference.
-// bcs should be located at chunk
+// bcs should be located at the chunk.
 func (r *Chunk) FetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool) ([]byte, error) {
 	return r.fetchData(ctx, bcs, copyBuf, true)
 }
@@ -120,7 +120,7 @@ func (r *Chunk) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: the result does not include pending references (in a cursor).
 func (r *Chunk) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	if r == nil {
 		return nil, nil

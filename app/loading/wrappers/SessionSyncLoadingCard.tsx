@@ -11,7 +11,7 @@ interface SessionSyncLoadingCardProps {
 
 // SessionSyncLoadingCard renders the session sync status as a LoadingCard
 // using the provider-owned sync watch. Use this anywhere the legacy "Loading
-// session..." placeholder or bespoke sync-status card appeared.
+// session..." placeholder or custom sync-status card appeared.
 export function SessionSyncLoadingCard({
   onRetry,
   className,

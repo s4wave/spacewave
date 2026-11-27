@@ -114,7 +114,7 @@ func TestPoolSetLimit(t *testing.T) {
 	i := recv(t, inter)
 
 	// At a limit of two with a reserve of one, the refill may hold one lane,
-	// but the limit is held; at three it takes its lane.
+	// but the limit is held. At three the refill takes its lane.
 	select {
 	case <-bg:
 		t.Fatal("refill took a lane past the limit")
@@ -237,7 +237,7 @@ func TestPoolProbes(t *testing.T) {
 	p.SetLimit(0)
 	p.SetProbes(1)
 
-	// One urgent call probes; the next urgent and an interactive call wait.
+	// One urgent call probes. The next urgent and an interactive call wait.
 	probe := take(t, p, urgent, nil)
 	if !probe.Probe {
 		t.Fatal("urgent lease taken while paused is not a probe")
@@ -307,7 +307,7 @@ func TestPoolFloorAlternates(t *testing.T) {
 	refills := []<-chan granted{wait(p, refill, nil), wait(p, refill, nil)}
 	bg := wait(p, block.WithBackground(ctx), nil)
 
-	// Release two lanes; the background call takes one of them.
+	// Release two lanes so the background call takes one of them.
 	p.Put(held[0])
 	p.Put(held[1])
 	select {

@@ -33,7 +33,7 @@ import type {
 } from '@s4wave/sdk/layout/layout.pb.js'
 import { BASE_MODEL } from './layout.js'
 
-// Test wrapper component that provides necessary context
+// TestBaseLayout is a test wrapper component that provides necessary context.
 function TestBaseLayout(
   props: Omit<IBaseLayoutProps, 'layoutHost'> & { layoutHost: LayoutHost },
 ) {
@@ -223,7 +223,7 @@ describe('BaseLayout E2E', () => {
 
   it('connects to the test server', () => {
     if (!client) {
-      return // Skip if no server
+      return // Skip if no server is available
     }
 
     expect(client.isConnected()).toBe(true)
@@ -343,7 +343,7 @@ describe('BaseLayout E2E', () => {
       <TestBaseLayout
         layoutHost={layoutHost}
         renderTab={({ tabID, tabData }) => {
-          // tabData is always a Uint8Array - empty when no data is set
+          // tabData is always a Uint8Array, empty when no data is set
           const decoded = tabData ? new TextDecoder().decode(tabData) : ''
           const hasData = tabData && tabData.length > 0
           return (
@@ -412,7 +412,8 @@ describe('BaseLayout E2E', () => {
     await navigateBtn.click()
 
     // The navigate function should call the RPC without throwing
-    // (The Go server will receive it, but we can't easily verify that from the browser)
+    // (The Go server will receive the RPC, but receipt can't easily be verified
+    // from the browser)
     // Just verify the button exists and is clickable
     await expect.element(navigateBtn).toBeInTheDocument()
   })
@@ -628,7 +629,7 @@ describe('BaseLayout E2E', () => {
     const startX = tabRect.left + tabRect.width / 2
     const startY = tabRect.top + tabRect.height / 2
 
-    // Helper to create DataTransfer mock
+    // createDataTransfer creates a DataTransfer mock.
     const createDataTransfer = () => new DataTransfer()
 
     // FlexLayout uses HTML5 Drag and Drop API, not mouse events
@@ -678,8 +679,9 @@ describe('BaseLayout E2E', () => {
     expect(outlineRect1).not.toBeNull()
 
     // 4. Now drag over the tab panel content area (rendered outside FlexLayout)
-    // This is the key test - BaseLayout renders tabs with absolute positioning
-    // outside the FlexLayout DOM structure
+    // Dragging over the tab panel content area is the key test: BaseLayout
+    // renders tabs with absolute positioning outside the FlexLayout DOM
+    // structure
     const bodyX = tabPanelRect.left + tabPanelRect.width / 2
     const bodyY = tabPanelRect.top + tabPanelRect.height / 2
 
@@ -718,7 +720,7 @@ describe('BaseLayout E2E', () => {
       expect.element(tab2Button).toBeInTheDocument(),
     ])
 
-    // Verify we can still switch tabs (proves layout state wasn't corrupted)
+    // Verify tabs can still be switched (proves layout state wasn't corrupted)
     await tab2Button.click()
     await expect.element(tab2Button).toHaveAttribute('aria-pressed', 'true')
 

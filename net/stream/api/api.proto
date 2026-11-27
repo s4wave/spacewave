@@ -35,7 +35,7 @@ message ListenStreamsResponse {
 
 // AcceptStreamRequest is the request type for AcceptStream.
 message AcceptStreamRequest {
-  // Config is the configuration for the accept.
+  // Config is the configuration for the accept operation.
   // The first packet will contain this value.
   accept.Config config = 1;
   // Data is a data packet.
@@ -50,7 +50,7 @@ message AcceptStreamResponse {
 
 // DialStreamRequest is the request type for DialStream.
 message DialStreamRequest {
-  // Config is the configuration for the dial.
+  // Config is the configuration for the dial operation.
   // The first packet will contain this value.
   dial.Config config = 1;
   // Data is a data packet.

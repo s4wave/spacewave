@@ -9,7 +9,7 @@ import (
 // Definition is one store health Alarm: the queries its watch runs, the
 // function that decides it from their results, its title and its hold time.
 type Definition struct {
-	// Name names the Alarm, such as "volume-gc-stuck".
+	// Name is the Alarm's name, such as "volume-gc-stuck".
 	Name string
 	// Title is the Alarm's title.
 	Title string
@@ -18,7 +18,7 @@ type Definition struct {
 	// Queries are the PromQL queries the function reads, by name.
 	Queries []*alarm_watch.Query
 	// Source is the TypeScript source of the function. It fires while any
-	// query returns a series, and names each volume in the summary.
+	// query returns a series, and lists each volume in the summary.
 	Source string
 }
 

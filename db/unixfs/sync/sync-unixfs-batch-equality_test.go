@@ -138,10 +138,11 @@ func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch boo
 				t.Fatalf("SyncToUnixfsBatch pass %d: %v", i, err)
 			}
 		} else {
-			// Pin the billy op timestamp so per-op writes stamp every entry
-			// with the same mtime the batch path lifts off the source.
-			// Without this, billy defaults to time.Now() per write and root
-			// refs diverge purely on dirent timestamps.
+			// Pin the billy op timestamp so per-op writes stamp every
+			// entry with the same mtime the batch path lifts off the
+			// source. Without the pinned timestamp, billy defaults to
+			// time.Now() per write and root refs diverge purely on
+			// dirent timestamps.
 			bfs := unixfs_billy.NewBillyFS(ctx, dstRef, "", rootfsFixtureTime)
 			if err := SyncToBilly(ctx, bfs, srcHandle, DeleteMode_DeleteMode_NONE, nil); err != nil {
 				srcHandle.Release()
@@ -195,7 +196,7 @@ func TestRootRefEqualAcrossModes(t *testing.T) {
 
 // buildRootfsFixtureOverwrite returns a tar payload with the same layout as
 // buildRootfsFixture but with etc/passwd's contents replaced. Imported as a
-// second pass on top of buildRootfsFixture, this exercises the overwrite
+// second pass on top of buildRootfsFixture, the payload exercises the overwrite
 // path on both the per-op (billy Create over an existing file) and batch
 // (BatchFSWriter in-place dirent NodeRef replacement) implementations.
 func buildRootfsFixtureOverwrite() []byte {
@@ -311,7 +312,7 @@ func buildDeepRootfsFixture() []byte {
 // TestRootRefEqualDeepNesting covers Phase 4 iter 5: the per-op and batch
 // paths must agree on rootRef for a tree with 4 levels of nested
 // directories, with files and a symlink mixed across several intermediate
-// depths. This is the structural stress test for Phase 1 iter 6's
+// depths. This test is the structural stress test for Phase 1 iter 6's
 // depth-ordered Commit merge and the dirty-cursor propagation that feeds
 // the final btx.Write.
 func TestRootRefEqualDeepNesting(t *testing.T) {

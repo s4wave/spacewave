@@ -29,11 +29,11 @@ func (r *DeliverEventsRequest) Validate() error {
 // DeliverEvents queues one arrival per event along each connection from an
 // event-source node into a Step input, and stores the cursor after the last
 // event. It applies only when the run's stored cursor for the node equals the
-// cursor the request read; otherwise it changes nothing and returns
+// cursor the request read. Otherwise DeliverEvents changes nothing and returns
 // DELIVER_EVENTS_RESULT_STALE_CURSOR, and the caller resumes from the stored
 // cursor. The arrivals and the cursor are written together, so an event is
 // never queued without its cursor or the cursor moved without its event.
-// Call it in a write transaction; the run controller for runKey routes the
+// Call it in a write transaction. The run controller for runKey routes the
 // arrivals. For a bound source, pass its current type binding to validate
 // named output ports. Unbound sources use the authored ports.
 func DeliverEvents(

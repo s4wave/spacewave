@@ -30,7 +30,8 @@ func readSpaceHealth(ctx context.Context, sess *s4wave_session.Session, spaceID 
 
 // formatSyncPeerCount summarizes how many participants have a running stream.
 func formatSyncPeerCount(peers []*sobject.SOSyncPeer) string {
-	// Name the absence of peers, which a Space on one device always reports.
+	// Report the absence of peers, which a Space on one device always
+	// reports.
 	if len(peers) == 0 {
 		return "no peers since start"
 	}
@@ -48,7 +49,7 @@ func formatSyncPeerCount(peers []*sobject.SOSyncPeer) string {
 // writeSyncPeers writes one row per participant stream: its state, when the
 // state began, and the error that ended a disconnected stream.
 func writeSyncPeers(w io.Writer, peers []*sobject.SOSyncPeer) {
-	// Write nothing without peers; the summary line says so.
+	// Write nothing without peers, and let the summary line say so.
 	if len(peers) == 0 {
 		return
 	}

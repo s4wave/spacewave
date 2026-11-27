@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/sbset"
 )
 
-// Handle is a open file handle, using a block transaction and a
+// Handle is an open file handle using a block transaction.
 // Not concurrency safe.
 // Handle reads a file block through a cursor.
 type Handle struct {
@@ -34,7 +34,7 @@ type Handle struct {
 	rangeSet *sbset.SubBlockSet
 	// currentRangeIdx is the index of currentRange.
 	currentRangeIdx int
-	// currentRange is the range currently being read.
+	// currentRange is the range being read.
 	currentRange *Range
 	// currentBlob is the open reader over currentRange, nil if empty.
 	currentBlob *blob.Reader
@@ -181,7 +181,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 
 		readN := int(readEnd - idx) //nolint:gosec
 		if r.currentRange == nil || r.currentBlob == nil {
-			// this is optimized by compiler to memset
+			// compiler optimizes the zeroing loop to memset
 			for i := range readN {
 				p[n+i] = 0
 			}
@@ -241,8 +241,8 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 // file and an error, if any.
 //
 // Seeking to an offset before the start of the file is an error.
-// Seeking to any positive offset is legal, but the behavior of subsequent
-// Read and Seek are not concurrent safe.
+// Seeking to any positive offset is legal, but subsequent Read and Seek
+// calls are not concurrent safe.
 func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 	// Require file bounds that fit the signed seek offsets.
 	if r.idx > math.MaxInt64 {
@@ -327,9 +327,9 @@ func (r *Handle) evaluateCurrentRange() error {
 			return nil
 		}
 
-		// say we are at index 100
+		// say the handle is at index 100
 		// blob might start at index 50
-		// we need to seek 100-50 = 50 past the start
+		// the handle needs to seek 100-50 = 50 past the start
 		if r.idx > math.MaxInt64 || r.currentRange.GetStart() > math.MaxInt64 {
 			r.clearReadState()
 			return errors.New("position exceeds maximum")
@@ -439,7 +439,7 @@ func (r *Handle) evaluateCurrentRange() error {
 	// Read a sparse span until the next range or the end of the file.
 	if r.currentRange == nil {
 		// there is no range for this index (zeros, sparse file)
-		// nextEval is set to the next block we will encounter
+		// nextEval is set to the next block the handle will encounter
 		// if there is no nextEval:
 		if r.nextEval == 0 {
 			r.nextEval = totalSize
@@ -448,7 +448,7 @@ func (r *Handle) evaluateCurrentRange() error {
 	}
 
 	// lookup the blob at this index.
-	// this might trigger a network fetch.
+	// the lookup might trigger a network fetch.
 	_, blobCs, err := r.followRootRangeBlobRef(
 		r.currentRangeIdx,
 		r.currentRange.GetRef(),

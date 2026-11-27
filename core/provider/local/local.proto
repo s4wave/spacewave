@@ -49,7 +49,8 @@ message ParticipantObjectBinding {
 message Config {
   // ProviderId is the provider identifier.
   // Defaults to "local" if unset.
-  // NOTE: Many places in the codebase expect this to be "local" so change carefully!
+  // NOTE: Many places in the codebase expect ProviderId to be "local", so
+  // change carefully!
   string provider_id = 1;
   // PeerId is the peer id to use.
   // If empty, uses the first value returned from GetPeer
@@ -59,7 +60,7 @@ message Config {
   string storage_id = 3;
   // SignalingUrl is the trusted Spacewave Cloud signaling base URL used by
   // standalone local sessions without a linked cloud account. Each session
-  // signs its own short-lived ticket request with its session keypair; no
+  // signs its own short-lived ticket request with its session keypair. No
   // cloud account or provider credential is involved. Empty disables WebRTC
   // signaling for standalone sessions.
   string signaling_url = 4;
@@ -96,7 +97,8 @@ message AccountReplicaCopyState {
   uint64 bytes = 4;
   // Complete is set only after all reachable blocks cross the durability fence.
   bool complete = 5;
-  // Error describes why this head could not finish; a later attempt resumes from local blocks.
+  // Error describes why this head could not finish. A later attempt resumes
+  // from local blocks.
   string error = 6;
   // LinkedProofs is set before a walk that counts an own Device's linked
   // file chunks as present, and stays set across heads until a walk that
@@ -111,7 +113,7 @@ message AccountReplicaCopyState {
 // knows of its source. It is stored at SobjectOriginKey.
 message SharedObjectOrigin {
   // Generation is the list entry generation of the object the origin was
-  // written for. An origin naming another generation belongs to an earlier
+  // written for. An origin referencing another generation belongs to an earlier
   // lifetime of the id and counts as no origin.
   string generation = 1;
   // Arriving is set from the listing until the caller writes the object's

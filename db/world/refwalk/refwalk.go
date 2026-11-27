@@ -1,7 +1,7 @@
 // Package refwalk walks the blocks below a World, decoding each by its type,
 // and reports each decoded block's refs.
 //
-// Below an object's root the walk is generic: a block names its children's
+// Below an object's root the walk is generic: a block declares its children's
 // types through GetBlockRefCtor, and a tree passes its value type down. An
 // object's root is typed by the object's type ID, which by the contract on
 // objecttype.ObjectType.GetObjectTypeID is the type ID of its root block: the
@@ -115,8 +115,8 @@ func (w *Walker) KeepBytes() {
 // it reads that block and the blocks below it with ScanHits, each as a Node
 // whose Untyped gives the reason, decoded with its holder's transform. It
 // also scans every block it decodes by type and reports in Visit.ScanMissed
-// the typed refs the scan did not find, which measures the scan against the
-// types. Call it before the first Walk.
+// the typed refs the scan did not find. This comparison measures the scan
+// against the types. Call it before the first Walk.
 func (w *Walker) ScanUntyped() {
 	w.scan = true
 }
@@ -215,14 +215,14 @@ func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, e
 }
 
 // PayloadNode returns the node of an operation's payload root, encoded with
-// world's transform, and false for one the walk already typed. A payload
-// root is an object root the operation set, which the World after it names,
-// or the payload of a world.PayloadOperation, which is a blob: so once the
-// Worlds that hold an operation's outcome are walked, a payload the walk
-// typed as an object root is walked under its object's type, and the rest
-// are blobs. An object root that no walked World names, such as one a later
-// transaction in its batch replaced, is read as a blob too, so the node is a
-// guess, which the walker keeps only when the block is certainly a blob.
+// world's transform, and false for one the walk already typed. A payload root
+// is an object root the operation set, referenced by the resulting World, or
+// the payload of a world.PayloadOperation, which is a blob: so once the Worlds
+// that hold an operation's outcome are walked, a payload the walk typed as an
+// object root is walked under its object's type, and the rest are blobs. An
+// object root that no walked World references, such as one a later transaction
+// in its batch replaced, is read as a blob too, so the node is a guess, which
+// the walker keeps only when the block is certainly a blob.
 func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
 	if _, ok := w.roots[ref.MarshalString()]; ok {
 		return Node{}, false, nil
@@ -316,7 +316,7 @@ func (w *Walker) Close() {
 	w.typesWorld, w.typesEngine, w.typesTx = nil, nil, nil
 }
 
-// read reads, decodes and extracts the refs of one block; of a leaf it reads
+// read reads, decodes and extracts the refs of one block. For a leaf it reads
 // only presence, or the bytes when the walker keeps them. It touches no walk
 // state, so reads run concurrently.
 func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
@@ -417,13 +417,12 @@ func (w *Walker) readUntyped(ctx context.Context, n Node) (Visit, error) {
 // certain reports whether blk, decoded from data under a guessed type, is as
 // sure a Blob as its bytes allow: a Blob that validates, that is not an empty
 // blob read from non-empty bytes, and that holds only the fields its types
-// define. Any other type, or no block, is never certain. Bytes whose wire
-// form is a valid Blob's still pass, such as a block of another type whose
-// fields 1, 2 and 3 read as a raw blob's type, size and data. A stored child
-// list bounds that case, since the merge never shrinks it: a block whose own
-// writer listed its refs keeps every child that list names, and a decode
-// that names fewer is reported. A block with no stored list gets one from
-// the guessed refs.
+// define. Any other type, or no block, is never certain. Bytes whose wire form
+// is a valid Blob's still pass, such as a block of another type whose fields 1,
+// 2 and 3 read as a raw blob's type, size and data. A stored child list bounds
+// that case, since the merge never shrinks it: a block whose own writer listed
+// its refs keeps every child that list records, and a decode that returns fewer
+// refs is reported. A block with no stored list gets one from the guessed refs.
 func certain(blk any, data []byte) bool {
 	b, ok := blk.(*blob.Blob)
 	if !ok || b.Validate() != nil || b.IsEmpty() && len(data) != 0 {
@@ -445,8 +444,8 @@ func holdsRefs(blk any) bool {
 // transform that decode it. values constructs the values of the tree blk
 // belongs to, nil when they are untyped.
 func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Ctor) ([]Node, error) {
-	// An Object names its root's type by its own. Only tree blocks pass the
-	// tree's value constructor down.
+	// An Object declares its root's type through its own type. Only tree
+	// blocks pass the tree's value constructor down.
 	switch b := blk.(type) {
 	case *world_block.Object:
 		return w.objectRoot(ctx, b, n)
@@ -455,8 +454,8 @@ func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Cto
 		values = nil
 	}
 
-	// Queue each ref with the constructor its holder names, or the tree's
-	// value constructor for a tree value.
+	// Queue each ref with the constructor its holder declares, or the
+	// tree's value constructor for a tree value.
 	var out []Node
 	if holder, ok := blk.(block.BlockWithRefs); ok {
 		refs, err := holder.GetBlockRefs()
@@ -485,7 +484,7 @@ func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Cto
 	}
 
 	// Queue the refs of each inline sub-block. A World's object tree holds
-	// Objects; its graph tree and change log hold no typed values.
+	// Objects. Its graph tree and change log hold no typed values.
 	if holder, ok := blk.(block.BlockWithSubBlocks); ok {
 		subs := holder.GetSubBlocks()
 		for _, id := range slices.Sorted(maps.Keys(subs)) {
@@ -538,7 +537,7 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 		}
 	}
 
-	// Decode the root with its own transform when it names one.
+	// Decode the root with its own transform when the root contains one.
 	xfrm := n.Xfrm
 	if conf := root.GetTransformConf(); !conf.GetEmpty() {
 		xfrm, err = w.Transformer(conf)
@@ -581,7 +580,7 @@ func (w *Walker) objectRootCtor(ctx context.Context, key string, world *bucket.O
 		return nil, "object without a type", nil
 	}
 
-	// The object's type ID names its root block's type.
+	// The object's type ID identifies its root block's type.
 	bt, err := w.lookup(ctx, typeID)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "look up block type %s", typeID)

@@ -35,7 +35,7 @@ func NewStartupNotifier(ctx context.Context, statePath, pipeID string) (*Startup
 // Ready reports a successfully initialized Resource service and waits for the
 // parent's custody acknowledgement. Call before accepting public connections.
 func (n *StartupNotifier) Ready(ctx context.Context) error {
-	// Close the private pipe on cancellation; a missing acknowledgement aborts.
+	// Close the private pipe on cancellation. A missing acknowledgement aborts.
 	if n.conn == nil {
 		return nil
 	}

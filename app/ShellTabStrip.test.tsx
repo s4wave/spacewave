@@ -141,7 +141,7 @@ vi.mock('@aptre/flex-layout', () => {
       return this.children.find((child) => child.id === tabId) ?? null
     }
 
-    // The model only ever visits this tabset, so it is the active one.
+    // The model only ever visits this tabset, so this tabset is active.
     isActive() {
       return true
     }

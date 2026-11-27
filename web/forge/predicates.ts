@@ -1,4 +1,4 @@
-// Forge graph predicates for entity relationships.
+// Forge graph predicates describe entity relationships.
 // These match the Go-side constants in the forge packages.
 export const PRED_CLUSTER_TO_JOB = '<forge/cluster-job>'
 export const PRED_CLUSTER_TO_WORKER = '<forge/cluster-worker>'

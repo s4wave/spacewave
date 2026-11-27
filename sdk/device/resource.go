@@ -200,7 +200,8 @@ func (r *DeviceResource) readOnlyWorldState() (world.WorldState, error) {
 
 // readDeviceObject decodes the Device state held at the object's root.
 func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device, error) {
-	// Decode the Device block; an empty object has the initial Device state.
+	// Decode the Device block. An empty object has the initial Device
+	// state.
 	state, err := s4wave_world.ReadWorldBlock[Device](ctx, objState)
 	if err != nil {
 		return nil, err

@@ -186,8 +186,8 @@ func TestEncodeBinaryFrameOversizedStringErrors(t *testing.T) {
 }
 
 func TestEncodeBinaryFrameMaxLengthStringSucceeds(t *testing.T) {
-	// A target at exactly the uint16 limit still encodes; the guard is len >
-	// math.MaxUint16, so MaxUint16 is the largest accepted length.
+	// A target at exactly the uint16 limit still encodes. The guard is
+	// len > math.MaxUint16, so MaxUint16 is the largest accepted length.
 	target := strings.Repeat("a", math.MaxUint16)
 	msg := &V86FsMessage{
 		Tag:  1,
@@ -235,8 +235,9 @@ func u64(value uint64) []byte {
 }
 
 func TestEncodeErrorFrame(t *testing.T) {
-	// An unanswerable request still gets an EIO reply carrying its tag, so the
-	// guest call completes; a frame too short for a tag replies with tag zero.
+	// An unanswerable request still gets an EIO reply carrying its tag, so
+	// the guest call completes. A frame too short for a tag replies with
+	// tag zero.
 	tests := []struct {
 		name string
 		req  []byte

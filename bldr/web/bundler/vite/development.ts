@@ -38,9 +38,9 @@ import {
  * excludeExternalAliases keeps aliases from rewriting external packages or
  * their subpaths. Vite applies aliases before any plugin, so an alias that
  * matched an external import would bypass the import map. Each alias becomes a
- * pattern guarded by a lookbehind that inspects the whole import; its match,
- * capture groups, and replacement are unchanged. A string alias keeps its
- * exact-or-subpath matching.
+ * pattern guarded by a lookbehind that inspects the whole import. The alias's
+ * match, capture groups, and replacement are unchanged. A string alias keeps
+ * its exact-or-subpath matching.
  */
 export function excludeExternalAliases(
   aliases: Alias[],
@@ -207,7 +207,7 @@ export class DevelopmentEnvironment {
     }
 
     // Serve shared packages with editable source from this graph. A separately
-    // bundled view imports them by served name; the shim re-exports the
+    // bundled view imports them by served name. The shim re-exports the
     // source module so the view and the application share one instance.
     const sourcePkgIDs = webPkgIDs.filter((id) => editableTarget(id))
     const webPkgImports: Record<string, string> = {}
@@ -261,7 +261,7 @@ export class DevelopmentEnvironment {
         return null
       },
       load(id) {
-        // A shim has a default export even when its source has none; reading
+        // A shim has a default export even when its source has none. Reading
         // the namespace keeps that case from failing to link.
         if (!id.startsWith(sourceWebPkgShim)) return null
         const specifier = JSON.stringify(id.slice(sourceWebPkgShim.length))
@@ -298,7 +298,7 @@ export class DevelopmentEnvironment {
       off: this.clients.off.bind(this.clients),
     }
 
-    // Vite's listener is private; every browser module crosses Bldr Fetch.
+    // Vite's listener is private, so every browser module crosses Bldr Fetch.
     this.server = await createServer({
       ...config,
       configFile: false,
@@ -386,7 +386,7 @@ export class DevelopmentEnvironment {
     const listener = this.listener
 
     // Bun can expire keep-alive while a completed write is still draining to
-    // Bldr's RPC proxy. The compiler lifetime owns these private connections;
+    // Bldr's RPC proxy. The compiler lifetime owns these private connections.
     // close() releases them explicitly after cancellation or replacement.
     listener.keepAliveTimeout = 0
     await new Promise<void>((resolve, reject) => {
@@ -412,7 +412,9 @@ export class DevelopmentEnvironment {
     }
   }
 
-  /** watch emits a snapshot and bounded updates; a gap forces client recovery. */
+  /**
+   * watch emits a snapshot and bounded updates. A gap forces client recovery.
+   */
   public async *watch(signal?: AbortSignal): AsyncGenerator<Event> {
     // Subscribe synchronously before yielding the current sequence.
     const queue = pushable<Event>({ objectMode: true })
@@ -444,7 +446,7 @@ export class DevelopmentEnvironment {
 
   /** send accepts upstream custom events only for the current environment. */
   public send(request: SendRequest): void {
-    // Vite owns this opaque protocol; narrow its client event at the adapter.
+    // Vite owns this opaque protocol. Narrow its client event at the adapter.
     if (request.sessionId !== this.session.id)
       throw new Error('Bldr frontend session expired')
     const payload: unknown = JSON.parse(request.payload ?? '')

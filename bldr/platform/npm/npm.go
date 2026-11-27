@@ -58,7 +58,7 @@ var GoOsToNpmPlatform = map[string]string{
 
 // NpmPlatformForGoos returns the npm platform id for the given GOOS value.
 //
-// If unknown returns the goos value directly (assuming this works).
+// If unknown returns the goos value directly (assuming npm accepts the value).
 func NpmPlatformForGoos(goos string) string {
 	plat := GoOsToNpmPlatform[goos]
 	if plat == "" {
@@ -78,7 +78,8 @@ var GoArchToNpmPlatform = map[string]string{
 
 // NpmArchForGoArch returns the npm arch id for the given GOARCH value.
 //
-// If unknown returns the goarch value directly (assuming this works).
+// If unknown returns the goarch value directly (assuming npm accepts the
+// value).
 func NpmArchForGoArch(goarch string) string {
 	plat := GoArchToNpmPlatform[goarch]
 	if plat == "" {

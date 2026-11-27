@@ -17,7 +17,7 @@ const ObjectTypePageLimit uint32 = 1000
 
 // ListObjectsWithTypeOnGraph returns distinct subjects in the store's order:
 // creation order on a world.EdgePager, index order on a Cayley kv store.
-// startAfter is the previous page's last key; empty begins the listing.
+// startAfter is the previous page's last key. An empty key begins the listing.
 // limit must be non-zero and is capped at ObjectTypePageLimit. The World must
 // remain unchanged to retain exactly-once traversal across pages.
 func ListObjectsWithTypeOnGraph(ctx context.Context, h graph.QuadStore, typeID, startAfter string, limit uint32) ([]string, bool, error) {

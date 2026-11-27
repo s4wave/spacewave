@@ -20,7 +20,7 @@ func NewBodyHandler(lookup func(ctx context.Context, typeID string) (blocktype.B
 }
 
 // MarshalBodiesJSON renders root block bodies of one ObjectType as JSON. A
-// type lookup does not know leaves every body without JSON.
+// type that lookup does not know leaves every body without JSON.
 func (h *BodyHandler) MarshalBodiesJSON(ctx context.Context, req *MarshalBodiesJSONRequest) (*MarshalBodiesJSONResponse, error) {
 	bt, err := h.lookup(ctx, req.GetTypeId())
 	if err != nil {
@@ -33,8 +33,8 @@ func (h *BodyHandler) MarshalBodiesJSON(ctx context.Context, req *MarshalBodiesJ
 }
 
 // DeclareBodies reads what root block bodies of one ObjectType declare
-// through the World trait interfaces. A type lookup does not know leaves every
-// declaration empty.
+// through the World trait interfaces. A type that lookup does not know leaves
+// every declaration empty.
 func (h *BodyHandler) DeclareBodies(ctx context.Context, req *DeclareBodiesRequest) (*DeclareBodiesResponse, error) {
 	bt, err := h.lookup(ctx, req.GetTypeId())
 	if err != nil {

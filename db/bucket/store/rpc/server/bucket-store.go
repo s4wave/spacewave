@@ -9,7 +9,7 @@ import (
 
 // BucketStore implements the server with a BucketStore.
 type BucketStore struct {
-	// store is the underlying bucket store
+	// store is the underlying bucket store.
 	store bucket_store.Store
 }
 

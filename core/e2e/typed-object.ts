@@ -73,7 +73,7 @@ export async function testTypedObject(
     ),
   )
 
-  // Test 1: Access typed object via Tx (WorldStateResource)
+  // Test 1: Access a typed object via Tx (WorldStateResource)
   console.log('testing accessTypedObject via Tx (WorldStateResource)...')
   {
     using readTx = await engine.newTransaction(false, abortSignal)
@@ -93,7 +93,7 @@ export async function testTypedObject(
       throw new Error('expected non-zero resourceId from Tx')
     }
 
-    // Verify we can use getResourceRef to create a LayoutHostClient
+    // Verify the caller can use getResourceRef to create a LayoutHostClient
     const resourceRef = readTx.getResourceRef()
     const ref = resourceRef.createRef(typedAccess.resourceId)
     const _layoutHostClient = new LayoutHostClient(ref.client)
@@ -102,10 +102,11 @@ export async function testTypedObject(
     console.log('Tx accessTypedObject test passed')
   }
 
-  // Test 2: Access typed object via EngineWorldState
+  // Test 2: Access a typed object via EngineWorldState
   console.log('testing accessTypedObject via EngineWorldState...')
   {
-    // Get EngineWorldState from space (this is what SpaceContainer uses)
+    // Get EngineWorldState from the space
+    // (SpaceContainer uses EngineWorldState)
     const engineWorldState = await setup.space.accessWorldState(
       false,
       abortSignal,
@@ -127,7 +128,7 @@ export async function testTypedObject(
       throw new Error('expected non-zero resourceId from EngineWorldState')
     }
 
-    // Verify we can use getResourceRef to create a LayoutHostClient
+    // Verify the caller can use getResourceRef to create a LayoutHostClient
     const resourceRef = engineWorldState.getResourceRef()
     const ref = resourceRef.createRef(typedAccess.resourceId)
     const _layoutHostClient = new LayoutHostClient(ref.client)
@@ -136,10 +137,10 @@ export async function testTypedObject(
     console.log('EngineWorldState accessTypedObject test passed')
   }
 
-  // Test 3: Verify IWorldState interface works generically
+  // Test 3: Verify the IWorldState interface works generically
   console.log('testing IWorldState interface generically...')
   {
-    // This function accepts any IWorldState implementation
+    // testIWorldState accepts any IWorldState implementation.
     async function testIWorldState(worldState: {
       accessTypedObject: (
         key: string,

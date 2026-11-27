@@ -7,48 +7,50 @@ type ListRebuildResult struct {
 	// Verified counts the lists checked against their block's decoded refs.
 	Verified uint64
 	// Rewritten counts those written because they were missing or lacked
-	// children the decoded refs name.
+	// children the decoded refs reference.
 	Rewritten uint64
 	// Dropped counts the blocks whose decoded refs lack a child their
-	// unverified stored list names. A stored list can only miss children, so
-	// every edge it holds is real, and such a report means a wrong
-	// constructor or a decoder bug: the rebuild keeps the stored list and
-	// leaves the block on the front.
+	// unverified stored list references. A stored list can only miss
+	// children, so every edge it holds is real, and such a report means a
+	// wrong constructor or a decoder bug: the rebuild keeps the stored list
+	// and leaves the block on the front.
 	Dropped uint64
-	// DroppedSample names up to sampleSize of them.
+	// DroppedSample lists up to sampleSize of them.
 	DroppedSample []*block.BlockRef
 	// Front counts the blocks on the settle's front when Finish returned:
 	// unverified blocks a holder reaches that no Verify wrote, or on a dry
 	// run the front before any rebuild. Any keeps the old generation Open,
 	// so the collector frees nothing it holds.
 	Front uint64
-	// FrontSample names up to sampleSize of them.
+	// FrontSample lists up to sampleSize of them.
 	FrontSample []*block.BlockRef
 
 	// MarkedRead counts the marked lists the rebuild compared with their
 	// block's decoded refs.
 	MarkedRead uint64
-	// MarkedMatched counts those that name every child the content names.
+	// MarkedMatched counts those that reference every child the content
+	// references.
 	MarkedMatched uint64
-	// MarkedLacking counts those that lack a child the content names, which
-	// the sweep would trust and so free a child the block still names.
+	// MarkedLacking counts the lists the sweep would trust despite lacking
+	// a child the content references, so the sweep would free a child the
+	// block still references.
 	MarkedLacking uint64
-	// MarkedLackingSample names up to sampleSize of them, each with the
+	// MarkedLackingSample lists up to sampleSize of them, each with the
 	// first child it lacks.
 	MarkedLackingSample []MarkedListSample
-	// MarkedRefused counts the lacking marked lists that also name a child
-	// the decoded refs lack, which a wrong decoder or a second type of the
-	// block explains. The rebuild writes their union too, since leaving a
-	// marked list lacking lets the sweep free the child.
+	// MarkedRefused counts the lacking marked lists that also reference a
+	// child the decoded refs lack. A wrong decoder or a second type of the
+	// block explains that disagreement. The rebuild writes their union too,
+	// since leaving a marked list lacking lets the sweep free the child.
 	MarkedRefused uint64
-	// MarkedUndecodable counts the visits to a block with a marked list that
-	// the walker could not decode, or not with certainty, so that visit
-	// compared nothing. It is an upper bound on the lists left uncompared:
-	// a block the walk also reaches under a type that decodes, as a World
-	// root that an operation's payload names, is counted here and compared
-	// there.
+	// MarkedUndecodable counts the visits to a block with a marked list
+	// that the walker could not decode, or not with certainty, so that
+	// visit compared nothing. It is an upper bound on the lists left
+	// uncompared: a block the walk also reaches under a type that decodes,
+	// as a World root that an operation's payload references, is counted
+	// here and compared there.
 	MarkedUndecodable uint64
-	// MarkedUndecodableSample names up to sampleSize of them.
+	// MarkedUndecodableSample lists up to sampleSize of them.
 	MarkedUndecodableSample []MarkedListSample
 }
 
@@ -70,7 +72,7 @@ func (res *ListRebuildResult) add(b ListRebuildResult) {
 	res.Dropped += b.Dropped
 	res.DroppedSample = b.DroppedSample
 
-	// Add what it found comparing the marked lists.
+	// Add what the batch found comparing the marked lists.
 	res.MarkedRead += b.MarkedRead
 	res.MarkedMatched += b.MarkedMatched
 	res.MarkedLacking += b.MarkedLacking
@@ -81,7 +83,7 @@ func (res *ListRebuildResult) add(b ListRebuildResult) {
 }
 
 // compareMarked counts p's marked list value against p's decoded refs and
-// reports whether the list lacks a child they name.
+// reports whether the list lacks a child they reference.
 func (res *ListRebuildResult) compareMarked(p pendingList, value []byte) (bool, error) {
 	// Count an undecodable block's marked list.
 	if p.undecodable {
@@ -92,7 +94,7 @@ func (res *ListRebuildResult) compareMarked(p pendingList, value []byte) (bool, 
 		return false, nil
 	}
 
-	// Find the first child the content names that the list lacks.
+	// Find the first child the content references that the list lacks.
 	res.MarkedRead++
 	old, encoded := listKeys(value), EncodeChildren(p.entry.Refs)
 	union, err := unionChildren(old, encoded)

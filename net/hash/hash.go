@@ -56,7 +56,7 @@ func (h HashType) Sum(data []byte) ([]byte, error) {
 	return sumHashType(h, data)
 }
 
-// CompareHash compares two hashes. Both nil compares equal; a nil hash
+// CompareHash compares two hashes. Two nil hashes compare equal. A nil hash
 // never equals a non-nil one.
 func (h *Hash) CompareHash(other *Hash) bool {
 	if h == nil || other == nil {

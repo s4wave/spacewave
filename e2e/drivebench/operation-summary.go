@@ -17,7 +17,7 @@ type OperationSummary struct {
 	Count int `json:"count,omitempty"`
 	// TotalUs is their total duration in microseconds.
 	TotalUs int64 `json:"totalUs,omitempty"`
-	// MaxUs is the longest one in microseconds.
+	// MaxUs is the longest task duration in microseconds.
 	MaxUs int64 `json:"maxUs,omitempty"`
 	// LogCount counts the trace logs recovered for the operation.
 	LogCount int `json:"logCount,omitempty"`

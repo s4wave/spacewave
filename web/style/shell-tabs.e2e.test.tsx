@@ -10,7 +10,8 @@ import { render, cleanup } from 'vitest-browser-react'
 import '@s4wave/web/style/app.css'
 
 /**
- * Builds a mock DOM structure matching FlexLayout's real output.
+ * MockShellFlexLayout builds a mock DOM structure matching FlexLayout's real
+ * output.
  * This is the hierarchy from .shell-flexlayout down to tab buttons.
  */
 function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
@@ -162,7 +163,7 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     await expect.poll(() => getEl('tab-inactive')).not.toBeNull()
 
     const style = getStyle('tab-inactive')
-    // Should have backdrop-filter blur
+    // The inactive tab should have backdrop-filter blur
     const bf =
       style.backdropFilter ||
       (style as unknown as Record<string, string>)['webkitBackdropFilter'] ||
@@ -185,7 +186,7 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     await expect.poll(() => getEl('tab-active')).not.toBeNull()
 
     const style = getStyle('tab-active')
-    // Should NOT have backdrop-filter
+    // The active tab should NOT have backdrop-filter
     const bf =
       style.backdropFilter ||
       (style as unknown as Record<string, string>)['webkitBackdropFilter'] ||
@@ -208,7 +209,7 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     const activeColor = getStyle('tab-active').color
     const inactiveColor = getStyle('tab-inactive').color
 
-    // Colors should be different — active much brighter
+    // Colors should be different. The active tab text should be much brighter.
     expect(activeColor).not.toBe(inactiveColor)
   })
 
@@ -261,7 +262,7 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     const activeStyle = getStyle('tab-active')
     const inactiveStyle = getStyle('tab-inactive')
 
-    // Both should have 1px top borders
+    // Both active and inactive tabs should have 1px top borders
     expect(parseFloat(activeStyle.borderTopWidth)).toBe(1)
     expect(parseFloat(inactiveStyle.borderTopWidth)).toBe(1)
 

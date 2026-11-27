@@ -26,7 +26,7 @@ import {
 const menuId = 'session-sync-status'
 
 // SessionSyncStatusButton registers the session sync-status bottom-bar item.
-// The button follows the sync summary; only the open popover follows the
+// The button follows the sync summary. Only the open popover follows the
 // transfer rates.
 export function SessionSyncStatusButton() {
   const dismissMenu = useBottomBarDismissMenu(menuId)

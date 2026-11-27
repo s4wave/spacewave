@@ -35,20 +35,22 @@ export interface Config {
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
    * create a new private key if one is not present in the store at startup. If
-   * no key is in the store at startup and this is true, returns an error.
+   * no key is in the store at startup and this is true, the controller returns
+   * an error.
    */
   noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
-   * storage if it generates one. This results in an ephemeral volume peer
-   * identity if there is no key present in the store already.
+   * storage if it generates one. Not writing the key results in an ephemeral
+   * volume peer identity if there is no key present in the store already.
    *
-   * Has no effect if the store has a peer private key.
+   * NoWriteKey has no effect if the store has a peer private key.
    */
   noWriteKey?: boolean
   /**
    * InitHeadRef is the reference to the initial HEAD state of the volume.
-   * If the object does not exist, uses this reference to initialize it.
+   * If the object does not exist, the volume uses this reference to initialize
+   * the object.
    */
   initHeadRef?: ObjectRef
   /**
@@ -57,12 +59,12 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the BlockVolume object to attach to.
-   * If not exists, waits for it to exist.
+   * If the object does not exist, the volume waits for the object to exist.
    */
   objectKey?: string
   /**
    * BucketId is the bucket id to attach to for reading/writing state.
-   * If set, overrides the bucket id from init_head_ref and the state.
+   * If set, BucketId overrides the bucket id from init_head_ref and the state.
    * If unset, the bucket id is determined from head_ref.
    */
   bucketId?: string

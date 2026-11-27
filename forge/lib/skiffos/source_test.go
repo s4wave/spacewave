@@ -34,7 +34,8 @@ func TestSyncRepo(t *testing.T) {
 	commitFile(t, src, "mod", "")
 	second := runTestGit(t, src, "rev-parse", "HEAD")
 
-	// Check out each commit into an empty repository, then move it.
+	// Check out each commit into an empty repository, then move the
+	// checkout.
 	repo, err := git.PlainOpen(src)
 	if err != nil {
 		t.Fatal(err)

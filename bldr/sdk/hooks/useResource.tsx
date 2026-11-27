@@ -19,10 +19,10 @@ import {
   type ResourceTransitionRun,
 } from './resourceTransitionState.js'
 
-// Global counter for generating unique tracking IDs.
-// useId() is not suitable because it generates IDs based on component tree position,
-// which can cause duplicates when components unmount/remount in different tree positions
-// (e.g., when switching FlexLayout tabs).
+// nextTrackingId is a global counter for generating unique tracking IDs.
+// useId() is not suitable because it generates IDs based on component tree
+// position, which can cause duplicates when components unmount/remount in
+// different tree positions (e.g., when switching FlexLayout tabs).
 let nextTrackingId = 1
 
 // useTrackingId returns a stable, globally unique ID for resource tracking.
@@ -35,7 +35,7 @@ function useTrackingId(): string {
 }
 
 /**
- * Function type for registering resources that need cleanup.
+ * RegisterCleanup is a function type that registers resources needing cleanup.
  * Called during resource loading to track resources that should be
  * released when the component unmounts or the resource is reloaded.
  * Returns the resource for convenient chaining.
@@ -47,31 +47,43 @@ export type RegisterCleanup = <
 ) => T
 
 /**
- * Configuration options for useResource hook.
+ * UseResourceOptions configures the useResource hook.
  */
 export interface UseResourceOptions<TValue> {
-  /** If false, the resource won't be loaded (useful for conditional loading) */
+  /** enabled disables loading when false (useful for conditional loading). */
   enabled?: boolean
-  /** Callback invoked when the resource loads successfully */
+  /** onSuccess runs when the resource loads successfully. */
   onSuccess?: (data: TValue) => void
-  /** Callback invoked when the resource fails to load */
+  /** onError runs when the resource fails to load. */
   onError?: (error: Error) => void
-  /** Retry when a loaded SDK resource is later released by the server. Defaults to true. */
+  /**
+   * retryOnReleasedResource retries when the server releases a loaded SDK
+   * resource. Defaults to true.
+   */
   retryOnReleasedResource?:
     | boolean
     | {
-        /** Release reasons that should trigger a retry. Defaults to ['server-released']. */
+        /**
+         * reasons lists release reasons that should trigger a retry.
+         * Defaults to ['server-released'].
+         */
         reasons?: ResourceReleaseReason[]
-        /** Extract resource IDs from non-Resource or composite return values. */
+        /**
+         * getResourceIds extracts resource IDs from non-Resource or composite
+         * return values.
+         */
         getResourceIds?: (value: TValue) => number[]
       }
 }
 
 /** ResourceBase holds the fields every Resource state carries. */
 interface ResourceBase {
-  /** Function to retry loading the resource */
+  /** retry retries loading the resource. */
   retry: () => void
-  /** DevTools tracking metadata - only present when DevTools context is active */
+  /**
+   * __devtools holds DevTools tracking metadata only when the DevTools context
+   * is active.
+   */
   __devtools?: { id: string }
 }
 
@@ -85,12 +97,12 @@ export interface ResourceLoading<T> extends ResourceBase {
   error: null
   /**
    * reopening is set while a stream that had yielded reopens after this
-   * failure; value is what it last yielded and may be out of date.
+   * failure. value is what the stream last yielded and may be out of date.
    */
   reopening?: Error
 }
 
-/** ResourceSettled is a loaded resource; value is null when it has none. */
+/** ResourceSettled is a loaded resource. value is null when it has none. */
 export interface ResourceSettled<T> extends ResourceBase {
   value: T | null
   loading: false
@@ -146,7 +158,8 @@ type MultiParentFactory<P extends readonly Resource<unknown>[], T> = (
   cleanup: RegisterCleanup,
 ) => Promise<T | null>
 
-// Internal parsed args - types are erased at runtime, safety is enforced at public API
+// ParsedArgs holds internal parsed arguments. Types are erased at runtime,
+// and safety is enforced at the public API.
 type ParsedArgs<T> = {
   type: 'no-parent' | 'single-parent' | 'multi-parent'
   factory: unknown
@@ -206,8 +219,9 @@ function parseArgs<T>(args: unknown[]): ParsedArgs<T> {
 
 // useParentState extracts and memoizes parent resource state.
 function useParentState(parents: Resource<unknown>[]) {
-  // Extract values from parent Resources - must depend on actual values, not just Resource identity
-  // Otherwise we won't detect when a parent loads and its .value changes from null to something
+  // Extract values from parent Resources. The extraction must depend on actual
+  // values, not only on Resource identity. Otherwise the hook won't detect when a parent loads
+  // and its .value changes from null to something.
   const parentValues = parents.map((p) => p.value)
   const values = useMemo(
     () => parentValues,
@@ -399,7 +413,7 @@ export function useResource<T>(
 ): Resource<T> {
   const [firstArg, secondArg, thirdArg, fourthArg] = args
 
-  // DevTools tracking - get stable ID and context
+  // Get a stable ID and context for DevTools tracking.
   const trackingId = useTrackingId()
   const devtools = useResourceDevToolsContext()
   const resourcesClient = useResourcesClient()
@@ -453,10 +467,10 @@ export function useResource<T>(
     parsed.options?.onError?.(error)
   })
 
-  // Retry reads again. A failure that kept a last value stays failed over it
-  // until the new read settles, as startAfter keeps it, so a Retry press
-  // never blanks what the person was reading; otherwise the value moves to
-  // last and the read shows loading.
+  // Retry reads again. A failure that kept a last value stays failed over that
+  // value until the new read settles, as startAfter keeps the failure, so a
+  // Retry press never blanks what the person was reading. Otherwise the value
+  // moves to last and the read shows loading.
   const kept = state.error !== null && lastOf(state) !== null
   const retry = useCallback(() => {
     parent.failedRetries.forEach((r) => r())
@@ -524,7 +538,8 @@ export function useResource<T>(
     parentTrackingIdValues,
   )
 
-  // DevTools: Store retry in a ref so we can update it without re-registering
+  // DevTools: Store retry in a ref so the hook can update retry without
+  // re-registering.
   const retryRef = useRef(retry)
   retryRef.current = retry
 
@@ -554,7 +569,7 @@ export function useResource<T>(
   })
   useEffect(() => {
     if (!devtools) return
-    // Only update if state actually changed (not just on mount)
+    // Only update if state changed (not only on mount).
     const prev = prevStateRef.current
     if (
       prev.loading === state.loading &&
@@ -724,7 +739,7 @@ export function useResource<T>(
 }
 
 /**
- * Extracts values from multiple resources as a tuple.
+ * useResourceResults extracts values from multiple resources as a tuple.
  * Returns null if any resource is not ready (loading, error, or no value).
  *
  * @example
@@ -745,7 +760,8 @@ export function useResourceResults<T extends unknown[]>(
 }
 
 /**
- * Extracts the value from a resource with simplified semantics.
+ * useResourceValue extracts the value from a resource with simplified
+ * semantics.
  * Returns the value when ready, null while loading, undefined if error occurred.
  * A failed resource's last value is not returned: undefined means failed.
  *

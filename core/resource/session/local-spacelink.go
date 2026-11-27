@@ -164,7 +164,7 @@ func (m *mountedLocalSpace) requireOriginOwner(ctx context.Context, approverPeer
 }
 
 // mountLocalSpace mounts a local Space shared object by ID on the account.
-// The Space must already belong to the account's shared object list; the
+// The Space must already belong to the account's shared object list. The
 // approval never creates or adopts a Space the account does not hold.
 func (r *LocalSessionResource) mountLocalSpace(
 	ctx context.Context,

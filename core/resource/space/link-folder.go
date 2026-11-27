@@ -12,8 +12,9 @@ import (
 // LinkFolder links a folder on this Device into a Drive: each file's blocks
 // stay in the file and are read from it, and only the file's Blob and the
 // directory tree go to the Space. A folder linked before is synced: only
-// entries that changed since are linked again. It streams the files and bytes
-// linked after each committed batch, then a final message with done set.
+// entries that changed since are linked again. LinkFolder streams the files
+// and bytes linked after each committed batch, then a final message with done
+// set.
 // Symlinks and special files are skipped.
 func (r *SpaceResource) LinkFolder(
 	req *s4wave_space.LinkFolderRequest,
@@ -49,8 +50,8 @@ func (r *SpaceResource) LinkFolder(
 }
 
 // ResetFolderRoot records the file system the folder's root is on now as the
-// one it is linked on. The linked-folder node waiting for its root sees the
-// change at its next check and resumes with a full sync.
+// file system the folder is linked on. The linked-folder node waiting for its
+// root sees the change at its next check and resumes with a full sync.
 func (r *SpaceResource) ResetFolderRoot(
 	ctx context.Context,
 	req *s4wave_space.ResetFolderRootRequest,

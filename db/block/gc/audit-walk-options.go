@@ -9,8 +9,9 @@ import (
 
 // WalkOptions configure one streaming audit walk.
 type WalkOptions struct {
-	// Run names the walk. A scratch store holding another run's progress is
-	// refused; one holding this run's resumes it. Required.
+	// Run identifies the walk. A scratch store holding another run's
+	// progress is refused. One holding this run's resumes the walk.
+	// Required.
 	Run string
 	// Delay is how long a hole candidate waits before the walk rereads it.
 	// Zero uses DefaultGrace, the collector's own wait for a record's writer.

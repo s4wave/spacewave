@@ -39,9 +39,9 @@ import {
 import { BASE_MODEL } from './layout.js'
 import { BaseLayoutContext } from './BaseLayoutContext.js'
 
-// jsonModelToModel converts a json model to a model
+// jsonModelToModel converts a json model to a model.
 //
-// writes tab data to tabDataMap.
+// jsonModelToModel writes tab data to tabDataMap.
 // tabDataMap should usually be empty when calling this.
 function jsonModelToModel(
   modelJson: IJsonModel,
@@ -88,7 +88,7 @@ export interface IBaseLayoutProps {
 
 // IBaseLayoutState is state for BaseLayout.
 interface IBaseLayoutState {
-  // Model contains the model for the layout.
+  // model contains the model for the layout.
   // The layout is uninitialized until this is set.
   model?: Model
   // modelJson is the json representation for the layout.
@@ -165,7 +165,8 @@ class BaseLayoutTabWrapper extends PureComponent<
 }
 
 // BaseLayout is a FlexLayout displaying Tabs with ObjectViewers.
-// Uses OptimizedLayout for better performance - tab content persists across layout changes.
+// BaseLayout uses OptimizedLayout for better performance: tab content persists
+// across layout changes.
 export class BaseLayout extends AbortComponent<
   IBaseLayoutProps,
   IBaseLayoutState
@@ -179,9 +180,9 @@ export class BaseLayout extends AbortComponent<
   private tabDataCbs: {
     [tabID: string]: { cbs: TabDataCb[]; prevValue: Uint8Array | undefined }
   }
-  // boundOnModelChange is onModelChange bound to this
+  // boundOnModelChange is onModelChange bound to this.
   private boundOnModelChange: (model: Model, action: Action) => void
-  // boundRenderTab is renderTab bound to this
+  // boundRenderTab is renderTab bound to this.
   private boundRenderTab: (node: TabNode) => React.ReactNode
   // pendingTabData holds tab data written by addTab before setState completes.
   // getTabData checks this first so new tabs can read their data synchronously.
@@ -303,7 +304,7 @@ export class BaseLayout extends AbortComponent<
 
   // subscribeTabData adds a callback to call when the tab data changes.
   // cb is not called until the value changes.
-  // returns a release function
+  // subscribeTabData returns a release function.
   public subscribeTabData(tabID: string, cb: TabDataCb): () => void {
     const list = this.tabDataCbs[tabID]
     if (list) {
@@ -375,7 +376,7 @@ export class BaseLayout extends AbortComponent<
       if (activeTabSet) {
         targetTabSetId = activeTabSet.getId()
       } else {
-        // Find first tabset in the model
+        // Find the first tabset in the model
         model.visitNodes((node) => {
           if (!targetTabSetId && node.getType() === 'tabset') {
             targetTabSetId = node.getId()
@@ -389,8 +390,8 @@ export class BaseLayout extends AbortComponent<
       return Promise.resolve({ tabId: '' })
     }
 
-    // Calculate insert index
-    let insertIndex = -1 // -1 means add at end
+    // Calculate the insert index
+    let insertIndex = -1 // -1 means add at the end
     if (request.afterTabId) {
       const tabSetNode = model.getNodeById(targetTabSetId)
       if (tabSetNode && tabSetNode.getType() === 'tabset') {
@@ -416,7 +417,8 @@ export class BaseLayout extends AbortComponent<
 
     // Store tab data so it's available synchronously when the tab renders.
     // model.doAction triggers a synchronous render before setState completes,
-    // so we write to pendingTabData first for getTabData to read immediately.
+    // so addTab writes to pendingTabData first for getTabData to read
+    // immediately.
     if (tab.data && tab.data.length > 0) {
       this.pendingTabData[tabId] = tab.data
       const tabDataMap = {
@@ -451,7 +453,7 @@ export class BaseLayout extends AbortComponent<
     return Promise.resolve({ tabId })
   }
 
-  // selectTab selects the tab with the given ID if it exists in the model
+  // selectTab selects the tab with the given ID if it exists in the model.
   public selectTab(tabID: string) {
     const tabNode = this.state.model?.getNodeById(tabID)
     if (!tabNode) return
@@ -510,9 +512,10 @@ export class BaseLayout extends AbortComponent<
     )
   }
 
-  // onModelChange is called when the model is changed by the user interacting with the UI.
-  // FlexLayout passes the already-updated model - we should NOT create a new Model instance
-  // as that would break FlexLayout's internal drag state.
+  // onModelChange is called when the user changes the model through the UI.
+  // FlexLayout passes the already-updated model. onModelChange should NOT create
+  // a new Model instance because doing so would break FlexLayout's internal
+  // drag state.
   private onModelChange(model: Model) {
     const prevModelJson = this.state.modelJson
     let modelJson = model.toJson()
@@ -554,7 +557,8 @@ export class BaseLayout extends AbortComponent<
       return
     }
 
-    // Use the model FlexLayout passed us directly - don't create a new Model instance.
+    // Use the model FlexLayout passed to onModelChange directly. Don't create a
+    // new Model instance.
     // Creating a new Model would break FlexLayout's internal drag state.
     const nextState: IBaseLayoutState = {
       model,

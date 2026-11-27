@@ -187,8 +187,8 @@ func TestBuild(t *testing.T) {
 	}
 	m.check(t, db)
 
-	// Write past the memtable budget, so a flush names a run by the next
-	// record, and read again.
+	// Write past the memtable budget, so a flush assigns a run ID from the
+	// next record, and read again.
 	const extra = 3000
 	for i := keys; i < keys+extra; i += 500 {
 		tx, err := db.NewTransaction(ctx, true)

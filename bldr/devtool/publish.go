@@ -55,7 +55,7 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 		return err
 	}
 
-	// publish
+	// publish the project targets
 	return projCtrl.PublishTargets(
 		ctx,
 		a.Remote,

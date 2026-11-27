@@ -10,7 +10,7 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 // FSType indicates the type of unixfs reference.
 enum FSType {
   // FSType_UNKNOWN is the zero type.
-  // Defaults depending on the context.
+  // The default type depends on the context.
   FSType_UNKNOWN = 0;
   // FSType_FS_NODE is a raw fstree FSNode block (without changelog).
   FSType_FS_NODE = 1;
@@ -25,16 +25,17 @@ message UnixfsRef {
   // ObjectKey is the object key to open as a UnixFS.
   string object_key = 1;
   // FsType sets the expected filesystem object type at object_key.
-  // If unset (0) reads the type from the graph.
-  // Defaults to FS_NODE if nothing else set.
+  // If unset (0), FsType is read from the graph.
+  // FsType defaults to FS_NODE if no other type is set.
   FSType fs_type = 2;
   // Path is the location within the FS.
-  // If empty, defaults to / (the root).
+  // If empty, Path defaults to / (the root).
   .unixfs.block.FSPath path = 3;
 }
 
-// FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
-// Can be applied as either an object op or a world op.
+// FsInitOp is an operation to create a unixfs filesystem with a root ref
+// or as an empty filesystem.
+// The operation can be applied as either an object op or a world op.
 message FsInitOp {
   option (typeid.id) = "hydra/unixfs/init";
 
@@ -44,8 +45,8 @@ message FsInitOp {
   FSType fs_type = 2;
 
   // FsRef contains a initial object ref to use the root of the UnixFS.
-  // Must match fs_type if set.
-  // If empty, will create a new blank fs.
+  // FsRef must match fs_type if set.
+  // If FsRef is empty, the operation creates a new blank fs.
   .bucket.ObjectRef fs_ref = 3;
   // FsOverwrite indicates to overwrite any existing object.
   bool fs_overwrite = 5;
@@ -54,21 +55,21 @@ message FsInitOp {
 }
 
 // FsMknodOp is an operation to create one or more inodes at paths.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsMknodOp {
   option (typeid.id) = "hydra/unixfs/mknod";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to the new inodes.
   repeated .unixfs.block.FSPath paths = 3;
   // Permissions is the permissions bitset.
-  // If zero uses defaults.
+  // If Permissions is zero, the default permissions apply.
   uint32 permissions = 4;
   // NodeType is the node type to create.
   .unixfs.block.NodeType node_type = 5;
@@ -77,15 +78,15 @@ message FsMknodOp {
 }
 
 // FsSymlinkOp is an operation to create a symbolic link.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsSymlinkOp {
   option (typeid.id) = "hydra/unixfs/symlink";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the paths to the symbolic link source.
@@ -98,15 +99,15 @@ message FsSymlinkOp {
 
 // FsSetPermissionsOp is an operation to set the permissions at the paths.
 // The file mode portion of the permissions bitset will be ignored.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsSetPermissionsOp {
   option (typeid.id) = "hydra/unixfs/set-permissions";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to update permissions for.
@@ -117,16 +118,17 @@ message FsSetPermissionsOp {
   google.protobuf.Timestamp timestamp = 5;
 }
 
-// FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
-// Can be applied as either an object op or a world op.
+// FsSetModTimestampOp is an operation to set the modification timestamp at
+// the paths.
+// The operation can be applied as either an object op or a world op.
 message FsSetModTimestampOp {
   option (typeid.id) = "hydra/unixfs/set-mod-timestamp";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to update the timestamp for.
@@ -136,15 +138,15 @@ message FsSetModTimestampOp {
 }
 
 // FsWriteAtOp is an operation to write some data to a file.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsWriteAtOp {
   option (typeid.id) = "hydra/unixfs/write-at";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the path to write to.
@@ -159,15 +161,15 @@ message FsWriteAtOp {
 
 // FsTruncateOp shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsTruncateOp {
   option (typeid.id) = "hydra/unixfs/truncate";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the path to write to.
@@ -178,17 +180,18 @@ message FsTruncateOp {
   google.protobuf.Timestamp timestamp = 5;
 }
 
-// FsCopyOp recursively copies a source path to a destination, overwriting destination.
-// Note: this does not allow cross-FS copy.
-// Can be applied as either an object op or a world op.
+// FsCopyOp recursively copies a source path to a destination, overwriting
+// the destination.
+// Note: the operation does not allow cross-FS copy.
+// The operation can be applied as either an object op or a world op.
 message FsCopyOp {
   option (typeid.id) = "hydra/unixfs/copy";
 
   // ObjectKey is the object key to copy from.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // SrcPath is the path to copy from.
@@ -200,18 +203,19 @@ message FsCopyOp {
   google.protobuf.Timestamp timestamp = 5;
 }
 
-// FsRenameOp recursively moves a source path to a destination, overwriting destination.
-// This applies a FsCopyOp followed by a Remove in the same operation.
-// Note: this does not allow cross-FS rename.
-// Can be applied as either an object op or a world op.
+// FsRenameOp recursively moves a source path to a destination, overwriting
+// the destination.
+// This operation applies a FsCopyOp followed by a Remove in the same operation.
+// Note: the operation does not allow cross-FS rename.
+// The operation can be applied as either an object op or a world op.
 message FsRenameOp {
   option (typeid.id) = "hydra/unixfs/rename";
 
   // ObjectKey is the object key to copy from.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // SrcPath is the path to move from.
@@ -226,21 +230,21 @@ message FsRenameOp {
 // FsMknodWithContentOp creates a file and writes content atomically.
 // The blob must be pre-built in an isolated object before applying this op.
 // The op creates the file entry and writes the blob content in a single commit.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsMknodWithContentOp {
   option (typeid.id) = "hydra/unixfs/mknod-with-content";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the path to the new file.
   .unixfs.block.FSPath path = 3;
   // Permissions is the permissions bitset.
-  // If zero uses defaults.
+  // If Permissions is zero, the default permissions apply.
   uint32 permissions = 4;
   // NodeType is the node type to create.
   .unixfs.block.NodeType node_type = 5;
@@ -251,15 +255,15 @@ message FsMknodWithContentOp {
 }
 
 // FsRemoveOp is an operation to delete inodes from the tree.
-// Can be applied as either an object op or a world op.
+// The operation can be applied as either an object op or a world op.
 message FsRemoveOp {
   option (typeid.id) = "hydra/unixfs/remove";
 
   // ObjectKey is the object key to start at.
-  // Ignored if applied as an object op.
+  // ObjectKey is ignored when the operation is applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_NODE.
+  // FsType defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to delete.
@@ -272,10 +276,10 @@ message FsRemoveOp {
 // inode -> unixfs/mount -> inode <value=mount-value>
 message MountValue {
   // Mountpoint is the path inside the inode to mount at.
-  // If empty assumes /
+  // An empty Mountpoint means /.
   string mountpoint = 1;
   // Prefix is the path inside the target inode to link to.
-  // If empty assumes /
+  // An empty Prefix means /.
   string prefix = 2;
 }
 
@@ -283,10 +287,10 @@ message MountValue {
 // i.e.: somewhere git/workdir -> inode <ref-value>
 message RefValue {
   // FsType sets the expected filesystem object type at the target.
-  // If unset (0) reads the type from the graph.
-  // Defaults to FS_NODE if nothing else set.
+  // If unset (0), FsType is read from the graph.
+  // FsType defaults to FS_NODE if no other type is set.
   FSType fs_type = 1;
   // Path is the location within the FS.
-  // If empty, defaults to / (the root).
+  // If empty, Path defaults to / (the root).
   .unixfs.block.FSPath path = 2;
 }

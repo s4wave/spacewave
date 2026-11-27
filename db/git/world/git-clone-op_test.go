@@ -36,7 +36,7 @@ func TestGitCloneOp(t *testing.T) {
 	}
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
-	// Name the World engine and its storage.
+	// Set the identifiers for the World engine and its storage.
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	engineID := "test-clone-op-engine"
@@ -118,7 +118,7 @@ func TestGitCloneOp(t *testing.T) {
 	}
 	t.Logf("object %s exists", objKey)
 
-	// Verify we can read the repo (HEAD should be resolvable)
+	// Verify the caller can read the repo (HEAD should be resolvable)
 	_, _, err = AccessWorldObjectRepo(ctx, ws, objKey, false, nil, nil, nil, func(repo *git.Repository) error {
 		head, err := repo.Head()
 		if err != nil {

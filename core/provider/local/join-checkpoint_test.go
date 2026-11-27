@@ -74,8 +74,8 @@ func TestJoinFromCheckpoint(t *testing.T) {
 		t.Fatalf("member holds %d operations; want fewer than %d", got, joinCheckpointEdits)
 	}
 
-	// It reaches the owner's World with every object, and reports no wrong
-	// checkpoint.
+	// The writer reaches the owner's World with every object, and reports
+	// no wrong checkpoint.
 	member.requireObjects(ctx, keys...)
 	member.waitRoot(ctx, owner.root(ctx))
 	if mismatch := member.health(ctx).GetCheckpointMismatch(); mismatch != nil {

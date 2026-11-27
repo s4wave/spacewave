@@ -20,15 +20,15 @@ const ControllerID = "forge/lib/util/wait"
 
 // Controller implements the wait util controller.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
-	// inputVals is the input values map
+	// inputVals is the input values map.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -91,7 +91,7 @@ func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instanc
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// An error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

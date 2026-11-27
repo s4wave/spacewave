@@ -43,7 +43,8 @@ func (s *Storage) AddFactories(b bus.Bus, resolver *static.Resolver) {
 	resolver.AddFactory(volume_sqlite.NewFactoryWithOpener(b, s.open))
 }
 
-// BuildVolumeConfig names an existing SQLite volume within the owned directory.
+// BuildVolumeConfig selects an existing SQLite volume within the owned
+// directory.
 func (s *Storage) BuildVolumeConfig(id string, base *volume_controller.Config) (config.Config, error) {
 	path, err := s.volumePath(id)
 	if err != nil {
@@ -82,5 +83,5 @@ func (s *Storage) volumePath(id string) (string, error) {
 	return filepath.Join(s.directory, id+".db"), nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ storage.Storage = (*Storage)(nil)

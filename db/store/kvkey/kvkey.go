@@ -15,14 +15,15 @@ import (
 // instead of its base58 IRI.
 // Version 4 keeps the edges from each block in one child list record instead
 // of a record per direction for each edge.
-// Version 5 keys are those of version 4. Every build that opens it logs the
-// blocks each graph write creates or changes in the young log, so a record
-// that the log is complete survives restarts.
+// Version 5 keys are those of version 4. Every build that opens the store logs
+// the blocks each graph write creates or changes in the young log, so a
+// record that the log is complete survives restarts.
 // Version 6 keys are those of version 5. Its graph keeps the shared counts,
-// complete or being built by the sharing walk, whose state record says which.
+// complete or being built by the sharing walk, whose state record records
+// whether the shared counts are complete or being built.
 // Version 7 keeps liveness in child lists, named roots, count records and a
-// journal under the prefix the graph held; it keeps the graph's child lists in
-// place and carries its named roots across.
+// journal under the prefix the graph held. The store keeps the graph's child
+// lists in place and carries its named roots across.
 // Version 8 keys are those of version 7. A cache fill journals its children's
 // holders in a fill record instead of writing a fill mark, so a version 7
 // store opens unadopted and its adoption counts the lists format 7's fills
@@ -37,7 +38,7 @@ import (
 // its ripe sequence in eight big-endian bytes, so a version 7, 8 or 9 store
 // opens unadopted, has its zero records carried across and its retired
 // kinds swept in the background, and its adoption counts again.
-// Version 11 keys are those of version 10. A leased root names its lease,
+// Version 11 keys are those of version 10. A leased root records its lease,
 // and the lease record keeps the expiry in place of an index of the roots
 // by expiry, so a version 7 to 10 store has its leased roots carried onto
 // leases that keep their expiries, and a version 10 store keeps its liveness
@@ -47,7 +48,7 @@ import (
 // gives them again refuses the store, and a version 11 store is stamped.
 const FormatVersion = 12
 
-// formatVersionKey names the key holding the store's format version.
+// formatVersionKey holds the key holding the store's format version.
 var formatVersionKey = []byte("format")
 
 // KVKey is the key/value key generator.
@@ -56,7 +57,7 @@ type KVKey struct {
 }
 
 // NewKVKey builds a new KV key generator from a config.
-// Can pass nil to use default.
+// Can pass nil to use the default config.
 func NewKVKey(conf *Config) (*KVKey, error) {
 	if conf == nil {
 		conf = DefaultConfig()

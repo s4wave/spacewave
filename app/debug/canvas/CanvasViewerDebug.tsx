@@ -75,7 +75,7 @@ const noop = () => {}
 const callbacks: CanvasCallbacks = {}
 
 interface CanvasFixture {
-  // watch is the canvas watch's resource; its value stands for the canvas.
+  // watch is the canvas watch's resource. Its value stands for the canvas.
   watch: Resource<CanvasStateData>
   // actionError is the failed edit's message.
   actionError: string | null
@@ -125,10 +125,11 @@ const fixtures: Record<string, CanvasFixture> = {
  * viewport as the pane, for the viewer sweep: populated, waiting, failed
  * (the first read or the handle failed, with Retry), empty (with the hint),
  * again (the canvas while the watch reconnects), failed-kept (the last
- * canvas under the watch's failure past its backoff, with Retry), save-failed (the canvas under the failed edit's
- * notice) and read-only (the canvas while its handle reopens, offering no
- * edit). An unknown or missing state shows populated. The view derives
- * from the watch's resource as the viewer's does.
+ * canvas under the watch's failure past its backoff, with Retry), save-failed
+ * (the canvas under the failed edit's notice) and read-only (the canvas while
+ * its handle reopens, offering no edit). An unknown or missing state shows
+ * populated. The view derives from the watch's resource as the viewer's view
+ * does.
  */
 export function CanvasViewerDebug() {
   // Read the fixture state from the route.

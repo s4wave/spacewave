@@ -4,7 +4,8 @@ import "context"
 
 // BatchFSWriterMetric records one memory-relevant batch upload stage.
 type BatchFSWriterMetric struct {
-	// Stage names the point in the batch lifecycle the metric was taken at.
+	// Stage records the point in the batch lifecycle when the metric was
+	// taken.
 	Stage string
 	// Bytes is the size of the file ingested, on the ingest stages.
 	Bytes int64
@@ -22,7 +23,7 @@ type BatchFSWriterMetric struct {
 
 // BatchFSWriterMetricsRecorder consumes batch writer metrics.
 type BatchFSWriterMetricsRecorder interface {
-	// RecordBatchFSWriterMetric records one metric; it runs on the writer's
+	// RecordBatchFSWriterMetric records one metric on the writer's
 	// goroutine, inside the commit's merge for commit-merged.
 	RecordBatchFSWriterMetric(BatchFSWriterMetric)
 }

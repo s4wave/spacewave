@@ -24,8 +24,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Plugins reach the native registry through a core plugin load or the
-// qualified core service route, without a core plugin process.
+// TestNativeCorePluginUsesLocalRegistry checks that plugins reach the native
+// registry through a core plugin load or the qualified core service route,
+// without a core plugin process.
 func TestNativeCorePluginUsesLocalRegistry(t *testing.T) {
 	// Open a core bus with a timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)

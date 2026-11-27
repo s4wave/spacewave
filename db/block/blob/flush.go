@@ -36,9 +36,9 @@ type chunkAppender struct {
 	holdLast bool
 	// held is the latest chunk when holdLast is set.
 	held *heldChunk
-	// sink, when set, receives each addressed chunk and the length of its
-	// encoded block in place of the transaction's staging store; xfrm and
-	// hashType address the chunk.
+	// sink receives each addressed chunk and its encoded block length when
+	// set, in place of the transaction's staging store. xfrm and hashType
+	// address the chunk.
 	sink     func(*Chunk, int) error
 	xfrm     block.Transformer
 	hashType hash.HashType
@@ -143,8 +143,8 @@ func (a *chunkAppender) appendStored(chk *Chunk) error {
 }
 
 // appendTail stores the held chunk as tail chunks. Each old tail chunk the held
-// bytes cover whole keeps its stored block. The old chunk the last boundary
-// splits and the appended bytes are stored as new tail chunks.
+// bytes cover whole keeps its stored block. New tail chunks store the old
+// chunk split by the last boundary and the appended bytes.
 func (a *chunkAppender) appendTail(old []*Chunk, held *heldChunk) error {
 	// Walk the old tail chunks that end after the last boundary.
 	pos, end := held.start, held.start+held.size

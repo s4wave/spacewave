@@ -48,9 +48,9 @@ type Client struct {
 // and starts tracking damage on the first screen. The screen must be 24 or
 // 32 bits deep with 32-bit little-endian pixels, as Xvfb's are.
 func New(conn net.Conn) (*Client, error) {
-	// Connect with a cookie of our own. The guest's X server grants local
-	// clients without authorization, and the cookie keeps xgb from sending
-	// the host user's X authority to the guest.
+	// Connect with the client's own cookie. The guest's X server grants
+	// local clients without authorization, and the cookie keeps xgb from
+	// sending the host user's X authority to the guest.
 	cookie := make([]byte, 16)
 	_, _ = rand.Read(cookie)
 	xc, err := xgb.NewConnNetWithCookieHex(conn, hex.EncodeToString(cookie))
@@ -183,7 +183,7 @@ func readKeycodes(xc *xgb.Conn, setup *xproto.SetupInfo) (map[xproto.Keysym]xpro
 }
 
 // Run sends the screen to send as a scene of one opaque layer, then each
-// region that changes as a patch of it, until the X server closes the
+// region that changes as a patch of the layer, until the X server closes the
 // connection or ctx ends. Each region is the bounding box of the changes since
 // the last one.
 func (c *Client) Run(ctx context.Context, send func(*s4wave_vm.WasiVmScene) error) error {

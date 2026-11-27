@@ -22,14 +22,15 @@ import (
 
 func TestTypedObjectResourceDevice(t *testing.T) {
 
-	// background ctx via context.
+	// Get ctx via context.Background.
 	ctx := context.Background()
 
-	// setupWorldTestbed tb,tbCleanup.
+	// Get tb and tbCleanup via setupWorldTestbed.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
-	// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
+	// Get resClient, engine and cleanup via
+	// setupWorldResourceClientWithObjectTypes.
 	resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 	defer cleanup()
 
@@ -52,7 +53,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		UpdatedAt: createdAt.CloneVT(),
 	}
 
-	// createResourceReference engineRef via resClient.
+	// Create engineRef via resClient.CreateResourceReference.
 	engineRef := resClient.CreateResourceReference(engine.GetResourceRef().GetResourceID())
 	worldEngine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
 	if err != nil {
@@ -61,7 +62,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	}
 	defer worldEngine.Release()
 
-	// newTransaction tx,err via worldEngine.
+	// Get tx and err via worldEngine.NewTransaction.
 	tx, err := worldEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
@@ -73,7 +74,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		return nil
 	})
 
-	// releaseObjectState via world.
+	// Release createdObject via world.ReleaseObjectState.
 	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
@@ -105,7 +106,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		t.Fatalf("type id = %q, want %q", resp.GetTypeId(), s4wave_device.DeviceTypeID)
 	}
 
-	// createResourceReference deviceRef via resClient.
+	// Create deviceRef via resClient.CreateResourceReference.
 	deviceRef := resClient.CreateResourceReference(resp.GetResourceId())
 	defer deviceRef.Release()
 	deviceClient, err := deviceRef.GetClient()
@@ -131,7 +132,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		t.Fatal("availability did not preserve the durable Device record")
 	}
 
-	// watchDeviceState stream,err via deviceSvc.
+	// Get stream and err via deviceSvc.WatchDeviceState.
 	stream, err := deviceSvc.WatchDeviceState(ctx, &s4wave_device.WatchDeviceStateRequest{})
 	if err != nil {
 		t.Fatalf("WatchDeviceState failed: %v", err)
@@ -199,7 +200,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		t.Fatal("expected browser-visible Device resource to reject status reports")
 	}
 
-	// cloneVT directUpdate via device.
+	// Clone device into directUpdate via CloneVT.
 	directUpdate := device.CloneVT()
 	directUpdate.UpdateState = s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY
 	directUpdate.LastStatus = &s4wave_device.DeviceStatus{
@@ -258,7 +259,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	}
 	updateState, found, err := tx2.GetObject(ctx, objectKey)
 
-	// releaseObjectState via world.
+	// Defer releasing updateState via world.ReleaseObjectState.
 	defer world.ReleaseObjectState(updateState)
 	if err != nil {
 		tx2.Discard()
@@ -282,7 +283,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	}
 	tx2.Discard()
 
-	// getCapabilities caps via directUpdate.
+	// Get caps via directUpdate.GetCapabilities.
 	caps := directUpdate.GetCapabilities()
 	if len(caps) != 3 {
 		t.Fatalf("capabilities = %d, want 3", len(caps))
@@ -306,7 +307,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		t.Fatalf("terminal protocol = %q", caps[2].GetLink().GetProtocolId())
 	}
 
-	// withTimeout watchCtx,cancel via context.
+	// Get watchCtx and cancel via context.WithTimeout.
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	gotUpdate, err := recvDeviceState(watchCtx, stream)
@@ -320,18 +321,19 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 
 func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 
-	// background ctx via context.
+	// Get ctx via context.Background.
 	ctx := context.Background()
 
-	// setupWorldTestbed tb,tbCleanup.
+	// Get tb and tbCleanup via setupWorldTestbed.
 	tb, tbCleanup := setupWorldTestbed(ctx, t)
 	defer tbCleanup()
 
-	// setupWorldResourceClientWithObjectTypes resClient,engine,cleanup.
+	// Get resClient, engine and cleanup via
+	// setupWorldResourceClientWithObjectTypes.
 	resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 	defer cleanup()
 
-	// createResourceReference engineRef via resClient.
+	// Create engineRef via resClient.CreateResourceReference.
 	engineRef := resClient.CreateResourceReference(engine.GetResourceRef().GetResourceID())
 	worldEngine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
 	if err != nil {
@@ -340,7 +342,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	}
 	defer worldEngine.Release()
 
-	// newTransaction tx,err via worldEngine.
+	// Get tx and err via worldEngine.NewTransaction.
 	tx, err := worldEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
@@ -389,7 +391,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		return nil
 	})
 
-	// releaseObjectState via world.
+	// Release createdObject via world.ReleaseObjectState.
 	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
@@ -418,7 +420,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatalf("AccessTypedObject(device) failed: %v", err)
 	}
 
-	// createResourceReference deviceRef via resClient.
+	// Create deviceRef via resClient.CreateResourceReference.
 	deviceRef := resClient.CreateResourceReference(deviceResp.GetResourceId())
 	defer deviceRef.Release()
 	deviceClient, err := deviceRef.GetClient()
@@ -427,7 +429,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	}
 	deviceSvc := s4wave_device.NewSRPCDeviceResourceServiceClient(deviceClient)
 
-	// accessCheckoutRoot checkoutResp,err via deviceSvc.
+	// Get checkoutResp and err via deviceSvc.AccessCheckoutRoot.
 	checkoutResp, err := deviceSvc.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{Name: "skiffos"})
 	if err != nil {
 		t.Fatalf("AccessCheckoutRoot failed: %v", err)
@@ -445,7 +447,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("read request returned write-enabled checkout root")
 	}
 
-	// createResourceReference fsRef via resClient.
+	// Create fsRef via resClient.CreateResourceReference.
 	fsRef := resClient.CreateResourceReference(checkoutResp.GetResourceId())
 	fsClient, err := fsRef.GetClient()
 	if err != nil {
@@ -467,7 +469,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("expected read-only checkout root to reject Mknod")
 	}
 
-	// withTimeout watchCtx,cancelWatch via context.
+	// Get watchCtx and cancelWatch via context.WithTimeout.
 	watchCtx, cancelWatch := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelWatch()
 	watch, err := fsSvc.WatchReaddir(watchCtx, &s4wave_unixfs.HandleWatchReaddirRequest{})
@@ -494,7 +496,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("expected write checkout root response to report write enabled")
 	}
 
-	// createResourceReference writeFSRef via resClient.
+	// Create writeFSRef via resClient.CreateResourceReference.
 	writeFSRef := resClient.CreateResourceReference(writeResp.GetResourceId())
 	defer writeFSRef.Release()
 	writeFSClient, err := writeFSRef.GetClient()
@@ -522,7 +524,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	fsRef.Release()
 	releasedFSRef := resClient.CreateResourceReference(checkoutResp.GetResourceId())
 
-	// Release via releasedFSRef.
+	// Defer releasing the resource via releasedFSRef.
 	defer releasedFSRef.Release()
 	releasedFSClient, err := releasedFSRef.GetClient()
 	if err != nil {
@@ -533,7 +535,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("expected released checkout root resource to reject GetNodeType")
 	}
 
-	// newTransaction revokeTx,err via worldEngine.
+	// Get revokeTx and err via worldEngine.NewTransaction.
 	revokeTx, err := worldEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(revoke) failed: %v", err)
@@ -549,7 +551,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("device object missing for revoke")
 	}
 
-	// cloneVT revokedDevice via device.
+	// Clone device into revokedDevice via CloneVT.
 	revokedDevice := device.CloneVT()
 	revokedDevice.Capabilities[0].Policy.GrantState = s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED
 	_, _, err = world.AccessObjectState(ctx, revokeState, true, func(bcs *block.Cursor) error {
@@ -574,7 +576,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("expected stale Device resource to reject write after policy revoke")
 	}
 
-	// newTransaction disabledTx,err via worldEngine.
+	// Get disabledTx and err via worldEngine.NewTransaction.
 	disabledTx, err := worldEngine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(disable) failed: %v", err)
@@ -590,7 +592,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatal("device object missing for disable")
 	}
 
-	// cloneVT disabledDevice via device.
+	// Clone device into disabledDevice via CloneVT.
 	disabledDevice := device.CloneVT()
 	disabledDevice.Capabilities[0].State = s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DISABLED
 	_, _, err = world.AccessObjectState(ctx, disabledState, true, func(bcs *block.Cursor) error {
@@ -607,7 +609,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	}
 	disabledTx.Discard()
 
-	// accessTypedObject disabledResp,err via typedSvc.
+	// Get disabledResp and err via typedSvc.AccessTypedObject.
 	disabledResp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: deviceObjectKey,
 	})

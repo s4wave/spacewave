@@ -1,5 +1,5 @@
-// Loads and merges license data with human annotations.
-// Imported at build time by both /licenses and /community pages.
+// This module loads and merges license data with human annotations.
+// Both /licenses and /community pages import this module at build time.
 
 import licensesJson from './licenses.json'
 import {
@@ -45,7 +45,8 @@ function derivePackageUrl(entry: LicenseEntry): string | undefined {
   }
 }
 
-// Reconstruct full license text from base + copyright notice.
+// reconstructText reconstructs full license text from the base and copyright
+// notice.
 export function reconstructText(entry: LicenseEntry): string {
   if (entry.fullText) return entry.fullText
   const base = data.bases[entry.spdx]
@@ -57,7 +58,7 @@ export function reconstructText(entry: LicenseEntry): string {
   return parts.join('\n')
 }
 
-// Merge license entries with annotations.
+// buildAnnotatedEntries merges license entries with annotations.
 function buildAnnotatedEntries(): AnnotatedLicenseEntry[] {
   return data.entries.map((entry) => {
     const annotation = annotations[entry.name]
@@ -77,7 +78,7 @@ export const licenseBases = data.bases
 export const licenseEntries: AnnotatedLicenseEntry[] = buildAnnotatedEntries()
 export const licenseCategories: CategoryDef[] = categories
 
-// Group entries by category, sorted by category order.
+// groupByCategory groups entries by category, sorted by category order.
 export function groupByCategory(
   entries: AnnotatedLicenseEntry[],
 ): Array<{ category: CategoryDef; entries: AnnotatedLicenseEntry[] }> {
@@ -99,7 +100,7 @@ export function groupByCategory(
     .sort((a, b) => a.category.order - b.category.order)
 }
 
-// Summary stats for the /licenses page header.
+// licenseStats returns summary stats for the /licenses page header.
 export function licenseStats() {
   const goCount = licenseEntries.filter(
     (e) => e.source === 'go' || e.source === 'both',

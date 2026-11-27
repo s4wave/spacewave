@@ -22,7 +22,7 @@ func SplitPath(tpath string) (out []string, isAbsolute bool) {
 
 	// check for ./
 	if len(tpath) >= 2 && tpath[0] == '.' && tpath[1] == PathSeparator {
-		tpath = tpath[2:] // Is this even possible with path.Clean?
+		tpath = tpath[2:] // Can path.Clean leave a ./ prefix?
 	}
 	if len(tpath) == 0 || (len(tpath) == 1 && tpath[0] == '.') {
 		return nil, isAbsolute
@@ -49,7 +49,7 @@ func JoinPath(pathc []string, isAbsolute bool) string {
 }
 
 // JoinPathPts joins multiple path parts slices.
-// (concats the slices together)
+// (concats the slices together).
 func JoinPathPts(pts ...[]string) []string {
 	if len(pts) == 0 {
 		return nil

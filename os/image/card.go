@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	// CardSigners names the card file listing the accepted signers, one peer
-	// ID per line. First boot pins it; later boots never read it.
+	// CardSigners identifies the card file listing the accepted signers, one
+	// peer ID per line. First boot pins it. Later boots never read it.
 	CardSigners = "signers"
-	// AuthorizationFile names the file holding an image authorization as
+	// AuthorizationFile identifies the file holding an image authorization as
 	// packedmsg text: the sign Step's output, which install publishes into
 	// the image store beside the root it authorizes.
 	AuthorizationFile = "authorization"
-	// CardGrant names the card file holding the bootstrap grant, an
+	// CardGrant identifies the card file holding the bootstrap grant, an
 	// untargeted Space invite, as packedmsg text.
 	CardGrant = "grant"
 )
@@ -77,7 +77,7 @@ func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *s
 
 // ReadAuthorization reads the packedmsg image authorization at path.
 func ReadAuthorization(path string) (*peer.SignedMsg, error) {
-	// Decode the packed text; the caller verifies the signed message.
+	// Decode the packed text. The caller verifies the signed message.
 	data, err := readPacked(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "image authorization")

@@ -11,7 +11,7 @@ import {
 export const NOTEBOOK_EDIT_OP_ID = 'notes/notebook/edit'
 
 // NOTEBOOK_CONFLICT_CODE rejects an edit made against sources the Notebook no
-// longer holds, such as a Remove whose index now names another source.
+// longer holds, such as a Remove whose index now selects another source.
 export const NOTEBOOK_CONFLICT_CODE = 'notes/notebook/conflict'
 
 // NOTEBOOK_ORDER_CODE rejects a Reorder whose order is not a permutation of
@@ -32,12 +32,12 @@ export const NOTEBOOK_EMPTY_CODE = 'notes/notebook/empty'
  * result, all through the World state the op was applied with, so the World
  * writer is held from the read to the write and no other edit lands between.
  * It makes six calls on that state: getObject, getRootRef, accessWorldState,
- * getBlock, putBlock and setRootRef; a refused edit stops after getBlock and
+ * getBlock, putBlock and setRootRef. A refused edit stops after getBlock and
  * writes nothing. It calls nothing else while the writer is held. The host
  * loads the plugin before it takes the writer and bounds the hold: it
- * discards an op whose plugin calls run past its 10 s deadline, which the
- * caller sees as a PluginOpTimeoutError that wrote nothing. A refusal throws
- * a WorldOperationRejection carrying one of the codes above.
+ * discards an op whose plugin calls run past its 10 s deadline. The caller
+ * sees the discarded op as a PluginOpTimeoutError that wrote nothing. A refusal
+ * throws a WorldOperationRejection carrying one of the codes above.
  */
 export async function applyNotebookEdit(
   ws: IWorldState,

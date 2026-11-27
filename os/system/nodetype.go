@@ -2,7 +2,7 @@
 // running Spacewave OS and bound to an os/release object, it moves the Device
 // to the release's image. The node serves the release to the Device's
 // console, which stages it beside the running revision and boots it on
-// trial; a trial that fails boots back to the accepted revision.
+// trial. A trial that fails boots back to the accepted revision.
 package os_system
 
 import (

@@ -12,11 +12,11 @@ import (
 
 // StorageController is the bldr storage controller.
 type StorageController struct {
-	// storageId is the id to respond to on the bus
+	// storageId is the id to respond to on the bus.
 	storageId string
-	// storage is the storage
+	// storage is the storage.
 	storage []storage.Storage
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
 }
 

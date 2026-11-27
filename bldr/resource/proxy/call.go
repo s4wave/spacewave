@@ -17,7 +17,7 @@ import (
 const viewField = 1000
 
 // errStale ends an attempt whose answer came from a binding the generation
-// left, so the call opens again on the next.
+// left, so the call opens again on the next upstream.
 var errStale = errors.New("answered by a lost upstream")
 
 // inbound is one packet read from a route, or the error that ended it.
@@ -73,7 +73,7 @@ func (c *call) run() error {
 	go pump(ctx, c.client, in)
 
 	// Read the call's start, and count a unary call while the proxy holds
-	// it; past a limit it ends at once.
+	// the call. End the call at once if a limit is exceeded.
 	select {
 	case <-ctx.Done():
 		return nil
@@ -103,7 +103,8 @@ func (c *call) run() error {
 			return c.reset()
 		}
 
-		// Carry the call; resume it on a new route when its rule allows.
+		// Carry the call. Resume it on a new route when its rule
+		// allows.
 		settled, err := c.attempt(ctx, in, up, b, again)
 		_ = up.Close()
 		if settled {
@@ -116,7 +117,7 @@ func (c *call) run() error {
 }
 
 // attempt carries the call over one upstream route on b. It reports whether
-// the call settled; it returns unsettled when b's upstream was lost.
+// the call settled. It returns unsettled when b's upstream was lost.
 func (c *call) attempt(
 	ctx context.Context,
 	in <-chan inbound,
@@ -125,7 +126,7 @@ func (c *call) attempt(
 	again bool,
 ) (bool, error) {
 	// Send again what the client sent on the lost route, and what it sent
-	// before the first.
+	// before the first route.
 	for i, data := range c.sent {
 		if i == 0 && c.rule == Resume && c.held != "" {
 			data = withHeld(data, c.held)
@@ -235,7 +236,7 @@ func (c *call) fromUpstream(b *binding, pkt *resource.ResourceRpcPacket, dropRep
 		data = p.GetCallData()
 	}
 
-	// Name an opened child by its proxy ID.
+	// Identify an opened child by its proxy ID.
 	if msg := data.GetData(); c.rule == Open && len(msg) != 0 {
 		msg, ok := c.g.opened(b, c.on, c.replay(), msg)
 		if !ok {
@@ -269,7 +270,7 @@ func (c *call) fromUpstream(b *binding, pkt *resource.ResourceRpcPacket, dropRep
 		}
 	}
 
-	// Forward it and keep a successful Replay call.
+	// Forward the packet and keep a successful Replay call.
 	if err := c.client.Send(pkt); err != nil {
 		return true, err
 	}
@@ -343,7 +344,7 @@ func (c *call) reset() error {
 	return c.client.Send(newData(data))
 }
 
-// withHeld returns the srpc packet data with its call's request naming held
+// withHeld returns the srpc packet data with its call's request holding held
 // as the version the client holds, or data unchanged when it starts no call.
 // The field is appended, so it replaces any version the client sent.
 func withHeld(data []byte, held string) []byte {

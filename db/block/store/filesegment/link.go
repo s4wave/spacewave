@@ -17,7 +17,7 @@ import (
 const LinkAttempts = 3
 
 // ErrFileChanging is returned by LinkFile when the file changed during each
-// of LinkAttempts reads. A writer is still at work on it; its next change
+// of LinkAttempts reads. A writer is still at work on the file. Its next change
 // links it again.
 var ErrFileChanging = errors.New("file changed during each read")
 
@@ -33,19 +33,20 @@ const InlineLimit = 4 << 10
 // LinkFile addresses the file at path, an absolute path, with the Space's
 // transform xfrm and hashType, commits each chunk's range to idx in one write,
 // and returns the chunked Blob that describes the file. Only the Blob goes to
-// the Volume; the chunk bytes stay in the file. A file of at most InlineLimit
+// the Volume. The chunk bytes stay in the file. A file of at most InlineLimit
 // bytes is the exception: its bytes go into a raw Blob, as of link time, and
 // idx keeps no range for it. The index write commits before LinkFile returns,
-// so a World transaction naming the Blob's refs commits after it.
+// so a World transaction that records the Blob's refs commits after the index
+// write.
 //
 // A file whose stat, or whose path's file, changed by the end of the read is
-// read again, so the Blob never mixes two versions of the file; after
-// LinkAttempts reads that each saw a change it returns ErrFileChanging and
-// writes nothing. A change that keeps the size and the modification time is
+// read again, so the Blob never mixes two versions of the file. After
+// LinkAttempts reads that each saw a change LinkFile returns ErrFileChanging
+// and writes nothing. A change that keeps the size and the modification time is
 // invisible here, and the store's hash check on each read catches it.
 //
 // sum, if set, is reset and fed the bytes of the version the Blob describes,
-// the same read that addresses them.
+// in the same read that addresses them.
 func LinkFile(
 	ctx context.Context,
 	idx *Index,

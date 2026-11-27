@@ -22,7 +22,7 @@ func (m InputMap) Validate() error {
 }
 
 // ObjectRef resolves the named input to the object its value refers to. It
-// refuses an input that is missing, empty or names an empty root, since a
+// refuses an input that is missing, empty or refers to an empty root, since a
 // Step reads the object's tree from that root.
 func (m InputMap) ObjectRef(name string) (*bucket.ObjectRef, error) {
 	// Resolve the input to a non-empty value.
@@ -38,7 +38,7 @@ func (m InputMap) ObjectRef(name string) (*bucket.ObjectRef, error) {
 		return nil, errors.Errorf("input %q is empty", name)
 	}
 
-	// The value names the root of the object's tree.
+	// The value references the root of the object's tree.
 	ref, err := val.ToBucketRef()
 	if err != nil {
 		return nil, errors.Wrapf(err, "input %q", name)

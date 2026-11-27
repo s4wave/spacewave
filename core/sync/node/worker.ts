@@ -40,7 +40,7 @@ async function openEngine(directory: string, openRuntime: OpenRuntime) {
 }
 
 // describeFailure renders a thrown value as text. An unrecovered Go panic is an
-// Error whose message reads "panic: <value>"; a compiled Go error that is not
+// Error whose message reads "panic: <value>". A compiled Go error that is not
 // an Error carries its text behind an Error() method, which may be async.
 async function describeFailure(reason: unknown): Promise<string> {
   if (reason instanceof Error) return reason.message

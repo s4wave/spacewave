@@ -23,9 +23,9 @@ type FactoryAdder func(b bus.Bus, sr *static.Resolver)
 // This corresponds to a controller bus and an inproc transport.
 type Peer struct {
 	Node
-	// peerPriv is the private key
+	// peerPriv is the private key.
 	peerPriv crypto.PrivKey
-	// peerID is the peer id
+	// peerID is the peer id.
 	peerID peer.ID
 	// extraControllers contains extra controller configurations.
 	extraControllers configset.ConfigSet

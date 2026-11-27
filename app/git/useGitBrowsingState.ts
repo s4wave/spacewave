@@ -23,16 +23,16 @@ export function useGitBrowsingState(
 
   useStateNamespace([stateNs])
 
-  // Parse viewer path into route components (GitHub-style URLs).
+  // Parse the viewer path into route components (GitHub-style URLs).
   const route = useMemo(() => parseViewerRoute(path), [path])
 
-  // Resolve effective ref: from URL or fallback headRef.
+  // Resolve the effective ref: from the URL or the fallback headRef.
   const effectiveRef = useMemo(() => {
     if (route.ref) return route.ref
     return headRef ?? null
   }, [route.ref, headRef])
 
-  // Fetch tip commit for the selected ref or specific commit hash.
+  // Fetch the tip commit for the selected ref or specific commit hash.
   const tipCommitResource = useResource(
     repoHandle,
     async (repo) => {
@@ -46,7 +46,7 @@ export function useGitBrowsingState(
     [effectiveRef, route.commitHash],
   )
 
-  // Immutable tree FSHandle for the selected ref.
+  // Load the immutable tree FSHandle for the selected ref.
   const rootHandleResource = useResource(
     repoHandle,
     async (repo, signal, cleanup) => {

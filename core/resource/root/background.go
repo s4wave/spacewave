@@ -64,7 +64,7 @@ func (s *CoreRootServer) RunBackgroundPlugins(ctx context.Context) error {
 	}
 	defer sessionCtrlRef.Release()
 
-	// Run one retrying hold per Space; a failed mount retries with backoff.
+	// Run one retrying hold per Space. A failed mount retries with backoff.
 	holds := keyed.NewKeyedWithLogger(
 		s.newBackgroundSpaceHold,
 		s.le.WithField("subsystem", "background-plugins"),
@@ -84,7 +84,7 @@ func (s *CoreRootServer) RunBackgroundPlugins(ctx context.Context) error {
 			ch = getWaitCh()
 		})
 
-		// Hold exactly the Spaces and plugins the Sessions currently confirm.
+		// Hold exactly the Spaces and plugins the Sessions confirm.
 		spaces, err := listBackgroundSpaces(ctx, sessionCtrl)
 		if err != nil {
 			return err

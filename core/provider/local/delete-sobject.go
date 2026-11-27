@@ -12,8 +12,8 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// DeleteStateEnv names the environment variable that, set to "off", turns off
-// the removal of a deleted object's stored state and the paths that keep
+// DeleteStateEnv identifies the environment variable that, set to "off", turns
+// off the removal of a deleted object's stored state and the paths that keep
 // stored state in step with the list:
 //   - delete unlists the object and releases its block roots, but keeps its
 //     keys under so/<id>/ and does not restart its live mount;
@@ -28,8 +28,8 @@ import (
 // It does not turn off what loses no data and keeps handles honest: the host
 // key checks on state and local state writes, the refusals of an ended mount's
 // reads and writes, the released callback of a mount, the placeholder genesis
-// of a listed object with no state, the transfer refusal of an unlisted id,
-// and the catalog generations with their deleted sets.
+// of a listed object with no state, the transfer refusal of an unlisted id, and
+// the catalog generations with their deleted sets.
 const DeleteStateEnv = "SPACEWAVE_SOBJECT_DELETE_STATE"
 
 // deleteStateOff selects DeleteStateEnv's old behavior. It is read once, here,
@@ -49,24 +49,25 @@ var (
 	// sobjectRun.
 	testHookRunStarting atomic.Pointer[func(id string)]
 	// testHookRunEnding runs as a ready tracker run exits, in place of
-	// clearing its mount result; it must call end.
+	// clearing its mount result. It must call end.
 	testHookRunEnding atomic.Pointer[func(id string, end func())]
 	// testHookDeleteCommitted runs after a delete commits, before it restarts
 	// the live mount.
 	testHookDeleteCommitted atomic.Pointer[func(id string)]
 	// testHookReplaceCommitted runs after a replace commits, before it
-	// restarts the live mount; an error it returns is the replace's, as from
-	// a commit that stored the state and then failed.
+	// restarts the live mount. An error it returns is the replace's, as
+	// from a commit that stored the state and then failed.
 	testHookReplaceCommitted atomic.Pointer[func(id string) error]
 	// testHookStateWriting runs in a mounted state write's transaction,
 	// after its mount check, before it reads the stored state.
 	testHookStateWriting atomic.Pointer[func(id string)]
-	// testHookStateCommitted runs after a mounted state write commits; an
+	// testHookStateCommitted runs after a mounted state write commits. An
 	// error it returns is the write's, as from a commit that stored the
 	// state and then failed.
 	testHookStateCommitted atomic.Pointer[func(id string) error]
 	// testHookStateSettling runs before a failed state write reads storage
-	// to settle whether it committed; an error it returns is the read's.
+	// to settle whether the write committed. An error it returns is the
+	// read's.
 	testHookStateSettling atomic.Pointer[func(id string) error]
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
@@ -77,10 +78,10 @@ var (
 	// testHookResumeMark runs as the start resume reaches a release mark,
 	// before it takes mtx.
 	testHookResumeMark atomic.Pointer[func(id string)]
-	// testHookReleaseBucket runs before a bucket's roots are released; an
+	// testHookReleaseBucket runs before a bucket's roots are released. An
 	// error it returns fails the release.
 	testHookReleaseBucket atomic.Pointer[func(bucketID string) error]
-	// testHookDeleteReleaseMark runs before a release mark is removed; an
+	// testHookDeleteReleaseMark runs before a release mark is removed. An
 	// error it returns fails the removal.
 	testHookDeleteReleaseMark atomic.Pointer[func(id string) error]
 	// testHookEnrollmentMounted runs after an enrollment mounts its
@@ -89,7 +90,7 @@ var (
 	testHookEnrollmentMounted atomic.Pointer[func(id string)]
 )
 
-// errCannotDeleteSettings is returned when a delete names the account's bound
+// errCannotDeleteSettings is returned when a delete selects the account's bound
 // settings object.
 var errCannotDeleteSettings = errors.New("cannot delete the account settings shared object")
 
@@ -149,7 +150,7 @@ func (a *ProviderAccount) deleteListedGeneration(ctx context.Context, id, genera
 //     lifetime never starts beside an earlier one's roots. One exception:
 //     finishPendingReleaseLocked does nothing with DeleteStateEnv off, so a
 //     mark written while on survives an off-mode create or enrollment that
-//     lists the id; back on, the resume finds the mark beside the listing.
+//     lists the id. Back on, the resume finds the mark beside the listing.
 //     A mark beside a listing or stored state therefore keeps its roots: the
 //     resume logs it, keeps the roots and removes the mark.
 //   - An id that is neither listed nor holds stored state has no live roots
@@ -160,12 +161,12 @@ func (a *ProviderAccount) deleteListedGeneration(ctx context.Context, id, genera
 //   - Each mark is finished under its own hold of mtx. csync.Mutex hands a
 //     released lock to its oldest waiter, so a create or a delete that waits
 //     behind the resume waits through at most one release.
-//   - A release that fails is logged and its mark kept for the next start;
-//     the other marks still run. Releasing a bucket that holds no roots
+//   - A release that fails is logged and its mark kept for the next start.
+//     The other marks still run. Releasing a bucket that holds no roots
 //     writes nothing, so a mark left after a release only costs a recheck.
 //   - Deletes committed before marks existed have none, so their leaked
 //     roots stay held, as before. With DeleteStateEnv off no mark is written
-//     or finished, and this does not run.
+//     or finished, and resumeSharedObjectDeletes does not run.
 func (a *ProviderAccount) resumeSharedObjectDeletes(ctx context.Context) error {
 	// Visit the marks in bounded batches.
 	var after []byte
@@ -206,7 +207,7 @@ func (a *ProviderAccount) resumeSharedObjectDeletes(ctx context.Context) error {
 }
 
 // scanReleaseMarks returns up to deleteBatchSize release mark keys that sort
-// after after, or from the first when after is nil.
+// after after, or from the first release mark key when after is nil.
 func (a *ProviderAccount) scanReleaseMarks(ctx context.Context, after []byte) ([][]byte, error) {
 	var keys [][]byte
 	err := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
@@ -249,7 +250,7 @@ func (a *ProviderAccount) resumeSharedObjectRelease(ctx context.Context, id stri
 }
 
 // finishPendingReleaseLocked completes id's pending release, if a delete left
-// one: it releases the roots of the bucket the mark names and removes the
+// one: it releases the roots of the bucket the mark references and removes the
 // mark. Every path that lists an id or gives it its first state calls it
 // before that write, so the new lifetime starts with an empty bucket rather
 // than adopting the earlier one's roots. A failure leaves the mark, and the
@@ -266,9 +267,9 @@ func (a *ProviderAccount) finishPendingReleaseLocked(ctx context.Context, id str
 	return errors.Wrapf(err, "finish the pending release of shared object %s", id)
 }
 
-// releaseMarkedBucketLocked releases the bucket id's mark names, then removes
-// the mark, and reports whether it released the bucket. A mark that names no
-// block store is removed and logged. Assumes mtx is locked.
+// releaseMarkedBucketLocked releases the bucket referenced by id's mark, then
+// removes the mark, and reports whether it released the bucket. A mark that
+// references no block store is removed and logged. Assumes mtx is locked.
 func (a *ProviderAccount) releaseMarkedBucketLocked(ctx context.Context, id string) (bool, error) {
 	// Read the mark.
 	blockStoreID, found, _, err := a.readReleaseMark(ctx, id)
@@ -276,7 +277,7 @@ func (a *ProviderAccount) releaseMarkedBucketLocked(ctx context.Context, id stri
 		return false, err
 	}
 
-	// Drop a mark that names no block store.
+	// Drop a mark that references no block store.
 	if blockStoreID == "" {
 		a.le.WithField("sobject-id", id).Warn("removing a release mark that names no block store")
 		return false, a.deleteReleaseMark(ctx, id)
@@ -295,8 +296,8 @@ func (a *ProviderAccount) releaseMarkedBucketLocked(ctx context.Context, id stri
 	return true, nil
 }
 
-// readReleaseMark reads id's release mark: the block store id it names,
-// whether it exists, and whether id holds stored state.
+// readReleaseMark reads id's release mark: the block store id it references,
+// whether the mark exists, and whether id holds stored state.
 func (a *ProviderAccount) readReleaseMark(ctx context.Context, id string) (blockStoreID string, found, stored bool, err error) {
 	err = a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
 		// Read the mark.
@@ -327,7 +328,8 @@ func (a *ProviderAccount) deleteReleaseMark(ctx context.Context, id string) erro
 
 // DeleteSharedObject deletes the shared object with the given id.
 func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) error {
-	// Publish the deletion first so interrupted cleanup cannot resurrect it.
+	// Publish the deletion first so interrupted cleanup cannot resurrect
+	// the shared object.
 	entry := a.listedSharedObjectEntry(id)
 	if entry == nil {
 		return sobject.ErrSharedObjectNotFound
@@ -339,19 +341,19 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 		(*hook)(id)
 	}
 
-	// Local cleanup follows the committed account decision, and removes only
-	// the generation the tombstone names.
+	// Local cleanup follows the committed account decision, and removes
+	// only the generation the tombstone records.
 	return a.deleteListedGeneration(ctx, id, entry.GetGeneration())
 }
 
 // deleteSharedObjectLocked deletes a shared object. Assumes mtx is locked.
 //
 // Invariants:
-//   - It deletes only the object the caller named, and only while this
-//     account lists it; an unlisted id returns ErrSharedObjectNotFound and
+//   - It deletes only the object the caller selected, and only while this
+//     account lists it. An unlisted id returns ErrSharedObjectNotFound and
 //     touches nothing. The bound account settings object is refused.
 //   - It removes only keys under so/<id>/. Ids are DNS labels, so no other
-//     object's keys share that prefix; the list, the bindings and every other
+//     object's keys share that prefix. The list, the bindings and every other
 //     object's keys are outside it.
 //   - Nothing another listed object references is removed. Objects refer to
 //     each other only by ref inside their own state, never by a key under
@@ -363,19 +365,20 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //   - No handle writes under the prefix after the commit. Write transactions
 //     on the account store hold its writer from open to end, so each one
 //     commits wholly before or wholly after the delete. The store is the
-//     volume's object store, a kvtx prefixer over the volume's kvtx store;
-//     each layer opens its base transaction in NewTransaction and adds no
+//     volume's object store, a kvtx prefixer over the volume's kvtx store.
+//     Each layer opens its base transaction in NewTransaction and adds no
 //     buffer: the s4db DB on desktop, behind a logging wrapper when the
 //     volume is verbose, and a paylog Domain in the browser. s4db's
 //     optimistic mode, which takes the writer at commit, applies only to a
-//     transaction RunOptimisticTransaction opens; none here does. One
-//     before is removed with the prefix. One after finds no stored state and
-//     fails: state writes check the state key in their transaction, and a
-//     mount's other writes check it after taking the writer. The live mount
-//     is retired after the commit, still under mtx and before a same-id
-//     create can proceed. A mount after the delete returns gets the refusal
-//     rather than the ended handle. A write checking under the writer after
-//     a same-id create sees the ended mount even though the state key exists.
+//     transaction RunOptimisticTransaction opens. No transaction here does. A
+//     write before the delete is removed with the prefix. A write after the
+//     delete finds no stored state and fails: state writes check the state
+//     key in their transaction, and a mount's other writes check it after
+//     taking the writer. The live mount is retired after the commit, still
+//     under mtx and before a same-id create can proceed. A mount after the
+//     delete returns gets the refusal rather than the ended handle. A write
+//     checking under the writer after a same-id create sees the ended mount
+//     even though the state key exists.
 //   - A mount can open a read snapshot only while live. The restart clears
 //     the host's published state and ends the mount before a same-id create
 //     can proceed. Local state and host history check the mount again after
@@ -385,7 +388,7 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     each resolver's released callback so the bus drops the ended handle.
 //   - Every caller removes only the generation it planned against, decided
 //     under mtx through onListedGeneration: a delete removes the generation
-//     its tombstone names, and the catalog reconcile removes a local object
+//     its tombstone records, and the catalog reconcile removes a local object
 //     only when its generation is in the catalog's deleted set. A create in
 //     between mints a new generation, so it is never removed. See
 //     reconcileAccountCatalog.
@@ -412,7 +415,7 @@ func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id strin
 	providerID := a.t.accountInfo.GetProviderId()
 	providerAccountID := a.t.accountInfo.GetProviderAccountId()
 
-	// Get current list
+	// Get the current list
 	sharedObjectList := a.soListCtr.GetValue().CloneVT()
 	if sharedObjectList == nil {
 		return sobject.ErrSharedObjectNotFound
@@ -487,7 +490,7 @@ func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id strin
 
 // errStaleSOKeys is returned by a write of an id's first state that finds
 // keys under its prefix. withClearedSOKeys clears them and retries the write
-// once; a second refusal means a writer keeps adding such keys, and the
+// once. A second refusal means a writer keeps adding such keys, and the
 // caller fails.
 var errStaleSOKeys = errors.New("shared object prefix holds keys of an earlier lifetime")
 
@@ -498,8 +501,8 @@ var errSOEnrolling = errors.New("an enrollment of this shared object is in progr
 // under id before it lists it, until the returned end runs. While it is
 // registered a create of id fails with errSOEnrolling rather than clear that
 // state. Every writer of state under an unlisted id registers before its
-// first write; mountEnrolledSO does, for every enrollment. Assumes mtx is
-// locked; end takes it.
+// first write. mountEnrolledSO does, for every enrollment. Assumes mtx is
+// locked. end takes mtx.
 func (a *ProviderAccount) beginEnrollmentLocked(id string) (end func()) {
 	a.enrolling[id]++
 	return func() {
@@ -530,7 +533,7 @@ func (a *ProviderAccount) withClearedSOKeys(ctx context.Context, id string, clea
 // clearStaleSOKeys deletes the keys under id's prefix while id holds no
 // stored state, for a path that gives a listed or enrolling id its first
 // state. Such keys come from a clear a crash interrupted or a write that
-// failed partway; a delete that kept state kept its state key too. Each batch
+// failed partway. A delete that kept state kept its state key too. Each batch
 // checks the state keys in its deleting transaction, so state another
 // writer stores is never deleted. It does not take mtx: a mount's state load
 // runs it, and bindPairingSettings mounts while holding mtx.
@@ -545,10 +548,10 @@ func (a *ProviderAccount) clearStaleSOKeys(ctx context.Context, id string) error
 // for a create. Such state is abandoned: it was left by a delete that kept
 // state (released versions, or DeleteStateEnv off) or by an enrollment that
 // returned without listing the id, such as an interrupted import whose hold
-// still names the copied World. The release and each batch hold mtx and fail
-// with sobject.ErrSharedObjectExists or errSOEnrolling once the id is listed
-// or an enrollment registers. An enrollment registers under mtx before its
-// first write, and writes its placeholder, holds and installs after, so the
+// still references the copied World. The release and each batch hold mtx and
+// fail with sobject.ErrSharedObjectExists or errSOEnrolling once the id is
+// listed or an enrollment registers. An enrollment registers under mtx before
+// its first write, and writes its placeholder, holds and installs after, so the
 // release and each batch either run before the registration, when the
 // enrollment has written nothing, or see it and stop. After a restart no
 // enrollment is registered, and one that starts again writes its own
@@ -618,7 +621,7 @@ func (a *ProviderAccount) clearSOKeys(ctx context.Context, id string, locked boo
 		return err
 	})
 
-	// Delete batch by batch until a short one.
+	// Delete batch by batch until a short batch.
 	batch := func(ctx context.Context, tx kvtx.Tx) error {
 		// Keep owned keys.
 		keys = nil

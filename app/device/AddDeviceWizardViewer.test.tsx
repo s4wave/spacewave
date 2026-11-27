@@ -358,7 +358,7 @@ function pairedConfig(): Uint8Array {
 }
 
 // expectIndexMovedBeforeDelete asserts that Finish moved the Space index off
-// the wizard to indexPath, as the session, before it deleted the wizard.
+// the wizard to indexPath, as the session, before Finish deleted the wizard.
 function expectIndexMovedBeforeDelete(indexPath: string) {
   const at = h.applyWorldOp.mock.calls.findIndex(
     ([opId]) => opId === SET_SPACE_INDEX_PATH_OP_ID,
@@ -909,8 +909,9 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       await screen.findByText('Could not finish: commit failed'),
     ).toBeTruthy()
 
-    // A reload drops everything in memory; the wizard's links name the
-    // host, so the step says so in place of the credential fields.
+    // A reload drops everything in memory, but the wizard's links reference
+    // the host, so the step identifies the host in place of the credential
+    // fields.
     cleanup()
     renderViewer()
     expect(await screen.findByText('SSH Host already added')).toBeTruthy()
@@ -1022,7 +1023,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     const keys = await sshKeys()
     expect([...h.secrets]).toEqual([keys.password])
 
-    // Cancel deletes it, since no host names it.
+    // Cancel deletes the Secret, since no host references the Secret.
     await cancelWithRecordedConfig()
     expect(h.deleteSecret).toHaveBeenCalledWith({ objectKey: keys.password })
     expect(h.secrets.size).toBe(0)
@@ -1070,7 +1071,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       h.createSecret.mock.invocationCallOrder[0] ?? 0,
     )
 
-    // Cancel deletes every recorded key; none holds a Secret.
+    // Cancel deletes every recorded key, though none holds a Secret.
     await cancelWithRecordedConfig()
     const keys = await sshKeys()
     expect(h.deleteSecret.mock.calls.map(([req]) => req)).toEqual([

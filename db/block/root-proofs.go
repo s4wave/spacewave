@@ -86,7 +86,7 @@ func RootComplete(ctx context.Context, store StoreOps, ref *BlockRef) (bool, err
 }
 
 // RootsComplete checks the proofs of a batch of roots in one transaction. It
-// reports the proof of each root in order; an empty root has none, and a store
+// reports the proof of each root in order. An empty root has none, and a store
 // that keeps no proofs proves nothing.
 func RootsComplete(ctx context.Context, store StoreOps, refs []*BlockRef) ([]bool, error) {
 	p := rootProofs(store)

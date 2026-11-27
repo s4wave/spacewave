@@ -82,7 +82,7 @@ func writeManifestSets(
 
 // copyManifestSets creates the devtool World on vol, copies the block graph of
 // each ref into it and stores each ref under the plugin host. Each copy is
-// staged until the World op that names it lands, so every put is held.
+// staged until the World op that references it lands, so every put is held.
 func copyManifestSets(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -98,7 +98,7 @@ func copyManifestSets(
 	defer eng.Close()
 	dst := world.NewEngineWorldState(eng, true)
 
-	// Stage the copies until the World ops that name them land.
+	// Stage the copies until the World ops that reference them land.
 	dstStore := volume_controller.NewBucketStore(vol, &bucket.Config{Id: BucketID, Rev: 1})
 	dstBlocks, releaseStage, err := block.OpenStage(ctx, dstStore)
 	if err != nil {

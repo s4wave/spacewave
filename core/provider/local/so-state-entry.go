@@ -66,12 +66,12 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 
 // load reads the stored state. It first takes runs.Writes alone and
 // releases it at once, so it waits for the state writes of this object past
-// their mount check, including those of the mount run before it,
+// their mount check, including those of the preceding mount run,
 // and for no other writer. A restart can start the load while such a write
-// has yet to commit; the load then reads that write rather than the state
-// under it. A write of the old run that takes the gate later finds its mount
-// ended and writes nothing, and the new run's writes wait for this load. The
-// read holds no lock, so it orders after no write transaction.
+// has yet to commit. The load then reads that write rather than the state
+// under the write. A write of the old run that takes the gate later finds its
+// mount ended and writes nothing, and the new run's writes wait for this load.
+// The read holds no lock, so it orders after no write transaction.
 func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (state *sobject.SOState, token []byte, found bool, err error) {
 	// Wait for the writes of this object past their mount check.
 	release, err := runs.Writes.Lock(ctx, true)

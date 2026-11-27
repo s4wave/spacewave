@@ -114,10 +114,10 @@ func (x OutputType) String() string {
 type Target struct {
 	unknownFields []byte
 	// Inputs is the mapping of inputs.
-	// Not necessarily sorted or unique, later values override earlier.
+	// Not necessarily sorted or unique, later values override earlier values.
 	Inputs []*Input `protobuf:"bytes,1,rep,name=inputs,proto3" json:"inputs,omitempty"`
 	// Outputs is the mapping of outputs.
-	// Not necessarily sorted or unique, later values override earlier.
+	// Not necessarily sorted or unique, later values override earlier values.
 	Outputs []*Output `protobuf:"bytes,2,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	// Exec is the execution pass configuration.
 	Exec *Exec `protobuf:"bytes,3,opt,name=exec,proto3" json:"exec,omitempty"`
@@ -399,11 +399,12 @@ type Exec struct {
 	Disable bool `protobuf:"varint,1,opt,name=disable,proto3" json:"disable,omitempty"`
 	// Controller indicates to run a controllerbus controller.
 	Controller *proto.ControllerConfig `protobuf:"bytes,2,opt,name=controller,proto3" json:"controller,omitempty"`
-	// ReuseOutputs completes a Task with the outputs of an earlier successful
-	// Task whose Exec, Outputs and input values are equal, without running it.
+	// ReuseOutputs completes a Task without running the Task, using the outputs
+	// of an earlier successful Task whose Exec, Outputs and input values are
+	// equal.
 	// Set it only when the controller's outputs depend on nothing else.
 	ReuseOutputs bool `protobuf:"varint,3,opt,name=reuse_outputs,json=reuseOutputs,proto3" json:"reuseOutputs,omitempty"`
-	// ReuseIgnoreInputs names inputs that do not affect the outputs and are
+	// ReuseIgnoreInputs lists inputs that do not affect the outputs and are
 	// left out of the reuse key, such as a scheduler's per-activation context.
 	ReuseIgnoreInputs []string `protobuf:"bytes,4,rep,name=reuse_ignore_inputs,json=reuseIgnoreInputs,proto3" json:"reuseIgnoreInputs,omitempty"`
 }
@@ -475,8 +476,8 @@ func (x *ValueSet) GetOutputs() []*value.Value {
 	return nil
 }
 
-// Waiting names what blocks a running Execution before its work can start. An
-// unset reason means nothing blocks it.
+// Waiting describes what blocks a running Execution before its work can start.
+// An unset reason means nothing blocks the Execution.
 type Waiting struct {
 	unknownFields []byte
 	// Types that are assignable to Reason:
@@ -517,12 +518,12 @@ type isWaiting_Reason interface {
 }
 
 type Waiting_PluginId struct {
-	// PluginId names the plugin whose load blocks the Execution.
+	// PluginId identifies the plugin whose load blocks the Execution.
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3,oneof"`
 }
 
 type Waiting_Capacity struct {
-	// Capacity names the Worker capacity the Execution waits to reserve.
+	// Capacity specifies the Worker capacity the Execution waits to reserve.
 	Capacity *CapacityWait `protobuf:"bytes,2,opt,name=capacity,proto3,oneof"`
 }
 
@@ -531,7 +532,8 @@ func (*Waiting_PluginId) isWaiting_Reason() {}
 func (*Waiting_Capacity) isWaiting_Reason() {}
 
 // CapacityWait is a wait for Worker capacity that live reservations hold. The
-// Worker could hold the request; it waits until they release enough.
+// Worker could hold the request. The Execution waits until the live
+// reservations release enough capacity.
 type CapacityWait struct {
 	unknownFields []byte
 	// WorkerObjectKey is the Forge Worker whose capacity the Execution waits for.

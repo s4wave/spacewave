@@ -51,7 +51,7 @@ func NewFsMknodOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsMknodOp) Validate() error {
 	if err := unixfs_block.ValidateMknod(o.GetPaths(), o.GetNodeType()); err != nil {
 		return err

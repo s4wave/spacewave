@@ -89,10 +89,10 @@ func NewSharedObjectMeta(spaceName string) (*sobject.SharedObjectMeta, error) {
 // FixupSpaceName fixes up a space name by trimming spaces and
 // collapsing consecutive spaces into single spaces.
 func FixupSpaceName(name string) string {
-	// Trim spaces from start and end
+	// Trim spaces from the start and end
 	name = strings.TrimSpace(name)
 
-	// Replace consecutive spaces with single space
+	// Replace consecutive spaces with a single space
 	wasSpace := false
 	var b strings.Builder
 	for _, r := range name {
@@ -162,7 +162,8 @@ func (m *SpaceSoMeta) Validate() error {
 
 // FilterSharedObjectList filters a SharedObjectList to a list of SpaceSoListEntry.
 // invalidMeta is optional and is called if an invalid metadata is found.
-// if invalidMeta is nil we will return the error directly when encountering an invalid metadata.
+// if invalidMeta is nil FilterSharedObjectList returns the error directly when
+// encountering invalid metadata.
 func FilterSharedObjectList(
 	list []*sobject.SharedObjectListEntry,
 	invalidMeta func(ent *sobject.SharedObjectListEntry, err error) error,
@@ -174,7 +175,7 @@ func FilterSharedObjectList(
 		if entryMeta.GetBodyType() == SpaceBodyType {
 			meta := &SpaceSoMeta{}
 			if err := meta.UnmarshalVT(entryMeta.GetBodyMeta()); err != nil {
-				// if invalidMeta callback is provided call it
+				// if the invalidMeta callback is provided call it
 				if invalidMeta != nil {
 					err = invalidMeta(entry, err)
 					if err == nil {

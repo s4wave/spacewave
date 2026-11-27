@@ -40,11 +40,11 @@ type child struct {
 var errReleased = resource.ErrResourceOrClientReleased
 
 // opened registers the child an Open call answered on b with msg, and returns
-// msg naming the child by its proxy ID. It reports false when b no longer
+// msg identifying the child by its proxy ID. It reports false when b no longer
 // carries the generation: that upstream is lost, so the call opens again on
-// the next.
+// the next upstream.
 func (g *generation) opened(b *binding, parent *child, call replay, msg []byte) ([]byte, bool) {
-	// Pass through a response that names no child.
+	// Pass through a response that identifies no child.
 	up, ok := readChildID(msg)
 	if !ok {
 		return msg, true
@@ -68,7 +68,7 @@ func (g *generation) opened(b *binding, parent *child, call replay, msg []byte) 
 		return nil, false
 	}
 
-	// Name the child by its proxy ID.
+	// Identify the child by its proxy ID.
 	return writeChildID(msg, ch.id), true
 }
 
@@ -121,7 +121,7 @@ func (g *generation) childIDs() []uint32 {
 }
 
 // readChildID returns the child ID in an Open response, or false when it
-// names none or one too large for a resource ID.
+// contains none or one too large for a resource ID.
 func readChildID(msg []byte) (uint32, bool) {
 	for len(msg) > 0 {
 		num, typ, n := protowire.ConsumeTag(msg)

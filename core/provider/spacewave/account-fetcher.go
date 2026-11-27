@@ -214,9 +214,10 @@ func (a *ProviderAccount) waitReauth(ctx context.Context, err error) error {
 // email and session lists it carries.
 //
 // If no newer invalidation arrived while the fetch was in flight, collapse the
-// local trigger epoch back down to the fetched server epoch. This lets a
-// bootstrap fetch at local epoch 1 with server epoch 0 settle to 0 so a later
-// remote account_changed(epoch=1) still triggers a refetch.
+// local trigger epoch back down to the fetched server epoch. Settling the local
+// trigger epoch lets a bootstrap fetch at local epoch 1 with server epoch 0
+// settle to 0 so a later remote account_changed(epoch=1) still triggers a
+// refetch.
 func (a *ProviderAccount) applyFetchedAccountState(
 	startEpoch uint64,
 	state *api.AccountStateResponse,

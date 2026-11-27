@@ -29,9 +29,10 @@ export interface BackendAPI {
   // openStream opens a stream to the remote rpc server, also used by Client.
   readonly openStream: OpenStreamFunc
 
-  // client is a connection to the Go WebRuntime
+  // client is a connection to the Go WebRuntime.
   // This will call => WebRuntime (TypeScript) => rpcstream WebWorkerRpc => Go runtime
-  // RPC calls will be run against the plugin host bus with server id web-worker/{web-worker-id}
+  // RPC calls will be run against the plugin host bus with server id
+  // web-worker/{web-worker-id}.
   readonly client: Client
 
   // pluginHost is the plugin host RPC service client.
@@ -64,30 +65,31 @@ export interface BackendAPI {
     RpcStreamPacket: MessageType<RpcStreamPacket>
   }
 
-  // HTTP prefix constants
+  // constants contains the HTTP prefix constants.
   readonly constants: {
-    // BldrHttpPrefix is the route prefix for bldr-controlled URL space.
+    // BLDR_HTTP_PREFIX is the route prefix for bldr-controlled URL space.
     // /b/
     readonly BLDR_HTTP_PREFIX: '/b/'
 
-    // PluginDistHttpPrefix is the route prefix to use for plugin dist.
+    // PLUGIN_DIST_HTTP_PREFIX is the route prefix to use for plugin dist.
     // /b/pd/{plugin-id}
     readonly PLUGIN_DIST_HTTP_PREFIX: '/b/pd/'
 
-    // PluginAssetsHttpPrefix is the route prefix to use for plugin assets.
+    // PLUGIN_ASSETS_HTTP_PREFIX is the route prefix to use for plugin assets.
     // /b/pa/{plugin-id}
     readonly PLUGIN_ASSETS_HTTP_PREFIX: '/b/pa/'
 
-    // PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
+    // PLUGIN_WEB_PKG_HTTP_PREFIX is the public URL path prefix for web
+    // packages.
     // /b/pkg/
     readonly PLUGIN_WEB_PKG_HTTP_PREFIX: '/b/pkg/'
 
-    // PluginHttpPrefix is the route prefix for plugin-controlled URL space.
+    // PLUGIN_HTTP_PREFIX is the route prefix for plugin-controlled URL space.
     // /p/{pluginId}/
     readonly PLUGIN_HTTP_PREFIX: '/p/'
   }
 
-  // HTTP path utility functions
+  // utils contains the HTTP path utility functions.
   readonly utils: {
     // pluginHttpPath adds the plugin http prefix to the given path.
     pluginHttpPath(pluginId: string, ...httpPaths: string[]): string

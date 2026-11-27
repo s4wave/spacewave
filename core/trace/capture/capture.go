@@ -177,7 +177,8 @@ func CaptureMemoryProfile(
 	}
 }
 
-// CaptureGoroutineProfile captures a goroutine profile from a TraceService client.
+// CaptureGoroutineProfile captures a goroutine profile from a TraceService
+// client.
 func CaptureGoroutineProfile(
 	ctx context.Context,
 	traceClient s4wave_trace.SRPCTraceServiceClient,

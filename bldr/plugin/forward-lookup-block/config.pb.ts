@@ -16,17 +16,17 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * PluginId is the plugin to load and use as .
+   * PluginId is the plugin to load and use.
    */
   pluginId?: string
   /**
    * ServiceIdRegex is the regex of service IDs to forward.
-   * If empty, will forward any.
+   * If empty, forwards any service ID.
    */
   serviceIdRegex?: string
   /**
    * ServerIdRegex is the regex of server IDs to forward for.
-   * If empty, will forward any.
+   * If empty, forwards any server ID.
    */
   serverIdRegex?: string
   /**

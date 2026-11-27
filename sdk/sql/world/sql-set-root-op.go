@@ -33,7 +33,7 @@ func NewSqlSetRootOp(
 	}
 }
 
-// Validate performs cursory checks on the operation.
+// Validate checks the operation cursorily.
 func (o *SqlSetRootOp) Validate() error {
 	// Validate the SQL object key and the proposed root reference.
 	if o.GetObjectKey() == "" {
@@ -116,7 +116,7 @@ func (o *SqlSetRootOp) ApplyWorldObjectOp(
 	}
 
 	// Divergent commits replay this transaction's statements on the current
-	// root; conflicts resolve in world-op order by SQL statement semantics.
+	// root. Conflicts resolve in world-op order by SQL statement semantics.
 	expected := o.GetBaseRef().Clone()
 	nextRoot := o.GetRootRef().Clone()
 	for range sqlSetRootMaxCASAttempts {

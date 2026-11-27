@@ -19,7 +19,8 @@ import (
 const logLimitEnv = "S4DB_TEST_LOG_LIMIT"
 
 // TestLogReserve uses real file IO with a kernel growth limit. A regular record
-// must fail before consuming the reserve; cleanup and recovery use backed bytes.
+// must fail before consuming the reserve. Cleanup and recovery use backed
+// bytes.
 func TestLogReserve(t *testing.T) {
 	// Isolate the resource limit and SIGXFSZ disposition from every other test.
 	path := os.Getenv(logLimitEnv)
@@ -253,8 +254,8 @@ func TestLogReserve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Resume the real scheduler for the checkpoint stage; a stopped idle worker
-	// cannot execute a flush job.
+	// Resume the real scheduler for the checkpoint stage. A stopped idle
+	// worker cannot execute a flush job.
 	startScheduler(db)
 	tx, err = db.NewTransaction(ctx, true)
 	if err != nil {
@@ -343,7 +344,8 @@ func fillLogDisk(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	t.Logf("full filesystem: block=%d total=%d free=%d available=%d", fs.Bsize, fs.Blocks, fs.Bfree, fs.Bavail)
-	// Filesystems retain metadata or allocator reserves after even a one-byte
-	// allocation returns ENOSPC. The failed write/sync defines exhaustion; the
-	// reported counters are evidence rather than a portable zero-space contract.
+	// Filesystems retain metadata or allocator reserves after even a
+	// one-byte allocation returns ENOSPC. The failed write/sync defines
+	// exhaustion. The reported counters are evidence rather than a portable
+	// zero-space contract.
 }

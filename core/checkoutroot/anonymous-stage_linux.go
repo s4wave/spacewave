@@ -30,7 +30,8 @@ func openAnonymousStage(dir *os.Root) (*os.File, error) {
 
 // publishAnonymousStage installs a complete inode if its destination is absent.
 func publishAnonymousStage(ctx context.Context, dir *os.Root, file *os.File, name string, ts time.Time) error {
-	// Address the inode through our fd without requiring CAP_DAC_READ_SEARCH.
+	// Address the inode through the file's fd without requiring
+	// CAP_DAC_READ_SEARCH.
 	source := "/proc/self/fd/" + strconv.FormatUint(uint64(file.Fd()), 10)
 	when := unix.Timespec{Sec: ts.Unix(), Nsec: int64(ts.Nanosecond())}
 	if err := unix.UtimesNanoAt(unix.AT_FDCWD, source, []unix.Timespec{when, when}, 0); err != nil {

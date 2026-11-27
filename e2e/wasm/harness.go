@@ -66,23 +66,26 @@ type Harness struct {
 	wasmErr        error
 	wasmDone       chan struct{}
 
-	// Browser process (populated by LaunchBrowser, shared across sessions).
+	// Browser process fields are populated by LaunchBrowser and shared
+	// across sessions.
 	pw      *playwright.Playwright
 	browser playwright.Browser
 	// device is the connection behind browser when it is Chrome on Android.
 	device *e2eharness.AndroidChrome
 
-	// Retained-state BrowserContext (lazy init). This is intentionally not used
-	// by NewCleanSession/NewCleanBlankSession, which keep strict isolated
+	// Retained-state context fields provide a BrowserContext (lazy init).
+	// The context is intentionally not used by
+	// NewCleanSession/NewCleanBlankSession, which keep strict isolated
 	// context semantics.
 	retainedStateCtxMu   sync.Mutex
 	retainedStateCtx     playwright.BrowserContext
 	retainedStateBaseURL string
 
-	// Compiled TypeScript test scripts (populated by CompileScripts).
+	// scripts holds compiled TypeScript test scripts populated by
+	// CompileScripts.
 	scripts CompiledScripts
 
-	// PeerWatcher tracks browser peers across sessions (lazy init).
+	// PeerWatcher fields track browser peers across sessions (lazy init).
 	peerWatcher     *PeerWatcher
 	peerWatcherOnce sync.Once
 	peerLeaseMu     sync.Mutex
@@ -94,8 +97,8 @@ type Harness struct {
 	retainedStateResourcePeerMu sync.Mutex
 	retainedStateResourcePeer   peer.ID
 
-	// cloudEndpoint is the loopback cloud fixture serving auth discovery and
-	// signaling; cloudEndpointClose stops it.
+	// cloudEndpoint and cloudEndpointClose provide the loopback cloud
+	// fixture serving auth discovery and signaling and its stop function.
 	cloudEndpoint      string
 	cloudEndpointClose func()
 
@@ -349,7 +352,8 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, err
 	}
 
-	// Run the wasm lifecycle in the background; it blocks on ListenAndServe.
+	// Run the wasm lifecycle in the background. The lifecycle blocks on
+	// ListenAndServe.
 	h.wasmDone = make(chan struct{})
 	go func() {
 		h.wasmErr = d.ExecuteWebWasm(
@@ -616,6 +620,7 @@ type manifestWait struct {
 	state *manifestWaitState
 }
 
+// defaultManifestBuildTimeout bounds the startup manifest build gate.
 // Cold browser startup compiles Go wasm plugins and frontend Vite bundles
 // concurrently. Keep the gate bounded, but long enough that slow cold builds
 // fail on the actual phase instead of canceling startup manifest publication.
@@ -855,7 +860,7 @@ func (h *Harness) releaseManifestFetches() {
 }
 
 // waitForManifests waits for all asserted startup plugin FetchManifest
-// directives to resolve on the devtool bus. This ensures builds are complete
+// directives to resolve on the devtool bus. Waiting ensures builds are complete
 // before Playwright loads the app.
 func (h *Harness) waitForManifests(ctx context.Context) error {
 	// Bound the manifest wait.
@@ -988,7 +993,7 @@ func (s *manifestWaitState) signalLocked(err error) {
 
 // digest returns a stable content digest over the settled manifest root refs.
 // Two preflight passes that yield the same digest prove the plugin's web build
-// has quiesced; a changed digest means a delayed invalidation wave rebuilt it.
+// has quiesced. A changed digest means a delayed invalidation wave rebuilt it.
 func (s *manifestWaitState) digest() string {
 	// Lock the manifest wait state.
 	s.mtx.Lock()
@@ -1346,12 +1351,13 @@ func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now
 	// Reap a recycled owner token, a dead owner, or a stale markerless root.
 	owner, err := readHarnessStateRootOwner(stateRoot)
 	if err == nil {
-		// The marker token is kept in the live Harness state-root marker and
-		// disambiguates stale roots that claim this process's PID after PID
-		// reuse. A stale root whose PID has been recycled by another live
-		// process is preserved; portable start-time checks are not available
-		// across this harness's supported darwin/linux test hosts, so liveness
-		// wins over cleanup.
+		// The marker token is kept in the live Harness state-root
+		// marker and disambiguates stale roots that claim this
+		// process's PID after PID reuse. A stale root whose PID has
+		// been recycled by another live process is preserved. Portable
+		// start-time checks are not available across this harness's
+		// supported darwin/linux test hosts, so liveness wins over
+		// cleanup.
 		if owner.pid == currentOwner.pid && owner.token != currentOwner.token {
 			return true, nil
 		}
@@ -1365,9 +1371,10 @@ func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now
 		return false, err
 	}
 
-	// Pre-fix cache-off roots have no state-root marker. The 24h threshold only
-	// reaps stale markerless wasm roots after the stable cache-on root name has
-	// been excluded; young markerless roots may belong to an older live binary.
+	// Pre-fix cache-off roots have no state-root marker. The 24h threshold
+	// only reaps stale markerless wasm roots after the stable cache-on root
+	// name has been excluded. Young markerless roots may belong to an older
+	// live binary.
 	return now.Sub(info.ModTime()) > harnessMarkerlessStateRootMaxAge, nil
 }
 
@@ -1397,7 +1404,8 @@ func isHarnessCacheOffStateRootName(name string) bool {
 // parallel. They must not share the same `.bldr/e2e-wasm` directory or one
 // package can delete `src/` while another is syncing it.
 func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (string, error) {
-	// Name the state root from the working directory when it is inside the repository.
+	// Name the state root from the working directory when the working
+	// directory is inside the repository.
 	stateRoot := filepath.Join(repoRoot, ".bldr", "e2e-wasm")
 	scope := "default"
 	label := "wasm"

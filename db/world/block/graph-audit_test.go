@@ -17,8 +17,8 @@ import (
 )
 
 // TestAuditGraphLogFindsLostRecords drops the log records of one quad and the
-// node only it names, and checks the audit finds both: the quad whole from
-// its postings, the node's value from the object keys.
+// node only that quad references, and checks the audit finds both: the quad
+// whole from its postings, the node's value from the object keys.
 func TestAuditGraphLogFindsLostRecords(t *testing.T) {
 	// Open a World with three objects and two edges.
 	ctx := t.Context()
@@ -47,7 +47,7 @@ func TestAuditGraphLogFindsLostRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Find the node "lost" and the quad naming it in the log.
+	// Find the node "lost" and the quad referencing it in the log.
 	tree := ws.graphTree.(*kvtx_block_okra.Tx)
 	var records []cayley_proto.Primitive
 	err = tree.Salvage(ctx, []byte("l/"), []byte("l0"), func(entry kvtx_block_okra.BuildEntry) bool {

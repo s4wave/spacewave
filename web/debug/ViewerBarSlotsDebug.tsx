@@ -62,10 +62,10 @@ const pages = ['Getting started', 'Spaces', 'Flowgraphs', 'Devices']
 
 // DocsBarDebug renders a documentation viewer's bar over its page list and
 // page, for the viewer sweep. The page list is a side column from a 42rem
-// pane; below it the bar's narrow Pages press opens it as a drawer. State
-// "editing" swaps Edit for Save and Cancel.
+// pane. Below that pane width, the bar's narrow Pages press opens the page
+// list as a drawer. State "editing" swaps Edit for Save and Cancel.
 export function DocsBarDebug() {
-  // Pages leads both modes; editing swaps Edit for Cancel and Save.
+  // Pages leads both modes. Editing swaps Edit for Cancel and Save.
   const { state } = useParams()
   const editing = state === 'editing'
   const pagesPress: ViewerBarAction = {

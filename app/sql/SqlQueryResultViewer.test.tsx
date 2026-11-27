@@ -111,7 +111,8 @@ describe('SqlQueryResultViewer', () => {
         screen.getByText('The query failed: syntax error near SELCT'),
       ).toBeTruthy(),
     )
-    // Reading the result again returns the same failure, so no Retry shows.
+    // Reading the result again returns the same failure, so no Retry button
+    // shows.
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
   })
 })

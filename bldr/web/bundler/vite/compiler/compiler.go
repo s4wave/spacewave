@@ -237,7 +237,8 @@ func (c *Controller) BuildManifest(
 		WithField("platform-id", platformID)
 	le.Debug("building vite bundle")
 
-	// Try fast rebuild first if we have a previous result and not in release mode
+	// Try fast rebuild first if a previous result exists and the build is not
+	// in release mode
 
 	// Try a fast rebuild when a previous result exists outside release mode.
 	var updatedManifestMeta *bldr_manifest_builder.InputManifest
@@ -414,7 +415,7 @@ func (c *Controller) buildViteBundles(
 				return bundler.Build(ctx, req)
 			}
 
-			// Retry up to 3 times if we get "stream reset" errors.
+			// Retry up to 3 times if the build returns "stream reset" errors.
 			for attempt := range 3 {
 				bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err = BuildViteBundle(
 					egCtx,
@@ -649,7 +650,7 @@ func (c *Controller) buildInputManifest(
 	return updatedManifestMeta, nil
 }
 
-// tryFastRebuild attempts to perform a fast rebuild if conditions are met.
+// tryFastRebuild tries a fast rebuild if conditions are met.
 // Returns nil, nil if fast rebuild is not applicable or if web pkg refs changed.
 func (c *Controller) tryFastRebuild(
 	ctx context.Context,
@@ -783,7 +784,7 @@ func (c *Controller) tryFastRebuild(
 	updatedInputMeta := inputMeta.CloneVT()
 	updatedInputMeta.ViteOutputs = viteBuildResult.viteOutputs
 
-	// Remove all vite files from the set (we will add them back next)
+	// Remove all vite files from the set (the compiler adds them back next)
 
 	// Remove all vite files from the file set.
 	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *bldr_manifest_builder.InputManifest_File) bool {

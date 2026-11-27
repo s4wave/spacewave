@@ -22,7 +22,8 @@ func (i *Installer) Update(source string, helper []byte, pid uint32) error {
 		return err
 	}
 
-	// Replace the helper and refresh the entries that name the launcher.
+	// Replace the helper and refresh the entries that point to the
+	// launcher.
 	if err := os.MkdirAll(i.dir, 0o700); err != nil {
 		return errors.Wrap(err, "create install directory")
 	}

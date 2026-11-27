@@ -444,7 +444,7 @@ describe('TerminalViewer', () => {
       screen.getByText('Could not open the terminal: access denied'),
     ).toBeTruthy()
 
-    // Its one Retry reopens the handle; no screen connects.
+    // Its one Retry reopens the handle, and no screen connects.
     const retries = screen.getAllByRole('button', { name: 'Retry' })
     expect(retries).toHaveLength(1)
     fireEvent.click(retries[0])
@@ -457,7 +457,7 @@ describe('TerminalViewer', () => {
     h.watchError = new Error('stream reset')
     renderViewer()
 
-    // The notice shows once, and the bar names no target it has not read.
+    // The notice shows once, and the bar shows a target only after reading it.
     expect(screen.getAllByRole('alert')).toHaveLength(1)
     expect(
       screen.getByText('Could not read the session state: stream reset'),

@@ -37,7 +37,7 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
   }),
 }))
 
-// The CDN lists no images; the Space has one filesystem to boot.
+// The CDN lists no images. The Space has one filesystem to boot.
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
   useRootResource: () => h.rootResource,
 }))
@@ -64,7 +64,7 @@ describe('WasiVmWizard', () => {
   })
 
   it('replaces the wizard with the created VM in the Space index', async () => {
-    // The index names the wizard.
+    // The index selects the wizard.
     h.t = wizardTestWorld(['wizard/wasivm-1'], 'wizard/wasivm-1')
 
     // The wizard opens on its only step.

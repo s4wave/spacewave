@@ -2,7 +2,8 @@
 // owner manages it.
 //
 // AccountResourceService watches the account's information, auth methods,
-// Sessions and entity keypairs; adds and removes auth methods, changes the
-// password, sets the security level and revokes Sessions; unlocks, locks and
-// signs with entity keypairs; and runs single sign-on and passkey registration.
+// Sessions and entity keypairs. The service adds and removes auth methods,
+// changes the password, sets the security level and revokes Sessions. The
+// service unlocks, locks and signs with entity keypairs, and runs single
+// sign-on and passkey registration.
 package s4wave_account

@@ -46,7 +46,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	t.Cleanup(owner.StopP2PSync)
 
 	// The session transport enrolls the owner Session in the background, so the
-	// join waits until the config names it.
+	// join waits until the config lists the owner Session.
 	waitSOOwner(ctx, t, object, ownerSession.GetPeerId().String())
 
 	// The reader joins over the provider's native network.

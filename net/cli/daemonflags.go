@@ -25,13 +25,13 @@ type DaemonArgs struct {
 	// Pubsub selects the pubsub provider preset by name.
 	Pubsub string
 
-	// EstablishPeers is a list of peers to establish
+	// EstablishPeers is a list of peers to establish.
 	// peer-id comma separated
 	EstablishPeers cli.StringSlice
-	// UDPPeers is a static peer list
+	// UDPPeers is a static peer list.
 	// peer-id@address
 	UDPPeers cli.StringSlice
-	// WebsocketPeers is a static peer list
+	// WebsocketPeers is a static peer list.
 	// peer-id@address
 	WebsocketPeers cli.StringSlice
 }
@@ -152,7 +152,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 	return nil
 }
 
-// callPubsubProvider calls a pubsub provider preset by id or returns an error
+// callPubsubProvider calls a pubsub provider preset by id or returns an error.
 func (a *DaemonArgs) callPubsubProvider(id string) (config.Config, error) {
 	prov, ok := pubsubProviders[id]
 	if !ok {

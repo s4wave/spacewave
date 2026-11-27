@@ -15,9 +15,9 @@ import (
 const keyCtrlC = 0x03
 
 // showBrowserURL tells the user that action continues in the browser at url.
-// When stdin is a terminal it listens for keys until the returned stop is
-// called: c copies url and Ctrl+C calls cancel. Call stop before reading
-// further input.
+// When stdin is a terminal, showBrowserURL listens for keys until the returned
+// stop is called: c copies url and Ctrl+C calls cancel. Call stop before
+// reading further input.
 func showBrowserURL(cancel context.CancelFunc, action, url string) (stop func()) {
 	// Listen for keys while the browser step runs.
 	stop, listening := startKeyListener(func(key byte) {

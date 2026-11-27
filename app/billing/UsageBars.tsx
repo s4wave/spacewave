@@ -88,8 +88,8 @@ export function UsageBars(props: { actions?: ReactNode }) {
   )
 }
 
-// ExtraStoragePanel shows the payer's extra storage limit, its spending this
-// period, and the control that changes the limit.
+// ExtraStoragePanel shows the payer's extra storage limit, the payer's spending
+// this period, and the control that changes the limit.
 function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
   const billingState = useBillingStateContext()
   const spending = useSpendingLimit(usage)

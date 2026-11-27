@@ -14,7 +14,7 @@ import (
 // scheduler, whose FetchManifest never reaches the Space bus, so a plugin
 // deployed only to the Space World would never resolve there. The Space
 // resolves the latest manifest per platform itself, as processResolvers does
-// for its own bus, and names them in the load.
+// for its own bus, and specifies them in the load.
 //
 // The watch loop goroutine owns it.
 type hostedManifests struct {

@@ -40,7 +40,7 @@ func (c *EngineController) HandleDirective(_ context.Context, di directive.Insta
 // Execute leaves the borrowed capability available for the controller lifetime.
 func (c *EngineController) Execute(context.Context) error { return nil }
 
-// Close releases no storage; the caller retains ownership of the Engine.
+// Close releases no storage. The caller retains ownership of the Engine.
 func (c *EngineController) Close() error { return nil }
 
 var _ Controller = (*EngineController)(nil)

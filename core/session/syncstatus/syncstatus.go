@@ -113,9 +113,9 @@ func buildSpacewaveSyncStatusSnapshot(
 		[]<-chan struct{}{accountCh, telemetryCh, compositionCh}
 }
 
-// syncStatusHeld returns the held state of store, or nil while it holds
-// nothing back. It reads the count and time the store's flush derived
-// together, so it never shows a held store as publishing.
+// syncStatusHeld returns the held state of store, or nil while the store holds
+// nothing back. The function reads the count and time the store's flush derived
+// together, so the function never shows a held store as publishing.
 func syncStatusHeld(store provider_spacewave.SyncTelemetryBlockStoreSnapshot) *s4wave_session.SyncHeldState {
 	if store.CorruptDirtyCount <= 0 {
 		return nil
@@ -142,7 +142,7 @@ func buildLocalSyncStatusSnapshot(
 		}
 	}
 
-	// Start the local snapshot from those running flags.
+	// Start the local snapshot from the transport and P2P running flags.
 	transportRunning, transportCh := acc.GetTransportSnapshotWithWait()
 	p2pRunning, p2pCh := acc.GetP2PSyncSnapshotWithWait()
 	resp := syncStatusFromLocalState(pairingSnapshot, transportRunning, p2pRunning)

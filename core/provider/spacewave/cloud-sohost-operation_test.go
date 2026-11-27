@@ -25,7 +25,8 @@ import (
 // persistence, cloud loss, checkpoint coalescing, and blocks-before-checkpoint
 // acknowledgment.
 func TestCloudPublicationSurvivesRestart(t *testing.T) {
-	// Serve publication routes that fail until released, checking blocks precede checkpoints.
+	// Serve publication routes that fail until released, checking blocks precede
+	// checkpoints.
 	var requests, checkpoints, uploads atomic.Int32
 	var unavailable atomic.Bool
 	unavailable.Store(true)
@@ -74,7 +75,7 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist, syncer: syncer,
 	}
 
-	// Failed persistence acknowledges nothing; later operations stay local.
+	// Failed persistence acknowledges nothing. Later operations stay local.
 	if err := writeLocalOperation(t, host, key); !errors.Is(err, persistErr) || len(host.stateCtr.GetValue().GetOps()) != 0 {
 		t.Fatalf("failed persistence acknowledged local work: %v", err)
 	}
@@ -158,7 +159,7 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 // TestCloudPublicationPostsOperationsAtOnce checks that a local operation
 // reaches the cloud without waiting for the checkpoint interval, and only
 // after the blocks dirty before it, so a member that applies it at once finds
-// every block it names.
+// every block it references.
 func TestCloudPublicationPostsOperationsAtOnce(t *testing.T) {
 	// Record the order of block pushes and operation posts.
 	var pushes atomic.Int32
@@ -325,7 +326,7 @@ func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 		t.Fatalf("corrupt block local copy: found = %v, err = %v", found, err)
 	}
 
-	// A later flush holds it without reading it: the store now reads good,
+	// A later flush holds it without reading it: the store now reads good data,
 	// but nothing wrote the hash.
 	syncer.upper = &corruptUpperStore{StoreOps: inner, bad: nil}
 	if err := syncer.FlushNow(t.Context()); !errors.As(err, &held) || checkpoints.Load() != 0 {
@@ -354,8 +355,9 @@ func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 	}
 }
 
-// TestCloudPublicationMissingBlockCannotPublish keeps checkpoint visibility behind the
-// complete dirty-block fence even when all state metadata is already durable.
+// TestCloudPublicationMissingBlockCannotPublish keeps checkpoint visibility
+// behind the complete dirty-block fence even when all state metadata is already
+// durable.
 func TestCloudPublicationMissingBlockCannotPublish(t *testing.T) {
 	// Mark a block dirty that the store cannot supply.
 	syncer := newDirtySyncExecuteTestController(t, nil, nil)
@@ -483,7 +485,7 @@ func mustPeerID(t *testing.T, key crypto.PrivKey) peer.ID {
 // nothing, and leaves no lock held: the write lock and the flush are both
 // free afterwards.
 func TestCloudConfigChangeRefusedWhileHeld(t *testing.T) {
-	// Count every request but block pushes; a refused change posts nothing.
+	// Count every request but block pushes. A refused change posts nothing.
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/sync/push") {

@@ -25,7 +25,8 @@ func InitUnixFSDemo(
 	return ws.ApplyWorldOp(ctx, op, sender)
 }
 
-// DefaultUnixFSObjectKey is the default object key for UnixFS demo filesystem.
+// DefaultUnixFSObjectKey is the default object key for the UnixFS demo
+// filesystem.
 const DefaultUnixFSObjectKey = "unixfs"
 
 // NewInitUnixFSDemoOp constructs a new InitUnixFSDemoOp block.
@@ -87,7 +88,7 @@ func (o *InitUnixFSDemoOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Create cursor with writer
+	// Create a cursor with a writer
 	fsCursor, _ := unixfs_world.NewFSCursorWithWriter(
 		ctx,
 		le,
@@ -98,14 +99,14 @@ func (o *InitUnixFSDemoOp) ApplyWorldOp(
 	)
 	defer fsCursor.Release()
 
-	// Create filesystem handle
+	// Create a filesystem handle
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {
 		return false, err
 	}
 	defer fsh.Release()
 
-	// Create directory structure: /test/dir
+	// Create the directory structure: /test/dir
 	ts := o.GetTimestamp().AsTime()
 	if err := fsh.MkdirAll(ctx, []string{"test", "dir"}, 0o700, ts); err != nil {
 		return false, err

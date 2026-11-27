@@ -10,7 +10,7 @@ import (
 
 // Factory constructs the http block store.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

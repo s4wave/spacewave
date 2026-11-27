@@ -111,7 +111,7 @@ func TestBuildSOOperation(t *testing.T) {
 }
 
 // TestNextOperationLink checks that each author extends its own chain and
-// names every other head.
+// references every other head.
 func TestNextOperationLink(t *testing.T) {
 	// Start from a fresh state.
 	peers := createMockPeers(t, 2)
@@ -130,7 +130,8 @@ func TestNextOperationLink(t *testing.T) {
 		t.Fatal("link does not name the current config")
 	}
 
-	// After one write each, the owner extends its head and names the writer's.
+	// After one write each, the owner extends its head and references the
+	// writer's head.
 	first := writeTestOp(t, state, keys[0], "a")
 	other := writeTestOp(t, state, keys[1], "b")
 	set, err = state.OperationSet(mockSharedObjectID)
@@ -301,7 +302,8 @@ func TestAdoptCheckpoint(t *testing.T) {
 		t.Fatal("adopted a checkpoint a writer signed")
 	}
 
-	// The owner's checkpoint covers both operations; a later one stays.
+	// The owner's checkpoint covers both operations. A later operation
+	// stays.
 	state := base.CloneVT()
 	next, err = state.BuildNextCheckpoint(mockSharedObjectID, keys[0], nil)
 	if err != nil {

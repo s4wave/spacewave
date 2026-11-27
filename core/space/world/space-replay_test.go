@@ -52,7 +52,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 	r := &spaceReplay{a: a, stage: newReplayStage(a.pages)}
 	t.Cleanup(r.close)
 
-	// Initialize a World; its first commit writes its root.
+	// Initialize a World whose first commit writes its root.
 	conf, err := buildDefaultTransformConf()
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +108,8 @@ func hasKeys(ctx context.Context, t *testing.T, r *spaceReplay, state *InnerStat
 // fails when the change runs on the empty root, which starts the World in the
 // kv format with a changelog.
 func TestSeededWorldStartsInTheConfiguredFormat(t *testing.T) {
-	// Seed a World that names only its transform, and create a key on it.
+	// Seed a World that specifies only its transform, and create a key on
+	// it.
 	ctx := t.Context()
 	r, start := newWorldReplay(t)
 	seeded := &InnerState{HeadRef: &bucket.ObjectRef{TransformConf: start.GetHeadRef().GetTransformConf()}}

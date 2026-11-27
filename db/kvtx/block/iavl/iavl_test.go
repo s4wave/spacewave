@@ -537,7 +537,7 @@ func TestSimpleIterate(t *testing.T) {
 			}
 		}
 
-		// Should be at end
+		// The iterator should be at the end.
 		if iter.Next() || iter.Valid() {
 			t.Fatal("expected iterator to be invalid after end")
 		}
@@ -570,7 +570,7 @@ func TestSimpleIterate(t *testing.T) {
 			}
 		}
 
-		// Should be at end
+		// The iterator should be at the end.
 		if iter.Next() || iter.Valid() {
 			t.Fatal("expected iterator to be invalid after end")
 		}
@@ -612,7 +612,7 @@ func TestSimpleIterate(t *testing.T) {
 			}
 		}
 
-		// Should be at end
+		// The iterator should be at the end.
 		if iter.Next() || iter.Valid() {
 			t.Fatal("expected iterator to be invalid after end")
 		}
@@ -654,7 +654,7 @@ func TestSimpleIterate(t *testing.T) {
 			}
 		}
 
-		// Should be at end
+		// The iterator should be at the end.
 		if iter.Next() || iter.Valid() {
 			t.Fatal("expected iterator to be invalid after end")
 		}
@@ -681,7 +681,7 @@ func TestSimpleIterate(t *testing.T) {
 			t.Fatal("expected valid iterator after seek to beginning")
 		}
 
-		// Should be at first key "2"
+		// The iterator should be at the first key "2".
 		if got := string(iter.Key()); got != "2" {
 			t.Fatalf("expected first key 2, got %s", got)
 		}
@@ -720,7 +720,7 @@ func TestSimpleIterate(t *testing.T) {
 			t.Fatal("expected valid iterator after seek to end")
 		}
 
-		// Should be at last key "8"
+		// The iterator should be at the last key "8".
 		if got := string(iter.Key()); got != "8" {
 			t.Fatalf("expected last key 8, got %s", got)
 		}

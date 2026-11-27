@@ -45,7 +45,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // HandleDirective is not implemented: the loader controller does not
-// currently expose directive resolvers.
+// expose directive resolvers.
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
@@ -100,7 +100,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	progress.Render()
 
 	// Drain helper events: user-clicked Retry redirects into a fresh
-	// DistConfig fetch; Cancel logs and tears down the loader so the helper
+	// DistConfig fetch. Cancel logs and tears down the loader so the helper
 	// window closes even if plugin-level progress never completes.
 	go c.drainEvents(ctx, client)
 
@@ -113,7 +113,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 
 	// Observe DistConfig fetch status so the helper can switch into a retry
-	// message when the launcher can't reach any endpoint. We scope the match
+	// message when the launcher can't reach any endpoint. Scope the match
 	// by project id so multiple launchers on the same bus do not confuse
 	// each other's loaders.
 	fetchHandler := directive.NewTypedCallbackHandler[*spacewave_launcher.FetchStatus](
@@ -122,8 +122,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		},
 		func(v directive.TypedAttachedValue[*spacewave_launcher.FetchStatus]) {
 			// A removed fetch-status value just means the launcher is
-			// repushing; the next value add will restore it. Clear local
-			// state so stale labels don't persist between transitions.
+			// repushing. The next value add will restore the fetch
+			// status. Clear local state so stale labels don't
+			// persist between transitions.
 			progress.SetFetchStatus(nil)
 		},
 		nil, nil,
@@ -145,8 +146,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Register one LoadPlugin watch per plugin id. The plugin host scheduler
-	// de-duplicates against any active LoadPlugin references, so this only
-	// observes state without forcing loads to start.
+	// de-duplicates against any active LoadPlugin references, so these
+	// watches only observe state without forcing loads to start.
 	for _, pluginID := range pluginIDs {
 		id := pluginID
 		handler := directive.NewTypedCallbackHandler[bldr_plugin.RunningPlugin](
@@ -166,10 +167,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Exit once the tracker signals it has dismissed the helper, or when the
-	// controller context is canceled. After dismiss the deferred client.Close
-	// is still cheap (the subprocess has already self-exited) and the refs
-	// are released so the plugin-host scheduler can drop its LoadPlugin
-	// references.
+	// controller context is canceled. After dismissal, the deferred
+	// client.Close is still cheap (the subprocess has already self-exited)
+	// and the refs are released so the plugin-host scheduler can drop its
+	// LoadPlugin references.
 	select {
 	case <-ctx.Done():
 	case <-progress.Done():

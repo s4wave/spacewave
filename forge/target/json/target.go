@@ -14,9 +14,9 @@ import (
 // Target implements the JSON unmarshaling and marshaling logic for a Target.
 // Resolve constructs the controller configs, looking up the types from the bus.
 type Target struct {
-	// underlying is a copy of the target without the "resolved" fields
+	// underlying is a copy of the target without the "resolved" fields.
 	underlying *target.Target
-	// execControllerConfig contains the json parser for the exec config
+	// execControllerConfig contains the json parser for the exec config.
 	execControllerConfig *configset_json.ControllerConfig
 }
 
@@ -72,7 +72,7 @@ func (c *Target) SetTarget(ctx context.Context, b bus.Bus, pb *target.Target) er
 	// Resolve the exec controller and retain its JSON marshaling config.
 	execController := pb.GetExec().GetController()
 	if execController.GetId() != "" {
-		// resolve the config object so we can marshal it
+		// resolve the config object for marshaling
 		conf, err := execController.Resolve(ctx, b)
 		if err != nil {
 			return err

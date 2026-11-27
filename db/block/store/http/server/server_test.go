@@ -97,7 +97,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Get a not-found block
-	// Returns a 404 error, but this is processed to exists=false.
+	// Returns a 404 error, but the error is processed to exists=false.
 	sampleBlockBody2 := []byte("I seem to be getting a distress signal from that aerial faith plate...")
 	sampleBlockRef2, err := block.BuildBlockRef(sampleBlockBody2, samplePutOpts)
 	if err != nil {
@@ -198,7 +198,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	baseURL = baseURL.JoinPath(blockStorePrefix)
 
 	// Create the client
-	// note: we create it with write=true expecting this to fail
+	// note: the client uses write=true, but writes are expected to fail.
 	client := block_store_http.NewHTTPBlock(le, true, srv.Client(), baseURL, 0, true)
 
 	// Create a sample block

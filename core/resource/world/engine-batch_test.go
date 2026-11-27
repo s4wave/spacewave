@@ -164,14 +164,14 @@ type batchTestHooks struct {
 	mtx sync.Mutex
 	// senders records the sender of each applied op, in order.
 	senders []peer.ID
-	// gate, when set, holds PrepareApply until it is closed, as a cold plugin
-	// load would.
+	// gate holds PrepareApply, if set, until gate is closed, as a cold
+	// plugin load would.
 	gate chan struct{}
 	// preparing receives once per PrepareApply that waits on gate.
 	preparing chan struct{}
 }
 
-// batchTestOp is a World op whose payload names what it does: "reject"
+// batchTestOp is a World op whose payload selects its action: "reject"
 // rejects, "timeout" fails as a plugin timeout, "unavailable" fails to load
 // its plugin, "missing" is rejected as a pinned executable that does not
 // exist, and "create:<key>" creates the object key.
@@ -260,7 +260,7 @@ var (
 )
 
 // TestExecuteWorldBatchOps checks op entries: a rejection, a plugin timeout
-// or an unavailable plugin discards the batch and names its index and code,
+// or an unavailable plugin discards the batch and reports its index and code,
 // an op is applied as the sender ExecuteWorldOp binds, and a plugin load
 // before the transaction holds no writer and ends with the caller's context
 // error. It then checks that object entries report revisions at their
@@ -499,8 +499,9 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 		t.Fatalf("missing executable object op: %v %v", objResp, err)
 	}
 
-	// A client built before the code, which names no known code, gets the
-	// refusal as a failed call, never as a response it reads as success.
+	// A client built before the code, whose request declares no known code,
+	// gets the refusal as a failed call, never as a response it reads as
+	// success.
 	oldReq := opReq("missing")
 	oldReq.KnownErrorCode = 0
 	if opResp, err := engineResource.ExecuteWorldOp(ctx, oldReq); err == nil || opResp != nil {
@@ -528,7 +529,7 @@ func (e *replayWaitEngine) NewTransaction(ctx context.Context, write bool) (worl
 
 // TestReplayWaitRefusal checks that a write the World refuses while replay
 // waits reaches each RPC caller as the typed REPLAY_WAITS code when its
-// request names that code as known, and as a failed call when it does not:
+// request declares that code as known, and as a failed call otherwise:
 // a caller built before the code never reads the refusal as success. The
 // batch carries the code to every caller, as every batch client already
 // fails on any code.
@@ -562,7 +563,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 	waits := s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS
 	known := s4wave_world.KnownErrorCode
 
-	// NewTransaction.
+	// Check NewTransaction.
 	txResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true, KnownErrorCode: known})
 	if err != nil || txResp.GetErrorCode() != waits || txResp.GetResourceId() != 0 {
 		t.Fatalf("write transaction while replay waits: %v %v, want REPLAY_WAITS", txResp, err)
@@ -571,7 +572,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		t.Fatalf("old client's write transaction while replay waits: %v %v, want a failed call", txResp, err)
 	}
 
-	// ApplyWorldOp, through ExecuteWorldOp.
+	// Check ApplyWorldOp through ExecuteWorldOp.
 	opReq := &s4wave_world.ApplyWorldOpRequest{OpTypeId: batchTestOpID, OpData: []byte("create:op-waits"), KnownErrorCode: known}
 	opResp, err := engineResource.ExecuteWorldOp(ctx, opReq)
 	if err != nil || opResp.GetErrorCode() != waits {
@@ -582,7 +583,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		t.Fatalf("old client's op while replay waits: %v %v, want a failed call", opResp, err)
 	}
 
-	// The batch.
+	// Check the batch.
 	batchResp, err := engineResource.ExecuteWorldBatch(ctx, &s4wave_world.ExecuteWorldBatchRequest{Mutations: []*s4wave_world.WorldMutation{{
 		Mutation: &s4wave_world.WorldMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch-waits", RootRef: &bucket.ObjectRef{}}},
 	}}})
@@ -590,7 +591,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		t.Fatalf("batch while replay waits: %v %v, want REPLAY_WAITS", batchResp, err)
 	}
 
-	// SetRootRef on an object of the waiting World.
+	// Check SetRootRef on an object of the waiting World.
 	wobj, found, err := world.NewEngineWorldState(eng, true).GetObject(ctx, "waits")
 	if err != nil || !found {
 		t.Fatalf("object of the waiting World: %v %v", found, err)
@@ -605,7 +606,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		t.Fatalf("old client's root set while replay waits: %v %v, want a failed call", setResp, err)
 	}
 
-	// IncrementRev on the same object.
+	// Check IncrementRev on the same object.
 	revResp, err := objResource.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{KnownErrorCode: known})
 	if err != nil || revResp.GetErrorCode() != waits || revResp.GetRev() != 0 {
 		t.Fatalf("rev increment while replay waits: %v %v, want REPLAY_WAITS", revResp, err)
@@ -614,7 +615,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		t.Fatalf("old client's rev increment while replay waits: %v %v, want a failed call", revResp, err)
 	}
 
-	// The direct World state writes, each with the code and as an old
+	// Check the direct World state writes, each with the code and as an old
 	// client's failed call.
 	stateResource := resource_world.NewWorldStateResource(logrus.NewEntry(logrus.New()), tb.Bus, world.NewEngineWorldState(eng, true), lookupOp)
 	defer stateResource.Close()
@@ -712,10 +713,10 @@ func nilIfErr[T interface {
 	return resp, nil
 }
 
-// refuseKeyGuard refuses a write naming key, and allows every other.
+// refuseKeyGuard refuses a write targeting key, and allows every other write.
 type refuseKeyGuard struct{ key string }
 
-// CheckWrite refuses w when it names the guard's key.
+// CheckWrite refuses w when it targets the guard's key.
 func (g *refuseKeyGuard) CheckWrite(_ context.Context, _ world.WorldState, w *world.GuardedWrite) error {
 	if slices.Contains(w.ObjectKeys, g.key) {
 		return &world.OperationRejection{Code: "test/guard-refused", Message: "refused by the test guard"}
@@ -724,10 +725,10 @@ func (g *refuseKeyGuard) CheckWrite(_ context.Context, _ world.WorldState, w *wo
 }
 
 // TestGuardedEngineResourceExecutesOps checks an op applied on an engine mount
-// guarded as a plugin's, through ExecuteWorldOp and through the World state
-// the mount's typed objects write with: a write the guard allows commits, and
-// a write the mount's guard or a different guard stacked over the mount's
-// state refuses fails the op and commits nothing.
+// guarded as a plugin's mount, through ExecuteWorldOp and through the World
+// state the mount's typed objects write with: an allowed write commits, and
+// the op fails and commits nothing when the mount's guard or a different
+// guard stacked over the mount's state refuses a write.
 func TestGuardedEngineResourceExecutesOps(t *testing.T) {
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
@@ -774,8 +775,8 @@ func TestGuardedEngineResourceExecutesOps(t *testing.T) {
 	}
 
 	// The state the mount's typed objects write with is the mount's state
-	// guarded again by the mount's guard; a different guard over it is
-	// consulted too.
+	// guarded again by the mount's guard. A different guard over that state
+	// is consulted too.
 	guarded := world.GuardEngine(tb.Engine, mountGuard)
 	outerGuard := &refuseKeyGuard{key: "test/outer-refused"}
 	for _, tc := range []struct {

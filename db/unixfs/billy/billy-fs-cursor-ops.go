@@ -208,7 +208,7 @@ func (o *BillyFSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorO
 // MoveTo implements FSCursorOps. It renames the source entry into tgtCursorOps
 // under tgtName via the backing billy.Basic.Rename when the target lives in the
 // same billy filesystem. It returns done=false for a different filesystem so
-// FSHandle.Rename can fall back; billy.Basic.Rename overwrites a file target.
+// FSHandle.Rename can fall back. billy.Basic.Rename overwrites a file target.
 func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
 	// Require a live cursor and a target in the same Billy filesystem.
 	if o.CheckReleased() {

@@ -48,13 +48,13 @@ func (c *Controller) ProcessState(
 		c.pushWatchExecStates(nil)
 	}
 
-	// check if completed
+	// Check if the Pass is complete.
 	if currState == forge_pass.State_PassState_COMPLETE {
 		le.Debug("pass is marked as complete")
 		return false, nil
 	}
 
-	// check if peer id matches
+	// Check if the controller peer ID matches the Pass peer ID.
 	if c.peerIDStr != passState.GetPeerId() {
 		le.Warnf("pass peer id %q does not match ours %q", passState.GetPeerId(), c.peerIDStr)
 		return true, nil

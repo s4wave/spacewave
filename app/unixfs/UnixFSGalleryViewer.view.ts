@@ -18,8 +18,8 @@ export const state = (v: Gallery) => {
   if (v.indexPath === 'none') {
     return v.watch === 'failed' ? 'Could not read, Retry shown' : 'Loading'
   }
-  // A failed watch or handle draws its notice above the kept index, which
-  // then makes no empty claim.
+  // A failed watch or handle draws its notice above the kept index. The
+  // view then makes no empty claim.
   const failing = v.watch === 'failed' || v.watch === 'capped'
   const body = v.found
     ? v.session && v.space
@@ -41,7 +41,7 @@ export const step = (action: string, from: Gallery, to: Gallery) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // Each action names the edge it draws.
+  // Each action labels the edge it draws.
   if (action === 'Yield') return 'index arrives'
   if (action === 'Fail') return 'read fails'
   if (action === 'Drop') return 'watch drops'

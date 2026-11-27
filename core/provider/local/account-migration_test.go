@@ -188,7 +188,8 @@ func waitReplicaMigrationAdmission(ctx context.Context, t *testing.T, account *P
 	}
 	defer release()
 
-	// Object discovery precedes final admission; both must survive the source leaving.
+	// Object discovery precedes final admission. Both must survive the source
+	// leaving.
 	states, releaseStates, err := object.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)

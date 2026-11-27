@@ -39,13 +39,13 @@ export interface ApplyBucketConfig {
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
    * If empty: updates only volumes that already have the config.
-   * If VolumeIDList is set, it will override this field.
+   * If VolumeIDList is set, VolumeIDList will override VolumeIdRe.
    * Cannot be specified if VolumeIDList is set.
    */
   volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
-   * If the value is in this list, overrides volume_id_re.
+   * If a volume ID is in this list, the list overrides volume_id_re.
    * ignored if empty.
    */
   volumeIdList?: string[]

@@ -9,7 +9,8 @@ import (
 
 // Args selects the public environment export for a native producer.
 type Args struct {
-	// Environment is staging or production; empty uses the production defaults.
+	// Environment is staging or production. An empty value uses the production
+	// defaults.
 	Environment string
 }
 

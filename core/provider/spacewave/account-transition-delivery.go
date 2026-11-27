@@ -20,14 +20,15 @@ import (
 )
 
 // EnrollMigratedSession keeps cloud enrollment under the provider registry's
-// signed migration endpoint; a direct peer cannot register cloud credentials.
+// signed migration endpoint. A direct peer cannot register cloud credentials.
 func (a *ProviderAccount) EnrollMigratedSession(context.Context, *provider_migration.MigratedSessionRequest) (*provider_migration.MigratedSessionResponse, error) {
 	return nil, errors.New("cloud Session enrollment requires provider authorization")
 }
 
 // DeliverAccountTransition acknowledges recovery already completed under this
-// cloud account. The provider's accepted transition is the authority; a replayed
-// checkpoint cannot change any resource, credential, or account attachment.
+// cloud account. The provider's accepted transition is the authority. A
+// replayed checkpoint cannot change any resource, credential, or account
+// attachment.
 func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoint *pairing.SharedObject) (*provider_migration.AccountTransitionReceipt, error) {
 	// Identify the peer requesting a transition receipt.
 	stream, err := link.MustGetMountedStreamContext(ctx)
@@ -58,7 +59,8 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 
 // deliverAccountTransitions retains signed source checkpoints and their pending
 // Session endpoints. A successful acknowledgment means the source replica has
-// durably accepted its redirect; no further delivery is needed in this lifetime.
+// durably accepted its redirect. No further delivery is needed in this
+// lifetime.
 func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, transport *transport.SessionTransport) error {
 	retained := make(map[string]directive.Reference)
 	defer func() {
@@ -127,8 +129,9 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, transpo
 	}
 }
 
-// accountRecoveryCheckpoint reads the exact resource named by the committed
-// account migration. The returning client verifies it against its held history.
+// accountRecoveryCheckpoint reads the exact resource referenced by the
+// committed account migration. The returning client verifies it against its
+// held history.
 func (a *ProviderAccount) accountRecoveryCheckpoint(ctx context.Context, transition *provider.AccountTransition) (*pairing.SharedObject, error) {
 	// Mount the source account object.
 	id := transition.GetSource().GetId()

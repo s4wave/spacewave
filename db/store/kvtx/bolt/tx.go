@@ -34,7 +34,7 @@ func NewTx(txn *bdb.Tx, bucket []byte) *Tx {
 // getBucket returns the store's bucket, creating it in a write transaction.
 //
 // A read transaction returns a nil bucket when no write has created it yet,
-// as in a new database; readers treat a nil bucket as an empty store.
+// as in a new database. Readers treat a nil bucket as an empty store.
 func (t *Tx) getBucket() (*bdb.Bucket, error) {
 	if t.txn.Writable() {
 		return t.txn.CreateBucketIfNotExists(t.bucket)
@@ -80,7 +80,7 @@ func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 	// Require a writable Bolt transaction and nonempty key before mutation.
 	defer recoverBoltTxPanic(&err)
@@ -154,7 +154,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 	// Require a writable Bolt transaction and nonempty key before mutation.
@@ -179,7 +179,8 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 // it ordered when ctx carries kvtx.WithOrderedCommitContext. It returns an
 // error after Discard.
 func (t *Tx) Commit(ctx context.Context) error {
-	// A write a crash may lose commits ordered, as the caller marked it.
+	// Commit ordered, as the caller marked the write as one a crash may
+	// lose.
 	if kvtx.IsOrderedCommitContext(ctx) {
 		return t.CommitOrdered(ctx)
 	}

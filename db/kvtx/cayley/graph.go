@@ -26,7 +26,7 @@ func NewGraph(
 	}
 
 	// Create the quad writer with the graph options.
-	// respects ignore_missing ignore_duplicate
+	// The quad writer respects ignore_missing and ignore_duplicate.
 	quadWriter, err := writer.NewSingleReplication(quadStore, graphOpts)
 	if err != nil {
 		return nil, err

@@ -68,8 +68,8 @@ const skiffosGraph = "flowgraph/skiffos"
 
 // TestSkiffOSFlowgraph builds a SkiffOS workspace from a Flowgraph Step, lands
 // the boot set in the World as a UnixFS tree, and reruns the graph with equal
-// inputs, which completes from the first Task's outputs without a build.
-// newSkiffOSProof names the settings it reads.
+// inputs. The rerun completes from the first Task's outputs without a build.
+// newSkiffOSProof lists the settings the function reads.
 func TestSkiffOSFlowgraph(t *testing.T) {
 	f := newSkiffOSProof(t)
 	f.storeRepo(skiffOSRepo, "HEAD")
@@ -107,7 +107,7 @@ func TestSkiffOSFlowgraph(t *testing.T) {
 // compares the build's depth-1 Repo with them, a gate standing in for the
 // person approves or declines, and the update Step moves the Repo on
 // approval. A declined run reports the build one commit behind and completes
-// with the Repo as it was; an approved run moves the Repo and its Buildroot
+// with the Repo as it was. An approved run moves the Repo and its Buildroot
 // module to the reported commits, and the next run reports Current.
 func TestSkiffOSUpdate(t *testing.T) {
 	// Build a Buildroot fork with a skiff tag, and SkiffOS whose first commit
@@ -197,7 +197,7 @@ func TestSkiffOSUpdate(t *testing.T) {
 // updateGraph returns the update Flowgraph's nodes and connections: clone
 // Steps fetch SkiffOS from up and its Buildroot fork from br, the audit Step
 // compares the build's Repo with them, a gate approves when approval exists,
-// and the update Step moves the Repo, whose new root it outputs as "repo".
+// and the update Step moves the Repo and outputs its new root as "repo".
 func (f *flowgraphFixture) updateGraph(up, br, approval string) (map[string]*s4wave_flowgraph.FlowgraphNode, map[string]*s4wave_flowgraph.FlowgraphConnection) {
 	// Build the fetch, audit and update Steps with the ports the graph uses.
 	fetch := func(key, dir string) *s4wave_flowgraph.FlowgraphNode {
@@ -271,7 +271,7 @@ func (f *flowgraphFixture) updateRun(runKey string) *forge_lib_skiffos_audit.Rep
 	return rep
 }
 
-// repoHead returns the commit HEAD names in the World Repo key, or in its
+// repoHead returns the commit HEAD references in the World Repo key, or in its
 // module when module is set.
 func (f *flowgraphFixture) repoHead(key, module string) string {
 	var commit string
@@ -313,7 +313,7 @@ func (f *flowgraphFixture) moveRepo(key, dir, commit string) {
 	})
 }
 
-// objectRoot returns the root the World object key holds.
+// objectRoot returns the root the World object key references.
 func (f *flowgraphFixture) objectRoot(key string) *block.BlockRef {
 	obj, err := world.MustGetObject(f.ctx, f.tb.WorldState, key)
 	if err != nil {
@@ -358,17 +358,17 @@ func runGit(t *testing.T, dir string, args ...string) string {
 // from a Flowgraph Step whose boot input is a World object, checks that the
 // boot set's initramfs holds spacewave-init alone, and rehearses it: an image
 // Step writes the image into the Space under its transform and exports its
-// store, which must name that same tree, and a Docker Step boots the boot set in QEMU on
-// that store and passes only when the guest grows its disk, creates and
-// writes its data Volume, and stops cleanly. The test then signs the image's
-// root as the Space owner and installs it: the install Step writes the disk
-// for the owner's authorization and refuses one from another key. A last run
-// rehearses a boot set whose initramfs is not an archive, which must fail with
-// the guest's console kept in the Execution log. With SPACEWAVE_SKIFFOS_UPDATE
-// set, the build's Repo starts one commit behind the checkout, and the update
-// Flowgraph's audit, an approving gate and the update Step move it before the
-// build takes it.
-// SPACEWAVE_OS_INIT names the static spacewave-init executable,
+// store, which must reference that same tree, and a Docker Step boots the boot
+// set in QEMU on that store and passes only when the guest grows its disk,
+// creates and writes its data Volume, and stops cleanly. The test then signs
+// the image's root as the Space owner and installs it: the install Step writes
+// the disk for the owner's authorization and refuses one from another key. A
+// last run rehearses a boot set whose initramfs is not an archive, which must
+// fail with the guest's console kept in the Execution log. With
+// SPACEWAVE_SKIFFOS_UPDATE set, the build's Repo starts one commit behind the
+// checkout, and the update Flowgraph's audit, an approving gate and the update
+// Step move it before the build takes it.
+// SPACEWAVE_OS_INIT selects the static spacewave-init executable,
 // SPACEWAVE_QEMU_IMAGE the os/qemu tool image, SPACEWAVE_DOCKER the Docker CLI
 // and DOCKER_HOST its daemon, which must see this host's filesystem and grant
 // /dev/kvm. The build uses the settings newSkiffOSProof reads.
@@ -449,7 +449,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		"published":    {OutputNode: "publish", OutputPort: os_release_publish.OutputRelease, InputNode: "release", InputPort: "state"},
 	}
 
-	// Updating, the build takes the Repo the approved update moved; the
+	// Updating, the build takes the Repo the approved update moved. The
 	// gate's approval exists from the start, and the fetches read the
 	// checkout and its Buildroot module without changing them.
 	if updating {
@@ -500,8 +500,8 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("initramfs entries %v, want %v", names, want)
 	}
 
-	// The rehearsal boots it on the image, grows the store, creates and writes
-	// the data Volume, stops cleanly and survives the kill trial.
+	// The rehearsal boots the boot set on the image, grows the store, creates
+	// and writes the data Volume, stops cleanly and survives the kill trial.
 	rehearsed, failure := f.waitDone("flowgraph-run/spacewave-os", "rehearse")
 	if failure != "" {
 		t.Fatalf("rehearsal failed: %s\n%s", failure, f.executionLog(rehearsed))
@@ -520,8 +520,8 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		}
 	}
 
-	// The image Step's store names the tree it wrote into the Space, which
-	// holds the image's files, read through the Space's own transform.
+	// The image Step's store references the tree the Step wrote into the Space.
+	// The tree holds the image's files, read through the Space's own transform.
 	imageTask := f.waitTask("flowgraph-run/spacewave-os", "image", true)
 	imageTree := f.taskTree(imageTask, osImage)
 	built := f.readImage(imageTree)
@@ -541,7 +541,8 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	}
 
 	// The publish Step's release, which its sink wrote as the os/release
-	// object when the run routed the Step's output, names the signed image.
+	// object when the run routed the Step's output, references the signed
+	// image.
 	f.waitTask("flowgraph-run/spacewave-os", "publish", true)
 	f.wait("release", func() bool {
 		if run := f.readRun("flowgraph-run/spacewave-os"); run.GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED {
@@ -562,7 +563,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	}
 
 	// Keep the rehearsed boot set, image and authorization as World objects,
-	// and install them with a card naming the Worker.
+	// and install them with a card referencing the Worker.
 	f.storeRef("os/images", images)
 	f.storeRef("os/image", imageTree)
 	f.storeRef("os/authorization", authorization)
@@ -584,7 +585,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		return nil
 	})
 
-	// An authorization from a key the card does not name installs nothing.
+	// An authorization from a key the card does not list installs nothing.
 	_, stranger, _, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
 		t.Fatal(err)
@@ -633,8 +634,8 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	t.Logf("boot set %s rehearsed by %s and installed by %s; broken boot set failed: %s", images.MarshalString(), rehearsed, installed, failure)
 }
 
-// osImage names the image Step's output, the image store, and the input
-// that reads it.
+// osImage identifies the image Step's output, the image store, and the input
+// that reads the store.
 const osImage = os_image_build.OutputImage
 
 // osRelease is the key of the os/release object the publish Step's sink
@@ -762,7 +763,7 @@ func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*bucket.Obj
 	return authorized, signer
 }
 
-// storeCard stores a card naming owner as the only signer, with a one-use
+// storeCard stores a card listing owner as the only signer, with a one-use
 // writer grant on a Space owner signs.
 func (f *flowgraphFixture) storeCard(key string, owner crypto.PrivKey) {
 	ownerID, err := peer.IDFromPrivateKey(owner)
@@ -902,9 +903,10 @@ func (f *skiffOSProof) storeRepo(key, rev string) {
 }
 
 // newSkiffOSProof starts a Worker for SkiffOS build Steps, or skips the test.
-// SPACEWAVE_SKIFFOS_DIR names the SkiffOS checkout; the Steps own the
-// workspace SPACEWAVE_SKIFFOS_WORKSPACE (default spacewave-forge) in it and
-// touch no other. SPACEWAVE_SKIFFOS_WORLD optionally keeps the World.
+// SPACEWAVE_SKIFFOS_DIR selects the SkiffOS checkout. The Steps own the
+// workspace SPACEWAVE_SKIFFOS_WORKSPACE (default spacewave-forge) in the
+// checkout and touch no other workspace. SPACEWAVE_SKIFFOS_WORLD optionally
+// keeps the World.
 func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	// Require an explicit checkout: the build takes tens of minutes.
 	skiffDir := os.Getenv("SPACEWAVE_SKIFFOS_DIR")
@@ -938,7 +940,8 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	admission := h.newAdmission("skiffos-proof")
 	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
 
-	// Run the Worker that serves the runs; the Step runs where it is placed.
+	// Run the Worker that serves the runs. The Step runs where the Step is
+	// placed.
 	updates := make(chan *s4wave_device.ForgeWorkerDeclaration, 1)
 	stopWorker := h.startWorker(admission, updates)
 	t.Cleanup(func() {
@@ -1158,7 +1161,7 @@ func listNewc(r io.Reader, want string, wantBytes []byte) ([]string, error) {
 	var names []string
 	var hdr [110]byte
 	for {
-		// Read the fixed header; its fields are 8-digit hex numbers.
+		// Read the fixed header. Its fields are 8-digit hex numbers.
 		if _, err := io.ReadFull(r, hdr[:]); err != nil {
 			return nil, err
 		}
@@ -1182,7 +1185,7 @@ func listNewc(r io.Reader, want string, wantBytes []byte) ([]string, error) {
 		}
 		names = append(names, entry)
 
-		// The data pads to a multiple of four; compare the wanted entry's.
+		// The data pads to a multiple of four. Compare the wanted entry's data.
 		data := make([]byte, (fileSize+3)&^3)
 		if _, err := io.ReadFull(r, data); err != nil {
 			return nil, err

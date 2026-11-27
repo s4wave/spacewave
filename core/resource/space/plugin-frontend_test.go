@@ -22,7 +22,7 @@ import (
 
 // TestPluginFrontendResource closes queued work and pending calls with its Resource.
 func TestPluginFrontendResource(t *testing.T) {
-	// Mount a real local SharedObject; no device compiler has started yet.
+	// Mount a real local SharedObject. No device compiler has started yet.
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 	tb, existing, release := setupSecretSpaceResourceTest(ctx, t)

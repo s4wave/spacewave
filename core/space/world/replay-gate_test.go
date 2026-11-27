@@ -48,7 +48,7 @@ func TestWriteWaitsWhileReplayOpens(t *testing.T) {
 			done := make(chan error, 1)
 			go func() { done <- a.admitWrite(ctx, adm) }()
 
-			// It waits.
+			// The write waits.
 			select {
 			case err := <-done:
 				t.Fatalf("a write while replay opens returned %v, want it held", err)
@@ -90,7 +90,7 @@ func TestHandlerWatchFollowsReplayState(t *testing.T) {
 		t.Fatal("a handler wait ended the handler watch")
 	}
 
-	// A gap ends it.
+	// A gap ends the handler watch.
 	gap := &sobject.SOReplayState{State: &sobject.SOReplayState_Waiting{Waiting: &sobject.SOReplayWait{
 		State: &sobject.SOReplayWait_Gap{Gap: &sobject.SOReplayWaitGap{}},
 	}}}

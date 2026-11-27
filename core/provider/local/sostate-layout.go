@@ -29,7 +29,7 @@ import (
 //  5. Only the selected layout is written. A mount converts a state stored in
 //     the other layout before its first write, in either direction, so
 //     switching back loses no write made under the log.
-//  6. The host key names the layout that holds a stored state: the whole
+//  6. The host key identifies the layout that holds a stored state: the whole
 //     state, or logLayoutMarker while the log holds it. A state is stored
 //     exactly when the host key exists.
 //
@@ -175,7 +175,7 @@ func (l wholeLayout) tokenKey() []byte {
 	return l
 }
 
-// load decodes the state; its encoding is the token.
+// load decodes the state. Its encoding is the token.
 func (l wholeLayout) load(ctx context.Context, tx kvtx.TxOps) (*sobject.SOState, []byte, bool, error) {
 	// Read the encoding, then decode a copy the transaction does not own.
 	data, found, err := tx.Get(ctx, l)
@@ -209,7 +209,7 @@ func (l wholeLayout) clear(ctx context.Context, tx kvtx.TxOps) error {
 	return tx.Delete(ctx, l)
 }
 
-// logLayout stores the state as a head and its parts; the head is the token.
+// logLayout stores the state as a head and its parts. The head is the token.
 // It holds logLayoutMarker under the host key while it stores a state.
 type logLayout struct {
 	sobject_statestore.Store

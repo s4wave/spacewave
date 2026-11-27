@@ -27,7 +27,7 @@ interface EmailVisibility {
 
 /**
  * emailVisibility decides which emails the gate shows. Onboarding Status
- * decides account-level verification; the email list may still be one fetch
+ * decides account-level verification, but the email list may still be one fetch
  * behind that gate, so either source marks the account verified.
  */
 function emailVisibility(
@@ -151,7 +151,7 @@ function AddEmailCard({
 }
 
 // VerifyEmailPage renders the email verification gate page.
-// Shown after checkout when the user has no verified email.
+// The page is shown after checkout when the user has no verified email.
 export function VerifyEmailPage() {
   const onboarding = SpacewaveOnboardingContext.useContextSafe()
   const {

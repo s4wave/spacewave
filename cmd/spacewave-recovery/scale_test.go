@@ -42,7 +42,7 @@ import (
 // scalePeakSlackKiB bounds how far the count's peak resident set may grow from
 // the first size to a larger one. The fixed costs that fill with data are the
 // SQLite pagers, 2 MiB on the capture's one connection and on each of up to
-// four scratch connections, plus Go heap and allocator slack; between 100 and
+// four scratch connections, plus Go heap and allocator slack. Between 100 and
 // 1000 objects the measured growth was 7.3 MiB. Anything that keeps even
 // 150 bytes per block crosses the bound at 1000 objects.
 const scalePeakSlackKiB = 16 << 10
@@ -50,8 +50,8 @@ const scalePeakSlackKiB = 16 << 10
 // TestRecoveryScale counts synthetic captures of several sizes, each object
 // with two versions, spread over SQLite, a local pack log and retained remote
 // packs, and logs one line per size. RECOVERY_SCALE_N lists the object counts,
-// comma-separated; one count n means n and 10n. RECOVERY_SCALE_BODY sets each
-// version's body bytes, stored as distinct 8 KiB chunks; zero keeps a short
+// comma-separated. One count n means n and 10n. RECOVERY_SCALE_BODY sets each
+// version's body bytes, stored as distinct 8 KiB chunks. Zero keeps a short
 // inline body. Stores live under RECOVERY_SCALE_DIR. Each count runs in a
 // child process that reports its own peak resident set, and the test fails
 // when a larger size's peak exceeds the first's by scalePeakSlackKiB, because
@@ -139,7 +139,7 @@ func TestRecoveryScale(t *testing.T) {
 		writes := changedPaths(t, stamp)
 		t.Logf("scale objects=%d phase=%s source_bytes=%d blocks=%d block_bytes=%d locations=%d versions=%d pack_files=%d peak_rss_kib=%d scratch_bytes=%d duration=%s source_writes=%d in_blocks=%d out_blocks=%d",
 			size, result.GetPhase(), sourceBytes, count.GetPhysicalBlocks(), count.GetPhysicalBytes(), count.GetPhysicalLocations(), count.GetObjectVersions(), count.GetPackFiles(), peak, scratchBytes, elapsed.Round(time.Millisecond), writes, usage.Inblock, usage.Oublock)
-		// Each object has two versions; SetObjectType adds the one version of
+		// Each object has two versions. SetObjectType adds the one version of
 		// the shared kv/store type object.
 		if writes != 0 || result.GetPhase() != recovery.Phase_PHASE_COUNTED || count.GetObjectVersions() != uint64(2*size+1) { //nolint:gosec // positive.
 			t.Fatalf("scale count of %d objects: phase %s, %d versions, %d source writes", size, result.GetPhase(), count.GetObjectVersions(), writes)
@@ -154,7 +154,8 @@ func TestRecoveryScale(t *testing.T) {
 
 // peakRSSKiB returns this process's own peak resident set in KiB. Linux
 // carries the parent's high-water mark across fork and exec into ru_maxrss,
-// so there it reads VmHWM, which belongs to the current address space alone.
+// so peakRSSKiB reads VmHWM there, which belongs to the current address space
+// alone.
 func peakRSSKiB(t *testing.T) int64 {
 	t.Helper()
 	if status, err := os.ReadFile("/proc/self/status"); err == nil {
@@ -183,7 +184,7 @@ func peakRSSKiB(t *testing.T) int64 {
 // once, and writes every block to one of three tiers in turn. Each version's
 // body holds bodyBytes of distinct 8 KiB chunks, or a short inline label when
 // bodyBytes is zero. The World's own blocks, about a hundred bytes each, are
-// built in memory and copied to the tiers at the end; body chunks bypass the
+// built in memory and copied to the tiers at the end. Body chunks bypass the
 // Volume and stream straight to the tiers as they are made, so the capture is
 // written in a few large transactions and its bulk is never held in memory.
 // It returns the declared capture and the bytes its sources hold.
@@ -246,7 +247,7 @@ func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.
 		packs++
 		pending = nil
 	}
-	// emit writes one block to the next tier in turn; value is not retained.
+	// emit writes one block to the next tier in turn. value is not retained.
 	emit := func(ref *block.BlockRef, value []byte) {
 		t.Helper()
 		defer func() { emitted++ }()
@@ -384,7 +385,7 @@ func makeScaleCapture(t *testing.T, dir string, size, bodyBytes int) (*recovery.
 		flushRemote()
 	}
 
-	// Name the current World's root, as the Volume's root table does.
+	// Record the current World's root, as the Volume's root table does.
 	rootKey := append([]byte{2, 'R'}, binary.AppendUvarint(nil, uint64(len("synthetic-scale")))...)
 	rootKey = append(rootKey, []byte("synthetic-scale/current")...)
 	rootValue, err := (&block_gc.RootEntry{Ref: block_gc.BlockKey(current.GetRootRef())}).MarshalVT()

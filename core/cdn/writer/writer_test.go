@@ -36,7 +36,7 @@ import (
 
 // testPack is a pack body with its push arguments.
 type testPack struct {
-	// id names the pack.
+	// id identifies the pack.
 	id string
 	// data is its body.
 	data []byte
@@ -330,7 +330,7 @@ func TestReplacedPacksRetireAfterGrace(t *testing.T) {
 	}
 
 	// A replacement that borrows a current pack's blocks alone has that
-	// pack's ID; it supersedes the others and the borrowed pack stays.
+	// pack's ID. It supersedes the others and the borrowed pack stays.
 	empty := newPack(t, 512)
 	if err := push(ctx, owner, empty); err != nil {
 		t.Fatal(err)
@@ -459,7 +459,7 @@ func TestCommitCostFlat(t *testing.T) {
 	const n = 100
 	small, large := measure(n), measure(10*n)
 
-	// Bucket requests and Store reads stay flat; allocations grow only by a
+	// Bucket requests and Store reads stay flat. Allocations grow only by a
 	// bounded cost per listed entry, the pointer's own rewrite.
 	if small.bucket != large.bucket || small.reads != large.reads {
 		t.Fatalf("per commit: %d bucket requests and %d Store reads at n, %d and %d at 10n", small.bucket, small.reads, large.bucket, large.reads)

@@ -20,5 +20,5 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig(c, other)
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ config.Config = (*Config)(nil)

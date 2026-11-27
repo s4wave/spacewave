@@ -153,7 +153,7 @@ var knownEntryExts = map[string]bool{
 // servedEntryName returns the served "[name].mjs" base for a package import
 // path and whether it is a TypeScript source, as servedEntryName in
 // bldr/web/bundler/vite/web-pkg-naming.ts does. A TypeScript source drops only
-// its own extension; a compiled JavaScript entry drops every known extension.
+// its own extension. A compiled JavaScript entry drops every known extension.
 func servedEntryName(importPath string) (string, bool) {
 	name := strings.TrimPrefix(importPath, "./")
 	if ext := path.Ext(name); ext == ".ts" || ext == ".tsx" {

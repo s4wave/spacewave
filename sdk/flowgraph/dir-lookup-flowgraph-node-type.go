@@ -10,8 +10,8 @@ import (
 
 // LookupFlowgraphNodeType is a directive to look up a Flowgraph node type for
 // the nodes of one World. A Space plugin registers its node types for its own
-// installation, so the World engine ID selects that installation's types; core
-// node types serve every World.
+// installation, so the World engine ID selects that installation's types.
+// Core node types serve every World.
 type LookupFlowgraphNodeType interface {
 	// Directive indicates LookupFlowgraphNodeType is a directive.
 	directive.Directive

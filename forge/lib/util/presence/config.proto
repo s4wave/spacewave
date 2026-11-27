@@ -7,10 +7,10 @@ package forge.lib.util.presence;
 //  - {present_output}: a blob holding the path, set when the path exists.
 //  - {absent_output}: a blob holding the path, set when it does not.
 message Config {
-  // Path is the absolute host path to check. It follows symbolic links.
+  // Path is the absolute host path to check. The check follows symbolic links.
   string path = 1;
-  // PresentOutput names the output set when the path exists.
+  // PresentOutput selects the output set when the path exists.
   string present_output = 2;
-  // AbsentOutput names the output set when the path does not exist.
+  // AbsentOutput selects the output set when the path does not exist.
   string absent_output = 3;
 }

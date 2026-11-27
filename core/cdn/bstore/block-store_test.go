@@ -352,7 +352,8 @@ func TestCdnBlockStoreRootPointerBaseURL(t *testing.T) {
 		}},
 	}
 
-	// The CDN serves packs but no pointer; the owner serves only the pointer.
+	// The CDN serves packs but no pointer. The owner serves only the
+	// pointer.
 	packSrv := newTestCdnServer(t, testSpaceID, nil, []testPack{pack})
 	packHS := httptest.NewServer(http.HandlerFunc(packSrv.handle))
 	defer packHS.Close()

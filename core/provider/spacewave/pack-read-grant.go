@@ -104,7 +104,7 @@ func (c *SessionClient) ReadPack(ctx context.Context, resourceID, packID string)
 }
 
 // packReadURL returns a read URL of a pack valid for at least
-// readGrantRefresh, reusing a cached grant when one is.
+// readGrantRefresh, reusing a cached grant valid for at least that duration.
 func (c *SessionClient) packReadURL(ctx context.Context, resourceID, packID string) (string, error) {
 	// Reuse a live grant.
 	key := readGrantKey{resourceID: resourceID, packID: packID}

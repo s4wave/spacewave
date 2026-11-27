@@ -13,12 +13,13 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * PeerIds are the list of peer IDs to listen on.
-   * If empty, allows any incoming peer id w/ the protocol id(s).
+   * If PeerIds is empty, any incoming peer id with the protocol id(s) is
+   * allowed.
    */
   peerIds?: string[]
   /**
    * ProtocolIds is the list of protocol ids to listen on.
-   * If empty, no incoming streams will be accepted.
+   * If ProtocolIds is empty, no incoming streams will be accepted.
    */
   protocolIds?: string[]
   /**

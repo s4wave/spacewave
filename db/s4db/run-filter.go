@@ -30,7 +30,7 @@ func newRunFilter(n int) runFilter {
 	return runFilter{b: make([]byte, blocks*filterBlockBits/8)}
 }
 
-// decodeRunFilter returns the filter encoded in b, which it reads in place;
+// decodeRunFilter returns the filter encoded in b, read in place.
 // b must not change while the filter is in use.
 func decodeRunFilter(b []byte) runFilter {
 	return runFilter{b: b}

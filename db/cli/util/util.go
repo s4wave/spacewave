@@ -7,7 +7,7 @@ import (
 
 // UtilArgs contains the utility arguments and functions.
 type UtilArgs struct {
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
 
 	// ObjectRef is the object ref string.

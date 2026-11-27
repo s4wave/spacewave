@@ -82,7 +82,8 @@ func (t *Tx) DatabaseCount() int {
 
 // OpenDatabase opens a database with the given name.
 //
-// If not exist, create is set, and tx is a write tx, it will be created.
+// If the database does not exist, create is set, and tx is a write tx, the
+// database will be created.
 func (t *Tx) OpenDatabase(ctx context.Context, name string, create bool) (*Database, error) {
 	// Require a database name before opening it in the transaction.
 	if name == "" {

@@ -9,8 +9,8 @@ import type { PrepareRequest } from './registration.pb.js'
 /**
  * prepareRegistrations opens the private registration scope of one worker
  * generation beneath the core root Resource. Registrations made through the
- * returned ref stay hidden until activateRegistrations admits them together;
- * releasing the ref hides the whole generation.
+ * returned ref stay hidden until activateRegistrations admits them together.
+ * Releasing the ref hides the whole generation.
  */
 export async function prepareRegistrations(
   core: ClientResourceRef,

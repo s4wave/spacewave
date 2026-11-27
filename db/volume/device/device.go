@@ -61,7 +61,7 @@ type Device interface {
 	Read(ctx context.Context, reads []Read) error
 	// Truncate sets a file's length, zero filling when it grows.
 	Truncate(ctx context.Context, name string, size int64) error
-	// Remove deletes files; a missing file is not an error.
+	// Remove deletes files. A missing file is not an error.
 	Remove(ctx context.Context, names []string) error
 	// List returns every file.
 	List(ctx context.Context) ([]File, error)

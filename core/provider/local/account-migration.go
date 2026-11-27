@@ -58,7 +58,8 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 	}
 
 	// An offline predecessor can follow its original signed redirect after the
-	// merging machine leaves. Keep that destination until it has attached.
+	// merging machine leaves. Keep that destination until the predecessor has
+	// attached.
 	for _, accepted := range settings.GetAcceptedMigrations() {
 		for _, id := range accepted.GetSessionPeerIds() {
 			if settings.FindAccountSession(id) == nil && id != current.String() {
@@ -79,7 +80,8 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 }
 
 // CheckMigrationSessions checks the destination's complete current permission set.
-// An externally owned Space can block enrollment; it is never silently omitted.
+// An externally owned Space can block enrollment. The Space is never silently
+// omitted.
 func (a *ProviderAccount) CheckMigrationSessions(ctx context.Context, transition *provider.AccountTransition, _ crypto.PrivKey, _ crypto.PrivKey) error {
 	// Validate the transition and the destination's current settings.
 	if err := a.validateMigrationDestination(ctx, transition); err != nil {
@@ -246,11 +248,11 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		//     and never a listed Space nothing holds. A create of the id
 		//     after the import returned releases those roots with the
 		//     abandoned state, so its new lifetime starts with an empty
-		//     bucket; it fails while the import runs. A delete releases the
-		//     bucket's roots only after it unlists the id, and one that runs
-		//     between the hold and the listing fails the listing, so no
-		//     listed Space loses the hold. The stage's roots live outside
-		//     the bucket, so that release cannot drop them either.
+		//     bucket. The create fails while the import runs. A delete releases
+		//     the bucket's roots only after it unlists the id, and one that
+		//     runs between the hold and the listing fails the listing, so no
+		//     listed Space loses the hold. The stage's roots live outside the
+		//     bucket, so that release cannot drop them either.
 		//  3. The stage is checked after the hold: a process that stalled
 		//     past the stage's lease and the grace period may have lost the
 		//     copied graph, and the import then fails before listing, so a
@@ -296,7 +298,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	return a.publishAccountCatalogEntry(ctx, next, false)
 }
 
-// migrationStep names a point of a migration import a test can act at.
+// migrationStep identifies a point of a migration import a test can act at.
 type migrationStep int
 
 const (

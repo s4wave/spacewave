@@ -13,7 +13,7 @@ import (
 )
 
 // targetedInvite is an owner's shared object holding a one-use writer invite
-// that names an independent reader session.
+// that references an independent reader session.
 type targetedInvite struct {
 	reader        *provider_local.ProviderAccount
 	readerSession session.Session

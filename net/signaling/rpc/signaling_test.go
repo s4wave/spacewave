@@ -130,7 +130,8 @@ func TestSignaling(t *testing.T) {
 		// Record the receiving client session notification.
 		le.Debugf("p2: listen handler called: reset(%v) added(%v) pid(%v)", reset, added, pid)
 
-		// For this simple test assume this is an added event.
+		// For this simple test assume the session notification is
+		// an added event.
 		if !added || reset {
 			return
 		}

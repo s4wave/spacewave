@@ -78,7 +78,7 @@ func ResolveRetention(env, raw string) (dur time.Duration, warn string) {
 }
 
 // ResolveLogLevel walks envChain in order, returning the first parseable
-// logrus level found. Empty / unset values are skipped; a value that fails
+// logrus level found. Empty / unset values are skipped. A value that fails
 // to parse is also skipped (callers receive fallback in that case).
 // Returns fallback when no env var resolves.
 func ResolveLogLevel(envChain []string, fallback logrus.Level) logrus.Level {
@@ -103,10 +103,10 @@ func ResolveLogLevel(envChain []string, fallback logrus.Level) logrus.Level {
 //
 // Returns a cleanup function that closes the file hook (nil when no
 // hook was attached). When BLDR_LOG_FILE is set or storageRoot is
-// empty, this is a no-op and returns (nil, nil).
+// empty, EnableAutoDefault is a no-op and returns (nil, nil).
 //
-// retentionEnv names the project-scoped retention env var (e.g.
-// "SPACEWAVE_LOG_RETENTION_DAYS"); pass "" to skip the override and
+// retentionEnv holds the project-scoped retention env var (e.g.
+// "SPACEWAVE_LOG_RETENTION_DAYS"). Pass "" to skip the override and
 // always use DefaultRetention. logger receives the retention warning
 // (if any) before the hook is attached so it lands in stderr but not
 // in the about-to-be-created file.

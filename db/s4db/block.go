@@ -60,7 +60,7 @@ type dataBlock struct {
 	restarts offsets
 }
 
-// decodeBlock parses the block b in place; b must not change while the block
+// decodeBlock parses the block b in place. b must not change while the block
 // is in use.
 func decodeBlock(b []byte) (dataBlock, error) {
 	data, restarts, ok := cutOffsets(b)
@@ -81,9 +81,9 @@ type blockEntry struct {
 }
 
 // entryAt decodes the entry at off whose key shares prefix with the entry
-// before it; prev is that entry's key. It appends the key to keys and returns
+// before it. prev is that entry's key. It appends the key to keys and returns
 // the grown buffer, so a caller decoding a whole block keeps every key in one
-// buffer; the entry's key is the appended tail.
+// buffer. The entry's key is the appended tail.
 func (blk *dataBlock) entryAt(off int, prev, keys []byte) (blockEntry, []byte, bool) {
 	n := len(keys)
 	v, next, keys, ok := blk.decodeAt(off, prev, keys)
@@ -117,7 +117,8 @@ func (blk *dataBlock) decodeAt(off int, prev, keys []byte) (value, int, []byte, 
 }
 
 // restart returns the offset of the last restart point at or before key, or
-// the first, decoding the restart keys into keys, which it returns for reuse.
+// the first restart point, decoding the restart keys into keys, which it
+// returns for reuse.
 func (blk *dataBlock) restart(key, keys []byte) (int, []byte, bool) {
 	lo, hi := 0, blk.restarts.len()
 	for lo+1 < hi {
@@ -136,7 +137,7 @@ func (blk *dataBlock) restart(key, keys []byte) (int, []byte, bool) {
 	return blk.restarts.at(lo), keys, true
 }
 
-// findKeyBuf is the key buffer find decodes into on the stack; a longer key
+// findKeyBuf is the key buffer find decodes into on the stack. A longer key
 // moves it to the heap.
 const findKeyBuf = 256
 
@@ -153,7 +154,7 @@ func (blk *dataBlock) find(key []byte) (value, bool) {
 	}
 
 	// Walk forward to the first key at or after key, each decoded over the
-	// one before.
+	// previous key.
 	prev := keys[:0]
 	for off < len(blk.data) {
 		v, next, k, ok := blk.decodeAt(off, prev, prev[:0])

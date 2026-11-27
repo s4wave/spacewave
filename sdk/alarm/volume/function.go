@@ -6,7 +6,8 @@ import (
 	s4wave_function "github.com/s4wave/spacewave/sdk/function"
 )
 
-// The message types an alarm/watch function reads and returns.
+// watchInputType and watchResultType identify the message types an
+// alarm/watch function reads and returns.
 const (
 	watchInputType  = "s4wave.alarm.watch.WatchInput"
 	watchResultType = "s4wave.alarm.watch.WatchResult"

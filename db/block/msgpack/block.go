@@ -126,13 +126,13 @@ func (b *MsgpackBlock[T]) SetObj(obj T) {
 }
 
 // MarshalVT marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
+// MarshalVT is the initial step of marshaling, before transformations.
 func (b *MsgpackBlock[T]) MarshalVT() ([]byte, error) {
 	return msgpack.Marshal(b.obj)
 }
 
 // UnmarshalVT unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
+// UnmarshalVT is the final step of decoding, after transformations.
 func (b *MsgpackBlock[T]) UnmarshalVT(data []byte) error {
 	return msgpack.Unmarshal(data, &b.obj)
 }

@@ -50,7 +50,8 @@ message RegisterWorldOpResponse {
 
 // WatchWorldOpsRequest is the request for WatchWorldOps.
 message WatchWorldOpsRequest {
-  // InstanceKey selects a logical installation; empty lists global registrations.
+  // InstanceKey selects a logical installation. An empty InstanceKey lists
+  // global registrations.
   string instance_key = 1;
 }
 

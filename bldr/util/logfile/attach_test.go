@@ -140,7 +140,7 @@ func TestAttachLogFilesJSON(t *testing.T) {
 
 // TestAttachLogFilesAppendPreservesExistingRecords pins append semantics for
 // the shared log-file path. Two processes starting within the same second
-// resolve the same {ts}.log path; the second attach must not destroy records
+// resolve the same {ts}.log path. The second attach must not destroy records
 // the first process already wrote.
 func TestAttachLogFilesAppendPreservesExistingRecords(t *testing.T) {
 	// Attach the first writer and write ten records to the shared path.
@@ -201,7 +201,7 @@ func TestAttachLogFilesAppendPreservesExistingRecords(t *testing.T) {
 }
 
 // TestAttachLogFilesConcurrentWritersKeepsCompleteRecords verifies that two
-// hooks attached to one log file path both keep every record. This models
+// hooks attached to one log file path both keep every record. The test models
 // overlapping service-startup processes sharing one {ts}.log sink.
 func TestAttachLogFilesConcurrentWritersKeepsCompleteRecords(t *testing.T) {
 	// Attach two writers to the same log file path.

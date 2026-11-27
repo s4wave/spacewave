@@ -73,25 +73,25 @@ export const Event: MessageType<Event> =
 export interface BlockCommon {
   /**
    * BucketId is the bucket id.
-   * May be unset.
-   * Used for: PutBlock, RmBlock
+   * BucketId may be unset.
+   * BucketId is used for PutBlock and RmBlock.
    */
   bucketId?: string
   /**
    * VolumeId is the volume id.
-   * May be unset.
-   * Used for: PutBlock, RmBlock
+   * VolumeId may be unset.
+   * VolumeId is used for PutBlock and RmBlock.
    */
   volumeId?: string
   /**
    * BucketConfRev is the bucket config rev.
-   * May be unset.
-   * Used for: PutBlock, RmBlock
+   * BucketConfRev may be unset.
+   * BucketConfRev is used for PutBlock and RmBlock.
    */
   bucketConfRev?: number
   /**
    * BlockRef is the block reference.
-   * Used for: PutBlock, RmBlock
+   * BlockRef is used for PutBlock and RmBlock.
    */
   blockRef?: BlockRef
 }

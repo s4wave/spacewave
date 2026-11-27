@@ -115,8 +115,8 @@ type InviteMutator interface {
 // Validate checks bootstrap structure or a retained configuration, including a terminal empty audience.
 // A nonempty configuration must keep an OWNER so later changes remain authorizable.
 func (c *SharedObjectConfig) Validate() error {
-	// The participant list has no count of its own; the encoded config bounds
-	// it, and so bounds the voting weight sums and the work below.
+	// The participant list has no count of its own. The encoded config
+	// bounds it, and so bounds the voting weight sums and the work below.
 	if c.SizeVT() > MaxSyncStateSize {
 		return ErrMaxCountExceeded
 	}
@@ -141,7 +141,7 @@ func (c *SharedObjectConfig) Validate() error {
 		}
 	}
 
-	// An appointed sequencer names a key and a real start.
+	// An appointed sequencer specifies a key and a real start.
 	if err := c.GetSequencer().Validate(); err != nil {
 		return err
 	}
@@ -151,7 +151,8 @@ func (c *SharedObjectConfig) Validate() error {
 		return err
 	}
 
-	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
+	// A signed history head can retain the final departure. An empty
+	// bootstrap cannot grant authority.
 	participants := c.GetParticipants()
 	if len(participants) == 0 {
 		if len(c.GetConfigChainHash()) != 32 {
@@ -217,7 +218,8 @@ func (c *SharedObjectConfig) TrimRoster() []string {
 }
 
 // Checkpointer returns the owner that checkpoints the stable point: the first
-// owner on the trimming roster, in participant order, or empty when none is.
+// owner on the trimming roster, in participant order, or an empty string when
+// no owner is on the roster.
 // One checkpointer keeps owners from signing different checkpoints at one
 // height.
 func (c *SharedObjectConfig) Checkpointer() string {
@@ -255,7 +257,7 @@ func (op *SOOperation) UnmarshalInner() (*SOOperationInner, error) {
 	return inner, nil
 }
 
-// Validate performs cursory checks on the SOOperation.
+// Validate checks the SOOperation cursorily.
 func (op *SOOperation) Validate() error {
 	// Bound the inner data size.
 	if len(op.GetInner()) == 0 {
@@ -273,7 +275,7 @@ func (op *SOOperation) Validate() error {
 	return err
 }
 
-// Validate performs cursory checks on the SOOperationInner.
+// Validate checks the SOOperationInner cursorily.
 func (i *SOOperationInner) Validate() error {
 	// The author, local ID, and sequence identify the operation.
 	if _, err := i.ParsePeerID(); err != nil {
@@ -297,7 +299,7 @@ func (i *SOOperationInner) Validate() error {
 
 // IsAcknowledgment reports whether the operation is an acknowledgment: it
 // applies nothing and records that its author has built on every operation it
-// names.
+// references.
 func (i *SOOperationInner) IsAcknowledgment() bool {
 	return len(i.GetOpData()) == 0
 }
@@ -337,7 +339,7 @@ func (g *SOGrant) ParsePeerID() (peer.ID, error) {
 	return parsePeerIDField(g.GetPeerId())
 }
 
-// Validate performs cursory checks on the SOGrant.
+// Validate checks the SOGrant cursorily.
 func (g *SOGrant) Validate() error {
 	if _, err := g.ParsePeerID(); err != nil {
 		return err
@@ -351,7 +353,7 @@ func (g *SOGrant) Validate() error {
 	return g.GetSignature().Validate()
 }
 
-// Validate performs cursory checks on the SOGrantInner.
+// Validate checks the SOGrantInner cursorily.
 func (g *SOGrantInner) Validate() error {
 	if g.GetTransformConf().GetEmpty() {
 		return ErrEmptyTransformConfig

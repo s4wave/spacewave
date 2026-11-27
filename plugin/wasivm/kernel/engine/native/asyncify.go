@@ -15,7 +15,7 @@ import (
 // block their goroutine, so the engine unwinds only for a snapshot: the host
 // import starts the unwind, the export returns, and the guest call copies the
 // unwound stack out of guest memory. It then copies the stack back and calls
-// the export again to rewind; the rewound import returns the host call's
+// the export again to rewind. The rewound import returns the host call's
 // results. Restoring the copy rewinds to the same import with other results,
 // in the same instance or in a fork of it.
 
@@ -40,8 +40,8 @@ type frame struct {
 	inst *Instance
 	// depth is the frame's index in the instance's frames.
 	depth int
-	// name, fn and args are the export the call runs and its arguments,
-	// which a rewind calls again.
+	// name, fn and args are the export the call runs and its arguments.
+	// A rewind calls the export again.
 	name string
 	fn   api.Function
 	args []uint64
@@ -50,8 +50,8 @@ type frame struct {
 	capture *capture
 	// unwound is the capture the guest is unwinding to, or nil.
 	unwound *capture
-	// rewinding reports that the guest is rewinding to a host import, which
-	// returns resume.
+	// rewinding and resume record whether the guest is rewinding to a host
+	// import and the results that import returns, respectively.
 	rewinding bool
 	resume    []uint64
 }
@@ -257,8 +257,9 @@ func (r *restore) Error() string {
 }
 
 // unwinder drives a guest's Asyncify exports. The unwound stack lives in a
-// region of guest memory reserved past the guest's own pages; between unwind
-// and rewind it is held as a copy, so a nested call can reuse the region.
+// region of guest memory reserved past the guest's own pages. Between unwind
+// and rewind the stack is held as a copy, so a nested call can reuse the
+// region.
 type unwinder struct {
 	startUnwindFn api.Function
 	stopUnwindFn  api.Function

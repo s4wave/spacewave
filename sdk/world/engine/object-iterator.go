@@ -73,7 +73,8 @@ func (it *SDKObjectIterator) Valid() bool {
 	return resp.Valid
 }
 
-// Key returns the current entry key, or empty string if not valid.
+// Key returns the current entry key, or an empty string if the iterator is
+// not valid.
 func (it *SDKObjectIterator) Key() string {
 	if it.err != nil || it.service == nil {
 		return ""
@@ -99,8 +100,9 @@ func (it *SDKObjectIterator) Next() bool {
 	return resp.Valid
 }
 
-// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
-// Pass empty string to seek to the beginning (or end if reversed).
+// Seek moves the iterator to the first key >= the provided key (or <= in
+// reverse mode). Pass an empty string to seek to the beginning (or end if
+// reversed).
 func (it *SDKObjectIterator) Seek(k string) error {
 	// Preserve the iterator error when seeking cannot use a remote service.
 	if it.err != nil {

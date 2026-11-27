@@ -15,7 +15,7 @@ const columns: readonly TableColumn<Fruit>[] = [
   { key: 'color', label: 'Color', minWidth: 6, text: (f) => f.color },
 ]
 
-// SortedTable is a Table whose stored sort names sortKey.
+// SortedTable is a Table whose stored sort references sortKey.
 function SortedTable({ sortKey }: { sortKey: string }) {
   const state = useListState(null, 'fruit', { sortKey })
   return (
@@ -38,12 +38,12 @@ describe('Table', () => {
 
   it('leaves room for the scrollbar before a column takes a step', () => {
     // 1.75rem of row padding, 7.5 of name, 0.75 of gap and 6 of color fill
-    // 16rem exactly; the 6px scrollbar pushes the color to the next step.
+    // 16rem exactly. The 6px scrollbar pushes the color to the next step.
     expect(columnSteps(columns)).toEqual([0, 22])
   })
 
   it('sorts by the first column when the stored sort names no column', () => {
-    // A stored sort names a column the table no longer has.
+    // A stored sort references a column the table no longer has.
     render(<SortedTable sortKey="gone" />)
 
     // The rows sort by name, and the name header shows the sort.

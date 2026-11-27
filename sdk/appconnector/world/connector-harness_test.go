@@ -23,7 +23,7 @@ import (
 )
 
 // connectorHarness is a Space World holding a connector, its token Secret and
-// the fake admin API it reads.
+// the fake admin API the connector reads.
 type connectorHarness struct {
 	// tb is the testbed holding the Space World.
 	tb *testbed.Testbed

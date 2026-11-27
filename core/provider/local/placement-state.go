@@ -19,7 +19,7 @@ import (
 
 // placementState is a block store's storage backend, its upload queue, and
 // the stores a storage move copies blocks between. One mount builds it with
-// newPlacementState; after that only its backend, its read counts and its
+// newPlacementState. After that only its backend, its read counts and its
 // eviction state change.
 type placementState struct {
 	// wb queues local writes for upload.
@@ -45,7 +45,7 @@ type placementState struct {
 	// SetPeerFillsUpload describes.
 	peerUpload bool
 	// peers is the store's peer reads, which count their outcomes in
-	// peerReads. In serve mode it serves nothing.
+	// peerReads. In serve mode the peer source serves nothing.
 	peers block_store.StoreSource
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
@@ -60,7 +60,7 @@ type placementState struct {
 	// policyWake wakes the eviction loop when the policy changes; nil never.
 	policyWake chan struct{}
 	// evictLatch carries the eviction loop to the low mark across passes and
-	// routine restarts, as EvictLatch describes; only runEviction uses it.
+	// routine restarts, as EvictLatch describes. Only runEviction uses it.
 	evictLatch block_store_writeback.EvictLatch
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
@@ -136,9 +136,10 @@ type placementMount struct {
 }
 
 // newPlacementState builds the placement of one mount m of a store, sharing s
-// with the store's other mounts, which ends when ctx does. It loads the saved
-// block reads, starts the classifier of the blocks peers serve, which runs
-// until ctx ends, and publishes m.backend to the waiters of s.remoteBcast.
+// with the store's other mounts. Mount m ends when ctx does. The function
+// loads the saved block reads, starts the classifier of the blocks peers serve,
+// which runs until ctx ends, and publishes m.backend to the waiters of
+// s.remoteBcast.
 func newPlacementState(ctx context.Context, le *logrus.Entry, s placementShared, m placementMount) *placementState {
 	// Assemble the placement from the mount's stores and the shared state.
 	p := &placementState{

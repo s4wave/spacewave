@@ -11,7 +11,7 @@ import { RemoteFSCursorOps } from './fs-cursor-ops-remote.js'
 
 // createAsyncIterable builds an AsyncIterable from an array of values plus an
 // optional "hold open" promise that keeps the stream alive after all values are
-// yielded. This simulates a server-streaming RPC.
+// yielded. The iterable simulates a server-streaming RPC.
 function createAsyncIterable<T>(
   values: T[],
   hold?: Promise<void>,
@@ -303,7 +303,7 @@ describe('FSCursorClient', () => {
         clientHandleId: 1n,
         rootCursorHandleId: 1n,
       }).service
-      // Override FSCursorClient to use our controllable stream.
+      // Override FSCursorClient to use the controllable stream.
       service.FSCursorClient = vi.fn(
         () => iterable as ReturnType<FSCursorService['FSCursorClient']>,
       )
@@ -379,7 +379,7 @@ describe('FSCursorClient', () => {
       const c1 = fsc.ingestCursor(1n)
       expect(c1).toBe(fsc.rootCursor)
 
-      // Ingesting same ID returns same instance.
+      // Ingesting the same ID returns the same instance.
       const c2 = fsc.ingestCursor(1n)
       expect(c2).toBe(c1)
 

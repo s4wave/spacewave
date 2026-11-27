@@ -10,15 +10,15 @@ import (
 
 // ProxyWebView is a WebView which proxies requests to the RPC client.
 type ProxyWebView struct {
-	// ctx is the root context
+	// ctx is the root context.
 	ctx context.Context
-	// id is the identifier for the webview
+	// id is the identifier for the webview.
 	id string
-	// parent is the identifier for the parent webview (if any)
+	// parent is the identifier for the parent webview (if any).
 	parent string
-	// document is the identifier for the parent document (if any)
+	// document is the identifier for the parent document (if any).
 	document string
-	// permanent indicates the web view cannot be closed
+	// permanent indicates the web view cannot be closed.
 	permanent bool
 	// client is the srpc client for the remote WebView.
 	client srpc.Client
@@ -74,7 +74,7 @@ func (v *ProxyWebView) GetId() string {
 	return v.id
 }
 
-// GetParentId returns the id of the parent web view (if any)
+// GetParentId returns the id of the parent web view (if any).
 func (v *ProxyWebView) GetParentId() string {
 	return v.parent
 }
@@ -119,7 +119,7 @@ func (v *ProxyWebView) ResetWebView(ctx context.Context) error {
 
 // Remove shuts down the WebView and closes the window/tab if possible.
 // Returns ErrWebViewPermanent if the view cannot be closed.
-// Returns context.Canceled if ctx is canceled (but still processes the op)
+// Returns context.Canceled if ctx is canceled (but still processes the op).
 // Note: browser windows not created by CreateWebView cannot be closed.
 func (v *ProxyWebView) Remove(ctx context.Context) error {
 	if v.permanent {

@@ -145,7 +145,8 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 		mergeConfigs[len(mergeConfigs)-1] = nil
 		mergeConfigs = mergeConfigs[:len(mergeConfigs)-1]
 
-		// merge into base config (but skip if it's the original config to avoid self-merge)
+		// merge into base config (but skip the original config to avoid
+		// self-merge)
 		if conf != c {
 			c.Merge(conf)
 		}

@@ -29,7 +29,7 @@ type GoScriptCompileOptions struct {
 	OutputPath string
 	// CacheRoot selects the optional compiler cache directory.
 	CacheRoot string
-	// Packages names the package patterns to compile.
+	// Packages contains the package patterns to compile.
 	Packages []string
 	// BuildFlags selects Go package build constraints.
 	BuildFlags []string
@@ -39,7 +39,8 @@ type GoScriptCompileOptions struct {
 	OverrideDirs []string
 	// BindingRoots supplies dependency roots containing TypeScript bindings.
 	BindingRoots []string
-	// DeferredFunctions names exported function boundaries loaded on first invocation.
+	// DeferredFunctions selects exported function boundaries loaded on first
+	// invocation.
 	DeferredFunctions []string
 	// ProtobufTypeScriptBinding uses generated TypeScript protobuf bindings.
 	ProtobufTypeScriptBinding bool
@@ -68,7 +69,7 @@ func GoScriptCompilerCacheRootFromEnv(buildPath string) (string, error) {
 }
 
 // ResolveGoScriptCompilerCacheRoot resolves rawRoot for a Bldr build path.
-// Absolute roots are used directly; relative roots live under the Bldr state
+// Absolute roots are used directly. Relative roots live under the Bldr state
 // root that owns the build path.
 func ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot string) (string, error) {
 	// Return an empty root or use absolute roots directly.
@@ -222,7 +223,8 @@ func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, 
 
 // ExecGoScriptCompile compiles Go packages to a GoScript TypeScript package
 // tree in a child process of the current executable, so the gigabytes of
-// syntax and type data the compiler holds return to the system when it exits.
+// syntax and type data the compiler holds return to the system when the child
+// exits.
 // The child receives opts.Env in its environment.
 func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCompileOptions) error {
 	// Validate the options before waiting for the build budget.

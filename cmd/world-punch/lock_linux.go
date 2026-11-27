@@ -9,12 +9,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// SQLite's unix VFS lock bytes: PENDING at pendingByte, RESERVED after it,
-// then the 510 byte SHARED range. EXCLUSIVE is a write lock on SHARED.
+// lockSpan covers SQLite's unix VFS lock bytes: PENDING at pendingByte,
+// RESERVED after PENDING, then the 510 byte SHARED range. EXCLUSIVE is a
+// write lock on SHARED.
 const lockSpan = 2 + 510
 
-// shm lock bytes: the eight WAL locks from 120, then the DMS byte at 128,
-// which every connection with the WAL index open holds read-locked.
+// shmLockStart and shmLockSpan define the shm lock bytes: the eight WAL
+// locks from 120, then the DMS byte at 128, which every connection with the
+// WAL index open holds read-locked.
 const shmLockStart, shmLockSpan = 120, 9
 
 // lockExclusive takes write locks on every SQLite lock byte of the database
@@ -23,8 +25,8 @@ const shmLockStart, shmLockSpan = 120, 9
 // SQLite takes, from any process including this one, and closing some other
 // descriptor does not drop them. Any SQLite connection holding SHARED or
 // more on the file, or holding the WAL index open (even idle between
-// transactions), makes the lock fail; while it is held, no connection can
-// begin a read or write transaction.
+// transactions), makes the lock fail. While the lock is held, no connection
+// can begin a read or write transaction.
 func lockExclusive(f *os.File, path string) (func(), error) {
 	if err := ofdWrite(f, pendingByte, lockSpan); err != nil {
 		return nil, errors.Wrap(err, "database is in use (SQLite lock bytes)")

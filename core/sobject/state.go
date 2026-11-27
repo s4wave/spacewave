@@ -11,10 +11,10 @@ import (
 )
 
 // Validate checks the configuration, checkpoint, key epochs, operations,
-// sequence positions and control messages.
-// It authenticates every signature but does not check that a checkpoint or
-// grant signer still holds authority: that is checked when they are adopted,
-// so a signer's later departure leaves them valid.
+// sequence positions and control messages. It authenticates every signature but
+// does not check that a checkpoint or grant signer still holds authority:
+// authority is checked when the checkpoint or grant is adopted, so a signer's
+// later departure leaves the checkpoint and grants valid.
 func (s *SOState) Validate(sharedObjectID string) error {
 	// The configuration must be structurally valid.
 	if err := s.GetConfig().Validate(); err != nil {
@@ -115,7 +115,7 @@ func (s *SOState) GetCheckpointInner() (*SOCheckpointInner, error) {
 }
 
 // OperationSet returns the held operations as a verified set above the
-// held checkpoint. It verifies every operation; a SOOperationVerifier keeps the
+// held checkpoint. It verifies every operation. A SOOperationVerifier keeps the
 // verification across the states of one shared object.
 func (s *SOState) OperationSet(sharedObjectID string) (*SOOperationSet, error) {
 	return NewSOOperationVerifier(sharedObjectID).OperationSet(s)
@@ -165,8 +165,8 @@ func (s *SOState) SetKeyEpoch(epoch *SOKeyEpoch) {
 }
 
 // NextOperationLink returns where peerID's next operation goes: one past the
-// head of its chain, naming every other head of the operation DAG, under the
-// current config and key epoch. set is the operation set of the state.
+// head of its chain, referencing every other head of the operation DAG, under
+// the current config and key epoch. set is the operation set of the state.
 func (s *SOState) NextOperationLink(set *SOOperationSet, peerID string) *SOOperationLink {
 	// Extend the author's own head.
 	nonce, prev := set.AuthorHead(peerID)
@@ -177,7 +177,7 @@ func (s *SOState) NextOperationLink(set *SOOperationSet, peerID string) *SOOpera
 		KeyEpoch:   s.CurrentKeyEpoch().GetEpoch(),
 	}
 
-	// Name every other head.
+	// Reference every other head.
 	for _, head := range set.Heads() {
 		if !bytes.Equal(head.GetOpHash(), prev) {
 			link.Parents = append(link.Parents, head)
@@ -202,13 +202,13 @@ func (s *SOState) GetOperation(peerID, localID string) (*SOOperation, error) {
 
 // AddOperation verifies op and adds it to the set. It reports false when the
 // state already holds op or the checkpoint covers it. A held operation is not
-// verified again: the hash names its signed body, which was verified when it
-// was added, so a peer resending the set costs no signature checks.
-// Authorization is decided by replay under the config op names.
+// verified again: the hash identifies its signed body, which was verified when
+// it was added, so a peer resending the set costs no signature checks.
+// Authorization is decided by replay under the config op references.
 func (s *SOState) AddOperation(sharedObjectID string, op *SOOperation) (bool, error) {
-	// Find its place in hash order, unless held. Hashing may suspend under
-	// GoScript, which slices callbacks do not allow, so search with a plain
-	// loop.
+	// Find op's place in hash order, unless held. Hashing may suspend under
+	// GoScript, but slices callbacks do not allow suspension, so search
+	// with a plain loop.
 	h := op.Hash()
 	i, j := 0, len(s.Ops)
 	for i < j {
@@ -264,8 +264,8 @@ func (s *SOState) AddSequence(sharedObjectID string, record *SOSequence) (bool, 
 		return false, nil
 	}
 
-	// Insert it in height, then hash order unless held. Hashing may suspend
-	// under GoScript, so search with a plain loop.
+	// Insert the position in height, then hash order unless held. Hashing
+	// may suspend under GoScript, so search with a plain loop.
 	h := record.Hash()
 	i := 0
 	for ; i < len(s.Sequence); i++ {
@@ -366,7 +366,8 @@ func (s *SOState) unsequenced(verifier *SOOperationVerifier, peerID string) (*SO
 		return nil, soOrder{}, nil
 	}
 
-	// A position it already signed above the tail would fork the sequence.
+	// A position peerID already signed above the tail would fork the
+	// sequence.
 	for _, record := range s.GetSequence() {
 		inner, signer, err := verifier.verifySequence(record)
 		if err == nil && signer == peerID && inner.GetHeight() > placed.tail.GetHeight() {
@@ -436,8 +437,8 @@ func (s *SOState) adoptCheckpoint(v *SOOperationVerifier, next *SOCheckpoint) er
 	s.Checkpoint = next.CloneVT()
 	s.Ops = v.keep(NewSOOperationSet(v.sharedObjectID, inner), s.Ops)
 
-	// Drop the positions it covers, and the ones the sequencer can no longer
-	// account for.
+	// Drop the positions the new checkpoint covers, and the ones the
+	// sequencer can no longer account for.
 	sequencer := s.GetConfig().GetSequencer()
 	keptSeq := s.Sequence[:0]
 	for _, record := range s.Sequence {

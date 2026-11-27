@@ -29,7 +29,7 @@ test.describe('WASM Memory Snapshot/Restore', () => {
 
     console.log(`IndexedDB write: ${results.idbWriteMs.toFixed(2)} ms`)
 
-    // Memory size scaling.
+    // Report how snapshot and restore times scale with memory size.
     for (const s of results.scaling) {
       console.log(
         `${s.mb} MB: snapshot ${s.snapshotMs.toFixed(1)} ms, ` +

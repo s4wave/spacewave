@@ -46,7 +46,7 @@ type Scope struct {
 	ObjectStoreID string
 	// ParticipantID identifies the process or handle performing the operation.
 	ParticipantID string
-	// Key names a caller-chosen exclusion subject inside the Volume.
+	// Key identifies a caller-chosen exclusion subject inside the Volume.
 	Key string
 }
 

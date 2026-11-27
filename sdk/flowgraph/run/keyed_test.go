@@ -26,7 +26,7 @@ const (
 	liveStepID = "test/live-step"
 	// keyedID is the keyed Step of the live tests.
 	keyedID = "a"
-	// templateKey names the test actor template.
+	// templateKey identifies the test actor template.
 	templateKey = "template/test"
 )
 
@@ -450,7 +450,8 @@ func TestKeyedActivationsRunTogether(t *testing.T) {
 		t.Fatalf("activations = %v, want k1 and k2 both running", run.GetActivations())
 	}
 
-	// Both Tasks receive their own context and name distinct actors on the run.
+	// Both Tasks receive their own context and record distinct actors on
+	// the run.
 	actors := []string{<-steps.attached, <-steps.attached}
 	if actors[0] == actors[1] {
 		t.Fatal("two keys share an actor")
@@ -503,7 +504,8 @@ func TestKeyedActivationsRunTogether(t *testing.T) {
 		t.Fatalf("run = %v, want no arrivals and two visits", run)
 	}
 
-	// Both executions end; k1's unacknowledged e3 starts a third activation.
+	// Both executions end. k1's unacknowledged e3 starts a third
+	// activation.
 	steps.release(2)
 	successorActor := <-steps.attached
 	if successorActor == actors[0] || successorActor == actors[1] {

@@ -46,7 +46,7 @@ func (t *busObjectStoreTx) Exists(ctx context.Context, key []byte) (ex bool, err
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *busObjectStoreTx) Set(ctx context.Context, key, value []byte) error {
 	return t.do(func() error {
 		return t.utx.Set(ctx, key, value)
@@ -54,7 +54,7 @@ func (t *busObjectStoreTx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *busObjectStoreTx) Delete(ctx context.Context, key []byte) error {
 	return t.do(func() error {
@@ -103,7 +103,7 @@ func (t *busObjectStoreTx) Commit(ctx context.Context) error {
 		return tx.ErrDiscarded
 	}
 	err := t.utx.Commit(ctx)
-	t.Discard() // discard after commit to ensure we cleanup fully
+	t.Discard() // discard after commit to ensure full cleanup
 	return err
 }
 

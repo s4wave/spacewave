@@ -35,7 +35,7 @@ type Volume struct {
 	// stageMtx guards stages.
 	stageMtx sync.Mutex
 	// stages are the view names of the stages this view opened and has not
-	// released, so a stage call names only the view's own stages.
+	// released, so a stage call selects only the view's own stages.
 	stages map[string]struct{}
 }
 

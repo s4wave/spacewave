@@ -56,9 +56,11 @@ func (s *Session) DeleteSpace(ctx context.Context, sharedObjectID string) (*Dele
 	return s.service.DeleteSpace(ctx, &DeleteSpaceRequest{SharedObjectId: sharedObjectID})
 }
 
-// LeaveSpace relinquishes native participation while retaining existing local data.
-// When this account hosts the Space and others remain, successorPeerID names the
-// participant promoted to owner; empty selects the default successor.
+// LeaveSpace relinquishes native participation while retaining existing local
+// data.
+// When this account hosts the Space and others remain, successorPeerID
+// selects the participant promoted to owner. An empty successorPeerID selects
+// the default successor.
 func (s *Session) LeaveSpace(ctx context.Context, sharedObjectID, successorPeerID string) (*LeaveSpaceResponse, error) {
 	return s.service.LeaveSpace(ctx, &LeaveSpaceRequest{
 		SharedObjectId:  sharedObjectID,
@@ -76,9 +78,9 @@ func (s *Session) RemoveSpaceParticipants(ctx context.Context, sharedObjectID st
 }
 
 // CutSpaceParticipants removes the participant peers from the Space in one
-// configuration change, admitting each peer admitThrough names only through
-// the given nonce. With dryRun it reports the cuts without signing the
-// removal.
+// configuration change, admitting each peer admitThrough lists only through
+// the given nonce. With dryRun, CutSpaceParticipants reports the cuts without
+// signing the removal.
 func (s *Session) CutSpaceParticipants(
 	ctx context.Context,
 	sharedObjectID string,
@@ -303,7 +305,7 @@ func (s *Session) ConfirmPairingWithResult(ctx context.Context, remotePeerID, di
 }
 
 // AccessSpacewaveService binds the cloud provider's Session service to this
-// mounted resource. It remains valid until the Session is released.
+// mounted resource. The service remains valid until the Session is released.
 func (s *Session) AccessSpacewaveService() (SRPCSpacewaveSessionResourceServiceClient, error) {
 	// Require a live mounted resource before binding the provider service.
 	client, err := s.ref.GetClient()
@@ -314,7 +316,7 @@ func (s *Session) AccessSpacewaveService() (SRPCSpacewaveSessionResourceServiceC
 }
 
 // AccessLocalService binds the local provider's Session service to this mounted
-// resource. It remains valid until the Session is released.
+// resource. The service remains valid until the Session is released.
 func (s *Session) AccessLocalService() (SRPCLocalSessionResourceServiceClient, error) {
 	// Require a live mounted resource before binding the provider service.
 	client, err := s.ref.GetClient()

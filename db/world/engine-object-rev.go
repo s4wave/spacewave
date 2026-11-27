@@ -18,8 +18,8 @@ type ObjectRevWaiter interface {
 // revision. It returns ErrObjectNotFound if the object does not exist, unless
 // ignoreNotFound is set, in which case it waits for the object to appear. An
 // ObjectRevWaiter waits through its watch. Any other WorldState waits on the
-// object's own WaitRev, and rereads a missing object after each seqno, which
-// is right only for a state whose seqno moves on every change. A pending
+// object's own WaitRev, and rereads a missing object after each seqno. That
+// reread is right only for a state whose seqno moves on every change. A pending
 // write transaction's seqno does not, since a run of same-type changes shares
 // one, so a transaction and each wrapper around one is an ObjectRevWaiter.
 func WaitObjectRev(ctx context.Context, ws WorldState, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
@@ -61,7 +61,7 @@ func WaitObjectRev(ctx context.Context, ws WorldState, key string, rev uint64, i
 // creation. A view reads seen with GetObjectRootRefsBatch before it reads the
 // objects, so a change after the read ends the wait. An object deleted and
 // created again at its seen revision before the wait begins is not a change to
-// the wait; a caller that waits long after its read compares the roots first.
+// the wait. A caller that waits long after its read compares the roots first.
 // With no objects it waits until ctx ends.
 func WaitObjectChange(ctx context.Context, ws WorldState, seen ...*ObjectRootRef) error {
 	// Wait on one object directly.
@@ -111,8 +111,9 @@ func waitObjectRootChange(ctx context.Context, ws WorldState, ref *ObjectRootRef
 }
 
 // WaitObjectRevBySeqno waits for an object revision by rereading the object
-// after every World revision. Engines without a key-scoped change watch use it;
-// each World commit costs every waiter one read transaction.
+// after every World revision. Engines without a key-scoped change watch use
+// WaitObjectRevBySeqno.
+// Each World commit costs every waiter one read transaction.
 func WaitObjectRevBySeqno(
 	ctx context.Context,
 	e Engine,

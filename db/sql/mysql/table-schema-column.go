@@ -91,15 +91,15 @@ func (t *TableSchemaColumn) ToSqlColumn() (*sql.Column, error) {
 	}
 
 	// Require primary-key columns to reject null values.
-	// NOTE: this is an upstream todo to fix
-	// see memory/table.go
+	// NOTE: primary-key nullability is an upstream todo to fix.
+	// See memory/table.go.
 	if col.PrimaryKey {
 		col.Nullable = false
 	}
 	return col, nil
 }
 
-// Validate performs cursory validation of the table column.
+// Validate cursorily validates the table column.
 //
 // Each stored expression must parse, though the planner binds it to the
 // column type only when a statement uses the table.

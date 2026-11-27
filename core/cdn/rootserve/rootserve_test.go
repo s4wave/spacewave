@@ -134,7 +134,8 @@ func TestForeignPointerKeepsLastCopy(t *testing.T) {
 		}
 	}
 
-	// The first read fetches it; reads within a second are served held.
+	// The first read fetches the pointer. Reads within a second are served
+	// from the held copy.
 	read(7)
 	read(7)
 	if fetches.Load() != 1 {

@@ -11,9 +11,8 @@ import (
 // txOps implements the transaction operations against a redis conn.
 type txOps struct {
 	conn redis.Conn
-	// we can't open a connection with MULTI for writes without
-	// deferring all GETS as well. to solve this, create a second conn
-	// for the Writes.
+	// writeConn is a second conn for writes because a connection with MULTI
+	// for writes also defers all GETS.
 	writeConn redis.Conn
 }
 
@@ -36,7 +35,7 @@ func (t *txOps) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *txOps) Set(ctx context.Context, key, value []byte) error {
 	wc := t.writeConn
 	_, err := wc.Do("SET", key, value)
@@ -44,7 +43,7 @@ func (t *txOps) Set(ctx context.Context, key, value []byte) error {
 }
 
 // SetWithTTL sets the value of a key with a ttl.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *txOps) SetWithTTL(ctx context.Context, key, value []byte, ttl time.Duration) error {
 	wc := t.writeConn
 	_, err := wc.Do("SETEX", key, int(ttl.Seconds()), value)
@@ -104,7 +103,7 @@ func (t *txOps) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) 
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *txOps) Delete(ctx context.Context, key []byte) error {
 	_, err := t.writeConn.Do("DEL", key)

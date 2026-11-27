@@ -27,7 +27,7 @@ export async function createObjectWithBlockData(
     cursor.putBlock({ data, opts: { refsKnown: true } }, signal),
   ])
 
-  // The created object handle is local to this call; the World owns its root.
+  // The created object handle is local to this call. The World owns its root.
   using _object = await worldState.createObject(
     objectKey,
     {

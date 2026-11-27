@@ -44,8 +44,8 @@ export const StreamState_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface Data {
   /**
-   * State indicates stream state in-band.
    * Data is packet data from the remote.
+   * State indicates stream state in-band.
    */
   data?: Uint8Array
   /**

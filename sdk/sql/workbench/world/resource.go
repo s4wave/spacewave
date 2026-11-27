@@ -73,7 +73,7 @@ func (r *SqlWorkbenchResource) Initialize(
 		}
 	}
 
-	// Build the root through a stage held until the op adopts it.
+	// Build the root through a stage held until the op adopts the root.
 	stage, err := r.ws.StageWorldState(ctx)
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func (r *SqlWorkbenchResource) commitWorkbenchRoot(
 		}
 	}
 
-	// Build the root through a stage held until the op adopts it.
+	// Build the root through a stage held until the op adopts the root.
 	stage, err := r.ws.StageWorldState(ctx)
 	if err != nil {
 		return err

@@ -18,7 +18,7 @@ export enum ChksumType {
   ChksumType_UNKNOWN = 0,
 
   /**
-   * ChksumType_CRC32 performs a appended 4 byte crc32 against the data.
+   * ChksumType_CRC32 appends a 4 byte crc32 checksum of the data.
    */
   ChksumType_CRC32 = 1,
 }

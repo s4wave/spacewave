@@ -42,10 +42,11 @@ export function useSpaceCreatesContext(): SpaceCreates {
   return creates
 }
 
-// OpenSpace is one open Space's creates: the dispatch of each create still
-// open, which closing the Space sends close; the runs waiting for the Space's
-// world to return; and the create that holds each planned key while it is
-// running, waiting or failed, which a later create of that key joins.
+// OpenSpace contains one open Space's creates: the dispatch of each create
+// still open, to which closing the Space sends close. It also contains the runs
+// waiting for the Space's world to return and the create that holds each
+// planned key while running, waiting or failed. A later create of that key
+// joins the create holding the key.
 interface OpenSpace {
   jobs: Set<(event: CreateEvent) => void>
   waiting: Map<CreateJob, (world: IWorldState) => void>
@@ -53,13 +54,13 @@ interface OpenSpace {
 }
 
 // CreateState is one create's state. running sends the create, after a
-// failure if failure is set; waiting holds a pressed Try again until the
-// Space's world returns; failed offers Try again; refused means trying again
+// failure if failure is set. waiting holds a pressed Try again until the
+// Space's world returns. failed offers Try again. refused means trying again
 // cannot help, because another object holds the planned key, the operation
-// rejected the create, or its plugin has no build for this device; done and closed
-// are final; joined is final for a create whose planned key another create
-// in this Space already holds, which reports the one outcome. failure is the
-// last failure's description, which a cancelled wait shows again.
+// rejected the create, or its plugin has no build for this device. done and
+// closed are final. joined is final for a create whose planned key another
+// create in this Space already holds. That other create reports the one outcome.
+// failure is the last failure's description, which a cancelled wait shows again.
 export type CreateState =
   | { status: 'running'; failure?: string }
   | { status: 'waiting'; failure?: string }
@@ -124,7 +125,7 @@ export function createReducer(
 }
 
 // ToastPress is the click sonner passes a toast action. Preventing its
-// default keeps sonner from deleting the toast id the action replaces.
+// default action keeps sonner from deleting the toast id the action replaces.
 type ToastPress = { preventDefault(): void } | undefined
 
 // CreateJob is one create: its state, its plan once prepared, whether an op
@@ -304,8 +305,8 @@ export function useSpaceCreates(
           showCreateToast(job, dispatch)
           if (event.type === 'retry') start()
         }
-        // run sends the create on the Space's world, waiting for it while it
-        // reloads.
+        // run sends the create on the Space's world, waiting for the world
+        // while the world reloads.
         const run = async () => {
           let world = liveWorld.current
           if (!world) {
@@ -318,7 +319,7 @@ export function useSpaceCreates(
           if (job.state.status !== 'running') return
           if (!job.plan) {
             const plan = await prepare(world)
-            // Nothing to create, or the Space closed while this planned.
+            // Nothing to create, or the Space closed while the create planned.
             if (!plan || job.state.status !== 'running') {
               dispatch({ type: 'close' })
               return
@@ -372,9 +373,9 @@ export function useSpaceCreates(
           run().catch((err: unknown) => {
             console.error('failed to create object', err)
             // The host reports a timed out or unavailable plugin only when it
-            // never sent the op or discarded its transaction, so either wrote
-            // nothing, and the read before this send already settled any
-            // earlier one: a retry sends without reading the key first.
+            // never sent the op or discarded its transaction, so the host wrote
+            // nothing in either case. The read before this send settled any
+            // earlier send: a retry sends without reading the key first.
             if (
               err instanceof PluginOpTimeoutError ||
               err instanceof PluginUnavailableError

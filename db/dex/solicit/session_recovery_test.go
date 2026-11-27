@@ -14,14 +14,14 @@ import (
 )
 
 // recoveryWait bounds the wait for a restored session in the recovery tests.
-// The higher peer renews after renewGrace, so this leaves room for one retry.
+// The higher peer renews after renewGrace, so the bound allows one retry.
 const recoveryWait = renewGrace + renewRetryMin + time.Second
 
 // TestSessionRecoversAfterRepeatedLoss ends the DEX session between two
 // linked nodes several times while their link stays up, and checks that each
-// time both nodes get a session back. The lower peer's renewal used to be an
-// equivalent directive, which the bus merged into the previous renewal, so
-// only the first loss was ever recovered.
+// time both nodes get a session back. If the lower peer's renewal is an
+// equivalent directive, the bus merges the renewal into the previous renewal,
+// so only the first loss recovers.
 func TestSessionRecoversAfterRepeatedLoss(t *testing.T) {
 	// Link two nodes and wait for their sessions.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -29,7 +29,8 @@ func TestSessionRecoversAfterRepeatedLoss(t *testing.T) {
 	a, b := newTestRecoveryPair(t, ctx)
 
 	for round := 1; round <= 3; round++ {
-		// End the session from one side; the stream close ends the other.
+		// End the session from one side. The stream close ends
+		// the other session.
 		prevA, prevB := a.dex.GetSessionStarts(), b.dex.GetSessionStarts()
 		sess := getTestDexSession(a.dex, testRelayPeerID(t, ctx, b))
 		if sess == nil {
@@ -47,10 +48,10 @@ func TestSessionRecoversAfterRepeatedLoss(t *testing.T) {
 
 // TestHigherPeerRecoversOneSidedLoss ends only the higher peer's session with
 // the lower peer while the link and the lower peer's session stay up, as when
-// the lower peer never observes the end. The higher peer used to wait for the
-// lower peer to renew, which it never did, so the higher peer had no session
-// until the link remounted. A read that may not wait for peers, issued right
-// after the loss, waits for the recovery instead of failing.
+// the lower peer never observes the end. If the higher peer waits for the
+// lower peer to renew, the lower peer never renews, so the higher peer has no
+// session until the link remounts. A read that may not wait for peers, issued
+// right after the loss, waits for the recovery instead of failing.
 func TestHigherPeerRecoversOneSidedLoss(t *testing.T) {
 	// Link two nodes and order them by peer ID.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -121,7 +122,7 @@ func TestHigherPeerRenewsAfterGrace(t *testing.T) {
 	sess.closed.Store(true)
 	sess.onExit()
 
-	// It offers the protocol again and gets a session back.
+	// The higher peer offers the protocol again and gets a session back.
 	waitTestRecovery(t, "higher peer session restored", func() bool {
 		return len(openTestSessions(higher.dex)) != 0
 	})

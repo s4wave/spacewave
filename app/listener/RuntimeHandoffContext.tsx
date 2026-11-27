@@ -5,7 +5,7 @@ import type { RuntimeHandoffState } from '@s4wave/sdk/root/root.pb.js'
 // components across the app can detect when the native runtime has
 // been yielded to a remote CLI daemon. Components that depend on the
 // runtime (e.g. buttons that launch a web listener, start a transfer,
-// or mount a shared object) should gate user actions on this.
+// or mount a shared object) should gate user actions on this snapshot.
 export interface RuntimeHandoffContextValue {
   // active is true when the desktop listener has yielded the socket
   // and the runtime is owned by the requesting peer.

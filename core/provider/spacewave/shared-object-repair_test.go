@@ -332,7 +332,7 @@ func TestRepairOrganizationRootEmptyClearsVerifiedCacheBeforeReseed(t *testing.T
 	}))
 	defer srv.Close()
 
-	// Repair the root; reading its organization afterward fails.
+	// Repair the root. Reading its organization afterward fails.
 	acc = newSharedObjectRepairCacheTestAccount(t, srv.URL, orgID)
 	err := acc.repairOrganizationRootSharedObject(
 		context.Background(),
@@ -382,7 +382,8 @@ func newSharedObjectRepairCacheTestAccount(
 	return acc
 }
 
-// writeEmptyOwnerState writes a state response whose config names the session peer as the sole owner.
+// writeEmptyOwnerState writes a state response whose config declares the
+// session peer as the sole owner.
 func writeEmptyOwnerState(
 	t *testing.T,
 	w http.ResponseWriter,

@@ -73,7 +73,8 @@ function useShellGridController() {
     registerActiveTabsetPathOpener,
   } = useShellTabs()
 
-  // Decode layout from URL - only on initial mount or when URL changes externally
+  // Decode layout from URL: only on initial mount or when URL changes
+  // externally
   const initialDecodeResult = useMemo((): DecodeResult | null => {
     if (!layoutData) return null
     const decoded = decodeGridLayout(layoutData, SHELL_GRID_BASE_MODEL)
@@ -99,10 +100,10 @@ function useShellGridController() {
     initialModelResult?.structure ?? null,
   )
   const decodedLayoutDataRef = useRef(layoutData)
-  // Track if we've done initial setup
+  // Track if the controller has done initial setup
   const initializedRef = useRef(initialModelResult !== null)
 
-  // Model state - initialized once from URL
+  // Model state: initialized once from URL
   const [model, setModel] = useState<Model | null>(
     initialModelResult?.model ?? null,
   )
@@ -113,11 +114,11 @@ function useShellGridController() {
     if (layoutData === decodedLayoutDataRef.current) return
     decodedLayoutDataRef.current = layoutData
 
-    // Decode the new URL's structure to compare
+    // Decode the new URL's structure to compare with the stored structure
     const newModel = Model.fromJson(initialDecodeResult.model)
     const newStructure = encodeGridLayoutStructure(newModel)
 
-    // Only update model if structure actually changed (external navigation)
+    // Only update the model if the structure changed (external navigation)
     if (newStructure !== structureRef.current) {
       applyLocalStateToModel(newModel, initialDecodeResult.localState)
       structureRef.current = newStructure
@@ -125,7 +126,7 @@ function useShellGridController() {
     }
   }, [layoutData, initialDecodeResult])
 
-  // Handle invalid layout - redirect to home
+  // Handle invalid layout: redirect to home
   useEffect(() => {
     if (!layoutData || !model) {
       queueMicrotask(() => navigate({ path: '/', replace: true }))
@@ -156,7 +157,7 @@ function useShellGridController() {
     }
   }, [activeTabId, model, navigate, tabs])
 
-  // renderTab renders ShellGridPanel for each tab
+  // renderTab renders ShellGridPanel for each tab.
   const renderTab = useCallback(
     (node: TabNode) => <ShellGridPanel tabId={node.getId()} />,
     [],
@@ -167,7 +168,7 @@ function useShellGridController() {
     (newModel: Model) => {
       setModel(newModel)
 
-      // Sync tabs state with model - remove tabs that no longer exist in model
+      // Sync tabs state with model: remove tabs that no longer exist in model
       const modelTabIds = new Set<string>()
       newModel.visitNodes((node) => {
         if (node.getType() === 'tab') {
@@ -176,11 +177,12 @@ function useShellGridController() {
       })
       retainShellTabs(modelTabIds, getSelectedTabId(newModel) ?? undefined)
 
-      // Check if structure changed (not just local state like tab selection)
+      // Check if the structure changed (beyond local state like tab selection)
       const newStructure = encodeGridLayoutStructure(newModel)
       if (newStructure !== structureRef.current) {
         structureRef.current = newStructure
-        // Encode with local state for URL (so refreshing restores selection)
+        // Encode the model with local state for the URL (so refreshing
+        // restores selection)
         const newLayoutData = encodeGridLayout(newModel)
         navigate({ path: `/g/${newLayoutData}`, replace: true })
       }
@@ -195,7 +197,7 @@ function useShellGridController() {
     const activeTabsetId = getActiveTabsetId(model)
     if (!activeTabsetId) return
 
-    // Create new tab with home path
+    // Create a new tab with the home path
     const newTab = buildPathTab('/')
 
     addShellTab(newTab, {
@@ -269,7 +271,7 @@ function useShellGridController() {
     [openPathInGridTabset, registerActiveTabsetPathOpener],
   )
 
-  // Explicit Shell close removes the shared record; the local model then
+  // Explicit Shell close removes the shared record, so the local model then
   // prunes it through the shared snapshot projection.
   const handleCloseTab = useCallback(
     (tabId: string) => {
@@ -323,7 +325,7 @@ function useShellGridController() {
     [tabs, closeShellTab],
   )
 
-  // Render tab with name from global state, supporting inline rename.
+  // Render the tab with its name from global state, supporting inline rename.
   const onRenderTab = useCallback(
     (node: TabNode, renderValues: ITabRenderValues) => {
       const tabId = node.getId()
@@ -335,7 +337,7 @@ function useShellGridController() {
     [tabs],
   )
 
-  // Render tabset toolbar with add/close buttons
+  // Render the tabset toolbar with add/close buttons
   const onRenderTabSet = useCallback(
     (node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
       if (node.getType() !== 'tabset') return
@@ -344,7 +346,7 @@ function useShellGridController() {
       const selectedNode = tabset.getSelectedNode()
       const selectedTabId = selectedNode?.getId()
 
-      // Count total tabs in model
+      // Count the total tabs in the model
       let tabCount = 0
       model?.visitNodes((n) => {
         if (n.getType() === 'tab') tabCount++

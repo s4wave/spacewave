@@ -46,7 +46,7 @@ type keeperSpaceWatch struct {
 // startLocalSessionKeeper keeps configured local sessions mounted while the
 // daemon serves requests. Their session transports and P2P controllers must
 // remain available after a short CLI request releases its own resource. A
-// non-empty grantPath names the bootstrap grant the Device enrolls through.
+// non-empty grantPath selects the bootstrap grant the Device enrolls through.
 func startLocalSessionKeeper(
 	ctx context.Context,
 	le *logrus.Entry,

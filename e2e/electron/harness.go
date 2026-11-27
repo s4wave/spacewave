@@ -258,7 +258,7 @@ func (h *Harness) RepoRoot() string { return h.repoRoot }
 // the execution context behind it is still replaced one or more times during
 // startup. Evaluating against a context that is about to be destroyed fails
 // with "Execution context was destroyed", so a page is only usable once an
-// evaluate against it succeeds.
+// evaluation against the page succeeds.
 func pageContextReady(page playwright.Page) bool {
 	state, err := page.Evaluate(`() => document.readyState`)
 	if err != nil {
@@ -408,7 +408,8 @@ func (h *Harness) ActivateApp(ctx context.Context) error {
 	return nil
 }
 
-// Release stops Playwright, cancels the Bldr desktop runtime, and restores env.
+// Release stops Playwright, cancels the Bldr desktop runtime, and restores
+// environment variables.
 func (h *Harness) Release() {
 	h.disconnectDriver()
 	_ = h.stopDesktopRuntime()
@@ -570,7 +571,8 @@ func (h *Harness) desktopRuntimeErr(msg string) error {
 }
 
 func resolveCDPReadyTimeout() (time.Duration, error) {
-	// Read the configured Electron CDP startup timeout or use its default.
+	// Read the configured Electron CDP startup timeout or use its default
+	// timeout.
 	raw := strings.TrimSpace(os.Getenv(cdpReadyTimeoutEnv))
 	if raw == "" {
 		return defaultCDPReadyTimeout, nil

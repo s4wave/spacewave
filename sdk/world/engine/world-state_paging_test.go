@@ -44,7 +44,7 @@ func (c *objectBodiesBatchClient) Close() error {
 }
 
 func TestSDKWorldStateGetObjectBodiesBatchPageReadsOnePage(t *testing.T) {
-	// Script two pages; a one-page read must stop after the first.
+	// Script two pages. A one-page read must stop after the first.
 	service := &objectBodiesBatchService{
 		pages: []*s4wave_world.GetObjectBodiesBatchResponse{
 			{
@@ -66,7 +66,7 @@ func TestSDKWorldStateGetObjectBodiesBatchPageReadsOnePage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// One request carries the page budget; the page answers two keys and
+	// One request carries the page budget. The page answers two keys and
 	// keeps the withheld entry's size.
 	if len(service.requests) != 1 || service.requests[0].GetPageBudget() != 1<<20 {
 		t.Fatalf("requests = %+v, want one with page budget %d", service.requests, 1<<20)

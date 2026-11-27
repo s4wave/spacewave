@@ -11,14 +11,14 @@ import (
 )
 
 type resourceLifetime struct {
-	// ctx ends every ResourceRpc stream in this generation
+	// ctx ends every ResourceRpc stream in this generation.
 	ctx context.Context
-	// service opens ResourceRpc streams
+	// service opens ResourceRpc streams.
 	service resource.SRPCResourceServiceClient
-	// enqueue sends lifecycle controls in generation order
+	// enqueue sends lifecycle controls in generation order.
 	enqueue func(*resource.ResourceClientRequest) bool
 
-	// mtx guards the lifetime state below
+	// mtx guards the lifetime state below.
 	mtx              sync.Mutex
 	released         bool
 	resources        map[uint32]*resourceRefSet
@@ -119,7 +119,7 @@ func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
 }
 
 // retireResource retires every local reference to resourceID. byServer marks
-// the references released by the server; a refused route leaves it false,
+// the references released by the server. A refused route leaves byServer false,
 // since a server that is shutting down refuses routes too.
 func (l *resourceLifetime) retireResource(resourceID uint32, byServer bool) {
 	// Retire all references while their lifetime is locked.

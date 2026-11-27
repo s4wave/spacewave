@@ -223,11 +223,12 @@ func (rf *regenFixture) reload(t *testing.T, format WorldFormat) {
 	rf.m.check(t, reopened)
 }
 
-// checkBuilt checks the state a crash between build and graft leaves: an
-// engine opened afresh loads the head as the kv World it was, its object tree
-// untagged, while the built root carries the node graph's tags. It then
-// grafts the head onto the built root, which must write the World block alone,
-// since retagging the object tree changes only its root inside that block.
+// checkBuilt checks the state a crash between build and graft leaves: an engine
+// opened afresh loads the head as the kv World it was, its object tree
+// untagged, while the built root carries the node graph's tags. checkBuilt then
+// grafts the head onto the built root. The graft must write the World block
+// alone, since retagging the object tree changes only its root inside that
+// block.
 func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
 	t.Helper()
 	ctx := t.Context()
@@ -369,7 +370,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	rf.follow(t, s.built, WorldFormat_WORLD_FORMAT_NODE_GRAPH)
 	m.check(t, engine)
 
-	// It keeps writing on the new World.
+	// The engine keeps writing on the new World.
 	m.commit(t, engine, func(_ *EngineTx, add, del func(world.GraphQuad)) {
 		del(readded)
 		add(regenQuad("late-0", "<p0>", "late-1", ""))
@@ -395,8 +396,8 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 // back. The head must be a kv World holding exactly what was committed, keep
 // writing, and release to idle.
 func TestRegeneratorSwitchesBack(t *testing.T) {
-	// Switch, then commit on the new World: drop the only quad naming the
-	// newest node, <p7>, and add quads on new ones.
+	// Switch, then commit on the new World: drop the only quad referencing
+	// the newest node, <p7>, and add quads on new ones.
 	ctx := t.Context()
 	rf := newRegenFixture(t)
 	rf.switchTo(t, nil)
@@ -423,7 +424,7 @@ func TestRegeneratorSwitchesBack(t *testing.T) {
 		add(regenQuad(rf.keys[9], "<p9>", "back-0", ""))
 	})
 
-	// Switch back under the turn; the old format serves what was committed.
+	// Switch back under the turn. The old format serves what was committed.
 	rf.cfg.SwapChanges = 1 << 10
 	r = NewRegenerator(rf.authority, rf.cfg)
 	if err := r.SwitchBack(ctx); err != nil {
@@ -440,7 +441,7 @@ func TestRegeneratorSwitchesBack(t *testing.T) {
 		t.Fatalf("Run after switch back: %v", err)
 	}
 
-	// It keeps writing, and Release lets go of the new-format root.
+	// The engine keeps writing, and Release lets go of the new-format root.
 	rf.m.commit(t, rf.engine, func(_ *EngineTx, add, _ func(world.GraphQuad)) {
 		add(regenQuad("back-0", "<p0>", rf.keys[4], ""))
 	})

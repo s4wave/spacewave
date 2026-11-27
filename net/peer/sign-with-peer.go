@@ -12,7 +12,7 @@ import (
 )
 
 // SignWithPeer is a directive asking the holder of a peer's private key to
-// sign data in a signing context. The key stays with its holder; only the
+// sign data in a signing context. The key stays with its holder. Only the
 // SignedMsg crosses the bus.
 //
 // The asker chooses the context, so a holder answers only on buses whose
@@ -131,7 +131,7 @@ func NewSignWithPeerResolver(d SignWithPeer, key crypto.PrivKey) directive.Resol
 	})
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var (
 	_ SignWithPeer         = (*signWithPeer)(nil)
 	_ directive.Debuggable = (*signWithPeer)(nil)

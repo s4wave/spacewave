@@ -40,7 +40,7 @@ export function DebugObjectViewer({
   const resolvedTypeID = resolvedTypeIDResource.value
   const resolving = resolvedTypeIDResource.loading
 
-  // Show the resolved type, or the hint until it resolves.
+  // Show the resolved type, or the hint until the stored type resolves.
   const effectiveTypeID = resolvedTypeID ?? hintTypeID
   const untyped = !resolving && !effectiveTypeID
 

@@ -250,7 +250,7 @@ export const SpaceResourceServiceDefinition = {
      * FetchPluginRepository queues a Forge Job on a registered device that clones
      * a public GitHub repository at depth one into this Space, or fetches its
      * newest commit when the repository is already stored. The worktree stays on
-     * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+     * the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
      *
      * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
      */
@@ -275,7 +275,8 @@ export const SpaceResourceServiceDefinition = {
     },
     /**
      * OpenPluginFrontend retains a source-backed compiler on the selected device.
-     * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+     * The returned Resource serves bldr.frontend.Frontend. Release cancels the
+     * job.
      *
      * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
      */
@@ -363,7 +364,7 @@ export const SpaceResourceServiceDefinition = {
     },
     /**
      * LinkFolder links a folder on this device to a UnixFS directory of the
-     * Space: each file's Blob names chunks whose bytes stay in the file, and
+     * Space: each file's Blob references chunks whose bytes stay in the file, and
      * this device serves them from the file. It streams progress after each
      * batch of files publishes.
      *
@@ -551,7 +552,7 @@ export interface SpaceResourceService {
    * FetchPluginRepository queues a Forge Job on a registered device that clones
    * a public GitHub repository at depth one into this Space, or fetches its
    * newest commit when the repository is already stored. The worktree stays on
-   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   * the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
@@ -574,7 +575,8 @@ export interface SpaceResourceService {
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
-   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   * The returned Resource serves bldr.frontend.Frontend. Release cancels the
+   * job.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
@@ -655,7 +657,7 @@ export interface SpaceResourceService {
 
   /**
    * LinkFolder links a folder on this device to a UnixFS directory of the
-   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * Space: each file's Blob references chunks whose bytes stay in the file, and
    * this device serves them from the file. It streams progress after each
    * batch of files publishes.
    *
@@ -855,7 +857,7 @@ export interface SpaceResourceServiceHandler {
    * FetchPluginRepository queues a Forge Job on a registered device that clones
    * a public GitHub repository at depth one into this Space, or fetches its
    * newest commit when the repository is already stored. The worktree stays on
-   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   * the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
@@ -880,7 +882,8 @@ export interface SpaceResourceServiceHandler {
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
-   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   * The returned Resource serves bldr.frontend.Frontend. Release cancels the
+   * job.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
@@ -968,7 +971,7 @@ export interface SpaceResourceServiceHandler {
 
   /**
    * LinkFolder links a folder on this device to a UnixFS directory of the
-   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * Space: each file's Blob references chunks whose bytes stay in the file, and
    * this device serves them from the file. It streams progress after each
    * batch of files publishes.
    *
@@ -1330,7 +1333,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    * FetchPluginRepository queues a Forge Job on a registered device that clones
    * a public GitHub repository at depth one into this Space, or fetches its
    * newest commit when the repository is already stored. The worktree stays on
-   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   * the commit it checked out. The fetch moves only refs/remotes/origin/HEAD.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
@@ -1371,7 +1374,8 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
-   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   * The returned Resource serves bldr.frontend.Frontend. Release cancels the
+   * job.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
@@ -1515,7 +1519,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
 
   /**
    * LinkFolder links a folder on this device to a UnixFS directory of the
-   * Space: each file's Blob names chunks whose bytes stay in the file, and
+   * Space: each file's Blob references chunks whose bytes stay in the file, and
    * this device serves them from the file. It streams progress after each
    * batch of files publishes.
    *

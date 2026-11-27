@@ -192,8 +192,8 @@ describe('SpaceObjectBrowser', () => {
         screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
       ).toBeDefined()
     })
-    // "settings" objectKey with type "space/settings" should be filtered out
-    // It would appear as a top-level node named "settings" if not hidden
+    // The "settings" objectKey with type "space/settings" should be filtered
+    // out. It would appear as a top-level node named "settings" if not hidden
     expect(screen.queryByText('settings')).toBeNull()
   })
 

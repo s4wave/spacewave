@@ -10,7 +10,8 @@ import (
 )
 
 // peerImportLock serializes peer acceptance with cloud cache publications.
-// Persistence completes before either the watched state or trusted head changes.
+// Persistence completes before either the watched state or trusted head
+// changes.
 func (h *cloudSOHost) peerImportLock(ctx context.Context, _ string) (sobject.SOStateLock, error) {
 	// Resolve initial authority before acquiring the publication boundary.
 	if err := h.ensureInitialState(ctx, SeedReasonColdSeed); err != nil {
@@ -57,9 +58,9 @@ func (h *cloudSOHost) peerImportLock(ctx context.Context, _ string) (sobject.SOS
 	}, release), nil
 }
 
-// readConfigHistory resolves a bounded suffix from retained verified cloud history.
-// Retained entries are immutable and written with the state that accepted
-// them, so the traversal reads them without the acceptance lock.
+// readConfigHistory resolves a bounded suffix from retained verified cloud
+// history. Retained entries are immutable and written with the state that
+// accepted them, so the traversal reads them without the acceptance lock.
 func (h *cloudSOHost) readConfigHistory(ctx context.Context, soID string, base, target []byte) ([]*sobject.SOConfigChange, error) {
 	return sobject.ReadConfigSuffix(ctx, base, target, func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
 		return h.readConfigEntry(ctx, soID, hash)

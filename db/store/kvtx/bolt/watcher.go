@@ -114,8 +114,9 @@ func (w *dirWatcher) dispatch(watcher *fsnotify.Watcher) {
 			if !ok {
 				return
 			}
-			// Every commit writes the database file; only creating, removing,
-			// or renaming an entry can change what a Store's paths refer to.
+			// Every commit writes the database file, but only creating,
+			// removing, or renaming an entry can change what a Store's
+			// paths refer to.
 			if !ev.Has(fsnotify.Create | fsnotify.Remove | fsnotify.Rename) {
 				continue
 			}

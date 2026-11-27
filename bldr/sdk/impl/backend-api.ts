@@ -21,11 +21,11 @@ import {
   PluginStartInfo,
 } from '../../plugin/plugin.pb.js'
 
-// BackendAPIImpl implements the interface provided to the plugin module.
+// BackendApiImpl implements the interface provided to the plugin module.
 export class BackendApiImpl implements BackendAPI {
   // startInfo is the start information passed during initialization.
   public readonly startInfo: PluginStartInfo
-  // openStream is the open stream func for client
+  // openStream is the open stream func for the client.
   public readonly openStream: OpenStreamFunc
   // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
   public readonly client: Client
@@ -53,7 +53,7 @@ export class BackendApiImpl implements BackendAPI {
     RpcStreamPacket: RpcStreamPacket,
   } as const
 
-  // HTTP prefix constants
+  // constants contains HTTP prefix constants.
   public readonly constants = {
     BLDR_HTTP_PREFIX: '/b/',
     PLUGIN_DIST_HTTP_PREFIX: '/b/pd/',
@@ -62,7 +62,7 @@ export class BackendApiImpl implements BackendAPI {
     PLUGIN_HTTP_PREFIX: '/p/',
   } as const
 
-  // HTTP path utility functions
+  // utils provides HTTP path utility functions.
   public readonly utils = {
     // pluginHttpPath adds the plugin http prefix to the given path.
     pluginHttpPath: (pluginId: string, ...httpPaths: string[]): string => {

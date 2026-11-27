@@ -75,7 +75,7 @@ func (d *lookupICEProvider) Superceeds(directive.Directive) bool { return false 
 // GetName identifies credential lookups without exposing credentials.
 func (d *lookupICEProvider) GetName() string { return "LookupICEProvider" }
 
-// GetDebugVals contains only the public peer identity.
+// GetDebugVals returns only the public peer identity.
 func (d *lookupICEProvider) GetDebugVals() directive.DebugValues {
 	return directive.DebugValues{"peer": []string{d.peerID.String()}}
 }

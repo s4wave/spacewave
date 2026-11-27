@@ -119,7 +119,7 @@ function useObjectLinkActions({
 }
 
 // ObjectLinkPrimary renders the button that opens the object, with its icon,
-// label, and kind. The full form sets the kind and status under the label; the
+// label, and kind. The full form sets the kind and status under the label. The
 // compact form keeps one line and leads the label with the kind, so a row of
 // links still says what each one is.
 function ObjectLinkPrimary({

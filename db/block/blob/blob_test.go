@@ -18,7 +18,8 @@ func buildMockRawBlob() *Blob {
 	}
 }
 
-// buildMockChunkedBlob builds a new mock chunked blob with the specified chunker args
+// buildMockChunkedBlob builds a new mock chunked blob with the specified
+// chunker args.
 func buildMockChunkedBlob(bcs *block.Cursor, chunkerArgs *ChunkerArgs) (*Blob, error) {
 	// generate 100Mb of data
 	rd := prng.BuildSeededReader([]byte("test-chunk-blob"))

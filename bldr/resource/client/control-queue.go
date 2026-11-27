@@ -9,14 +9,14 @@ import (
 
 // resourceControlQueue serializes writes for one ResourceClient generation.
 type resourceControlQueue struct {
-	// stream accepts every control for this generation
+	// stream accepts every control for this generation.
 	stream resource.SRPCResourceService_ResourceClientClient
 
 	onFailure func(error)
 	onDone    func()
 	firstSent chan error
 
-	// bcast guards the queue state below
+	// bcast guards the queue state below.
 	bcast   broadcast.Broadcast
 	items   []*resource.ResourceClientRequest
 	closing bool

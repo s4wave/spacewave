@@ -19,7 +19,7 @@ const webPluginBrowserPkg = "web/plugin/browser"
 
 // BuildWebPluginBrowserEntrypoint builds the .mjs web browser plugin shim.
 //
-// builds to outFile
+// Builds to outFile.
 func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldrDistRoot, outFile string, minify, sourcemaps bool) error {
 	// Resolve the output name, sourcemap mode, and entrypoint name.
 	outFilename := filepath.Base(outFile)

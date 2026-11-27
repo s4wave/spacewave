@@ -17,7 +17,7 @@ type HandoffSessionEnd = 'expired' | 'canceled'
 const maxWatchRetryMs = 30_000
 
 // buildHandoffWatchURL returns the WebSocket URL that watches the auth session
-// with the given nonce. apiUrl is any cloud API URL; only its origin is used.
+// with the given nonce. apiUrl is any cloud API URL. Only its origin is used.
 function buildHandoffWatchURL(apiUrl: string, nonce: string): string {
   const base = new URL(apiUrl, window.location.href)
   const url = new URL(
@@ -29,10 +29,11 @@ function buildHandoffWatchURL(apiUrl: string, nonce: string): string {
 }
 
 // watchHandoffSession watches the auth session behind a handoff and calls
-// onEnd once if it ends before completion. The server keeps a watched session
-// alive while its device waits, closes the watch with 4008 when the session
-// expires and 4000 when it is canceled, and drops it without a close frame
-// when it restarts, which reconnects with backoff. Returns a stop function.
+// onEnd once if the session ends before completion. The server keeps a
+// watched session alive while its device waits, closes the watch with 4008
+// when the session expires and 4000 when the session is canceled, and drops
+// the watch without a close frame when the server restarts. The watch
+// reconnects with backoff. Returns a stop function.
 function watchHandoffSession(
   url: string,
   onEnd: (end: HandoffSessionEnd) => void,

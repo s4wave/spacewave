@@ -72,7 +72,8 @@ export type FramePart =
     }
   | { kind: 'band'; frame: WasiVmSceneFrame; edges: number }
 
-// The resize edges of a band, as the compositor numbers them.
+// edgeTop, edgeBottom, edgeLeft and edgeRight are the resize edges of a
+// band, as the compositor numbers them.
 export const edgeTop = 1
 export const edgeBottom = 2
 export const edgeLeft = 4
@@ -88,7 +89,7 @@ interface FrameTexture {
 // top, the roots' positions, each layer's texture, the desktop's window frames
 // and the window move in progress. apply folds each update into it, point
 // takes the viewer's own pointer, and press starts a move on a title bar
-// before the compositor answers; the renderer draws it.
+// before the compositor answers. The renderer draws the scene.
 export class Scene {
   // screen is the screen's size in units, its scale and its background.
   screen: SceneScreen = {
@@ -118,7 +119,7 @@ export class Scene {
   // textures maps each layer's id to its texture.
   private textures = new Map<number, SceneTexture>()
 
-  // constructor takes the painter of the frames' title bars; without one the
+  // constructor takes the painter of the frames' title bars. Without one the
   // scene draws no frames.
   constructor(private readonly paint?: FramePainter) {}
 
@@ -296,7 +297,7 @@ export class Scene {
       )
       if (covered) return null
 
-      // Else its frame might.
+      // Else the root's frame might cover the point.
       const f = this.frames.get(id)
       const part = f && framePartAt(f, { x: p.x - root.x, y: p.y - root.y })
       if (part) return part
@@ -305,7 +306,7 @@ export class Scene {
   }
 
   // cursorAt returns the CSS cursor for the pointer: a resize cursor on a
-  // frame's band, else the default.
+  // frame's band, else the default cursor.
   cursorAt(): string {
     const part = this.pointer && this.frameAt(this.pointer)
     return part?.kind === 'band' ? resizeCursor(part.edges) : ''
@@ -330,8 +331,8 @@ export class Scene {
   // drawList returns the layers bottom to top with their textures, placed at
   // their roots' positions, each framed root's edge and title bar below its
   // first layer. The edge is a unit wider than the frame on each side, so the
-  // window covers all but its outline; a maximized window has none. The
-  // frame's layers take the negated root id. The array is fresh; the textures
+  // window covers all but its outline. A maximized window has no edge. The
+  // frame's layers take the negated root id. The array is fresh. The textures
   // are the scene's.
   drawList(): SceneLayer[] {
     // Walk the layers, keeping each title bar painted.
@@ -369,7 +370,7 @@ export class Scene {
         })
       }
 
-      // Then the layer.
+      // Then draw the layer.
       const texture = this.textures.get(l.id ?? 0)
       if (!texture || !texture.width || !texture.height) continue
       out.push({

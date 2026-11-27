@@ -9,12 +9,12 @@ export interface GoWasmProcessOpts {
   // retry controls whether the process should retry inside this worker.
   // Defaults to true.
   retry?: boolean
-  // retryOpts are retry options excluding the abort signal
-  // set errorCb to catch unexpected errors running the module.
+  // retryOpts are retry options excluding the abort signal.
+  // Set errorCb to catch unexpected errors running the module.
   retryOpts?: Omit<RetryOpts, 'abortSignal'>
-  // env are additional environment variables to pass
+  // env are additional environment variables to pass.
   env?: Record<string, string>
-  // argv contains the args to pass
+  // argv contains the args to pass.
   argv?: string[]
   // tinyGoRuntimeImports installs per-process imports that need access to the
   // TinyGo runtime before WebAssembly instantiation.
@@ -1536,8 +1536,9 @@ export function callTinyGoExport(
     return
   }
   // Export callbacks only publish completion. Wake ordinary TinyGo goroutines
-  // through go_scheduler from a later task; _resume is the js.FuncOf event path
-  // and can corrupt syscall/js argument frames when no pending event exists.
+  // through go_scheduler from a later task. _resume is the js.FuncOf event
+  // path and can corrupt syscall/js argument frames when no pending event
+  // exists.
   deferTinyGoCallback(() => {
     scheduler()
   })
@@ -1652,7 +1653,7 @@ function patchWorkerBrowserGlobals(go: TinyGoRuntime) {
     })
   }
   // Install the WebRTC bridge shim if a bridge port is available.
-  // This makes RTCPeerConnection available to Go WASM (pion-webrtc)
+  // The shim makes RTCPeerConnection available to Go WASM (pion-webrtc)
   // by proxying signaling to the main thread and transferring DCs back.
   if (getBridgePort()) {
     installWebRTCShim()
@@ -2044,7 +2045,8 @@ export function installOPFSBroadcastHelpers(): void {
 
 // loadWebAssemblyModule loads the WebAssembly.Module from the WasmSource.
 //
-// When using fetch() (if source is a string) if the filename ends in .gz the gzip decompressor is used.
+// When using fetch() (if source is a string) if the filename ends in .gz the
+// gzip decompressor is used.
 export async function loadWebAssemblyModule(
   source: WasmSource,
 ): Promise<WebAssembly.Module> {
@@ -2735,17 +2737,18 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
 //
 // This class is used in the SharedWorker under web/entrypoint/browser.
 //
-// NOTE: this currently uses globals and is expected to be a singleton within a Worker.
+// NOTE: GoWasmProcess uses globals and is expected to be a singleton within a
+// Worker.
 // NOTE: WebAssembly does not provide a way to "kill" the process.
 export class GoWasmProcess {
-  // wasmSource is the source for the wasm module
+  // wasmSource is the source for the wasm module.
   private wasmSource: WasmSource
-  // opts are the optional params
+  // opts are the optional params.
   private opts?: GoWasmProcessOpts
   // retry manages retrying starting the wasi runtime.
-  // undefined unless the runtime is running
+  // retry is undefined unless the runtime is running.
   private retry?: Retry
-  // abortController is the abort controller for the current instance
+  // abortController is the abort controller for the current instance.
   private abortController?: AbortController
 
   constructor(wasmSource: WasmSource, opts?: GoWasmProcessOpts) {
@@ -2768,7 +2771,7 @@ export class GoWasmProcess {
     let retry: Retry | null = null
     if (parentSignal) {
       if (parentSignal.aborted) {
-        // already aborted
+        // The parent signal is already aborted.
         return Promise.reject(parentSignal.reason)
       }
       const abortListener = () => {

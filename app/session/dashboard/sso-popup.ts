@@ -41,9 +41,9 @@ export function startSSOPopupFlow(
     encodeURIComponent(opts.mode) +
     '&redirect_path=' +
     encodeURIComponent(redirectPath)
-  // noopener and noreferrer make window.open return null per spec, which is
-  // indistinguishable from a blocked popup. The result arrives over the
-  // BroadcastChannel, so detach the opener manually instead.
+  // noopener and noreferrer make window.open return null per spec. The null
+  // result is indistinguishable from a blocked popup. The auth result arrives
+  // over the BroadcastChannel, so detach the opener manually instead.
   const popup = window.open(url, '_blank', 'popup=yes,width=560,height=720')
   if (!popup) {
     channel.close()
@@ -52,7 +52,8 @@ export function startSSOPopupFlow(
   try {
     popup.opener = null
   } catch {
-    // Some browsers disallow assigning opener; the flow does not depend on it.
+    // Some browsers disallow assigning opener, but the flow does not depend on
+    // assigning opener.
   }
 
   let settled = false

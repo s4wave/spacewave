@@ -46,11 +46,12 @@ interface IWebViewProps {
   // webDocument overrides the webDocument provided by context.
   webDocument?: BldrWebDocument
   // isPermanent indicates closing this web view will close the window.
-  // calls window.close() when removing the web view.
-  // if the window cannot be script-closed, marks view as permanent.
+  // WebView calls window.close() when removing the web view.
+  // If the window cannot be script-closed, WebView marks the view as permanent.
   isPermanent?: boolean
   // onRemove is a callback to remove the WebView, if possible.
-  // if both isPermanent and onRemove are unset, marks the view as permanent
+  // If both isPermanent and onRemove are unset, WebView marks the view
+  // as permanent.
   onRemove?: RemoveWebViewFunc
   // showDebugInfo shows debug information about the WebView.
   showDebugInfo?: boolean
@@ -75,9 +76,9 @@ interface IWebViewState {
   // ready indicates the registration is ready.
   ready?: boolean
   // renderMode is the current rendering mode.
-  // defaults to NONE.
+  // The rendering mode defaults to NONE.
   renderMode?: RenderMode
-  // refreshNonce is the number of times we have refreshed.
+  // refreshNonce is the number of times the web view has refreshed.
   refreshNonce: number
   // scriptPath is the script path to lazy load.
   scriptPath?: string
@@ -85,7 +86,7 @@ interface IWebViewState {
   props?: Uint8Array
   // htmlLinks is the set of html link components.
   htmlLinks: IWebViewHtmlLink[]
-  // reg is the web view registration
+  // reg is the web view registration.
   reg?: WebViewRegistration
   // cssLoaded indicates all stylesheet links have finished loading.
   cssLoaded?: boolean
@@ -103,7 +104,7 @@ export function canCloseWindow() {
   return window.opener != null || window.history.length == 1
 }
 
-// useMemoManual signals to the React Compiler we want this to be manually memoized.
+// useMemoManual tells the React Compiler that this value is memoized by hand.
 // see: https://github.com/facebook/react/issues/34172#issuecomment-3367496138
 const useMemoManual = useMemo
 
@@ -124,7 +125,8 @@ function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
       return
     }
     // Check if the stylesheet is already loaded (cached).
-    // When a stylesheet is cached, onload may fire before we attach the handler.
+    // When a stylesheet is cached, onload may fire before StylesheetLink
+    // attaches the handler.
     // The sheet property is set once the stylesheet is fully loaded and parsed.
     if (link.sheet) {
       onLoad(id)
@@ -146,7 +148,7 @@ function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
   )
 }
 
-// unrevealedStep names the first reveal step an unrevealed view lacks.
+// unrevealedStep selects the first reveal step an unrevealed view lacks.
 function unrevealedStep(state: IWebViewState, componentReady: boolean): string {
   if (!state.ready) return 'no web document'
   if (!state.scriptPath) return 'no render mode'
@@ -162,10 +164,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const bldrWebDocument =
     props.webDocument || bldrContext?.webDocument || undefined
 
-  // uuid is the web view uuid
+  // uuid is the web view uuid.
   const uuid = useMemo(() => props.uuid || randomId(), [props.uuid])
 
-  // parentUuid is the parent web view uuid
+  // parentUuid is the parent web view uuid.
   const parentUuid = bldrContext?.webView?.getUuid() || undefined
 
   const [runtimePresentation, setRuntimePresentation] =
@@ -188,17 +190,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     markedStylesheetReadyRef.current = false
   }, [])
 
-  // removable marks if this is removable or not
+  // removable indicates whether the web view is removable.
   const removable = useMemo(
     () =>
-      // removable by callback
+      // The callback can remove the web view.
       !!props.onRemove ||
-      // removable by window.close
+      // window.close can remove the web view.
       (!!props.isPermanent && canCloseWindow()),
     [props.onRemove, props.isPermanent],
   )
 
-  // removableRef is a ref to the latest removable value
+  // removableRef is a ref to the latest removable value.
   const removableRef = useLatestRef(removable)
 
   // webViewState contains the current web view state.
@@ -217,7 +219,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   // change to scriptPath and refreshNonce, before the new component mounts.
   const [isComponentReady, setIsComponentReady] = useState(false)
 
-  // onRemoveRef is a ref to the latest onRemove callback
+  // onRemoveRef is a ref to the latest onRemove callback.
   const onRemoveRef = useLatestRef(props.onRemove)
   const markWebViewStartupBoundary = useCallback(
     (label: string, detail: Record<string, unknown> = {}) => {
@@ -328,7 +330,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         return uuid
       },
       // getParentUuid returns the parent web-view unique identifier.
-      // may be empty
+      // The parent web-view unique identifier may be empty.
       getParentUuid(): string | undefined {
         return parentUuidRef.current ?? undefined
       },
@@ -337,7 +339,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         return !removableRef.current
       },
       // setRenderMode sets the render mode of the view.
-      // if wait=true, should wait for op to complete before returning.
+      // If wait=true, setRenderMode should wait for the op to complete before
+      // returning.
       async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
@@ -684,7 +687,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           ) : undefined}
         </DebugInfo>
       ) : undefined}
-      {/* Show loading while CSS is loading or component not ready */}
+      {/* Show loading while CSS is loading or the component is not ready */}
       {(runtimePresentationOwner
         ? !runtimeTransitionActive
         : !webViewState.ready ||
@@ -721,7 +724,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               : [],
           )
         : undefined}
-      {/* Render component inside Activity - hidden until CSS loads */}
+      {/* Render the component inside Activity, hidden until CSS loads */}
       {webViewState.ready &&
       webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
       webViewState.scriptPath ? (

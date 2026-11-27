@@ -12,11 +12,12 @@ import (
 
 // Factory constructs a bldr manifest builder controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// pluginBuildLimiter bounds concurrent whole-plugin build attempts
+	// pluginBuildLimiter bounds concurrent whole-plugin build attempts.
 	pluginBuildLimiter *PluginBuildLimiter
-	// pluginBuildLimiterErr is returned when the configured limit is invalid
+	// pluginBuildLimiterErr is returned when the configured limit is
+	// invalid.
 	pluginBuildLimiterErr error
 }
 

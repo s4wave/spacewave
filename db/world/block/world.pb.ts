@@ -115,7 +115,8 @@ export interface World {
   /**
    * GraphSettings are the settings of the graph store in graph_key_value.
    * Empty means the default settings. The graph store holds the same
-   * settings; this copy lets the World open it without reading them.
+   * settings. This copy lets the World open the graph store without reading
+   * the settings.
    */
   graphSettings?: GraphSettings
   /**
@@ -184,7 +185,7 @@ export interface Object$ {
   rev?: bigint
   /**
    * ModSeqno is the World seqno after the last commit that wrote this Object
-   * record. Rev counts this Object's own changes; ModSeqno orders them with
+   * record. Rev counts this Object's own changes. ModSeqno orders them with
    * every other change in the World.
    */
   modSeqno?: bigint

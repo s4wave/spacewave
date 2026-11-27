@@ -35,7 +35,7 @@ async function protoClosure(roots: string[]): Promise<string[]> {
 }
 
 // The command runs aptre generate on the import closure of its --root protos,
-// so a generation script names only its roots and an imported proto cannot be
+// so a generation script selects only its roots and an imported proto cannot be
 // left out. Every other argument passes through to aptre generate:
 //
 //   bun scripts/gen-closure.ts --root=<a.proto>... [generate flags]

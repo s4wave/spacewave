@@ -16,7 +16,7 @@ const MaxLiveSkips = 8
 
 // MaxSkippedOperations is the most skips a config holds. A merge keeps every
 // skip of each owner's concurrent branch, so it may hold more than
-// MaxLiveSkips; a merge past this bound fails instead of dropping a skip.
+// MaxLiveSkips. A merge past this bound fails instead of dropping a skip.
 const MaxSkippedOperations = 32
 
 // MaxSkipReasonSize is the largest owner's note on a skip, in bytes.
@@ -30,8 +30,8 @@ const ReasonSkipped = "an owner skipped it"
 // Every replica then refuses the operation, including one that already
 // applied it. A skip cannot be withdrawn. The operation must be held above
 // the checkpoint, so a mistyped position skips nothing. Under group control
-// signer agrees to the skip and it returns ErrAwaitingGroup. It does nothing
-// when the config already skips the operation.
+// signer agrees to the skip and SkipSOOperation returns ErrAwaitingGroup.
+// SkipSOOperation does nothing when the config already skips the operation.
 func SkipSOOperation(ctx context.Context, host *SOHost, pos *SOOperationPosition, reason string, signer crypto.PrivKey) error {
 	// Find the operation above the checkpoint.
 	state, err := host.GetHostState(ctx)

@@ -10,7 +10,7 @@ import (
 
 // ScanPack calls fn with each entry of the packfile of size bytes in ra, in
 // key order, reading one value at a time after the index tail. It only reads
-// ra. Memory is the index tail plus one value of at most maxValue bytes; a
+// ra. Memory is the index tail plus one value of at most maxValue bytes. A
 // larger entry fails before its value is allocated. fn must copy what it keeps.
 func ScanPack(ctx context.Context, ra io.ReaderAt, size uint64, maxValue uint64, fn func(key, value []byte) error) error {
 	// Read the index tail with at most three reads from the end.
@@ -28,7 +28,8 @@ func ScanPack(ctx context.Context, ra io.ReaderAt, size uint64, maxValue uint64,
 
 	// Read each value its entry places, bounded before allocation.
 	return ScanIndexTail(tail, size, func(ie *kvfile.IndexEntry) error {
-		// Stop on cancellation, then bound the entry before allocating it.
+		// Stop on cancellation, then bound the entry before allocating
+		// its value.
 		if err := ctx.Err(); err != nil {
 			return err
 		}

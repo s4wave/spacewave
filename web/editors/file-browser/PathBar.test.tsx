@@ -158,7 +158,7 @@ describe('PathBar', () => {
       expect(inputEl.selectionEnd).toBe(inputEl.value.length)
     })
 
-    // Sanity-check DOM APIs work in test environment
+    // Sanity-check DOM APIs work in the test environment.
     expect(typeof inputEl.selectionStart).toBe('number')
     expect(typeof inputEl.selectionEnd).toBe('number')
   })

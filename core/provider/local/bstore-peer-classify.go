@@ -48,7 +48,7 @@ func (c *peerReadCounts) classify(ref *block.BlockRef) {
 }
 
 // startPeerClassify starts the classifier of the blocks peers serve the
-// placement, which runs until ctx ends. Serve mode classifies nothing.
+// placement. The classifier runs until ctx ends. Serve mode classifies nothing.
 func (p *placementState) startPeerClassify(ctx context.Context) {
 	// Serve mode classifies nothing.
 	if p.serveOnly {
@@ -72,7 +72,8 @@ func (p *placementState) startPeerClassify(ctx context.Context) {
 
 // classifyServed classifies a block a peer served within peerClassWait.
 func (p *placementState) classifyServed(ctx context.Context, ref *block.BlockRef) peerClass {
-	// Look the block up within the bound, which leaves it unclassified.
+	// Look the block up within the bound, leaving the block unclassified
+	// when the bound expires.
 	lookupCtx, cancel := context.WithTimeout(ctx, peerClassWait)
 	defer cancel()
 	class := p.locateBlock(lookupCtx, ref)

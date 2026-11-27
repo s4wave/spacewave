@@ -8,7 +8,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures a controller to forward LookupWebPkg to a plugin.
  * webPluginId should correspond to a bldr/web/plugin plugin.
- * Resolves the LookupWebPkg directive on the web plugin bus.
+ * The controller resolves the LookupWebPkg directive on the web plugin bus.
  *
  * @generated from message bldr.web.plugin.handle_web_pkg_rpc.Config
  */
@@ -28,14 +28,15 @@ export interface Config {
   webPkgIdRe?: string
   /**
    * WebPkgIdPrefixes is a list of web pkg id prefixes to match.
-   * If the value is in this list, overrides web_pkg_id_re.
+   * If the value is in this list, the list overrides web_pkg_id_re.
    * Set to '.*' or empty to match all web pkgs ids.
    */
   webPkgIdPrefixes?: string[]
   /**
    * WebPkgIdList is a list of web pkg IDs to resolve.
-   * If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
-   * Ignored if empty.
+   * If the value is in this list, the list overrides web_pkg_id_re and
+   * web_pkg_id_prefixes.
+   * WebPkgIdList is ignored if empty.
    */
   webPkgIdList?: string[]
 }

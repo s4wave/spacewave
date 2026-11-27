@@ -104,13 +104,13 @@ describe('finishWizard', () => {
       WizardGoneError,
     )
 
-    // No second object, and the other tab's index stands.
+    // No second object is created, and the other tab's index stands.
     expect(t.state.creates).toEqual([])
     expect(t.state.indexPath).toBe('obj/other')
   })
 
   it('refuses a create linked from a wizard another tab removed', async () => {
-    // The wizard is gone, so the link from it fails and the create with it.
+    // The wizard is gone, so the link from the wizard and the create both fail.
     const t = wizardTestWorld(['obj/other'], 'obj/other')
     const created = [
       { kind: 'op' as const, opId: createOpId, opData: new Uint8Array() },
@@ -129,8 +129,8 @@ describe('finishWizard', () => {
 
   it('moves an index that names the wizard though no settings were read', async () => {
     // The settings watch had not loaded, or lagged a write that pointed the
-    // index at the wizard: the World still names the wizard when the list
-    // applies, so the index moves to the target.
+    // index at the wizard: the World's index still points to the wizard when
+    // the list applies, so the index moves to the target.
     const t = wizardTestWorld(['wizard/one'], 'canvas/main')
     t.state.indexPath = 'wizard/one'
     await finishWizard(wizardIn(t), plan)
@@ -140,7 +140,7 @@ describe('finishWizard', () => {
   })
 
   it('reports a Finish whose commit was sent before an abort as done', async () => {
-    // The caller aborts while the commit is in flight; the commit lands.
+    // The caller aborts while the commit is in flight, but the commit lands.
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     let open = () => {}
     t.commitGate = new Promise((resolve) => (open = resolve))
@@ -179,7 +179,8 @@ describe('cancelWizard', () => {
   })
 
   it('refuses an Intro Finish after a Cancel removed the wizard', async () => {
-    // Tab A cancels: the index naming the wizard is cleared, the wizard goes.
+    // Tab A cancels: the index pointing to the wizard is cleared, and the
+    // wizard goes.
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     await cancelWizard(wizardIn(t), '')
     expect(t.state.indexPath).toBe('')
@@ -194,7 +195,7 @@ describe('cancelWizard', () => {
 
   it('refuses a Cancel after a Finish removed the wizard', async () => {
     // Another tab's Finish landed first: its object exists, the wizard is
-    // gone, and the index names the object.
+    // gone, and the index points to the object.
     const t = wizardTestWorld(['obj/other'], 'obj/other')
     await expect(cancelWizard(wizardIn(t), '')).rejects.toThrow(WizardGoneError)
 
@@ -210,7 +211,7 @@ describe('useWizardFinish', () => {
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
 
-    // Nothing was attempted: the press offers Finish again, not Retry.
+    // Nothing was tried: the press offers Finish again, not Retry.
     await act(() =>
       result.current.finish(() => {
         throw new WizardInputError('Enter a name')
@@ -289,7 +290,7 @@ describe('useWizardFinish', () => {
   })
 
   it('ends done when an Intro Finish that creates nothing lost its reply', async () => {
-    // Intro opens an object that already exists; only its ending says the
+    // Intro opens an object that already exists, so only its ending says the
     // Finish landed rather than another tab's Cancel.
     const t = wizardTestWorld(['wizard/one', 'obj/x'], 'wizard/one')
     const intro = { creates: [], target: { openKey: 'obj/x', indexPath: 'x' } }

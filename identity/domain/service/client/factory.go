@@ -14,7 +14,7 @@ import (
 
 // Factory constructs a domain client controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

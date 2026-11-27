@@ -29,7 +29,8 @@ func NewFileServerExt(hfs http.FileSystem) http.Handler {
 
 		// fetch() does not set Accept-Encoding nor does it handle Content-Encoding.
 		// https://stackoverflow.com/questions/78295701/fetch-set-accept-encoding-and-honor-content-encoding
-		// If the content is brotli encoded (ends with .br) and not in Accept-Encoding let's decompress it here.
+		// If the content is brotli encoded (ends with .br) and
+		// Accept-Encoding excludes br, decompress the content here.
 		if hasSuffix(".br") {
 			acceptsBr := slices.ContainsFunc(
 				strings.Split(req.Header.Get("accept-encoding"), ","),
@@ -45,7 +46,9 @@ func NewFileServerExt(hfs http.FileSystem) http.Handler {
 					return
 				}
 
-				// Omit sending the Content-Length header since we don't know the decompressed length.
+				// Omit the Content-Length header because
+				// the handler does not know the decompressed
+				// length.
 				brReader := brotli.NewReader(f)
 				_, err = io.Copy(rw, brReader)
 				if err != nil {
@@ -87,7 +90,8 @@ func NewFileServerExt(hfs http.FileSystem) http.Handler {
 	return http.HandlerFunc(handlerFunc)
 }
 
-// https://github.com/golang/go/blob/9f1366508/src/net/http/fs.go#L723
+// ToHTTPError maps filesystem errors to HTTP messages and status codes.
+// (https://github.com/golang/go/blob/9f1366508/src/net/http/fs.go#L723).
 func ToHTTPError(err error) (msg string, httpStatus int) {
 	if errors.Is(err, fs.ErrNotExist) {
 		return "404 page not found", http.StatusNotFound

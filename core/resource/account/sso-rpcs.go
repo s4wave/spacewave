@@ -43,8 +43,8 @@ func (r *AccountResource) SSOCodeExchange(
 	}, nil
 }
 
-// LinkSSO generates a custodied keypair, wraps with optional PIN, and
-// registers it with the cloud via multi-sig.
+// LinkSSO generates a custodied keypair, wraps the keypair with an optional
+// PIN, and registers it with the cloud via multi-sig.
 func (r *AccountResource) LinkSSO(
 	ctx context.Context,
 	req *s4wave_account.LinkSSORequest,
@@ -64,7 +64,8 @@ func (r *AccountResource) LinkSSO(
 	}
 	cred := req.GetCredential()
 
-	// If credential provided, resolve entity key and use LinkSSOProvider.
+	// If a credential is provided, resolve the entity key and use
+	// LinkSSOProvider.
 	if cred != nil {
 		entityPriv, entityPeerID, err := r.ResolveEntityKey(ctx, cred)
 		if err != nil {

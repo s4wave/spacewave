@@ -51,7 +51,7 @@ type physicalTx struct {
 }
 
 // openPhysical opens a write transaction of the Volume's store. A BlockDomain
-// serves the blocks through the transaction; any other store keeps them as
+// serves the blocks through the transaction. Any other store keeps them as
 // records. The caller discards tx.
 func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	// Open the transaction and its record view.
@@ -88,8 +88,8 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 
 // discard ends the transaction, then reports the blocks it removed to the
 // decoded-block cache. Callers defer it, so a committed transaction reports
-// its removals after the commit; a discarded one reports removals that never
-// happened, which costs only misses.
+// its removals after the commit. A discarded transaction reports removals
+// that never happened, costing only cache misses.
 func (p *physicalTx) discard() {
 	p.tx.Discard()
 	for _, ref := range p.blocks.take() {
@@ -160,8 +160,8 @@ func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 
 // putStored writes the entries whose bytes the Volume stores and reports, for
 // each entry, whether its bytes were stored before. An external entry writes
-// nothing: its bytes stay in the caller's store, and it reports whether the
-// Volume held them anyway.
+// nothing: its bytes stay in the caller's store, and putStored reports whether
+// the Volume held them anyway.
 func (r *txBlocks) putStored(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Split the external entries from the ones the store writes.
 	var stored []*block.PutBatchEntry

@@ -1,7 +1,7 @@
 package world
 
 // OperationRejection reports a deterministic application rejection. The World
-// transaction owner discards all changes; callers may present Message directly.
+// transaction owner discards all changes. Callers may present Message directly.
 type OperationRejection struct {
 	Code    string
 	Message string

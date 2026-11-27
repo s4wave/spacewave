@@ -135,9 +135,10 @@ func TestDataVolumeReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove the actual controllers, including Execute cancellation and Close,
-	// while a filesystem user is still retained. A fresh raw database transaction
-	// must work after both joins; cached filesystem reads alone would not prove it.
+	// Remove the actual controllers, including Execute cancellation and
+	// Close, while a filesystem user is still retained. A fresh raw
+	// database transaction must work after both joins. Cached filesystem
+	// reads alone would not prove that storage remains open.
 	for _, ctrl := range d.bus.GetControllers() {
 		if _, ok := ctrl.(volume.Controller); ok {
 			d.bus.RemoveController(ctrl)
@@ -175,8 +176,9 @@ func TestDataVolumeReopen(t *testing.T) {
 		t.Fatal("Data.Close did not physically close storage")
 	}
 
-	// Refused opens preserve exact bytes for unknown formats, broken generated
-	// heads and missing roots. Poison copies only; keep the good fixture intact.
+	// Refused opens preserve exact bytes for unknown formats, broken
+	// generated heads and missing roots. Poison copies only. Keep the good
+	// fixture intact.
 	for _, poison := range []string{"unknown", "format", "head", "absent-head", "root"} {
 		badDir := t.TempDir()
 		badPath := filepath.Join(badDir, "data.s4wave")
@@ -269,7 +271,8 @@ func poisonDataFile(t *testing.T, le *logrus.Entry, path, poison string) {
 
 // setFixtureBootRoot bypasses publication only to corrupt a disposable test store.
 func setFixtureBootRoot(t *testing.T, vol *volume_s4db.Volume, bucket, name string, entry *block_gc.RootEntry) {
-	// Real writers must use SetRoots; this helper exercises the read-only refusal.
+	// Real writers must use SetRoots. This helper exercises the read-only
+	// refusal.
 	t.Helper()
 	ctx := t.Context()
 	tx, err := vol.GetKvtxStore().NewTransaction(ctx, true)

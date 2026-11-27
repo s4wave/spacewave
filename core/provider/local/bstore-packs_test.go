@@ -23,10 +23,10 @@ import (
 // TestPackaheadPlacedStore publishes through a placed store whose new values
 // divert to its packahead log, and drains the log to a fake bucket with a
 // budget that keeps no pack. The publication queues nothing for the block
-// upload and leaves no bytes in the Volume; UploadedBefore holds only once the
-// packs upload; the drained blocks read back from the bucket through the
-// store's read chain; and a reclaim keeps the published blocks and drops
-// only a value no child list names, as a crash between the append and the
+// upload and leaves no bytes in the Volume. UploadedBefore holds only once
+// the packs upload. The drained blocks read back from the bucket through the
+// store's read chain. A reclaim keeps the published blocks and drops only a
+// value no child list references, as a crash between the append and the
 // publication leaves.
 func TestPackaheadPlacedStore(t *testing.T) {
 	// Open the placed store over a Volume, with its writes diverted to a log.
@@ -96,7 +96,7 @@ func TestPackaheadPlacedStore(t *testing.T) {
 		}
 	}
 
-	// Append a value no child list names.
+	// Append a value no child list references.
 	garbage := []byte("appended, never published")
 	garbageRef, _ := block.BuildBlockRef(garbage, nil)
 	value, err := block.EncodeBlockObject(garbage, nil, true)
@@ -170,9 +170,9 @@ func TestPackaheadPlacedStore(t *testing.T) {
 // TestMountedStoreDivertsToPacks mounts a Space's block store with a pack
 // directory and the store listed, writes through the mounted handle, and walks
 // the switch: with it on the Volume holds the child list but not the bytes and
-// the write leaves no upload marker; remounted with it off, new writes land in
-// the Volume while the packed block still reads from the reopened log; and
-// remounted with it on again, both read.
+// the write leaves no upload marker. Remounted with the switch off, new
+// writes land in the Volume while the packed block still reads from the
+// reopened log. Remounted with the switch on again, both blocks read.
 func TestMountedStoreDivertsToPacks(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()

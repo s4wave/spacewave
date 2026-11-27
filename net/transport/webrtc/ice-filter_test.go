@@ -100,7 +100,7 @@ func TestGatherSkipsContainerInterfaces(t *testing.T) {
 		t.Fatalf("default gathered %v", got)
 	}
 
-	// Asking for every interface restores them.
+	// Asking for every interface restores gathering on all interfaces.
 	want := slices.Clone(ips)
 	slices.Sort(want)
 	if got := gather(&Config{GatherAllInterfaces: true}); !slices.Equal(got, want) {

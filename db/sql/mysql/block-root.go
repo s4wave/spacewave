@@ -15,7 +15,7 @@ func NewRootBlock() block.Block {
 }
 
 // LoadRoot follows the root cursor.
-// may return nil
+// may return nil.
 func LoadRoot(ctx context.Context, cursor *block.Cursor) (*Root, error) {
 	// Decode the Root block from the supplied cursor.
 	ni, err := cursor.Unmarshal(ctx, NewRootBlock)
@@ -94,7 +94,7 @@ func (n *Root) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // GetRootDbSet returns the root db set sub-block.
 //
-// bcs is optional
+// bcs is optional.
 func (n *Root) GetRootDbSet(bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 	if bcs != nil {
 		bcs = bcs.FollowSubBlock(1)

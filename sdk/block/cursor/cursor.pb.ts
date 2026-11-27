@@ -100,7 +100,7 @@ export interface FollowRefRequest {
   refId?: number
   /**
    * BlkRef is the optional block reference to follow.
-   * If not provided, will follow the ref stored at RefId.
+   * If BlkRef is not provided, the cursor follows the ref stored at RefId.
    */
   blkRef?: BlockRef
 }
@@ -244,7 +244,7 @@ export interface GetBlockResponse {
    */
   data?: Uint8Array
   /**
-   * IsSubBlock indicates if this is a sub-block.
+   * IsSubBlock indicates if the block is a sub-block.
    */
   isSubBlock?: boolean
 }

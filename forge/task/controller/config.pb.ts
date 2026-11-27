@@ -17,7 +17,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the Task object to attach to.
-   * If not exists, waits for it to exist.
+   * If the Task object does not exist, the controller waits for the object.
    *
    * Pass are created at <object-key>/pass/<pass-nonce>.
    */

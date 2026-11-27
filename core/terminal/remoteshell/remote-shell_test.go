@@ -15,7 +15,8 @@ import (
 )
 
 func TestRemoteShellSessionStopsBeforeOpenWhenContextCanceled(t *testing.T) {
-	// Connect the remote shell server and terminal client through an in-memory stream.
+	// Connect the remote shell server and terminal client through an
+	// in-memory stream.
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
@@ -59,7 +60,8 @@ func TestRemoteShellSessionStopsBeforeOpenWhenContextCanceled(t *testing.T) {
 }
 
 func TestRemoteShellSessionForwardsInputResizeAndClose(t *testing.T) {
-	// Connect the remote shell server and terminal client through an in-memory stream.
+	// Connect the remote shell server and terminal client through an
+	// in-memory stream.
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
@@ -160,7 +162,8 @@ func TestRemoteShellSessionForwardsInputResizeAndClose(t *testing.T) {
 }
 
 func TestRemoteShellSessionSendsExitWhenOutputReadEndsBeforeWait(t *testing.T) {
-	// Connect the remote shell server and terminal client through an in-memory stream.
+	// Connect the remote shell server and terminal client through an
+	// in-memory stream.
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()

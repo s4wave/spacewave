@@ -80,10 +80,11 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 		return nil, nil
 	}
 
-	// AccessUnixFSFunc is a function to access a UnixFS.
-	// Optionally pass a released function that may be called when the handle was released.
-	// Returns a release function.
-	// TODO: move this to a common place in unixfs_access or unixfs_rpc_client
+	// accessFunc accesses a UnixFS.
+	// Optionally pass a released function that may be called when the
+	// handle was released. Returns a release function.
+	// TODO: move accessFunc to a common place in unixfs_access or
+	// unixfs_rpc_client.
 	accessFunc := func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 		// Wait for the plugin host client for this resolution.
 		pluginHostClient, relFunc, err := h.WaitPluginHostClient(ctx, released)

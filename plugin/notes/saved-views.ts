@@ -18,7 +18,10 @@ export const savedViewSchema = z.object({
   sort: z.enum(['name', 'title']),
 })
 
-/** SavedView is a shared Notebook view definition; selecting or editing it stays personal. */
+/**
+ * SavedView is a shared Notebook view definition. Selecting or editing the view
+ * stays personal.
+ */
 export type SavedView = z.infer<typeof savedViewSchema>
 
 /** notebookViewsKey locates a Notebook's additive application dataset. */

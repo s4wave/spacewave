@@ -27,7 +27,7 @@ func (c *Config) GetConfigID() string {
 }
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This cursory validation checks whether the values "look correct."
 func (c *Config) Validate() error {
 	if len(c.GetWebPkgIdList()) == 0 && len(c.GetWebPkgIdRe()) == 0 {
 		return errors.New("web pkg id regex or web pkg id list is set")

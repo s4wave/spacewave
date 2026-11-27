@@ -39,7 +39,7 @@ func (i *Installer) Uninstall(stateRoot string, deleteData bool) error {
 		return errors.Wrap(err, "remove uninstall registry key")
 	}
 
-	// Name the directories the helper deletes once this process exits.
+	// Specify the directories the helper deletes once this process exits.
 	args := []string{"--remove", i.dir}
 	if deleteData {
 		args = append(args, "--remove", stateRoot)

@@ -37,7 +37,8 @@ type TxResource struct {
 
 // NewTxResource creates a new TxResource.
 //
-// engine is optional - if provided, TypedObjectResourceService is registered on the mux.
+// engine is optional. If provided, TypedObjectResourceService is registered
+// on the mux.
 func NewTxResource(
 	le *logrus.Entry,
 	b bus.Bus,

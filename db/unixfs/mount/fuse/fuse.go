@@ -24,15 +24,15 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the fuse mount controller.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// mountedCtr contains the mounted fuse.RootFS
+	// mountedCtr contains the mounted fuse.RootFS.
 	mountedCtr *ccontainer.CContainer[*fuse.RootFS]
-	// handle is the fs handle
+	// handle is the fs handle.
 	handle *unixfs.FSHandle
 }
 

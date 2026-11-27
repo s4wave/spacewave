@@ -40,8 +40,8 @@ func (e *invalidMailboxEntryError) Unwrap() error {
 
 // ProcessMailboxEntry accepts or rejects a mailbox entry for a cloud space.
 //
-// This is the owner's decision: an accept admits the redeemer of any usable
-// invite, whatever conditions the invite carries.
+// Accepting or rejecting is the owner's decision: an accept admits the
+// redeemer of any usable invite, whatever conditions the invite carries.
 func (a *ProviderAccount) ProcessMailboxEntry(
 	ctx context.Context,
 	soID string,
@@ -184,7 +184,7 @@ func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessK
 
 // triggerMailboxEntryAutoProcess queues the owner-side decision of a
 // newly observed pending mailbox entry received via ws notify. Non-pending
-// events are ignored; non-owner sessions that receive an event will no-op.
+// events are ignored. Non-owner sessions that receive an event will no-op.
 func (a *ProviderAccount) triggerMailboxEntryAutoProcess(
 	_ context.Context,
 	soID string,
@@ -217,7 +217,7 @@ func (a *ProviderAccount) autoProcessMailboxEntry(
 	soID string,
 	entry *api.MailboxEntry,
 ) error {
-	// Attempt the conditional accept before rejecting invalid entries.
+	// Try the conditional accept before rejecting invalid entries.
 	err := a.acceptMailboxEntry(ctx, cli, soID, entry, true)
 	var invalidErr *invalidMailboxEntryError
 	if !errors.As(err, &invalidErr) {
@@ -293,7 +293,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 		}
 	}
 
-	// Add the responder participant; a new grant consumes an invite use.
+	// Add the responder participant. A new grant consumes an invite use.
 	grant, _, _, err := swSO.AddParticipant(
 		ctx,
 		responderPeerID.String(),
@@ -323,7 +323,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 }
 
 // heldSpaceConfigs reads this account's configuration of each Space a
-// participant_of invite names, skipping Spaces the account does not list.
+// participant_of invite lists, skipping Spaces the account does not list.
 func (a *ProviderAccount) heldSpaceConfigs(ctx context.Context, invite *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
 	// Without named Spaces there is nothing to read.
 	ids := invite.GetParticipantOf().GetSharedObjectIds()
@@ -548,7 +548,7 @@ func isCurrentTargetedInviteSigner(cfg *sobject.SharedObjectConfig, peerID strin
 }
 
 // validateTargetedMailboxInviteMessageSignature verifies the invite message's
-// signature by the owner peer it names.
+// signature by the owner peer the message references.
 func validateTargetedMailboxInviteMessageSignature(inviteMsg *sobject.SOInviteMessage) error {
 	// Read the signature and the signer's public key.
 	if inviteMsg == nil {

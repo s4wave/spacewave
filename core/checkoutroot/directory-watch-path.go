@@ -73,10 +73,10 @@ func (s *directoryWatchSource) close() error {
 // run dispatches structural events and reconciles overflow from the native queue.
 func (s *directoryWatchSource) run(ctx context.Context, w *DirectoryWatcher) error {
 	// The fork delivers its default mask on these backends. They lack
-	// close-write, so a write to a child stands in for it and refreshes the
-	// parent's listing, whose sizes and times it changed. A burst of writes
-	// costs one map lookup each; the listings it wakes coalesce into one read
-	// per read a client completes.
+	// close-write, so a write to a child stands in for close-write and
+	// refreshes the parent's listing, whose sizes and times the write
+	// changed. A burst of writes costs one map lookup each. The listings
+	// those writes wake coalesce into one read per read a client completes.
 	for {
 		select {
 		case <-ctx.Done():

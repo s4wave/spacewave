@@ -2,7 +2,8 @@ import { mkdir, readFile, copyFile, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { parseSync, Visitor } from 'oxc-parser'
 
-// TypeScript owns declaration generation; assembly copies only public reachable modules.
+// TypeScript owns declaration generation. Assembly copies only public reachable
+// modules.
 const output = resolve(process.argv[2] ?? 'packages/spacewave/dist')
 const source = resolve('.tmp/sync-library/types')
 const compiler = Bun.spawn(

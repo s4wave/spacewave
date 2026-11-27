@@ -15,7 +15,7 @@ interface CornerTextProps {
 // CornerText renders corner text for the landing page. A touch screen hides it:
 // the page footer carries the same links at touch size.
 // Desktop: uses fixed positioning via portal (for window chrome integration)
-// Browser: uses fixed positioning to stay in viewport corners
+// Browser: uses fixed positioning to stay in viewport corners.
 export function CornerText({ show }: CornerTextProps) {
   const isStatic = useIsStaticMode()
   const dmcaHref = useStaticHref('/dmca')
@@ -27,7 +27,7 @@ export function CornerText({ show }: CornerTextProps) {
 
   // Desktop offsets account for window chrome: left hint clears the macOS
   // traffic lights (cluster ends ~66px in), right hint mirrors its top edge so
-  // both corners share one baseline. left-[63px] overlapped the zoom button.
+  // both corners share one baseline. left-[63px] overlaps the zoom button.
   const topLeftPos = isDesktop && isMac ? 'top-1.75 left-18.25' : 'top-2 left-4'
   const topRightPos = isDesktop && isMac ? 'top-1.75' : 'top-2'
 

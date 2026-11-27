@@ -132,7 +132,8 @@ export function Landing() {
     const checkWidth = () => {
       const containerWidth =
         containerRef.current?.clientWidth ?? window.innerWidth
-      // Use window width for corner text since it's fixed-positioned to viewport
+      // Use window width for corner text since it's fixed-positioned to the
+      // viewport.
       const windowWidth = window.innerWidth
       setVisibility((prev) => {
         const cornerTextWidth = windowWidth >= MIN_WIDTH_CORNER_TEXT

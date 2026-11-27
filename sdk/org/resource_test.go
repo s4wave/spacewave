@@ -105,7 +105,7 @@ func setupOrgWatchWorld(
 	}
 	t.Cleanup(ocs.Release)
 
-	// Raw WorldState permits no concurrent access; Tx serializes the watcher
+	// Raw WorldState permits no concurrent access. Tx serializes the watcher
 	// against the test's writes and commits through the production contract.
 	stateWorld, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {

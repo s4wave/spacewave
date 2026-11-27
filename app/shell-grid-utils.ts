@@ -47,7 +47,8 @@ function toBase64Url(binary: Uint8Array): string {
 }
 
 // hasGridLayout checks if the model has multiple tabsets (splits).
-// Returns true if the layout has been split, false if it's a single tabset.
+// The function returns true if the layout has been split, false if the
+// layout is a single tabset.
 export function hasGridLayout(model: Model): boolean {
   return tabsets(model).length > 1
 }
@@ -142,8 +143,9 @@ export function encodeGridLayout(model: Model): string {
   return toBase64Url(LayoutSnapshot.toBinary(snapshot))
 }
 
-// encodeGridLayoutStructure converts a Model to a URL-safe base64 string WITHOUT local state.
-// Used for comparing if the structural layout has changed.
+// encodeGridLayoutStructure converts a Model to a URL-safe base64 string
+// WITHOUT local state. The string is used to compare whether the structural
+// layout has changed.
 export function encodeGridLayoutStructure(model: Model): string {
   const jsonModel = model.toJson()
   const tabDataMap: TabDataMap = {}

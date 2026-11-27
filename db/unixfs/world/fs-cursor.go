@@ -26,36 +26,36 @@ import (
 //
 // A new cursor object is created for each position.
 type FSCursor struct {
-	// isReleased is an atomic bool indicating if this cursor is released
+	// isReleased is an atomic bool indicating if this cursor is released.
 	isReleased atomic.Bool
-	// ctx is the context for watching for changes
+	// ctx is the context for watching for changes.
 	ctx context.Context
-	// ctxCancel is canceled when the cursor is released
+	// ctxCancel is canceled when the cursor is released.
 	ctxCancel context.CancelFunc
 	// watchBcast guards watchers and wakes Release as each watcher exits.
 	watchBcast broadcast.Broadcast
 	// watchers counts the world-change watchers still running, which Release
 	// waits for before it returns.
 	watchers int
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// ws is the world state
+	// ws is the world state.
 	ws world.WorldState
-	// posType is the current FSType of the position
+	// posType is the current FSType of the position.
 	posType FSType
-	// objKey is the world object key (if applicable)
+	// objKey is the world object key (if applicable).
 	objKey string
-	// writer is the fs writer
+	// writer is the fs writer.
 	writer unixfs.FSWriter
-	// watchChanges indicates watching for changes is enabled
+	// watchChanges indicates watching for changes is enabled.
 	watchChanges bool
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
-	// prevObjRev is the previous revision id
+	// prevObjRev is the previous revision id.
 	prevObjRev uint64
-	// rootFSCursor is the current root fs cursor
+	// rootFSCursor is the current root fs cursor.
 	rootFSCursor unixfs.FSCursor
-	// cbs is the set of change callbacks
+	// cbs is the set of change callbacks.
 	cbs unixfs.FSCursorChangeCbSlice
 }
 
@@ -130,9 +130,9 @@ func NewFSCursorWithWriterContext(
 	// watchChanges must be true otherwise WaitObjectRev will never update
 	fsc := NewFSCursorWithContext(ctx, le, ws, objKey, fsType, fsw, true)
 
-	// we need the writer to wait until the FSCursor has processed the updated
-	// revision of the world before returning from writes. pass the FSCursor to
-	// the writer to set the additional wait function.
+	// The writer must wait until the FSCursor has processed the updated
+	// revision of the world before returning from writes. Pass the
+	// FSCursor to the writer to set the additional wait function.
 	fsw.SetConfirmFunc(fsc.WaitObjectRev)
 
 	return fsc, fsw
@@ -191,9 +191,9 @@ func (f *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error)
 }
 
 // GetProxyCursor returns a FSCursor to replace this one, if necessary.
-// This is used to resolve a symbolic link, mount, etc.
+// GetProxyCursor is used to resolve a symbolic link, mount, etc.
 // Return nil, nil if no redirection necessary (in most cases).
-// This will be called before any of the other calls.
+// GetProxyCursor will be called before any of the other calls.
 // Releasing a child cursor does not release the parent, and vise-versa.
 // Return nil, ErrReleased if this FSCursor was released.
 func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
@@ -344,7 +344,7 @@ func (f *FSCursor) lockedInstallRoot(root *fsRoot) unixfs.FSCursor {
 }
 
 // AddChangeCb adds a change callback to detect when the cursor has changed.
-// This will be called only if GetProxyCursor returns nil, nil.
+// AddChangeCb will be called only if GetProxyCursor returns nil, nil.
 //
 // cb must not block, and should be called when cursor changes / is released
 // cb will be called immediately (same call tree) if already released.
@@ -360,7 +360,7 @@ func (f *FSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 
 // lockedAddChangeCb calls AddChangeCb when rmtx is locked by caller.
 // returns if the callback was added or not.
-// the return value is !f.released
+// the return value is !f.released.
 func (f *FSCursor) lockedAddChangeCb(cb unixfs.FSCursorChangeCb) bool {
 	released := f.CheckReleased()
 	if !released {
@@ -447,7 +447,7 @@ func (f *FSCursor) waitWatchers() {
 }
 
 // watchWorldChanges waits for changes to the world object in a goroutine.
-// started by GetProxyCursor
+// started by GetProxyCursor.
 func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.ObjectRef) {
 	// Prepare a revision notifier for World change waiters.
 	markLatestRev := func(rev uint64) {
@@ -479,7 +479,8 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.Ob
 		case rootRef.GetRootRef().EqualsRef(currRef.GetRootRef()):
 			waitForChanges = true
 		// if anything is different other than the root ref, release nfs.
-		// this will result in GetProxyCursor being called for the next op.
+		// releasing nfs results in GetProxyCursor being called for the
+		// next op.
 		case !rootRef.EqualsRefIgnoreRootRef(currRef):
 			nfs.Release()
 		// otherwise, apply the change to the current cursor.
@@ -508,7 +509,8 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.Ob
 	nfs.Release()
 
 	// release this cursor when loop exits
-	// this signals to WaitObjectRev that watchWorldChanges is no longer running.
+	// releasing this cursor signals to WaitObjectRev that watchWorldChanges
+	// is no longer running.
 	f.release(false)
 }
 

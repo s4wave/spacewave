@@ -103,7 +103,7 @@ func (d *testDevice) writeAfter(t *testing.T, so sobject.SharedObject, data []by
 }
 
 // addOp signs and adds the device's next operation to state. after, when
-// set, names only the operation at that position of the order as a parent.
+// set, selects only the operation at that position of the order as a parent.
 func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent, first bool, after int) error {
 	// Place the operation in the device's chain.
 	ctx := t.Context()
@@ -157,10 +157,10 @@ func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject
 }
 
 // prefixHeads returns the operations of the first n of set's order that no
-// other operation of that prefix names, so an operation naming them follows
-// exactly that prefix.
+// other operation of that prefix references, so an operation referencing them
+// follows exactly that prefix.
 func prefixHeads(set *sobject.SOOperationSet, n int) []*sobject.SOOperationPosition {
-	// Mark each hash the prefix names.
+	// Mark each hash the prefix references.
 	prefix := set.Order()[:n]
 	named := make(map[string]struct{}, n)
 	for _, h := range prefix {
@@ -171,7 +171,7 @@ func prefixHeads(set *sobject.SOOperationSet, n int) []*sobject.SOOperationPosit
 		}
 	}
 
-	// Name the rest.
+	// Record the remaining operations as heads.
 	var heads []*sobject.SOOperationPosition
 	for _, h := range prefix {
 		if _, ok := named[string(h)]; ok {
@@ -297,16 +297,16 @@ func waitCheckpointAbove(ctx context.Context, t *testing.T, so sobject.SharedObj
 	}
 }
 
-// TestAdapterFollowsDevices serves a Space with two other writer devices:
-// the engine follows another device's commit; a device that never builds on
-// the others' edits freezes the stable point, so the replay cursor bounds a
-// restart and moves several times; once both devices acknowledge a prefix
-// between two cursor saves, the checkpoint of that prefix lands complete; a
+// TestAdapterFollowsDevices serves a Space with two other writer devices. The
+// engine follows another device's commit. A device that never builds on the
+// others' edits freezes the stable point, so the replay cursor bounds a
+// restart and moves several times. Once both devices acknowledge a prefix
+// between two cursor saves, the checkpoint of that prefix lands complete. A
 // late operation that sorts ahead of every replayed position replays the
-// World from the checkpoint while local writes keep committing; and a
-// remount resumes from the saved cursor with every object. The frees variant
-// collects between the steps on a Volume that frees at once, so a page a
-// kept World names and no root holds is lost.
+// World from the checkpoint while local writes keep committing. A remount
+// resumes from the saved cursor with every object. The frees variant collects
+// between the steps on a Volume that frees at once, so a page a kept World
+// references and no root holds is lost.
 func TestAdapterFollowsDevices(t *testing.T) {
 	t.Run("local", func(t *testing.T) { runFollowsDevices(t, newAdapterFixture(t)) })
 	t.Run("frees", func(t *testing.T) {
@@ -387,7 +387,7 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 
 	// More writes move the cursor again. The later ones land beside the
 	// early objects, so they replace pages the first cursor World stored
-	// that the World of the acknowledged prefix below still names.
+	// that the World of the acknowledged prefix below still references.
 	for i := range 40 {
 		key := "more-" + strconv.Itoa(i)
 		if i >= 9 {
@@ -399,7 +399,7 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	f.collect(t)
 
 	// Both devices acknowledge a prefix between the cursor saves, and its
-	// checkpoint lands with every object of the World it names.
+	// checkpoint lands with every object of the World it references.
 	height := checkpointHeight(ctx, t, so)
 	remote.writeAfter(t, so, createOp(t, "remote-ack"), 50)
 	late.writeAfter(t, so, createOp(t, "late-ack"), 50)
@@ -497,7 +497,7 @@ func TestAdapterSupersedes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The first attempt is superseded; the second sees the other device's
+	// The first attempt is superseded. The second sees the other device's
 	// object.
 	err = <-done
 	if attempts != 2 || err == nil || errors.Is(err, sobject.ErrRejectedOp) {
@@ -579,7 +579,7 @@ func TestAdapterRefusesSecondHold(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The first attempt is superseded; the second finds the other hold.
+	// The first attempt is superseded. The second finds the other hold.
 	err = <-done
 	if attempts != 2 || err == nil || !strings.Contains(err.Error(), "is held by") {
 		t.Fatalf("edit after %d attempts returned %v; want a second attempt refused by the other hold", attempts, err)
@@ -661,7 +661,7 @@ func TestAdapterUnmountMidCommit(t *testing.T) {
 	}()
 	<-held
 
-	// Commit twice; both admit, then wait.
+	// Commit twice. Both writes are admitted, then wait.
 	commit := func(key string) <-chan error {
 		out := make(chan error, 1)
 		go func() {
@@ -857,8 +857,8 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	}
 
 	// Each undecodable operation is the other device's, and only the newer
-	// body carries the saved refusal. The known body beside a newer field is
-	// unreadable as replay reads it, naming only the unknown field.
+	// body carries the saved refusal. The known body beside a newer field
+	// is unreadable as replay reads it, reporting only the unknown field.
 	if len(unreadable) != 2 || !slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) || !slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{9}) {
 		t.Fatalf("unreadable operations = %v, want field 99, then field 9 beside a known body", unreadable)
 	}
@@ -923,17 +923,16 @@ func removedOp() []byte {
 	return []byte{0x1a, 0x00}
 }
 
-// TestReplayWaitsAtUnreadableOp tries to make a replica apply an operation
-// past one whose body its build cannot read. Another device orders an
-// operation with an unknown body, then a transaction that creates
-// hidden-object beside an unknown WorldOp field, then one that creates
-// after-object. Replay waits for a build that reads the first, with the World
-// unchanged, and refuses a write; a restart waits there again rather than
-// adopt an outcome. The owner's skip of it, which every replica reads, moves
-// the wait to the second, whose body replay must not apply without the field.
-// Skipping that too applies after-object, and only then can ImportRoots name
-// the payloads. An operation with the removed body field 3 is refused, not
-// waited at.
+// TestReplayWaitsAtUnreadableOp tries to make a replica apply an operation past
+// one whose body its build cannot read. Another device orders an operation with
+// an unknown body, then a transaction that creates hidden-object beside an
+// unknown WorldOp field, then one that creates after-object. Replay waits for a
+// build that reads the first, with the World unchanged, and refuses a write. A
+// restart waits there again rather than adopt an outcome. The owner's skip of
+// it, which every replica reads, moves the wait to the second, whose body
+// replay must not apply without the field. Skipping that too applies
+// after-object, and only then can ImportRoots reference the payloads. An
+// operation with the removed body field 3 is refused, not waited at.
 func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()

@@ -107,9 +107,9 @@ describe('display renderers', () => {
 
   it('draws a scene with WebGPU', async (ctx) => {
     // Skip where the browser offers no WebGPU adapter, as headless Chromium
-    // does by default; the viewer then falls back to Canvas 2D, checked
-    // above. Run it on a hardware adapter: SwiftShader draws, but its canvas
-    // reads back as zeros.
+    // does by default. The viewer then falls back to Canvas 2D, checked
+    // above. Run the test on a hardware adapter: SwiftShader draws, but its
+    // canvas reads back as zeros.
     const canvas = document.createElement('canvas')
     const renderer =
       'gpu' in navigator ? await openGpuRenderer(canvas, () => {}) : null

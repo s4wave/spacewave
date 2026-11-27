@@ -47,7 +47,7 @@ func (e *engineWorldState) GetSeqno(ctx context.Context) (uint64, error) {
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns nil when the condition is reached.
-// If value == 0, this might return immediately unconditionally.
+// If value == 0, WaitSeqno might return immediately unconditionally.
 func (e *engineWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	return e.e.WaitSeqno(ctx, value)
 }
@@ -310,8 +310,8 @@ func (e *engineWorldState) DeleteGraphObject(ctx context.Context, value string) 
 }
 
 // HasObject reports whether an object exists at key. Each operation runs in its
-// own short-lived transaction, so this is a plain object-existence lookup with
-// no transaction-local knowledge to draw on.
+// own short-lived transaction, so HasObject is a plain object-existence lookup
+// with no transaction-local knowledge to draw on.
 func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, error) {
 	var found bool
 	err := e.performOp(ctx, false, func(tx Tx) error {
@@ -358,7 +358,7 @@ func withWrite(ctx context.Context, write bool) (context.Context, *WriteBudget) 
 // AppliesAtomically reports whether ApplyWorldOp or ApplyObjectOp on ws runs
 // each operation in a transaction of its own and discards that transaction
 // when the operation fails, so a failed operation kept nothing it wrote. It
-// holds for the World and object states NewEngineWorldState builds, and the
+// is true for the World and object states NewEngineWorldState builds, and the
 // guarded states wrapping them, and for no state a caller's transaction backs.
 func AppliesAtomically(ws any) bool {
 	switch s := ws.(type) {

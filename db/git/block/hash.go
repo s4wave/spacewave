@@ -78,7 +78,7 @@ func IsAllZeros(buf []byte) bool {
 	return true
 }
 
-// ValidateHash checks a hash meant to be converted into a plumbing.Hash
+// ValidateHash checks a hash meant to be converted into a plumbing.Hash.
 func ValidateHash(h *hash.Hash) error {
 	if len(h.GetHash()) == 0 || h.GetHashType() == hash.HashType_HashType_UNKNOWN {
 		return ErrEmptyHash

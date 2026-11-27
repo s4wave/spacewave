@@ -17,8 +17,8 @@ import { useBrowserStartupProjection } from './browser-startup.js'
 export const browserBootFrameReadyProgress = 0.86
 
 // defaultBrowserBootWatchdogCeilingMs is the hard ceiling for a boot that
-// never crosses the app-frame threshold: past it the outer shell fails loudly
-// instead of stalling silently.
+// never crosses the app-frame threshold: past the ceiling the outer shell
+// fails loudly instead of stalling silently.
 export const defaultBrowserBootWatchdogCeilingMs = 5 * 60 * 1000
 
 declare global {
@@ -33,7 +33,8 @@ export interface BrowserBootWatchdogOptions {
 }
 
 // readBrowserBootWatchdogCeilingMs resolves the watchdog ceiling: the explicit
-// option, then the __swBootWatchdogCeilingMs test hook, then the default.
+// option, then the __swBootWatchdogCeilingMs test hook, then the default
+// ceiling.
 export function readBrowserBootWatchdogCeilingMs(override?: number): number {
   if (override !== undefined && override > 0) return override
   const injected = globalThis.__swBootWatchdogCeilingMs

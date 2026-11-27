@@ -75,7 +75,7 @@ interface TestBinary {
 // buildTestBinaries compiles every package's test binary into binDir. go test
 // -c names each binary after its package's last path element, so packages
 // sharing that name build in separate invocations. A package whose build fails
-// has no binary; go test has already reported the error.
+// has no binary. go test has already reported the error.
 function buildTestBinaries(pkgs: string[], binDir: string): TestBinary[] {
   const dirs = new Map(
     goList('{{.ImportPath}} {{.Dir}}', pkgs, jsEnv).map((line) => {
@@ -161,7 +161,8 @@ const patterns = listOnly ? args.slice(1) : args
 const pkgs = selectJSPackages(patterns.length > 0 ? patterns : ['./...'])
 
 // The whole module always has js-only tests, so finding none there means the
-// selection broke. Explicit patterns may name packages without any.
+// selection broke. Explicit patterns may select packages without any js-only
+// tests.
 if (pkgs.length === 0) {
   console.error('test-go-js: no js-only test packages found')
   process.exit(patterns.length > 0 ? 0 : 1)
@@ -173,7 +174,7 @@ if (listOnly) {
 
 // Build every test binary before any test starts. Each test binary launches
 // Chrome, which must report its DevTools endpoint within wasmbrowsertest's fixed
-// 20 second limit; compiling or linking other packages beside it starves the
+// 20 second limit. Compiling or linking other packages beside it starves the
 // launch. go test relinks a binary on every run, so the binaries run directly.
 const binDir = mkdtempSync(join(tmpdir(), 'test-go-js-'))
 let ok: boolean

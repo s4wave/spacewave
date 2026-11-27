@@ -11,8 +11,8 @@ import (
 
 // TestConfigSetProviderLocalSignaling decodes the compiled configset.bin and
 // asserts the provider-local entry carries the trusted cloud signaling URL
-// serialized from bldr.star, so the running CLI default matches the build
-// graph.
+// serialized from bldr.star, so the running CLI's default signaling URL matches
+// the build graph.
 func TestConfigSetProviderLocalSignaling(t *testing.T) {
 	// Load the compiled configset and locate its provider-local entry.
 	set := readCompiledConfigSet(t)
@@ -25,8 +25,8 @@ func TestConfigSetProviderLocalSignaling(t *testing.T) {
 		t.Fatalf("decode provider-local config: %v", err)
 	}
 
-	// Validate the provider-local signaling URL serialized from the cloud endpoint.
-	// PRODUCTION_CLOUD_API_ENDPOINT in bldr.star.
+	// Validate the provider-local signaling URL serialized from the cloud
+	// endpoint PRODUCTION_CLOUD_API_ENDPOINT in bldr.star.
 	if got := cfg.GetSignalingUrl(); got != "https://spacewave.app" {
 		t.Fatalf("provider-local signalingUrl = %q, want https://spacewave.app", got)
 	}

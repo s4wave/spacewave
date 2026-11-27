@@ -372,7 +372,7 @@ message SSOCodeExchangeResponse {
   bool pin_wrapped = 5;
   // AuthParams is base64-encoded CustodiedKeyParams (linked=true).
   string auth_params = 6;
-  // Provider is set when linked=false.
+  // SsoProvider is set when linked=false.
   string sso_provider = 7;
   // Email is set when linked=false (email from OAuth provider).
   string email = 8;

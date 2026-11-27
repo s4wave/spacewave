@@ -59,7 +59,7 @@ func TestKvfile(t *testing.T) {
 		return bytes.HasPrefix(key, blockFullPrefix), nil
 	}
 
-	// convert it to a kvfile
+	// convert the in-memory store to a kvfile
 	var buf bytes.Buffer
 	if err := kvtx_kvfile.KvfileFromStore(ctx, &buf, writeStore, keyfileFilterKeys); err != nil {
 		t.Fatal(err.Error())

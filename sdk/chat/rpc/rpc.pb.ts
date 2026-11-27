@@ -82,11 +82,13 @@ export interface ChatMessageInfo {
    */
   personId?: string
   /**
-   * RedactedByKey is the redaction message that removed this body, empty while intact.
+   * RedactedByKey is the redaction message that removed this body, empty while
+   * the body is intact.
    */
   redactedByKey?: string
   /**
-   * ReplacesKey is the state message this state change replaced, empty for the first of its identity.
+   * ReplacesKey is the state message this state change replaced, empty for the
+   * first message of its identity.
    */
   replacesKey?: string
   /**
@@ -159,8 +161,9 @@ export interface GetChannelInfoResponse {
    */
   creatorPeerId?: string
   /**
-   * EncryptionAlgorithm reports the channel encryption policy. Empty allows plaintext;
-   * otherwise message bodies require this algorithm. State and annotations remain public.
+   * EncryptionAlgorithm reports the channel encryption policy. An empty value
+   * allows plaintext. Otherwise message bodies require this algorithm. State
+   * and annotations remain public.
    */
   encryptionAlgorithm?: string
 }
@@ -234,8 +237,8 @@ export const GetMessageRequest: MessageType<GetMessageRequest> =
  */
 export interface GetMessageResponse {
   /**
-   * Message is the selected message projection, unset when the key names no
-   * message.
+   * Message is the selected message projection, unset when the key identifies
+   * no message.
    */
   message?: ChatMessageInfo
 }
@@ -416,7 +419,7 @@ export const WatchMessagesRequest: MessageType<WatchMessagesRequest> =
  */
 export interface WatchMessagesResponse {
   /**
-   * Messages is the list of new messages since last response.
+   * Messages is the list of new messages since the last response.
    */
   messages?: ChatMessageInfo[]
 }
@@ -443,7 +446,8 @@ export interface SendMessageRequest {
   replyToKey?: string
   /**
    * TransactionId identifies a retryable send within the authenticated sender
-   * and channel. By default, differing content is rejected; empty always appends.
+   * and channel. By default, differing content is rejected. An empty value
+   * always appends.
    */
   transactionId?: string
   /**
@@ -453,20 +457,21 @@ export interface SendMessageRequest {
   content?: ChatMessageContent
   /**
    * ExpectedStateMessageKey requires the current state event to have this key.
-   * An empty value requires absent state; omission makes the write unconditional.
-   * Only state changes accept this condition. Accepted transaction retries retain
-   * their original result even when current state has since changed.
+   * An empty value requires absent state. Omission makes the write
+   * unconditional. Only state changes accept this condition. Accepted
+   * transaction retries retain their original result even when current state
+   * has since changed.
    */
   expectedStateMessageKey?: string
   /**
    * ReuseAcceptedTransaction returns the original message for a valid retry
    * even when its content or reply differs. The authenticated author must still
-   * match. It has no effect when TransactionId is empty.
+   * match. ReuseAcceptedTransaction has no effect when TransactionId is empty.
    */
   reuseAcceptedTransaction?: boolean
   /**
-   * Author names the agent or tool sending for the authenticated person. It
-   * must be a DNS label or empty, and a retry must repeat it.
+   * Author identifies the agent or tool sending for the authenticated person.
+   * It must be a DNS label or empty, and a retry must repeat it.
    */
   author?: string
   /**
@@ -500,7 +505,7 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
 export interface SendMessageResponse {
   /**
    * MessageKey is the object key of the created message. It is empty when
-   * expected_state_message_key no longer names the current state.
+   * expected_state_message_key no longer identifies the current state.
    */
   messageKey?: string
 }
@@ -522,8 +527,8 @@ export interface AttachEnvelopeRequest {
    */
   messageKey?: string
   /**
-   * Envelope is the message's wire form. Its ID must not name another message's
-   * envelope key.
+   * Envelope is the message's wire form. Its ID must not identify another
+   * message's envelope key.
    */
   envelope?: ChatEnvelope
 }
@@ -601,13 +606,14 @@ export interface UpdateReadPositionRequest {
   nextIndex?: bigint
   /**
    * ThreadRootKey limits the position to one timeline when present: a thread
-   * root message key selects that thread, and the empty key the main timeline.
+   * root message key selects that thread, and the empty key selects the main
+   * timeline.
    */
   threadRootKey?: string
   /**
-   * Author names the agent or tool reading for the authenticated person. It
-   * selects that author's own position, so an author never moves the person's.
-   * It must be a DNS label or empty.
+   * Author identifies the agent or tool reading for the authenticated person.
+   * It selects that author's own position, so an author never moves the
+   * person's position. It must be a DNS label or empty.
    */
   author?: string
 }

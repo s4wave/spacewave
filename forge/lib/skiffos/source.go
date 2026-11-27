@@ -21,7 +21,7 @@ import (
 	git_world "github.com/s4wave/spacewave/db/git/world"
 )
 
-// InputSkiffOS names the input holding the SkiffOS source, a Repo snapshot
+// InputSkiffOS identifies the input holding the SkiffOS source, a Repo snapshot
 // whose HEAD commit the build checks out.
 const InputSkiffOS = "skiffos"
 
@@ -80,10 +80,10 @@ func (c *Controller) syncSource(ctx context.Context, dir string) (string, error)
 
 // syncRepo checks out commit in the worktree at dir, whose Git directory is
 // gitDir, copying it from repo unless gitDir holds it. A worktree whose HEAD
-// already names commit is left as it is, on its branch if it has one. It then
-// does the same for each submodule the commit pins, from repo's module of
-// that name, with the submodule's Git directory under gitDir/modules as Git
-// places it.
+// already points to commit is left as it is, on its branch if it has one.
+// syncRepo then does the same for each submodule the commit pins, from repo's
+// module of that name, with the submodule's Git directory under gitDir/modules
+// as Git places it.
 func syncRepo(ctx context.Context, repo *git.Repository, dir, gitDir string, commit plumbing.Hash) error {
 	// Move only a worktree whose HEAD is elsewhere or unborn.
 	head, err := runGit(ctx, dir, "rev-parse", "-q", "--verify", "HEAD")
@@ -168,7 +168,7 @@ func checkoutCommit(ctx context.Context, repo *git.Repository, dir, gitDir strin
 
 // readSubmodules returns the submodules commit pins, in name order, from its
 // .gitmodules and gitlinks. A name or path that would leave the repository is
-// refused, since each names a directory the checkout writes.
+// refused, since each selects a directory the checkout writes.
 func readSubmodules(repo *git.Repository, commit plumbing.Hash) ([]submodule, error) {
 	// Read the commit's tree.
 	c, err := repo.CommitObject(commit)
@@ -180,7 +180,8 @@ func readSubmodules(repo *git.Repository, commit plumbing.Hash) ([]submodule, er
 		return nil, err
 	}
 
-	// Read .gitmodules from the tree; without it there are none.
+	// Read .gitmodules from the tree. Without .gitmodules there are no
+	// submodules.
 	f, err := tree.File(".gitmodules")
 	if errors.Is(err, object.ErrFileNotFound) {
 		return nil, nil

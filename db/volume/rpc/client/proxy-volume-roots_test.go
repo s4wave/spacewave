@@ -87,8 +87,8 @@ func TestProxyVolumeHoldsRoots(t *testing.T) {
 // TestProxyVolumeHoldsStagesAndPins checks that a proxy carries the holds a
 // World needs from the volume it serves, on a host that frees at once: a block
 // written under a stage survives collection until the stage is released, a
-// pinned root's block survives its root's release until the pin's, and a
-// stage the proxy did not open is refused.
+// pinned root's block survives its root's release until the pin's release,
+// and a stage the proxy did not open is refused.
 func TestProxyVolumeHoldsStagesAndPins(t *testing.T) {
 	// Serve a host volume that frees at once and connect a proxy to it.
 	ctx := t.Context()
@@ -237,8 +237,8 @@ func TestProxyVolumeRequiresHeld(t *testing.T) {
 		t.Fatalf("admit over a missing block = %v, want ErrRootNotHeld", err)
 	}
 
-	// A host stage stores P -> L and is released; a later write carries
-	// the release and collection frees it: refused.
+	// A host stage stores P -> L and is released. A later write carries
+	// the release and collection frees the tree: refused.
 	stagePut(host)()
 	other := entry("other")
 	if err := host.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{other}, []block.NamedRoot{{Name: "other", Ref: other.Ref}}); err != nil {

@@ -5,9 +5,10 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
-// Heap allocation sizes of the decoded messages on 64-bit Go, rounded up to
-// the allocator size class. TestPageDecodedHeapSize checks them against
-// measured heap, so update them when the messages change.
+// pageHeapSize and the following constants are heap allocation sizes of the
+// decoded messages on 64-bit Go, rounded up to the allocator size class.
+// TestPageDecodedHeapSize checks them against measured heap, so update them
+// when the messages change.
 const (
 	pageHeapSize     = 144
 	entryHeapSize    = 128

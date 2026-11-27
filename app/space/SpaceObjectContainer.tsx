@@ -24,7 +24,8 @@ import { getQuickstartInitialObjectHandoff } from '@s4wave/app/quickstart/sessio
 import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
 import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 
-// The outer route's viewer subpath is world/-/<inner-key>/-/<viewer-path>.
+// nestedRoutePrefix starts the outer route's viewer subpath,
+// world/-/<inner-key>/-/<viewer-path>.
 const nestedRoutePrefix = 'world/-/'
 
 /** NestedWorldObjectViewer owns the read-only nested World opened for this outer key. */

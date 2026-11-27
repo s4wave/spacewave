@@ -25,7 +25,7 @@ type cacheAdvance struct {
 	// from and through bound the revisions the changes cover: after from,
 	// through through.
 	from, through uint64
-	// changes merges the changes.
+	// changes holds the merged changes.
 	changes *world.ChangeSet
 }
 
@@ -79,8 +79,8 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			next = c.refreshFacets(ctx, changes, through)
 		}
 
-		// Keep the values the changes left alone; one still computing keeps
-		// the changes to check once it ends.
+		// Keep the values the changes left alone. A value still
+		// computing keeps the changes to check once it ends.
 		c.mtx.Lock()
 		c.advancing = nil
 		close(advancing)
@@ -193,11 +193,11 @@ func (c *Cache) recompute(ctx context.Context, name string, through uint64, comp
 	return entry, nil
 }
 
-// dropTouchedLocked drops each finished value whose reads changes, the
-// changes after revision from, touched, checking only the values the index
-// names: one it leaves out read nothing the changes name. It puts in the cache
-// the facet parts computed again, in place of the ones they replace, and points
-// the values reading them at the new ones. The caller holds mtx.
+// dropTouchedLocked drops each finished value whose reads changes, the changes
+// after revision from, touched, checking only the values the index selects: a
+// value the index leaves out read nothing the changes record. It puts in the
+// cache the facet parts computed again, in place of the ones they replace, and
+// points the values reading them at the new ones. The caller holds mtx.
 func (c *Cache) dropTouchedLocked(changes *world.ChangeSet, next map[*revisionEntry]*revisionEntry, from uint64) {
 	// Find the values the changes may touch, before the facet parts computed
 	// again join the index: they hold at the new revision already.
@@ -216,12 +216,13 @@ func (c *Cache) dropTouchedLocked(changes *world.ChangeSet, next map[*revisionEn
 	}
 
 	// Drop each value the changes touched. The index accepted a value
-	// because a changed key names one of the read sets it checks, through a
-	// map lookup per changed key, and a change to a key a set names always
-	// touches it; so an accepted value is dropped without scanning the
-	// changes again, unless it reaches a part read by facet, which may leave
-	// it alone. A value the index names only by a quad field, or every value
-	// for changes that cannot say what changed, is tested.
+	// because a changed key selects one of the read sets the index checks,
+	// through a map lookup per changed key, and a change to a key a set
+	// records always touches the set, so an accepted value is dropped
+	// without scanning the changes again, unless it reaches a part read by
+	// facet, which may leave it alone. A value the index selects only by a
+	// quad field, or every value for changes that cannot say what changed,
+	// is tested.
 	facets := make(map[*revisionEntry]bool, len(c.faceted))
 	for entry := range c.faceted {
 		facets[entry] = true
@@ -334,7 +335,7 @@ func (c *Cache) keepLocked(entry *revisionEntry) {
 	}
 	c.entries[entry.name] = entry
 
-	// Index a finished value; get indexes its own once it finishes.
+	// Index a finished value. get indexes its own once it finishes.
 	if entry.finished {
 		c.indexLocked(entry)
 	}

@@ -38,8 +38,8 @@ const retryDelay = time.Second
 // with one fdatasync shared by the writers waiting at once. A value is
 // readable through Get from the moment its batch is written, before it is
 // durable, and stays readable while its pack is local. Remove forgets a
-// value the caller has freed once its pack is uploaded; the bytes stay in the
-// pack, and after a restart the value reads again, which keeps data when
+// value the caller has freed once its pack is uploaded. The bytes stay in the
+// pack, and after a restart the value reads again, so the Log keeps data when
 // unsure.
 type Log struct {
 	// dir holds the pack files.
@@ -303,7 +303,7 @@ func (l *Log) createPack(seq uint64) (*pack, error) {
 }
 
 // Append writes blocks and returns once every one is durable in a local
-// pack. A block whose key the Log already holds is not written again; Append
+// pack. A block whose key the Log already holds is not written again. Append
 // waits for that copy to be durable instead. Blocks that do not fit the open
 // pack go to the next.
 func (l *Log) Append(ctx context.Context, blocks []Block) error {
@@ -350,7 +350,7 @@ func (l *Log) checkAppendFailures(waits []syncWait, version *uint64) error {
 
 // AppendUnsynced writes blocks as Append does and returns once they are
 // written, without waiting for a sync. They become durable at the next sync
-// a writer leads or when the maintainer finalizes their pack; a crash before
+// a writer leads or when the maintainer finalizes their pack. A crash before
 // that drops them, and recovery truncates the pack to the batches that
 // reached the drive. Only a Log of copies, such as a cache, appends this way.
 func (l *Log) AppendUnsynced(ctx context.Context, blocks []Block) error {
@@ -361,7 +361,7 @@ func (l *Log) AppendUnsynced(ctx context.Context, blocks []Block) error {
 // write checks blocks and writes them under writeMtx, returning the syncs
 // they wait for and the failure version sampled before the write. A held
 // key located in pack replace is written again and relocated, as a carry
-// needs; every other held key is skipped.
+// needs. Every other held key is skipped.
 func (l *Log) write(ctx context.Context, blocks []Block, replace *pack) ([]syncWait, uint64, error) {
 	// Check every key and size before writing any block.
 	for _, b := range blocks {
@@ -402,7 +402,7 @@ func (l *Log) checkReserve(blocks []Block) error {
 	}
 
 	// Measure the free disk and the bytes of the blocks the Log does not
-	// hold, which Append writes; a held block writes nothing.
+	// hold, which Append writes. A held block writes nothing.
 	free, err := l.opts.FreeBytes(l.dir)
 	if err != nil {
 		return errors.Wrap(err, "measure free disk")
@@ -857,8 +857,9 @@ func (l *Log) Has(key []byte) bool {
 
 // HasDurable reports whether a local pack holds the value under key durably:
 // its pack is finalized, or a sync covered its batch. A writer may skip
-// storing a value only on this, since Has also reports a value whose batch is
-// written and not yet synced, which a crash or a failed sync loses.
+// storing a value only when HasDurable reports true, since Has also reports
+// a value whose batch is written and not yet synced, which a crash or a
+// failed sync loses.
 func (l *Log) HasDurable(key []byte) bool {
 	if len(key) < block.BlockDigestTailLen {
 		return false
@@ -880,10 +881,10 @@ func (l *Log) HasDurable(key []byte) bool {
 // is not uploaded is marked removed and stays readable until the pack
 // uploads: a writer that found it held may have stored it again, and until
 // the upload no other copy serves it. A marked value reports no durable
-// copy, so a put of it again appends it, which clears the mark and keeps it
-// past the upload.
+// copy, so a put of the value again appends the value, clears the mark and
+// keeps the value past the upload.
 func (l *Log) Remove(key []byte) {
-	// A short key cannot name a location.
+	// A short key cannot identify a location.
 	if len(key) < block.BlockDigestTailLen {
 		return
 	}
@@ -1028,7 +1029,7 @@ func (l *Log) makeSpare(context.Context) error {
 }
 
 // rotateLingering rotates the open pack once its first batch is older than
-// the linger.
+// the linger duration.
 func (l *Log) rotateLingering(ctx context.Context) error {
 	// Hold the writer out while checking the deadline again.
 	release, err := l.writeMtx.Lock(ctx)

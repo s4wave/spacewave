@@ -67,7 +67,7 @@ func (a *Args) Run(c *cli.Context) error {
 		return err
 	}
 
-	// Interrupt only scratch work; source handles expose immutable reads.
+	// Interrupt only scratch work. Source handles expose immutable reads.
 	ctx, cancel := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	return runCount(ctx, c.App.Writer, source, a.Scratch, recovery.Options{Lookup: optypes.LookupBlockType, Witness: space_recovery.ValidateWitness, InterpretationID: "spacewave-native-registry-v1"})

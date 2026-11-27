@@ -58,7 +58,7 @@ export const Example: MessageType<Example> =
   ])
 
 /**
- * Pair is a page naming two Example pages.
+ * Pair is a page referencing two Example pages.
  *
  * @generated from message block.mock.Pair
  */

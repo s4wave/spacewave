@@ -71,11 +71,10 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 
 // ReadSharedObject reads what the cloud holds under sharedObjectID. The
 // cloud records no origin, so a configured Space counts as written only when
-// its World is the source's current one, which needs no write; anything else
-// configured holds no origin to say whose it is, and the transfer never
-// writes it. A
-// listed Space with no config is arriving, since a write to it loses nothing
-// and the cloud refuses a second genesis.
+// its World is the source's current one, which needs no write. Any other
+// configured Space has no origin to identify its source, and the transfer
+// never writes that Space. A listed Space with no config is arriving, since
+// a write to that Space loses nothing and the cloud refuses a second genesis.
 func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error) {
 	// Read the account's list of Spaces.
 	ctr, rel, err := t.account.AccessSharedObjectList(ctx, nil)
@@ -214,8 +213,9 @@ func (t *SpacewaveTransferTarget) AddSharedObject(
 
 // WriteSharedObjectState initializes the cloud Space with the genesis config
 // and key epoch, then its checkpoint. The cloud refuses a genesis config on a
-// Space that has one, which this returns as ErrTargetChanged, so the write
-// is a compare-and-set on a Space with no config.
+// Space that has one. WriteSharedObjectState returns that refusal as
+// ErrTargetChanged, so the write is a compare-and-set on a Space with no
+// config.
 func (t *SpacewaveTransferTarget) WriteSharedObjectState(
 	ctx context.Context,
 	le *logrus.Entry,

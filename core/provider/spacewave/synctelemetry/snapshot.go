@@ -34,7 +34,7 @@ type Snapshot struct {
 	// CorruptDirtyCount is the count of dirty blocks the last flush could not
 	// upload because their local bytes fail their hash. They stay queued.
 	CorruptDirtyCount int
-	// ActiveUploadBytes is the approximate number of bytes currently being pushed.
+	// ActiveUploadBytes is the approximate number of bytes being pushed.
 	ActiveUploadBytes int64
 	// ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
 	ActiveUploadTransferredBytes int64
@@ -302,8 +302,9 @@ func BuildSnapshot(states []state) Snapshot {
 	return snap
 }
 
-// uploadPhase names the upload state of snap, the most urgent first: a corrupt
-// dirty block outranks a push error, since it fails every retry the same way.
+// uploadPhase selects the upload state of snap, the most urgent first: a
+// corrupt dirty block outranks a push error, since it fails every retry the
+// same way.
 func uploadPhase(snap Snapshot) UploadPhase {
 	// A corrupt dirty block fails every retry: sync is held.
 	if snap.CorruptDirtyCount > 0 {

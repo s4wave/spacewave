@@ -105,7 +105,7 @@ func newDEXRolePeers(t *testing.T, ctx context.Context) *dexRolePeers {
 
 // TestDEXRequesterRole gates new requests on the stream opened before departure.
 // The leave-before-enrollment case joins before the owner enrolls its Session
-// as an owner, so the leave starts while the joiner's owners name only the
+// as an owner, so the leave starts while the joiner's owners list only the
 // owner's storage identity, which never links.
 func TestDEXRequesterRole(t *testing.T) {
 	for _, departure := range []string{"leave", "leave-before-enrollment", "remove"} {
@@ -148,7 +148,8 @@ func TestDEXRequesterRole(t *testing.T) {
 			// Revoke the requesting Session through the real authority writer.
 			owner := peers.objects[0]
 			if hosting != nil {
-				// The joiner's owners still name only the storage identity.
+				// The joiner's owners still list only the
+				// storage identity.
 				state, err := peers.objects[1].soHost.GetHostState(ctx)
 				if err != nil {
 					t.Fatal(err)

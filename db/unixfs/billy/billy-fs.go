@@ -17,15 +17,15 @@ import (
 
 // BillyFS implements the Billy filesystem interface with a FSHandle.
 //
-// NOTE: filename arguments support paths containing separators (/)
+// NOTE: filename arguments support paths containing separators (/).
 type BillyFS struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// h is the filesystem handle
+	// h is the filesystem handle.
 	h *unixfs.FSHandle
-	// t is the write timestamp
+	// t is the write timestamp.
 	t atomic.Pointer[time.Time]
-	// basePath is the path of any parent chroots
+	// basePath is the path of any parent chroots.
 	basePath string
 }
 
@@ -90,14 +90,14 @@ func (f *BillyFS) Root() string {
 
 // Create creates the named file with mode 0666 (before umask), truncating
 // it if it already exists. If successful, methods on the returned File can
-// be used for I/O; the associated file descriptor has mode O_RDWR.
+// be used for I/O. The associated file descriptor has mode O_RDWR.
 func (f *BillyFS) Create(filepath string) (billy.File, error) {
-	// note: this is the same behavior as os.Create
+	// note: Create has the same behavior as os.Create.
 	return f.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 }
 
 // Open opens the named file for reading. If successful, methods on the
-// returned file can be used for reading; the associated file descriptor has
+// returned file can be used for reading. The associated file descriptor has
 // mode O_RDONLY.
 func (f *BillyFS) Open(filepath string) (billy.File, error) {
 	fileHandle, _, err := f.h.LookupPath(f.ctx, filepath)
@@ -110,7 +110,7 @@ func (f *BillyFS) Open(filepath string) (billy.File, error) {
 	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.timestamp()), nil
 }
 
-// OpenFile is the generalized open call; most users will use Open or Create
+// OpenFile is the generalized open call. Most users will use Open or Create
 // instead. It opens the named file with specified flag (O_RDONLY etc.) and
 // perm, (0666 etc.) if applicable. If successful, methods on the returned
 // File can be used for I/O.
@@ -239,7 +239,7 @@ func (f *BillyFS) Remove(filepath string) error {
 }
 
 // Join joins any number of path elements into a single path, adding a
-// Separator if necessary. Join calls filepath.Clean on the result; in
+// Separator if necessary. Join calls filepath.Clean on the result. In
 // particular, all empty strings are ignored. On Windows, the result is a
 // UNC path if and only if the first path element is a UNC path.
 func (f *BillyFS) Join(elem ...string) string {

@@ -18,7 +18,7 @@ type testGrants struct {
 	life  time.Duration
 	err   error
 	calls atomic.Int64
-	// gate, when set, holds each issue until it closes.
+	// gate holds each issue until gate closes if gate is set.
 	gate chan struct{}
 }
 
@@ -70,7 +70,8 @@ func TestGrantKeeperRenews(t *testing.T) {
 	src := &testGrants{now: time.UnixMilli(1_000_000), life: 100 * time.Second}
 	k := newTestKeeper(src)
 
-	// The first read fetches, and reads before the renewal point reuse it.
+	// The first read fetches a grant, and reads before the renewal point
+	// reuse the grant.
 	first, err := k.Current(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +81,7 @@ func TestGrantKeeperRenews(t *testing.T) {
 		t.Fatalf("renewed early: %d calls", src.calls.Load())
 	}
 
-	// Past three quarters of its life, a read renews before expiry.
+	// Past three quarters of the grant's life, a read renews before expiry.
 	src.advance(2 * time.Second)
 	second, err := k.Current(ctx)
 	if err != nil {

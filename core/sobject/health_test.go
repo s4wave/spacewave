@@ -91,7 +91,8 @@ func TestSyncPeerConnectionRecordsGap(t *testing.T) {
 		t.Fatal("a repeated connection produced another watch update")
 	}
 
-	// One stream ends with an error; the other peer and the earlier snapshot stay.
+	// One stream ends with an error, but the other peer and the earlier
+	// snapshot stay.
 	ended := start.Add(time.Hour)
 	cut := health.WithSyncPeerConnection("peer-b", false, errors.New("link cut"), ended)
 	got := cut.GetSyncPeers()[1]

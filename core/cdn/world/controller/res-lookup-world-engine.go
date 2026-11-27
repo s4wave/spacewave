@@ -26,7 +26,8 @@ func (r *worldEngineResolver) Resolve(ctx context.Context, handler directive.Res
 		}
 		_ = handler.ClearValues()
 		if state == nil {
-			// The mount was withdrawn; the next attempt publishes again.
+			// The mount was withdrawn. The next attempt
+			// publishes again.
 			handler.MarkIdle(false)
 			continue
 		}

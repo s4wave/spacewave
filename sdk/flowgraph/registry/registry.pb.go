@@ -21,7 +21,8 @@ import (
 type NodeType struct {
 	unknownFields []byte
 	// TypeId is the node type's stable identifier.
-	// It is a slash-separated path such as "flowgraph/stream-echo"; core node type IDs are bare.
+	// It is a slash-separated path such as "flowgraph/stream-echo". Core node
+	// type IDs are bare.
 	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// DisplayName is the name shown for the node type.
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
@@ -31,13 +32,14 @@ type NodeType struct {
 	ConfigIds []string `protobuf:"bytes,4,rep,name=config_ids,json=configIds,proto3" json:"configIds,omitempty"`
 	// PluginConfigIds lists the config_ids whose factories exist only in the
 	// plugin. While the registration lives, the host builds these configs as
-	// controllers that run inside the plugin through ExecController; the host
+	// controllers that run inside the plugin through ExecController. The host
 	// builds the other config_ids itself. A config ID belongs to one
 	// registration at a time.
 	PluginConfigIds []string `protobuf:"bytes,5,rep,name=plugin_config_ids,json=pluginConfigIds,proto3" json:"pluginConfigIds,omitempty"`
 	// PluginServiceIds lists the RPC services implemented on the plugin bus.
-	// A compiled lookup server uses the port protocol as its server_id; the host
-	// binds it to this registration before applying it on the Device.
+	// A compiled lookup server uses the port protocol as its server_id. The host
+	// binds the server to this registration before applying the server on the
+	// Device.
 	PluginServiceIds []string `protobuf:"bytes,6,rep,name=plugin_service_ids,json=pluginServiceIds,proto3" json:"pluginServiceIds,omitempty"`
 }
 

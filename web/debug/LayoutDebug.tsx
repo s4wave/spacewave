@@ -15,7 +15,7 @@ type TabBarVariant =
   | 'elevated'
   | 'flat-segment'
 
-// Demo model — split layout with 2 tabsets and sample tabs.
+// makeDemoModel creates a split demo layout with 2 tabsets and sample tabs.
 // Unique IDs per instance prevent DOM conflicts.
 function makeDemoModel(prefix: string): IJsonModel {
   return {

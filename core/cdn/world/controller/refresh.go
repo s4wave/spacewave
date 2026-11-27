@@ -19,7 +19,7 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, stream srpc.Stream
 
 // Refresh queues a fetch after the mount has reported a first outcome:
 // a mounted engine, a missing head, or an unreachable Space. A mount waiting
-// for its first head fetches only when asked, so this is what wakes it. The
+// for its first head fetches only when asked, so Refresh wakes the mount. The
 // controller retains the current engine on fetch failure and retries within
 // its own lifetime.
 func (c *Controller) Refresh(ctx context.Context, req *RefreshRequest) (*RefreshResponse, error) {

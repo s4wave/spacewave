@@ -32,10 +32,10 @@ export function formatHashNavigation(navigation: HashNavigation): string {
 }
 
 /**
- * Creates a memoized navigation handler function
+ * useNavigateHandler creates a memoized navigation handler function.
  * @param currentPath - The current router path
  * @param setPath - Function to set the path
- * @returns A memoized function compatible with Router's onNavigate prop
+ * @returns A memoized function compatible with Router's onNavigate prop.
  */
 export const useNavigateHandler = (
   currentPath: string,

@@ -12,7 +12,8 @@ interface ForgeEntityLinkProps {
 }
 
 // ForgeEntityLink renders a clickable link that navigates to a forge entity.
-// Uses SpaceContainerContext.navigateToObjects for in-space navigation.
+// The link uses SpaceContainerContext.navigateToObjects for in-space
+// navigation.
 export function ForgeEntityLink({
   objectKey,
   icon,

@@ -177,7 +177,7 @@ func loginDormantCloudSession(
 	// DORMANT.
 	setPlatformRole(t, accountID, "disputed_locked")
 
-	// Log in to the account, which adds its cloud session.
+	// Log in to the account. The login adds the account's cloud session.
 	entry, err := swProv.LoginExistingAccount(
 		ctx,
 		entityCli,

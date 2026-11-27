@@ -138,7 +138,8 @@ describe('UnixFSVideoFileViewer', () => {
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.getByText('Loading the video')).toBeDefined()
 
-    // The new load starts at 0; its metadata seeks back to where play stood.
+    // The new load starts at 0, then its metadata seeks back to where play
+    // stood.
     video.currentTime = 0
     fireEvent(video, new Event('loadedmetadata'))
     expect(video.currentTime).toBe(42)

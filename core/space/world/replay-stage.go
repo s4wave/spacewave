@@ -11,7 +11,7 @@ import (
 // and those past its bound go to the stage of the current save epoch, which
 // runs from one cursor save's start to the next. A replayed transaction's
 // early drains go there too: OpenStage returns the replay stage itself, so a
-// drained page waits for the same save as the World that names it.
+// drained page waits for the same save as the World that references it.
 //
 // The replay engine's caller holds its commits: no root the adapter owns
 // reaches a replayed World until a cursor save holds it, and a re-put of a
@@ -19,17 +19,17 @@ import (
 //
 // Invariant: every page the replay stores is held by its epoch's stage from
 // the put until a cursor save that started after the put lands, whose root
-// then holds the World the save names. A save that will end an epoch that
-// stored a page moves the replay's floor to the World it names as it starts,
-// so the Worlds before that one, which may name a page only the epoch held,
-// are computed again from the base before replay runs an operation on one or
-// a checkpoint takes one.
+// then holds the World the save references. A save that will end an epoch
+// that stored a page moves the replay's floor to the World it references as
+// it starts, so the Worlds before that one, which may reference a page only
+// the epoch held, are computed again from the base before replay runs an
+// operation on one or a checkpoint takes one.
 //
-// Only the driver goroutine puts and rotates, and a replayed transaction
-// runs within one operation, so the epoch does not change under it. A save's
+// Only the driver goroutine puts and rotates, and a replayed transaction runs
+// within one operation, so the epoch does not change under it. A save's
 // goroutine returns the epochs of a failed save through keep before it ends
-// the save, so the driver's next rotate, which runs only once the save
-// ended, takes them.
+// the save, so the driver's next rotate, which runs only once the save ended,
+// takes them.
 type replayStage struct {
 	// PendingStore serves reads.
 	*block.PendingStore

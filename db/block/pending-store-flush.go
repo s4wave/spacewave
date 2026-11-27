@@ -7,7 +7,7 @@ import (
 )
 
 // flushSliceBytes and flushSliceLinks bound the data, and the blocks plus
-// the child refs they name, that one put of a Flush writes, so a writer
+// their child refs, that one put of a Flush writes, so a writer
 // waiting on the inner store's writer waits for at most one slice. The inner
 // store's cost grows with each block it stores, its child list and stage
 // root, and with each child ref, as much as with the bytes.
@@ -16,21 +16,21 @@ const (
 	flushSliceLinks = 2048
 )
 
-// Flush stores the kept trees the roots reach under a stage of the inner
-// store, in puts of at most flushSliceBytes and flushSliceLinks, and pins
-// each root it keeps no block of and the inner store lacks, which brings a
-// root another store backs, such as a peer, into the inner store; a root no
-// store holds is left to the swap. Until release, SetRoots puts no block the
-// flush stored, so a writer that flushes before it takes the lock its root
-// moves need holds that lock, and the inner store's writer, only for the
-// swap: the stage holds the stored blocks until the swap names them. Each
-// slice is marked once stored, so a concurrent flush stores it no second
-// time, and a flush that left out another's block keeps that flush's stage
-// until its own release. The flushed blocks stay kept, so the Worlds that name them still read
-// them from memory, and leave memory with the SetRoots that names them.
-// Release after that SetRoots returns. The walks hold the PendingStore's
-// lock for at most walkSlice blocks at a time, so readers and writers of kept
-// blocks wait only that long.
+// Flush stores the kept trees the roots reach under a stage of the inner store,
+// in puts of at most flushSliceBytes and flushSliceLinks, and pins each root it
+// keeps no block of and the inner store lacks. Pinning brings a root another
+// store backs, such as a peer, into the inner store. A root no store holds is
+// left to the swap. Until release, SetRoots puts no block the flush stored, so
+// a writer that flushes before it takes the lock its root moves need holds that
+// lock, and the inner store's writer, only for the swap: the stage holds the
+// stored blocks until the swap references them. Each slice is marked once
+// stored, so a concurrent flush stores it no second time, and a flush that left
+// out another's block keeps that flush's stage until its own release. The
+// flushed blocks stay kept, so the Worlds that reference them still read
+// them from memory, and leave memory with the SetRoots that references them.
+// Release after that SetRoots returns. The walks hold the PendingStore's lock
+// for at most walkSlice blocks at a time, so readers and writers of kept blocks
+// wait only that long.
 //
 // Cost: one inner put per slice of the kept trees, and one existence read and
 // pin per unkept root, all before the caller's lock.
@@ -55,11 +55,11 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	var pins []func()
 	marked := 0
 	cleanup := func() {
-		// Unmark, end this flush's reliance on the stages of the blocks it
-		// left out, then release the stage and pins once no SetRoots or
-		// Flush that left out a flushed block is open: that SetRoots names
-		// the block without storing it, so the stage holds it until it
-		// lands.
+		// Unmark, end this flush's reliance on the stages of the blocks
+		// it left out, then release the stage and pins once no SetRoots
+		// or Flush that left out a flushed block is open: that SetRoots
+		// references the block without storing it, so the stage holds
+		// the block until that SetRoots lands.
 		s.unmark(keys[:marked])
 		if stopped {
 			s.landed()
@@ -227,7 +227,7 @@ func (s *PendingStore) dropSliced(keys []string) {
 // unflushed returns the entries of tree, with keys, no open Flush stored.
 // When it leaves one out, it counts the caller's SetRoots in flight until the
 // returned landed is called, so no flush releases the stage that holds the
-// block before the SetRoots that names it lands.
+// block before the SetRoots that references it lands.
 func (s *PendingStore) unflushed(tree []*PutBatchEntry, keys []string) (out []*PutBatchEntry, landed func()) {
 	// Return the tree whole while nothing is flushed.
 	s.mtx.Lock()

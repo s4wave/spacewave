@@ -20,7 +20,7 @@ const deviceCompletionModeGrant = "grant"
 
 // errDeviceEnrollmentPending reports a redemption the Space owner holds for
 // approval. The Device redeems again with the same key until the owner
-// admits or refuses it.
+// admits or refuses the Device.
 var errDeviceEnrollmentPending = errors.New("local SpaceLink enrollment is waiting for the Space owner's approval")
 
 // deviceGrantRetryMin and deviceGrantRetryMax bound the wait between
@@ -35,7 +35,7 @@ var (
 // grantPath, then holds the restored enrollment until ctx ends.
 //
 // The requester holds no link to the owner's decision, so a pending Device
-// redeems the grant again after a doubling wait; the owner answers a repeat of
+// redeems the grant again after a doubling wait. The owner answers a repeat of
 // a queued request without writing. A Device enrolled on an earlier boot
 // skips the redemption and restores at once.
 func runGrantEnrollment(
@@ -153,7 +153,7 @@ func prepareGrantEnrollment(statePath, grantPath string, now time.Time) (*device
 		updated.Label = defaultDeviceSetupLabel()
 	}
 
-	// Complete the setup with the grant for the Space it names.
+	// Complete the setup with the grant for the Space the grant selects.
 	updated.CompletionMode = deviceCompletionModeGrant
 	updated.Completion = deviceLocalCompletionPrefix + base64.StdEncoding.EncodeToString(completion)
 	updated.CompletionAt = now.Unix()

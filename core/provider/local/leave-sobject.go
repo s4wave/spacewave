@@ -16,9 +16,10 @@ import (
 // LeaveSharedObject relinquishes this account's storage and calling device grants.
 // The native owner acknowledges removal before this account installs revocation.
 // A hosting owner that others depend on first transfers ownership to successor,
-// or the default successor when empty, and returns once the promotion commits;
-// the successor commits the departure and takes over hosting.
-// Existing local data stays retained; this operation does not delete the shared object.
+// or the default successor when empty, and returns once the promotion commits.
+// The successor commits the departure and takes over hosting.
+// Existing local data stays retained. This operation does not delete the shared
+// object.
 func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey crypto.PrivKey, id, successor string) error {
 	// Resolve only an object already held by this provider account.
 	list := a.soListCtr.GetValue()
@@ -45,7 +46,8 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 		return err
 	}
 
-	// Each participating key consents separately; no caller-supplied peer label grants authority.
+	// Each participating key consents separately. No caller-supplied peer
+	// label grants authority.
 	participants := participantSet(state.GetConfig().GetParticipants())
 	var keys []crypto.PrivKey
 	departing := make(map[string]struct{}, 2)
@@ -72,7 +74,8 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	}
 
 	// An owner already handing over waits for its successor to commit the
-	// departure it requested; a second transfer would fork the config chain.
+	// departure it requested. A second transfer would fork the config
+	// chain.
 	own, err := sobject.ReadSOOwnership(ctx, state.GetConfig(), local.soHost.ReadConfigEntry)
 	if err != nil {
 		return err
@@ -141,14 +144,15 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	})
 }
 
-// waitLinkedOwner returns an owner of host with a live link, waiting until one links.
-// The owners come from the current state on each wake, because sync may name
+// waitLinkedOwner returns an owner of host with a live link, waiting until
+// one links.
+// The owners come from the current state on each wake, because sync may list
 // a new owner, such as the Session an owner enrolls after this member joined.
 // The object's sync retains every owner, so the wait needs no dial of its own.
 // One owner receives the request, because two owners committing the same
 // departure would fork the config chain.
 func (a *ProviderAccount) waitLinkedOwner(ctx context.Context, host *sobject.SOHost) (peer.ID, error) {
-	// Watch the state that names the owners.
+	// Watch the state that lists the owners.
 	states, release, err := host.GetSOStateCtr(ctx, nil)
 	if err != nil {
 		return "", err

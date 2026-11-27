@@ -20,7 +20,7 @@ type CreateArgs struct {
 	WorktreeObjectKey string
 	// WorkdirRequired requires a mutable Workdir identity.
 	WorkdirRequired bool
-	// WorkdirObjectKey identifies its mutable filesystem.
+	// WorkdirObjectKey identifies the allocated checkout's mutable filesystem.
 	WorkdirObjectKey string
 	// BaseCommitHash pins the admitted base commit.
 	BaseCommitHash string

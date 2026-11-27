@@ -33,7 +33,7 @@ import (
 // without reading the old contents, which the World's store cannot serve.
 // Files and directories removed from the folder leave the Drive, an entry
 // that changed between file and directory changes type, and a targeted sync
-// of the directories a watcher names finds the changes in them.
+// of the directories a watcher selects finds the changes in them.
 func TestFolderLinkSync(t *testing.T) {
 	// Start the World and the Drive.
 	ctx := context.Background()
@@ -236,7 +236,7 @@ func TestFolderLinkSync(t *testing.T) {
 	}
 
 	// Reindex links a file whose bytes changed under its size and
-	// modification time, which a stat walk cannot see, and syncs the
+	// modification time, a change a stat walk cannot see, and syncs the
 	// directory of a path that is gone.
 	stalePath := filepath.Join(folder, "d7", "sub", "f7")
 	staleInfo, err := os.Stat(stalePath)
@@ -260,9 +260,9 @@ func TestFolderLinkSync(t *testing.T) {
 		t.Fatalf("reindex linked %d files, want 1", linked)
 	}
 
-	// A stand-in root on another file system, here an emptied folder whose
-	// recorded identity differs, removes nothing; with the identity back,
-	// the sync resumes and removes what the folder lacks.
+	// The sync removes nothing for a stand-in root on another file system,
+	// here an emptied folder whose recorded identity differs. With the
+	// identity back, the sync resumes and removes what the folder lacks.
 	real, found, err := idx.FolderRoot(ctx, folder)
 	must(err)
 	if !found {
@@ -292,8 +292,8 @@ func TestFolderLinkSync(t *testing.T) {
 // write replaces a file holding its base, and one that meets an edit on disk
 // keeps both versions, the edit at the path and the member's under its
 // conflict name (MemberWriteKept, RemoteReplacesOnlyBase). The next sync
-// publishes the edit over the member's version, which it compared, and the
-// conflict copy as a new file.
+// publishes the edit over the member's version, which the sync compared,
+// and the conflict copy as a new file.
 func TestFolderLinkTwoWay(t *testing.T) {
 	// Start the World and the Drive.
 	ctx := context.Background()
@@ -443,9 +443,9 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	must(member.Commit(ctx))
 	member.Release()
 
-	// The node crashed in each place a staged file outlives: after the
-	// exchange of a.txt, which displaced its base, and of b.txt, which
-	// displaced an owner's edit; and before the exchange of c.txt, holding
+	// The node crashed at each point a staged file outlives a crash: after
+	// the exchange of a.txt, which displaced its base, and of b.txt, which
+	// displaced an owner's edit, and before the exchange of c.txt, holding
 	// the member's fetched version, and a later fetch of c.txt cut short.
 	put("a.txt", "member a.txt", written)
 	put(".spacewave-stage-0000000a-a.txt", "owner a.txt", owned)
@@ -506,7 +506,7 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 // write and delete: before the check, between the check and the exchange,
 // through a handle still open on the displaced file, between the check and
 // the move to the trash, and before the rename that never replaces. An edit
-// in place keeps the base's size and modification time, which the stat check
+// in place keeps the base's size and modification time, a change the stat check
 // cannot see. And the node crashes at each step, its sync frozen there, and
 // restarts. Each case ends with every version that must survive at its path,
 // under a conflict name or in the trash with its entry, holding its own
@@ -583,12 +583,13 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 	type races = map[unixfs_world.ApplyStep]action
 	none := unixfs_world.ApplyStep(-1)
 	cases := []struct {
-		// name names the case.
+		// name identifies the case.
 		name string
 		// del makes the member delete the file instead of writing it.
 		del bool
-		// handle opens the file before the sync, and writes into it, through
-		// the handle, at the exchange; keep restores its stat too.
+		// handle opens the file before the sync, and writes into the
+		// file, through the handle, at the exchange. keep restores the
+		// file's stat too.
 		handle, keep bool
 		// before acts on the file after the member's change, before the sync.
 		before action

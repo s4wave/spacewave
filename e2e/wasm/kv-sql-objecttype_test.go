@@ -165,7 +165,8 @@ func TestQuickstartSqlWorkbenchPinsPersistAfterReload(t *testing.T) {
 	assertSqlWorkbenchLayout(t, afterReload)
 }
 
-// Open the object type quickstart route and wait for it to render.
+// createObjectTypeQuickstartScenario opens the object type quickstart route
+// and waits for the route to render.
 func createObjectTypeQuickstartScenario(
 	t testing.TB,
 	h *Harness,
@@ -197,12 +198,13 @@ func createObjectTypeQuickstartScenario(
 	}
 }
 
-// Format the scenario route hash for the given object key.
+// objectHash formats the scenario route hash for the given object key.
 func (s *objectTypeQuickstartScenario) objectHash(objectKey string) string {
 	return fmt.Sprintf("#/u/%d/so/%s/-/%s", s.sessionIndex, s.spaceID, objectKey)
 }
 
-// Settle the SQL plugin manifest before SQL quickstarts.
+// preflightObjectTypeQuickstartPlugin settles the SQL plugin manifest before
+// SQL quickstarts.
 func preflightObjectTypeQuickstartPlugin(t testing.TB, h *Harness, quickstartID string) {
 	t.Helper()
 	if quickstartID != "sql" {
@@ -213,7 +215,8 @@ func preflightObjectTypeQuickstartPlugin(t testing.TB, h *Harness, quickstartID 
 	}
 }
 
-// Poll until the object route renders with all expected text needles.
+// waitForObjectTypeRoute polls until the object route renders with all
+// expected text needles.
 func waitForObjectTypeRoute(t testing.TB, page playwright.Page, objectKey string, texts []string) {
 	t.Helper()
 
@@ -278,7 +281,7 @@ func assertTargetDbInputValue(t testing.TB, page playwright.Page, want string) {
 	}
 }
 
-// Wait for the SQL query result page to render.
+// waitForSqlQueryResult waits for the SQL query result page to render.
 func waitForSqlQueryResult(t testing.TB, page playwright.Page) {
 	t.Helper()
 
@@ -302,7 +305,7 @@ func waitForSqlQueryResult(t testing.TB, page playwright.Page) {
 	}
 }
 
-// Click the KV key option in the object type viewer.
+// selectKvKey clicks the KV key option in the object type viewer.
 func selectKvKey(t testing.TB, page playwright.Page, key string) {
 	t.Helper()
 
@@ -314,7 +317,7 @@ func selectKvKey(t testing.TB, page playwright.Page, key string) {
 	}
 }
 
-// Click the named button in the object type viewer.
+// clickObjectTypeButton clicks the named button in the object type viewer.
 func clickObjectTypeButton(t testing.TB, page playwright.Page, text string) {
 	t.Helper()
 
@@ -325,7 +328,8 @@ func clickObjectTypeButton(t testing.TB, page playwright.Page, text string) {
 	}
 }
 
-// Reload the page and wait for the app and route to be ready again.
+// reloadObjectTypeRoute reloads the page and waits for the app and route to be
+// ready again.
 func reloadObjectTypeRoute(t testing.TB, page playwright.Page, assertReady func()) {
 	t.Helper()
 
@@ -336,7 +340,8 @@ func reloadObjectTypeRoute(t testing.TB, page playwright.Page, assertReady func(
 	assertReady()
 }
 
-// Run the quickstart helper script and type-check its result.
+// runObjectTypeQuickstartScript runs the quickstart helper script and
+// type-checks its result.
 func runObjectTypeQuickstartScript(t testing.TB, h *Harness, page playwright.Page, args map[string]any) map[string]any {
 	// Mark the function as a test helper.
 	t.Helper()
@@ -368,7 +373,7 @@ func readObjectTypeSeqno(t testing.TB, h *Harness, page playwright.Page) string 
 	return seqno
 }
 
-// Read a KV value through the quickstart helper script.
+// readKvQuickstartValue reads a KV value through the quickstart helper script.
 func readKvQuickstartValue(t testing.TB, h *Harness, page playwright.Page, key, afterSeqno string) map[string]any {
 	t.Helper()
 
@@ -382,7 +387,7 @@ func readKvQuickstartValue(t testing.TB, h *Harness, page playwright.Page, key, 
 	return runObjectTypeQuickstartScript(t, h, page, args)
 }
 
-// Assert the KV helper found the key with the expected value.
+// assertKvValue asserts the KV helper found the key with the expected value.
 func assertKvValue(t testing.TB, result map[string]any, key, want string) {
 	t.Helper()
 
@@ -394,7 +399,8 @@ func assertKvValue(t testing.TB, result map[string]any, key, want string) {
 	}
 }
 
-// Read the SQL query-result linkage through the helper script.
+// readSqlQueryResultLinkage reads the SQL query-result linkage through the
+// helper script.
 func readSqlQueryResultLinkage(t testing.TB, h *Harness, page playwright.Page) map[string]any {
 	t.Helper()
 
@@ -403,7 +409,8 @@ func readSqlQueryResultLinkage(t testing.TB, h *Harness, page playwright.Page) m
 	})
 }
 
-// Prepare SQL workbench pins through the helper script.
+// prepareSqlWorkbenchPins prepares SQL workbench pins through the helper
+// script.
 func prepareSqlWorkbenchPins(t testing.TB, h *Harness, page playwright.Page) map[string]any {
 	t.Helper()
 
@@ -412,7 +419,7 @@ func prepareSqlWorkbenchPins(t testing.TB, h *Harness, page playwright.Page) map
 	})
 }
 
-// Read SQL workbench pins through the helper script.
+// readSqlWorkbenchPins reads SQL workbench pins through the helper script.
 func readSqlWorkbenchPins(t testing.TB, h *Harness, page playwright.Page) map[string]any {
 	t.Helper()
 
@@ -421,7 +428,8 @@ func readSqlWorkbenchPins(t testing.TB, h *Harness, page playwright.Page) map[st
 	})
 }
 
-// Assert the workbench target database and pinned queries.
+// assertSqlWorkbenchPins asserts the workbench target database and pinned
+// queries.
 func assertSqlWorkbenchPins(t testing.TB, result map[string]any) {
 	t.Helper()
 
@@ -434,7 +442,8 @@ func assertSqlWorkbenchPins(t testing.TB, result map[string]any) {
 	})
 }
 
-// Assert the workbench open tabs and layout written by prepare-workbench-pins.
+// assertSqlWorkbenchLayout asserts the workbench open tabs and layout written
+// by prepare-workbench-pins.
 func assertSqlWorkbenchLayout(t testing.TB, result map[string]any) {
 	// Mark the function as a test helper.
 	t.Helper()
@@ -457,7 +466,7 @@ func assertSqlWorkbenchLayout(t testing.TB, result map[string]any) {
 	}
 }
 
-// Read a string slice field from the helper result map.
+// stringSliceField reads a string slice field from the helper result map.
 func stringSliceField(t testing.TB, m map[string]any, key string) []string {
 	// Mark the function as a test helper.
 	t.Helper()
@@ -478,7 +487,7 @@ func stringSliceField(t testing.TB, m map[string]any, key string) []string {
 	return out
 }
 
-// Assert two string slices contain the same set of values.
+// assertStringSet asserts two string slices contain the same set of values.
 func assertStringSet(t testing.TB, got, want []string) {
 	// Mark the function as a test helper.
 	t.Helper()
@@ -498,7 +507,8 @@ func assertStringSet(t testing.TB, got, want []string) {
 	}
 }
 
-// Drain the console and fail if a browser crash was reported.
+// assertNoObjectTypeBrowserCrash drains the console and fails if a browser
+// crash was reported.
 func assertNoObjectTypeBrowserCrash(t testing.TB, console <-chan string, label string) {
 	t.Helper()
 
@@ -511,7 +521,8 @@ func assertNoObjectTypeBrowserCrash(t testing.TB, console <-chan string, label s
 	}
 }
 
-// Collect object type quickstart debug state from the page.
+// collectObjectTypeQuickstartDebug collects object type quickstart debug state
+// from the page.
 func collectObjectTypeQuickstartDebug(page playwright.Page) any {
 	debug, err := page.Evaluate(`() => {
 		const startupMarks = globalThis.__swStartupMarks ?? []

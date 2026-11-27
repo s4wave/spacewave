@@ -31,7 +31,8 @@ type WorldBackedSql struct {
 	// txMtx orders new transactions with pending World publication.
 	txMtx csync.Mutex
 	// failure prevents serving a private SQL root after uncertain publication.
-	// txMtx protects it; the owner reopens the store from World to recover.
+	// txMtx protects failure. The owner reopens the store from World to
+	// recover.
 	failure error
 	// tx is the open write transaction, if any.
 	tx *worldBackedSqlTx
@@ -39,7 +40,7 @@ type WorldBackedSql struct {
 
 // NewWorldBackedSql opens a world-backed SQL database at the object's current
 // root. The database stages its writes until it publishes the root that
-// references them; Close releases the stage.
+// references them. Close releases the stage.
 func NewWorldBackedSql(
 	ctx context.Context,
 	ws world.WorldState,
@@ -208,7 +209,8 @@ func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
 	// Advance the World object root with the committed SQL statements,
 	// rehearsed outside the writer slot first, then drop the stage's ownership
 	// of the root: the World now references it, or the operation failed and
-	// nothing will. A lost release only keeps the root until Close.
+	// nothing will reference the root. A lost release only keeps the root until
+	// Close.
 	_, _, err := world.ApplyRehearsed(ctx, t.store.ws, NewSqlSetRootOp(t.store.key, t.baseRoot, root, t.statements), peer.ID(""))
 	_ = t.store.stage.ReleaseRoots(ctx, []*block.BlockRef{root.GetRootRef()})
 	if err != nil {

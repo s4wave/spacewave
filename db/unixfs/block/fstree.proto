@@ -103,7 +103,7 @@ message FSHostVolume {
 // FSConfig are optional configuration flags.
 message FSConfig {
   // DisableChangelog indicates the changelog is not in use.
-  // Watchers will perform a full cache flush on every block change.
+  // Watchers fully flush their caches on every block change.
   bool disable_changelog = 1;
 }
 
@@ -114,7 +114,7 @@ enum FSChangeType {
   FSChangeType_MKNOD = 1;
   // FSChangeType_FILE_WRITE writes a blob to a file node at an offset.
   FSChangeType_FILE_WRITE = 2;
-  // FSChangeType_REMOVE removes one or more nodes.
+  // FSChangeType_FILE_REMOVE removes one or more nodes.
   FSChangeType_FILE_REMOVE = 3;
 }
 
@@ -134,10 +134,10 @@ message FSChange {
   // PrevRef is the reference to the previous change.
   .block.BlockRef prev_ref = 2;
 
-  // ChangeType is the type of change this is.
+  // ChangeType is the type of this change.
   FSChangeType change_type = 3;
   // TransactionRef is the reference to the associated transaction.
-  // This is transparent to the core registry code.
+  // TransactionRef is transparent to the core registry code.
   .block.BlockRef transaction_ref = 4;
 
   // Paths are the associated paths.
@@ -151,6 +151,6 @@ message FSChange {
 
   // ValueRef are the reference(s) to the updated value.
   // Mknod: the references to the new inodes.
-  // Write: this is the reference to the updated file inode.
+  // Write: ValueRef is the reference to the updated file inode.
   repeated .block.BlockRef value_ref = 8;
 }

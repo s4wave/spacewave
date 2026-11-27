@@ -13,7 +13,7 @@ const (
 	streamPortName = "stream"
 	// streamPortTypeID is the data contract of a TCP stream.
 	streamPortTypeID = "stream"
-	// addressParameter names the node parameter holding a TCP address.
+	// addressParameter identifies the node parameter holding a TCP address.
 	addressParameter = "address"
 )
 

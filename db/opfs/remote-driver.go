@@ -115,7 +115,7 @@ func (d *RemoteDriver) installPort(port js.Value) bool {
 
 // WaitSwap blocks until the bridge port is swapped for a fresh OPFS worker, or
 // ctx is done. A swap invalidates every cached handle, so the mounted volume
-// uses this to drive a remount from a fresh GetRoot.
+// uses the swap to drive a remount from a fresh GetRoot.
 func (d *RemoteDriver) WaitSwap(ctx context.Context) error {
 	var startGen uint64
 	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

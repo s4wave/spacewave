@@ -146,7 +146,8 @@ func BuildRendererBundle(
 		return err
 	}
 
-	// The compiler returns a host filesystem path; the boot manifest uses a URL.
+	// The compiler returns a host filesystem path, but the boot manifest
+	// uses a URL.
 	if result.JSPath != filepath.FromSlash(electronRendererEntrypointPath) {
 		return errors.Errorf("Electron renderer output is %q", result.JSPath)
 	}
@@ -191,9 +192,10 @@ func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerF
 // BuildElectronBundle builds and outputs the web & service worker files.
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
-// startupFilename is the path to the react component to load on startup (can be empty).
+// startupFilename is the path to the react component to load on startup
+// (can be empty).
 // minify enables JavaScript minification.
-// devMode enables devMode extensions in Electron
+// devMode enables devMode extensions in Electron.
 func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
 	// Prepare the output and shared JavaScript dependencies.
 	err := os.MkdirAll(buildDir, 0o755)
@@ -236,7 +238,8 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	// Select a native web-package target; these JavaScript packages are portable.
+	// Select a native web-package target because these JavaScript packages
+	// are portable.
 	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("desktop/linux/amd64")
 	if err != nil {
 		return err
@@ -315,17 +318,18 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPat
 	return exec.StartAndWait(ctx, le, cmd)
 }
 
-// DownloadElectronRedist downloads the electron redistributable to the destination dir.
+// DownloadElectronRedist downloads the electron redistributable to the
+// destination dir.
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // If npmPkg is empty, defaults to latest.
 //
 // When plat is a NativePlatform whose goos/goarch differ from the host,
 // npm_config_* and ELECTRON_INSTALL_* are set so Electron's installer fetches
-// the target redistributable instead of the host's. Without this,
-// cross-platform release builds land with a host-arch electron in dist/, which
-// then fails downstream branding / packaging steps that expect target-arch
-// layout.
+// the target redistributable instead of the host's. Without these settings,
+// cross-platform release builds land with a host-arch electron in dist/. That
+// host-arch electron then fails downstream branding / packaging steps that
+// expect target-arch layout.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
 	// Use the default release when the build does not select an Electron version.
 	if npmPkg == "" {
@@ -340,7 +344,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 	}
 
 	// Build the cross-download env. Electron 42+ reads ELECTRON_INSTALL_*
-	// in its install-electron binary; older postinstall paths read
+	// in its install-electron binary, but older postinstall paths read
 	// npm_config_* through @electron/get.
 	var extraEnv []string
 	if np, ok := plat.(*bldr_platform.NativePlatform); ok {
@@ -412,7 +416,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 
 // GetElectronBinName returns the name of the electron binary.
 //
-// Returns just "electron" if not known.
+// Returns "electron" if not known.
 func GetElectronBinName(plat bldr_platform.Platform) string {
 	// Use the generic name when no native platform layout is available.
 	np, ok := plat.(*bldr_platform.NativePlatform)
@@ -425,7 +429,7 @@ func GetElectronBinName(plat bldr_platform.Platform) string {
 	case "windows":
 		return "electron.exe"
 	case "darwin":
-		// we have to run the native binary inside the .app
+		// Run the native binary inside the .app.
 		return "Electron.app/Contents/MacOS/Electron"
 	default:
 		return "electron"

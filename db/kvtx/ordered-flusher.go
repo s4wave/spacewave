@@ -11,7 +11,7 @@ import (
 
 // OrderedFlusher makes a store's ordered commits durable in groups. The store
 // counts each ordered commit after it completes, and a flush covers every
-// commit counted before it began. One flush runs at a time; callers that queue
+// commit counted before it began. One flush runs at a time. Callers that queue
 // behind it find their commits covered or share the next one. An ordered
 // commit becomes durable at the first of: Sync, a full commit the store
 // reports with MarkDurable, the deadline after the first pending ordered

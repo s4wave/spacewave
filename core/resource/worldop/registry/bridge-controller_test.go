@@ -444,8 +444,9 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 		if !errors.As(r.err, &nestedTimeout) || nestedTimeout.Deadline != budgetLength {
 			t.Fatalf("second nested operation ended after %v with %v, want a PluginOpTimeoutError at the %v budget", ended, r.err, budgetLength)
 		}
-		// The type and deadline above are the proof; this window only rules
-		// out the 1.6s a fresh budget's full sleep would take.
+		// The type and deadline above are the proof. This time
+		// window only rules out the 1.6s a fresh budget's full sleep
+		// would take.
 		if ended < budgetLength || ended > budgetLength+500*time.Millisecond {
 			t.Fatalf("second nested operation ended after %v, want at the %v budget", ended, budgetLength)
 		}
@@ -706,7 +707,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		}
 	}
 
-	// tombstone removes a block through a cursor; removal is an unscoped write.
+	// tombstoneRef identifies the block tombstone removes through a cursor.
+	// Removal is an unscoped write.
 	tombstoneRef, err := block.BuildBlockRef([]byte("plugin tombstone target"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -725,7 +727,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}
 
 	// guardedTxCursor calls cb with a writable cursor from a guarded write
-	// transaction, as a plugin op handler's World holds, then discards it.
+	// transaction, as a plugin op handler's World holds, then discards the
+	// transaction.
 	guardedTxCursor := func(cb func(*bucket_lookup.Cursor) error) error {
 		wtx, err := tb.Engine.NewTransaction(ctx, true)
 		if err != nil {
@@ -1152,7 +1155,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}()
 
 	// A guard that fails to decide fails the op as a system error at
-	// admission, never as a final rejection; on replay it is swallowed.
+	// admission, never as a final rejection. On replay the error is
+	// swallowed.
 	func() {
 		rtx, err := tb.Engine.NewTransaction(ctx, true)
 		if err != nil {
@@ -1171,7 +1175,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}()
 	replayRun(failingGuard{}, true)
 
-	// The record log names a quad's object keys and never a literal value.
+	// The record log records a quad's object keys and never a literal
+	// value.
 	logged := recordedWriteFields(&world.GuardedWrite{
 		Quad: world.NewGraphQuad("<test/world-op-created>", "<test/link>", "\"secret value\"", ""),
 	})["object-keys"]
@@ -1186,8 +1191,8 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		t.Fatalf("protected objects changed:\nbefore %s\nafter  %s", before, after)
 	}
 
-	// Ordinary plugin writes still succeed, at one guard lookup per object they
-	// name and per object a graph edge touches.
+	// Ordinary plugin writes still succeed, at one guard lookup per object
+	// they reference and per object a graph edge touches.
 	allowed := []struct {
 		name    string
 		lookups int
@@ -1241,9 +1246,9 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}
 }
 
-// innerWriteOp is a test op whose fields name no protected object. As a World
-// op it creates createKey, when set, then calls write with its handle; as an
-// object op it calls write with the World its object reports.
+// innerWriteOp is a test op whose fields reference no protected object. As a
+// World op it creates createKey, when set, then calls write with its handle.
+// As an object op it calls write with the World its object reports.
 type innerWriteOp struct {
 	*world_mock.MockWorldOp
 	createKey string

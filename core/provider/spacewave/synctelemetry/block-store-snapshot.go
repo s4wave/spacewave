@@ -38,7 +38,7 @@ type BlockStoreSnapshot struct {
 	// bytes fail their hash. While it is not zero the store publishes nothing.
 	CorruptDirtyCount int
 	// HeldSince is when the store first held a block back, zero while none is
-	// held: nothing has been published from it since.
+	// held: nothing has been published from the store since.
 	HeldSince time.Time
 	// HeldPartial is set when CorruptDirtyCount is a lower bound: the flush
 	// that found the blocks stopped before reading every dirty block.

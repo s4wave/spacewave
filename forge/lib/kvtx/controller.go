@@ -31,15 +31,15 @@ const outputNameStore = inputNameStore // "store"
 
 // Controller implements the kvtx operations controller.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
-	// inputVals is the input values map
+	// inputVals is the input values map.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -66,7 +66,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // InitForgeExecController initializes the Forge execution controller.
-// This is called before Execute().
+// InitForgeExecController is called before Execute().
 // Any error returned cancels execution of the controller.
 func (c *Controller) InitForgeExecController(
 	ctx context.Context,
@@ -114,7 +114,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// resolve the op keys and/or values
 	opQueue := NewOpQueue(ctx, c.inputVals, c.handle)
 
-	// add configured operation list
+	// add the configured operation list
 	err = opQueue.AddOps(ops)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var nextRootRef *block.BlockRef
 	var sizeBefore, sizeAfter uint64
 
-	// access the kvtx tree. note this might occur cross-bucket.
+	// access the kvtx tree. note that access might occur cross-bucket.
 	opCount := len(opQueue.GetPendingOps())
 	err = c.handle.AccessStorage(
 		ctx,
@@ -172,7 +172,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// set updated store as output
+	// set the updated store as the output
 	le := c.le
 	var outpRef *bucket.ObjectRef
 	if rootRef.GetEmpty() {
@@ -210,7 +210,7 @@ func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instanc
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// An error indicates any issue encountered while releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

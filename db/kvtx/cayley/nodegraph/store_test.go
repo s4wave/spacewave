@@ -43,7 +43,7 @@ func TestQuadStore_Conformance(t *testing.T) {
 
 // TestNodeIDsNeverReused checks that a node created after the node with the
 // highest ID is deleted, in a later transaction, gets a new ID, and that the
-// diff of the two trees names both quads through their out keys.
+// diff of the two trees identifies both quads through their out keys.
 func TestNodeIDsNeverReused(t *testing.T) {
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -106,7 +106,8 @@ func TestNodeIDsNeverReused(t *testing.T) {
 		return id
 	}
 
-	// x takes the highest ID; deleting its quad deletes it, and y comes next.
+	// x takes the highest ID. Deleting its quad deletes x, and y comes
+	// next.
 	apply(graph.Add, "b")
 	apply(graph.Add, "x")
 	before := snapshot()
@@ -117,7 +118,7 @@ func TestNodeIDsNeverReused(t *testing.T) {
 		t.Fatalf("y has ID %d, not past deleted x's %d", y, x)
 	}
 
-	// The tree diff names each quad by its own out key.
+	// The tree diff identifies each quad by its own out key.
 	var keys [][]byte
 	for k, v := range before {
 		if w, ok := after[k]; !ok || w != v {
@@ -243,7 +244,8 @@ func (tr *testTree) id(iri string) uint64 {
 	return id
 }
 
-// add and del are the deltas adding and deleting the IRI quad s p o.
+// add returns the delta adding the IRI quad s p o, and del returns the delta
+// deleting that quad.
 func add(s, p, o string) graph.Delta {
 	return graph.Delta{Quad: quad.MakeIRI(s, p, o, ""), Action: graph.Add}
 }
@@ -256,7 +258,8 @@ func del(s, p, o string) graph.Delta {
 // endpoint that still has an edge, out or in, with its ID and its other quads,
 // and deletes only the endpoint left with none.
 func TestDeleteKeepsNodeWithEdges(t *testing.T) {
-	// a has two out edges; b is the object of one and the subject of another.
+	// a has two out edges. b is the object of one and the subject of
+	// another.
 	tr := newTestTree(t)
 	tr.apply(add("a", "p", "b"), add("a", "p", "c"), add("b", "p", "d"))
 	a, b := tr.id("a"), tr.id("b")
@@ -319,7 +322,7 @@ func TestDeleteKeepsNodeWithEdges(t *testing.T) {
 
 // TestPinnedPredicateAlsoObject checks that a value used as a predicate keeps
 // its node when it also appears as an object and its last edge goes, in both
-// orders of first use, so its ID never changes under the quads that name it.
+// orders of first use, so its ID never changes under the quads that use it.
 func TestPinnedPredicateAlsoObject(t *testing.T) {
 	for _, objectFirst := range []bool{false, true} {
 		tr := newTestTree(t)
@@ -331,7 +334,8 @@ func TestPinnedPredicateAlsoObject(t *testing.T) {
 		}
 		p := tr.id("p")
 
-		// p's only edge is the in edge from c; deleting it keeps the pinned node.
+		// p's only edge is the in edge from c. Deleting it keeps the
+		// pinned node.
 		tr.apply(del("c", "q", "p"))
 		if tr.id("p") != p {
 			t.Fatalf("objectFirst=%v: pinned p moved from %d to %d", objectFirst, p, tr.id("p"))
@@ -340,8 +344,8 @@ func TestPinnedPredicateAlsoObject(t *testing.T) {
 			t.Fatalf("objectFirst=%v: quads by p = %v", objectFirst, got)
 		}
 
-		// With no quad naming it, p stays pinned, and its object role returns
-		// under the same ID.
+		// With no quad using it, p stays pinned, and its object role
+		// returns under the same ID.
 		tr.apply(del("a", "p", "b"))
 		tr.apply(add("e", "q", "p"))
 		if tr.id("p") != p {
@@ -382,7 +386,8 @@ func (f *failingTx) Set(ctx context.Context, key, value []byte) error {
 func TestPairedEdgeKeysAtomic(t *testing.T) {
 	for _, tag := range []byte{tagMeta, tagIn} {
 		for _, retry := range []bool{false, true} {
-			// c is an unpinned object; the call makes it a predicate.
+			// c is an unpinned object. The call makes it a
+			// predicate.
 			tr := newTestTree(t)
 			tr.apply(add("x", "q", "c"), add("a", "p", "b"))
 			before := tr.keys()
@@ -450,8 +455,8 @@ func (tr *testTree) nextID() uint64 {
 }
 
 // checkConsistent checks that every committed out key has its in key and the
-// reverse, every ID map entry names a node with meta, and every ID is below
-// the next ID.
+// reverse, every ID map entry identifies a node with meta, and every ID is
+// below the next ID.
 func (tr *testTree) checkConsistent() {
 	tr.t.Helper()
 	keys := tr.keys()

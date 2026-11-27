@@ -8,7 +8,7 @@ import (
 )
 
 // ExLookupWorldEngine executes a single-value engine lookup against a bus by ID.
-// If ID is empty, selects any.
+// If ID is empty, selects any engine.
 func ExLookupWorldEngine(
 	ctx context.Context,
 	b bus.Bus,

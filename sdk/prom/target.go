@@ -48,7 +48,7 @@ func StatusKey() []byte {
 // on the Device that runs the target, gathered without HTTP.
 const DeviceMetricsURL = "device:metrics"
 
-// Validate checks that the config names an http or https URL, or
+// Validate checks that the config references an http or https URL, or
 // DeviceMetricsURL.
 func (c *ScrapeConfig) Validate() error {
 	// The device source needs no address.

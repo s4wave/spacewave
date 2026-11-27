@@ -46,7 +46,7 @@ vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
   }),
 }))
 
-// tasks is the followed task set the viewer reads; a test replaces it and
+// tasks is the followed task set the viewer reads. A test replaces it and
 // renders again to move the set through its states.
 const tasks = vi.hoisted(() => ({
   current: undefined as unknown as Resource<KeyedSet<EntityRow<Partial<Task>>>>,
@@ -57,7 +57,7 @@ vi.mock('@s4wave/web/hooks/useEntitySet.js', async (importOriginal) => ({
   useEntitySet: () => tasks.current,
 }))
 
-// taskSet is a read task set; keys lists members whose bodies are not read.
+// taskSet is a read task set. keys lists members whose bodies are not read.
 function taskSet(
   rows: Record<string, Partial<Task>>,
   { keys = Object.keys(rows), complete = true, seqno = 1n } = {},

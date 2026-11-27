@@ -698,7 +698,8 @@ export interface BootReport {
    */
   environment?: BootEnvironment
   /**
-   * Marks contains accepted startup marks through the measured terminal boundary; sealing occurs after this timeline.
+   * Marks contains accepted startup marks through the measured terminal
+   * boundary. Sealing occurs after the marks timeline.
    */
   marks?: BootMark[]
   /**
@@ -987,11 +988,12 @@ export interface BootSpan {
    */
   result?: BootSpanResult
   /**
-   * CausalWaitTarget names a dependency, lock, or request class without an identifier.
+   * CausalWaitTarget identifies a dependency, lock, or request class without an
+   * identifier.
    */
   causalWaitTarget?: string
   /**
-   * SourceTask names a stable source task, package symbol, or trace task.
+   * SourceTask identifies a stable source task, package symbol, or trace task.
    */
   sourceTask?: string
 }

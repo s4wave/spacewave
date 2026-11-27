@@ -24,20 +24,21 @@ var footerMagic = [4]byte{'S', '4', 'R', 'N'}
 type runBuilder struct {
 	// s is the file.
 	s storage
-	// chunks are the chunks to write, in order; more returns another when
-	// they run out.
+	// chunks and more provide the chunks to write: chunks lists them in
+	// order, and more returns another when the chunks run out.
 	chunks []uint64
 	more   func() (uint64, error)
 	// used counts the chunks written or being written.
 	used int
 	// buf holds the current chunk's bytes.
 	buf []byte
-	// written counts the bytes written to the file, and pushed the chunks
-	// pushed to the drive.
+	// written and pushed count the bytes written to the file and the chunks
+	// pushed to the drive, respectively.
 	written int64
 	pushed  int
 
-	// bb builds the current data block, and blockFirst is its first key.
+	// bb and blockFirst build the current data block and record its first
+	// key, respectively.
 	bb         blockBuilder
 	blockFirst []byte
 	// fences holds the current partition's fences: a block's first key and
@@ -47,7 +48,8 @@ type runBuilder struct {
 	hashes []uint64
 	// parts holds the finished partitions.
 	parts []partition
-	// count counts the entries, and smallest and largest bound the keys.
+	// count, smallest and largest count the entries and bound the keys,
+	// respectively.
 	count             uint64
 	smallest, largest []byte
 }
@@ -77,7 +79,7 @@ func newRunBuilder(s storage, chunks []uint64, more func() (uint64, error)) *run
 	return &runBuilder{s: s, chunks: slices.Clip(chunks), more: more, buf: make([]byte, 0, chunkSize)}
 }
 
-// add appends key with value v. Keys arrive in ascending order; the first
+// add appends key with value v. Keys arrive in ascending order. The first
 // key out of order fails with ErrOutOfOrder.
 func (rb *runBuilder) add(key []byte, v value) error {
 	// Check the order and start a block when needed.
@@ -161,7 +163,7 @@ func (rb *runBuilder) closePartition() error {
 // place writes b whole into the current chunk, or the next when it does not
 // fit, and returns its location.
 func (rb *runBuilder) place(b []byte) (ref, error) {
-	// Move to the next chunk when b does not fit; a block is far smaller
+	// Move to the next chunk when b does not fit. A block is far smaller
 	// than a chunk.
 	if len(rb.buf)+len(b) > chunkSize {
 		if err := rb.flushChunk(); err != nil {
@@ -312,12 +314,12 @@ func decodeRunFooter(b []byte) (*runFooter, error) {
 // key order, each uvarint(len(key)) key and its location, then a trailer of
 // their offsets, so a lookup bisects the fences without decoding them all.
 type fenceIndex struct {
-	// data holds the fences, and offs the offset of each.
+	// data and offs hold the fences and the offset of each, respectively.
 	data []byte
 	offs offsets
 }
 
-// decodeFenceIndex parses the index partition b in place; b must not change
+// decodeFenceIndex parses the index partition b in place. b must not change
 // while the index is in use.
 func decodeFenceIndex(b []byte) (fenceIndex, error) {
 	data, offs, ok := cutOffsets(b)
@@ -343,7 +345,7 @@ func (x fenceIndex) at(i int) (fence, error) {
 }
 
 // floor returns the index of the last fence at or below key, or -1 when key
-// is below the first.
+// is below the first fence.
 func (x fenceIndex) floor(key []byte) (int, error) {
 	// Bisect for the first fence above key.
 	lo, hi := 0, x.len()

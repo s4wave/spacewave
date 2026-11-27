@@ -172,7 +172,8 @@ export interface Op {
    *
    * If SET, stores the block reference into the tree.
    * If SET_BLOB, stores the block reference into the tree, marking it as a Blob
-   * If CHECK, compares the given block reference with the stored.
+   * If CHECK, compares the given block reference with the stored block
+   * reference.
    * Note: overridden by inline value if set and not empty.
    * Note: overridden by value_string if set and not empty.
    */

@@ -14,13 +14,14 @@ var ErrAdoptServeOnly = errors.New("store is in serve mode: it adopts no packs")
 
 // bucketAdopter is the pack store's adoption of a pack already in its bucket.
 type bucketAdopter interface {
-	// AdoptBucketPack verifies and registers the pack entry names.
+	// AdoptBucketPack verifies and registers the pack that entry
+	// references.
 	AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) (bool, error)
 	// HasPackfile reports whether the store holds pack id registered.
 	HasPackfile(ctx context.Context, id string) (bool, error)
 }
 
-// adoptKey names one mounted block store of an account.
+// adoptKey identifies one mounted block store of an account.
 type adoptKey struct {
 	volumeID string
 	storeID  string
@@ -47,7 +48,7 @@ func (t *bstoreTracker) registerAdopter(p *placementState) func() {
 // backend returns the store's open backend as a bucket adopter. The backend
 // is resolved per call, so a backend swapped since the last call is used.
 func (a *storeAdopter) backend() (bucketAdopter, error) {
-	// Read the backend open now; none means the store has no bucket yet.
+	// Read the open backend. No backend means the store has no bucket yet.
 	remote, _ := a.p.readBackend()
 	if remote == nil {
 		return nil, errors.New("storage backend not open")

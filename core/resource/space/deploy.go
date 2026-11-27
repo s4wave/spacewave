@@ -69,7 +69,8 @@ func (r *SpaceResource) publishManifestSet(
 		return err
 	}
 
-	// Reject a known wrong host before block transfer; repeat this check in the write transaction.
+	// Reject a known wrong host before block transfer. Repeat this check in
+	// the write transaction.
 	engine := r.space.GetWorldEngine()
 	ws := world.NewEngineWorldState(engine, false)
 	{
@@ -195,7 +196,8 @@ func (r *SpaceResource) publishManifestSet(
 		}
 	}
 
-	// Commit is the publication point; Sync and the result may be ambiguous after it.
+	// Commit is the publication point. Sync and the result may be ambiguous
+	// after the commit.
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "commit manifest set")
 	}
@@ -358,7 +360,7 @@ func copyBlockWithTransform(
 	}
 	visited[refStr] = true
 
-	// Check if already in dest.
+	// Check if the block is already in dest.
 	exists, err := dest.GetBlockExists(ctx, ref)
 	if err != nil {
 		return errors.Wrapf(err, "check block exists: %s", refStr)
@@ -389,7 +391,7 @@ func copyBlockWithTransform(
 	}
 
 	// Decode before writing so the write records the block's refs. No
-	// constructor means we can't traverse children (leaf copy).
+	// constructor means the copy cannot traverse children (leaf copy).
 	var blk block.Block
 	if ctor != nil {
 		decoded := data
@@ -487,7 +489,7 @@ func (s *streamStoreOps) GetSupportedFeatures() block.StoreFeature {
 }
 
 // GetBlock requests a block from the client over the stream. The bytes come
-// from the deploying client, so it checks them against ref and returns
+// from the deploying client, so GetBlock checks them against ref and returns
 // ErrBlockCorrupt on a mismatch.
 func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Request the manifest block while the deployment stream is active.
@@ -538,7 +540,8 @@ func (s *streamStoreOps) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 }
 
 // GetBlockExists checks if a block exists.
-// Always returns false to let the copy function fetch from source.
+// GetBlockExists always returns false to let the copy function fetch from
+// source.
 func (s *streamStoreOps) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return false, nil
 }
@@ -567,7 +570,7 @@ func (s *streamStoreOps) PutBlockBatch(_ context.Context, entries []*block.PutBa
 }
 
 // StatBlock returns metadata about a block without reading its data.
-// Returns nil, nil (unsupported on stream source).
+// StatBlock returns nil, nil (unsupported on the stream source).
 func (s *streamStoreOps) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	return nil, nil
 }

@@ -32,7 +32,7 @@ export function useSharedResources(): SharedResources {
 export interface UseSharedResourceOptions<T> {
   /**
    * generation remounts the entry once when it differs from the generation
-   * the entry was mounted under. Empty accepts any generation.
+   * the entry was mounted under. An empty generation accepts any generation.
    */
   generation?: string
   /** onSuccess runs when this component first sees each loaded value. */
@@ -50,9 +50,9 @@ function noSubscription(): () => void {
  * held renders its value on the first pass instead of mounting again.
  *
  * The mount must depend only on parent and name: a component that passes a
- * different mount under the same key gets the value of the first. A null
- * name disables the hook. The value belongs to the shared entry; mount
- * registers its handles through cleanup and consumers never dispose it.
+ * different mount under the same key gets the value of the first mount. A null
+ * name disables the hook. The value belongs to the shared entry. mount
+ * registers its handles through cleanup and consumers never dispose the value.
  */
 export function useSharedResource<P extends SharedParent, T>(
   parent: Resource<P>,
@@ -65,9 +65,9 @@ export function useSharedResource<P extends SharedParent, T>(
   options?: UseSharedResourceOptions<T>,
 ): Resource<T> {
   // Key the entry under a live parent value: a reloading parent keeps its key,
-  // so the lease survives the reload; a released or failed parent has none.
-  // The key gates a lease on a mount the parent's value names, not a start
-  // after the parent settles, so it does not wait for resourceReady.
+  // so the lease survives the reload. A released or failed parent has no key.
+  // The key gates a lease on a mount the parent's value selects, not a start
+  // after the parent settles, so the lease does not wait for resourceReady.
   const shared = useSharedResources()
   const parentReleased = isReleasedHandle(parent.value)
   const parentValue = parentReleased ? null : parent.value
@@ -86,7 +86,7 @@ export function useSharedResource<P extends SharedParent, T>(
   )
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
-  // Lease the entry while mounted; the latest mount serves later remounts.
+  // Lease the entry while mounted. The latest mount serves later remounts.
   const mountRef = useRef(mount)
   useLayoutEffect(() => {
     mountRef.current = mount

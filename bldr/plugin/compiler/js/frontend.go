@@ -13,7 +13,8 @@ import (
 )
 
 // writeFrontendBindings records stable source attachments for asset consumers.
-// Explicit bundles retain their entries; obsolete automatic outputs are removed.
+// Explicit bundles retain their entries. Obsolete automatic outputs are
+// removed.
 func writeFrontendBindings(assetsDir string, bindings map[string]*frontend.Binding, preserve bool) error {
 	// Resolve the frontend binding manifest path and start a fresh entry set.
 	frontendDir := filepath.Join(assetsDir, bldr_plugin_compiler.ViteAssetSubdir, "b", "fe")

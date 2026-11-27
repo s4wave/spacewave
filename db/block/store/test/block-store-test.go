@@ -65,7 +65,7 @@ func testAll(ctx context.Context, client block.StoreOps, putDelay time.Duration,
 	waitAfterPut()
 
 	// Get a not-found block
-	// Returns a 404 error, but this is processed to exists=false.
+	// Returns a 404 error, but the error is processed to exists=false.
 	sampleBlockBody2 := []byte("I seem to be getting a distress signal from that aerial faith plate...")
 	sampleBlockRef2, err := block.BuildBlockRef(sampleBlockBody2, samplePutOpts)
 	if err != nil {

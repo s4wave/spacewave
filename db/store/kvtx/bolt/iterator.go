@@ -19,7 +19,7 @@ type Iterator struct {
 
 	err error
 	oob bool
-	end bool // end indicates Next() is necessary
+	end bool // end indicates Next() is necessary.
 
 	key, val []byte
 }
@@ -74,7 +74,8 @@ func (i *Iterator) Value() ([]byte, error) {
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
-// If the slice is not big enough (cap), it must create a new one and return it.
+// If the slice is not big enough (cap), ValueCopy must create a new slice
+// and return the new slice.
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {

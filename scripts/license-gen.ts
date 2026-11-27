@@ -77,7 +77,7 @@ interface LicensesJson {
   entries: LicenseEntry[]
 }
 
-// Map aperturerobotics fork module paths to upstream repos.
+// forkToUpstream maps aperturerobotics fork module paths to upstream repos.
 const forkToUpstream: Record<string, string> = {
   'github.com/aperturerobotics/bbolt': 'https://github.com/etcd-io/bbolt',
   'github.com/aperturerobotics/json-iterator-lite':
@@ -130,7 +130,8 @@ function run(
   })
 }
 
-// Builds the license reporter from its isolated module on each generation.
+// buildGoLicenses builds the license reporter from its isolated module on each
+// generation.
 async function buildGoLicenses(): Promise<string> {
   const binPath = join(rootDir, '.tools', 'license-report')
   mkdirSync(dirname(binPath), { recursive: true })
@@ -146,8 +147,8 @@ async function buildGoLicenses(): Promise<string> {
   return binPath
 }
 
-// Go license generation: runs the reporter, deduplicates
-// sub-packages to module level, enriches versions from vendor/modules.txt.
+// generateGoLicenses runs the reporter, deduplicates sub-packages to module
+// level, and enriches versions from vendor/modules.txt.
 async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   console.log('Generating Go licenses...')
   const binPath = await buildGoLicenses()
@@ -171,7 +172,7 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   // CGO_ENABLED is pinned per platform so the package set is host-
   // independent. On macOS, GOOS=linux defaults to CGO_ENABLED=0 (cross
   // compile) which silently drops cgo-only packages like
-  // github.com/mattn/go-sqlite3; CI's native Linux defaults to 1 and
+  // github.com/mattn/go-sqlite3. CI's native Linux defaults to 1 and
   // includes them. js/wasm does not support cgo.
   const platforms: Array<{ goos: string; goarch: string; cgo: '0' | '1' }> = [
     { goos: 'linux', goarch: 'amd64', cgo: '1' },
@@ -274,7 +275,7 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   return goLicenses
 }
 
-// JS license generation: runs a Vite build with build.license enabled.
+// generateJsLicenses runs a Vite build with build.license enabled.
 async function generateJsLicenses(): Promise<JsLicenseEntry[]> {
   console.log('Generating JS licenses...')
 
@@ -318,7 +319,7 @@ async function generateJsLicenses(): Promise<JsLicenseEntry[]> {
   return jsLicenses
 }
 
-// Derive upstream repo URL from a Go module path.
+// goModuleRepo derives the upstream repo URL from a Go module path.
 function goModuleRepo(name: string): string | undefined {
   if (forkToUpstream[name]) return forkToUpstream[name]
   const parts = name.split('/')
@@ -334,7 +335,7 @@ function goModuleRepo(name: string): string | undefined {
   return undefined
 }
 
-// Derive npm repo URL from a JS package name.
+// jsPackageRepo derives the npm repo URL from a JS package name.
 function jsPackageRepo(name: string): string | undefined {
   if (name.startsWith('@aptre/')) {
     return `https://github.com/aperturerobotics/${name.replace('@aptre/', '')}`
@@ -348,7 +349,7 @@ function jsPackageRepo(name: string): string | undefined {
   return undefined
 }
 
-// Normalize whitespace for license body comparison.
+// normalize normalizes whitespace for license body comparison.
 // Collapses all whitespace (including line breaks within paragraphs) to single
 // spaces, preserving paragraph breaks (double newlines).
 function normalize(text: string): string {
@@ -367,7 +368,8 @@ function canonicalizeSpdxIdentifier(spdx: string): string {
   return canonicalSpdxIdentifiers.get(spdx.toLowerCase()) ?? spdx
 }
 
-// Extract copyright notice lines and the license body from a license text.
+// splitLicense extracts copyright notice lines and the license body from a
+// license text.
 function splitLicense(text: string): { copyright: string; body: string } {
   const lines = text.trim().split('\n')
   const copyrightLines: string[] = []
@@ -400,8 +402,8 @@ function splitLicense(text: string): { copyright: string; body: string } {
   }
 }
 
-// Extract SPDX base texts from the actual license data by finding the most
-// common body for each SPDX identifier.
+// extractBases extracts SPDX base texts from the actual license data by finding
+// the most common body for each SPDX identifier.
 function extractBases(
   entries: Array<{ spdx: string; text: string }>,
 ): Record<string, string> {
@@ -424,8 +426,8 @@ function extractBases(
   // object is stable.
   for (const spdx of Object.keys(bodyGroups).sort()) {
     const counts = bodyGroups[spdx]
-    // Pick the most common body as the canonical base. Ties broken by
-    // lexicographically smallest body for determinism across runs.
+    // Pick the most common body as the canonical base. Ties are broken by
+    // the lexicographically smallest body for determinism across runs.
     let best = ''
     let bestCount = 0
     for (const [body, count] of counts) {
@@ -442,7 +444,8 @@ function extractBases(
   return bases
 }
 
-// Merge Go and JS licenses into unified schema with SPDX base text dedup.
+// mergeLicenses merges Go and JS licenses into a unified schema with SPDX base
+// text dedup.
 function mergeLicenses(
   goData: GoLicenseEntry[],
   jsData: JsLicenseEntry[],

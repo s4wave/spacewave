@@ -19,7 +19,8 @@ import (
 
 // TestOpenWorldReadsTheControllerWorld checks that the devtool's engine
 // controller and OpenWorld open one World: an object the controller commits
-// is read by OpenWorld on the same file, since both name its head by EngineID.
+// is read by OpenWorld on the same file, since both identify its head by
+// EngineID.
 func TestOpenWorldReadsTheControllerWorld(t *testing.T) {
 	// Open the devtool file through a testbed and its World controller.
 	ctx := t.Context()

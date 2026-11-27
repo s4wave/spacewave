@@ -14,7 +14,7 @@ export interface IOrgHandle {
   // release releases the resource.
   release(): void
 
-  // Symbol.dispose for using with 'using' statement.
+  // Symbol.dispose releases the resource for use with a 'using' statement.
   [Symbol.dispose](): void
 }
 

@@ -31,13 +31,13 @@ func NewTxStartTxn() Transaction {
 	return &TxStart{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction's type.
 func (t *TxStart) GetTxType() TxType {
 	return TxType_TxType_START
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate checks the transaction cursorily.
+// Note: Validate should not fetch network data.
 func (t *TxStart) Validate() error {
 	return nil
 }
@@ -112,7 +112,7 @@ func (t *TxStart) ExecuteTx(
 		return nil
 	}
 
-	// promote to RUNNING
+	// Promote the Task to RUNNING.
 	root.TaskState = forge_task.State_TaskState_RUNNING
 
 	// copy the value set from the pass.

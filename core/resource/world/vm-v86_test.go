@@ -437,8 +437,8 @@ func TestVmV86TypedObject(t *testing.T) {
 		// createVmV86WithRootfs.
 		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
 
-		// Apply SetV86ConfigOp with a populated Config; op type must be
-		// registered and ApplyWorldOp must return no sys error.
+		// Apply SetV86ConfigOp with a populated Config. The op type
+		// must be registered and ApplyWorldOp must return no sys error.
 		tx, err := engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatalf("NewTransaction failed: %v", err)
@@ -550,8 +550,8 @@ func TestVmV86TypedObject(t *testing.T) {
 		apply(s4wave_vm.VmState_VmState_RUNNING, true)
 		apply(s4wave_vm.VmState_VmState_STOPPING, true)
 
-		// STOPPING is a compatibility alias that stores desired STOPPED;
-		// STOPPED completes the observed stop.
+		// STOPPING is a compatibility alias that stores desired
+		// STOPPED. STOPPED completes the observed stop.
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
 
 		// A new STARTING request creates a new run generation.
@@ -797,8 +797,9 @@ func TestVmV86TypedObject(t *testing.T) {
 		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
 		defer execCancel()
 
-		// Mount resolves but plugin load fails (no plugin host in test);
-		// handler must surface STARTING before flipping to ERROR.
+		// Mount resolves but plugin load fails (no plugin host in
+		// test). The handler must surface STARTING before flipping to
+		// ERROR.
 		expectStatusSequence(t, stream,
 			s4wave_process.ExecutionState_ExecutionState_STARTING,
 			s4wave_process.ExecutionState_ExecutionState_ERROR,
@@ -962,7 +963,8 @@ func TestVmV86TypedObject(t *testing.T) {
 			s4wave_process.ExecutionState_ExecutionState_ERROR,
 		)
 
-		// Clear the failed run by requesting STOPPED; the owner re-emits it.
+		// Clear the failed run by requesting STOPPED. The owner
+		// re-emits STOPPED.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STOPPED, "")
 		expectStatusSequence(t, stream,
 			s4wave_process.ExecutionState_ExecutionState_STOPPED,
@@ -1196,7 +1198,7 @@ func createVmV86WithRootfs(ctx context.Context, t *testing.T, engine *s4wave_wor
 		}
 	}
 
-	// Create the VmV86 object via CreateVmV86Op; the op wires the v86/image
+	// Create the VmV86 object via CreateVmV86Op. The op wires the v86/image
 	// edge to the V86Image created above.
 	createOp := s4wave_vm.NewCreateVmV86Op(vmKey, "test-vm", imageKey, time.Now())
 	createOpData, err := createOp.MarshalVT()

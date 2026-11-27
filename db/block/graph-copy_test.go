@@ -22,7 +22,7 @@ type graphTestStore struct {
 	mu sync.Mutex
 	// reads counts GetStoredBlock calls.
 	reads int
-	// delay, when set, is how long each GetStoredBlock takes.
+	// delay is how long each GetStoredBlock takes, when set.
 	delay time.Duration
 	// inFlight counts the GetStoredBlock calls running, and peak the most at
 	// once.
@@ -228,7 +228,8 @@ func TestCopyGraphLeavesAcceptedHoles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Every present block is written; only the sibling's subtree is complete.
+	// Every present block is written, but only the sibling's subtree is
+	// complete.
 	if len(holes) != 1 || holes[0] != missing.MarshalString() {
 		t.Fatalf("holes = %v, want [%s]", holes, missing.MarshalString())
 	}

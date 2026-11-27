@@ -354,7 +354,8 @@ func BuildDistBundle(
 	kvfileWriter := kvfile.NewWriter(embeddedVolumeWrite)
 
 	// Write the kvfile.
-	// NOTE: We don't use compression here since the content is already compressed / not compressible.
+	// The writer does not use compression here because the content is already
+	// compressed or not compressible.
 	err = dist_compiler_bundle.BundleManifestsKvfile(
 		ctx,
 		le,
@@ -392,8 +393,8 @@ func BuildDistBundle(
 		return os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644)
 	}
 
-	// On the Web platform we distribute the kvfile separately,
-	// and we name the entrypoint file differently.
+	// On the Web platform the bundle distributes the kvfile separately,
+	// and the entrypoint file has a different name.
 	var outBinPath string
 	if isWebPlatform {
 		// Compute the hash for the path.
@@ -415,7 +416,7 @@ func BuildDistBundle(
 			return err
 		}
 
-		// Write the URL to the kvfile; adjust the path to include the hash.
+		// Write the URL to the kvfile and adjust the path to include the hash.
 		embeddedVolumeURL := "../" + entrypointHash + "/assets.kvfile"
 		outVolumeURLFilename := "assets.url"
 		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
@@ -543,7 +544,7 @@ func BuildDistBundle(
 				return err
 			}
 
-			// store the wasm file where the entrypoint expects.
+			// store the wasm file where the entrypoint expects the file.
 			outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
 			wasmManifestPath = "entrypoint/" + entrypointHash + "/runtime.wasm"
 			if enableCompression {

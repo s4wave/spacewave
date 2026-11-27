@@ -23,9 +23,9 @@ func (c *Controller) resolveFetchManifest(
 
 // fetchManifestResolver resolves FetchManifest with the controller.
 type fetchManifestResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// req is the request
+	// req is the request.
 	req *manifest.FetchManifestRequest
 }
 

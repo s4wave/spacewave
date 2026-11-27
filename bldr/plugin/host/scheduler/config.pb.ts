@@ -22,7 +22,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKey is the root object to attach to.
-   * If not exists, waits for it to exist.
+   * If the object does not exist, waits for the object to exist.
    *
    * Searches for <manifest> links from this object.
    */
@@ -42,17 +42,18 @@ export interface Config {
   watchFetchManifest?: boolean
   /**
    * DisableStoreManifest disables storing manifests fetched with FetchManifest.
-   * This is used if we are watching the same world as the FetchManifest resolver.
+   * DisableStoreManifest is used if the scheduler watches the same world as the
+   * FetchManifest resolver.
    */
   disableStoreManifest?: boolean
   /**
-   * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
-   * If zero, uses a finite default of 2, shared by the serialized active
-   * manifest copy allowance.
+   * FetchConcurrency limits the number of blocks fetched concurrently
+   * per-manifest. If zero, uses a finite default of 2, shared by the serialized
+   * active manifest copy allowance.
    *
-   * Note: the concurrency is limited by the number of blocks that we have seen
-   * so far. Fetches blocks, then the references those blocks reference. We only
-   * know about the blocks on the frontier of the blocks fetched so far.
+   * Note: the concurrency is limited by the number of blocks the scheduler has
+   * seen so far. Fetches blocks, then the references those blocks reference.
+   * Only the blocks on the frontier of the blocks fetched so far are known.
    */
   fetchConcurrency?: number
   /**
@@ -66,9 +67,10 @@ export interface Config {
    */
   execBackoff?: Backoff
   /**
-   * DisableCopyManifest disables copying manifests to the plugin host world bucket.
-   * This is used if the manifest bucket is always accessible and locally cached.
-   * If unset, we will copy manifests to the same bucket as the plugin host world.
+   * DisableCopyManifest disables copying manifests to the plugin host world
+   * bucket. DisableCopyManifest is used if the manifest bucket is always
+   * accessible and locally cached. If unset, the scheduler copies manifests to
+   * the same bucket as the plugin host world.
    */
   disableCopyManifest?: boolean
   /**
@@ -113,8 +115,8 @@ export interface Config {
   /**
    * HostStorageId selects the Storage ID on the plugin host bus that plugin
    * instance volumes allocate through. Empty keeps the host default storage.
-   * Top-level plugins leave this unset; instance-scoped runtimes set it to
-   * route the instance's volumes through host-owned storage.
+   * Top-level plugins leave HostStorageId unset. Instance-scoped runtimes set
+   * HostStorageId to route the instance's volumes through host-owned storage.
    */
   hostStorageId?: string
   /**
@@ -128,9 +130,9 @@ export interface Config {
    */
   hostExportPluginIds?: string[]
   /**
-   * PluginIds limits the scheduler to these plugins. It leaves the LoadPlugin
-   * directives and plugin RPC lookups of every other plugin to the rest of the
-   * bus. Empty schedules every plugin not in ExternalPluginIds.
+   * PluginIds limits the scheduler to these plugins. The scheduler leaves the
+   * LoadPlugin directives and plugin RPC lookups of every other plugin to the
+   * rest of the bus. Empty schedules every plugin not in ExternalPluginIds.
    */
   pluginIds?: string[]
   /**
@@ -158,8 +160,8 @@ export interface Config {
   allowedHostServiceIds?: string[]
   /**
    * AdmissionPluginId is the plugin that owns this host's approvals and
-   * admits the roots an installation load names. Empty means the host has no
-   * owner: a root its trust set does not admit can never be admitted, so the
+   * admits the roots an installation load references. Empty means the host has
+   * no owner: a root its trust set does not admit can never be admitted, so the
    * load is refused instead of waiting. Unused with RequireAdmission, whose
    * host answers AdmitPluginRoot itself.
    */
@@ -215,7 +217,7 @@ export interface PlatformSelectionPolicy {
    */
   allowedPluginIds?: string[]
   /**
-   * DeniedPluginIds are the plugin IDs that cannot select PlatformId. This
+   * DeniedPluginIds are the plugin IDs that cannot select PlatformId. This list
    * leaves unlisted and externally supplied plugins eligible.
    */
   deniedPluginIds?: string[]

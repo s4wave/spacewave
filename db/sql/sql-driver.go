@@ -22,7 +22,7 @@ func NewDriver(store SqlStore, dsn string) *Driver {
 // The name is a string in a driver-specific format.
 //
 // Open may return a cached connection (one previously
-// closed), but doing so is unnecessary; the sql package
+// closed), but doing so is unnecessary because the sql package
 // maintains a pool of idle connections for efficient re-use.
 //
 // The returned connection is only used by one goroutine at a
@@ -39,7 +39,7 @@ func (d *Driver) OpenConnector(dsn string) (driver.Connector, error) {
 
 // Connect returns a connection to the database.
 // Connect may return a cached connection (one previously
-// closed), but doing so is unnecessary; the sql package
+// closed), but doing so is unnecessary because the sql package
 // maintains a pool of idle connections for efficient re-use.
 //
 // The provided context.Context is for dialing purposes only

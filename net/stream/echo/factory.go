@@ -14,9 +14,9 @@ const ControllerID = "bifrost/stream/echo"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// Factory constructs a controller
+// Factory constructs a controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

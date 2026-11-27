@@ -47,7 +47,7 @@ func TestSyncAvailableDedicatedWorkerGate(t *testing.T) {
 		t.Fatal("SyncAvailable() = false in DedicatedWorker scope with method, want true")
 	}
 
-	// DedicatedWorker scope but no method: must reject.
+	// DedicatedWorker scope but no method: the gate must reject sync access.
 	global.Set("FileSystemFileHandle", js.Undefined())
 	if DefaultDriver.SyncAvailable() {
 		t.Fatal("SyncAvailable() = true with no FileSystemFileHandle, want false")
@@ -158,7 +158,7 @@ func TestAsyncFileReadWrite(t *testing.T) {
 	}
 	f.Close()
 
-	// Read back.
+	// Read the file contents back.
 	f, err = OpenAsyncFile(dir, "test.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -171,7 +171,7 @@ func TestAsyncFileReadWrite(t *testing.T) {
 		t.Fatalf("read %q, expected %q", got, data)
 	}
 
-	// ReadAt partial.
+	// Read a partial range with ReadAt.
 	buf := make([]byte, 5)
 	n, err = f.ReadAt(buf, 6)
 	if err != nil {
@@ -181,7 +181,7 @@ func TestAsyncFileReadWrite(t *testing.T) {
 		t.Fatalf("ReadAt got %q, expected %q", buf[:n], "async")
 	}
 
-	// Stat.
+	// Check the file metadata with Stat.
 	info, err := f.Stat()
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestReadSnapshotRetainsImmutableFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Record size once and preserve repeated range and EOF behavior.
+	// Record the size once and preserve repeated range and EOF behavior.
 	size, err := snapshot.Size()
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +288,7 @@ func TestSyncFile(t *testing.T) {
 	f.Flush()
 	f.Close()
 
-	// Read back.
+	// Read the file contents back.
 	f, err = OpenSyncFile(dir, "test.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +302,7 @@ func TestSyncFile(t *testing.T) {
 	}
 	f.Close()
 
-	// ReadAt partial.
+	// Read a partial range with ReadAt.
 	f, err = OpenSyncFile(dir, "test.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -316,7 +316,7 @@ func TestSyncFile(t *testing.T) {
 		t.Fatalf("ReadAt got %q, expected %q", buf[:n], "sync")
 	}
 
-	// Size.
+	// Check the file size with Size.
 	size, err := f.Size()
 	if err != nil {
 		t.Fatal(err)
@@ -374,7 +374,7 @@ func TestGetDirectoryPath(t *testing.T) {
 	}
 	defer DeleteEntry(root, "test-path", true) //nolint
 
-	// Create nested path.
+	// Create a nested path.
 	dir, err := GetDirectoryPath(root, []string{"test-path", "a", "b"}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -385,7 +385,7 @@ func TestGetDirectoryPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Navigate again and read back.
+	// Navigate again and read the file contents back.
 	dir2, err := GetDirectoryPath(root, []string{"test-path", "a", "b"}, false)
 	if err != nil {
 		t.Fatal(err)

@@ -32,7 +32,7 @@ export type PanelAnswer =
   | { state: 'loading' }
   // The engine refused or failed the expression.
   | { state: 'error'; message: string }
-  // The query answered over startMs to endMs; refreshing is set while a
+  // The query answered over startMs to endMs. refreshing is set while a
   // newer answer is on its way.
   | {
       state: 'answered'
@@ -49,7 +49,7 @@ export interface StaleTarget {
   lastScrapeMs: number
 }
 
-// PanelActions are the writer's actions on a panel; a reader has none.
+// PanelActions are the writer's actions on a panel. A reader has none.
 export interface PanelActions {
   onEdit: () => void
   onMoveUp?: () => void
@@ -60,7 +60,7 @@ export interface PanelActions {
 export interface PromPanelViewProps {
   panel: Panel
   answer: PanelAnswer
-  // rangeLabel names the time range, such as 1h.
+  // rangeLabel identifies the time range, such as 1h.
   rangeLabel: string
   stale: readonly StaleTarget[]
   nowMs: number
@@ -339,7 +339,7 @@ function Legend({
   )
 }
 
-// ValueRows shows one value per series with its unit; hovering a row shows
+// ValueRows shows one value per series with its unit. Hovering a row shows
 // the sample's time.
 function ValueRows({
   series,

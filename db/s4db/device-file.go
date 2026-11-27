@@ -96,7 +96,7 @@ func (w *stopWatcher) wait() bool {
 	return false
 }
 
-// notify does nothing; no other process reads the file.
+// notify does nothing. No other process reads the file.
 func (*stopWatcher) notify() {}
 
 // stop wakes wait.

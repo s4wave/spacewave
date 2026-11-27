@@ -25,7 +25,8 @@ export interface Config {
   cdnBaseUrl?: string
   /**
    * PointerTtlDur is the cached root pointer TTL.
-   * Empty uses the CDN block store default. Negative disables expiry.
+   * An empty value uses the CDN block store default. A negative value disables
+   * expiry.
    */
   pointerTtlDur?: string
   /**
@@ -56,7 +57,7 @@ export interface Config {
   /**
    * RootPointerBaseUrl optionally serves root.packedmsg from another base URL,
    * so an owner can serve the mutable pointer from its own server and keep the
-   * CDN hostname immutable. Empty reads the pointer from cdn_base_url.
+   * CDN hostname immutable. An empty value reads the pointer from cdn_base_url.
    */
   rootPointerBaseUrl?: string
 }

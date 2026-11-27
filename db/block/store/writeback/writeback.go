@@ -4,12 +4,12 @@
 // A write is acknowledged once the local store holds the block and a durable
 // marker records it. Atomic local stores commit the marker in the same
 // transaction (see kvtx.BlockMarker). Other stores, including RPC proxies,
-// persist the block before its marker; a marker failure leaves an unacknowledged
-// block that a repeated write queues again. Upload drains the markers to the
-// remote store
-// and clears each marker only after the remote store holds its block, so
-// writes made while the remote is unreachable upload after it returns, across
-// restarts. Backfill queues the blocks stored before a remote was chosen.
+// persist the block before its marker. A marker failure leaves an
+// unacknowledged block that a repeated write queues again. Upload drains the
+// markers to the remote store and clears each marker only after the remote
+// store holds its block, so writes made while the remote is unreachable
+// upload after it returns, across restarts. Backfill queues the blocks stored
+// before a remote was chosen.
 //
 // A marker waits a settle age before it uploads, so a block the garbage
 // collector sweeps meanwhile never reaches the remote: the upload finds the
@@ -30,7 +30,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// backfillKey names the remote whose backfill completed.
+// backfillKey is the key for the remote whose backfill completed.
 const backfillKey = "backfill"
 
 // formerPrefixes match the keys of the marker layout before the queue,
@@ -61,14 +61,15 @@ type Store struct {
 	// their projection into status. Block writes mark without it, inside their
 	// own transactions.
 	mtx csync.Mutex
-	// fillMtx excludes a pass's epoch advance from a queue-before-value fill
-	// window; Evict describes why the advance is the only exclusion needed.
-	// Passes acquire it before evictMtx, so waiting for a fill never holds the
-	// mutex that disabling uploads waits on. Foreground writes do not acquire
-	// it.
+	// fillMtx excludes a pass's epoch advance from a queue-before-value
+	// fill window. Evict describes why the advance is the only exclusion
+	// needed. Passes acquire it before evictMtx, so waiting for a fill
+	// never holds the mutex that disabling uploads waits on. Foreground
+	// writes do not acquire it.
 	fillMtx csync.Mutex
 	// evictLimit is the block limit of the next eviction batch, guarded by
-	// evictMtx, as nextEvictLimit sets it; evictBatchStartBlocks on open.
+	// evictMtx, as nextEvictLimit sets it. On open, the limit is
+	// evictBatchStartBlocks.
 	evictLimit int
 	// evictMtx runs one eviction pass at a time, and disabling uploads waits
 	// for the pass to end.
@@ -90,9 +91,9 @@ type Store struct {
 	// marked blocks projects them into status only if no change followed it.
 	gen uint64
 	// floor is a key at or before every queue entry a write transaction
-	// committed or holds in flight, or nil for the queue's start; guarded by
-	// bcast. Queue scans start from it. A transaction lowers it before it
-	// commits, and clear raises it to the queue's new head.
+	// committed or holds in flight, or nil for the queue's start. Guarded
+	// by bcast. Queue scans start from it. A transaction lowers it before
+	// it commits, and clear raises it to the queue's new head.
 	floor []byte
 	// lowered counts the transactions that lowered floor, guarded by bcast,
 	// so clear raises it only when none lowered it since clear read it.
@@ -287,7 +288,7 @@ func SetReadOnlyOpen(on bool) {
 // openCountLimit bounds the upload queue entries NewStore counts before it
 // returns. A store that restarts with a long backlog, such as millions of
 // blocks from an import, would otherwise count them all under its first
-// write transaction and hold up every mount waiting for it; countRest counts
+// write transaction and hold up every mount waiting for it. countRest counts
 // the rest in the background.
 const openCountLimit = 10_000
 
@@ -314,7 +315,7 @@ func (s *Store) waitCounted(ctx context.Context) error {
 // would grow with every write until the scan ended. The count stops at the
 // queue key of its own start time: later writes sort after it, and the
 // status counts them as they commit. An entry cleared before its chunk reads
-// leaves the total low by one; the count feeds only the status and the
+// leaves the total low by one. The count feeds only the status and the
 // eviction budget, which a backlog this size keeps over its bound either way.
 // Every clear waits for counted: one ahead of the count would come off the
 // status without the count ever adding it, leaving Pending low enough that
@@ -459,7 +460,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 	return nil
 }
 
-// Backfill queues every block list names for upload to target, unless a
+// Backfill queues every block list returns for upload to target, unless a
 // backfill for target already completed. Call it after enabling uploads for
 // target, so the backfill and new writes together cover every block.
 //
@@ -516,7 +517,7 @@ func (s *Store) Backfill(
 	return nil
 }
 
-// GetUploadReads returns how many local reads the upload currently keeps in
+// GetUploadReads returns how many local reads the upload keeps in
 // flight at most.
 func (s *Store) GetUploadReads() int {
 	return s.reads.getLimit()
@@ -525,8 +526,8 @@ func (s *Store) GetUploadReads() int {
 // UploadedBefore reports whether the remote holds every block written before
 // at. It reads the queue's first entry from the committed markers rather than
 // the status, which follows a commit, so a head read at at can be named durable
-// the moment this returns true. A disabled store uploads nothing and reports
-// false.
+// the moment UploadedBefore returns true. A disabled store uploads nothing and
+// reports false.
 func (s *Store) UploadedBefore(ctx context.Context, at time.Time) (bool, error) {
 	// A store that does not queue proves nothing about its blocks.
 	if status, _ := s.GetStatus(); !status.Enabled {
@@ -591,7 +592,7 @@ func (s *Store) MarkBlocks(ctx context.Context, tx kvtx.Tx, blocks []kvtx.BlockM
 	}
 
 	// Project the delta once the transaction committed, when its evictable
-	// bytes are final; a delta of nothing wakes no watcher.
+	// bytes are final. A delta of nothing wakes no watcher.
 	return func() {
 		if delta.added != 0 || delta.evictable != 0 {
 			s.applyQueued(gen, *delta)
@@ -731,7 +732,7 @@ func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error
 	// Clear with background admission: the upload is deferrable work. The
 	// writers that block on mtx while a clear waits are a backfill, a
 	// change of enabled and the marking store of a store that cannot mark
-	// in its own transaction; a store that marks in the write's transaction
+	// in its own transaction. A store that marks in the write's transaction
 	// takes no mtx.
 	ctx = block.WithBackground(ctx)
 

@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// selectEntityResolver resolves select entity directives
+// selectEntityResolver resolves select entity directives.
 type selectEntityResolver struct {
 	c   *Controller
 	ctx context.Context
@@ -93,6 +93,6 @@ func (c *Controller) resolveSelectEntity(
 		return nil, nil
 	}
 
-	// Return resolver.
+	// Return the entity selection resolver.
 	return &selectEntityResolver{c: c, ctx: ctx, dir: dir}, nil
 }

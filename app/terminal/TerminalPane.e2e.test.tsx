@@ -12,9 +12,10 @@ import { TerminalPane, type TerminalPaneConnector } from './TerminalPane.js'
 
 const encoder = new TextEncoder()
 
-// SAMPLE exercises the full 16-color ANSI palette: SGR 30-37 drives the normal
-// set, 90-97 the bright set, and 40-47 the background swatches, so the screenshot
-// captures every themed color over sample foreground text.
+// ESC prefixes the sequences in SAMPLE that exercise the full 16-color ANSI
+// palette: SGR 30-37 drives the normal set, 90-97 the bright set, and 40-47 the
+// background swatches, so the screenshot captures every themed color over
+// sample foreground text.
 const ESC = '\x1b['
 const SAMPLE =
   [
@@ -120,8 +121,9 @@ describe('TerminalPane design-system visuals', () => {
       </div>,
     )
 
-    // xterm 6 paints its theme background on the scrollable element; wait for
-    // it to carry a resolved color, then screenshot the fully rendered console.
+    // xterm 6 paints its theme background on the scrollable element. Wait for
+    // the element to carry a resolved color, then screenshot the fully rendered
+    // console.
     const surface = await vi.waitFor(() => {
       const el = document.querySelector<HTMLElement>(
         '.xterm-scrollable-element',
@@ -137,8 +139,8 @@ describe('TerminalPane design-system visuals', () => {
     })
 
     // The rendered terminal background is the resolved warm near-black
-    // --color-background-dark token, not the cold zinc #09090b the pane hardcoded
-    // before this change.
+    // --color-background-dark token and differs from the pane's previous
+    // hardcoded cold zinc #09090b.
     const rendered = toRgb(getComputedStyle(surface).backgroundColor)
     const token = toRgb(resolveToken('--color-background-dark'))
     for (let channel = 0; channel < 3; channel++) {

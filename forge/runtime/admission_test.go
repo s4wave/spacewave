@@ -583,7 +583,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 		t.Fatal("expected stop failure to surface")
 	}
 
-	// The daemon recovers; reconciliation finishes the pending stop once.
+	// The daemon recovers. Reconciliation finishes the pending stop once.
 	stopper.failFor = ""
 	done, err := admission.ReconcilePendingStops(ctx, selfRef)
 	if err != nil || len(done) != 1 || !done[0].Complete() {
@@ -662,7 +662,8 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 		t.Fatal("capacity must stay debited until the stop confirms")
 	}
 
-	// The stopper recovers; a retry with the same fenced generation completes.
+	// The stopper recovers. A retry with the same fenced generation
+	// completes.
 	stopper.failFor = ""
 
 	// Stop the backend runtime and check the cleanup receipt.

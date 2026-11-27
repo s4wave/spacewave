@@ -11,7 +11,7 @@ import (
 
 // ListAvailablePlugins is a directive to list available plugins for a Space.
 //
-// Value type: *AvailablePluginList
+// Value type: *AvailablePluginList.
 type ListAvailablePlugins interface {
 	// Directive indicates ListAvailablePlugins is a directive.
 	directive.Directive
@@ -24,7 +24,7 @@ type ListAvailablePlugins interface {
 type AvailablePlugin struct {
 	// ManifestID is the manifest identifier.
 	ManifestID string
-	// Loaded indicates if the plugin is currently running.
+	// Loaded indicates if the plugin is running.
 	Loaded bool
 	// ManifestInfo contains metadata from the plugin manifest.
 	ManifestInfo *ManifestInfo

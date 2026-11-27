@@ -15,7 +15,7 @@ import (
 
 // TableEditor implements row management operations against a table.
 //
-// Note: all table operations are (currently) not concurrency safe.
+// Note: all table operations are not concurrency safe.
 type TableEditor struct {
 	// ctx supplies the default operation context.
 	ctx context.Context
@@ -543,7 +543,8 @@ func (i *TableEditor) StatementComplete(ctx *sql.Context) error {
 	return nil
 }
 
-// Close releases the editor; writes already belong to the enclosing transaction.
+// Close releases the editor. Writes already belong to the enclosing
+// transaction.
 func (i *TableEditor) Close(sqlCtx *sql.Context) error {
 	return nil
 }

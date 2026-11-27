@@ -41,7 +41,7 @@ func spaceResourceClient(t *testing.T, mux srpc.Invoker) srpc.Client {
 }
 
 // TestSpaceResourceChatSenderUsesWorldSigner checks that a Space's chat sends
-// carry its World signer, whatever session peer the request names.
+// carry its World signer, whatever session peer the request specifies.
 func TestSpaceResourceChatSenderUsesWorldSigner(t *testing.T) {
 	// Initialize the testbed and channel object.
 	ctx := t.Context()
@@ -442,7 +442,8 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 		t.Fatalf("AccessWorld(B): %v", err)
 	}
 
-	// Open the engine of A and the World-state watch of B, naming the other peer in each request.
+	// Open the engine of A and the World-state watch of B, specifying the
+	// other peer in each request.
 	engineARaw := resources.client(t, worldA.GetResourceId())
 	engineBRaw := resources.client(t, worldB.GetResourceId())
 	engineA := s4wave_world.NewSRPCEngineResourceServiceClient(engineARaw)
@@ -496,7 +497,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	}
 	trackedChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, trackedChannel.GetResourceId()))
 
-	// Close the watch; the channel resource stays open.
+	// Close the watch. The channel resource stays open.
 	cancelWatch()
 	_ = watch.Close()
 
@@ -534,9 +535,9 @@ func (e *signerEngine) OperationAuthor(context.Context) (peer.ID, string, error)
 type spaceResourceChatBody struct {
 	// engine is the mounted Space World.
 	engine world.Engine
-	// engineID names that World on the bus.
+	// engineID records that World's ID on the bus.
 	engineID string
-	// bucketID names the World's bucket.
+	// bucketID records the World's bucket ID.
 	bucketID string
 }
 
@@ -680,7 +681,8 @@ type spaceRecordingResourceClient struct {
 	muxes    map[uint32]srpc.Invoker
 	values   map[uint32]any
 	releases map[uint32]func()
-	// dones is guarded by mu and closes when its resource is released.
+	// dones is guarded by mu and holds channels that close when their
+	// resources are released.
 	dones map[uint32]chan struct{}
 }
 

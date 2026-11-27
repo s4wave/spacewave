@@ -15,15 +15,15 @@ import (
 
 // HTTPBlockServer is HTTP server serving a BlockStore.
 type HTTPBlockServer struct {
-	// store is the store to read from
+	// store is the store to read from.
 	store block.StoreOps
-	// write enables write ops
+	// write enables write ops.
 	write bool
 	// pathPrefix is the path prefix to use for requests.
 	pathPrefix string
 	// forceHashType forces using the given hash type.
 	// returns an error if any request forces a different hash type.
-	// if 0 uses the default specified by the store
+	// if 0 uses the default hash type specified by the store.
 	forceHashType hash.HashType
 }
 

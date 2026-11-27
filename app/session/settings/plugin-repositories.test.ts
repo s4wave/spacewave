@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
-// Each fake worktree handle answers for the object key its ref names.
+// commits contains the pinned and fetched commits each fake worktree handle
+// returns for the object key its ref identifies.
 const commits: Record<string, { pinned: string; fetched: string }> = {
   'plugin-repos/s4wave/spreadsheet/worktree': { pinned: 'aaa', fetched: 'bbb' },
 }

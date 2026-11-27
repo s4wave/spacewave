@@ -22,7 +22,7 @@ type Typer interface {
 	Decode(ctx context.Context, typ any, ref *block.BlockRef, data []byte) (refs []TypedRef, ok bool, err error)
 }
 
-// TypedRef is a ref with the type of the block it names.
+// TypedRef is a ref with the type of the block it identifies.
 type TypedRef struct {
 	// Ref is the child.
 	Ref *block.BlockRef
@@ -31,7 +31,7 @@ type TypedRef struct {
 }
 
 // typeBlock decodes a read block by the node's type. A block whose store knows
-// its refs keeps them, and its children gain their types; a block whose refs
+// its refs keeps them, and its children gain their types. A block whose refs
 // are unknown takes the decoded refs, or stays a hole when its type cannot
 // decode it.
 func (c *copier) typeBlock(ctx context.Context, n *node, stored *block.StoredBlock) (*block.StoredBlock, map[string]any, string, error) {

@@ -7,7 +7,8 @@ import (
 	"sync"
 )
 
-// tcpConn bridges one guest TCP flow to a host TCP socket: it terminates
+// tcpConn bridges one guest TCP flow to a host TCP socket: tcpConn terminates
+// the guest TCP connection.
 type tcpConn struct {
 	stack *Stack
 	key   string
@@ -21,35 +22,35 @@ type tcpConn struct {
 	dport uint16
 
 	mtx sync.Mutex
-	// state is the TCP state mirrored from v86's browser stack
+	// state is the TCP state mirrored from v86's browser stack.
 	state string
-	// seq is the next sequence number for guest-inbound data
+	// seq is the next sequence number for guest-inbound data.
 	seq uint32
-	// ack is the next expected guest sequence number
+	// ack is the next expected guest sequence number.
 	ack uint32
-	// startSeq is the guest initial sequence number
+	// startSeq is the guest initial sequence number.
 	startSeq uint32
-	// winsize is the last guest-advertised receive window
+	// winsize is the last guest-advertised receive window.
 	winsize uint16
-	// lastAck tracks acknowledged guest-inbound bytes
+	// lastAck tracks acknowledged guest-inbound bytes.
 	lastAck uint32
-	// haveLastAck distinguishes a zero ACK from no ACK yet
+	// haveLastAck distinguishes a zero ACK from no ACK yet.
 	haveLastAck bool
-	// sendBuffer contains host data waiting for guest ACKs
+	// sendBuffer contains host data waiting for guest ACKs.
 	sendBuffer bytes.Buffer
-	// pending indicates one guest-inbound segment is awaiting ACK
+	// pending indicates one guest-inbound segment is awaiting ACK.
 	pending bool
-	// inActiveClose indicates a FIN has been requested toward the guest
+	// inActiveClose indicates a FIN has been requested toward the guest.
 	inActiveClose bool
-	// delayedSendFIN holds FIN until pending data is ACKed
+	// delayedSendFIN holds FIN until pending data is ACKed.
 	delayedSendFIN bool
-	// delayedState is the state entered when the delayed FIN is sent
+	// delayedState is the state entered when the delayed FIN is sent.
 	delayedState string
-	// closed indicates the host socket has been closed
+	// closed indicates the host socket has been closed.
 	closed bool
 }
 
-// newTCPConn builds the connection in SYN-received state from the SYN
+// newTCPConn builds the connection in SYN-received state from the SYN packet.
 func newTCPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *tcpConn {
 	return &tcpConn{
 		stack: stack,
@@ -65,7 +66,8 @@ func newTCPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *tcp
 	}
 }
 
-// accept completes the handshake with a SYN-ACK and enters established
+// accept answers the guest's SYN with a SYN-ACK and enters established state
+// without waiting for the final ACK.
 func (c *tcpConn) accept(packet *ethPacket) {
 	// Establish the guest TCP sequence numbers and advertised window under the lock.
 	c.mtx.Lock()
@@ -88,12 +90,13 @@ func (c *tcpConn) accept(packet *ethPacket) {
 	c.mtx.Unlock()
 }
 
-// start launches the host-to-guest read loop on its own goroutine; the
+// start launches the host-to-guest read loop on its own goroutine.
 func (c *tcpConn) start() {
 	go c.readLoop()
 }
 
 // process services one inbound segment: ACK accounting, FIN handling, and
+// payload forwarding.
 func (c *tcpConn) process(packet *ethPacket) {
 	// Lock the TCP flow and reset segments received after it closed.
 	tcp := packet.ipv4.tcp
@@ -122,7 +125,8 @@ func (c *tcpConn) process(packet *ethPacket) {
 
 	// Advance the TCP connection state and send buffer for guest acknowledgments.
 	if tcpFlag(tcp, tcpFlagACK) {
-		// Advance the TCP handshake or FIN wait when the guest acknowledges it.
+		// Advance the TCP handshake or FIN wait when the guest acknowledges
+		// the handshake or FIN.
 		if c.state == tcpStateSynReceived {
 			c.state = tcpStateEstablished
 		}
@@ -263,7 +267,7 @@ func (c *tcpConn) readLoop() {
 	}
 }
 
-// consumeAckLocked advances past acknowledged send-buffer bytes and
+// consumeAckLocked advances past acknowledged send-buffer bytes.
 func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 	if !c.haveLastAck {
 		c.lastAck = tcp.ack
@@ -297,6 +301,7 @@ func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 }
 
 // processFINLocked applies a guest FIN and reports whether the connection
+// should be released.
 func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
 	// Acknowledge the guest FIN with the current TCP sequence numbers.
 	c.ack++
@@ -357,7 +362,7 @@ func (c *tcpConn) pumpLocked() {
 	c.pending = true
 }
 
-// ipv4ReplyLocked builds an empty reply segment with current sequence
+// ipv4ReplyLocked builds an empty reply segment with current sequence numbers.
 func (c *tcpConn) ipv4ReplyLocked(flags byte) *tcpPacket {
 	return &tcpPacket{
 		sport:   c.sport,
@@ -369,7 +374,7 @@ func (c *tcpConn) ipv4ReplyLocked(flags byte) *tcpPacket {
 	}
 }
 
-// packetReplyLocked builds a reply echoing one received segment numbers.
+// packetReplyLocked builds a reply echoing one received segment's numbers.
 func (c *tcpConn) packetReplyLocked(tcp *tcpPacket, flags byte) *tcpPacket {
 	return &tcpPacket{
 		sport:   tcp.dport,

@@ -12,15 +12,16 @@ import (
 // wake-up, so a stream of graph snapshots can re-derive its bindings without
 // polling.
 type typeWatches struct {
-	// b is the bus the registry answers on. It may be nil, which watches nothing.
+	// b is the bus the registry answers on. b may be nil, in which case no
+	// types are watched.
 	b bus.Bus
 	// engineID scopes each lookup to the granting World engine.
 	engineID string
 	// wake holds a pending registry change. It has room for one, since a second
 	// change before the reader looks needs no second read.
 	wake chan struct{}
-	// releases stops the watch of each type ID. Only the stream's own goroutine
-	// reads or writes it.
+	// releases holds the function that stops the watch of each type ID.
+	// Only the stream's own goroutine reads or writes it.
 	releases map[string]func()
 }
 
@@ -43,10 +44,10 @@ func (w *typeWatches) notify(*s4wave_objecttype_registry.ObjectTypeMetadata) {
 }
 
 // sync watches the type of each object the snapshot binds and stops watching
-// types it no longer binds. It reports whether it added a watch, in which case
-// the caller reads the bindings again: a registry change before the watch began
-// was not delivered. Adding watches discards the wake-ups they produced for the
-// registrations already present.
+// types the snapshot no longer binds. It reports whether it added a watch, in
+// which case the caller reads the bindings again: a registry change before the
+// watch began was not delivered. Adding watches discards the wake-ups they
+// produced for the registrations already present.
 func (w *typeWatches) sync(ctx context.Context, snapshot *FlowgraphSnapshot) (bool, error) {
 	if w.b == nil {
 		return false, nil

@@ -21,7 +21,7 @@ type SolicitEntry struct {
 // ComputeSessionID returns BLAKE3(lower_peer || higher_peer).
 // Peers are lexicographically sorted to produce a canonical ordering.
 // Both sides of a link compute the same session ID since the peer IDs
-// are the same regardless of which side you're on.
+// are the same on both sides of the link.
 func ComputeSessionID(peerA, peerB peer.ID) []byte {
 	// Order the peer IDs so both link endpoints hash the same session.
 	lower, higher := peerA, peerB

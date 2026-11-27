@@ -51,7 +51,7 @@ function abortPromise(signal: AbortSignal): Promise<never> {
 // The inode will be released if:
 //   - there is any error fetching/refreshing the parent cursors
 //   - the underlying FSCursor is released.
-//   - there are 0 references to the node and 0 child nodes
+//   - there are 0 references to the node and 0 child nodes.
 export class FsInode {
   private isReleased = false
   // parent is the inode which created this inode (immutable).
@@ -145,8 +145,8 @@ export class FsInode {
     }
   }
 
-  // mergeWithNodeLocked merges the given inode into this, releasing the given
-  // inode and its children. Merges references and children recursively.
+  // mergeWithNodeLocked merges the given inode into this inode, releasing the
+  // given inode and its children. Merges references and children recursively.
   mergeWithNodeLocked(node: FsInode, err: Error | null): void {
     const toRelease: FsInode[] = []
     const nodStk: FsInode[] = [this]
@@ -188,7 +188,7 @@ export class FsInode {
   }
 
   // clearCursorsWithChildrenLocked clears all fscursor and ops on the inode
-  // and children. Does not release the inodes, just releases the cursors.
+  // and children. Does not release the inodes, only releases the cursors.
   clearCursorsWithChildrenLocked(): void {
     const toRelease: FsInode[] = []
     const nodStk: FsInode[] = [this]
@@ -219,7 +219,7 @@ export class FsInode {
 
   // accessInode resolves ops and calls cb with the resolved cursor and ops.
   // If cb throws ErrReleased and ops was actually released, retries.
-  // cb may be null to just resolve without calling.
+  // cb may be null to resolve without calling cb.
   async accessInode(
     signal: AbortSignal,
     cb: AccessInodeCb | null,
@@ -313,7 +313,7 @@ export class FsInode {
   ): Promise<{ cursor: FSCursor; ops: FSCursorOps } | null> {
     const lock = await this.rmtx.lock(true, signal)
 
-    // Fast path: cached and valid.
+    // Fast path: fsOps is cached and valid.
     if (this.fsOps && !this.fsOps.checkReleased()) {
       const cursor = this.fsCursors[this.fsCursors.length - 1]
       lock.release()
@@ -323,7 +323,7 @@ export class FsInode {
       this.fsOps = null
     }
 
-    // If resolution in-flight, wait for it.
+    // If resolution is in-flight, wait for it.
     if (this.fsWait) {
       const waitPromise = this.fsWait.promise
       lock.release()
@@ -337,7 +337,7 @@ export class FsInode {
       resolve = r
     })
     this.fsWait = { promise, resolve }
-    // resolveOpsRoutineLocked expects lock to be held; it releases it.
+    // resolveOpsRoutineLocked expects lock to be held and releases lock.
     this.resolveOpsRoutineLocked(signal, lock)
 
     // Return context.Canceled if signal was canceled.
@@ -424,7 +424,8 @@ export class FsInode {
           err = ErrInodeUnresolvable
         }
         if (err) {
-          // Error fetching parent cursors. Lock and release this + children.
+          // Error fetching parent cursors.
+          // Lock and release this inode + children.
           try {
             const lock = await this.rmtx.lock(true, signal)
             this.releaseWithChildrenLocked(err)
@@ -510,7 +511,7 @@ export class FsInode {
     lock.release()
   }
 
-  // lookup attempts to lookup a directory entry returning a new FSHandle.
+  // lookup tries to look up a directory entry returning a new FSHandle.
   async lookup(signal: AbortSignal, name: string): Promise<FSHandle> {
     const lock = await this.rmtx.lock(true, signal)
 
@@ -728,9 +729,9 @@ export class FsInode {
   }
 }
 
-// FSHandle is imported circularly. We use a late-binding approach.
+// FSHandle is imported circularly. The import uses a late-binding approach.
 // The actual FSHandle class is defined in fs-handle.ts and calls into FsInode.
-// We forward-declare the shape here to avoid import cycles.
+// The shape is forward-declared here to avoid import cycles.
 // This file re-exports from fs-handle.ts, which imports FsInode.
 
 // FSHandle is an open handle to a location in a FSTree.
@@ -744,7 +745,7 @@ export class FSHandle {
     this._inode = inode
   }
 
-  // i returns the underlying inode.
+  // _getInode returns the underlying inode.
   _getInode(): FsInode {
     return this._inode
   }
@@ -1335,7 +1336,7 @@ export class FSHandle {
           lockedNodes.set(destParent, relDestParent)
         }
 
-        // Check both are not released.
+        // Check both inodes are not released.
         const srcErr = srcLoc.checkReleasedWithErr()
         if (srcErr) {
           relLockedNodes()
@@ -1347,7 +1348,7 @@ export class FSHandle {
           throw destErr
         }
 
-        // If either is currently resolving fsOps, wait.
+        // If either inode is currently resolving fsOps, wait.
         if (srcLoc.fsWait) {
           const w = srcLoc.fsWait.promise
           relLockedNodes()
@@ -1378,7 +1379,7 @@ export class FSHandle {
           continue
         }
 
-        // Lock children of both.
+        // Lock children of both inodes.
         const nodStk: FsInode[] = [srcLoc, destParent]
         let lockErr: Error | null = null
         while (nodStk.length > 0) {

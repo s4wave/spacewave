@@ -150,8 +150,8 @@ func TestDeferCursorWritesMatchImmediate(t *testing.T) {
 			}
 		}
 
-		// An odd round reads through an iterator, which applies the held
-		// writes; an even round flushes them.
+		// An odd round reads through an iterator, which applies the
+		// held writes. An even round flushes them.
 		if held.tx.Held() == 0 {
 			t.Fatalf("round %d: no writes held", round)
 		}

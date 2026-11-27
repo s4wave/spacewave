@@ -60,7 +60,8 @@ func StartupTimeout() (time.Duration, error) {
 
 // ServeArgs returns the current executable's detached daemon invocation.
 func ServeArgs(statePath, pipeID string, launcher Launcher) []string {
-	// Preserve inherited logging and storage settings; trace is an explicit flag.
+	// Preserve inherited logging and storage settings. Trace is an explicit
+	// flag.
 	args := []string{"--state-path", statePath, "serve", "--daemon-startup-pipe-id", pipeID}
 	if launcher != LauncherManual {
 		args = append(args, "--daemon-launcher", string(launcher))

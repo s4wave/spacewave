@@ -38,9 +38,10 @@ var openFiles = &fileRegistry{ids: make(map[fileID]os.FileInfo), duplicates: mak
 
 // OpenFile opens a database descriptor once per process, shared by the engine
 // and format converters. opener chooses creation and platform sharing flags.
-// The returned idempotent close function releases both the descriptor and its claim; the
-// caller must use it instead of File.Close. Aliases fail with ErrOpenInProcess
-// before opening a descriptor, so refusing them preserves the owner's locks.
+// The returned idempotent close function releases both the descriptor and its
+// claim. The caller must use it instead of File.Close. Aliases fail with
+// ErrOpenInProcess before opening a descriptor, so refusing them preserves the
+// owner's locks.
 func OpenFile(path string, opener func(string) (*os.File, error)) (*os.File, func() error, error) {
 	// Serialize descriptor opens with registration and close. This lock covers
 	// only file metadata operations, never a database read, stream or commit.

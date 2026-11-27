@@ -13,8 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WithInprocNetwork enables authenticated links to other sessions on this native network.
-// Network membership follows Execute; separate networks never share packet routes.
+// WithInprocNetwork enables authenticated links to other sessions on this
+// native network. Network membership follows Execute. Separate networks never
+// share packet routes.
 func WithInprocNetwork(network *inproc.Network) SessionTransportOption {
 	return WithLocalTransport(func(ctx context.Context, le *logrus.Entry, b bus.Bus, peerID peer.ID) (*transport_controller.Controller, func(), error) {
 		// Construct the transport under the session's existing peer controller.

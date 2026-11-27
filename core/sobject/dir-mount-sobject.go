@@ -22,7 +22,8 @@ type MountSharedObjectValue = SharedObject
 
 // ExMountSharedObject executes a lookup for a single provider on the bus.
 //
-// If returnIfIdle is set, returns when the directive becomes idle.
+// If returnIfIdle is set, ExMountSharedObject returns when the directive
+// becomes idle.
 func ExMountSharedObject(
 	ctx context.Context,
 	b bus.Bus,
@@ -47,7 +48,7 @@ func ExMountSharedObject(
 	return av.GetValue(), avRef, nil
 }
 
-// mountSharedObject implements MountSharedObject
+// mountSharedObject implements MountSharedObject.
 type mountSharedObject struct {
 	ref *SharedObjectRef
 }
@@ -60,7 +61,7 @@ func NewMountSharedObject(ref *SharedObjectRef) MountSharedObject {
 }
 
 // Validate validates the directive.
-// This is a cursory validation that the values look correct.
+// This check is a cursory validation that the values look correct.
 func (d *mountSharedObject) Validate() error {
 	return d.ref.Validate()
 }
@@ -99,14 +100,15 @@ func (d *mountSharedObject) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *mountSharedObject) GetName() string {
 	return "MountSharedObject"
 }
 
 // GetDebugVals returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The arguments should be something like param1="test", param2="test".
+// The arguments are not necessarily unique, and are primarily intended for
+// display.
 func (d *mountSharedObject) GetDebugVals() directive.DebugValues {
 	return directive.DebugValues{
 		"sobject-id":  []string{d.ref.GetProviderResourceRef().GetId()},

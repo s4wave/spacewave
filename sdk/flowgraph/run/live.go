@@ -16,7 +16,8 @@ import (
 // ErrActivationEnded is returned when a run no longer holds a running
 // activation under the given Task key: the activation ended and the run
 // returned its unacknowledged live inputs to the arrivals, or it never
-// existed. A Step that reads this has no inbox left to read or acknowledge.
+// existed. A Step that reads ErrActivationEnded has no inbox left to read or
+// acknowledge.
 var ErrActivationEnded = errors.New("activation is not running")
 
 // runningActivation returns the running activation of a Step for a key, or
@@ -32,9 +33,9 @@ func (r *runner) runningActivation(nodeID, key string) *s4wave_flowgraph.Flowgra
 
 // deliverLive moves each arrival of a keyed Step whose key has a running
 // activation from the run's arrivals to that activation's inbox. The arrival
-// gets the activation's next sequence number, in arrival order. It runs in the
-// transaction that consumes the arrival, so an arrival is in exactly one of
-// the arrivals and an inbox.
+// gets the activation's next sequence number, in arrival order. deliverLive
+// runs in the transaction that consumes the arrival, so an arrival is in
+// exactly one of the arrivals and an inbox.
 func (r *runner) deliverLive(nodeID string) {
 	r.run.Arrivals = slices.DeleteFunc(r.run.Arrivals, func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
 		if arrival.GetNodeId() != nodeID {
@@ -142,7 +143,7 @@ func readInbox(ctx context.Context, obj world.ObjectState, activationID string) 
 // did not acknowledge before its activation ended starts a successor, so a
 // Step acknowledges an input only once it has handled it. It changes nothing
 // when no input is that old. It returns ErrActivationEnded when the activation
-// is no longer running; the run has then returned the inputs to the arrivals.
+// is no longer running. The run has then returned the inputs to the arrivals.
 // Call it in a write transaction.
 func AckLiveInputs(
 	ctx context.Context,

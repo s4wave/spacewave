@@ -64,7 +64,7 @@ import (
 type config struct {
 	// scenario selects the worker action.
 	scenario string
-	// root names the disposable shared OPFS directory.
+	// root identifies the disposable shared OPFS directory.
 	root string
 	// worker identifies this worker within the workload.
 	worker int
@@ -82,9 +82,9 @@ type config struct {
 // largeScenarioProgressEvery bounds progress-report frequency during large transfers.
 const largeScenarioProgressEvery = 8 * 1024 * 1024
 
+// lookupSpaceOp resolves the Space world operations.
 // main runs one selected worker scenario, reports its terminal result, and
 // waits for the harness to terminate the worker.
-// lookupSpaceOp resolves the Space world operations.
 var lookupSpaceOp = world.NewSchema(space_world_ops.Types).LookupOp
 
 func main() {
@@ -230,7 +230,8 @@ func run(ctx context.Context, c *config) error {
 	}
 }
 
-// pipeReadResult returns the bytes drained and terminal error from a pipe reader.
+// pipeReadResult contains the bytes drained and terminal error from a pipe
+// reader.
 type pipeReadResult struct {
 	// n counts the bytes drained before termination.
 	n int
@@ -663,7 +664,8 @@ func volumeKVKey(i int) []byte {
 	return []byte("bench/kv/" + strconv.Itoa(i))
 }
 
-// volumeKVValue returns the benchmark payload; batch carries the size in bytes.
+// volumeKVValue returns the benchmark payload. The batch field carries the size
+// in bytes.
 func volumeKVValue(c *config) []byte {
 	return bytes.Repeat([]byte{0x61}, c.batch)
 }
@@ -994,7 +996,8 @@ func writeWorldCommits(ctx context.Context, c *config) (*bucket.ObjectRef, error
 	}
 	defer writer.release()
 
-	// Commit each object; the root must hold the commit when it returns.
+	// Commit each object. The root must hold the commit when
+	// createWorldObject returns.
 	for _, key := range []string{"opfs-crash-obj-a", "opfs-crash-obj-b"} {
 		if err := createWorldObject(ctx, writer, key); err != nil {
 			return nil, err
@@ -1430,11 +1433,11 @@ func openControllerBucket(
 // runCopyWalkWrapperConcurrency probes whether the production
 // AccessWorldState -> FollowRef -> lookup Handle -> CopyObjectToBucket ->
 // WalkObjectBlocks wrapper deadlocks at a raised maxConcurrency on real OPFS
-// under native Go-WASM, with the GoScript compiler held out of the loop. A prior
-// bench drove the raw OPFS engine at concurrency 16 directly and stayed healthy;
-// this exercises the full wrapper path the production download-manifest copy
-// uses, including the real concurrent-lookup Handle that resolves the
-// cross-bucket source ref.
+// under native Go-WASM, with the GoScript compiler held out of the loop. A
+// prior bench drove the raw OPFS engine at concurrency 16 directly, and the
+// engine stayed healthy. runCopyWalkWrapperConcurrency exercises the full
+// wrapper path the production download-manifest copy uses, including the real
+// concurrent-lookup Handle that resolves the cross-bucket source ref.
 //
 // It stands up a real controllerbus over the OPFS volume with the
 // concurrent-lookup controller (so cross-bucket FollowRef resolves through the
@@ -1443,7 +1446,7 @@ func openControllerBucket(
 // bucket), then runs the production nested-access copy pattern twice over fresh
 // equivalent source objects: first at maxConcurrency=1 (control, must pass),
 // then at c.batch (the suspect, default 16). c.iterations is the source input
-// byte count; the JC chunker fans it into hundreds of leaf blocks.
+// byte count. The JC chunker fans it into hundreds of leaf blocks.
 func runCopyWalkWrapperConcurrency(ctx context.Context, c *config) error {
 	// Default the source size and the suspect concurrency.
 	inputBytes := c.iterations
@@ -1532,8 +1535,8 @@ func runCopyWalkWrapperConcurrency(ctx context.Context, c *config) error {
 	}
 
 	// Share a gzip transform so stored bytes hash consistently with their
-	// object refs across both buckets; CopyObjectToBucket's forced-ref writes
-	// require the source stored representation to match its ref.
+	// object refs across both buckets. CopyObjectToBucket's forced-ref
+	// writes require the source stored representation to match its ref.
 	sfs := transform_all.BuildFactorySet()
 	transformConf, err := block_transform.NewConfig([]cbconfig.Config{
 		&transform_gzip.Config{},
@@ -1962,7 +1965,7 @@ func (f *probeSyncFlusher) scanDirty(ctx context.Context) ([]probeDirtyCandidate
 	}
 	defer tx.Discard()
 
-	// Decode each entry's hash and size; an unreadable size counts as zero.
+	// Decode each entry's hash and size. An unreadable size counts as zero.
 	var out []probeDirtyCandidate
 	prefix := []byte("dirty/")
 	if err := tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
@@ -2004,7 +2007,7 @@ func (f *probeSyncFlusher) loadDirtyBlocks(ctx context.Context, candidates []pro
 
 // nextProbeDirtyChunk selects a nonempty chunk within the pack writer's limits.
 func nextProbeDirtyChunk(blocks []probeDirtyCandidate, start int, maxChunkBytes int64, maxChunkBlocks int) (int, error) {
-	// Extend the chunk until a limit; an unknown size fills a whole chunk.
+	// Extend the chunk until a limit. An unknown size fills a whole chunk.
 	var chunkBytes int64
 	end := start
 	for end < len(blocks) {
@@ -2302,7 +2305,7 @@ type generatedUploadTreeStream struct {
 	ctx context.Context
 	// c identifies the worker for progress reports.
 	c *config
-	// name names the uploaded file.
+	// name holds the uploaded file's name.
 	name string
 	// totalSize is the complete file length.
 	totalSize int
@@ -2415,7 +2418,7 @@ func openVolume(ctx context.Context, c *config) (*volume_browser.Volume, error) 
 	return volume_browser.NewVolume(ctx, newVolumeConfig(c))
 }
 
-// newVolumeConfig names the volume by the scenario's isolated root.
+// newVolumeConfig sets the volume name from the scenario's isolated root.
 func newVolumeConfig(c *config) *volume_browser.Config {
 	return &volume_browser.Config{
 		Name:        c.root + "/volume",
@@ -2521,7 +2524,8 @@ func runCounterTryLock(c *config, want bool) error {
 
 // runCounterTimeoutLock requires a queued Web Lock request to honor cancellation.
 func runCounterTimeoutLock(ctx context.Context, c *config) error {
-	// Request the held lock with a short deadline; it must end canceled.
+	// Request the held lock with a short deadline. The request must end
+	// canceled.
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 	result, err := opfs.DefaultDriver.AcquireWebLock(ctx, c.root+"/locks/counter", true)

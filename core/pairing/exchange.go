@@ -347,9 +347,11 @@ func exchangeApproval(ctx context.Context, stream *stream_packet.Session, confir
 				return StatusFailed, err
 			}
 			if !approved {
-				// Keep the connection alive until the peer receives our rejection
-				// and closes its exchange. Closing a WebRTC link immediately after
-				// a buffered write can discard that decision.
+				// Keep the connection alive until the peer
+				// receives the local rejection and closes its
+				// exchange. Closing a WebRTC link immediately
+				// after a buffered write can discard that
+				// decision.
 				if remote != nil {
 					result := <-remote
 					if result.err != nil || result.message.GetRejected() {

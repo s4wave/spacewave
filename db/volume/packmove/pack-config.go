@@ -18,39 +18,41 @@ type PackConfig struct {
 	// Source is the volume store whose blocks are packed. Pack only reads it,
 	// and may share the file with the process that writes it.
 	Source kvtx.Store
-	// Keys names the key layout of Source.
+	// Keys holds the key layout of Source.
 	Keys *store_kvkey.KVKey
 	// WorldStoreID is the bucket ID of the World's block store. Pack leaves
 	// alone the blocks the reference graph reaches from any other root.
 	WorldStoreID string
-	// SQL is the World's rows in a SQL block store, which PackSQL packs; Pack
-	// ignores it.
+	// SQL is the World's rows in a SQL block store, which PackSQL packs.
+	// Pack ignores it.
 	SQL SQLRows
-	// ListPath is the key list PackList packs, as FindUnpacked writes it;
+	// ListPath is the key list PackList packs, as FindUnpacked writes it.
 	// Pack and PackSQL ignore it.
 	ListPath string
 	// Packer receives the packs.
 	Packer BlockPacker
-	// KeyStart and KeyEnd bound the keys a run packs: block keys relative to
-	// the block prefix for Pack, row keys for PackSQL. A run packs the keys
-	// after KeyStart and before KeyEnd; nil leaves that side open. Runs over
-	// disjoint ranges, each with its own log, pack in parallel.
+	// KeyStart and KeyEnd bound the keys a run packs: block keys relative
+	// to the block prefix for Pack, row keys for PackSQL. A run packs the
+	// keys after KeyStart and before KeyEnd. A nil bound leaves that side
+	// open. Runs over disjoint ranges, each with its own log, pack in
+	// parallel.
 	KeyStart, KeyEnd []byte
 	// LogPath is the pack log, created when missing. A log from an earlier
 	// run resumes that run.
 	LogPath string
-	// PackBytes is the block data one pack holds; zero uses DefaultPackBytes.
+	// PackBytes is the block data one pack holds. Zero uses
+	// DefaultPackBytes.
 	PackBytes int
-	// BytesPerSecond limits the block data uploaded per second; zero or less
-	// does not limit.
+	// BytesPerSecond limits the block data uploaded per second. Zero or
+	// less does not limit uploads.
 	BytesPerSecond int64
-	// Uploads is the number of packs uploading at once; zero or less uploads
-	// one at a time.
+	// Uploads is the number of packs uploading at once. Zero or less
+	// uploads one at a time.
 	Uploads int
 	// SkipRest leaves out the measure of the keys outside the block range.
 	SkipRest bool
-	// Progress receives the totals after each committed pack and
-	// each measured chunk; nil reports nothing. Calls do not overlap.
+	// Progress receives the totals after each committed pack and each
+	// measured chunk. A nil callback reports nothing. Calls do not overlap.
 	Progress func(PackProgress)
 }
 

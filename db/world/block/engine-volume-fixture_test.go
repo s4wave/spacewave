@@ -127,7 +127,7 @@ func (f *volumeFixture) seq() uint64 {
 // collect waits for the engine's retirements to drain, then runs collector
 // passes until one leaves no work. A head the Authority's watch installed
 // retires on the watch's goroutine, and its pin of a root a reader holds may
-// land after the commit returned; the 1ns grace keeps no block for that
+// land after the commit returned. The 1ns grace keeps no block for that
 // window, so collecting before the drain would free the reader's root.
 func (f *volumeFixture) collect(t *testing.T) collectSum {
 	// Wait out the retirements, whose pins the collection must see.

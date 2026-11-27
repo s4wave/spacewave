@@ -11,7 +11,7 @@ import (
 )
 
 // workerClient calls a dedicated worker with one message per request. Each
-// request is {id, op, ...args}; the worker answers {id, error?, ...result}.
+// request is {id, op, ...args}. The worker answers {id, error?, ...result}.
 type workerClient struct {
 	// worker is the dedicated worker.
 	worker js.Value

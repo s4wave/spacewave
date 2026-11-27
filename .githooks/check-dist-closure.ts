@@ -2,7 +2,7 @@
 // each dist.go embeds are closed: every local import of an embedded source
 // resolves to a source that a dist.go also embeds. It mirrors
 // TestDistSourcesAreClosed in web/dist_test.go, which checks the compiled
-// embed.FS in CI; this copy runs in the commit hook, so a new source that an
+// embed.FS in CI. This copy runs in the commit hook, so a new source that an
 // embedded file imports cannot be committed without its go:embed line.
 //
 // Run it from the repository root: bun .githooks/check-dist-closure.ts

@@ -386,7 +386,7 @@ describe('Router', () => {
     it('should not re-run parent effects when only child routes change', () => {
       let effectRuns = 0
 
-      // Parent dashboard component that contains the effect we want to monitor
+      // Parent dashboard component that contains the effect to monitor
       const Dashboard = () => {
         useEffect(() => {
           effectRuns++

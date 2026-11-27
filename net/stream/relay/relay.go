@@ -15,19 +15,19 @@ import (
 // Controller implements the relay controller. The controller handles
 // HandleMountedStream directives by relaying the stream to a target peer ID.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// srcPeerID is the source peer ID to filter on
+	// srcPeerID is the source peer ID to filter on.
 	srcPeerID peer.ID
-	// protocolID is the protocol id to listen on
+	// protocolID is the protocol id to listen on.
 	protocolID protocol.ID
-	// targetPeerID is the target peer ID to relay to
+	// targetPeerID is the target peer ID to relay to.
 	targetPeerID peer.ID
-	// targetProtocolID is the target protocol ID to relay to
+	// targetProtocolID is the target protocol ID to relay to.
 	targetProtocolID protocol.ID
 }
 
@@ -91,7 +91,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the relay controller.
 func (c *Controller) Execute(ctx context.Context) error {
-	// For relay, we just handle directives directly.
+	// The relay controller handles directives directly.
 	return nil
 }
 

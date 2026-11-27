@@ -111,7 +111,7 @@ func (t *Tx) applyBatch(ctx context.Context, ordered []batchOp) error {
 		}
 	}
 
-	// An empty tree is built directly from the nodes; otherwise the leaf
+	// An empty tree is built directly from the nodes. Otherwise the leaf
 	// windows rebuild and propagate upward.
 	if empty {
 		if len(nodes) > 1 {

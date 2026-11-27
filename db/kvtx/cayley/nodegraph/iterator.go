@@ -33,7 +33,7 @@ type edgeRange struct {
 	// narrow are the IDs after the tag that every key in the range starts
 	// with: the predicate, then the other endpoint, then the label.
 	narrow []uint64
-	// filter holds the IDs a quad must have; a zero ID matches any.
+	// filter holds the IDs a quad must have. A zero ID matches any.
 	filter quadRef
 }
 
@@ -84,7 +84,7 @@ func (r edgeRange) prefix() []byte {
 type edgeCursor struct {
 	r  edgeRange
 	it kvtx.Iterator
-	// reverse is set when it walks from the range's last key down.
+	// reverse is set when the cursor walks from the range's last key down.
 	reverse bool
 	// seeking is set when the next step seeks to seek instead of stepping.
 	// A nil seek is the end of a reverse range.
@@ -299,7 +299,7 @@ type edgeIndex struct {
 }
 
 // Contains reports whether ref is a quad in the range. A quad ref comes from
-// this store, so it exists; the check is its IDs.
+// this store, so it exists. The check is its IDs.
 func (it *edgeIndex) Contains(ctx context.Context, ref graph.Ref) (bool, error) {
 	// A ref of another kind is not in the range.
 	q, ok := ref.(quadRef)

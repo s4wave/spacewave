@@ -1,7 +1,7 @@
 // Package kernel runs Linux programs compiled to WebAssembly. Its host
 // functions implement the Linux syscalls and WASI imports those programs
 // call: processes, signals, pipes, sockets, the console and pseudo-terminals,
-// and a filesystem over an optional root. No Linux kernel runs; the Go host
+// and a filesystem over an optional root. No Linux kernel runs. The Go host
 // is the kernel.
 package kernel
 
@@ -34,8 +34,8 @@ type Kernel struct {
 	// mu is the kernel lock. Each host call holds it except while it
 	// blocks, so processes change the kernel's state one at a time.
 	mu sync.Mutex
-	// caller is the process whose host call holds the kernel lock, which
-	// /proc/self names.
+	// caller is the process whose host call holds the kernel lock and
+	// whose directory /proc/self selects.
 	caller *Process
 	// mounts is the mount table, in mount order. The kernel lock guards it.
 	mounts []*mount
@@ -256,7 +256,7 @@ func (k *Kernel) runProcess(ctx context.Context, p *Process, run func(ctx contex
 // the program replaced itself with exec, the exit code is the replacement's.
 // It returns an error when the program could not run or trapped.
 func (k *Kernel) runGuest(ctx context.Context, p *Process, run func(ctx context.Context) error) error {
-	// Run the guest; it ends by panicking a ProcessExitError from exit.
+	// Run the guest, which ends by panicking a ProcessExitError from exit.
 	err := run(ctx)
 	if p.inst != nil {
 		k.mu.Lock()
@@ -471,7 +471,7 @@ func (k *Kernel) initVFS(cfg *Config) {
 	v.mkCharDev(dev, "ptmx", devPtmx)
 	k.pts, k.ptys = v.mkDir(dev, "pts"), make(map[int]*pty)
 
-	// Add the shared memory directory, where shm_open names its files.
+	// Add the shared memory directory, where shm_open opens its files.
 	v.mkDir(dev, "shm")
 
 	// Add the in-memory directories that overlay the root filesystem, and

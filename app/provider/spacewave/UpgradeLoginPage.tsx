@@ -9,8 +9,8 @@ import { PageFooter } from './CloudConfirmationPage.js'
 import { useSpacewaveAuth } from './useSpacewaveAuth.js'
 
 // UpgradeLoginPage renders a login form for non-cloud sessions upgrading to cloud.
-// After login or account creation, navigates to the new cloud session's /plan/upgrade
-// to start the Stripe checkout flow.
+// After login or account creation, the page navigates to the new cloud
+// session's /plan/upgrade to start the Stripe checkout flow.
 export function UpgradeLoginPage() {
   const navigate = useNavigate()
 

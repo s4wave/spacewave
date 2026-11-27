@@ -53,5 +53,5 @@ func (h *bridgedWorldHandler) InvokeObjectType(ctx context.Context, req *sdk_reg
 	return &sdk_registry.InvokeObjectTypeResponse{ResourceId: id}, nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ sdk_registry.SRPCObjectTypeHandlerServiceServer = (*bridgedWorldHandler)(nil)

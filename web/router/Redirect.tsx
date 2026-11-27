@@ -7,8 +7,8 @@ interface RedirectProps {
 }
 
 /**
- * Redirect component that performs navigation with replace=true when mounted
- * or when the "to" prop changes
+ * Redirect navigates with replace=true when mounted
+ * or when the "to" prop changes.
  */
 export function Redirect({ to }: RedirectProps) {
   return <NavigatePath to={to} replace={true} />

@@ -34,8 +34,8 @@ const (
 	// writes: each activation routed into one of its inputs commits the
 	// value it chose as the object's state.
 	ObjectSinkNodeTypeID = "flowgraph/object-sink"
-	// ObjectSinkTypeParameter names the parameter of an object sink that
-	// holds the World type its object must have, and is created with.
+	// ObjectSinkTypeParameter identifies the parameter of an object sink
+	// that holds the World type its object must have, and is created with.
 	ObjectSinkTypeParameter = "type"
 )
 
@@ -80,12 +80,13 @@ func (g *Flowgraph) Validate() error {
 
 // ValidateBound checks the graph as Validate does, except that a node bound to
 // an object also offers the ports the object's type declares while its binding
-// is BOUND, so a connection may name either an authored or a declared port.
-// A declared port wins over an authored port of the same name. A node with no
-// BOUND binding offers its authored ports only, but a connection that is
-// unchanged from previous keeps standing when it names a port that cannot be
-// read now, since the object or its plugin may return. bindings is the
-// snapshot's bindings by node ID; previous is the graph before the edit, or nil.
+// is BOUND, so a connection may reference either an authored or a declared
+// port. A declared port wins over an authored port of the same name. A node
+// with no BOUND binding offers its authored ports only, but a connection that
+// is unchanged from previous keeps standing when the connection references a
+// port that cannot be read now, since the object or its plugin may return.
+// bindings is the snapshot's bindings by node ID. previous is the graph before
+// the edit, or nil.
 func (g *Flowgraph) ValidateBound(bindings map[string]*FlowgraphBinding, previous *Flowgraph) error {
 	// Validate every node before resolving connection endpoints.
 	for id, node := range g.GetNodes() {
@@ -120,8 +121,8 @@ func (g *Flowgraph) ValidateBound(bindings map[string]*FlowgraphBinding, previou
 	return nil
 }
 
-// findNodePort returns a port a connection may name on a node: the declared
-// port of a BOUND binding first, then the authored port.
+// findNodePort returns a port a connection may reference on a node: the
+// declared port of a BOUND binding first, then the authored port.
 func findNodePort(g *Flowgraph, bindings map[string]*FlowgraphBinding, nodeID, name string) *FlowgraphPort {
 	if binding := bindings[nodeID]; binding.GetState() == FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND {
 		if port := binding.FindPort(name); port != nil {

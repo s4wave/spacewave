@@ -23,7 +23,7 @@ export function buildObjectRoutePath(
 }
 
 // spaceTabViewerPath returns the shell path of the object layout tab at
-// parentPaths, or undefined when the tab names no object in the Space.
+// parentPaths, or undefined when the tab specifies no object in the Space.
 // A world object opens at its route with the tab's viewer path under it. A
 // UnixFS object opens at the route of its UnixFS with the file path under it,
 // the same path the UnixFS viewer reads from the router below its base path.

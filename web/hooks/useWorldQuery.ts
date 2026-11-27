@@ -21,12 +21,12 @@ export interface UseWorldQueryOptions<
 
 /**
  * useWorldQuery runs a bounded World query and re-runs it on each World
- * revision. A live World is watched through its Engine; a World without one,
+ * revision. A live World is watched through its Engine. A World without one,
  * such as a historical snapshot, is read once. deps lists the values the
- * query closes over; changing one restarts the watch. A watch that fails
- * after its first result reconnects; options can override that or add an
+ * query closes over. Changing one restarts the watch. A watch that fails
+ * after its first result reconnects. options can override that or add an
  * equals check that keeps an unchanged result. Hooks on one World that pass
- * the same key share one watch, so the key must name everything the query
+ * the same key share one watch, so the key must identify everything the query
  * reads.
  */
 export function useWorldQuery<T>(

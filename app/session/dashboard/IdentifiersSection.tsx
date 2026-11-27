@@ -13,7 +13,7 @@ export interface IdentifiersSectionProps {
 }
 
 // IdentifiersSection wraps session, peer, and account IDs in a collapsible
-// section. Defaults to closed since these are rarely needed.
+// section. It defaults to closed since these IDs are rarely needed.
 export function IdentifiersSection({
   open,
   onOpenChange,

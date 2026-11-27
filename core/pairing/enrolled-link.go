@@ -8,9 +8,10 @@ import (
 )
 
 // BindEnrolledLink authenticates the receiving Session on an existing encrypted
-// pairing connection. The receiving key's signed proof binds it to both original
-// transport peers and this exact account enrollment. Bilateral account approval
-// and durable enrollment must precede handing the result to ordinary routing.
+// pairing connection. The receiving key's signed proof binds the key to both
+// original transport peers and this exact account enrollment. Bilateral account
+// approval and durable enrollment must precede handing the result to ordinary
+// routing.
 func BindEnrolledLink(connection link.Link, offer *AccountOffer, identity *Identity, source, receiving peer.ID) (link.Link, error) {
 	// Validate the enrollment proof and bind it to this connection's peers.
 	if err := ValidateIdentity(offer, identity, source, receiving); err != nil {

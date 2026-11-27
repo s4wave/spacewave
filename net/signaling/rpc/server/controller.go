@@ -19,7 +19,7 @@ const ControllerID = "bifrost/signaling/rpc/server"
 // Controller is the signaling server controller.
 type Controller struct {
 	*stream_srpc_server.Server
-	// srv is the server
+	// srv is the server.
 	srv *Server
 }
 

@@ -13,7 +13,7 @@ import (
 
 // hostDir is the private host directory holding one execution's output
 // directory and input checkouts, each bind-mounted into the container. Its
-// root, created mode 0700, keeps other host users out; bind mounts reach the
+// root, created mode 0700, keeps other host users out. Bind mounts reach the
 // directories under it regardless.
 type hostDir struct {
 	// root is removed with everything under it after the container exits.

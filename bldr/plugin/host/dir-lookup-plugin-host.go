@@ -22,7 +22,7 @@ type LookupPluginHost interface {
 // Multiple results may be pushed to the directive.
 type LookupPluginHostValue = PluginHost
 
-// lLookupPluginHost implements LookupPluginHost
+// lLookupPluginHost implements LookupPluginHost.
 type lLookupPluginHost struct {
 	platformIDs []string
 }
@@ -63,7 +63,7 @@ func (d *lLookupPluginHost) Validate() error {
 	return nil
 }
 
-// GetValueLookupPluginHostOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lLookupPluginHost) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -94,9 +94,10 @@ func (d *lLookupPluginHost) GetName() string {
 	return "LookupPluginHost"
 }
 
-// GetDebugString returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// GetDebugVals returns the directive arguments stringified.
+// The debug values should be something like param1="test", param2="test".
+// The debug values are not necessarily unique and are primarily intended
+// for display.
 func (d *lLookupPluginHost) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if platformIDs := d.LookupPluginHostPlatformIDs(); len(platformIDs) != 0 {

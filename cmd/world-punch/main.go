@@ -1,10 +1,10 @@
 // Command world-punch releases the disk blocks of a closed SQLite database's
 // freelist leaf pages with fallocate(PUNCH_HOLE|KEEP_SIZE). The file size,
-// page numbers and every in-use and trunk page are unchanged; SQLite reads
+// page numbers and every in-use and trunk page are unchanged. SQLite reads
 // a free leaf without its content, so a hole reads as the zero page it
 // would write itself with secure_delete.
 //
-// The default is a dry run. -range-sha punches, and only when a fresh walk
+// The default mode is a dry run. -range-sha punches, and only when a fresh walk
 // matches the hash a dry run printed. -live reads a running database
 // read-only, takes no locks and cannot punch.
 package main

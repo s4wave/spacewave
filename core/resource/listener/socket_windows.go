@@ -11,7 +11,7 @@ import (
 )
 
 // ListenProtectedUnix preserves Windows Unix-socket behavior. Windows does
-// not use Unix mode bits as filesystem authority; callers must not treat the
+// not use Unix mode bits as filesystem authority, so callers must not treat the
 // requested modes as an access-control boundary.
 func ListenProtectedUnix(path string, managed bool) (*net.UnixListener, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

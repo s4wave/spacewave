@@ -5,7 +5,8 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 // WindowsBypassNotice renders a collapsible "How to run on Windows" block
 // describing how to bypass SmartScreen for the interim unsigned build.
-// Collapsed by default. Keyboard accessible as a <button> disclosure.
+// The block is collapsed by default and keyboard accessible as a <button>
+// disclosure.
 export function WindowsBypassNotice() {
   const [isOpen, setOpen] = useState(false)
 

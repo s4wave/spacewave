@@ -26,7 +26,7 @@ type BuildBucketAPI interface {
 // The value is removed and replaced when any values change.
 type BuildBucketAPIValue = BucketHandle
 
-// buildBucketAPI implements BuildBucketAPI
+// buildBucketAPI implements BuildBucketAPI.
 type buildBucketAPI struct {
 	bucketID, storeID string
 }
@@ -55,7 +55,7 @@ func ExBuildBucketAPI(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// The validation is cursory to see if the values "look correct."
 func (d *buildBucketAPI) Validate() error {
 	if d.bucketID == "" {
 		return ErrBucketIDEmpty
@@ -67,7 +67,7 @@ func (d *buildBucketAPI) Validate() error {
 	return nil
 }
 
-// GetValueBuildBucketAPIOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *buildBucketAPI) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -76,7 +76,7 @@ func (d *buildBucketAPI) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// BuildBucketAPIBucketIDRe returns the bucket ID constraint.
+// BuildBucketAPIBucketID returns the bucket ID constraint.
 func (d *buildBucketAPI) BuildBucketAPIBucketID() string {
 	return d.bucketID
 }
@@ -121,7 +121,7 @@ func (d *buildBucketAPI) GetName() string {
 	return "BuildBucketAPI"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *buildBucketAPI) GetDebugVals() directive.DebugValues {

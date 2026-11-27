@@ -31,7 +31,7 @@ func NewRepoBlock() block.Block {
 }
 
 // UnmarshalRepo unmarshals a repo from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalRepo(ctx context.Context, bcs *block.Cursor) (*Repo, error) {
 	return block.UnmarshalBlock[Repo](ctx, bcs)
 }
@@ -209,7 +209,7 @@ func (r *Repo) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: the returned map does not include pending references (in a cursor).
 func (r *Repo) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	if r == nil {
 		return nil, nil

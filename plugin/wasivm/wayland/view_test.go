@@ -44,8 +44,9 @@ func TestTexture(t *testing.T) {
 	}
 }
 
-// TestTextureEdges checks a long list of thin areas, such as a window's edges, merges into areas near their own size rather than their bounding
-// box.
+// TestTextureEdges checks that, for thin areas such as a window's edges,
+// a long list merges into areas near their own size rather than their
+// bounding box.
 func TestTextureEdges(t *testing.T) {
 	// Mark the left and right edges of ten windows stacked down the screen.
 	tex := &texture{}

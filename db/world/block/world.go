@@ -27,12 +27,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// objectKeyPrefix is the prefix used for object keys in storage
+// objectKeyPrefix is the prefix used for object keys in storage.
 var objectKeyPrefix = "o/"
 
 // WorldState implements world state backed by a block graph.
 // Note: GetRoot, WaitSeqno are concurrency safe.
-// Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
+// Note: all other calls are not concurrency safe. Callers use Tx for a mutex.
 type WorldState struct {
 	le        *logrus.Entry
 	btx       *block.Transaction
@@ -41,8 +41,8 @@ type WorldState struct {
 	verbose   bool
 	discarded atomic.Bool
 	// ended is the error a discarded state reports when the engine that
-	// served it ended it, such as a retired engine's; unset, it reports
-	// tx.ErrDiscarded.
+	// served it ended it, such as a retired engine's. When ended is unset,
+	// the state reports tx.ErrDiscarded.
 	ended atomic.Pointer[error]
 	// readRelease ends the holds that keep the state's blocks readable, or
 	// is nil. Discard runs it once.
@@ -110,15 +110,16 @@ type WorldState struct {
 	// less those they remove. The flush of pendingChanges adds them to the
 	// root's type counts.
 	typeDeltas map[string]int64
-	// modObjects holds the record cursors of each object written since the last
-	// Commit, which stamps them with the seqno it reaches. The last cursor of a
-	// key holds the record in the tree; earlier ones back changelog entries.
+	// modObjects holds the record cursors of each object written since the
+	// last Commit, which stamps them with the seqno it reaches. The last
+	// cursor of a key holds the record in the tree. Earlier cursors back
+	// changelog entries.
 	modObjects map[string][]*block.Cursor
 	// setRoots maps each object key whose root was set since the last take,
-	// Commit or Discard to its final same-bucket root; see noteSetRoot.
+	// Commit or Discard to its final same-bucket root. See noteSetRoot.
 	setRoots map[string]*block.BlockRef
-	// loggedRoots holds each same-bucket root a changelog entry written since
-	// the last take, Commit or Discard links on its new side; see
+	// loggedRoots holds each same-bucket root a changelog entry written
+	// since the last take, Commit or Discard links on its new side. See
 	// noteLoggedRoot.
 	loggedRoots []*block.BlockRef
 	// changeKeys holds the object keys touched by queueWorldChange since the
@@ -131,14 +132,14 @@ type WorldState struct {
 	// changeUnknown reports that the pending changes exceeded changeDiffLimit.
 	changeUnknown bool
 
-	// seqnoBcast guards below fields
+	// seqnoBcast guards the fields below.
 	seqnoBcast broadcast.Broadcast
 	// seqno is the current sequence number of the world state: the changelog
 	// position its pending changes reach once flushed. A run of same-type
 	// changes shares one seqno, so it does not move on every change.
 	seqno uint64
 
-	// revs wakes the waiters of an object when a change names its key.
+	// revs wakes the waiters of an object when a change references its key.
 	revs revWatch
 }
 
@@ -257,7 +258,7 @@ func (t *WorldState) GetReadOnly() bool {
 }
 
 // Sync fences the block writes made through this state durable.
-// A bare world state fences only its block store; the durable head is advanced
+// A bare world state fences only its block store. The durable head is advanced
 // by the owning Engine (see Engine.Sync). Returns (true, nil) when there is no
 // store to fence (read-only or coordinator-backed states).
 func (t *WorldState) Sync(ctx context.Context) (bool, error) {
@@ -295,7 +296,7 @@ func (t *WorldState) Flush(ctx context.Context) error {
 
 // TakePending borrows the block writes buffered by this state, so an atomic
 // publication can write them in place of Flush. The caller completes the batch
-// with the publication's result; a failed batch returns to the buffer. A state
+// with the publication's result. A failed batch returns to the buffer. A state
 // without a write buffer returns an empty batch.
 func (t *WorldState) TakePending(ctx context.Context) (*block.PendingBatch, error) {
 	if t.ownedStore == nil {
@@ -311,7 +312,7 @@ func (t *WorldState) takeReachable(ctx context.Context, roots ...*block.BlockRef
 	return t.ownedStore.TakeReachable(ctx, roots...)
 }
 
-// objectWake returns the channel the next change naming key closes.
+// objectWake returns the channel the next change referencing key closes.
 func (t *WorldState) objectWake(key string) <-chan struct{} {
 	return t.revs.wait(key)
 }
@@ -340,7 +341,7 @@ func (t *WorldState) GetBcs() *block.Cursor {
 //
 // Concurrency safe.
 func (t *WorldState) GetRoot(ctx context.Context) (*World, error) {
-	// bcs uses mutexes internally so this is concurrency safe.
+	// bcs uses mutexes internally so GetRoot is concurrency safe.
 	return UnmarshalWorld(ctx, t.bcs)
 }
 
@@ -391,9 +392,9 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 	}
 }
 
-// waitRev waits until woken, taken from revs before the caller read the
-// object, closes. It reports why the state ended once it is discarded, as
-// WaitSeqno does.
+// waitRev waits until woken closes. The caller takes woken from revs before
+// reading the object. waitRev reports why the state ended once the state is
+// discarded, as WaitSeqno does.
 func (t *WorldState) waitRev(ctx context.Context, woken <-chan struct{}) error {
 	select {
 	case <-ctx.Done():
@@ -829,8 +830,8 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 	return tree, nil
 }
 
-// ObjectWritesEnv names the environment variable that, set to "on", makes a
-// write's object tree hold its object writes until the commit instead of
+// ObjectWritesEnv identifies the environment variable that, set to "on", makes
+// a write's object tree hold its object writes until the commit instead of
 // applying each at once. It is off by default.
 const ObjectWritesEnv = "SPACEWAVE_WORLD_HELD_OBJECT_WRITES"
 
@@ -839,7 +840,7 @@ var objectWritesHeld = os.Getenv(ObjectWritesEnv) == "on"
 
 // flushObjectWrites applies the object writes the object tree holds. A write
 // holds them so a commit rebuilds each tree page it changes once, rather than
-// once per object write; see kvtx_block_okra.Tx.DeferCursorWrites.
+// once per object write. See kvtx_block_okra.Tx.DeferCursorWrites.
 func (t *WorldState) flushObjectWrites(ctx context.Context) error {
 	if packed, ok := t.objTree.(*kvtx_block_okra.Tx); ok {
 		return packed.Flush(ctx)
@@ -905,7 +906,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context) (kvtx.BlockTx, *kvtx_de
 
 	// Open the graph in the root's format and under its settings.
 	// NOTE: the ctx is used here for internal hidalgo k/v transactions!
-	// it must not be canceled while WorldState is in use!
+	// ctx must not be canceled while WorldState is in use!
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/new-graph-handle")
 	var graphOps *kvtx_deferred.Ops
 	var graphStore kvtx.TxOps = ktx

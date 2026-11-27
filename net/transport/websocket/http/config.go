@@ -12,7 +12,7 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// The validation is cursory to see if the values "look correct."
 func (c *Config) Validate() error {
 	if _, err := c.ParseTransportPeerID(); err != nil {
 		return errors.Wrap(err, "transport_peer_id")
@@ -44,7 +44,8 @@ func (c *Config) SetTransportPeerId(peerID string) {
 
 // GetDebugVals returns the directive arguments as key/value pairs.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The debug values are not necessarily unique and are primarily intended for
+// display.
 func (c *Config) GetDebugVals() config.DebugValues {
 	// Describe the configured peer and HTTP routing patterns for diagnostics.
 	vals := make(config.DebugValues)

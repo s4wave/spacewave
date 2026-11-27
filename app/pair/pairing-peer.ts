@@ -16,8 +16,8 @@ export function pairingRouteCode(route: string): string | undefined {
 
 /**
  * resolvePairingPeer consumes a pairing code at the relay on the page origin,
- * where the browser release serves it, and remembers the registering peer for
- * this tab. Any failure leaves the code for the session to resolve.
+ * where the browser release serves the relay, and remembers the registering
+ * peer for this tab. Any failure leaves the code for the session to resolve.
  */
 export async function resolvePairingPeer(code: string): Promise<void> {
   // Consume the code at the relay.

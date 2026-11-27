@@ -9,7 +9,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * Cluster is the root of the k8s/cluster object, which makes its Space a
  * Kubernetes cluster. The Device whose ProcessBinding approves the object
  * serves the Space's Kubernetes API through the spacewave-k8s plugin, and a
- * client reaches it through the object's web.fetch.FetchService.
+ * client reaches the API through the object's web.fetch.FetchService.
  *
  * @generated from message s4wave.k8s.Cluster
  */

@@ -88,7 +88,7 @@ func NewFsMknodWithContentOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsMknodWithContentOp) Validate() error {
 	// Validate the file path, timestamp, filesystem type, and content
 	// reference, which is empty for an empty file.
@@ -169,7 +169,7 @@ func (o *FsMknodWithContentOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetBlobRef()}
 }
 
-// PayloadRefsVersion identifies what GetPayloadRefs names.
+// PayloadRefsVersion identifies what GetPayloadRefs returns.
 func (o *FsMknodWithContentOp) PayloadRefsVersion() uint32 {
 	return 1
 }

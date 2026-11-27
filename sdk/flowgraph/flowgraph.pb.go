@@ -108,7 +108,7 @@ type FlowgraphBindingState int32
 const (
 	// FLOWGRAPH_BINDING_STATE_UNKNOWN is unset.
 	FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_UNKNOWN FlowgraphBindingState = 0
-	// FLOWGRAPH_BINDING_STATE_UNBOUND means the node names no object.
+	// FLOWGRAPH_BINDING_STATE_UNBOUND means the node references no object.
 	FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_UNBOUND FlowgraphBindingState = 1
 	// FLOWGRAPH_BINDING_STATE_BOUND means the object exists and its type is
 	// registered, so the declared ports are known.
@@ -319,11 +319,12 @@ type FlowgraphRequirements struct {
 	MilliCpu uint64 `protobuf:"varint,1,opt,name=milli_cpu,json=milliCpu,proto3" json:"milliCpu,omitempty"`
 	// MemoryBytes is the reserved memory in bytes.
 	MemoryBytes uint64 `protobuf:"varint,2,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
-	// RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+	// RuntimeBackend selects a Forge backend. An empty backend accepts any
+	// declared backend.
 	RuntimeBackend string `protobuf:"bytes,3,opt,name=runtime_backend,json=runtimeBackend,proto3" json:"runtimeBackend,omitempty"`
 	// MatchLabels requires each key and value in the Device's effective labels.
 	MatchLabels map[string]string `protobuf:"bytes,4,rep,name=match_labels,json=matchLabels,proto3" json:"matchLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Replicas is the desired number of Devices; zero means one.
+	// Replicas is the desired number of Devices. Zero means one.
 	Replicas uint32 `protobuf:"varint,5,opt,name=replicas,proto3" json:"replicas,omitempty"`
 }
 
@@ -651,7 +652,8 @@ type FlowgraphBinding struct {
 	// State is the binding state derived from the World and the type registry.
 	State FlowgraphBindingState `protobuf:"varint,3,opt,name=state,proto3" json:"state,omitempty"`
 	// Ports lists the ports the object's registered type declares. The node's
-	// connections may name these ports. It is empty unless the state is BOUND.
+	// connections may reference these ports. Ports is empty unless the state is
+	// BOUND.
 	Ports []*FlowgraphPort `protobuf:"bytes,4,rep,name=ports,proto3" json:"ports,omitempty"`
 }
 
@@ -689,7 +691,7 @@ func (x *FlowgraphBinding) GetPorts() []*FlowgraphPort {
 	return nil
 }
 
-// FlowgraphSnapshot reads authored state and its placement edges together.
+// FlowgraphSnapshot contains authored state and its placement edges together.
 type FlowgraphSnapshot struct {
 	unknownFields []byte
 	// State is the authored object body.
@@ -698,8 +700,8 @@ type FlowgraphSnapshot struct {
 	Placements map[string]*FlowgraphPlacements `protobuf:"bytes,2,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Revision is the object's revision observed by this read.
 	Revision uint64 `protobuf:"varint,3,opt,name=revision,proto3" json:"revision,omitempty"`
-	// Bindings contains the binding of each node that names an object, keyed by
-	// node ID. An unbound node has no entry.
+	// Bindings contains the binding of each node that references an object, keyed
+	// by node ID. An unbound node has no entry.
 	Bindings map[string]*FlowgraphBinding `protobuf:"bytes,4,rep,name=bindings,proto3" json:"bindings,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -987,7 +989,8 @@ func (x *FlowgraphChange) GetEdit() *UpdateFlowgraphRequest {
 // ListFlowgraphChangesRequest reads the mounted graph's history.
 type ListFlowgraphChangesRequest struct {
 	unknownFields []byte
-	// Limit bounds the number of changes returned; zero returns all retained.
+	// Limit bounds the number of changes returned. Zero returns all retained
+	// changes.
 	Limit uint32 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 }
 
@@ -1072,8 +1075,9 @@ type FlowgraphRun struct {
 	// one standing run.
 	Standing bool `protobuf:"varint,11,opt,name=standing,proto3" json:"standing,omitempty"`
 	// Cursor holds the opaque position after the last event delivered from each
-	// event-source node, by node ID. A delivery applies only when it names the
-	// stored cursor, so two readers of the same events deliver each once.
+	// event-source node, by node ID. A delivery applies only when the delivery
+	// references the stored cursor, so two readers of the same events deliver
+	// each once.
 	Cursor map[string][]byte `protobuf:"bytes,12,rep,name=cursor,proto3" json:"cursor,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Placements is the immutable placement snapshot at FlowgraphRevision.
 	Placements map[string]*FlowgraphPlacements `protobuf:"bytes,13,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
@@ -1201,7 +1205,7 @@ type FlowgraphActivation struct {
 	// grows, so a sequence number is never reused after an acknowledgement.
 	LastInputSeq uint64 `protobuf:"varint,8,opt,name=last_input_seq,json=lastInputSeq,proto3" json:"lastInputSeq,omitempty"`
 	// ActorKey is the immutable receipt of the actor started for this activation.
-	// RecordActivationActor sets it once; restarted execs reattach to this actor.
+	// RecordActivationActor sets it once. Restarted execs reattach to this actor.
 	ActorKey string `protobuf:"bytes,9,opt,name=actor_key,json=actorKey,proto3" json:"actorKey,omitempty"`
 }
 
@@ -1278,14 +1282,14 @@ func (x *FlowgraphActivation) GetActorKey() string {
 // An exec uses it to record its actor and watch or acknowledge live inputs.
 type FlowgraphActivationContext struct {
 	unknownFields []byte
-	// RunKey names the owning run, an immutable execution snapshot.
+	// RunKey references the owning run, an immutable execution snapshot.
 	RunKey string `protobuf:"bytes,1,opt,name=run_key,json=runKey,proto3" json:"runKey,omitempty"`
 	// ActivationId is the activation's Task key within that run.
 	ActivationId string `protobuf:"bytes,2,opt,name=activation_id,json=activationId,proto3" json:"activationId,omitempty"`
 	// Key is the activation's arrival key, empty for an unkeyed Step.
 	Key string `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
-	// TemplateKey names the template in the run's immutable placement snapshot.
-	// It is empty unless the Step is placed on an actor template.
+	// TemplateKey references the template in the run's immutable placement
+	// snapshot. It is empty unless the Step is placed on an actor template.
 	TemplateKey string `protobuf:"bytes,4,opt,name=template_key,json=templateKey,proto3" json:"templateKey,omitempty"`
 }
 
@@ -1436,7 +1440,7 @@ func (*FlowgraphArrival_TaskOutput) isFlowgraphArrival_Source() {}
 
 func (*FlowgraphArrival_Event) isFlowgraphArrival_Source() {}
 
-// FlowgraphTaskOutput names an output of a Forge Task.
+// FlowgraphTaskOutput references an output of a Forge Task.
 type FlowgraphTaskOutput struct {
 	unknownFields []byte
 	// TaskKey is the Task whose output arrived.
@@ -1465,7 +1469,7 @@ func (x *FlowgraphTaskOutput) GetOutputName() string {
 	return ""
 }
 
-// FlowgraphEvent names one event on a World object.
+// FlowgraphEvent references one event on a World object.
 type FlowgraphEvent struct {
 	unknownFields []byte
 	// ObjectKey is the World object the event happened on. The receiving Step's

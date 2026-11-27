@@ -19,8 +19,8 @@ const (
 	// fileStore maps each file name to its length.
 	fileStore = "files"
 	// chunkStore holds file contents as chunks keyed by [name, index]. A
-	// chunk may be shorter than ChunkSize or absent; the missing bytes below
-	// the file length read as zero.
+	// chunk may be shorter than ChunkSize or absent. The missing bytes
+	// below the file length read as zero.
 	chunkStore = "chunks"
 	// syncStore holds one record an empty flushed write rewrites, so the
 	// transaction has a write to make durable.
@@ -60,7 +60,7 @@ type tail struct {
 	data []byte
 }
 
-// chunkID names one chunk.
+// chunkID identifies one chunk.
 type chunkID struct {
 	// name is the file.
 	name string
@@ -281,7 +281,7 @@ func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
 		return err
 	}
 
-	// Record the new length; the cached tail no longer matches.
+	// Record the new length. The cached tail no longer matches.
 	d.sizes[name] = size
 	delete(d.tails, name)
 	return nil

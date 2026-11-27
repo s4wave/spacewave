@@ -34,10 +34,10 @@ import (
 //
 //  1. Hold until free. A stored block with a child list holds each child it
 //     lists until the transaction that frees it. Netting never moves a
-//     child's count because its parent reached zero; the only release is a
+//     child's count because its parent reached zero. The only release is a
 //     free's.
 //  2. Counts exact. A block's count is its named roots, the stored lists
-//     that name it, its implied holder while no other holder was logged,
+//     that reference it, its implied holder while no other holder was logged,
 //     and the ups less the downs not netted yet, as Liveness.tla's
 //     CountsExact states. Land logs every holder it adds or removes, a free
 //     gives each child its down in the transaction that deletes the list,
@@ -65,7 +65,7 @@ import (
 //     clock, by a clock that has since stepped back, is restamped with the
 //     collector's clock when it reads it.
 //  6. No late namer. A Land that holds a stored block, a root moving onto
-//     it, a born block or a refilled hole naming it or a put of it again,
+//     it, a born block or a refilled hole referencing it or a put of it again,
 //     reads the block's count and dequeues it when at zero, in the
 //     transaction that writes its up. The free cannot take it until that up
 //     nets, which lifts it off zero or, with a down that cancels it, queues
@@ -84,10 +84,10 @@ import (
 //     whose leased roots hold each block from its put. A writer that builds
 //     on a root it read holds that root for the life of its write under a
 //     leased pin, or the World engine's pending root does for it. Land does
-//     not check that a child a put names is stored, so a writer past these
-//     rules names a hole.
+//     not check that a child a put references is stored, so a writer past these
+//     rules references a hole.
 //  8. A child without a child list, a hole or one not yet stored, floors at
-//     its implied holder when a down reaches it, and counts in Leaked; its
+//     its implied holder when a down reaches it, and counts in Leaked. Its
 //     own children, unknown here, are untouched. The audit, not the
 //     collector, finds what a hole leaked.
 //  9. The generation rule. While the Volume's old generation is Open, as a
@@ -175,12 +175,12 @@ type Collector struct {
 	// children (Records.pushOwed) and the adoption's recount
 	// (adoption.hold). An entry one of them adds behind the cursor
 	// during a scan therefore holds the flip until a later scan, which
-	// starts at the head, pops it or the walk takes it off; an entry added
-	// ahead is read in this scan; an entry removed, by the walk, a free or a
-	// pop, leaves a position the next seek passes over. A position made
-	// stale by any of these costs at most one partial scan. A restart begins
-	// at the head, and only a scan that reached the front's end reports
-	// FrontDone.
+	// starts at the head, pops it or the walk takes it off. An entry added
+	// ahead is read in this scan. An entry removed, by the walk, a free or
+	// a pop, leaves a position the next seek passes over. A position made
+	// stale by any of these costs at most one partial scan. A restart
+	// begins at the head, and only a scan that reached the front's end
+	// reports FrontDone.
 	front frontPos
 	// frontIdle reports that a front scan reached the front's end since the
 	// collector started, and that no event since its start could let a pop
@@ -299,8 +299,8 @@ func (p *pace) observe(d time.Duration) {
 // took on the collector's clock. The wait behind queued writers and the
 // commit's cost belong to the store: no budget shortens them, so counting
 // them would hold the pace at its smallest share on a store whose commit
-// alone takes longer than sliceTarget. The store may run fn more than once;
-// the last run is the one it commits.
+// alone takes longer than sliceTarget. The store may run fn more than once. The
+// last run is the one it commits.
 //
 // It notes the queue entries the committed run wrote, or forgets the free
 // queue's position when the store returns an error, as Collector.queueFrom
@@ -863,7 +863,7 @@ func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.
 }
 
 // releaseRoots adds to lapsed the release of each root of roots that still
-// names the lease id, and deletes the index record of one that does not.
+// references the lease id, and deletes the index record of one that does not.
 func releaseRoots(ctx context.Context, rec *Records, id string, roots []LeasedRoot, lapsed map[string][]block.NamedRoot) error {
 	for _, root := range roots {
 		// Read the root.
@@ -933,8 +933,8 @@ func (c *Collector) endLeases(
 //
 // Cost: one up page read and delete per logPageKeys ups, one down page read
 // and delete per logPageKeys downs, one batched count record read of the
-// distinct blocks they name, one list read per block that reaches zero, and
-// the count, queue and state writes that changed; a release page read per
+// distinct blocks they reference, one list read per block that reaches zero,
+// and the count, queue and state writes that changed; a release page read per
 // releasePageChildren moved children.
 func (c *Collector) net(ctx context.Context, rec *Records, res *CollectResult) (bool, error) {
 	// Net only an adopted Volume.
@@ -966,12 +966,12 @@ func (c *Collector) net(ctx context.Context, rec *Records, res *CollectResult) (
 }
 
 // netLogs adds the ups of the up pages from the up cursor, then the downs of
-// the aged down pages, in sequence order, to n, each page whole, the first whatever its size, until budget keys, and
-// deletes the pages. A first down page stamped after the collector's clock,
-// which a wall clock stepped back leaves, it stamps at the clock, so it ages
-// from the time the collector first saw it; the pages after it wait behind
-// it, which only delays frees. It reports whether it stopped at the budget
-// with pages left.
+// the aged down pages, in sequence order, to n, each page whole, the first
+// whatever its size, until budget keys, and deletes the pages. A first down
+// page stamped after the collector's clock, which a wall clock stepped back
+// leaves, it stamps at the clock, so it ages from the time the collector first
+// saw it. The pages after it wait behind it, which only delays frees. It
+// reports whether it stopped at the budget with pages left.
 //
 // Downs net only in a slice that drained the up log: it returns at the
 // budget before it reads a down page while an up page is left. Every up a
@@ -983,7 +983,7 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 	rec, state := n.rec, n.state
 	now := c.opts.Now().UnixMilli()
 
-	// Net the up pages from the cursor; once none is left the cursor is the
+	// Net the up pages from the cursor. Once none is left the cursor is the
 	// up log's end.
 	used, full := 0, false
 	err := rec.scanUps(ctx, state.GetUpCursor(), func(seq uint64, keys []byte) (bool, error) {
@@ -1174,7 +1174,7 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 // freeable reports whether the free may run under state: the Volume is
 // adopted, Grace has passed since the adoption's mark, and no paged release
 // is in progress, whose unmoved children still count their freed parent.
-// The adoption settles a block no holder names at zero with no down behind
+// The adoption settles a block no holder references at zero with no down behind
 // it, so the wait gives a reader that saw it named before the mark the
 // Grace a down would have, as Adopt describes.
 func (c *Collector) freeable(state *LivenessState) bool {
@@ -1194,9 +1194,9 @@ func (c *Collector) freeable(state *LivenessState) bool {
 // earlier free, it changes nothing and reports false, so the slice stops
 // before it.
 //
-// This is the one path that deletes a block the counts prove dead. It keeps
-// the invariants Collector lists: hold until free, since the children lose
-// the block only here, in the transaction that deletes its list; counts
+// freeBlock is the one path that deletes a block the counts prove dead. It
+// keeps the invariants Collector lists: hold until free, since the children
+// lose the block only here, in the transaction that deletes its list; counts
 // exact, since the block's zero record at q's ripe sequence is read here
 // and each child moves down exactly once; no late namer, since a Land that
 // held the block since it ripened deleted its queue entry, and the caller
@@ -1311,8 +1311,8 @@ func (c *Collector) freeBlock(
 // the moves left starts a paged release, which netting continues, and
 // nothing frees until it finishes.
 type freeing struct {
-	// moves is the slice's budget of moved children, and moved the children
-	// its frees moved.
+	// moves is the slice's budget of moved children, and moved is the
+	// children its frees moved.
 	moves, moved int
 	// gave reports that a free took a child to zero or started a paged
 	// release, so the pass nets and frees again.

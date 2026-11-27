@@ -214,7 +214,8 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
     }))
   }, [experimentalCreatorsEnabled])
 
-  // Set up global event listener for Shift+Tab from nav links back to command input
+  // Set up a global event listener for Shift+Tab from nav links back to the
+  // command input.
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab' && e.shiftKey) {

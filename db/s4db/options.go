@@ -15,8 +15,8 @@ type Options struct {
 	ReadOnly bool
 
 	// memtable is the memtable budget written into a new file's header, a
-	// constant of the file every process flushes at. Zero selects 64 MiB;
-	// tests set it small.
+	// constant of the file every process flushes at. Zero selects 64 MiB.
+	// Tests set the budget small.
 	memtable int64
 }
 

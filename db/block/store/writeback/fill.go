@@ -30,7 +30,7 @@ type fill struct {
 	// stored is the block with its refs.
 	stored *block.StoredBlock
 	// refill reports a block whose child list the volume keeps, whose value
-	// alone was evicted; any other block is a cache fill.
+	// alone was evicted. Any other block is a cache fill.
 	refill bool
 }
 
@@ -41,7 +41,7 @@ type fillQueue struct {
 	pending []fill
 	// bytes is the summed block size of pending.
 	bytes int
-	// limit bounds bytes; zero uses defaultFillQueueBytes.
+	// limit bounds bytes. Zero uses defaultFillQueueBytes.
 	limit int64
 	// queued holds, by hash, each block pending or being written, so a block
 	// read again before its write lands is not queued twice.
@@ -66,7 +66,7 @@ type queuedFill struct {
 	again *fill
 }
 
-// setLimit sets the byte bound of the queue; zero uses defaultFillQueueBytes.
+// setLimit sets the byte bound of the queue. Zero uses defaultFillQueueBytes.
 func (q *fillQueue) setLimit(limit int64) {
 	q.mu.Lock()
 	q.limit = max(limit, 0)
@@ -88,7 +88,7 @@ func (s *Store) Refill(ref *block.BlockRef, stored *block.StoredBlock) {
 
 // CacheFill queues a remotely read block to be stored with its child refs but
 // no ownership, then counted and queued for eviction. It creates no upload
-// marker; eviction must verify the placement's remote holds the value before
+// marker. Eviction must verify the placement's remote holds the value before
 // dropping it, including when this read came from a peer. It returns before
 // the write, and drops the block when the queue is full.
 func (s *Store) CacheFill(ref *block.BlockRef, stored *block.StoredBlock) {
@@ -187,7 +187,8 @@ func (s *Store) drainFills() {
 		}
 		q.mu.Unlock()
 
-		// Write the step; a failure drops it, as the next reads fill again.
+		// Write the step. A failure drops the step, as the next reads fill
+		// again.
 		if err := s.writeFills(ctx, batch); err != nil {
 			s.addFillStatus(0, 0, int64(len(batch)))
 		}
@@ -214,9 +215,9 @@ func (s *Store) drainFills() {
 // writeFills keeps a filled value covered by an upload marker or an eviction
 // entry. With refusal retry enabled, queueing commits before any value write,
 // and fillMtx holds a pass's epoch advance until every value write has
-// finished, as Evict describes. A failed queue commit writes no values; a
+// finished, as Evict describes. A failed queue commit writes no values. A
 // crash leaves only surplus queue entries, which a later pass cleans. With
-// indexed accounting a marker covers a fill; every retry-on clear restores
+// indexed accounting a marker covers a fill. Every retry-on clear restores
 // coverage in its marker transaction.
 //
 // The volume drops a cache fill whose refs it does not trust, returning
@@ -346,7 +347,7 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 func (s *Store) queueFills(ctx context.Context, batch []fill) (int64, error) {
 	// Count newly inserted epoch/hash entries at the current epoch.
 	// The cold entry reads run without the writer lock, so
-	// no writer waits on them; a commit that changed what they read meanwhile
+	// no writer waits on them. A commit that changed what they read meanwhile
 	// runs the body again.
 	var added int64
 	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {

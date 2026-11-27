@@ -11,14 +11,14 @@ import (
 
 // remoteFSCursor implements FSCursor attached to FSCursorClient.
 type remoteFSCursor struct {
-	// released indicates the cursor has been released
+	// released indicates the cursor has been released.
 	released atomic.Bool
-	// c is the client instance
+	// c is the client instance.
 	c *FSCursorClient
 	// cursorHandleID is the remote cursor handle id for requests.
 	cursorHandleID uint64
-	// below fields are guarded by c.mtx
-	// cbs is the list of change callbacks
+	// cbs is guarded by c.mtx, as are the fields below.
+	// cbs is the list of change callbacks.
 	cbs unixfs.FSCursorChangeCbSlice
 	// changed closes on the next change received for this cursor.
 	changed chan struct{}
@@ -191,7 +191,7 @@ func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 		c.c.cursorOps[c.cursorHandleID] = opsHandleID
 	}
 
-	// make sure we don't accidentally return an untyped nil
+	// Avoid accidentally returning an untyped nil.
 	if retOps == nil {
 		return nil, nil
 	}

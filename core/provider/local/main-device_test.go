@@ -190,8 +190,8 @@ func checkpointCadence(t *testing.T, countOnly bool) {
 	owner.waitSequencer(ctx, object.GetPeerID().String())
 
 	// Write the edits, and wait for the order to settle: every edit above the
-	// checkpoint stable, none at the deadline, fewer than the count at the
-	// count.
+	// checkpoint is stable, none remain in deadline mode, and fewer than
+	// the count remain in count-only mode.
 	const edits = 4 * sobject.MinCheckpointOperations
 	above := 1
 	if countOnly {

@@ -34,7 +34,8 @@ func textOf(q quad.Quad) quadText {
 // without edges is deleted with its ID map entry in the same call, unless it
 // is pinned as a predicate or label.
 func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts graph.IgnoreOpts) error {
-	// An empty call writes nothing; otherwise one batch resolves each value once.
+	// An empty call writes nothing. Otherwise one batch resolves each value
+	// once.
 	if len(in) == 0 {
 		return nil
 	}
@@ -113,7 +114,7 @@ func (b *deltaBatch) write(ctx context.Context, in []graph.Delta, apply []bool) 
 }
 
 // undoEntry restores one key a running ApplyDeltas call wrote: it sets the key
-// back to prev when the key held it, and deletes it otherwise.
+// back to prev when the key held prev, and deletes the key otherwise.
 type undoEntry struct {
 	key  []byte
 	prev []byte
@@ -387,9 +388,9 @@ func (qs *QuadStore) markPinned(id uint64) {
 }
 
 // allocID returns a new node ID, the tree's next ID, and advances the tree's
-// next ID key before the caller writes any key of the node. The key goes to
-// the transaction's write buffer, so a run of allocations costs one tree
-// write; writing it first means a call that fails after the allocation, and a
+// next ID key before the caller writes any key of the node. The key goes to the
+// transaction's write buffer, so a run of allocations costs one tree write.
+// Writing the key first means a call that fails after the allocation, and a
 // caller that commits anyway, still leaves the ID behind the key.
 func (qs *QuadStore) allocID(ctx context.Context) (uint64, error) {
 	// Load the next ID under the lock on first use.
@@ -438,7 +439,8 @@ func (qs *QuadStore) loadNextID(ctx context.Context) error {
 		return err
 	}
 
-	// Start a tree without it at 1, once one seek per prefix shows it empty.
+	// Start a tree without the next ID key at 1 once one seek per prefix
+	// shows the tree empty.
 	if !found {
 		for _, prefix := range [][]byte{nodePrefix, valuePrefix} {
 			held, err := qs.hasKeyUnder(ctx, prefix)

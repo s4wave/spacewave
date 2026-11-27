@@ -6,26 +6,26 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 interface ShineBorderProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
-   * Width of the border in pixels
+   * borderWidth is the width of the border in pixels.
    * @default 1
    */
   borderWidth?: number
   /**
-   * Duration of the animation in seconds
+   * duration is the duration of the animation in seconds.
    * @default 14
    */
   duration?: number
   /**
-   * Color of the border, can be a single color or an array of colors
+   * shineColor is the border color and can be a single color or an array
+   * of colors.
    * @default "#000000"
    */
   shineColor?: string | string[]
 }
 
 /**
- * Shine Border
- *
- * An animated background border effect component with configurable properties.
+ * ShineBorder is an animated background border effect component with
+ * configurable properties.
  */
 export function ShineBorder({
   borderWidth = 1,

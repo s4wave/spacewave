@@ -28,7 +28,7 @@ await sign({
 
 // SignElectron signs the branded renderer before its bytes enter the plugin
 // manifest. The Electron macOS signer handles nested helpers and JIT
-// entitlements; Windows uses the same signing service as native Go plugins.
+// entitlements. Windows uses the same signing service as native Go plugins.
 // Signing is disabled when the platform's signing identity is unset.
 func SignElectron(
 	ctx context.Context,

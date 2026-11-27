@@ -181,15 +181,16 @@ func (h *SQLHandler) SeedQuickstart(
 	}, nil
 }
 
-// seedSQLQuickstart seeds the quickstart database and example query, each step
-// skipped when its result is present, so a run repeated after an earlier run
-// committed some or all of them finishes the seed without writing anything
-// twice or replacing what a person changed since.
+// seedSQLQuickstart seeds the quickstart database and example query.
+// Each step is skipped when its result is present, so a repeated run finishes
+// the seed after an earlier run committed some or all steps, without writing
+// anything twice or replacing what a person changed since.
 //
 // Each step's result appears in one write: the database object, its root (the
 // schema and rows go in with one SetRootRef), each type edge, and the query
 // object with its body. A database object with an empty root is half written
-// and gets seeded; one with a root is complete and is kept as it is.
+// and gets seeded. A database object with a root is complete and is kept as it
+// is.
 func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState) error {
 	// Create the SQL database object unless an earlier run created it.
 	dbObject, dbExists, err := ws.GetObject(ctx, sqlQuickstartDBKey)
@@ -334,8 +335,8 @@ func execSQLTx(ctx context.Context, store s4wave_sql.SqlStore, dsn string, state
 	return tx.Commit(ctx)
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ s4wave_objecttype_registry.SRPCObjectTypeHandlerServiceServer = (*SQLHandler)(nil)
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ s4wave_quickstart_registry.SRPCQuickstartHandlerServiceServer = (*SQLHandler)(nil)

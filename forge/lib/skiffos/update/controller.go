@@ -23,35 +23,36 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/skiffos/update"
 
-// InputReport names the input holding the audit's report output.
+// InputReport identifies the input holding the audit's report output.
 const InputReport = "report"
 
-// InputApprove names the input carrying the person's approval, which the Step
-// waits for and does not read.
+// InputApprove identifies the input carrying the person's approval, which the
+// Step waits for and does not read.
 const InputApprove = "approve"
 
-// OutputRepo names the output holding the build Repo after the move.
+// OutputRepo identifies the output holding the build Repo after the move.
 const OutputRepo = "repo"
 
-// inputWorld names the input holding the World the build Repo lives in.
+// inputWorld identifies the input holding the World the build Repo lives in.
 const inputWorld = "world"
 
 // buildrootModule is the name SkiffOS gives its Buildroot submodule, whose
 // module in the build Repo holds the commits the build checks out there.
 const buildrootModule = "buildroot"
 
-// mainBranch is the branch the build Repo's HEAD and its module's HEAD name.
+// mainBranch is the branch the build Repo's HEAD and its module's HEAD point
+// to.
 var mainBranch = plumbing.NewBranchReferenceName("main")
 
 // Controller moves one build's SkiffOS Repo.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the world, report, upstream and buildroot inputs.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 

@@ -62,8 +62,8 @@ type Account interface {
 	// one with its accepted state, before the transition commits.
 	ImportMigrationObject(context.Context, Account, sobject.SharedObject, *sobject.SharedObjectListEntry, *sobject.SOState) error
 	// SpaceBus returns the bus this account's Spaces resolve their operation
-	// types on, so an import from it names the payloads of a plugin running
-	// beside the source.
+	// types on, so an import from it identifies the payloads of a plugin
+	// running beside the source.
 	SpaceBus() bus.Bus
 	// CommitAccountTransition publishes the transition while the source
 	// keeps its data for recovery.
@@ -85,7 +85,7 @@ type CredentialSource interface {
 }
 
 // Merge preserves account identities, resource lineage, and source recovery.
-// Provider commits make retries safe; source attachments change only after the
+// Provider commits make retries safe. Source attachments change only after the
 // destination resources and returning Session authorization are durable.
 func Merge(ctx context.Context, source Account, mounted session.Session, destination provider.ProviderAccount, destinationRef *session.SessionRef) (func(context.Context) (*session.SessionRef, error), error) {
 	// Mount the destination account's Session.

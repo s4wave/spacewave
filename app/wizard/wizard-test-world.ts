@@ -41,8 +41,8 @@ function recordEnding(state: WizardWorldState, opData: Uint8Array) {
   }
 }
 
-// deleteObject stages an object delete, which drops every ending naming it as
-// the World drops every quad naming a deleted object.
+// deleteObject stages an object delete, which drops every ending referring to
+// the object as the World drops every quad referring to a deleted object.
 function deleteObject(state: WizardWorldState, key: string): boolean {
   for (const [wizardKey, target] of state.endings) {
     if (target === key) state.endings.delete(wizardKey)
@@ -50,8 +50,9 @@ function deleteObject(state: WizardWorldState, key: string): boolean {
   return state.objects.delete(key)
 }
 
-// createdKeys decodes the object key each create op the wizards apply writes,
-// so the test World holds the object and refuses a second create at its key.
+// createdKeys decodes the object key written by each create op the wizards
+// apply, so the test World holds the object and refuses a second create at its
+// key.
 const createdKeys: Record<string, (opData: Uint8Array) => string> = {
   [CREATE_VM_V86_OP_ID]: (d) => CreateVmV86Op.fromBinary(d).objectKey ?? '',
   [CREATE_WASIVM_OP_ID]: (d) => CreateWasiVmOp.fromBinary(d).objectKey ?? '',
@@ -61,7 +62,7 @@ const createdKeys: Record<string, (opData: Uint8Array) => string> = {
     ForgeJobCreateOp.fromBinary(d).jobKey ?? '',
   'spacewave/forge/task/create': (d) =>
     ForgeTaskCreateOp.fromBinary(d).taskKey ?? '',
-  // A test create names its key as text, or creates no object when empty.
+  // A test create encodes its key as text, or creates no object when empty.
   'test/create': (d) => new TextDecoder().decode(d),
 }
 
@@ -86,8 +87,8 @@ function applyCreate(
 // 'batch', then each op id, 'link' or 'delete', then 'commit' when the batch
 // lands.
 // opData and senders hold each op's data and sender by op id, last write
-// wins. failOn names the one call that throws: an op id, 'delete' or
-// 'commit'. refuseOn names an op id the World answers with a built-in code,
+// wins. failOn selects the one call that throws: an op id, 'delete' or
+// 'commit'. refuseOn selects an op id the World answers with a built-in code,
 // such as a plugin timeout, discarding the batch. A batch waits for
 // commitGate, once its mutations applied, when one is set. loseReply makes
 // the next batch that lands throw to its caller, as a reply lost after the
@@ -105,7 +106,7 @@ export interface WizardTestWorld {
 }
 
 // wizardTestWorld builds a test World holding the objects and index given.
-// getObject finds the committed objects; base supplies the other reads code
+// getObject finds the committed objects. base supplies the other reads code
 // outside the transaction makes, such as the listing that picks a free key.
 export function wizardTestWorld(
   objects: string[],
@@ -155,7 +156,7 @@ export function wizardTestWorld(
           return
         }
         // The World refuses, without error, an index move that expects an
-        // index another writer has since changed; a move that expects
+        // index another writer has since changed. A move that expects
         // nothing is unconditional.
         const op = SetSpaceIndexPathOp.fromBinary(opData)
         const expected = op.expectedIndexPath
@@ -165,7 +166,7 @@ export function wizardTestWorld(
         return
       }
       case 'setGraphQuad': {
-        // Like the World, a quad naming a missing object is refused.
+        // Like the World, a quad referring to a missing object is refused.
         fail('link')
         const { subject = '', obj = '' } = m.mutation.value.quad ?? {}
         const named = [subject, obj].map((iri) => iri.slice(1, -1))

@@ -36,8 +36,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MeasureDeleteStateEnv names the environment variable that, set to 1, runs
-// TestMeasureDeleteStateWriterHold.
+// MeasureDeleteStateEnv identifies the environment variable that, set to 1,
+// runs TestMeasureDeleteStateWriterHold.
 const MeasureDeleteStateEnv = "SPACEWAVE_MEASURE_DELETE_STATE"
 
 // measureDeleteMembers is the member count of the measured config.
@@ -239,7 +239,8 @@ func rehearseDeleteCrash(t *testing.T) {
 	bucket := func(id string) string { return rehearsalBucket(a, id) }
 
 	// Create so2 again with a tree of its own, and close the volume. The
-	// create finished so2's release; each other stopped delete left its mark.
+	// create finished so2's release. Each other stopped delete left its
+	// mark.
 	again := make(map[string][]*block.BlockRef, 2)
 	createAgain := func(id string) {
 		refs[id] = createTestSharedObject(ctx, t, a, id)
@@ -318,8 +319,8 @@ func rehearseDeleteCrash(t *testing.T) {
 		t.Fatalf("%d blocks only so1 reached are held after %d collection passes", held, passes)
 	}
 
-	// The objects that came back hold none of their earlier roots; they, and
-	// the survivor, keep their new roots and reach their blocks.
+	// The objects that came back hold none of their earlier roots. They,
+	// and the survivor, keep their new roots and reach their blocks.
 	for _, id := range []string{"so2", "so3", "so4"} {
 		requireRehearsalRoot(ctx, t, a, id, false)
 	}
@@ -519,8 +520,8 @@ func rehearseDeleteMarkRemovalFails(t *testing.T) {
 	requireNoReleaseMark(ctx, t, a, "so1")
 }
 
-// rehearseDeleteEmptyMark stores a mark that names no block store. The resume
-// must remove it.
+// rehearseDeleteEmptyMark stores a mark that references no block store. The
+// resume must remove it.
 func rehearseDeleteEmptyMark(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
@@ -641,9 +642,9 @@ func closeRehearsalAccount(ctx context.Context, t *testing.T, a *ProviderAccount
 
 // rehearseDeleteSharedObject runs the rehearsal with the state delete off or
 // on. In both modes the deleted object is unlisted, every other so/ key
-// survives, and the survivors mount, read their state and reach every block
-// of their roots. With the delete on, the deleted object's keys and the
-// blocks only it reached are gone and its mount is refused; with it off, its
+// survives, and the survivors mount, read their state and reach every block of
+// their roots. With the delete on, the deleted object's keys and the blocks
+// only it reached are gone and its mount is refused. With the delete off, its
 // keys stay. Off still releases the object's roots, as the delete did before
 // the state delete existed, so its blocks are freed wherever collector frees
 // are on.

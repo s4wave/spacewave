@@ -19,7 +19,7 @@ type Addr struct {
 	str string
 }
 
-// NewAddr builds a new Addr
+// NewAddr builds a new Addr.
 func NewAddr(peerID peer.ID) *Addr {
 	return &Addr{
 		peerID: peerID,

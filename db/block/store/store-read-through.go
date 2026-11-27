@@ -65,7 +65,7 @@ func (s *StoreReadThrough) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
-// BeginReadOperation opens read scopes on the currently available sources.
+// BeginReadOperation opens read scopes on the available sources.
 // A fill keeps the primary source writable because lower-source hits are
 // inserted into it before the scoped read returns.
 func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
@@ -224,8 +224,9 @@ func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockR
 // GetStoredBlockBatch reads refs as GetStoredBlock reads each: one batch from
 // the primary source, then one batch from the current lower source of the
 // primary's misses and corrupt copies. A lower hit of a miss fills primary as
-// readLower does; a lower hit of a corrupt copy fills nothing, as
-// readPastCorrupt describes, and a lower miss of it keeps the corrupt error.
+// readLower does. A lower hit of a corrupt copy fills nothing, as
+// readPastCorrupt describes, and a lower miss of the corrupt copy keeps the
+// corrupt error.
 func (s *StoreReadThrough) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
 	// Read the primary store, keeping its misses and corrupt copies for lower.
 	var miss []int
@@ -288,8 +289,9 @@ func (s *StoreReadThrough) GetStoredBlockBatch(ctx context.Context, refs []*bloc
 
 // lowerUnavailable returns the outcome of a primary miss while the lower
 // source resolves to nil. A read that may not wait for a peer records the
-// block and reports it unavailable, since the source may hold it once it is
-// back; any other read, or a pipeline without a lower source, reports a miss.
+// block and reports it unavailable, since the source may hold the block once
+// the source is back. Any other read, or a pipeline without a lower source,
+// reports a miss.
 func (s *StoreReadThrough) lowerUnavailable(ctx context.Context, ref *block.BlockRef) error {
 	peerWait := block.GetPeerWait(ctx)
 	if s.lower == nil || peerWait == nil {
@@ -308,7 +310,7 @@ func (s *StoreReadThrough) source(src StoreSource) block.StoreOps {
 }
 
 // readLower reads a block and its refs from lower. With a fill, a hit with
-// known refs is written into primary before the read returns; a block with
+// known refs is written into primary before the read returns. A block with
 // unknown refs would look like a leaf there, so it is served without the fill.
 // A fill that fails leaves the block readable from lower, so its error is
 // dropped and the next read fills it again. A placed store's fill only queues
@@ -330,9 +332,10 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 // corruptErr from the lower source, which checks its own bytes, or returns
 // corruptErr when lower is absent or misses.
 //
-// Invariant: it writes nothing to primary. The corrupt copy stays where it is,
-// as evidence and for the store that holds it to report; replacing it is a
-// separate repair. So every later read of the block reads lower again.
+// Invariant: readPastCorrupt writes nothing to primary. The corrupt copy stays
+// where it is, as evidence and for the store that holds it to report. Replacing
+// the corrupt copy is a separate repair. So every subsequent read of the block
+// reads lower again.
 func (s *StoreReadThrough) readPastCorrupt(ctx context.Context, ref *block.BlockRef, corruptErr error) (*block.StoredBlock, error) {
 	// Read lower, keeping the corrupt error on a miss.
 	lower := s.source(s.lower)

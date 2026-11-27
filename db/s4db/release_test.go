@@ -47,7 +47,7 @@ func TestReleaseBacklog(t *testing.T) {
 		}
 	})
 
-	// Run a real second owner; its exit makes the reservation reclaimable.
+	// Run a real second owner. Its exit makes the reservation reclaimable.
 	path := filepath.Join(t.TempDir(), "backlog.s4wave")
 	ctx, cancel := context.WithTimeout(t.Context(), 3*quietMark)
 	defer cancel()

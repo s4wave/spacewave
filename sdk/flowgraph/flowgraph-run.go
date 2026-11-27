@@ -41,10 +41,11 @@ func (r *FlowgraphRun) FollowGraph(ctx context.Context, cursor *block.Cursor) (*
 	return graph, nil
 }
 
-// SetGraph pins a Flowgraph body and its revision. cursor points to the run;
-// the caller writes the run block afterwards.
+// SetGraph pins a Flowgraph body and its revision. cursor points to the run.
+// The caller writes the run block afterwards.
 func (r *FlowgraphRun) SetGraph(cursor *block.Cursor, graph *Flowgraph, revision uint64) {
-	// Write the graph as a new block; the run's reference is rebuilt on write.
+	// Write the graph as a new block. The run's reference is rebuilt on
+	// write.
 	graphCursor := cursor.FollowRef(3, nil)
 	graphCursor.ClearAllRefs()
 	graphCursor.SetBlock(graph, true)

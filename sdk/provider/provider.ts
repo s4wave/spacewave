@@ -7,9 +7,10 @@ import {
 import { ProviderInfo } from '../../core/provider/provider.pb.js'
 import { Account } from '../account/account.js'
 
-// Provider is a provider resource that provides access to provider functionality.
+// Provider is a provider resource that provides access to provider
+// functionality.
 export class Provider extends Resource {
-  // service is the provider resource service
+  // service is the provider resource service.
   private service: ProviderResourceService
 
   constructor(resourceRef: ClientResourceRef) {

@@ -354,7 +354,7 @@ func TestMultiNodeDEX(
 // checks that the peer's answer to the root carried those levels, and that
 // dst's Volume holds every block once the walk decoded it.
 func checkSubtreeWriteback(ctx context.Context, t *testing.T, le *logrus.Entry, src, dst *testbed.Testbed, bucketID string) {
-	// Build the tree: the root names a and b, and a names c.
+	// Build the tree: the root references a and b, and a references c.
 	t.Helper()
 	var entries []*block.PutBatchEntry
 	put := func(data string, refs ...*block.BlockRef) *block.BlockRef {

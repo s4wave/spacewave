@@ -976,7 +976,7 @@ func TestBlockStoreParts(t *testing.T) {
 		store: block_store.NewStore("test", newCloudOverlay(ctx, le, cloud, cache)),
 	}
 
-	// Walk handle, id wrapper, overlay.
+	// Walk the handle, the id wrapper and the overlay.
 	parts := handle.GetStoreParts()
 	if len(parts) != 1 || parts[0].Label != "overlay" {
 		t.Fatalf("handle parts = %v", parts)

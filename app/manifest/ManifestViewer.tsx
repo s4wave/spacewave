@@ -14,8 +14,8 @@ import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 export const ManifestTypeID = 'bldr/manifest'
 
 // formatBlockRefHash formats a BlockRef hash as its whole hex string, which
-// the fact row shortens for display and copies whole; a missing hash formats
-// as empty.
+// the fact row shortens for display and copies whole. A missing hash formats
+// as an empty string.
 function formatBlockRefHash(ref: BlockRef | undefined): string {
   const hash = ref?.hash?.hash
   if (!hash?.length) return ''

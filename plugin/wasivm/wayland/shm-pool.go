@@ -15,7 +15,7 @@ type shmPool struct {
 	file *kernel.File
 	// size is the pool's size in bytes, which only grows.
 	size int32
-	// refs counts the pool object and its buffers. The file closes when it
+	// refs counts the pool object and its buffers. The file closes when refs
 	// reaches zero.
 	refs int
 }
@@ -74,7 +74,7 @@ func (p *shmPool) createBuffer(id uint32, offset, width, height, stride int32, f
 	return nil
 }
 
-// unref drops a reference and closes the file after the last.
+// unref drops a reference and closes the file after the last reference.
 func (p *shmPool) unref() {
 	p.refs--
 	if p.refs == 0 {

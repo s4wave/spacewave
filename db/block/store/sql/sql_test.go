@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// testConfig returns the database BLOCK_STORE_SQL_TEST_HOST names, such as a
+// testConfig returns the database BLOCK_STORE_SQL_TEST_HOST selects, such as a
 // MariaDB container, and skips the test without one.
 func testConfig(t *testing.T) *Config {
 	// Read the server from the environment, with a fresh table per test.
@@ -63,7 +63,8 @@ func TestStore(t *testing.T) {
 	conf := testConfig(t)
 	store := openTestStore(t, conf, "store-a")
 
-	// Write a leaf, a parent naming it, and a block whose refs are unknown.
+	// Write a leaf, a parent referencing the leaf, and a block with
+	// unknown refs.
 	leafData, parentData, looseData := []byte("leaf"), []byte("parent"), []byte("loose")
 	leaf, _ := block.BuildBlockRef(leafData, nil)
 	parent, _ := block.BuildBlockRef(parentData, nil)

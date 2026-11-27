@@ -27,10 +27,12 @@ service WebPlugin {
 
 // OpenOrFocusDesktopRequest identifies the route to open in the desktop shell.
 message OpenOrFocusDesktopRequest {
-  // Route is an optional in-app route; empty opens or focuses the main window.
+  // Route is an optional in-app route. An empty route opens or focuses the main
+  // window.
   string route = 1;
   // InstalledApp is the application bundle that requested the desktop.
-  // Desktop app updates replace this bundle; empty when not launched from one.
+  // Desktop app updates replace this bundle. InstalledApp is empty when not
+  // launched from a bundle.
   string installed_app = 2;
 }
 
@@ -60,7 +62,8 @@ enum DesktopPresenceState {
 message WatchDesktopPresenceResponse {
   // State first reports active or ended, then reports ended when an active shell exits.
   DesktopPresenceState state = 1;
-  // Error describes a failed shell exit; empty on a normal end or while active.
+  // Error describes a failed shell exit. Error is empty on a normal end or
+  // while the shell is active.
   string error = 2;
 }
 
@@ -69,7 +72,7 @@ message HandleWebViewViaPluginRequest {
   // HandlePluginId is the plugin the web plugin should send WebViews to.
   string handle_plugin_id = 1;
   // WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
-  // If empty, will forward any.
+  // If empty, the web plugin forwards any web view ID.
   string web_view_id_re = 2;
 }
 
@@ -89,12 +92,12 @@ message HandleWebPkgViaPluginRequest {
   // Set to '.*' or empty to match all web pkgs ids.
   string web_pkg_id_re = 2;
   // WebPkgIdPrefixes is a list of web pkg id prefixes to match.
-  // If the value is in this list, overrides web_pkg_id_re.
+  // A value in this list overrides web_pkg_id_re.
   // Set to '.*' or empty to match all web pkgs ids.
   repeated string web_pkg_id_prefixes = 3;
   // WebPkgIdList is a list of web pkg IDs to resolve.
-  // If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
-  // Ignored if empty.
+  // A value in this list overrides web_pkg_id_re and web_pkg_id_prefixes.
+  // The list is ignored if empty.
   repeated string web_pkg_id_list = 4;
 }
 
@@ -111,13 +114,13 @@ message HandleRpcViaPluginRequest {
   // HandlePluginId is the plugin the web plugin should send Rpcs to.
   string handle_plugin_id = 1;
   // ServiceIdRe is the regex of service IDs to forward.
-  // If empty, will forward any.
+  // If empty, the web plugin forwards any service ID.
   string service_id_re = 2;
   // ServerIdRe is the regex of server IDs to forward for.
-  // If empty, will forward any.
+  // If empty, the web plugin forwards for any server ID.
   string server_id_re = 3;
   // Backoff is the backoff config for calling the RPC service.
-  // If unset, defaults to reasonable defaults.
+  // Backoff uses reasonable defaults when unset.
   .backoff.Backoff backoff = 4;
 }
 
@@ -150,7 +153,7 @@ message HandleWebPkgsViaPluginAssetsRequest {
   // WebPkgsPath is the sub-directory of the plugin assets fs to look up the web pkgs root.
   string web_pkgs_path = 2;
   // WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
-  // Must be at least one web pkg listed.
+  // The list must contain at least one web pkg.
   repeated string web_pkg_id_list = 3;
 }
 

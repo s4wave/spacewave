@@ -34,7 +34,7 @@ var pluginRefusedTypes = []string{
 
 // pluginWriteGuard refuses one plugin the writes NewPluginWriteGuard lists.
 type pluginWriteGuard struct {
-	// pluginID names the plugin in refusals.
+	// pluginID identifies the plugin in refusals.
 	pluginID string
 }
 
@@ -51,16 +51,17 @@ type pluginWriteGuard struct {
 //     manifest store, manifest, manifest bundle or manifest ref;
 //   - any graph quad touching such an object, any bldr/manifest edge, and
 //     any type edge to a manifest type;
-//   - any write to a type object other than creating it, and any quad naming
-//     a type object other than as the type of a type edge, so only a type
-//     edge on an object, checked against its old and new type, changes which
-//     type any object has;
-//   - any write that cannot name the objects it changes beforehand: a
+//   - any write to a type object other than creating it, and any quad
+//     referencing a type object other than as the type of a type edge, so only
+//     a type edge on an object, checked against its old and new type, changes
+//     which type any object has;
+//   - any write that cannot identify the objects it changes beforehand: a
 //     writable graph handle, a rename of an object's descendants, and a block
 //     removal or root move through a cursor.
 //
 // An op the plugin applies is checked by its type, then each write it makes is
-// checked as the plugin's own: what an op may write is what the plugin may.
+// checked as the plugin's own: what an op may write is what the plugin may
+// write.
 // The Space's own session handle is not guarded.
 func NewPluginWriteGuard(pluginID string) world.WriteGuard {
 	return &pluginWriteGuard{pluginID: pluginID}
@@ -76,7 +77,8 @@ func (g *pluginWriteGuard) CheckWrite(ctx context.Context, ws world.WorldState, 
 		return g.refuse("op " + w.OpTypeID)
 	}
 
-	// Check each object the write names and the edge it sets or deletes.
+	// Check each object the write identifies and the edge the write sets or
+	// deletes.
 	for _, key := range w.ObjectKeys {
 		if isTypeObjectKey(key) {
 			if w.Create {
@@ -113,7 +115,7 @@ func (g *pluginWriteGuard) checkKey(ctx context.Context, ws world.WorldState, ke
 }
 
 // checkQuad refuses a manifest edge, a type edge to a manifest type, an edge
-// naming a type object other than as its type, and any edge touching a
+// referencing a type object other than as its type, and any edge touching a
 // refused object.
 func (g *pluginWriteGuard) checkQuad(ctx context.Context, ws world.WorldState, q world.GraphQuad) error {
 	switch q.GetPredicate() {
@@ -129,11 +131,12 @@ func (g *pluginWriteGuard) checkQuad(ctx context.Context, ws world.WorldState, q
 	for i, value := range []string{q.GetSubject(), q.GetObj()} {
 		key, err := world.GraphValueToKey(value)
 		if err != nil {
-			// A literal names no object.
+			// A literal identifies no object.
 			continue
 		}
 		if isTypeObjectKey(key) {
-			// Only the object of a type edge may name a type object.
+			// Only the object of a type edge may reference a type
+			// object.
 			if i == 1 && q.GetPredicate() == world_types.TypePred.String() {
 				continue
 			}

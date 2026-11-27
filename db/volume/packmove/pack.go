@@ -24,15 +24,15 @@ const batchesAhead = 2
 // Source is only read, one snapshot per pack, and may be shared with the
 // process that writes it: a snapshot the writer outran is read again. A block
 // whose data does not match its hash is in no pack and is recorded as bad. A
-// block written behind the cursor while Pack runs is not packed; Switch finds
-// it. A block's references come from the volume's reference graph; a block the
+// block written behind the cursor while Pack runs is not packed. Switch finds
+// it. A block's references come from the volume's reference graph. A block the
 // graph does not track is packed without references and counted in
 // PackProgress.Untracked.
 //
 // The log at cfg.LogPath records each pack's keys once it uploads, in key
 // order, and a commit after, so a killed run resumes after its last committed
 // pack. A pack logged but not committed is found in the bucket and committed
-// without uploading again; a pack uploaded but not yet logged stays in the
+// without uploading again. A pack uploaded but not yet logged stays in the
 // bucket as an orphan, and its blocks are packed again.
 func Pack(ctx context.Context, cfg PackConfig) (PackProgress, error) {
 	// Check the volume's format.
@@ -79,10 +79,10 @@ func Pack(ctx context.Context, cfg PackConfig) (PackProgress, error) {
 // key order, as packs in cfg.Packer, so the packs and Pack's together hold
 // every block either store holds. Its log at cfg.LogPath is separate from
 // Pack's and resumes the same way. A row whose data does not match its hash is
-// recorded as bad; a row with unknown refs is packed without them and counted
-// in PackProgress.Untracked. Run it with no writer beside it: a block that
-// moves into the volume during the run may be packed twice, which KeepPacks
-// tolerates.
+// recorded as bad. A row with unknown refs is packed without them and counted
+// in PackProgress.Untracked. Run PackSQL with no concurrent writer: a block
+// that moves into the volume during the run may be packed twice, which
+// KeepPacks tolerates.
 func PackSQL(ctx context.Context, cfg PackConfig) (PackProgress, error) {
 	// Check the volume's format.
 	if err := requireFormat(ctx, cfg); err != nil {
@@ -182,7 +182,7 @@ type packRun struct {
 	log *packLog
 	// state is what the log held at the start.
 	state logState
-	// limiter paces the upload; nil does not limit.
+	// limiter paces the upload. A nil limiter does not limit uploads.
 	limiter *rate.Limiter
 
 	// order records the uploaded batches in the log in the order the reader
@@ -269,11 +269,11 @@ func (r *packRun) resolvePending(ctx context.Context) error {
 	return nil
 }
 
-// upload writes a batch as one pack, paced by the byte limit, then records
-// it in the log once every batch read before it is recorded, so the log stays
-// in key order while several uploads run. A batch with no packed block only
+// upload writes a batch as one pack, paced by the byte limit, then records it
+// in the log once every batch read before it is recorded, so the log stays in
+// key order while several uploads run. A batch with no packed block only
 // advances the log. A run killed between the upload and the record leaves a
-// pack the log does not name: a duplicate the next run writes again, which
+// pack the log does not record: a duplicate the next run writes again, which
 // KeepPacks tolerates and Switch never relies on.
 func (r *packRun) upload(ctx context.Context, batch *packBatch) error {
 	// Wait for the batch's share of the byte limit, then upload it.

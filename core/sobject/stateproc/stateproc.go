@@ -8,7 +8,7 @@ import (
 )
 
 // ApplyOpFunc applies a single operation to the current state.
-// stateData is the current marshaled state (nil/empty for uninitialized).
+// stateData is the current marshaled state (nil/empty for uninitialized state).
 // opData is the operation payload from the SOOperationInner.
 // sender is the peer ID that submitted the operation.
 // Returns the next marshaled state data.

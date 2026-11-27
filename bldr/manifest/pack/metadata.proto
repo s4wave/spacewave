@@ -28,7 +28,7 @@ message ManifestPackMetadata {
   string cache_schema = 10;
 }
 
-// ManifestTuple names one bldr manifest tuple in a manifest-pack handoff.
+// ManifestTuple describes one bldr manifest tuple in a manifest-pack handoff.
 message ManifestTuple {
   // ManifestId is the bldr manifest ID.
   string manifest_id = 1;

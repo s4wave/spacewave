@@ -36,7 +36,7 @@ type GraphCopyOptions struct {
 	// releases its parents as if dst held it, so their subtrees complete. A
 	// copy sets it within the Volume of the Device that linked the file, or
 	// to a Device that leaves the file's chunks on the Device of the same
-	// account that links it; any other copy needs the bytes.
+	// account that links it. Any other copy needs the bytes.
 	CountLinked bool
 	// Missing handles a block src cannot serve now, because it does not hold
 	// it or no source served it (IsNotAvailable). Returning nil leaves a hole:
@@ -90,7 +90,7 @@ func CopyGraph(ctx context.Context, src, dst StoreOps, root *BlockRef, opts *Gra
 }
 
 // graphCopy holds the state of one CopyGraph call. Only the calling goroutine
-// touches nodes and queue; readers report through results.
+// touches nodes and queue. Readers report through results.
 type graphCopy struct {
 	src, dst StoreOps
 	opts     *GraphCopyOptions
@@ -168,16 +168,17 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 			c.opts.Visited(res.node.ref, res.stored.Data)
 		}
 
-		// Count a linked block as present, as Known counts a proved one.
+		// Count a linked block as present, as Known counts a proved
+		// one.
 		//
-		// Invariant: a proof may count a block present on the strength of a
-		// linked file only when no Volume tier holds that block; a Volume
-		// copy is never skipped, dropped or deleted because a file serves it.
-		// A copy chain reads the linked files' copy tier, and the peers it
-		// lets answer linked, after every Volume tier, and a peer answers
-		// linked only for a block its own linked file serves, so a Linked
-		// block is one no tier of the chain holds, and the copy writes and
-		// deletes nothing for it.
+		// Invariant: a proof may count a block present on the strength
+		// of a linked file only when no Volume tier holds that block. A
+		// Volume copy is never skipped, dropped or deleted because a
+		// file serves it. A copy chain reads the linked files' copy
+		// tier, and the peers it lets answer linked, after every Volume
+		// tier, and a peer answers linked only for a block its own
+		// linked file serves, so a Linked block is one no tier of the
+		// chain holds, and the copy writes and deletes nothing for it.
 		if res.stored.Linked && c.opts.CountLinked {
 			if err := c.settle(ctx, res.node); err != nil {
 				return err

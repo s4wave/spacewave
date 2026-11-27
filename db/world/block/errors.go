@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// ErrEngineClosed is returned when an operation is attempted on a closed
+// ErrEngineClosed is returned when a caller tries an operation on a closed
 // engine. Callers that shut the engine down alongside a context cancellation
 // can observe either this or context.Canceled, depending on which unwinds
 // first, so both are valid outcomes of the same shutdown.
@@ -20,7 +20,7 @@ var errEngineRetired = fmt.Errorf("%w: %w", ErrEngineClosed, world.ErrEngineReti
 
 // ErrPartialWrite is returned by a commit or fork of a World state whose
 // write failed after changing part of it. The caller discards the state and
-// runs its change again in a new transaction; the error it wraps says why the
+// runs its change again in a new transaction. The error it wraps says why the
 // write failed.
 var ErrPartialWrite = errors.New("world state holds a partial graph write")
 

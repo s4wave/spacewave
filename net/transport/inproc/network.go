@@ -9,7 +9,8 @@ import (
 )
 
 // Network connects transports in one explicitly shared process-local network.
-// It supplies packet reachability; transport handshakes still authenticate peers.
+// It supplies packet reachability. Transport handshakes still authenticate
+// peers.
 // Each attached transport must be detached before its lifecycle ends.
 type Network struct {
 	// mtx serializes topology changes and guards peers.
@@ -21,8 +22,9 @@ type Network struct {
 // NewNetwork constructs an isolated network with no attached transports.
 func NewNetwork() *Network { return &Network{peers: make(map[peer.ID]*Inproc)} }
 
-// Attach connects a transport to the network and returns its idempotent detach.
-// The same peer cannot be attached twice; replacement first releases its old attachment.
+// Attach connects a transport to the network and returns its idempotent detach
+// function. The same peer cannot be attached twice. Replacement first releases
+// its old attachment.
 func (n *Network) Attach(ctx context.Context, transport *Inproc) (func(), error) {
 	// Serialize both directions of every connection against other topology changes.
 	// Require a live context and a non-nil transport.

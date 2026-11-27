@@ -5,7 +5,7 @@ import (
 	bcli "github.com/s4wave/spacewave/net/cli"
 )
 
-// cliArgs are the client arguments
+// cliArgs are the client arguments.
 var cliArgs bcli.ClientArgs
 
 func init() {

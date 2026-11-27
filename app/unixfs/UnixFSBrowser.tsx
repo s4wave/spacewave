@@ -67,7 +67,7 @@ export interface UnixFSBrowserDirectoryHeaderProps {
   onUploadFiles: () => void
 }
 
-// UnixFSBrowserProps are the props passed to the UnixFSBrowser component.
+// UnixFSBrowserCommonProps are the props passed to the UnixFSBrowser component.
 interface UnixFSBrowserCommonProps {
   // unixfsId is the identifier for the UnixFS on the bus (the object key).
   unixfsId: string
@@ -123,8 +123,8 @@ function buildUnixFSLoadingStageLabel({
   return 'waiting for filesystem resource'
 }
 
-// UnixFSLoadingDiagnostics shows the loading stage and the pack read counters,
-// which it follows only while it is mounted.
+// UnixFSLoadingDiagnostics shows the loading stage and the pack read counters.
+// The component follows the counters only while mounted.
 function UnixFSLoadingDiagnostics({ stageLabel }: { stageLabel: string }) {
   const status = useSessionSyncStatus()
   return (
@@ -229,9 +229,9 @@ function useUnixFSBrowserModel({
   const displayPath = currentPath || basePath || '/'
 
   // Uploads are owned by the session, not this viewer, so an in-flight upload
-  // and its feedback survive navigating away from this folder. Null when this
-  // browser is mounted outside a session (display, debug harness); uploads are
-  // simply unavailable there.
+  // and its feedback survive navigating away from this folder. The upload
+  // manager is null when this browser is mounted outside a session (display,
+  // debug harness), so uploads are unavailable there.
   const uploadManager = useSessionUploadManager()
   const spaceSaveHold = useSaveHold()
   const saveHold = worldState ? spaceSaveHold : null

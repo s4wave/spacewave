@@ -65,7 +65,7 @@ describe('intro wizard overlay', () => {
   it('steps through region-anchored callouts one at a time over the frame', async () => {
     await render(<IntroWizardSurface finishing={false} />)
 
-    // The tour opens on the first callout with the control panel; the later
+    // The tour opens on the first callout with the control panel. The later
     // callouts appear only as the user advances, one region at a time.
     await expect
       .element(page.getByText('Welcome to your Drive'))

@@ -16,11 +16,11 @@ type Iterator struct {
 
 	err error
 	oob bool
-	end bool // end indicates Next() is necessary
+	end bool // end indicates Next() is necessary.
 
 	idx int
 
-	// may be nil
+	// entry may be nil.
 	entry *kvfile.IndexEntry
 	val   *[]byte
 }
@@ -113,7 +113,7 @@ func (i *Iterator) Next() bool {
 	i.entry, i.val = nil, nil
 	if i.end {
 		i.end = false
-		// use binary search to find first or last key w prefix
+		// use binary search to find the first or last key with the prefix
 		// search for last key with prefix if reverse
 		if len(i.prefix) != 0 {
 			idxEntry, idx, err := i.rdr.SearchIndexEntryWithPrefix(i.prefix, i.reverse)
@@ -122,7 +122,7 @@ func (i *Iterator) Next() bool {
 			} else if idxEntry != nil {
 				i.idx, i.entry = idx, idxEntry
 			} else {
-				// no keys w/ the prefix exist.
+				// no keys with the prefix exist.
 				i.oob, i.idx = true, 0
 			}
 		} else {

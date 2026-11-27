@@ -508,10 +508,11 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 // TestRelaySetattrChmod proves the server handles SETATTR with the mode bit
 // against a writable backing: create a file, chmod it, and confirm the new
 // permission bits round-trip through GETATTR. apt's fchmod on cache files
-// exercises this exact path; a guest-side fchmod EPERM is a guest v86fs driver
+// exercises this exact path. A guest-side fchmod EPERM is a guest v86fs driver
 // gap, not a server gap, because errnoFromError never produces EPERM (it maps
 // unknown errors to ENOSYS and read-only to EROFS).
-// Set up the context, two mount handles, the server client, and the relay stream.
+// Set up the context, two mount handles, the server client, and the relay
+// stream.
 func TestRelaySetattrChmod(t *testing.T) {
 	// None
 	ctx := context.Background()
@@ -791,8 +792,8 @@ func TestRelayMountManagement(t *testing.T) {
 	tag := uint32(0)
 	nextTag := func() uint32 { tag++; return tag }
 
-	// Sync: send a STATFS request to confirm the session is running
-	// before calling AddMount. Without this, AddMount races with
+	// Sync: send a STATFS request to confirm the session is running before
+	// calling AddMount. Without this STATFS request, AddMount races with
 	// session registration and the MOUNT_NOTIFY may be lost.
 
 	// Send a STATFS request to confirm the session is running.

@@ -60,11 +60,11 @@ type Cache struct {
 type state int
 
 const (
-	// stateLoading opens the Log; Get misses and Put stores nothing.
+	// stateLoading opens the Log. Get misses and Put stores nothing.
 	stateLoading state = iota
 	// stateReady serves from the Log.
 	stateReady
-	// stateFailed holds a load or eviction failure; the Log is closed and
+	// stateFailed holds a load or eviction failure. The Log is closed and
 	// Get misses.
 	stateFailed
 	// stateClosed has closed the Log at Close.

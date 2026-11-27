@@ -22,8 +22,9 @@ import (
 // or paste-based out-of-band channel the UI normally uses).
 //
 // Success criterion: both sides observe PEER_CONNECTED or a later successful
-// pairing phase, which proves the WebRTC data channel opened and bifrost link
-// wiring completed even when the snapshot stream coalesces a transition.
+// pairing phase. Observing either phase proves the WebRTC data channel opened
+// and bifrost link wiring completed even when the snapshot stream coalesces a
+// transition.
 func TestNoCloudPairingDirect(t *testing.T) {
 	// Skip the test unless this compiler enables browser WebRTC.
 	compiler, err := ResolveE2EWasmCompiler()

@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RunCloneExample attempts to perform a clone demo into the given interfaces.
-// This is used for several of the code toys.
+// RunCloneExample tries to clone into the given interfaces as a demo.
+// RunCloneExample is used for several of the code toys.
 func RunCloneExample(
 	ctx context.Context,
 	le *logrus.Entry,

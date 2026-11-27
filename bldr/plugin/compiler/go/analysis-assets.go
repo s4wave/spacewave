@@ -33,7 +33,7 @@ type AssetArgs struct {
 // BuildFlagSet builds the set of flags for the args.
 func (a *AssetArgs) BuildFlagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet(AssetTag, flag.ContinueOnError)
-	// NOTE: currently we do not add any extra flags
+	// NOTE: The flag set has no extra flags.
 	return fs
 }
 
@@ -45,7 +45,7 @@ func TrimAssetArgs(value string) (string, bool) {
 
 // ParseAssetComments parses the bldr:asset comments for a variable.
 //
-// If no bldr:asset prefix is found, returns nil, false, nil
+// If no bldr:asset prefix is found, returns nil, false, nil.
 func ParseAssetComments(values []string, spec *ast.ValueSpec) (*AssetArgs, bool, error) {
 	// Parse the asset directive arguments from the variable comments.
 	args, found, err := CombineShellComments(AssetTag, values)

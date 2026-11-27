@@ -36,7 +36,7 @@ export interface FileListDragEnvelopeContext {
 
 interface FileListProps {
   entries: FileEntry[]
-  // entryDetails are each entry's date and size; a list without them, such as
+  // entryDetails are each entry's date and size. A list without them, such as
   // a git tree, offers no Date or Size column.
   entryDetails?: FileEntryDetailsMap
   onOpen?: (entries: FileEntry[]) => void
@@ -181,7 +181,8 @@ export function FileList({
     [onOpen],
   )
 
-  // Collect what every row reads, so rows rerender only when it changes.
+  // Collect the configuration every row reads, so rows rerender only when
+  // the configuration changes.
   const rowConfig = useMemo<FileListRowConfig>(
     () => ({
       entryDetails,
@@ -221,7 +222,8 @@ export function FileList({
       const sortDirection = state.sortDirection ?? 'asc'
       const SortChevron = sortDirection === 'asc' ? LuChevronDown : LuChevronUp
 
-      // Sort by a column; the List flips direction when it is already sorted.
+      // Sort by a column. The List flips direction when the column is already
+      // sorted.
       const handleSort = (column: SortColumn) => {
         dispatch({ type: 'SET_SORT', sortKey: column })
       }

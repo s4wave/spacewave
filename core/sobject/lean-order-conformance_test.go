@@ -42,8 +42,8 @@ func TestLeanOrderConformance(t *testing.T) {
 // orderCase signs one random operation set and records Go's order and stable
 // point for it.
 func orderCase(t *testing.T, rng *rand.Rand, privs []crypto.PrivKey, ids []string, name string) leanCase {
-	// Sign operations that extend or fork their author's chain and name
-	// random earlier operations, a few at a misstated nonce.
+	// Sign operations that extend or fork their author's chain and
+	// reference random earlier operations, a few at a misstated nonce.
 	t.Helper()
 	var signed []*SOOperation
 	var positions []*SOOperationPosition
@@ -97,7 +97,7 @@ func orderCase(t *testing.T, rng *rand.Rand, privs []crypto.PrivKey, ids []strin
 	}
 	roster := slices.DeleteFunc(slices.Clone(ids), func(string) bool { return rng.IntN(3) == 0 })
 
-	// Number each hash by its rank in byte order, which keeps the order.
+	// Number each hash by its rank in byte order to preserve the order.
 	var sorted [][]byte
 	for _, pos := range positions {
 		sorted = append(sorted, pos.GetOpHash())

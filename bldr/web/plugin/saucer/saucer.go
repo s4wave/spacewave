@@ -40,9 +40,9 @@ func RunSaucer(
 	extraSaucerFlags []string,
 	saucerInit *SaucerInit,
 ) (*Saucer, error) {
-	// Create yamux pipe.
-	// C++ acts as the client (opens streams to us).
-	// We act as the server (accept streams from C++).
+	// Create the yamux pipe.
+	// C++ acts as the client (opens streams to Go).
+	// Go acts as the server (accepts streams from C++).
 	le.Debug("listening on yamux socket")
 	pipeListener, err := bldr_pipesock.Listen(le, workdirPath, runtimeUuid)
 	if err != nil {
@@ -50,7 +50,7 @@ func RunSaucer(
 	}
 
 	// C++ acts as the client (outbound=true on C++ side).
-	// We act as the server (outbound=false).
+	// Go acts as the server (outbound=false).
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, false)
 	go smc.AcceptPump(pipeListener)
 

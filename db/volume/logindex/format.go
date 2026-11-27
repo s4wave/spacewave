@@ -42,9 +42,9 @@ const (
 // castagnoli is the CRC-32C table.
 var castagnoli = crc32.MakeTable(crc32.Castagnoli)
 
-// manifest names the checkpoint and the log that together hold the index.
+// manifest selects the checkpoint and the log that together hold the index.
 type manifest struct {
-	// gen orders manifests; the slot with the higher valid gen wins.
+	// gen orders manifests. The slot with the higher valid gen wins.
 	gen uint64
 	// checkpoint is the checkpoint file number, zero for none.
 	checkpoint uint64

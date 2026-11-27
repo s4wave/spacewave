@@ -13,8 +13,8 @@ import (
 // arrive, so a store that may drain before this call must record writes.
 //
 // The caller must exclusively own the buffer and stop all writers first. Use
-// this for a newly constructed snapshot, not a buffer shared with other work.
-// It never removes blocks from the inner store.
+// SyncReachable for a newly constructed snapshot, not a buffer shared with
+// other work. SyncReachable never removes blocks from the inner store.
 func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (bool, error) {
 	if _, err := s.keepReachable(ctx, roots); err != nil {
 		return false, err
@@ -37,7 +37,7 @@ func (s *BufferedStore) DrainReachable(ctx context.Context, roots ...*BlockRef) 
 // in one transaction of its own. Ownership is as for SyncReachable, and the
 // borrow is as for TakePending.
 //
-// A pending block that a capacity drain's parent names is written to the
+// A pending block that a capacity drain's parent references is written to the
 // inner store first, with every pending block below it, and not borrowed: the
 // inner store holds the parent, so it holds them only when they reach it the
 // same way. Borrowed, they would land beside a root move that holds them only

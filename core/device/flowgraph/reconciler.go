@@ -77,8 +77,8 @@ type Reconciler struct {
 
 // NewReconciler constructs a Reconciler for the Device at deviceKey with the
 // given peer ID. engineID is the ID of engine on the bus, and spaceID is the
-// shared object ID of the Space engine holds. It calls hold while
-// a node runs and calls the release it returns once none do.
+// shared object ID of the Space engine holds. The Reconciler calls hold while
+// a node runs and calls the release hold returns once no node runs.
 func NewReconciler(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -174,8 +174,9 @@ func (r *Reconciler) reconcileLoop(ctx context.Context) error {
 			// The Device object arrives with a later World change.
 			r.le.WithError(err).Debug("device object not available for flowgraph nodes")
 		default:
-			// Retry after any World change, since the pass may have stopped
-			// before reading what would fix it.
+			// Retry after any World change, since the pass may
+			// have stopped before reading what would fix the
+			// reconciliation error.
 			r.le.WithError(err).Warn("failed to reconcile flowgraph nodes")
 			reads = nil
 		}

@@ -9,9 +9,9 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
-// SetRootHoldsEnv names the environment variable that turns off recording the
-// object roots a write sets when set to "off". A recording transaction then
-// names no set roots in its operations, and replay holds only the roots of
+// SetRootHoldsEnv identifies the environment variable that turns off recording
+// the object roots a write sets when set to "off". A recording transaction then
+// lists no set roots in its operations, and replay holds only the roots of
 // payload operations and of direct object writes, as before set roots
 // existed. It is the fallback while set roots are new.
 const SetRootHoldsEnv = "SPACEWAVE_WORLD_SET_ROOT_HOLDS"
@@ -23,7 +23,7 @@ var setRootHoldsOff = os.Getenv(SetRootHoldsEnv) == "off"
 // any root noted for key since the last take. Only the last root per key is
 // kept here: with the changelog off, an earlier root the same operation
 // replaced is never reached from the committed World, and no later operation
-// can name it. With it on, noteLoggedRoot keeps the earlier roots the
+// can reference it. With it on, noteLoggedRoot keeps the earlier roots the
 // changelog links. A root in another bucket lives in another store, which this
 // World's holds do not reach, and an empty root needs no hold, so either drops
 // the key.
@@ -49,7 +49,7 @@ func (t *WorldState) noteSetRoot(key string, ref *bucket.ObjectRef) {
 // holding it on the entry's new side. The committed World reaches every such
 // root, including one a later write in the same operation replaced or whose
 // object it deleted, so each is held as the final roots are. Replay need not
-// rebuild it: the operation may only name a block staged before it ran.
+// rebuild it: the operation may only reference a block staged before it ran.
 func (t *WorldState) noteLoggedRoot(ref *bucket.ObjectRef) {
 	if setRootHoldsOff || ref.GetBucketId() != "" || ref.GetRootRef().GetEmpty() {
 		return
@@ -79,13 +79,13 @@ func (t *WorldState) forgetSetRoot(key string) {
 // root a changelog entry links, in write order, each once, and forgets them.
 // The caller serializes it with the state's writes.
 func (t *WorldState) TakeSetRoots() []*block.BlockRef {
-	// An operation that set no root names none.
+	// An operation that set no root references none.
 	if len(t.setRoots) == 0 && len(t.loggedRoots) == 0 {
 		return nil
 	}
 
-	// Gather the final roots in key order, then the logged roots they do not
-	// already name, so the recorded entry is deterministic.
+	// Gather the final roots in key order, then the logged roots they do
+	// not already reference, so the recorded entry is deterministic.
 	roots := make([]*block.BlockRef, 0, len(t.setRoots)+len(t.loggedRoots))
 	seen := make(map[string]struct{}, cap(roots))
 	add := func(ref *block.BlockRef) {
@@ -109,7 +109,7 @@ func (t *WorldState) TakeSetRoots() []*block.BlockRef {
 // the last call, its Commit or its Discard, and forgets them: the final root
 // of each object, and each root a changelog entry links.
 // A recording transaction takes them around each operation it applies, so the
-// recorded operation names the roots it set; see
+// recorded operation references the roots it set. See
 // world_block_tx.Tx.PayloadRefs.
 func (t *Tx) TakeSetRoots() []*block.BlockRef {
 	lkr := t.rmtx.Locker()

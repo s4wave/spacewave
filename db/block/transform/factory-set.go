@@ -9,9 +9,9 @@ import (
 
 // StepFactorySet is a statically compiled set of transformers.
 type StepFactorySet struct {
-	// mtx guards the map
+	// mtx guards the map.
 	mtx sync.Mutex
-	// factories contains factories keyed by config id
+	// factories contains factories keyed by config id.
 	factories map[string]StepFactory
 }
 

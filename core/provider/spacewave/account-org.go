@@ -14,7 +14,7 @@ type organizationMemberNotFoundError struct {
 	orgID     string
 }
 
-// Error names the account and the organization it is missing from.
+// Error identifies the account and the organization it is missing from.
 func (e *organizationMemberNotFoundError) Error() string {
 	return "account " + e.accountID + " is not a member of organization " + e.orgID
 }
@@ -251,7 +251,7 @@ func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID strin
 		return err
 	}
 
-	// Map the members to roles; with none there is nothing to enroll.
+	// Map the members to roles. With no members there is nothing to enroll.
 	memberRoles := buildOrganizationMemberRoleMap(info)
 	if len(memberRoles) == 0 {
 		return nil
@@ -491,7 +491,7 @@ func OrganizationMemberRoleToSOParticipantRole(
 }
 
 // participantRoleForAccount returns the highest role any peer of accountID
-// holds in cfg, or fallback when it is higher or the account has none.
+// holds in cfg, or fallback when fallback is higher or the account has none.
 func participantRoleForAccount(
 	cfg *sobject.SharedObjectConfig,
 	accountID string,

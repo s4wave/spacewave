@@ -604,9 +604,9 @@ describe('WebDocument service worker startup', () => {
       doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
       'initServiceWorkerPort',
     ).mockImplementation(() => {})
-    // Deliberately unresolved: the test asserts the open attempt happened, not
-    // that the connection succeeded, so no resume-ready seeding outlives the
-    // test.
+    // The waitConn promise stays deliberately unresolved: the test asserts the
+    // open attempt happened, not that the connection succeeded, so no
+    // resume-ready seeding outlives the test.
     const waitConn = vi.fn().mockReturnValue(new Promise(() => {}))
     doc.webRuntimeClient.waitConn = waitConn
     const wb: TestWorkbox = {
@@ -1183,8 +1183,8 @@ describe('WebDocument plugin generation state', () => {
     })
 
     const doc = buildTestWebDocument(true)
-    // A background/bfcache suspend released the liveness lock: state is idle
-    // even though the document still believes it is connected.
+    // A background/bfcache suspend released the liveness lock: the state is
+    // idle even though the document still believes it is connected.
     doc.webDocumentLivenessLockState = 'idle'
     const waitConn = vi.fn().mockResolvedValue(undefined)
     doc.webRuntimeClient = {

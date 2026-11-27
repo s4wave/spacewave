@@ -9,7 +9,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * ForgeJobCreateOp creates a Forge Job with tasks and assigns it to a Cluster.
- * Wraps CreateJobWithTasks + ClusterAssignJobOp in a single world op.
+ * The operation wraps CreateJobWithTasks + ClusterAssignJobOp in a single
+ * world op.
  *
  * @generated from message s4wave.forge.job.ForgeJobCreateOp
  */

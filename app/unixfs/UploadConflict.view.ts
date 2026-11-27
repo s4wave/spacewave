@@ -7,7 +7,7 @@ type Upload = {
 
 export const title = 'Upload: asking before a dropped file replaces another'
 
-// question names what the asking dialog shows: a file or a folder, and
+// question describes what the asking dialog shows: a file or a folder, and
 // whether an answer can apply to other names too.
 const question = (v: Upload) => {
   const asking = Object.keys(v.item).filter((n) => v.item[n] === 'asking')

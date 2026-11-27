@@ -22,7 +22,7 @@ type sliceIterator struct {
 }
 
 // newSliceIterator constructs an iterator over the entries. The entries
-// must already be sorted forward; reverse iteration walks them backwards.
+// must already be sorted forward. Reverse iteration walks them backwards.
 func newSliceIterator(entries []kvEntry, reverse bool) *sliceIterator {
 	return &sliceIterator{entries: entries, reverse: reverse, idx: -1}
 }

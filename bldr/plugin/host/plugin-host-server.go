@@ -23,39 +23,42 @@ import (
 
 // PluginHostServer implements the PluginHost rpc service.
 type PluginHostServer struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// pluginID is the plugin id.
 	pluginID string
 	// instanceKey is the plugin instance key.
 	instanceKey string
-	// manifestSnapshot is the plugin manifestSnapshot snapshot
+	// manifestSnapshot is the plugin manifestSnapshot snapshot.
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
 	// historical suppresses current-generation registration in an immutable replay worker.
 	historical bool
 	// prepared delays publication until the scheduler admits this candidate.
 	prepared bool
-	// namesPeers permits LoadPlugin requests that name the peer whose
+	// namesPeers permits LoadPlugin requests that select the peer whose
 	// approvals decide their roots.
 	namesPeers bool
 	// registrationInstanceKey identifies the logical installation, independent of RPC routing.
 	registrationInstanceKey string
-	// hostVolumeInfo is the host volume information
+	// hostVolumeInfo is the host volume information.
 	hostVolumeInfo *volume.VolumeInfo
 	// hostStorageID is the Storage ID on the host bus that this plugin
 	// instance allocates named volumes through. Empty selects the host
 	// default storage.
 	hostStorageID string
-	// hostExportPluginIDs are the scheduler's trusted plugins: they may name
-	// any instance, and the others reach them on the scheduler's key.
+	// hostExportPluginIDs are the scheduler's trusted plugins: they may
+	// select any instance, and the others reach them on the scheduler's
+	// key.
 	hostExportPluginIDs []string
 	// scheduler is the host scheduler running this plugin, if any.
 	scheduler bldr_plugin.PluginScheduler
-	// pluginFsTracker tracks loaded plugin FSCursor servers
-	// TODO: we need a KeyedRefCountValue type which resolves a value with the same logic as refcount/refcount.go
-	// TODO: that would be a lot simpler and more robust here
+	// pluginFsTracker tracks loaded plugin FSCursor servers.
+	// TODO: pluginFsTracker needs a KeyedRefCountValue type that resolves a
+	// value with the same logic as refcount/refcount.go.
+	// TODO: KeyedRefCountValue would be a lot simpler and less prone to
+	// errors here.
 	pluginFsTracker *keyed.KeyedRefCount[string, *pluginHostServerFsTracker]
 }
 
@@ -96,12 +99,12 @@ func (s *PluginHostServer) SetPrepared(prepared bool) {
 	s.prepared = prepared
 }
 
-// SetNamesPeers permits this plugin's LoadPlugin requests to name the peer
-// whose approvals decide their roots. Grant it only to plugins trusted to run
-// plugins on the host, such as one that forwards a session's Space loads; a
-// request from any other plugin that names a peer is refused, so a plugin
-// cannot borrow another peer's approvals. Set it before exposing this server
-// to its plugin.
+// SetNamesPeers permits this plugin's LoadPlugin requests to select the peer
+// whose approvals decide their roots. Grant this permission only to plugins
+// trusted to run plugins on the host, such as one that forwards a session's
+// Space loads. A request from any other plugin that selects a peer is refused,
+// so a plugin cannot borrow another peer's approvals. Set namesPeers before
+// exposing this server to its plugin.
 func (s *PluginHostServer) SetNamesPeers(namesPeers bool) {
 	s.namesPeers = namesPeers
 }
@@ -124,7 +127,7 @@ func (s *PluginHostServer) SetPluginScheduler(scheduler bldr_plugin.PluginSchedu
 	s.scheduler = scheduler
 }
 
-// GetPluginInfo returns information about the currently running plugin.
+// GetPluginInfo returns information about the running plugin.
 func (s *PluginHostServer) GetPluginInfo(
 	ctx context.Context,
 	req *bldr_plugin.GetPluginInfoRequest,
@@ -173,10 +176,10 @@ func (s *PluginHostServer) LoadPlugin(
 	return HandleLoadPluginRpc(s.b, req, strm)
 }
 
-// refuseLoad returns why this server's plugin may not send req, or nil. It
-// holds every rule about what a request may name beyond the caller's own
-// scope: a peer whose approvals decide the roots is named only by a plugin
-// granted SetNamesPeers.
+// refuseLoad returns why this server's plugin may not send req, or nil. The
+// function enforces every rule about what a request may select beyond the
+// caller's own scope: a peer whose approvals decide the roots is selected only
+// by a plugin granted SetNamesPeers.
 func (s *PluginHostServer) refuseLoad(req *bldr_plugin.LoadPluginRequest) error {
 	if req.GetPeerId() != "" && !s.namesPeers {
 		return errors.Errorf("plugin %q may not name the approving peer of a load", s.pluginID)
@@ -185,18 +188,20 @@ func (s *PluginHostServer) refuseLoad(req *bldr_plugin.LoadPluginRequest) error 
 }
 
 // loadInstanceKey returns the instance key a load of pluginID by this server's
-// plugin runs under, given the key the request names, which may be empty.
+// plugin runs under, given the key the request selects, which may be empty.
 //
 // Invariant: a plugin cannot obtain an instance, of itself or of another
 // plugin, on a wider volume view than its own. The rules:
 //
-//   - A host-export caller may name any key; an empty key selects the
-//     scheduler's.
+//   - A host-export caller may select any key. An empty key selects the
+//     scheduler's key.
 //   - Any other load inherits the caller's own binding key: an empty key or
-//     the caller's own selects it, and any other key is refused.
+//     the caller's own key selects that binding key, and any other key is
+//     refused.
 //
 // A load of a host-export plugin under any key runs the scheduler's own
-// instance of it; the scheduler decides that, for every source of loads.
+// instance of that plugin. The scheduler makes that decision for every source
+// of loads.
 //
 // Invariant: only the host's own start path pins a build of a host-export
 // plugin. A load that selects a build, by manifests or a manifest root, of a
@@ -291,7 +296,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			unixfsID string,
 			released func(),
 		) (srpc.Invoker, func(), error) {
-			// The component id must name a filesystem.
+			// The component id must identify a filesystem.
 			if unixfsID == "" {
 				return nil, nil, errors.New("component id must be set to filesystem id")
 			}
@@ -307,7 +312,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 				pluginID = bldr_plugin.PluginArtifactID(s.pluginID, s.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString())
 			}
 
-			// wait for reference to be ready
+			// Wait for the plugin reference to be ready.
 			pluginRef, data, _ := s.pluginFsTracker.AddKeyRef(pluginID)
 
 			// Await the filesystem services for the plugin.
@@ -329,7 +334,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 				return nil, nil, errors.Errorf("unexpected unixfs id prefix: %v", matchedPrefix)
 			}
 
-			// return release func
+			// Return the release function.
 			return mux, pluginRef.Release, nil
 		},
 	)
@@ -341,7 +346,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 //
 // Invariant: a plugin outside the host's set can call only the services the
 // host registered for it and other plugins' services under its own binding
-// key; no other service on the host bus is reachable from it.
+// key. No other service on the host bus is reachable from that plugin.
 func (s *PluginHostServer) HostBusInvoker(allowedServiceIDs []string) srpc.Invoker {
 	serverID := bldr_plugin.PluginServerID(s.pluginID, "")
 	return srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
@@ -396,7 +401,7 @@ func (s *PluginHostServer) callerIsHostPlugin() bool {
 // ExecController executes a config set on the host bus.
 //
 // Invariant: only plugins the host itself starts may run controllers on the
-// host bus; a plugin loaded for a Space or approved by a person runs nothing
+// host bus. A plugin loaded for a Space or approved by a person runs nothing
 // there. Any other caller gets ErrNotHostPlugin before a config is resolved.
 func (s *PluginHostServer) ExecController(
 	req *controller_exec.ExecControllerRequest,

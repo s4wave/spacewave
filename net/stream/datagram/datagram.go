@@ -1,5 +1,5 @@
 // Package stream_datagram forwards UDP packets over an established peer
-// message stream. Each stream has one fixed UDP peer and one socket; peer
+// message stream. Each stream has one fixed UDP peer and one socket. Peer
 // authentication and stream admission belong to the caller's existing
 // link/session authority.
 package stream_datagram
@@ -36,7 +36,7 @@ const outboxSize = 8
 // socket must be unconnected and peer is the only permitted UDP sender and
 // destination. Other local senders are ignored. Cancellation or either side
 // failing closes both resources and waits for every forwarding pump to finish.
-// The caller binds a fresh socket per player/session; never share this socket
+// The caller binds a fresh socket per player/session. Never share this socket
 // with another Forward call. Only admitted sessions should reach this API.
 func Forward(ctx context.Context, socket *net.UDPConn, peer *net.UDPAddr, peerStream stream.MessageStream) error {
 	if peer == nil || peer.IP == nil || peer.Port <= 0 || peer.Port > 65535 {
@@ -48,10 +48,11 @@ func Forward(ctx context.Context, socket *net.UDPConn, peer *net.UDPAddr, peerSt
 }
 
 // ForwardLocal forwards one local application's UDP association. socket must
-// be bound to loopback. Its first sender becomes the fixed peer for this stream;
-// packets from other senders are ignored. The first packet is retained and
-// forwarded. The caller owns admission of the remote stream and gives only its
-// selected local application this endpoint. Cancellation closes both resources.
+// be bound to loopback. Its first sender becomes the fixed peer for this
+// stream. Packets from other senders are ignored. The first packet is retained
+// and forwarded. The caller owns admission of the remote stream and gives only
+// its selected local application this endpoint. Cancellation closes both
+// resources.
 func ForwardLocal(ctx context.Context, socket *net.UDPConn, peerStream stream.MessageStream) error {
 	if !socket.LocalAddr().(*net.UDPAddr).IP.IsLoopback() {
 		socket.Close()

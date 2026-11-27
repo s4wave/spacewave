@@ -56,8 +56,8 @@ type LocalAuthority struct {
 	head world.Head
 	// turns guards begun and ended and wakes YieldToWriters when a turn ends.
 	turns broadcast.Broadcast
-	// begun counts the turns Begin started, waiting ones included, and ended
-	// those that ended. turns guards both.
+	// begun and ended count the turns Begin started, waiting ones included,
+	// and those that ended, respectively. turns guards both.
 	begun, ended uint64
 	// busy is set while begun exceeds ended, so a background slice checks
 	// for writers without taking a lock.
@@ -118,7 +118,7 @@ func (a *LocalAuthority) Head(ctx context.Context) (world.Head, error) {
 
 // WatchHead calls fn with the current head, then with each head this process
 // commits or the coordinator reports another process committed, until release.
-// Each report costs one indexed root read; fn runs on one goroutine.
+// Each report costs one indexed root read. fn runs on one goroutine.
 func (a *LocalAuthority) WatchHead(ctx context.Context, fn func(world.Head)) (func(), error) {
 	// Subscribe to the coordinator before the first read, so a commit racing
 	// the subscription is seen through either.
@@ -302,10 +302,10 @@ func (a *LocalAuthority) watchCoordinator(ctx context.Context) (coord.Watch, err
 
 // runHeadWatch delivers the head to fn once, then again after each local
 // commit or coordinator event that moved it, until ctx ends. It reads the root
-// only for the first delivery and for a coordinator event that does not name
-// the head this authority already holds: a local wake carries the head this
-// authority just decided or read, and the event a local commit publishes names
-// it, so a local commit costs the watch no read.
+// only for the first delivery and for a coordinator event that does not
+// reference the head this authority already holds: a local wake carries the
+// head this authority just decided or read, and the event a local commit
+// publishes references that head, so a local commit costs the watch no read.
 func (a *LocalAuthority) runHeadWatch(ctx context.Context, events <-chan coord.Event, fn func(world.Head)) {
 	var last world.Head
 	var delivered bool
@@ -335,8 +335,9 @@ func (a *LocalAuthority) runHeadWatch(ctx context.Context, events <-chan coord.E
 			last, delivered = head, true
 		}
 
-		// Wait for a local commit or a coordinator event; read the root next
-		// only for an event that may name another writer's head.
+		// Wait for a local commit or a coordinator event. Read the root
+		// next only for an event that may reference another writer's
+		// head.
 		select {
 		case <-ctx.Done():
 			return

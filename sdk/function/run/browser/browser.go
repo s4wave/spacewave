@@ -6,7 +6,7 @@
 // GoScript replaces this package with its TypeScript implementation in the
 // repository's gs directory, which runs the module with run.ts in the parent
 // package. These declarations give the runner the package's API to compile
-// against; compiled by Go, Run reports errUnsupported.
+// against. Compiled by Go, Run reports errUnsupported.
 package function_run_browser
 
 import (
@@ -35,7 +35,7 @@ const (
 // Run runs module's default export on the protobuf JSON input in a fresh
 // instance of the reactor wasm, under the memory limit in bytes and the
 // interrupt check limit. The reactor is compiled once per slice. result is the
-// output in protobuf JSON form or the thrown message, as outcome says; err is
+// output in protobuf JSON form or the thrown message, as outcome says. err is
 // a failure of the runner itself.
 func Run(
 	ctx context.Context,

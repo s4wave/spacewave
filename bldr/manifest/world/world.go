@@ -83,9 +83,10 @@ func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string
 	return true, err
 }
 
-// CreateManifestStoreInEngine creates a manifest store in an engine using a transaction.
+// CreateManifestStoreInEngine creates a manifest store in an engine using a
+// transaction.
 //
-// Discards the transaction if nothing done.
+// Discards the transaction if nothing is done.
 func CreateManifestStoreInEngine(ctx context.Context, eng world.Engine, objKey string) (created bool, err error) {
 	// Loading a retained plugin can happen inside a World writer. Existing stores
 	// need only a read snapshot, so initialization must not wait for that writer.
@@ -362,7 +363,7 @@ func SetManifest(
 		return nil, false, err
 	}
 
-	// Update an existing object when it changes the manifest or its type.
+	// Update an existing object when the manifest or its type changes.
 	if objOk {
 		var replace bool
 		replace, err = manifestObjectReplaces(ctx, ws, objKey, obj, rootRef)
@@ -453,7 +454,7 @@ func checkManifestRefStored(
 }
 
 // replaceManifestBucketID returns a copy of ref whose manifest bucket id is to
-// when it was from.
+// when the bucket id is from.
 func replaceManifestBucketID(ref *bldr_manifest.ManifestRef, from, to string) *bldr_manifest.ManifestRef {
 	out := ref.CloneVT()
 	objRef := out.GetManifestRef()
@@ -574,7 +575,7 @@ func readManifestRefObject(ctx context.Context, ws world.WorldState, objKey stri
 		return err
 	})
 
-	// Refuse a stored root that does not decode; a failed read waits.
+	// Refuse a stored root that does not decode. A failed read waits.
 	return manifestRef, ref, world.RefuseDecodeError(err)
 }
 
@@ -655,14 +656,15 @@ func ListStartupManifestCandidatesWithID(ctx context.Context, w world.WorldState
 type startupManifestSelectionCandidate struct {
 	// objectKey is a selected or legacy manifest candidate.
 	objectKey string
-	// exactManifestIDs are the selected IDs named by concrete graph labels.
+	// exactManifestIDs are the selected IDs declared by concrete graph
+	// labels.
 	exactManifestIDs []string
 	// legacy reports an empty graph label on a path to this candidate.
 	legacy bool
 }
 
 // listStartupManifestCandidatesForManifestIDs follows selected manifest labels
-// and retained empty-label paths. Empty labels can name a direct legacy
+// and retained empty-label paths. Empty labels can select a direct legacy
 // candidate or a store/bundle frontier, so every empty edge remains traversable.
 func listStartupManifestCandidatesForManifestIDs(
 	ctx context.Context,
@@ -973,7 +975,8 @@ func CollectManifests(
 
 	// Look up each manifest object key in turn.
 	for _, objKey := range manifestObjKeys {
-		// Context errors stop the collection; others are skip errors.
+		// Context errors stop the collection.
+		// Other errors are skip errors.
 		collected, err := lookupCollectedManifest(ctx, ws, objKey)
 		if err != nil {
 			cause := errors.Cause(err)
@@ -1057,8 +1060,9 @@ func lookupCollectedManifest(
 // CollectStartupManifests collects readable startup manifest candidates linked
 // to the given object(s).
 //
-// Unlike CollectManifests, this accepts ManifestRef candidate objects and
-// treats optional candidate lookup failures as skip errors.
+// Unlike CollectManifests, CollectStartupManifests accepts ManifestRef
+// candidate objects and treats optional candidate lookup failures as skip
+// errors.
 func CollectStartupManifests(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1123,8 +1127,8 @@ func CollectStartupManifestsForManifestIDs(
 // one, and returns collected manifests grouped by manifest id.
 //
 // matches reports whether a candidate's manifest id passes the caller's
-// selection; it is applied to both the ref metadata and the decoded
-// manifest.
+// selection. The matches function is applied to both the ref metadata and the
+// decoded manifest.
 func collectStartupManifests(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1139,7 +1143,7 @@ func collectStartupManifests(
 
 	// Read each candidate and keep those the filters allow.
 	for _, candidate := range candidates {
-		// Intermediates are skipped; other type errors are skip errors.
+		// Intermediates are skipped. Other type errors are skip errors.
 		objType, err := world_types.GetObjectType(ctx, ws, candidate.objectKey)
 		if err != nil {
 			if ctxErr := startupContextError(err); ctxErr != nil {
@@ -1480,9 +1484,11 @@ func FilterCollectedManifestsByPlatformID(manifestList []*CollectedManifest, pla
 	return manifestList
 }
 
-// FilterCollectedManifestsByFirst filters a list of collected manifests to the first for each platform id.
+// FilterCollectedManifestsByFirst filters a list of collected manifests to the
+// first for each platform id.
 // The resulting slice will have zero or one manifest per platform ID.
-// Usually this slice is sorted by revision (higher first) so this will return the latest manifest(s).
+// Usually this slice is sorted by revision (higher first) so the function will
+// return the latest manifest(s).
 // Maintains the sort order.
 func FilterCollectedManifestsByFirst(manifestList []*CollectedManifest) []*CollectedManifest {
 	// Keep the first manifest per platform id in sort order.

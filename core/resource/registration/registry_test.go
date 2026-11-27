@@ -199,7 +199,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	}
 	check("", "old")
 
-	// Admission switches all readers, and releasing the old group preserves it.
+	// Admission switches all readers, and releasing the old group preserves
+	// the new group.
 	newRef, next := open("colors", "new", "")
 	register(next, "new")
 	check("", "old")
@@ -288,7 +289,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	foreignRef.Release()
 	newRef.Release()
 
-	// Resource release is asynchronous; use the actual watch to observe removal.
+	// Resource release is asynchronous, so use the actual watch to observe
+	// removal.
 	stream, err := quickstart.NewSRPCQuickstartRegistryResourceServiceClient(rootClient).WatchQuickstarts(ctx, &quickstart.WatchQuickstartsRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -307,8 +309,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 }
 
 // TestPrepareRefusesForeignBinding prepares generations through PluginRpc as a
-// stamped plugin would. Naming another plugin's ID or another binding key is
-// refused; the caller's own binding is prepared.
+// stamped plugin would. Requesting another plugin's ID or another binding key
+// is refused, but the caller's own binding is prepared.
 func TestPrepareRefusesForeignBinding(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()

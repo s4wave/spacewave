@@ -37,8 +37,9 @@ import (
 	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 )
 
-// qemuGitea owns a fresh World and consumes existing, explicitly supplied guest disks.
-// A failed run preserves those disks; the test never formats or reseeds them.
+// qemuGitea owns a fresh World and consumes existing, explicitly supplied guest
+// disks.
+// A failed run preserves those disks. The test never formats or reseeds them.
 type qemuGitea struct {
 	*flowgraphFixture
 	dir       string
@@ -48,9 +49,11 @@ type qemuGitea struct {
 	port      int
 }
 
-// TestGiteaQEMUFlowgraph replaces a real Forge-owned VM and reads its original work.
-// SPACEWAVE_QEMU_FIXTURE must name a fresh fixture prepared by os/qemu; no download,
-// host mount, daemon installation or existing user data reset occurs in this test.
+// TestGiteaQEMUFlowgraph replaces a real Forge-owned VM and reads its original
+// work.
+// SPACEWAVE_QEMU_FIXTURE must select a fresh fixture prepared by os/qemu. No
+// download, host mount, daemon installation or existing user data reset occurs
+// in this test.
 func TestGiteaQEMUFlowgraph(t *testing.T) {
 	// Require explicit runtime inputs and preserve them independently of test cleanup.
 	fixture := os.Getenv("SPACEWAVE_QEMU_FIXTURE")
@@ -61,7 +64,8 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	if dockerPath == "" || image == "" {
 		t.Fatal("SPACEWAVE_DOCKER and SPACEWAVE_QEMU_IMAGE are required")
 	}
-	// Refuse accidental reuse of a prior test's SQL World; retained disks are not reset.
+	// Refuse accidental reuse of a prior test's SQL World. Retained disks are
+	// not reset.
 	if _, err := os.Stat(filepath.Join(fixture, "host-world.s4wave")); !os.IsNotExist(err) {
 		t.Fatal("fixture already contains a SQL World; prepare a new fixture")
 	}
@@ -159,7 +163,8 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 		t.Fatalf("artifact output=%q err=%v", output, err)
 	}
 
-	// Lose the stop response while the actual VM stays live; custody must retain its debit.
+	// Lose the stop response while the actual VM stays live. Custody must retain
+	// its debit.
 	stopGate := filepath.Join(f.dir, "stop-block")
 	if err := os.WriteFile(stopGate, nil, 0o600); err != nil {
 		t.Fatal(err)
@@ -251,7 +256,8 @@ func (f *qemuGitea) attachSQL() (int, func()) {
 		f.t.Fatal(err)
 	}
 
-	// Bind to loopback; QEMU user networking reaches it through 10.0.2.2.
+	// Bind to loopback. QEMU user networking reaches the listener through
+	// 10.0.2.2.
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		store.Close()
@@ -307,7 +313,7 @@ func (f *qemuGitea) docker(args ...string) string {
 
 // waitReady waits for Gitea's health check until the run's VM Task ends.
 // Docker start, a cold boot and the first migration have no fixed duration on a
-// loaded host; the harness timeout bounds the whole proof.
+// loaded host. The harness timeout bounds the whole proof.
 func (f *qemuGitea) waitReady(run string) {
 	// Watch World revisions for the VM Task's completion beside the health check.
 	ctx, cancel := context.WithCancelCause(f.ctx)
@@ -367,7 +373,8 @@ func (f *qemuGitea) taskEnded(ctx context.Context, run, node string) error {
 
 // reservation follows the activation's current Pass to its real execution grant.
 func (f *qemuGitea) reservation(run, node string) *forge_runtime.Reservation {
-	// Resolve only this Task's bounded execution set; no global runtime scan is needed.
+	// Resolve only this Task's bounded execution set. No global runtime scan
+	// is needed.
 	taskKey := f.waitTask(run, node, false)
 	task, err := forge_task.LookupTaskBody(f.ctx, f.tb.WorldState, taskKey)
 	if err != nil {
@@ -437,7 +444,8 @@ func (f *qemuGitea) requireGuestBindings(original, replacement string) {
 
 // configDigest reads only a hash, keeping generated application keys out of receipts.
 func (f *qemuGitea) configDigest(log, marker string) string {
-	// BusyBox's sha256sum line follows the marker; a shell prompt may precede it.
+	// BusyBox's sha256sum line follows the marker. A shell prompt may precede
+	// the line.
 	for _, tail := range strings.Split(log, marker)[1:] {
 		fields := strings.Fields(tail)
 		for i := 1; i < len(fields); i++ {
@@ -452,7 +460,8 @@ func (f *qemuGitea) configDigest(log, marker string) string {
 
 // createGraph composes one VM Step and an explicitly requested repository build.
 func (f *qemuGitea) createGraph(startup string) {
-	// Mount only explicit application inputs; build receives no application storage.
+	// Mount only explicit application inputs. The build receives no application
+	// storage.
 	inputs := filepath.Join(filepath.Dir(f.dir), "inputs")
 	vm := f.dockerConfig()
 	vm.MemoryBytes = 2 << 30

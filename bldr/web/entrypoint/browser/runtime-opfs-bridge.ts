@@ -23,14 +23,14 @@ interface PendingRequest {
 // when it runs in a SharedWorker, which cannot call
 // navigator.storage.getDirectory() (Chrome throws SecurityError). It tracks the
 // broker MessagePort of each connected WebDocument, requests an OPFS worker from
-// a live document, installs it as the WASM global bridge port via
-// setOpfsBridgePort, and re-hosts from a surviving document when the hosting
-// document closes or its worker dies. WebDocument liveness uses the same
-// per-document Web Lock the WebDocumentTracker uses, so a hidden or throttled
-// tab is not mistaken for a closed one.
+// a live document, installs the worker's MessagePort as the WASM global bridge
+// port via setOpfsBridgePort, and re-hosts from a surviving document when the
+// hosting document closes or its worker dies. WebDocument liveness uses the
+// same per-document Web Lock the WebDocumentTracker uses, so a hidden or
+// throttled tab is not mistaken for a closed one.
 //
 // The broker channel speaks the existing ClientToWebDocument (request) /
-// WebDocumentToClient (ack) OPFS messages; the WebDocument owns OPFS worker
+// WebDocumentToClient (ack) OPFS messages. The WebDocument owns OPFS worker
 // creation and emits the runtime.opfs-bridge-ready startup mark.
 export class RuntimeOpfsBridge {
   private readonly webDocuments = new Map<string, TrackedWebDocument>()
@@ -141,8 +141,8 @@ export class RuntimeOpfsBridge {
 
   // openOpfsWorker sends an openOpfsWorker request to a WebDocument and resolves
   // with the bridge MessagePort, or null if the document errors or closes. The
-  // WebDocument always replies with an ack (success or error); document death is
-  // surfaced by the liveness watch rejecting the pending request.
+  // WebDocument always replies with an ack (success or error). Document death
+  // is surfaced by the liveness watch rejecting the pending request.
   private openOpfsWorker(webDocumentId: string): Promise<MessagePort | null> {
     const tracked = this.webDocuments.get(webDocumentId)
     if (!tracked) {
@@ -210,8 +210,8 @@ export class RuntimeOpfsBridge {
   }
 
   // watchWebDocumentLiveness re-hosts the bridge when a tracked document closes.
-  // The document holds its liveness lock while alive (web-document.ts); acquiring
-  // it means the document is gone.
+  // The document holds its liveness lock while alive (web-document.ts).
+  // Acquiring the lock means the document is gone.
   private watchWebDocumentLiveness(
     webDocumentId: string,
     tracked: TrackedWebDocument,

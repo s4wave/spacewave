@@ -29,11 +29,11 @@ import (
 )
 
 const (
-	// sftpPasswordEnv names the variable holding the SFTP password.
+	// sftpPasswordEnv is the name of the variable holding the SFTP password.
 	sftpPasswordEnv = "PACK_COPY_SFTP_PASSWORD" //nolint:gosec // the name of a variable, not a password.
-	// keyIDEnv names the variable holding the bucket's key id.
+	// keyIDEnv is the name of the variable holding the bucket's key id.
 	keyIDEnv = "PACK_COPY_KEY_ID"
-	// keyEnv names the variable holding the bucket's key.
+	// keyEnv is the name of the variable holding the bucket's key.
 	keyEnv = "PACK_COPY_KEY"
 	// graphDir holds the graph stream under the target prefix.
 	graphDir = "graph/"
@@ -66,7 +66,7 @@ type Args struct {
 	TargetIndex string
 	// IndexTable is the table of both index files.
 	IndexTable string
-	// Width is the target packs indexed at once.
+	// Width is the number of target packs indexed at once.
 	Width int
 	// BudgetBytes is the bytes the source may serve across runs, zero for no
 	// limit.
@@ -93,7 +93,7 @@ type Args struct {
 	Region string
 	// TargetPrefix starts the target's keys.
 	TargetPrefix string
-	// PackMiB bounds one target pack in MiB; zero uses the store's default.
+	// PackMiB bounds one target pack in MiB. Zero uses the store's default.
 	PackMiB int64
 
 	// Roots are the blocks to copy, as b58 refs.
@@ -104,11 +104,11 @@ type Args struct {
 	Frames cli.StringSlice
 	// Holes is the holes list a pass writes.
 	Holes string
-	// Store names the block store in the holes list.
+	// Store identifies the block store in the holes list.
 	Store string
-	// Reads is the reads kept in flight.
+	// Reads is the number of reads kept in flight.
 	Reads int
-	// Uploads is the packs written at once.
+	// Uploads is the number of packs written at once.
 	Uploads int
 
 	// Volume configures the Volume file sources.
@@ -194,7 +194,7 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 	}
 
 	// Open the index files. A row of the target index commits after its pack
-	// is durable; a lost one is rebuilt from the pack.
+	// is durable. A lost row is rebuilt from the pack.
 	if _, err := os.Stat(a.SourceIndex); err != nil {
 		return nil, errors.Wrap(err, "--source-index")
 	}
@@ -227,7 +227,7 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 
 	// The source reads its blocks from the index alone: a listing of every
 	// pack over two connections would cost hours, and each pass takes a fresh
-	// copy of the index, which names the packs written since the last.
+	// copy of the index, which lists the packs written since the last pass.
 	r.source = block_store_s3.NewPackStore(r.le, r.meter, a.SFTPRoot, a.SourcePrefix, &block_store_s3.PackStoreOptions{
 		KeepPacks:  true,
 		Index:      kvtx_prefixer.NewPrefixer(r.sourceIndex, indexPrefix),
@@ -331,7 +331,7 @@ func (a *Args) runCopy(*cli.Context) error {
 	}
 	defer closeSources()
 
-	// Write the holes list afresh: it names what this pass could not serve.
+	// Write the holes list afresh: it records what this pass could not serve.
 	holes, err := os.Create(a.Holes)
 	if err != nil {
 		return err
@@ -436,10 +436,10 @@ func resultFields(r *packcopy.Result) logrus.Fields {
 }
 
 // bindTarget records the target the scratch file's proofs describe on its
-// first run, and refuses another: a proof says a block is durable in one
+// first run, and refuses another target: a proof says a block is durable in one
 // target, so trusting it for another would skip every block it covers.
 func bindTarget(store kvtx.Store, target string) error {
-	// Open a write.
+	// Open a write transaction.
 	ctx := context.Background()
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
@@ -466,7 +466,7 @@ func bindTarget(store kvtx.Store, target string) error {
 
 // readUsed returns the bytes earlier runs read from the source.
 func readUsed(store kvtx.Store) (uint64, error) {
-	// Open a read.
+	// Open a read transaction.
 	ctx := context.Background()
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
@@ -485,7 +485,7 @@ func readUsed(store kvtx.Store) (uint64, error) {
 
 // writeUsed saves the bytes read from the source.
 func writeUsed(store kvtx.Store, used uint64) error {
-	// Open a write.
+	// Open a write transaction.
 	ctx := context.Background()
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {

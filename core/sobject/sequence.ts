@@ -35,7 +35,7 @@ export function hashSOSequenceInner(inner: Uint8Array): Uint8Array {
 // validateSOSequenceInner checks the position body's structure, matching Go
 // SOSequenceInner.Validate. It throws on the first violation.
 export function validateSOSequenceInner(inner: SOSequenceInner): void {
-  // The body names an object, its sequencer and a height.
+  // The body identifies an object, its sequencer and a height.
   if (!inner.sharedObjectId) {
     throw new Error('sequence shared_object_id is empty')
   }
@@ -47,8 +47,8 @@ export function validateSOSequenceInner(inner: SOSequenceInner): void {
     throw new Error('sequence height must be positive')
   }
 
-  // The first position names nothing before it; every later one names its
-  // predecessor.
+  // The first position references nothing before it. Every later position
+  // references its predecessor.
   const prev = inner.prevHash?.length ?? 0
   if (height === 1n && prev !== 0) {
     throw new Error('first sequence position must not name a previous position')
@@ -62,8 +62,9 @@ export function validateSOSequenceInner(inner: SOSequenceInner): void {
 }
 
 // verifySOSequence authenticates the position as signed for sharedObjectID by
-// the sequencer it names, and returns its body. It does not check that the
-// signer is the appointed sequencer. It throws when the position is invalid.
+// the sequencer the position identifies, and returns its body. It does not
+// check that the signer is the appointed sequencer. It throws when the
+// position is invalid.
 export async function verifySOSequence(
   sharedObjectID: string,
   record: SOSequence,

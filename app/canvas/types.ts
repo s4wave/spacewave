@@ -75,9 +75,10 @@ export interface EphemeralEdge {
   userRemovable: boolean
   protected: boolean
   ownerManaged: boolean
-  // If the linked object is already on the canvas, its node ID.
+  // targetNodeId is the node ID of a linked object already on the canvas.
   targetNodeId?: string
-  // If not on canvas, position for the stub.
+  // stubX and stubY position the stub if the linked object is not on the
+  // canvas.
   stubX?: number
   stubY?: number
 }
@@ -165,6 +166,6 @@ export interface CanvasCallbacks {
   onHideGraphLink?: (link: EphemeralEdge) => void
   onDeleteGraphLink?: (link: EphemeralEdge) => void
   // renderNodeContent is called for each visible node to render custom content.
-  // This is how the ObjectType viewer injects ObjectViewers.
+  // This callback is how the ObjectType viewer injects ObjectViewers.
   renderNodeContent?: (node: CanvasNodeData) => ReactNode
 }

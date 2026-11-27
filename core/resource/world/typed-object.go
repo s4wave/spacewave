@@ -160,7 +160,7 @@ func (r *TypedObjectResource) WatchTypedObject(req *s4wave_world.WatchTypedObjec
 //
 // The returned child owns its typed handle until Resource release.
 // A missing object and acquisition canceled by this mount's retirement return
-// typed response errors; caller and Resource client cancellation remain RPC
+// typed response errors. Caller and Resource client cancellation remain RPC
 // errors.
 func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
 	// Acquire the caller resource context.
@@ -335,7 +335,8 @@ func (r *TypedObjectResource) bindCaller(ctx context.Context) (context.Context, 
 		caller.Participant = participant
 	}
 
-	// Freeze this identity for the dispatch; permissions remain a consumer check.
+	// Freeze this identity for the dispatch. Permissions remain a consumer
+	// check.
 	return objecttype.WithCaller(ctx, caller), nil
 }
 

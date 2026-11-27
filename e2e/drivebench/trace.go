@@ -31,11 +31,12 @@ func marshalTraceValue(arena *fastjson.Arena, trace Trace) *fastjson.Value {
 	obj.Set("bytes", arena.NewNumberInt(trace.Bytes))
 	obj.Set("runtimeTracePath", arena.NewString(trace.RuntimeTracePath))
 
-	// A cell that captured the raw trace without summarizing it has no counts to
-	// report, and the tracetool path is what says whether summarization ran. Key
-	// the whole summary block on it rather than on the counts themselves: a
-	// summarized cell that legitimately saw no user regions must serialize that
-	// zero, or a consumer cannot tell a measured zero from an unsummarized cell.
+	// A cell that captured the raw trace without summarizing it has no
+	// counts to report, and the tracetool path is what says whether
+	// summarization ran. Key the whole summary block on the tracetool path
+	// rather than on the counts: a summarized cell that legitimately saw no
+	// user regions must serialize that zero, or a consumer cannot tell a
+	// measured zero from an unsummarized cell.
 	if trace.TracetoolPath != "" {
 		obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
 		obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))

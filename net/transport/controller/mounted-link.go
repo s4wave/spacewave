@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// mountedLink implements mounted link
+// mountedLink implements a mounted link.
 type mountedLink struct {
 	c    *Controller
 	tpt  transport.Transport

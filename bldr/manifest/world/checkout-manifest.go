@@ -16,7 +16,7 @@ import (
 // CheckoutManifest checks out the manifest to paths on disk.
 //
 // If either of the paths are empty, they will be skipped.
-// If manifestRef is nil, will use the reference defaulted to by accessFunc.
+// If manifestRef is nil, the function uses accessFunc's default reference.
 func CheckoutManifest(
 	ctx context.Context,
 	le *logrus.Entry,

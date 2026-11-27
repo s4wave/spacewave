@@ -272,15 +272,15 @@ export interface ShellTabsProviderProps {
 //
 // Every document lists every record, but a document writes the path only of
 // its active record, and its URL hash shows that record's path. The shared
-// record is the source of truth: a path commit moves the hash after it, and a
-// hash navigation is adopted into the record. A document's active record comes
-// from its entry: a fresh entry creates its own, a handoff takes the record it
-// was handed, and a continuation takes the record its saved state names. A
-// document that saved no state has no record of its own, so it enters fresh
-// and creates one (classifyShellDocumentEntry); it never adopts another
-// document's record at entry. After entry it moves only by the user selecting
-// a tab, or to the first record when its active record is closed, as a tab
-// strip does.
+// record is the source of truth: a path commit moves the hash after the commit,
+// and a hash navigation is adopted into the record. A document's active record
+// comes from its entry: a fresh entry creates its own, a handoff takes the
+// record it was handed, and a continuation takes the record its saved state
+// selects. A document that saved no state has no record of its own, so it
+// enters fresh and creates one (classifyShellDocumentEntry). The document never
+// adopts another document's record at entry. After entry the active record
+// changes only by the user selecting a tab, or to the first record when the
+// active record is closed, as a tab strip does.
 function useShellTabsContextValue(
   providedStore: BrowserShellTabsStore | undefined,
   providedEntry: ShellDocumentEntry | undefined,
@@ -748,8 +748,8 @@ function useShellTabsContextValue(
       )
       if (!record) return Promise.resolve(false)
       // The record already holds the path, so the commit is done: the hash
-      // still follows it. Dropping onCommitted here left the hash behind a
-      // record another writer, or an earlier forfeited commit, had moved.
+      // still follows the record. Calling onCommitted keeps the hash aligned
+      // with a record moved by another writer or an earlier forfeited commit.
       if (record.path === path) {
         onCommitted?.()
         return Promise.resolve(false)

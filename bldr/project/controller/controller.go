@@ -462,7 +462,8 @@ func (c *Controller) StartStartup(ctx context.Context) {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns a resolver.
+// Otherwise, HandleDirective returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(

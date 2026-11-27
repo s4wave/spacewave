@@ -58,7 +58,7 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	t.noteChange(w)
 
 	// Update the sequence number, wake the waiters of the keys the change
-	// names and return the change cursor.
+	// references and return the change cursor.
 	t.updateSeqno(r)
 	t.revs.wake(w.GetKey(), w.GetNewKey())
 	return changeBcs, nil

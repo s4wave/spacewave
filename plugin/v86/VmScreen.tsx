@@ -51,7 +51,7 @@ export function VmScreen({ objectKey, hidden }: VmScreenProps) {
     viewRef.current?.release()
   }, [])
 
-  // handleKey sends captured keys to the guest; Ctrl+Alt+G releases.
+  // handleKey sends captured keys to the guest. Ctrl+Alt+G releases.
   const handleKey = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>, down: boolean) => {
       if (!captured) return

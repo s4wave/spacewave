@@ -19,7 +19,7 @@ func NewUpdateBlockStoreStateOp(updatedState *BlockStoreState, ifNotExists bool)
 	}
 }
 
-// Validate performs cursory validation of the operation.
+// Validate cursorily validates the operation.
 // Should not block.
 func (o *UpdateBlockStoreStateOp) Validate() error {
 	if err := o.GetUpdatedState().Validate(); err != nil {

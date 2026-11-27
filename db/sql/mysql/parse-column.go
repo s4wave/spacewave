@@ -16,7 +16,7 @@ func ParseColumnType(typeStr string) (*sqlparser.ColumnType, error) {
 	}
 
 	// Embed the column type in a single-column CREATE TABLE statement.
-	// TODO: is there a "correct" way to do this?
+	// TODO: is there a "correct" way to parse the column type?
 	var toParse strings.Builder
 	_, _ = toParse.WriteString("CREATE TABLE t (v ")
 	_, _ = toParse.WriteString(typeStr)

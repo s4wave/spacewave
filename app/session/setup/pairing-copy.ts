@@ -1,4 +1,5 @@
-// The receiving client may use Spacewave in a browser or the desktop app.
+// PAIRING_CODE_INSTRUCTIONS instructs the receiving client, which may use
+// Spacewave in a browser or the desktop app.
 export const PAIRING_CODE_INSTRUCTIONS = {
   heading: 'Enter this code on your other device',
   hint: 'Open Spacewave on your other device and enter it under Link My Device.',

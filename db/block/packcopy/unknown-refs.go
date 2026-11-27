@@ -14,8 +14,8 @@ import (
 
 // UnknownRefs is a source that withholds the refs of listed blocks. A pack
 // written before packs could mark refs unknown stored such a block with empty
-// refs, so it reads as a leaf; the list marks those blocks and the copy then
-// takes them only from a source that knows their refs.
+// refs, so the block reads as a leaf. The list marks those blocks and the copy
+// then takes them only from a source that knows their refs.
 type UnknownRefs struct {
 	Source
 	// listed holds the listed blocks by pack index key.
@@ -23,7 +23,7 @@ type UnknownRefs struct {
 }
 
 // NewUnknownRefs wraps src with a list of hex hashes, one block per line. A
-// line is the hash alone, or the hash after a store name; fields after the
+// line is the hash alone, or the hash after a store name. Fields after the
 // hash are ignored.
 func NewUnknownRefs(src Source, list io.Reader) (*UnknownRefs, error) {
 	u := &UnknownRefs{Source: src, listed: make(map[string]struct{})}

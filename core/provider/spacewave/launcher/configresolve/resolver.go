@@ -6,7 +6,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ResolveEndpoints returns configured endpoints when present, otherwise defaults.
+// ResolveEndpoints returns configured endpoints when present, otherwise default
+// endpoints.
 func ResolveEndpoints(disable bool, configURLs []string, defaultURLs []string) ([]string, error) {
 	configURLs, err := dedupURLs(configURLs, "endpoint")
 	if err != nil {

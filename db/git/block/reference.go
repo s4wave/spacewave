@@ -44,7 +44,7 @@ func ValidateRefName(name string) error {
 		return ErrReferenceNameEmpty
 	}
 
-	// Check a one-level name's component as the last of a full name; "@"
+	// Check a one-level name's component as the last of a full name. "@"
 	// alone stays invalid, as in Git.
 	full := plumbing.ReferenceName(name)
 	if name != "@" && !strings.Contains(name, "/") {

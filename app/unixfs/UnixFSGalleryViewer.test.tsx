@@ -611,7 +611,7 @@ describe('UnixFSGalleryViewer', () => {
 
   it("starts a new folder from waiting, never with the last folder's tiles", async () => {
     h.realStream = true
-    // The first folder yields its index; the second never answers.
+    // The first folder yields its index, but the second folder never answers.
     h.streamIndex = (path, signal) =>
       (async function* () {
         if (path === '/a') {

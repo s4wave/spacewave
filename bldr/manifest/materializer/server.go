@@ -46,18 +46,18 @@ func NewMaterializer(le *logrus.Entry, b bus.Bus, sfs *block_transform.StepFacto
 // progress snapshots and one terminal response carrying the copied root.
 //
 // The source is followed read-only, and every destination block is written
-// through the BlockStore RPC service DestinationServiceId names, over storage
-// the caller holds until it names the copied root. The service performs no
-// World mutation, so publication and durability remain the caller's
+// through the BlockStore RPC service DestinationServiceId selects, over storage
+// the caller holds until the caller references the copied root. The service
+// performs no World mutation, so publication and durability remain the caller's
 // responsibility.
 //
 // When SourceServiceId is set, the source blocks are read through the
 // BlockStore RPC service with that ID instead of the host-local source
-// lookup; the source ref carries its resolved inline transform configuration.
+// lookup. The source ref carries its resolved inline transform configuration.
 //
 // The handler runs on a child of the RPC stream context: the child cancels
-// when the stream ends or a resolved block store service disappears, which ends
-// the copy and releases the RPC client and cursors with it.
+// when the stream ends or a resolved block store service disappears.
+// Cancellation ends the copy and releases the RPC client and cursors.
 func (m *Materializer) MaterializeManifest(
 	req *MaterializeManifestRequest,
 	strm SRPCMaterializer_MaterializeManifestStream,
@@ -78,7 +78,7 @@ func (m *Materializer) MaterializeManifest(
 	}
 
 	// Write the destination through the caller's BlockStore RPC service, so
-	// every block lands in storage the caller holds; there is no fallback to
+	// every block lands in storage the caller holds. There is no fallback to
 	// a bucket handle of this process, whose writes nothing would hold.
 	destStore, destRef, err := m.lookupBlockStore(ctx, req.GetDestinationServiceId(), false, cancel)
 	if err != nil {
@@ -125,7 +125,7 @@ func (m *Materializer) MaterializeManifest(
 		defer srcRef.Release()
 
 		// The raw base cursor preserves the source-encoded bytes as delivered
-		// by the RPC store; the inline transform conf in the source ref is
+		// by the RPC store. The inline transform conf in the source ref is
 		// applied by FollowRef.
 		base := bucket_lookup.NewCursor(
 			ctx,

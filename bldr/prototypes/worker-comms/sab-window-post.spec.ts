@@ -8,7 +8,7 @@ test.describe('SAB Cross-Tab via window.postMessage', () => {
     // Grant popup permissions.
     await context.grantPermissions([])
 
-    // Navigate to sender page. It will window.open() a child.
+    // Navigate to the sender page. It will window.open() a child.
     await page.goto('/sab-window-post.html?role=sender')
 
     // Wait for the child window to be opened.
@@ -17,7 +17,7 @@ test.describe('SAB Cross-Tab via window.postMessage', () => {
     const logEl = page.locator('#log')
 
     // The sender either completes (popup works) or reports popup blocked.
-    // Wait for child page or timeout.
+    // Wait for the child page or a timeout.
     let child: any = null
     try {
       child = await Promise.race([
@@ -30,7 +30,7 @@ test.describe('SAB Cross-Tab via window.postMessage', () => {
       // Popup was blocked.
     }
 
-    // Wait for sender to reach terminal state.
+    // Wait for the sender to reach a terminal state.
     await expect(logEl).toContainText('DONE', { timeout: 10000 })
 
     const results = await page.evaluate(() => (window as any).__results)

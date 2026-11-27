@@ -16,8 +16,8 @@ import (
 
 // openStage is the in-process state of one stage.
 type openStage struct {
-	// released records that the stage's release was called; the next changing
-	// direct transaction releases its roots.
+	// released records that the stage's release was called. The next
+	// changing direct transaction releases its roots.
 	released bool
 	// mu guards roots, apart from rootPinMu, so a staged batch's lookups never
 	// hold the lock every changing transaction takes. It is taken after
@@ -26,7 +26,7 @@ type openStage struct {
 	// roots are the roots the stage's committed transactions hold, by name.
 	// Renewal holds a root again from here when a collector released it for
 	// a lapsed lease while the stage was open, and a put releases a root it
-	// names with this record's block as the root's Previous.
+	// references with this record's block as the root's Previous.
 	roots map[string]*block.BlockRef
 	// lost records that a root the stage held is gone with its block: its
 	// process stalled past the lease and the grace period, so the stage can
@@ -40,13 +40,13 @@ var errStageLost = errors.Wrap(block.ErrStageReleased, "stage lost a root it hel
 // stageNames are the root names a staged batch touches, each encoded once
 // and outside any lock.
 type stageNames struct {
-	// put names the root that holds each entry.
+	// put records the root that holds each entry.
 	put map[string]*block.BlockRef
-	// named names the roots on the blocks the entries name.
+	// named records the roots on the blocks the entries reference.
 	named map[string]struct{}
 }
 
-// newStageNames names the roots of entries and of the blocks they name.
+// newStageNames records the roots of entries and of the blocks they reference.
 func newStageNames(stage string, entries []*block.PutBatchEntry) stageNames {
 	n := stageNames{put: make(map[string]*block.BlockRef), named: make(map[string]struct{})}
 	for _, entry := range entries {
@@ -131,14 +131,14 @@ func (v *Volume) noteStageRoots(stage string, moves []block.NamedRoot) {
 
 // OpenStage opens a stage of this process and returns its name. A stage holds
 // each block written through it under a leased root of its own, from the put
-// that stores the block until a block written through it names the block, or
-// until the stage releases it. The first stage of a process starts the
-// process lease, one transaction, so the stage's first batch lands in one;
-// a later stage that writes nothing costs no transaction. The release leaves
-// the stage's roots for the next changing direct transaction to release, like
-// a reader pin; closing the Volume releases its open stages, and the
-// collector releases the roots of a process that died once their lease
-// lapses.
+// that stores the block until a block written through it references the
+// block, or until the stage releases it. The first stage of a process starts
+// the process lease, one transaction, so the stage's first batch lands in one
+// transaction. A later stage that writes nothing costs no transaction. The
+// release leaves the stage's roots for the next changing direct transaction
+// to release, like a reader pin. Closing the Volume releases its open stages,
+// and the collector releases the roots of a process that died once their
+// lease lapses.
 func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 	// Refuse new stages after the Volume closes.
 	unlock, err := v.rootPinMu.Lock(ctx)
@@ -178,7 +178,7 @@ func (v *Volume) releaseStage(stage string) {
 
 // useStage returns the open stage, or block.ErrStageReleased unless it is
 // open: a released stage's roots would hold blocks nothing reaches, and a lost
-// one's writes would name blocks the collector freed.
+// one's writes would reference blocks the collector freed.
 func (v *Volume) useStage(ctx context.Context, stage string) (*openStage, error) {
 	// Read the stage under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)
@@ -218,7 +218,7 @@ func listStageRoots(ctx context.Context, p *physicalTx, stage string) ([]block.N
 // PrepareStagedBlock stores a block the open stage holds. It returns
 // block.ErrStageReleased after the stage is released.
 func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	// Name the block, then store it under the stage.
+	// Build the block reference, then store the block under the stage.
 	ctx = block.WithPutOpts(ctx, opts)
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putStaged, data, putOpts)
@@ -256,7 +256,8 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 	return existed, nil
 }
 
-// Bounds of one transaction of a staged batch.
+// stageSliceEntries bounds one transaction of a staged batch along with
+// stageSliceMin and stageSliceTarget.
 const (
 	// stageSliceEntries bounds the entries one transaction of a staged batch
 	// lands.
@@ -276,7 +277,7 @@ const (
 
 // prepareStaged stores entries under the stage. The stage takes a root on
 // each entry it does not hold yet and releases its root on each block an
-// entry names, whose holder the entry now is: so a stage holds the tops of
+// entry references, whose holder the entry now is: so a stage holds the tops of
 // what it built, and a block written through it stays held from its put on.
 //
 // A batch lands in slices, consecutive transactions of at most stageSlice
@@ -284,14 +285,14 @@ const (
 // than one slice. Each slice keeps the caller's class: a caller that marks
 // ctx with block.WithBackground, as upkeep ahead of its adopting write does,
 // queues each slice behind every waiting foreground writer, so the longest
-// wait it adds to one is a slice's hold; a foreground caller's slices, such
+// wait it adds to one is a slice's hold. A foreground caller's slices, such
 // as a World write's as it builds its state, queue in arrival order among the
 // foreground writers, so a writer already waiting goes before the next one. A
 // store's readers never wait on a writer. A slice ends only where no entry
-// in it names a block a later entry stores, so a batch that names later
-// entries lands in fewer, longer slices, and one whose first entry names its
-// last lands whole. With stageSlice zero, under Config.StageOneTransaction, the
-// batch lands in one transaction.
+// in it references a block a later entry stores, so a batch that references
+// later entries lands in fewer, longer slices, and one whose first entry
+// references its last entry lands whole. With stageSlice zero, under
+// Config.StageOneTransaction, the batch lands in one transaction.
 //
 // It returns the existence of the entries of the slices that landed, those
 // before a refusal too, with the refusal.
@@ -301,17 +302,18 @@ const (
 //   - A block's children land before it, in the same transaction as the stage
 //     roots that hold them, or in an earlier one: slices cut a batch only
 //     between entries, in order, and only after an entry up to which no
-//     entry names a block a later one stores (stageCuts). A child an earlier slice landed stays held by its stage
-//     root until the slice that lands its parent releases that root, so no
-//     collector pass between slices can free it (heldByStage relies on this).
+//     entry references a block a later one stores (stageCuts). A child an
+//     earlier slice landed stays held by its stage root until the slice that
+//     lands its parent releases that root, so no collector pass between
+//     slices can free the child (heldByStage relies on this hold).
 //   - Each transaction moves only the stage roots of its own entries and of
-//     the blocks they name: its moves are computed from its slice alone,
+//     the blocks they reference: its moves are computed from its slice alone,
 //     after it finds the stage still open.
 //   - A refusal or a cancellation partway leaves the earlier slices
 //     committed, their blocks held by the stage's roots, and returns the
-//     error. A retry of the batch finds those blocks held; the stage's
+//     error. A retry of the batch finds those blocks held. The stage's
 //     release, or its lease's expiry, lets the collector take what no parent
-//     names.
+//     references.
 func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Require an open stage, atomic publication and room above the disk
 	// reserve; Land decides what a block without its child list does.
@@ -345,7 +347,8 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	existed := make([]bool, 0, len(entries))
 	n := v.stageSlice
 	for s := 0; s != len(entries); {
-		// Land the next slice, cut where no landed entry names a later one.
+		// Land the next slice, cut where no landed entry references a
+		// later one.
 		e := nextCut(cuts, s, min(s+n, len(entries)))
 		got, hold, err := v.landStaged(ctx, stage, entries[s:e])
 		if err != nil {
@@ -366,9 +369,9 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 }
 
 // stageCuts reports, for each i, whether entries may be cut after i: whether
-// no entry up to i names a block that only a later entry stores. A slice that
-// ends at such a cut holds each of its blocks' children itself, or finds them
-// in an earlier slice. The last entry is always a cut.
+// no entry up to i references a block that only a later entry stores. A slice
+// that ends at such a cut holds each of its blocks' children itself, or finds
+// them in an earlier slice. The last entry is always a cut.
 func stageCuts(entries []*block.PutBatchEntry) []bool {
 	// Index the first entry that stores each block.
 	at := make(map[string]int, len(entries))
@@ -382,7 +385,8 @@ func stageCuts(entries []*block.PutBatchEntry) []bool {
 		}
 	}
 
-	// Carry the furthest entry named so far; a cut lies where it is behind.
+	// Carry the furthest entry referenced so far. A cut lies where that
+	// entry is behind.
 	cuts := make([]bool, len(entries))
 	reach := 0
 	for i, entry := range entries {
@@ -466,13 +470,13 @@ func (v *Volume) landStagedOnce(ctx context.Context, stage string, entries []*bl
 }
 
 // stageMoves returns the root moves that hold each entry of a staged batch
-// and release the stage's roots on the blocks the entries name. held is the
-// stage's record of its roots among names: a release carries the record's
+// and release the stage's roots on the blocks the entries reference. held is
+// the stage's record of its roots among names: a release carries the record's
 // block as its Previous, so a root a collector took refuses the put rather
 // than leaving the parent over a freed block.
 func stageMoves(names stageNames, held map[string]*block.BlockRef, lease string) []block.NamedRoot {
 	// Hold each entry the stage does not hold yet, unless another entry
-	// names it.
+	// references it.
 	put, named := names.put, names.named
 	var roots []block.NamedRoot
 	for _, name := range slices.Sorted(maps.Keys(put)) {
@@ -529,7 +533,7 @@ func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*bl
 // HoldStageCompleteRoots reports which roots have a completion proof, durable
 // or pending, and holds each of them under the open stage in the same
 // transaction. The collector frees a proof with its root, so a held root
-// keeps the whole graph its proof names until the stage releases it.
+// keeps the whole graph its proof covers until the stage releases the root.
 func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs []*block.BlockRef) ([]bool, error) {
 	// Require an open stage.
 	if _, err := v.useStage(ctx, stage); err != nil {

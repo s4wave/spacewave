@@ -5,7 +5,7 @@ import type {
   SqlValue,
 } from '@go/github.com/s4wave/spacewave/db/sql/sql.pb.js'
 
-// SqlParamKind names the SqlValue oneof branch a parameter edits.
+// SqlParamKind selects the SqlValue oneof branch a parameter edits.
 export type SqlParamKind = 'text' | 'int' | 'float' | 'blob' | 'null'
 
 // SqlGridData is the normalized shape consumed by SqlResultGrid: column headers
@@ -17,8 +17,8 @@ export interface SqlGridData {
 }
 
 // flattenRowBatches concatenates the rows from a repeated RowBatch field into a
-// single ordered row list. The wire format groups rows into batches; viewers
-// render one flat grid.
+// single ordered row list. The wire format groups rows into batches, but
+// viewers render one flat grid.
 export function flattenRowBatches(rowBatches: RowBatch[] | undefined): Row[] {
   if (!rowBatches) return []
   const rows: Row[] = []
@@ -32,7 +32,7 @@ export function flattenRowBatches(rowBatches: RowBatch[] | undefined): Row[] {
 export const SQL_NULL = 'NULL'
 
 // formatCell formats one SqlValue oneof cell for display. An unset oneof is a
-// SQL NULL and renders as the SQL_NULL token; callers style NULL distinctly.
+// SQL NULL and renders as the SQL_NULL token. Callers style NULL distinctly.
 export function formatCell(value: SqlValue | undefined): string {
   const cell = value?.value
   if (!cell || cell.case === undefined) return SQL_NULL
@@ -87,7 +87,7 @@ export function columnName(
 
 // toCsv renders grid data as RFC 4180 CSV text. NULL cells render as empty
 // fields so a re-import can distinguish them from an explicit empty string only
-// by position; this is the documented limitation of CSV export.
+// by position. This ambiguity is the documented limitation of CSV export.
 export function toCsv(data: SqlGridData): string {
   const header = data.columns.map((column, index) =>
     csvField(columnName(column, index)),
@@ -128,7 +128,7 @@ export function paramKind(value: SqlValue | undefined): SqlParamKind {
   }
 }
 
-// paramText renders the editable text of a stored SqlValue parameter; NULL has
+// paramText renders the editable text of a stored SqlValue parameter. NULL has
 // no text.
 export function paramText(value: SqlValue | undefined): string {
   const cell = value?.value

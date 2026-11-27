@@ -45,8 +45,8 @@ func (c *Compositor) input(sp *space, in *s4wave_vm.WasiVmDisplayInput) {
 }
 
 // activate makes w, which may be nil, the active window, configures the
-// windows losing and gaining it, and moves the keyboard focus to match. The
-// caller holds the lock.
+// windows losing and gaining the active state, and moves the keyboard focus
+// to match. The caller holds the lock.
 func (c *Compositor) activate(w *surface) {
 	// Configure the windows losing and gaining the state, then move the
 	// keyboard.
@@ -131,7 +131,7 @@ func (c *Compositor) setHover(s *surface) {
 		}
 	}
 
-	// Enter the new one.
+	// Enter the new surface.
 	if s != nil {
 		for _, p := range s.c.pointers {
 			c.enterPointer(s, p)

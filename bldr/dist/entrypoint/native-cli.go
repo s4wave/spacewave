@@ -251,7 +251,7 @@ type distVersionIdentity struct {
 	SchemaVersion int
 	// ProjectID is the bldr project ID.
 	ProjectID string
-	// EntrypointRole names the kind of distribution entrypoint.
+	// EntrypointRole identifies the kind of distribution entrypoint.
 	EntrypointRole string
 	// ChannelKey is the release channel.
 	ChannelKey string

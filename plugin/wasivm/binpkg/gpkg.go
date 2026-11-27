@@ -42,8 +42,8 @@ var devPrefixes = []string{
 }
 
 // ReadArchive reads the description and installed files of the GPKG binary
-// package at gpkgPath. A package with no image, such as a virtual, installs no
-// files. Paths under /bin, /sbin and /lib move under /usr, and
+// package at gpkgPath. A package with no image, such as a virtual package,
+// installs no files. Paths under /bin, /sbin and /lib move under /usr, and
 // hard links become copies of their target, which content addressing stores
 // once.
 func ReadArchive(gpkgPath string) (*Archive, error) {
@@ -183,7 +183,7 @@ func isDev(p string) bool {
 }
 
 // split divides image entries into runtime and dev parts. A directory goes to
-// each part that holds something under it; Portage marks a directory that must
+// each part that holds something under it. Portage marks a directory that must
 // exist empty with a .keep file, so no needed directory is lost.
 func split(entries []*layer.Entry) (runtime, dev []*layer.Entry) {
 	// Record which directories hold runtime and dev content.

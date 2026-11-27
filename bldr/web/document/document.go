@@ -15,14 +15,14 @@ import (
 type WebDocument interface {
 	// Execute executes the web document.
 	// Returns any errors, nil if Execute is not required.
-	// This should only be called by the web runtime controller!
+	// Execute should only be called by the web runtime controller.
 	Execute(ctx context.Context) error
 
 	// GetWebDocumentUuid returns the web document identifier.
 	GetWebDocumentUuid() string
 
 	// GetWebDocumentStatusCtr contains a full snapshot of the web document status.
-	// contains nil until the remote is ready or closed
+	// contains nil until the remote is ready or closed.
 	GetWebDocumentStatusCtr() *ccontainer.CContainer[*WebDocumentStatus]
 
 	// GetWebViews returns the current snapshot of active WebViews.

@@ -202,7 +202,7 @@ function synthesizeManifest(
   return manifest
 }
 
-// isVirtualModuleId reports whether a module id names a plugin-generated
+// isVirtualModuleId reports whether a module id identifies a plugin-generated
 // module rather than a source file. Vite and Rolldown builtin plugins emit ids
 // such as __vite-browser-external and builtin:esm-external-require-react.
 export function isVirtualModuleId(id: string): boolean {

@@ -83,7 +83,7 @@ function protoToBindable(params: ProtoSqlValue[]): SqlValue[] {
 }
 
 // SqliteBridgeServer implements the SqliteBridge starpc service.
-// Wraps sqlite.wasm's OO1 Database API.
+// The server wraps sqlite.wasm's OO1 Database API.
 export class SqliteBridgeServer implements SqliteBridge {
   private sqlite3: Sqlite3Static
   private vfsName: string

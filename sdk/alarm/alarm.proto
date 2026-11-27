@@ -21,7 +21,7 @@ enum AlarmState {
 
 // AlarmOption is an action that would change the condition an Alarm flags.
 message AlarmOption {
-  // Label names the action.
+  // Label identifies the action.
   string label = 1;
   // Description says what the action changes.
   string description = 2;
@@ -34,7 +34,7 @@ message AlarmOption {
 message Alarm {
   option (typeid.id) = "alarm";
 
-  // Title names the condition the Alarm flags.
+  // Title describes the condition the Alarm flags.
   string title = 1;
   // State is where the Alarm stands.
   AlarmState state = 2;
@@ -51,7 +51,7 @@ message Alarm {
   int64 fired_ms = 7;
   // AcknowledgedMs is when someone acknowledged the Alarm, or zero.
   int64 acknowledged_ms = 8;
-  // AcknowledgedBy names who acknowledged the Alarm.
+  // AcknowledgedBy records who acknowledged the Alarm.
   string acknowledged_by = 9;
   // ClearedMs is when the condition last cleared, or zero before it has.
   int64 cleared_ms = 10;

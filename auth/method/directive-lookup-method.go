@@ -89,7 +89,7 @@ func (d *lookupMethod) AuthLookupMethodID() string {
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory to see if the values "look correct."
 func (d *lookupMethod) Validate() error {
 	if d.id == "" {
 		return errors.New("id must be set")
@@ -125,14 +125,14 @@ func (d *lookupMethod) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// This name is not necessarily unique, and is primarily intended for display.
 func (d *lookupMethod) GetName() string {
 	return "AuthLookupMethod"
 }
 
 // GetDebugVals returns the directive arguments as key/value pairs.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// This set is not necessarily unique, and is primarily intended for display.
 func (d *lookupMethod) GetDebugVals() directive.DebugValues {
 	// Create the debug-value collection for this directive.
 	vals := directive.NewDebugValues()

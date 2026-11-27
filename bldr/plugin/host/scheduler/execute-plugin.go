@@ -296,7 +296,8 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			func(client srpc.Client) error { t.updateRpcClient(client); return nil },
 		)
 
-		// Map a canceled context to context.Canceled; otherwise surface the error.
+		// Map a canceled context to context.Canceled. Otherwise surface
+		// the error.
 		if execErr != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
@@ -341,8 +342,9 @@ func (t *pluginInstance) beginInitialCapabilityRegistration() {
 func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 	// Publish the new rpc client, marking failed registration on disconnect.
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
-		// A disconnect during registration precedes process Wait. Preserve pending
-		// until ExecutePlugin returns the diagnostic that decides retry policy.
+		// A disconnect during registration precedes process Wait.
+		// Preserve the pending registration state until ExecutePlugin
+		// returns the diagnostic that decides retry policy.
 		registrationState := current.GetInitialCapabilityRegistrationState()
 		if client == nil && registrationState == bldr_plugin.InitialCapabilityRegistrationComplete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed

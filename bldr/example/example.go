@@ -27,7 +27,7 @@ const ControllerID = "bldr/example/demo"
 
 // ExampleEntrypoint is the example typescript entrypoint.
 //
-// NOTE: you can also use bldr:esbuild instead of bldr:vite here!
+// NOTE: bldr:esbuild can also be used instead of bldr:vite here!
 //
 //bldr:vite example.tsx
 var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput
@@ -37,7 +37,7 @@ var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput
 //bldr:asset:href example.js
 var AssetPath string
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -47,7 +47,7 @@ var controllerDescrip = "demo controller"
 type Demo struct {
 	*bus.BusController[*Config]
 
-	// mux is the rpc mux the web view will call
+	// mux is the rpc mux the web view will call.
 	mux srpc.Mux
 }
 

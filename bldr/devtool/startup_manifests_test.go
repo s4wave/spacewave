@@ -99,7 +99,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectActivePlatforms(t *testing.T
 		t.Fatalf("ProjectOwnedStartupManifestPreflights() = %#v, want %#v", got, want)
 	}
 
-	// The selection policies must deny each platform to the plugins it excludes.
+	// Each selection policy must deny its platform to the plugins it excludes.
 	policies := startupManifestPlatformSelectionPolicies(got)
 	wantPolicies := []*plugin_host_scheduler.PlatformSelectionPolicy{
 		{PlatformId: "js", DeniedPluginIds: []string{"web"}},

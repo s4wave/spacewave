@@ -8,6 +8,7 @@ import (
 const pitOscillatorKHz = 1193.1816666
 
 // pitDevice models the Intel 8253/8254 programmable interval timer: three
+// counters.
 type pitDevice struct {
 	host              *HostRuntime
 	counterStartTime  [3]float64
@@ -22,7 +23,8 @@ type pitDevice struct {
 	speakerToggle     uint8
 }
 
-// registerPIT wires the counter ports (0x40-0x42), the control register
+// registerPIT wires the counter ports (0x40-0x42), the control register (0x43),
+// and the system control port (0x61).
 func (h *HostRuntime) registerPIT() {
 	// Attach the programmable interval timer to the host runtime.
 	pit := &pitDevice{host: h}
@@ -60,7 +62,7 @@ func (h *HostRuntime) registerPIT() {
 	})
 }
 
-// timer services the timer tick: it raises/lower IRQ0 per counter 0 state
+// timer services the timer tick: it raises/lowers IRQ0 per counter 0 state.
 func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 {
 	// Suppress PIT interrupts when the CPU requests a timer-free step.
 	next := 100.0
@@ -92,7 +94,8 @@ func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 
 	return next
 }
 
-// counterRead returns the next latched or live byte of a counter, honoring
+// counterRead returns the next latched or live byte of a counter, honoring the
+// latch state and byte order.
 func (p *pitDevice) counterRead(i int) uint8 {
 	// Consume a previously latched PIT counter byte before sampling live state.
 	if p.counterLatch[i] != 0 {
@@ -117,7 +120,8 @@ func (p *pitDevice) counterRead(i int) uint8 {
 	return uint8(value >> 8)
 }
 
-// counterWrite accepts one byte of a counter reload value; the counter
+// counterWrite accepts one byte of a counter reload value. The counter starts
+// when the reload value is complete.
 func (p *pitDevice) counterWrite(i int, value uint8) {
 	if p.counterNextLow[i] != 0 {
 		p.counterReload[i] = (p.counterReload[i] &^ 0xff) | uint16(value)
@@ -137,7 +141,8 @@ func (p *pitDevice) counterWrite(i int, value uint8) {
 	}
 }
 
-// writeControl decodes a control-word write: latch command, read/load
+// writeControl decodes a control-word write: latch command, read/load mode, and
+// counter mode.
 func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	// Decode the PIT control word and reject the read-back counter selector.
 	mode := (value >> 1) & 7

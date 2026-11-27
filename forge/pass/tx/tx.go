@@ -19,10 +19,10 @@ type Transaction interface {
 	// UnmarshalVT unmarshals from binary.
 	UnmarshalVT(data []byte) error
 
-	// GetTxType returns the type of transaction this is.
+	// GetTxType returns the transaction type.
 	GetTxType() TxType
-	// Validate performs a cursory check of the transaction.
-	// Note: this should not fetch network data.
+	// Validate cursorily checks the transaction.
+	// Note: Validate should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against the pass instance.
 	// bcs is located at the pass state root.
@@ -38,7 +38,7 @@ type Transaction interface {
 	) error
 }
 
-// Validate performs cursory checks of the transaction.
+// Validate cursorily checks the transaction.
 func (t *Tx) Validate() error {
 	// Require a pass object key and a supported transaction type.
 	if len(t.GetPassObjectKey()) == 0 {
@@ -93,9 +93,9 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// ByteSliceToTx converts a byte slice block a Tx.
-// If blk is nil, returns nil, nil
-// If the blk is already parsed to a Tx, returns the Tx.
+// ByteSliceToTx converts a byte slice block to a Tx.
+// If blk is nil, ByteSliceToTx returns nil, nil.
+// If the blk is already parsed to a Tx, ByteSliceToTx returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {
 	// Preserve an absent pass transaction block.
 	if blk == nil {

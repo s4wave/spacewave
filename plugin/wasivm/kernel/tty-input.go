@@ -135,7 +135,7 @@ func (in *ttyInput) read(ctx context.Context, p []byte) (int, error) {
 			return 0, io.EOF
 		}
 
-		// Wait for more.
+		// Wait for more input.
 		if !wait(ctx, readyCh) {
 			return 0, ctx.Err()
 		}

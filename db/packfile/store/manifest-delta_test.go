@@ -64,7 +64,8 @@ func TestManifestDeltaLookupAndReaders(t *testing.T) {
 		t.Fatal("unrelated sequence update evicted server-a")
 	}
 
-	// Changed contents evict only the affected reader; deletion exposes the local pack.
+	// Changed contents evict only the affected reader. Deletion exposes
+	// the local pack.
 	changed := newest.CloneVT()
 	changed.SizeBytes++
 	store.ApplyManifestDelta([]*packfile.PackfileEntry{changed}, nil)

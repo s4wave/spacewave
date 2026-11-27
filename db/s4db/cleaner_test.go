@@ -279,7 +279,7 @@ func TestCleanerOwnsMoves(t *testing.T) {
 const raceKeys = 300
 
 // raceValue returns the self-checking value of key i at version: its length
-// and bytes follow from the key, and its first four bytes name the version.
+// and bytes follow from the key, and its first four bytes record the version.
 func raceValue(i, version int) []byte {
 	b := make([]byte, 3000+(i*7919)%5000)
 	binary.LittleEndian.PutUint32(b, uint32(version)) // #nosec G115 -- a small test version.
@@ -291,7 +291,7 @@ func raceValue(i, version int) []byte {
 
 // raceCheck verifies a value against its key and embedded version.
 func raceCheck(k, v []byte) error {
-	// The key names the entry and the value its version.
+	// The key identifies the entry and the value records its version.
 	var who string
 	var i int
 	if _, err := fmt.Sscanf(string(k), "%1s/%04d", &who, &i); err != nil {
@@ -374,7 +374,7 @@ func TestCleanerRace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Writers churn their keys; readers check every key set they see.
+	// Writers churn their keys. Readers check every key set they see.
 	stop := make(chan time.Time)
 	errs := make(chan error, 8)
 	for w, who := range []string{"a", "b", "c"} {

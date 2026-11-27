@@ -115,7 +115,7 @@ func (c *Controller) resolveApplyBucketConf(
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &applyBucketConfigResolver{c: c, dir: dir}, nil
 }
 

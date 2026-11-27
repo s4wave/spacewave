@@ -57,7 +57,8 @@ message Task {
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
   google.protobuf.Timestamp timestamp = 10;
-  // Placement freezes the selected Worker and Device peer for every Pass of this Task.
+  // Placement freezes the selected Worker and Device peer for every Pass of
+  // this Task.
   .forge.worker.Placement placement = 11;
 }
 
@@ -70,7 +71,7 @@ enum State {
   // Transitions to RUNNING state when inputs are resolved and Pass is created.
   // Transitions to PENDING when the target or input values are updated.
   TaskState_PENDING = 1;
-  // TaskState_RUNNING is the state when a Pass is assigned and currently executing.
+  // TaskState_RUNNING is the state when a Pass is assigned and executing.
   // If the linked Target does not match the linked pass, cancel the pass.
   // If the inputs do not match the linked Pass inputs, cancel the pass.
   // If the pass becomes canceled, return to PENDING state.

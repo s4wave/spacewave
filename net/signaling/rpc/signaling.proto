@@ -5,7 +5,7 @@ import "github.com/s4wave/spacewave/net/peer/peer.proto";
 
 // Signaling is a service which allows peers to signal each other via a RPC server.
 service Signaling {
-  // Listen waits for messages to be available in our inbox from remote peers.
+  // Listen waits for messages from remote peers in the caller's inbox.
   rpc Listen(ListenRequest) returns (stream ListenResponse) {}
   // Session opens a signaling session to send and recv messages from a remote peer.
   rpc Session(stream SessionRequest) returns (stream SessionResponse) {}
@@ -30,8 +30,8 @@ message ListenResponse {
 // SessionRequest is a message sent from the client to the server.
 message SessionRequest {
   // SessionSeqno is the session sequence number.
-  // If this doesn't match the current session no, this pkt will be dropped.
-  // This should be zero for the init packet.
+  // If SessionSeqno doesn't match the current session no, the packet is
+  // dropped. SessionSeqno should be zero for the init packet.
   uint64 session_seqno = 1;
 
   // Body is the body of the request.
@@ -40,7 +40,8 @@ message SessionRequest {
     SessionInit init = 2;
     // SendMsg sends a signed message to the remote peer.
     // The server will buffer at most one message for the remote peer at a time.
-    // If there is an existing pending outgoing message this will overwrite it.
+    // If there is a pending outgoing message, SendMsg will overwrite that
+    // message.
     // Wait for the message received ack before sending again to avoid overwriting.
     // The signature must match the peer id associated with the rpc session.
     SessionMsg send_msg = 3;
@@ -55,7 +56,7 @@ message SessionRequest {
 
 // SessionInit is a message to init a Session.
 message SessionInit {
-  // PeerId is the remote peer id we want to contact.
+  // PeerId is the remote peer id the client wants to contact.
   string peer_id = 1;
 }
 
@@ -73,7 +74,7 @@ message SessionResponse {
   oneof body {
     // Opened indicates the connection w/ the remote peer is open.
     // Contains the session nonce, incremented if the peer re-connected.
-    // If this increments, re-send the outgoing message.
+    // If the session nonce increments, re-send the outgoing message.
     uint64 opened = 1;
     // Closed indicates the connection w/ the remote peer is closed.
     // This is the assumed initial state.
@@ -82,7 +83,8 @@ message SessionResponse {
     // Send ACK once the message has been processed.
     SessionMsg recv_msg = 3;
     // ClearMsg clears a message from the remote peer previously sent with recv_msg.
-    // This is sent if the remote peer clears their outgoing message before acked.
+    // ClearMsg is sent if the remote peer clears the outgoing message
+    // before the message is acked.
     uint64 clear_msg = 4;
     // AckMsg confirms that the outgoing message was sent and acked.
     uint64 ack_msg = 5;

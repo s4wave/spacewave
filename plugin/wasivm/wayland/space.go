@@ -115,8 +115,8 @@ func (w *Window) Run(ctx context.Context, send func(*s4wave_vm.WasiVmScene) erro
 	return w.c.run(ctx, w.sp, send)
 }
 
-// Close releases the hold, returning the window to the desktop when it was
-// the last.
+// Close releases the hold, returning the window to the desktop when the hold
+// was the last hold.
 func (w *Window) Close() {
 	w.c.update(func() {
 		if w.closed {
@@ -249,7 +249,7 @@ func (c *Compositor) windowList() *s4wave_vm.WasiVmWindowList {
 		return cmp.Compare(a.xdg.toplevel.windowID, b.xdg.toplevel.windowID)
 	})
 
-	// Describe each.
+	// Describe each window.
 	list := &s4wave_vm.WasiVmWindowList{}
 	for _, s := range wins {
 		t := s.xdg.toplevel

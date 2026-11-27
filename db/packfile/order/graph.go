@@ -8,7 +8,7 @@ import (
 )
 
 // Graph orders a pack's available blocks by their structural relationships.
-// Child order is supplied by the producer; unavailable children are ignored.
+// Child order is supplied by the producer. Unavailable children are ignored.
 // It holds references, not block data, and is not concurrency safe.
 type Graph struct {
 	// nodes contains the available blocks and their ordered outgoing edges.

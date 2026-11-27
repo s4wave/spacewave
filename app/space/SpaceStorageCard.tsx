@@ -9,8 +9,8 @@ import {
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 
-// SpaceStorageCard shows where the Space stores its data and moves it to
-// another storage. It shows only for accounts with storage backends.
+// SpaceStorageCard shows where the Space stores its data and moves the data to
+// another storage backend. It shows only for accounts with storage backends.
 export function SpaceStorageCard() {
   const { spaceId } = SpaceContainerContext.useContext()
   const resource = useStorageBackends()

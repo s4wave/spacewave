@@ -103,7 +103,7 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 
 // TestSyncDeadlineSurvivesContinuousWrites exercises the real pack and HTTP path.
 func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
-	// Serve uploads, recording the time of the first.
+	// Serve uploads, recording the time of the first upload.
 	uploaded := make(chan time.Time, 1)
 	push := startTestPushServer(t)
 	push.onUpload = func(*packfile.PushRequest) {

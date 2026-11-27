@@ -39,7 +39,7 @@ func TestParseEnabledRejectsInvalidValue(t *testing.T) {
 	}
 }
 
-// TestBuildPolicyValidateRejectsInvalidEnum checks that Validate names the
+// TestBuildPolicyValidateRejectsInvalidEnum checks that Validate identifies the
 // field holding an out-of-range value.
 func TestBuildPolicyValidateRejectsInvalidEnum(t *testing.T) {
 	tests := []struct {
@@ -81,8 +81,8 @@ func TestBuildPolicyValidateRejectsInvalidEnum(t *testing.T) {
 	}
 }
 
-// TestBuildPolicyMerge checks that an override replaces each field unless it
-// is DEFAULT.
+// TestBuildPolicyMerge checks that an override replaces each field unless
+// the override value is DEFAULT.
 func TestBuildPolicyMerge(t *testing.T) {
 	// Merge a policy with an override that sets JS minification to DEFAULT.
 	base := &BuildPolicy{JsMinification: enabled.Enabled_ENABLE, JsSourcemaps: enabled.Enabled_DISABLE, GoscriptCodeSplitting: enabled.Enabled_DISABLE}
@@ -143,7 +143,8 @@ func TestBuildPolicyResolveDefaultsByBuildType(t *testing.T) {
 		t.Fatal("dev DEFAULT should split GoScript bundles")
 	}
 
-	// Release eliminates GoScript dead code; dev keeps the compiler cache.
+	// Release eliminates GoScript dead code, while dev keeps the compiler
+	// cache.
 	if !policy.ResolveGoScriptDeadCodeElimination(bldr_manifest.BuildType_RELEASE) {
 		t.Fatal("release DEFAULT should eliminate GoScript dead code")
 	}

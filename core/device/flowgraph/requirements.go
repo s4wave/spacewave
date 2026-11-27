@@ -16,10 +16,10 @@ import (
 )
 
 // claimRequirements streams the typed Flowgraphs and tries each claimable node.
-// Each attempt is a short transaction; the read set watches candidates, Device
+// Each attempt is a short transaction. The read set watches candidates, Device
 // labels and Worker capacity, including failed admission, without polling.
 // Each watched revision scans typed graphs in bounded pages. Eligibility reads
-// stay off the World writer; only matching candidates enter a claim transaction.
+// stay off the World writer. Only matching candidates enter a claim transaction.
 func (r *Reconciler) claimRequirements(ctx context.Context, reads *world.ReadSet, declaration *s4wave_device.ForgeWorkerDeclaration) error {
 	// Keep orphan cleanup working even after the forge-worker node is removed.
 	if err := r.releaseRemovedPlacements(ctx, reads); err != nil {
@@ -101,7 +101,7 @@ func (r *Reconciler) claimRequirements(ctx context.Context, reads *world.ReadSet
 
 // claimNode atomically trims an overfull node, rechecks claimable under the
 // writer and reserves on this Device's live Worker claim. A competing commit
-// invalidates this transaction; the retry reads the winner's edge and leaves
+// invalidates this transaction. The retry reads the winner's edge and leaves
 // the losing Worker without a debit.
 func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphKey, nodeID string, declaration *s4wave_device.ForgeWorkerDeclaration) error {
 	return world.ExecTransaction(ctx, r.engine, true, func(ctx context.Context, tx world.WorldState) error {
@@ -184,8 +184,9 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 			return err
 		}
 
-		// Replace an expired copy only after our reservation succeeds.
-		// Both debits and edges commit together; stale cleanup cannot release our grant.
+		// Replace an expired copy only after this Device's reservation succeeds.
+		// Both debits and edges commit together. Stale cleanup cannot release
+		// this Device's grant.
 		if i := slices.IndexFunc(copies, func(held requirementCopy) bool { return held.expired }); i >= 0 {
 			if err := releaseRequirementCopy(ctx, ws, graphKey, nodeID, copies[i]); err != nil {
 				return err
@@ -237,7 +238,8 @@ func hostsWorker(placed []*s4wave_flowgraph.PlacedFlowgraphNode, workerKey strin
 }
 
 // releaseRemovedPlacements uses the Device's indexed reservation edges to find
-// raw edge or object removals. SDK node edits already release in their own write.
+// raw edge or object removals. SDK node edits already release grants in their
+// own write.
 func (r *Reconciler) releaseRemovedPlacements(ctx context.Context, reads *world.ReadSet) error {
 	// Query only live placement grants belonging to this Device.
 	tx, err := r.engine.NewTransaction(ctx, false)
@@ -353,7 +355,8 @@ func (r *Reconciler) placementLive(ctx context.Context, ws world.WorldState, res
 		return false, err
 	}
 
-	// A Device without its Worker node returns claimed nodes to unplaced.
+	// A Device without its Worker node returns claimed nodes to an unplaced
+	// state.
 	if placed == nil {
 		placed, err = readPlacedNodes(ctx, ws, r.engineID, r.spaceID, r.deviceKey, r.peerID)
 		if err != nil {
@@ -465,7 +468,7 @@ func canClaimCopy(copies []requirementCopy, deviceKey string, count uint32) bool
 
 // releaseRequirementCopy removes an edge and credits its existing Forge grant.
 func releaseRequirementCopy(ctx context.Context, ws world.WorldState, graphKey, nodeID string, held requirementCopy) error {
-	// Release only the grant named by this Device's edge.
+	// Release only the grant identified by this Device's edge.
 	if err := s4wave_flowgraph.ReleaseNodeCapacity(ctx, ws, graphKey, nodeID, held.placement.GetObjectKey()); err != nil {
 		return err
 	}

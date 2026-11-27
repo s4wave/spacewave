@@ -377,8 +377,8 @@ func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *Bl
 	return bs
 }
 
-// unheldPuts returns the count of blocks vol observed put with no holder,
-// which a Volume that frees refuses with ErrUnheldPut.
+// unheldPuts returns the count of blocks vol observed put with no holder.
+// A Volume that frees blocks refuses such puts with ErrUnheldPut.
 func unheldPuts(vol volume.Volume) uint64 {
 	health, _ := vol.(interface {
 		GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struct{})
@@ -687,7 +687,7 @@ func (p *placedStoreTest) waitUpload(ctx context.Context, t *testing.T, cond fun
 	}
 }
 
-// TestPlacedStoreEvictAndRefill evicts the uploaded blocks of a placed store,
+// TestPlacedStoreEviction evicts the uploaded blocks of a placed store,
 // refuses a block whose rewrite awaits upload, reads the evicted block back,
 // and finds the refill staged no garbage candidate.
 func TestPlacedStoreEviction(t *testing.T) {

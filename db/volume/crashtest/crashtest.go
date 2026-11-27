@@ -79,10 +79,10 @@ type Target interface {
 }
 
 // Run runs each workload on a new device from newDevice, crashes it at every
-// mutating device call, applies a power loss, and checks that the target open
-// reopens holds an allowed state and keeps working. blocks is which commits of
-// the target publish its pending blocks. It first checks the existence results
-// of the target's batch puts.
+// mutating device call, applies a power loss, and checks that open reopens a
+// target that holds an allowed state and keeps working. blocks is which commits
+// of the target publish its pending blocks. It first checks the existence
+// results of the target's batch puts.
 func Run[D Device](t *testing.T, blocks Blocks, newDevice func() D, open func(ctx context.Context, d D) (Target, error)) {
 	checkBatchExistence(t, newDevice(), open)
 	for seed := range uint64(seeds) {

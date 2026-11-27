@@ -18,7 +18,7 @@ import (
 	"github.com/aperturerobotics/cli"
 )
 
-// main runs the command the arguments name.
+// main runs the command the arguments select.
 func main() {
 	// Describe the commands.
 	seed, run, check, report := &seedArgs{}, &runArgs{}, &checkArgs{}, &reportArgs{}
@@ -32,7 +32,7 @@ func main() {
 		{Name: "report", Usage: "summarize the commit latencies by regeneration stage", Flags: report.BuildFlags(), Action: report.Run},
 	}
 
-	// Run the one named until it ends or the process is interrupted.
+	// Run the selected command until it ends or the process is interrupted.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	if err := app.RunContext(ctx, os.Args); err != nil {

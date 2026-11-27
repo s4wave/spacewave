@@ -11,7 +11,7 @@ import (
 
 // Factory constructs the controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

@@ -245,8 +245,8 @@ func isLockfile(path string) bool {
 	}
 }
 
-// includeMode controls whether filesystem permission bits participate in the
-// digest. Source inputs retain modes, while transported output trees do not.
+// hashFile includes filesystem permission bits in the digest if includeMode is
+// true. Source inputs retain modes, while transported output trees do not.
 func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 	// Resolve the input path within the selected repository.
 	fullPath := filepath.Join(repoRoot, filepath.FromSlash(path))

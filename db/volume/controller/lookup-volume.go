@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// lookupVolumeResolver resolves LookupVolume directives
+// lookupVolumeResolver resolves LookupVolume directives.
 type lookupVolumeResolver struct {
 	c   *Controller
 	dir volume.LookupVolume
@@ -41,14 +41,14 @@ func (c *Controller) resolveLookupVolume(
 	di directive.Instance,
 	dir volume.LookupVolume,
 ) (directive.Resolver, error) {
-	// check if we can immediately reject this directive
+	// Check if the controller can immediately reject this directive.
 	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {
 		if !volume.CheckLookupMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &lookupVolumeResolver{c: c, dir: dir}, nil
 }
 

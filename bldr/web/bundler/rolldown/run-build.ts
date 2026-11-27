@@ -751,7 +751,7 @@ export async function runBuild(
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false,
     },
-    // Region comments name each bundled source file. Without a sourcemap
+    // Region comments identify each bundled source file. Without a sourcemap
     // they only add bytes.
     experimental: {
       attachDebugInfo: sourcemap === 'none' ? 'none' : 'simple',

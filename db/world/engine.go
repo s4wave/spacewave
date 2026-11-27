@@ -10,13 +10,14 @@ import (
 // Engine implements a transactional world state container.
 type Engine interface {
 	// OperationAuthor returns this engine's signing device and its accepted person.
-	// Unsigned engines return an empty device; callers requiring authorship reject it.
+	// Unsigned engines return an empty device. Callers requiring authorship
+	// reject the empty device.
 	OperationAuthor(ctx context.Context) (peer.ID, string, error)
 	// NewTransaction returns a new transaction against the store.
 	// A read transaction retains one immutable revision until Discard. Use
 	// NewEngineWorldState for live reads and object revision watches.
 	// Indicate write if the transaction will not be read-only.
-	// Always call Discard() after you are done with the transaction.
+	// Always call Discard() after finishing the transaction.
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(ctx context.Context, write bool) (Tx, error)
 

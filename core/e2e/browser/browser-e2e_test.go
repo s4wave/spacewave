@@ -228,7 +228,8 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 			t.Logf("vitest exited: %v (this is normal in interactive mode)", err)
 		}
 	} else if watchMode {
-		// Terminal watch mode - keyboard shortcuts work (h for help, a to rerun all, etc.)
+		// Terminal watch mode: keyboard shortcuts work
+		// (h for help, a to rerun all, etc.)
 		// Omit --run so Vitest stays in watch mode.
 		vitestArgs := slices.Clone(vitestBaseArgs)
 		if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {

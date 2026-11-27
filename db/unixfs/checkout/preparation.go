@@ -61,10 +61,11 @@ type Fetch struct {
 // ctx ends when the last caller leaves. report publishes progress.
 type work func(ctx context.Context, report func(Progress), yield func(context.Context) error) error
 
-// run waits for the checkout key names, starting its worker unless one is
+// run waits for the checkout key selects, starting its worker unless one is
 // running, and returns the worker's result or ctx's end. Leaving early drops
-// only this caller; the worker stops when no caller remains, and a caller
-// arriving while it stops waits for its exit, so two workers never overlap.
+// only this caller. The worker stops when no caller remains, and a caller
+// arriving while the worker stops waits for its exit, so two workers never
+// overlap.
 func (r *registry) run(ctx context.Context, key string, fetch Fetch, do work) error {
 	// Join or start the shared attempt for this subscriber.
 	j, err := r.subscribe(ctx, key, !fetch.Background, do)
@@ -190,7 +191,7 @@ func (r *registry) yield(ctx context.Context, j *job) error {
 }
 
 // demanded reports whether a foreground caller waits on a job that is not
-// waiting for its lease. The caller holds the registry lock; the registry
+// waiting for its lease. The caller holds the registry lock. The registry
 // holds a few jobs at most.
 func (r *registry) demanded() bool {
 	for _, j := range r.jobs {
@@ -203,7 +204,7 @@ func (r *registry) demanded() bool {
 
 // DestinationLease returns the lease scope that excludes every other writer
 // of directory, in this process or another, below root. Checkouts hold it
-// from their reuse check through cleanup; eviction probes it.
+// from their reuse check through cleanup. Eviction probes the lease scope.
 func DestinationLease(root, directory string) (*filelock.Coordinator, coord.Scope, error) {
 	key, err := filepath.Rel(root, directory)
 	if err != nil {

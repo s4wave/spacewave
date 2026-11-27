@@ -31,12 +31,12 @@ type Bucket struct {
 	objects map[string][]byte
 	// history holds the versions of each key, newest first.
 	history map[string][]objectVersion
-	// versions counts the versions stored, which names the next one.
+	// versions counts the versions stored and identifies the next version.
 	versions int
 	// puts counts the accepted PUT requests.
 	puts int
-	// failPut, when set, decides whether to refuse a PUT of the key with a
-	// server error before it is stored.
+	// failPut decides, when set, whether to refuse a PUT of the key with a
+	// server error before the object is stored.
 	failPut func(key string) bool
 	// url is where the bucket serves.
 	url string
@@ -48,7 +48,7 @@ type Bucket struct {
 
 // objectVersion is one stored version of a key.
 type objectVersion struct {
-	// id names the version.
+	// id identifies the version.
 	id string
 	// data is its content.
 	data []byte
@@ -89,7 +89,8 @@ func (b *Bucket) OpenUploads() int {
 }
 
 // FailPut makes the bucket refuse every PUT of a key fail returns true for,
-// with a server error, until it is called again. A nil fail accepts all.
+// with a server error, until FailPut is called again. A nil fail accepts
+// all PUTs.
 func (b *Bucket) FailPut(fail func(key string) bool) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
@@ -119,9 +120,10 @@ func (b *Bucket) Puts() int {
 
 // listResult is a ListObjectsV2 response.
 type listResult struct {
-	// XMLName names the response element.
+	// XMLName identifies the response element.
 	XMLName xml.Name `xml:"ListBucketResult"`
-	// IsTruncated reports that more objects remain; the bucket never truncates.
+	// IsTruncated reports that more objects remain. The bucket never
+	// truncates.
 	IsTruncated bool `xml:"IsTruncated"`
 	// Contents are the listed objects.
 	Contents []listContent `xml:"Contents"`
@@ -205,8 +207,9 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveObject answers a GET or HEAD of key's current version, or of version
-// when it is set. It finds the version under the lock and writes its bytes
-// after, which is safe because a version's bytes never change once stored.
+// when version is set. It finds the version under the lock and writes its
+// bytes after releasing the lock. Writing after release is safe because a
+// version's bytes never change once stored.
 func (b *Bucket) serveObject(w http.ResponseWriter, r *http.Request, key, version string) {
 	// Find the version.
 	b.mtx.Lock()

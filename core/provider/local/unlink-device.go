@@ -51,7 +51,8 @@ func (a *ProviderAccount) UnlinkDevice(ctx context.Context, remotePeerID peer.ID
 		if member.GetRevokedByStoragePeerId() != "" && member.GetRevokedByStoragePeerId() != writer.GetPeerID().String() {
 			return errors.New("this Session's removal is already being completed by another replica")
 		}
-		// Commit revocation before removing grants so concurrent discovery fails closed.
+		// Commit revocation before removing grants so concurrent discovery
+		// fails closed.
 		next := member.CloneVT()
 		next.Revoked = true
 		next.RevokedByStoragePeerId = writer.GetPeerID().String()

@@ -11,7 +11,7 @@ import (
 // config.Config, protobuf_go_lite.Message, and block.Block interfaces.
 //
 // The actual config deserialization happens inside each HandlerFactory,
-// so this type just carries the raw bytes through the controllerbus
+// so this type only carries the raw bytes through the controllerbus
 // config resolution pipeline (LoadConfigConstructorByID -> Resolve ->
 // LoadFactoryByConfig -> Construct).
 type SpaceExecConfig struct {
@@ -31,7 +31,7 @@ func (c *SpaceExecConfig) GetConfigID() string {
 	return c.configID
 }
 
-// Validate returns nil; validation happens in the handler factory.
+// Validate returns nil. Validation happens in the handler factory.
 func (c *SpaceExecConfig) Validate() error {
 	return nil
 }

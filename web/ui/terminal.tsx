@@ -25,7 +25,7 @@ function terminalStatus(exitCode: number | undefined): TraceStatus {
   return 'error'
 }
 
-/** terminalTitle names the line from the command and its exit code. */
+/** terminalTitle labels the line from the command and its exit code. */
 function terminalTitle(command: string, exitCode: number | undefined) {
   if (exitCode !== undefined && exitCode !== 0) {
     return `${command} exited with code ${exitCode}`

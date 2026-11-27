@@ -97,7 +97,7 @@ describe('billing session routes', () => {
   })
 
   it('renders the billing detail route inside the session frame', () => {
-    // Select the account named by the detail route.
+    // Select the account specified by the detail route.
     mockUseParams.mockReturnValue({ baId: 'ba_detail' })
 
     // Mount the account detail route through its session frame.
@@ -114,7 +114,7 @@ describe('billing session routes', () => {
   })
 
   it('renders the billing cancel route inside the session frame', () => {
-    // Select the account named by the cancellation route.
+    // Select the account specified by the cancellation route.
     mockUseParams.mockReturnValue({ baId: 'ba_cancel' })
 
     // Mount the cancellation route through its session frame.

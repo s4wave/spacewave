@@ -52,7 +52,8 @@ func TestUnixFSStorePutReportsRejection(t *testing.T) {
 	root := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(srpc.NewClientWithMuxedConn(clientMp))
 	store := NewUnixFSStore(root, nil)
 
-	// Put an object of many frames; the daemon rejects it after the first.
+	// Put an object of many frames. The daemon rejects the object after the
+	// first frame.
 	data := bytes.Repeat([]byte{7}, 64*chunkSize)
 	_, oid := testObject(string(data))
 	for range 20 {

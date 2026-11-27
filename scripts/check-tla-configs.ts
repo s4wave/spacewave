@@ -1,14 +1,15 @@
 #!/usr/bin/env bun
 // check-tla-configs splits what aptre-tla does in one pass into the two tiers
 // CI runs it in. aptre-tla checks each config and then judges every mutant of
-// each spec it checked, spec mutants and testdata/ config mutants alike, which
-// for a large spec can take hours; a job that gates a landing cannot wait for that.
+// each spec it checked, spec mutants and testdata/ config mutants alike.
+// For a large spec, judging those mutants can take hours. A job that gates a
+// landing cannot wait for those hours.
 //
 // usage: bun scripts/check-tla-configs.ts [-workers N] config.cfg...
 //        bun scripts/check-tla-configs.ts -mutants [-workers N] target...
 //
-// The first form checks the named configs and judges no mutant; every CI run
-// uses it. The second judges mutants and checks no config; the nightly mutant
+// The first form checks the named configs and judges no mutant. Every CI run
+// uses it. The second judges mutants and checks no config. The nightly mutant
 // workflow uses it. Its target is Foo.tla for every mutant of the spec,
 // Foo.mutants.json for the spec mutants listed there, or testdata/Foo-x.cfg
 // for that one config mutant, so a spec whose mutants take hours can split
@@ -127,7 +128,7 @@ async function checkConfigs(
   return failed
 }
 
-// judgeMutants judges the mutants each target names, as aptre-tla does after
+// judgeMutants judges the mutants each target selects, as aptre-tla does after
 // its configs, and returns how many were not a kill, or -1 when a testdata
 // config pairs with no spec.
 async function judgeMutants(

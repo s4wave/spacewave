@@ -39,7 +39,7 @@ func (a *deviceLabelArgs) BuildFlags() []cli.Flag {
 
 // Run changes stored Device labels through the mounted World.
 func (a *deviceLabelArgs) Run(c *cli.Context) error {
-	// Require a target and at least one set or removal.
+	// Require a target Device and at least one label to set or remove.
 	if c.NArg() < 2 {
 		return errors.New("device label requires <device-object-key> <key=value|key->...")
 	}
@@ -69,7 +69,8 @@ func labelDeviceInWorld(ctx context.Context, engine world.Engine, key string, ch
 			device.Labels = make(map[string]string)
 		}
 
-		// Apply typed CLI arguments in order; an invalid edit discards the whole write.
+		// Apply typed CLI arguments in order. An invalid edit discards
+		// the whole write.
 		for _, change := range changes {
 			label, value, set := strings.Cut(change, "=")
 			if !set {

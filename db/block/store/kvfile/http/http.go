@@ -23,7 +23,7 @@ type KvfileHTTPBlock = block_store_kvfile.KvfileBlock
 // kvkey controls the keys used to access blocks from the kvfile
 // httpRangeMinSize sets a minimum size for http requests and enables buffering.
 // if httpRangeMinSize is zero, disables buffering.
-// verbose logs http requests
+// verbose logs http requests.
 func NewKvfileHTTPBlock(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -36,7 +36,7 @@ func NewKvfileHTTPBlock(
 ) (*KvfileHTTPBlock, error) {
 	// Require the URL that identifies the remote kvfile.
 	if fileURL == "" {
-		// this won't work
+		// An empty fileURL cannot identify the remote kvfile.
 		return nil, errors.New("file url cannot be empty")
 	}
 

@@ -46,7 +46,7 @@ func ExLookupTptAddr(ctx context.Context, b bus.Bus, destPeerID peer.ID, waitOne
 	return out, di, valsRef, nil
 }
 
-// lookupTptAddr implements LookupTptAddr
+// lookupTptAddr implements LookupTptAddr.
 type lookupTptAddr struct {
 	dest peer.ID
 }
@@ -77,7 +77,8 @@ func (d *lookupTptAddr) GetValueOptions() directive.ValueOptions {
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
-// old, then the new directive will be merged (de-duplicated) into the old.
+// old directive, then the new directive will be merged (de-duplicated) into
+// the old directive.
 func (d *lookupTptAddr) IsEquivalent(other directive.Directive) bool {
 	od, ok := other.(LookupTptAddr)
 	if !ok {
@@ -107,5 +108,5 @@ func (d *lookupTptAddr) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type constraint
+// _ is a type constraint.
 var _ LookupTptAddr = (*lookupTptAddr)(nil)

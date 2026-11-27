@@ -263,7 +263,7 @@ export const WebRuntimeDefinition = {
     /**
      * CreateWebDocument requests to create a new WebDocument.
      * Returns created: false if unable to create WebDocuments.
-     * This usually creates a new Tab or Window.
+     * The request usually creates a new Tab or Window.
      *
      * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
      */
@@ -276,7 +276,7 @@ export const WebRuntimeDefinition = {
     /**
      * RemoveWebDocument requests to delete a WebDocument.
      * Returns created: false if unable to create WebDocuments.
-     * This usually creates a new Tab or Window.
+     * The request usually creates a new Tab or Window.
      *
      * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
      */
@@ -302,8 +302,9 @@ export const WebRuntimeDefinition = {
     /**
      * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
      * Contacts the WebWorker via. the associated WebRuntimeClient.
-     * The WebWorker must have registered with the runtime for this to work.
-     * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+     * The WebWorker must have registered with the runtime for the RPC to work.
+     * Note: WebWorkerRpc is on WebRuntime and not WebDocument for performance
+     * reasons (fewer context transfers).
      * Id is the webWorkerId.
      *
      * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc
@@ -349,7 +350,7 @@ export interface WebRuntime {
   /**
    * CreateWebDocument requests to create a new WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
@@ -361,7 +362,7 @@ export interface WebRuntime {
   /**
    * RemoveWebDocument requests to delete a WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
@@ -385,8 +386,9 @@ export interface WebRuntime {
   /**
    * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
    * Contacts the WebWorker via. the associated WebRuntimeClient.
-   * The WebWorker must have registered with the runtime for this to work.
-   * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+   * The WebWorker must have registered with the runtime for the RPC to work.
+   * Note: WebWorkerRpc is on WebRuntime and not WebDocument for performance
+   * reasons (fewer context transfers).
    * Id is the webWorkerId.
    *
    * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc
@@ -429,7 +431,7 @@ export interface WebRuntimeHandler {
   /**
    * CreateWebDocument requests to create a new WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
@@ -442,7 +444,7 @@ export interface WebRuntimeHandler {
   /**
    * RemoveWebDocument requests to delete a WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
@@ -468,8 +470,9 @@ export interface WebRuntimeHandler {
   /**
    * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
    * Contacts the WebWorker via. the associated WebRuntimeClient.
-   * The WebWorker must have registered with the runtime for this to work.
-   * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+   * The WebWorker must have registered with the runtime for the RPC to work.
+   * Note: WebWorkerRpc is on WebRuntime and not WebDocument for performance
+   * reasons (fewer context transfers).
    * Id is the webWorkerId.
    *
    * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc
@@ -529,7 +532,7 @@ export class WebRuntimeClient implements WebRuntime {
   /**
    * CreateWebDocument requests to create a new WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
@@ -550,7 +553,7 @@ export class WebRuntimeClient implements WebRuntime {
   /**
    * RemoveWebDocument requests to delete a WebDocument.
    * Returns created: false if unable to create WebDocuments.
-   * This usually creates a new Tab or Window.
+   * The request usually creates a new Tab or Window.
    *
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
@@ -591,8 +594,9 @@ export class WebRuntimeClient implements WebRuntime {
   /**
    * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
    * Contacts the WebWorker via. the associated WebRuntimeClient.
-   * The WebWorker must have registered with the runtime for this to work.
-   * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+   * The WebWorker must have registered with the runtime for the RPC to work.
+   * Note: WebWorkerRpc is on WebRuntime and not WebDocument for performance
+   * reasons (fewer context transfers).
    * Id is the webWorkerId.
    *
    * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc

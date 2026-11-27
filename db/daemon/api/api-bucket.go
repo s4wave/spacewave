@@ -78,7 +78,7 @@ func (a *API) ApplyBucketConfig(
 	}
 }
 
-// ListBuckets lists basic bucket information
+// ListBuckets lists basic bucket information.
 func (a *API) ListBuckets(
 	ctx context.Context,
 	req *volume.ListBucketsRequest,

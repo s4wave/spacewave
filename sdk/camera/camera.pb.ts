@@ -8,8 +8,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { DeviceAvailability } from '../device/device.pb.js'
 
 /**
- * Camera is the world-block state for a camera a Device serves. It names the
- * Device object and the capability, not the Device's peer, so the viewer
+ * Camera is the world-block state for a camera a Device serves. It records
+ * the Device object and the capability, not the Device's peer, so the viewer
  * follows the Device through re-enrollment.
  *
  * @generated from message s4wave.camera.Camera

@@ -14,8 +14,9 @@ import (
 )
 
 // FetchDistConfig fetches the dist configuration from an HTTP endpoint.
-// Returns the config, the encoded config, the peer that signed the config, and any error.
-// distPeerIDs are the peer ids that we accept signed DistConfig from.
+// Returns the config, the encoded config, the peer that signed the config,
+// and any error.
+// distPeerIDs are the peer ids accepted as signers of DistConfig.
 func FetchDistConfig(
 	ctx context.Context,
 	le *logrus.Entry,

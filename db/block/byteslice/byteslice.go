@@ -86,7 +86,7 @@ func (b *ByteSlice) CloneBlock() (block.Block, error) {
 }
 
 // MarshalVT marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
+// Marshaling the block to binary is the initial step, before transformations.
 func (b *ByteSlice) MarshalVT() ([]byte, error) {
 	// Encode an absent ByteSlice as empty block data.
 	if b == nil || b.sl == nil {
@@ -101,7 +101,7 @@ func (b *ByteSlice) MarshalVT() ([]byte, error) {
 }
 
 // UnmarshalVT unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
+// Unmarshaling the block is the final step of decoding, after transformations.
 func (b *ByteSlice) UnmarshalVT(data []byte) error {
 	if b.sl != nil {
 		*b.sl = data

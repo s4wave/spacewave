@@ -80,8 +80,8 @@ export function SharedObjectSyncNotice({
   })
 }
 
-// RejectedEditNotice shows a dismissible toast for one rejected edit while it
-// stays in the health.
+// RejectedEditNotice shows a dismissible toast for one rejected edit while the
+// edit stays in the health.
 function RejectedEditNotice({
   id,
   description,

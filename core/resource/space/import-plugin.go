@@ -41,7 +41,7 @@ func (r *SpaceResource) ImportSpacePlugin(
 }
 
 // importPlugin publishes the newest build of pluginID for each platform in
-// src into this Space's plugin host, reading only the blocks it lacks.
+// src into this Space's plugin host, reading only the blocks this Space lacks.
 func (r *SpaceResource) importPlugin(ctx context.Context, src *SpaceResource, pluginID string) error {
 	// Require a plugin from a different Space.
 	if pluginID == "" {

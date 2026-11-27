@@ -58,7 +58,7 @@ func BuildSOSequence(sharedObjectID string, privKey crypto.PrivKey, prev *SOSequ
 
 // Validate checks the position body's structure.
 func (i *SOSequenceInner) Validate() error {
-	// The body names an object, its sequencer and a height.
+	// The body identifies an object, its sequencer and a height.
 	if i.GetSharedObjectId() == "" {
 		return ErrEmptySharedObjectID
 	}
@@ -69,8 +69,8 @@ func (i *SOSequenceInner) Validate() error {
 		return errors.New("sequence height must be positive")
 	}
 
-	// The first position names nothing before it; every later one names its
-	// predecessor.
+	// The first position references nothing before it. Every later position
+	// references its predecessor.
 	if i.GetHeight() == 1 && len(i.GetPrevHash()) != 0 {
 		return errors.New("first sequence position must not name a previous position")
 	}
@@ -115,7 +115,7 @@ func (q *SOSequence) Verify(sharedObjectID string) (*SOSequenceInner, string, er
 }
 
 // validateSequenceHead checks that head is unset, height 0 with no hash, or a
-// real position. field names the head in errors.
+// real position. field labels the head in errors.
 func validateSequenceHead(field string, head *SOSequenceHead) error {
 	if head.GetHeight() == 0 && len(head.GetHash()) != 0 {
 		return errors.Errorf("%s at height 0 must not name a position", field)
@@ -163,10 +163,11 @@ type verifySequenceFunc func(record *SOSequence) (string, *SOSequenceInner, stri
 
 // resolveSequence returns the sequence above base that records support under
 // sequencer. Positions up to the sequencer's start are taken along the hash
-// links down from start, whoever signed them; later ones only when the
-// sequencer signed them. It stops at the first gap, at a position that does
-// not name the one before it, and at a fork the sequencer signed. Records that
-// fail to verify are ignored. verify checks each record.
+// links down from start, whoever signed them. Later positions are taken only
+// when the sequencer signed them. Resolution stops at the first gap, at a
+// position that does not reference the one before it, and at a fork the
+// sequencer signed. Records that fail to verify are ignored. verify checks
+// each record.
 func resolveSequence(base *SOSequenceHead, sequencer *SOSequencer, records []*SOSequence, verify verifySequenceFunc) soSequence {
 	// Start above the base, open while a sequencer may still extend it.
 	if base == nil {

@@ -12,15 +12,15 @@ import (
 // StdinBuffer is the buffer for stdin.
 // The zero value is valid.
 type StdinBuffer struct {
-	// bcast guards below fields
+	// bcast guards the fields below.
 	bcast broadcast.Broadcast
 	// readQueue is the queued data to read.
 	readQueue linkedlist.LinkedList[[]byte]
-	// readQueueSize is the queued data size in bytes
+	// readQueueSize is the queued data size in bytes.
 	readQueueSize int
-	// readQueueOffset is the offest in the first index that we have read through.
+	// readQueueOffset is the offset read through in the first queue entry.
 	readQueueOffset int
-	// closed returns eof once readQueue is empty
+	// closed causes Read to return eof once readQueue is empty.
 	closed bool
 }
 
@@ -39,11 +39,12 @@ func (b *StdinBuffer) Read(p []byte) (n int, err error) {
 			return
 		}
 
-		// We have no data available to read, this would block Read.
-		// Special behavior here: we don't have EAGAIN, so just return 0, nil
-		// This works ONLY with wazero as it currently is implemented.
-		// It's not a conventional behavior in Go but in this context it works.
-		// IsNonblock always returns false, see internal/sys/stdio.go -> noopStdioFile
+		// An empty queue would block Read.
+		// Read has no EAGAIN, so return 0, nil.
+		// Returning 0, nil works ONLY with wazero as implemented.
+		// Returning 0, nil is unconventional in Go but works in this context.
+		// IsNonblock always returns false.
+		// See internal/sys/stdio.go -> noopStdioFile.
 		if b.readQueueSize == 0 {
 			n = 0
 			err = nil
@@ -64,13 +65,14 @@ func (b *StdinBuffer) Read(p []byte) (n int, err error) {
 		b.readQueueOffset += n
 		b.readQueueSize -= n
 
-		// If we've read all data from the first entry, remove it and reset offset
+		// If all data from the first entry has been read, remove the entry
+		// and reset the offset.
 		if b.readQueueOffset >= len(nextEntry) {
 			_, _ = b.readQueue.Pop()
 			b.readQueueOffset = 0
 		}
 
-		// Check if we should return EOF
+		// Check if Read should return EOF
 		if b.readQueueSize == 0 && b.closed {
 			err = io.EOF
 		} else {
@@ -123,8 +125,8 @@ func (b *StdinBuffer) Close() error {
 
 // CheckReady checks if data is available and returns a wait channel if not.
 // Returns (ready, waitCh) where:
-// - ready=true means data is available now, waitCh should be ignored
-// - ready=false means no data, wait on waitCh for notification
+// - ready=true means data is available now, waitCh should be ignored.
+// - ready=false means no data, wait on waitCh for notification.
 func (b *StdinBuffer) CheckReady() (ready bool, waitCh <-chan struct{}) {
 	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ready = b.readQueueSize > 0 || b.closed
@@ -140,10 +142,10 @@ func (b *StdinBuffer) Poll(flag wazero_exp_sys.Pflag, timeoutMillis int32) (read
 	// wait once only
 	var waited bool
 	for {
-		// Check if we have data to read.
+		// Check if the buffer has data to read.
 		var waitCh <-chan struct{}
 		b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// Ready if we have data to read or if we're closed
+			// Ready if the buffer has data to read or is closed
 			ready = b.readQueueSize > 0 || b.closed
 			errno = 0
 

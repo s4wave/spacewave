@@ -11,7 +11,7 @@ import (
 
 // Store implements the KeyValue store with a client.
 type Store struct {
-	// client is the service client
+	// client is the service client.
 	client kvtx_rpc.SRPCKvtxClient
 }
 
@@ -21,7 +21,7 @@ func NewStore(client kvtx_rpc.SRPCKvtxClient) *Store {
 }
 
 // NewTransaction returns a new transaction against the store.
-// Always call Discard() after you are done with the transaction.
+// The caller must call Discard() after finishing with the transaction.
 // The transaction will be read-only unless write is set.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	txClient, err := s.client.KvtxTransaction(ctx)

@@ -1,10 +1,10 @@
 package devtool_store
 
-// The devtool World's identity: the engine ID that names its head root, and
-// the bucket and object store every opener uses, whether the devtool's engine
-// controller, the bldr testbed or OpenWorld.
+// EngineID identifies the devtool World's head root. The bucket and object
+// store are shared by every opener, whether the devtool's engine controller,
+// the bldr testbed or OpenWorld.
 const (
-	// EngineID names the devtool World: its head is the root
+	// EngineID identifies the devtool World: its head is the root
 	// world_block.WorldRootName(EngineID) of its bucket.
 	EngineID = "bldr"
 	// BucketID is the bucket that holds the World's blocks.

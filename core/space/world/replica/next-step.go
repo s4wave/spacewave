@@ -51,7 +51,7 @@ func nextDesiredOwnerStep(obs *Observation) ReplicaStep {
 // desired owner, transfer once it proves its copy, then follow.
 func nextOtherStep(obs *Observation) ReplicaStep {
 	// A Device with no copy, one that does not own, or one beside an owning
-	// desired owner has nothing to do; a departing owner follows.
+	// desired owner has nothing to do. A departing owner follows.
 	own := obs.Ownership
 	if own == nil {
 		return ReplicaStep_REPLICA_STEP_NONE

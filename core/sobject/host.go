@@ -153,8 +153,8 @@ func (s *SOHost) ReadConfigHistory(ctx context.Context, base, target []byte) ([]
 
 // unappliedConfigChanges drops the proof prefix through the held checkpoint's
 // head when the proof does not already link to it. Ordinary sync can apply part
-// of a peer's proof while it is in flight; the remaining changes must still link
-// to that head.
+// of a peer's proof while the proof is in flight. The remaining changes must
+// still link to that head.
 func unappliedConfigChanges(head []byte, changes []*SOConfigChange) ([]*SOConfigChange, error) {
 	if len(changes) == 0 || bytes.Equal(changes[0].GetPreviousHash(), head) {
 		return changes, nil
@@ -173,7 +173,7 @@ func unappliedConfigChanges(head []byte, changes []*SOConfigChange) ([]*SOConfig
 
 // ReadConfigEntry returns the retained transition that produced an exact head.
 func (s *SOHost) ReadConfigEntry(ctx context.Context, head []byte) (*SOConfigChange, error) {
-	// Read the entry the head names.
+	// Read the entry the head identifies.
 	if s.syncFuncs.Entry == nil || len(head) == 0 {
 		return nil, ErrConfigHistoryUnavailable
 	}
@@ -309,8 +309,9 @@ func (s *SOHost) lockPeerImport(ctx context.Context, candidate *SOState, changes
 	return lockFn(ctx, s.sharedObjectID)
 }
 
-// commitPeerSnapshot merges a candidate whose config changes, the suffix from
-// the held config, the caller verified, and writes it under lock.
+// commitPeerSnapshot merges a candidate and writes the merged state under lock.
+// The caller verified the candidate's config changes, the suffix from the held
+// config.
 func (s *SOHost) commitPeerSnapshot(
 	ctx context.Context,
 	lock SOStateLock,
@@ -465,7 +466,7 @@ func (s *SOHost) writeInviteSnapshot(
 
 // mergeInvitation returns the held state advanced to the invitation's config,
 // which the lineage must reach from the held config head. The held state keeps
-// its operations and invitations; the invitation's invites replace the held
+// its operations and invitations. The invitation's invites replace the held
 // invites of the same ID.
 func (s *SOHost) mergeInvitation(held, candidate *SOState, lineage []*SOConfigChange) (*SOState, error) {
 	// Authenticate the invitation as an extension of the held config.
@@ -569,11 +570,11 @@ func retryConfigChange[T any](ctx context.Context, host *SOHost, change func() (
 }
 
 // AddLocalOperation signs opData as the owner of privKey and adds it to the
-// operation set, encoded with the key of the epoch the operation names. It
+// operation set, encoded with the key of the epoch the operation selects. It
 // returns the operation's local ID and its position in the peer's chain once
-// the state holding it is written. Empty opData writes an acknowledgment. A write whose outcome
-// cannot be settled returns ErrStateWriteUnknown: the state may hold the
-// operation, so a caller looks for it before adding it again.
+// the state holding it is written. Empty opData writes an acknowledgment. A
+// write whose outcome cannot be settled returns ErrStateWriteUnknown: the state
+// may hold the operation, so a caller looks for it before adding it again.
 func (s *SOHost) AddLocalOperation(
 	ctx context.Context,
 	le *logrus.Entry,

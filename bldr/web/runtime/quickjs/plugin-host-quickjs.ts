@@ -2,7 +2,7 @@
 //
 // This QuickJS worker runner is a dormant capability retained for future
 // sandboxed plugin execution. It is intentionally not imported by the main
-// bundle or any live path; the wasi-shim directory is its dependency.
+// bundle or any live path. The wasi-shim directory is its dependency.
 //
 // Architecture:
 // 1. Fetch QuickJS WASM from /b/qjs/qjs-wasi.wasm
@@ -50,9 +50,10 @@ const quickJSPluginCapabilityReadyMarker =
   '__BLDR_QUICKJS_PLUGIN_CAPABILITY_READY__'
 const quickJSPluginReadyMarker = '__BLDR_QUICKJS_PLUGIN_READY__'
 
-// Cached compiled QuickJS WASM module (shared across plugin restarts)
+// cachedWasmModule is the cached compiled QuickJS WASM module (shared across
+// plugin restarts).
 let cachedWasmModule: WebAssembly.Module | null = null
-// Cached boot harness code
+// cachedBootHarness is the cached boot harness code.
 let cachedBootHarness: string | null = null
 
 // loadQuickJSModule fetches and compiles the QuickJS WASM module.
@@ -410,8 +411,9 @@ function logQuickJSBridgePipeError(
   err: unknown,
 ): void {
   const detail = describeQuickJSBridgePipeError(err)
-  // Normal-close generation teardown ends bridge pipes by design; it is
-  // lifecycle cleanup, not a plugin failure, so keep it out of console.error.
+  // Normal-close generation teardown ends bridge pipes by design. The teardown
+  // is lifecycle cleanup, not a plugin failure, so keep it out of
+  // console.error.
   if (isExpectedQuickJSBridgeClose(err)) {
     console.debug(
       `quickjs-runner: stream pipe closed (${label.direction}#${label.id} ${stage})${detail}:`,
@@ -807,7 +809,7 @@ function markQuickJSReactorRunning(qjs: QuickJS): void {
 // main runs a JavaScript plugin in the QuickJS WASI reactor.
 //
 // Unlike native JS plugins that run directly in the browser, QuickJS plugins
-// run inside a WebAssembly-based JavaScript VM. This provides isolation and
+// run inside a WebAssembly-based JavaScript VM. This VM provides isolation and
 // allows running plugins that use synchronous I/O patterns.
 export default async function main(
   api: BackendAPI,
@@ -910,7 +912,8 @@ export default async function main(
   console.log('quickjs-runner: initializing QuickJS...')
 
   // Initialize QuickJS with --std flag and boot harness path.
-  // This sets up the module loader and evaluates the boot harness as the main script.
+  // This initialization sets up the module loader and evaluates the boot harness
+  // as the main script.
   qjs.init(['qjs', '--std', '/boot/plugin-quickjs.esm.js'])
   markQuickJSReactorRunning(qjs)
 
@@ -1064,13 +1067,13 @@ export default async function main(
         scheduleRunLoop()
         return
       }
-      // More microtasks pending, continue immediately
+      // More microtasks are pending, so continue immediately.
       scheduleRunLoop()
       return
     }
 
     if (result > 0) {
-      // Timer pending - but also check stdin
+      // A timer is pending, but also check stdin.
       if (pollPendingStdin()) {
         scheduleRunLoop()
         return
@@ -1084,7 +1087,7 @@ export default async function main(
     }
 
     if (result === LOOP_IDLE) {
-      // Idle - check if stdin has data
+      // The reactor is idle: check if stdin has data.
       if (pollPendingStdin()) {
         scheduleRunLoop()
         return
@@ -1097,8 +1100,9 @@ export default async function main(
       if (!running) {
         return
       }
-      // No data - wait for onStdinWake callback to restart the loop. There is
-      // intentionally no timeout here because backgrounded tabs throttle timers.
+      // There is no stdin data: wait for the onStdinWake callback to restart
+      // the loop. There is intentionally no timeout here because backgrounded
+      // tabs throttle timers.
       return
     }
   }
@@ -1114,7 +1118,7 @@ export default async function main(
 
   const finalExitCode = exitCode !== 0 ? exitCode : qjs.getExitCode()
 
-  // Cleanup
+  // Clean up the abort listener, devOutStream, and QuickJS reactor.
   signal.removeEventListener('abort', onAbort)
   devOutStream.end()
   qjs.onStdinWake(null)

@@ -5,7 +5,7 @@ import signaling "github.com/s4wave/spacewave/net/signaling/rpc"
 // serverPeerTracker tracks a peer on the server.
 // Its methods run under Server.mtx.
 type serverPeerTracker struct {
-	// wait is a channel that is closed when below changes.
+	// wait is a channel that is closed when the peer tracker state changes.
 	wait chan struct{}
 	// listening indicates the Listen RPC is attached.
 	listening bool
@@ -42,7 +42,8 @@ func (p *serverPeerTracker) endListen(nonce uint64) bool {
 	return true
 }
 
-// nextListenChanges selects one want and clear relative to the sent membership.
+// nextListenChanges selects one wanted peer and one cleared peer relative to
+// the sent membership.
 // The returned wait channel observes subsequent changes to this snapshot.
 func (p *serverPeerTracker) nextListenChanges(nonce uint64, sent map[string]struct{}) (want, clear string, wait <-chan struct{}, err error) {
 	// Reject a listener superseded by another stream.

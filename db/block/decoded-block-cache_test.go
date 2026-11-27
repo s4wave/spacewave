@@ -249,8 +249,9 @@ func TestDisableSharedDecodedBlockCache(t *testing.T) {
 	}
 }
 
-// TestDecodedBlockHitObserver checks that a read served by a decoded-block
-// cache reports its ref to the observer, and that a miss reports nothing.
+// TestDecodedBlockHitObserverAndHolds checks that a read served by a
+// decoded-block cache reports its ref to the observer, and that a miss reports
+// nothing.
 func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 	// Start a decoded cache, an observer and two holds on one read context.
 	ctx := context.Background()

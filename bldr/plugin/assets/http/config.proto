@@ -6,13 +6,14 @@ package plugin.assets.http;
 message Config {
   // ServePath is the path prefix to serve the FS.
   // This path is stripped from the UnixFS path lookups.
-  // If empty, defaults to /.
+  // If empty, ServePath defaults to /.
   string serve_path = 1;
   // FsPath is the subdirectory of the FS to serve at serve_path.
-  // Chroots the filesystem to this path.
-  // If empty, defaults to the root directory.
+  // The filesystem is chrooted to this path.
+  // If empty, FsPath defaults to the root directory.
   string fs_path = 2;
   // PluginId is the plugin assets unixfs to look up.
-  // If unset, uses the current plugin, assuming we are running in a plugin.
+  // If unset, PluginId uses the current plugin, assuming the controller runs
+  // in a plugin.
   string plugin_id = 3;
 }

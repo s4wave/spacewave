@@ -50,29 +50,32 @@ var (
 	// BootScriptPath is the file name of the quickjs vm entrypoint.
 	BootScriptPath = "/boot/plugin-quickjs.esm.js"
 
-	// DistFsMount is the path we mount the dist fs within the vm.
+	// DistFsMount is the path where the host mounts the dist fs within the vm.
 	DistFsMount = "/dist"
 
-	// AssetsFsMount is the path we mount the assets fs within the vm.
+	// AssetsFsMount is the path where the host mounts the assets fs
+	// within the vm.
 	AssetsFsMount = "/assets"
 
-	// DevFsMount is the path we mount the system device files within the vm.
+	// DevFsMount is the path where the host mounts the system device files
+	// within the vm.
 	DevFsMount = "/dev"
 
-	// BDirMount is the path we mount the /b/ tree within the vm.
+	// BDirMount is the path where the host mounts the /b/ tree within the vm.
 	BDirMount = "/b"
 
-	// BDirWebPkgsMount is the path within BDir we mount the web pkgs within the vm.
+	// BDirWebPkgsMount is the path within BDir where the host mounts the web
+	// pkgs within the vm.
 	BDirWebPkgsMount = "pkg"
 )
 
 // WazeroQuickJsHost implements the plugin host with QuickJS running as WASI in Wazero.
 type WazeroQuickJsHost struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// pluginPlatformID is the plugin platform to use
+	// pluginPlatformID is the plugin platform to use.
 	pluginPlatformID string
 	// quickjsVmRc is a routine to compile quickjs wasi
 	// this is released after a timeout to free up memory if no plugins are running.
@@ -209,7 +212,7 @@ func (h *WazeroQuickJsHost) GetPlatformId() string {
 // ListPlugins lists the set of initialized plugins.
 func (h *WazeroQuickJsHost) ListPlugins(ctx context.Context) ([]string, error) {
 	// TODO list stored plugins or temporary storage
-	// the plugin host will call Delete for any unrecognized
+	// Nothing calls ListPlugins or DeletePlugin yet.
 	return nil, nil
 }
 
@@ -312,7 +315,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	})
 	le.Debug("starting wazero quickjs plugin instance")
 
-	// this restarts if the quickjs vm is reloaded or unloaded
+	// Access restarts the plugin run if the quickjs vm is reloaded or unloaded.
 	return h.quickjsVmRc.Access(ctx, func(ctx context.Context, val *quickjsVm) error {
 		// Scope cancellation to this run. Canceling the Access context would make
 		// Access report context.Canceled and discard the run's own error.
@@ -333,7 +336,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		le.Debug("quickjs plugin runtime ready")
 
 		// construct a filesystem with the plugin dist fs at /dist
-		// this makes /dist read-only which is what we want.
+		// The filesystem makes /dist read-only, as intended.
 		pluginDistIofs := unixfs_iofs.NewFS(ctx, pluginDist)
 		pluginAssetsIoFs := unixfs_iofs.NewFS(ctx, pluginAssets)
 
@@ -369,7 +372,8 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		localRead, remoteWrite := io.Pipe()
 
 		// create read/write/closer for local I/O
-		// we will read from the localRead end of the pipe, and write to the stdinBuf.
+		// localRwc will read from the localRead end of the pipe, and write to
+		// the stdinBuf.
 		localRwc := bifrost_rwc.NewReadWriteCloser(localRead, stdinBuf)
 
 		// initialize the yamux client for talking to the plugin.
@@ -377,7 +381,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		yamuxConf.EnableKeepAlive = false
 		yamuxConf.MaxMessageSize = 32 * 1024 // use a 32kb buffer for stdin
 
-		// NOTE: we could probably also disable rtt measurement.
+		// NOTE: rtt measurement could probably also be disabled.
 		muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, localRwc, true, yamuxConf)
 		if err != nil {
 			return err
@@ -386,10 +390,11 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 		// Mount the device filesystem for async output and secure randomness.
 
-		// NOTE stdin is currently the only fd which implements Poll.
+		// NOTE stdin is the only fd which implements Poll.
 		// all other fds will call and block on read() (blocking I/O only).
 		// https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
-		// we therefore must use stdin for our async i/o input, and a file at /dev/out for output
+		// the plugin host therefore must use stdin for async i/o input, and a
+		// file at /dev/out for output.
 		// force WR_ONLY on that file.
 		//
 		// See prototype under prototypes/js-wazero-quickjs/nonblock/
@@ -417,7 +422,8 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		}()
 
 		// Log stdout at debug and stderr, where the plugin writes errors and
-		// warnings, at warn. The last stderr line names why the plugin failed.
+		// warnings, at warn. The last stderr line records why the plugin
+		// failed.
 		stdout := bldr_exec.NewLogWriter(le, logrus.DebugLevel)
 		defer stdout.Flush()
 		stderrLog := bldr_exec.NewLogWriter(le, logrus.WarnLevel)
@@ -436,7 +442,8 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB64)
 
 		// Create a QuickJS instance using the pre-compiled module.
-		// This uses the reactor model which doesn't block in _start().
+		// The QuickJS instance uses the reactor model, which doesn't block in
+		// _start().
 		le.Debug("creating quickjs instance")
 		qjs, err := quickjs.NewQuickJSWithModule(ctx, r, compiled, moduleConfig)
 		if err != nil {
@@ -467,8 +474,9 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		le.Debug("quickjs plugin initialized")
 
 		// Run the event loop with stdin polling.
-		// Unlike RunLoop which exits on idle, we need to wait for stdin data
-		// when idle since the plugin is waiting for RPC messages.
+		// Unlike RunLoop which exits on idle, runLoopWithStdin needs to wait
+		// for stdin data when idle since the plugin is waiting for RPC
+		// messages.
 		err = runLoopWithStdin(ctx, qjs, stdinBuf)
 		_ = remoteWrite.Close()
 
@@ -491,13 +499,15 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 }
 
 // runLoopWithStdin runs the QuickJS event loop with stdin polling.
-// When the event loop becomes idle or waiting for a timer, it also monitors stdin.
-// This keeps the plugin alive waiting for RPC messages.
+// When the event loop becomes idle or waits for a timer, runLoopWithStdin also
+// monitors stdin. Monitoring stdin keeps the plugin alive waiting for RPC
+// messages.
 //
-// The reactor model's qjs_loop_once() only handles timers and microtasks - it does
-// NOT poll for I/O. We use qjs_poll_io() to invoke os.setReadHandler callbacks when
-// stdin has data available. This is more efficient than the command model because
-// the host knows exactly when I/O is ready, avoiding unnecessary poll() syscalls.
+// The reactor model's qjs_loop_once() only handles timers and microtasks. The
+// function does NOT poll for I/O. runLoopWithStdin uses qjs_poll_io() to invoke
+// os.setReadHandler callbacks when stdin has data available. Polling when stdin
+// has data is more efficient than the command model because the host knows
+// exactly when I/O is ready, avoiding unnecessary poll() syscalls.
 func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazerofs.StdinBuffer) error {
 	for {
 		select {
@@ -518,10 +528,10 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			// More microtasks pending, continue immediately
 			continue
 		case result > 0:
-			// Timer pending - wait for timer, stdin data, or context cancellation
+			// Timer pending: wait for timer, stdin data, or context cancellation
 			ready, waitCh := stdinBuf.CheckReady()
 			if ready {
-				// Data available - poll I/O to invoke read handlers
+				// Data available: poll I/O to invoke read handlers
 				if _, err := qjs.PollIO(ctx, 0); err != nil {
 					return err
 				}
@@ -532,7 +542,7 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-waitCh:
-				// Stdin data available - poll I/O to invoke read handlers
+				// Stdin data available: poll I/O to invoke read handlers
 				if _, err := qjs.PollIO(ctx, 0); err != nil {
 					return err
 				}
@@ -542,10 +552,10 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 				continue
 			}
 		case result == quickjs.LoopIdle:
-			// Idle - wait for stdin data or context cancellation
+			// Idle: wait for stdin data or context cancellation
 			ready, waitCh := stdinBuf.CheckReady()
 			if ready {
-				// Data available - poll I/O to invoke read handlers
+				// Data available: poll I/O to invoke read handlers
 				if _, err := qjs.PollIO(ctx, 0); err != nil {
 					return err
 				}
@@ -555,7 +565,7 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-waitCh:
-				// Stdin data available - poll I/O to invoke read handlers
+				// Stdin data available: poll I/O to invoke read handlers
 				if _, err := qjs.PollIO(ctx, 0); err != nil {
 					return err
 				}

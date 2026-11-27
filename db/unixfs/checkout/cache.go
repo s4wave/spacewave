@@ -10,9 +10,9 @@ import (
 // blockCache keeps the blocks a checkout read from its remotes in a
 // directory beside the checkout, one file per block named by its ref, so a
 // checkout cancelled or failed partway resumes from them. The checkout
-// deletes it once it publishes its files, and Evict deletes one an abandoned
-// checkout left. Two checkouts of one release may share it, since equal refs
-// name equal bytes.
+// deletes the cache directory once the checkout publishes its files, and
+// Evict deletes a cache directory an abandoned checkout left. Two checkouts
+// of one release may share the cache, since equal refs identify equal bytes.
 type blockCache struct {
 	// dir holds the block files.
 	dir string

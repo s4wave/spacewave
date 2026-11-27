@@ -40,8 +40,8 @@ type Process struct {
 	exitSignal uint32
 
 	// selfExecProc is the process that replaced this one through exec. The
-	// caller waits on it. It is set under sigMu, which hands later signals
-	// to it.
+	// caller waits on the replacement. selfExecProc is set under sigMu, and
+	// subsequent signals are forwarded to the replacement.
 	selfExecProc *Process
 	// jmpBufs holds the states setjmp recorded.
 	jmpBufs jmpTable
@@ -104,7 +104,7 @@ type procState struct {
 
 // clone returns a copy of s that shares no maps or slices with it.
 func (s procState) clone() procState {
-	// Copy the maps and slices; the struct copy holds the rest.
+	// Copy the maps and slices. The struct copy holds the rest.
 	s.groups = slices.Clone(s.groups)
 	s.fds = maps.Clone(s.fds)
 	s.cloexec = maps.Clone(s.cloexec)

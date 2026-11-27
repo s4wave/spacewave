@@ -7,8 +7,8 @@ import type { EphemeralEdge } from './types.js'
 interface GraphLinkPillProps {
   edge: EphemeralEdge
   loaded: boolean
-  // onPrimary focuses or loads the linked object; absent, the pill only
-  // names the link.
+  // onPrimary focuses or loads the linked object. When onPrimary is absent,
+  // the pill only labels the link.
   onPrimary?: () => void
   onHide?: () => void
   onDelete?: () => void

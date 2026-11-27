@@ -36,7 +36,7 @@ export interface DownloadEntry {
 }
 
 // assetUrl builds the public release asset URL for a given filename.
-// Kind-agnostic: the same GitHub release ships installers and CLI
+// The URL is kind-agnostic: the same GitHub release ships installers and CLI
 // artifacts side by side.
 export function assetUrl(filename: string): string {
   return `${GITHUB_RELEASES_URL}/download/${filename}`
@@ -49,7 +49,7 @@ export function isReleaseVersion(version: string): boolean {
 }
 
 // releaseAssetUrl builds the asset URL for a validated release tag. The
-// default DOWNLOAD_MANIFEST urls resolve the latest release; the changelog
+// default DOWNLOAD_MANIFEST urls resolve the latest release. The changelog
 // per-release page repoints them at the exact tag through this helper.
 export function releaseAssetUrl(filename: string, version: string): string {
   if (!isReleaseVersion(version)) {
@@ -59,7 +59,7 @@ export function releaseAssetUrl(filename: string, version: string): string {
 }
 
 // resolveInstallerEntries returns the desktop installer entries. A null
-// version keeps the latest-release urls; a concrete version repoints every
+// version keeps the latest-release urls. A concrete version repoints every
 // url at that exact release tag so a changelog page can offer the build that
 // shipped with the notes being read.
 export function resolveInstallerEntries(
@@ -77,8 +77,8 @@ export function resolveInstallerEntries(
 
 // resolvePrimaryEntry returns the manifest entry matching the detected
 // platform, or null when detection missed or the tuple is absent from
-// the manifest. Optionally filtered by kind so installer and CLI
-// sections can each pick their own primary entry from a shared manifest.
+// the manifest. An optional kind filter lets installer and CLI sections each
+// pick their own primary entry from a shared manifest.
 export function resolvePrimaryEntry(
   detected: DetectedPlatform | null,
   manifest: readonly DownloadEntry[],
@@ -100,9 +100,9 @@ export function resolvePrimaryEntry(
 // matrix from the same release tag. URLs point at the latest GitHub
 // release. The Windows installer is the launcher executable, which installs
 // itself on first run. Windows installer entries carry unsigned: true during
-// the Azure Trusted Signing identity-validation period; drop the flag once
+// the Azure Trusted Signing identity-validation period. Drop the flag once
 // signing clears. CLI artifacts are signed where platform signing is
-// available (macOS zip, Windows zip); Linux CLI artifacts ship as tar.gz
+// available (macOS zip, Windows zip). Linux CLI artifacts ship as tar.gz
 // archives.
 export const DOWNLOAD_MANIFEST: readonly DownloadEntry[] = [
   {

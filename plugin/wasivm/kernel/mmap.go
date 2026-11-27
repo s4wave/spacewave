@@ -160,7 +160,7 @@ func (p *Process) unmapAll() {
 }
 
 // forkMappings gives a fork child, whose memory copies p's, the same
-// mappings. The child's are newer, so its writes override p's.
+// mappings. The child's mappings are newer, so its writes override p's.
 func (p *Process) forkMappings(child *Process) {
 	for _, m := range p.mappings {
 		m.of.ref()
@@ -189,7 +189,7 @@ func (p *Process) writeBack(m *mapping) {
 	}
 }
 
-// fileSize returns the size of a file node, refreshing a host file's.
+// fileSize returns the size of a file node, refreshing a host file's size.
 func (k *Kernel) fileSize(node *VNode) int64 {
 	k.vfs.refreshHost(node)
 	return node.size

@@ -8,7 +8,8 @@ import (
 	"github.com/tetratelabs/wazero/api"
 )
 
-// buildSharedModule emits the wasm module that re-exports the imported
+// buildSharedModule emits the wasm module that defines and exports the memory
+// and table the v86 module imports.
 func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]byte, error) {
 	// Require the shared v86 module to have at most one memory and table.
 	if len(imports.Memories) > 1 {
@@ -57,7 +58,8 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 	return wasmModule(sections...), nil
 }
 
-// buildEnvModule emits the goenv module: it imports the shared memory and
+// buildEnvModule emits the env module, which imports the shared memory and
+// table and the goenv functions.
 func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) ([]byte, error) {
 	// Describe the function signatures and imports used by the v86 environment.
 	type typeEntry struct {

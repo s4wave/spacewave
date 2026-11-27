@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-// Bounds of the transactions that clear an uploaded batch's markers, as
-// ClearBatch describes.
+// clearHoldDefault is the default hold among the bounds of the transactions
+// that clear an uploaded batch's markers, as ClearBatch describes.
 //
-// A clear transaction is background work: it takes the store's writer only
-// when no foreground writer waits, and on a busy store it waits a quarter of
-// a second or more for each turn. The turn then clears what the hold admits,
-// so the hold, not the cost of a block, sets the clear's rate: a 20 ms hold
-// cleared about 45 blocks for each 0.28 s wait on a loaded production store,
-// about 175 blocks a second, below the rate the World writes them.
+// A clear transaction is background work: it takes the store's writer only when
+// no foreground writer waits, and on a busy store it waits a quarter of a
+// second or more for each turn. The turn then clears what the hold admits, so
+// the hold, not the cost of a block, sets the clear's rate: measurements on a
+// loaded production store show about 45 blocks cleared by a 20 ms hold for each
+// 0.28 s wait, about 175 blocks a second, below the rate the World writes them.
 const (
 	// clearHoldDefault is the hold of one clear transaction by default.
 	clearHoldDefault = 100 * time.Millisecond
@@ -23,10 +23,10 @@ const (
 	clearHoldMax = 500 * time.Millisecond
 	// clearBlocksDefault bounds the entries one clear transaction removes
 	// by default, and the entries one prefetch warms ahead of the
-	// transactions that remove them. An upload batch to a pack store carries
-	// over a hundred thousand blocks; cleared in one transaction, it held
-	// the store's writer for a minute, and every write of the store, a
-	// player's included, waited behind it.
+	// transactions that remove them. An upload batch to a pack store
+	// carries over a hundred thousand blocks. A measured clear in one
+	// transaction holds the store's writer for a minute, so every write of
+	// the store, a player's included, waits behind the clear.
 	clearBlocksDefault = 4096
 	// clearBlocksMax is the most entries ClearBatch may set.
 	clearBlocksMax = 65536

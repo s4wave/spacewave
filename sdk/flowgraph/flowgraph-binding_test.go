@@ -38,8 +38,8 @@ func registerPortedType(t *testing.T, ctx context.Context, tb *world_testbed.Tes
 
 // servePortedRegistry serves the object type registry on the World's bus and
 // returns a function that registers boundType with an input and an output port.
-// The registration function returns a function that releases the registration,
-// which the test also calls when it ends.
+// The registration function returns a function that releases the registration.
+// The test also calls the release function when the test ends.
 func servePortedRegistry(t *testing.T, ctx context.Context, tb *world_testbed.Testbed) func() (release func()) {
 	t.Helper()
 
@@ -213,8 +213,9 @@ func TestFlowgraphBindsObject(t *testing.T) {
 		t.Fatalf("bindings = %v, want only the three bound nodes", bindings)
 	}
 
-	// Watch the graph: the initial snapshot is bound; deleting the object makes
-	// the node unavailable and recreating it makes the node bound again.
+	// Watch the graph: the initial snapshot is bound. Deleting the object
+	// makes the node unavailable and recreating it makes the node bound
+	// again.
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
 	stream, err := service.WatchFlowgraph(watchCtx, &flowgraph.WatchFlowgraphRequest{})
@@ -238,7 +239,8 @@ func TestFlowgraphBindsObject(t *testing.T) {
 	}
 	requireBinding(t, watch.next("one"), "thing/one", boundType, flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND)
 
-	// A retyped object reads as unregistered, and its original type restores it.
+	// A retyped object reads as unregistered, and its original type
+	// restores the binding.
 	retype(t, ctx, tb.Engine, "thing/one", "test/other")
 	requireBinding(t, watch.next("one"), "thing/one", "test/other", flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_UNREGISTERED)
 	retype(t, ctx, tb.Engine, "thing/one", boundType)
@@ -328,8 +330,8 @@ func TestFlowgraphConnectsBoundPorts(t *testing.T) {
 		return err
 	}
 
-	// A bound node's connections name the ports its type declares, though the
-	// node authors none.
+	// A bound node's connections reference the ports its type declares,
+	// though the node authors none.
 	if err := connect("into", "src", "out", "one", "in"); err != nil {
 		t.Fatalf("connect to a declared input: %v", err)
 	}
@@ -391,7 +393,8 @@ func TestFlowgraphWatchFollowsRegistry(t *testing.T) {
 	watch := &bindingWatch{t: t, stream: stream}
 	requireBinding(t, watch.next("one"), "thing/one", boundType, flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_UNREGISTERED)
 
-	// Registering the type binds the node, and no World change caused it.
+	// Registering the type binds the node, and no World change caused the
+	// binding.
 	release := register()
 	bound := watch.next("one")
 	requireBinding(t, bound, "thing/one", boundType, flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND)

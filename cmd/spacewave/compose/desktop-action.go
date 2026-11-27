@@ -21,7 +21,7 @@ import (
 
 // openDesktop attaches a no-argument native launch to the shared daemon. The
 // connector resolves the state root and starts a verified daemon copy outside
-// the app bundle when needed; this process owns only its Resource connection.
+// the app bundle when needed. This process owns only its Resource connection.
 // A downloaded Windows launcher installs itself first. A failed open stays
 // visible in the helper window until a retry succeeds or the person closes
 // the window.
@@ -47,7 +47,7 @@ func openDesktop(ctx context.Context, le *logrus.Entry) error {
 		return daemon.StartCopiedProcess(ctx, statePath, executable)
 	})
 
-	// Open the desktop, closing the install window once it opens.
+	// Open the desktop, closing the install window once the desktop opens.
 	open := func() error {
 		return openDesktopWithConnector(ctx, connector)
 	}

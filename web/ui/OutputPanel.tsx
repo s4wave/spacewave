@@ -14,7 +14,7 @@ export interface OutputPanelProps {
   // lines is the array of output lines to display.
   lines: string[]
   // rules is an optional array of line coloring rules.
-  // Rules are evaluated in order; first match wins.
+  // Rules are evaluated in order. The first match wins.
   rules?: OutputLineRule[]
   // placeholder is shown when lines is empty and there's no error.
   placeholder?: ReactNode

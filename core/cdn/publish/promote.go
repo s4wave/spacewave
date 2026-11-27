@@ -33,7 +33,7 @@ func Promote(ctx context.Context, opts Options) error {
 		return errors.Wrap(err, "fetch destination pack manifest")
 	}
 
-	// Plan against the destination head; a matching destination needs nothing.
+	// Plan against the destination head. A matching destination needs nothing.
 	dstHeadRef, err := FetchDestinationHeadRef(ctx, opts.CdnBaseURL, opts.DstSpaceID)
 	if err != nil {
 		return errors.Wrap(err, "fetch destination head ref")

@@ -76,8 +76,8 @@ export function useUnixFSBrowserResources({
   )
 
   // The Date and Size columns read each entry's size and mod time from the
-  // listing, in one pass per listing value with no per-row stat round trip;
-  // an entry the listing sent without them shows a dash.
+  // listing, in one pass per listing value with no per-row stat round trip.
+  // An entry the listing sent without size or mod time shows a dash.
   const entryDetails = useMemo<FileEntryDetailsMap>(() => {
     const details = new Map<string, FileEntryDetails>()
     for (const entry of listingResource.value?.entries ?? []) {

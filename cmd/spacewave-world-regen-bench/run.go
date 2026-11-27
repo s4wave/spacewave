@@ -50,7 +50,8 @@ type runArgs struct {
 	Release bool
 	// Hold is how long the writer keeps committing after the last step.
 	Hold time.Duration
-	// Pprof is the address serving the Go profiles; empty serves none.
+	// Pprof is the address serving the Go profiles. An empty address
+	// serves none.
 	Pprof string
 }
 
@@ -225,8 +226,8 @@ func sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// logf prints a timestamped progress line on stderr.
-// memoryLogInterval is how often a run logs its memory.
+// memoryLogInterval is how often a run logs its memory. logf prints a
+// timestamped progress line on stderr.
 const memoryLogInterval = 5 * time.Second
 
 // logMemory logs, every interval until ctx ends, the decoded-block pool's

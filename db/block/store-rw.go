@@ -26,8 +26,8 @@ func NewStoreRW(readHandle, writeHandle StoreOps) *StoreRW {
 }
 
 // GetHashType returns the preferred hash type for the store.
-// This should return as fast as possible (called frequently).
-// If 0 is returned, uses a default defined by Hydra.
+// GetHashType should return as fast as possible (called frequently).
+// If 0 is returned, the caller uses a default hash type defined by Hydra.
 func (b *StoreRW) GetHashType() hash.HashType {
 	if b.StoreOps != nil {
 		return b.StoreOps.GetHashType()

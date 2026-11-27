@@ -19,7 +19,7 @@ import { BlockRef } from '../../block/block.pb.js'
 export enum FSType {
   /**
    * FSType_UNKNOWN is the zero type.
-   * Defaults depending on the context.
+   * The default type depends on the context.
    */
   FSType_UNKNOWN = 0,
 
@@ -61,13 +61,13 @@ export interface UnixfsRef {
   objectKey?: string
   /**
    * FsType sets the expected filesystem object type at object_key.
-   * If unset (0) reads the type from the graph.
-   * Defaults to FS_NODE if nothing else set.
+   * If unset (0), FsType is read from the graph.
+   * FsType defaults to FS_NODE if no other type is set.
    */
   fsType?: FSType
   /**
    * Path is the location within the FS.
-   * If empty, defaults to / (the root).
+   * If empty, Path defaults to / (the root).
    */
   path?: FSPath
 }
@@ -80,8 +80,9 @@ export const UnixfsRef: MessageType<UnixfsRef> =
   ])
 
 /**
- * FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
- * Can be applied as either an object op or a world op.
+ * FsInitOp is an operation to create a unixfs filesystem with a root ref
+ * or as an empty filesystem.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsInitOp
  */
@@ -96,8 +97,8 @@ export interface FsInitOp {
   fsType?: FSType
   /**
    * FsRef contains a initial object ref to use the root of the UnixFS.
-   * Must match fs_type if set.
-   * If empty, will create a new blank fs.
+   * FsRef must match fs_type if set.
+   * If FsRef is empty, the operation creates a new blank fs.
    */
   fsRef?: ObjectRef
   /**
@@ -121,19 +122,19 @@ export const FsInitOp: MessageType<FsInitOp> =
 
 /**
  * FsMknodOp is an operation to create one or more inodes at paths.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsMknodOp
  */
 export interface FsMknodOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -142,7 +143,7 @@ export interface FsMknodOp {
   paths?: FSPath[]
   /**
    * Permissions is the permissions bitset.
-   * If zero uses defaults.
+   * If Permissions is zero, the default permissions apply.
    */
   permissions?: number
   /**
@@ -167,19 +168,19 @@ export const FsMknodOp: MessageType<FsMknodOp> =
 
 /**
  * FsSymlinkOp is an operation to create a symbolic link.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsSymlinkOp
  */
 export interface FsSymlinkOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -211,19 +212,19 @@ export const FsSymlinkOp: MessageType<FsSymlinkOp> =
 /**
  * FsSetPermissionsOp is an operation to set the permissions at the paths.
  * The file mode portion of the permissions bitset will be ignored.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsSetPermissionsOp
  */
 export interface FsSetPermissionsOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -253,20 +254,21 @@ export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
   )
 
 /**
- * FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
- * Can be applied as either an object op or a world op.
+ * FsSetModTimestampOp is an operation to set the modification timestamp at
+ * the paths.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsSetModTimestampOp
  */
 export interface FsSetModTimestampOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -292,19 +294,19 @@ export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
 
 /**
  * FsWriteAtOp is an operation to write some data to a file.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsWriteAtOp
  */
 export interface FsWriteAtOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -341,19 +343,19 @@ export const FsWriteAtOp: MessageType<FsWriteAtOp> =
 /**
  * FsTruncateOp shrinks or extends a file to the specified size.
  * The extended part will be a sparse range (hole) reading as zeros.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsTruncateOp
  */
 export interface FsTruncateOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -383,21 +385,22 @@ export const FsTruncateOp: MessageType<FsTruncateOp> =
   )
 
 /**
- * FsCopyOp recursively copies a source path to a destination, overwriting destination.
- * Note: this does not allow cross-FS copy.
- * Can be applied as either an object op or a world op.
+ * FsCopyOp recursively copies a source path to a destination, overwriting
+ * the destination.
+ * Note: the operation does not allow cross-FS copy.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsCopyOp
  */
 export interface FsCopyOp {
   /**
    * ObjectKey is the object key to copy from.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -424,22 +427,23 @@ export const FsCopyOp: MessageType<FsCopyOp> =
   ])
 
 /**
- * FsRenameOp recursively moves a source path to a destination, overwriting destination.
- * This applies a FsCopyOp followed by a Remove in the same operation.
- * Note: this does not allow cross-FS rename.
- * Can be applied as either an object op or a world op.
+ * FsRenameOp recursively moves a source path to a destination, overwriting
+ * the destination.
+ * This operation applies a FsCopyOp followed by a Remove in the same operation.
+ * Note: the operation does not allow cross-FS rename.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsRenameOp
  */
 export interface FsRenameOp {
   /**
    * ObjectKey is the object key to copy from.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -472,19 +476,19 @@ export const FsRenameOp: MessageType<FsRenameOp> =
  * FsMknodWithContentOp creates a file and writes content atomically.
  * The blob must be pre-built in an isolated object before applying this op.
  * The op creates the file entry and writes the blob content in a single commit.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsMknodWithContentOp
  */
 export interface FsMknodWithContentOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -493,7 +497,7 @@ export interface FsMknodWithContentOp {
   path?: FSPath
   /**
    * Permissions is the permissions bitset.
-   * If zero uses defaults.
+   * If Permissions is zero, the default permissions apply.
    */
   permissions?: number
   /**
@@ -526,19 +530,19 @@ export const FsMknodWithContentOp: MessageType<FsMknodWithContentOp> =
 
 /**
  * FsRemoveOp is an operation to delete inodes from the tree.
- * Can be applied as either an object op or a world op.
+ * The operation can be applied as either an object op or a world op.
  *
  * @generated from message unixfs.world.FsRemoveOp
  */
 export interface FsRemoveOp {
   /**
    * ObjectKey is the object key to start at.
-   * Ignored if applied as an object op.
+   * ObjectKey is ignored when the operation is applied as an object op.
    */
   objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
-   * Defaults to FsType_FS_NODE.
+   * FsType defaults to FsType_FS_NODE.
    */
   fsType?: FSType
   /**
@@ -571,12 +575,12 @@ export const FsRemoveOp: MessageType<FsRemoveOp> =
 export interface MountValue {
   /**
    * Mountpoint is the path inside the inode to mount at.
-   * If empty assumes /
+   * An empty Mountpoint means /.
    */
   mountpoint?: string
   /**
    * Prefix is the path inside the target inode to link to.
-   * If empty assumes /
+   * An empty Prefix means /.
    */
   prefix?: string
 }
@@ -599,13 +603,13 @@ export const MountValue: MessageType<MountValue> =
 export interface RefValue {
   /**
    * FsType sets the expected filesystem object type at the target.
-   * If unset (0) reads the type from the graph.
-   * Defaults to FS_NODE if nothing else set.
+   * If unset (0), FsType is read from the graph.
+   * FsType defaults to FS_NODE if no other type is set.
    */
   fsType?: FSType
   /**
    * Path is the location within the FS.
-   * If empty, defaults to / (the root).
+   * If empty, Path defaults to / (the root).
    */
   path?: FSPath
 }

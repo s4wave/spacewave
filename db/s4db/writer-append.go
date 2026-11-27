@@ -3,7 +3,7 @@ package s4db
 import "context"
 
 // appendRecord appends r after the published state and publishes the state
-// derived from it, returning that state. The caller holds the writer lock;
+// derived from it, returning that state. The caller holds the writer lock.
 // r's kind and body are set, and placement fills its header. A link precedes
 // it when the record does not fit the chunk.
 func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
@@ -35,7 +35,8 @@ func (w *writer) mark(ctx context.Context) error {
 // locked runs one scheduler slice through the same coordinator as transactions.
 // Its hold contributes to the longest foreground wait when demand exists.
 func (w *writer) locked(ctx context.Context, fn func() error) error {
-	// Take one background grant; per-caller aging cannot multiply this turn.
+	// Take one background grant. Per-caller aging cannot multiply this
+	// turn.
 	if err := w.take(ctx, true); err != nil {
 		return err
 	}
@@ -46,7 +47,7 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 }
 
 // reserve allocates n consecutive free chunks for a job of this handle and
-// appends the reserve record naming them, returning them.
+// appends the reserve record listing them, returning them.
 func (w *writer) reserve(ctx context.Context, n uint64) ([]uint64, error) {
 	chunks := make([]uint64, n)
 	err := w.locked(ctx, func() error {

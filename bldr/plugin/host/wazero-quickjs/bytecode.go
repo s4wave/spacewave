@@ -85,7 +85,7 @@ func (c *bytecodeCache) deletePlugin(pluginID string) error {
 	return c.cache.DeleteOwner(pluginID)
 }
 
-// isModulePath reports whether a dist path names an ES module.
+// isModulePath reports whether a dist path references an ES module.
 func isModulePath(p string) bool {
 	return strings.HasSuffix(p, ".mjs") || strings.HasSuffix(p, ".js")
 }

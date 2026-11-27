@@ -139,7 +139,8 @@ func TestNestedAppRuntime(t *testing.T) {
 	left, leftRoot, leftHTTP := mount()
 	_, rightRoot, rightHTTP := mount()
 
-	// Plugins register with the host root; nested apps serve the same entries.
+	// Plugins register with the host root. Nested apps serve the same
+	// entries.
 	if _, err := s4wave_quickstart_registry.NewSRPCQuickstartRegistryResourceServiceClient(outer.SRPCClient()).RegisterQuickstart(ctx,
 		&s4wave_quickstart_registry.RegisterQuickstartRequest{Registration: &s4wave_quickstart_registry.QuickstartRegistration{
 			QuickstartId: "notebook", PluginId: "spacewave-notes", Name: "Notebook", Description: "Notes", Category: "notes",
@@ -264,7 +265,8 @@ func TestNestedAppRuntime(t *testing.T) {
 		}
 	}
 
-	// Two attachments share one installation; closing both preserves its World.
+	// Two attachments share one installation. Closing both preserves its
+	// World.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)

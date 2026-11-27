@@ -51,7 +51,8 @@ func TestIssueRecordedResponse(t *testing.T) {
 		t.Fatalf("request %q %q %q", path, auth, body)
 	}
 
-	// The relays and their expiry come back; the client keeps the six relay URLs.
+	// The relays and their expiry come back. The client keeps the six relay
+	// URLs.
 	if !creds.GetExpiresAt().AsTime().Equal(now.Add(6 * time.Hour)) {
 		t.Fatalf("expires %v", creds.GetExpiresAt().AsTime())
 	}
@@ -82,7 +83,7 @@ func TestIssueUnavailable(t *testing.T) {
 		t.Fatal("an unconfigured issuer called Cloudflare")
 	}
 
-	// A failed request names nothing from the reply.
+	// A failed request reveals nothing from the reply.
 	iss := &relay_cloudflare.Issuer{KeyID: "k", APIToken: "t", Client: srv.Client(), Endpoint: srv.URL + "/"}
 	_, err := iss.Issue(t.Context(), session)
 	if !errors.Is(err, webrtc_relay.ErrUnavailable) || strings.Contains(err.Error(), "upstream-secret") || calls != 1 {

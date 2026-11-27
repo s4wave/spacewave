@@ -87,9 +87,9 @@ func (t *Tx) Salvage(
 
 // salvage is one Salvage walk.
 type salvage struct {
-	// low and high bound the keys to collect; empty is unbounded.
+	// low and high bound the keys to collect. Empty is unbounded.
 	low, high []byte
-	// entry and hole receive the walk's results; nil ignores them.
+	// entry and hole receive the walk's results, but nil ignores them.
 	entry func(BuildEntry) bool
 	hole  func(SalvageHole) bool
 }

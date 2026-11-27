@@ -12,9 +12,9 @@ import {
 
 installLocalFetchPatch()
 
-// V86_DIR names a v86 checkout with build/v86-debug.wasm, bios/ and
-// src/main.js. V86FS_DIR names a guest directory with bzImage, fs.json and
-// flat/. The boot tests skip unless both are set.
+// V86_DIR holds the path to a v86 checkout with build/v86-debug.wasm, bios/
+// and src/main.js. V86FS_DIR holds the path to a guest directory with bzImage,
+// fs.json and flat/. The boot tests skip unless both are set.
 const V86_DIR = process.env.V86_DIR ? path.resolve(process.env.V86_DIR) : ''
 const V86FS_DIR = process.env.V86FS_DIR
   ? path.resolve(process.env.V86FS_DIR)
@@ -36,7 +36,7 @@ const v86Module = HAS_ASSETS
   : null
 const V86 = v86Module?.V86
 
-// Log serial output to stderr.
+// addSerialLogger logs serial output to stderr.
 function addSerialLogger(emulator: V86Emulator): void {
   let lineBuf = ''
   emulator.add_listener('serial0-output-byte', (byte: number) => {
@@ -50,7 +50,7 @@ function addSerialLogger(emulator: V86Emulator): void {
   })
 }
 
-// Create emulator with 9p rootfs only.
+// createEmulator9p creates an emulator with 9p rootfs only.
 async function createEmulator9p(): Promise<V86Emulator> {
   if (!V86) {
     throw new Error('missing V86 assets')
@@ -78,7 +78,7 @@ const S_IFREG = 0o100000
 const DT_DIR = 4
 const DT_REG = 8
 
-// Create a simple in-memory V86FSAdapter for testing.
+// createMapAdapter creates a simple in-memory V86FSAdapter for testing.
 function createMapAdapter(): {
   adapter: unknown
   inodeMap: Map<
@@ -377,7 +377,7 @@ function createMapAdapter(): {
   }
 }
 
-// Create emulator with 9p rootfs + v86fs device.
+// createEmulatorV86fs creates an emulator with 9p rootfs + v86fs device.
 async function createEmulatorV86fs(
   v86fsAdapter: unknown,
 ): Promise<V86Emulator> {

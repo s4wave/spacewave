@@ -43,7 +43,7 @@ type v86VMCLIEntry struct {
 	edges     map[string]string
 }
 
-// v86VMEdgePreds names the graph edges of a v86 VM.
+// v86VMEdgePreds records the graph edges of a v86 VM.
 var v86VMEdgePreds = map[string]quad.IRI{
 	"image":          s4wave_vm.PredV86Image,
 	"kernelOverride": s4wave_vm.PredV86KernelOverride,
@@ -143,7 +143,7 @@ type wasiVmCLIEntry struct {
 	rootfs    string
 }
 
-// wasiVmEdgePreds names the graph edges of a WasiVM.
+// wasiVmEdgePreds records the graph edges of a WasiVM.
 var wasiVmEdgePreds = map[string]quad.IRI{
 	"rootfs": s4wave_vm.PredWasiVmRootfs,
 }

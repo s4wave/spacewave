@@ -13,12 +13,13 @@ import (
 )
 
 // stepPlacement returns the Forge placement of a Step's next activation. A
-// Step with a Device placement edge runs on that Device's Forge Worker; any
+// Step with a Device placement edge runs on that Device's Forge Worker. Any
 // other Step runs where the run's Job is placed, which may be anywhere. When
 // the Device cannot take work, the returned reason pauses the run at the Step,
 // so a resume retries once the Device is ready.
 func (r *runner) stepPlacement(ctx context.Context, nodeID string) (*forge_worker.Placement, string, error) {
-	// Follow the Step's Device edge; a Step without one inherits the Job's.
+	// Follow the Step's Device edge. A Step without one inherits the Job's
+	// placement.
 	edge := r.run.GetPlacements()[nodeID].First()
 	if edge.GetKind() != s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE {
 		job, err := forge_job.LookupJobBody(ctx, r.ws, r.run.GetJobKey())

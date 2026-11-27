@@ -19,7 +19,7 @@ func TestCloneExample(t *testing.T) {
 
 	repoPath := "https://github.com/pkg/errors"
 
-	// use in-memory
+	// Use in-memory storage and an in-memory worktree.
 	if err := RunCloneExample(
 		ctx,
 		le,

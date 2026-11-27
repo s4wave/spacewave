@@ -44,7 +44,7 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
   )
 
   // Finish moves the Space index to the introduced object and deletes the
-  // wizard in one list; it creates nothing. The overlay has no notice of its
+  // wizard in one list and creates nothing. The overlay has no notice of its
   // own, so a failure shows as a toast and the overlay offers Finish again.
   const finish = useWizardFinish(ws)
   const handleFinish = useCallback(async () => {

@@ -45,7 +45,7 @@ export interface Config {
   backoff?: Backoff
   /**
    * DisableListen disables listening for incoming sessions.
-   * If set, we will only call out, not accept incoming sessions.
+   * If set, the client will only call out, not accept incoming sessions.
    * If false, client will emit HandleSignalPeer directives for incoming sessions.
    */
   disableListen?: boolean

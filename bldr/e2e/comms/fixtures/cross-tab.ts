@@ -1,4 +1,4 @@
-// cross-tab.ts - Cross-tab MessagePort brokering test fixture.
+// cross-tab.ts: Cross-tab MessagePort brokering test fixture.
 //
 // Registers the cross-tab ServiceWorker, sends "hello", receives brokered
 // MessagePorts from peer tabs, and exchanges messages directly.
@@ -77,7 +77,8 @@ async function run() {
 
   // Register the cross-tab ServiceWorker.
   // Vite bundles the SW as a classic script (no import/export statements),
-  // so no type: 'module' needed. This ensures Firefox/WebKit compatibility.
+  // so no type: 'module' is needed. The classic script ensures Firefox/WebKit
+  // compatibility.
   const reg = await navigator.serviceWorker.register('/cross-tab-sw.js')
 
   // Wait for the SW to become active.
@@ -107,7 +108,7 @@ async function run() {
   // Ensure this page is controlled by the SW.
   if (!navigator.serviceWorker.controller) {
     await navigator.serviceWorker.ready
-    // Claim may still be pending, wait briefly for controller.
+    // The claim may still be pending, so wait briefly for the controller.
     await new Promise<void>((resolve) => {
       if (navigator.serviceWorker.controller) {
         resolve()

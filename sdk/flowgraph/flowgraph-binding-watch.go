@@ -43,8 +43,9 @@ func NewBindingWatch(b bus.Bus, engine world.Engine, engineID, objectKey string)
 // context's error when ctx ends first, and a later call resumes the wait.
 func (w *BindingWatch) Next(ctx context.Context) (*FlowgraphBinding, error) {
 	for {
-		// Read the binding from one World state and record what it read, so a
-		// change after the read to the object or its type ends the wait below.
+		// Read the binding from one World state and record the objects
+		// and edges read, so a change after the read to the object or
+		// its type ends the wait below.
 		binding, reads, seqno, err := w.read(ctx)
 		if err != nil {
 			return nil, err
@@ -56,8 +57,9 @@ func (w *BindingWatch) Next(ctx context.Context) (*FlowgraphBinding, error) {
 			return binding.CloneVT(), nil
 		}
 
-		// Watch the registry for the object's type, and read again after a new
-		// watch since it saw no change before it began.
+		// Watch the registry for the object's type, and read again
+		// after a new watch since the watch saw no change before the
+		// watch began.
 		snapshot := &FlowgraphSnapshot{Bindings: map[string]*FlowgraphBinding{w.objectKey: binding}}
 		added, err := w.watches.sync(ctx, snapshot)
 		if err != nil {

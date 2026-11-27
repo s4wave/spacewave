@@ -36,7 +36,7 @@ func (s *slowObjects) GetObjectRange(ctx context.Context, bucket, key string, of
 	return s.ObjectStore.GetObjectRange(ctx, bucket, key, off, length)
 }
 
-// harnessEnv returns the integer environment variable name, or def.
+// harnessEnv returns the integer value of environment variable name, or def.
 func harnessEnv(name string, def int) int {
 	if n, err := strconv.Atoi(os.Getenv(name)); err == nil {
 		return n
@@ -45,7 +45,7 @@ func harnessEnv(name string, def int) int {
 }
 
 // TestWarmResidentHarness measures a restart's warm-up at the size its
-// environment names: a bucket of SPACEWAVE_WARM_BLOCKS blocks of 1 to 16 KiB
+// environment selects: a bucket of SPACEWAVE_WARM_BLOCKS blocks of 1 to 16 KiB
 // in packs of 2,000, a resident list of a random SPACEWAVE_WARM_LISTED_PCT
 // percent of them, and SPACEWAVE_WARM_LATENCY_MS of latency and
 // SPACEWAVE_WARM_MBPS megabytes a second per range read, priced as Backblaze
@@ -111,7 +111,7 @@ func TestWarmResidentHarness(t *testing.T) {
 	writer.Close()
 	t.Logf("bucket: %d blocks, %d MiB", total, stored>>20)
 
-	// List a random share of the blocks; the rest are the foreground's.
+	// List a random share of the blocks. The rest are the foreground's.
 	rng.Shuffle(len(refs), func(i, j int) { refs[i], refs[j] = refs[j], refs[i] })
 	listedRefs, foreground := refs[:total*pct/100], refs[total*pct/100:]
 	var listedBytes uint64

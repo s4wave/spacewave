@@ -49,13 +49,15 @@ type FSWriter interface {
 	// The file must already exist.
 	Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error
 
-	// Copy recursively copies a source path to a destination, overwriting destination.
+	// Copy recursively copies a source path to a destination, overwriting
+	// destination.
 	// Performs the move in a single operation.
 	// Paths must be relative.
 	Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error
 
-	// Rename recursively moves a source path to a destination, overwriting destination.
-	// Performs the move in a single operation.
+	// Rename recursively moves a source path to a destination, overwriting
+	// destination.
+	// Moves the source in a single operation.
 	// Paths must be relative.
 	Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error
 

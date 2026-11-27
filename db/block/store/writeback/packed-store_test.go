@@ -11,11 +11,11 @@ import (
 
 // TestPackedStore writes a rooted tree and loose blocks through a Store that
 // diverts new values to a packahead Log: the Log holds the values and the
-// Volume their child lists and roots without the bytes or any marker; reads
-// come back with their refs through every step of the read chain; a block the
-// Volume held before and a cache fill stay in the Volume; with the switch off
-// writes go to the Volume and mark again while the packed blocks still read;
-// and after a restart every block still reads.
+// Volume holds their child lists and roots without the bytes or any marker.
+// Reads come back with their refs through every step of the read chain.
+// A block the Volume held before and a cache fill stay in the Volume.
+// With the switch off, writes go to the Volume and mark again while the packed
+// blocks still read. After a restart every block still reads.
 func TestPackedStore(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
@@ -51,8 +51,8 @@ func TestPackedStore(t *testing.T) {
 	}
 	packed := []*block.BlockRef{leafRef, parentRef, loose}
 
-	// The Log holds the values; the Volume holds no bytes and no marker, and
-	// its root names the tree.
+	// The Log holds the values. The Volume holds no bytes and no marker, and
+	// its root references the tree.
 	for _, ref := range packed {
 		if !log.Has(packfile.BlockKey(ref.GetHash())) {
 			t.Fatalf("block %s not in the Log", ref.MarshalString())

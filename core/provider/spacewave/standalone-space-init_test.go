@@ -262,7 +262,7 @@ func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 		t.Fatalf("entity id = %q", got.GetEntityId())
 	}
 
-	// The posted checkpoint is the genesis.
+	// The posted checkpoint is the genesis checkpoint.
 	inner, err := postedCheckpoint.UnmarshalInner()
 	if err != nil || inner.GetHeight() != 0 {
 		t.Fatalf("posted checkpoint is not genesis: %v", err)
@@ -287,7 +287,7 @@ func TestSessionClientInitEmptyStandaloneSpaceRejectsGrantlessCheckpoint(t *test
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainData := mustMarshalVT(t, &sobject.SOConfigChainResponse{KeyEpochs: state.KeyEpochs})
 
-	// Serve only reads; any write would replace the initialized Space.
+	// Serve only reads. Any write would replace the initialized Space.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/sobject/" + soID + "/state":

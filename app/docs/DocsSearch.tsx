@@ -51,7 +51,7 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
 
   const handleSearchFocus = useCallback(() => setFocused(true), [])
   const handleSearchBlur = useCallback(() => {
-    // Delay to allow click on result.
+    // Delay to allow a click on a result.
     setTimeout(() => setFocused(false), 150)
   }, [])
 

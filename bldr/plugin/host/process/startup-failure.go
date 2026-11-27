@@ -23,7 +23,8 @@ func startupFailure(pluginID, manifestRoot, executable string, lines []string, e
 			continue
 		}
 
-		// Compute identities only on this terminal path; normal startup does no extra I/O.
+		// Compute identities only on this terminal path.
+		// Normal startup does no extra I/O.
 		hostPath, err := os.Executable()
 		hostBuild := "unavailable"
 		if err == nil {

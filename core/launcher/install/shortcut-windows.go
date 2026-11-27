@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// procCoCreateInstance creates COM objects; x/sys/windows does not wrap it.
+// procCoCreateInstance creates COM objects. x/sys/windows does not wrap it.
 var procCoCreateInstance = windows.NewLazySystemDLL("ole32.dll").NewProc("CoCreateInstance")
 
 // COM class and interface IDs for writing a shell link.

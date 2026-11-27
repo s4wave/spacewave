@@ -44,13 +44,14 @@ type LookupBlockFromNetworkValue interface {
 	// GetRefsKnown returns false when the source held the bytes without
 	// their refs.
 	GetRefsKnown() bool
-	// GetSubtree returns the blocks under the ref a LookupSubtreeFromNetwork
-	// was answered with, each verified against a ref a verified block named,
-	// with its refs known. It is empty for any other lookup.
+	// GetSubtree returns the blocks under the ref a
+	// LookupSubtreeFromNetwork was answered with, each verified against a
+	// ref a verified block referenced, with its refs known. It is empty for
+	// any other lookup.
 	GetSubtree() []*block.PutBatchEntry
 }
 
-// lookupBlockFromNetworkValue implements LookupBlockFromNetworkValue
+// lookupBlockFromNetworkValue implements LookupBlockFromNetworkValue.
 type lookupBlockFromNetworkValue struct {
 	err       error
 	data      []byte
@@ -113,7 +114,7 @@ func NewLookupBlockFromNetwork(bucketID string, ref *block.BlockRef) LookupBlock
 	}
 }
 
-// Validate checks that the directive names a ref.
+// Validate checks that the directive contains a ref.
 func (d *LookupBlockFromNetworkRequest) Validate() error {
 	if d.LookupBlockFromNetworkRef().GetEmpty() {
 		return errors.New("ref cannot be empty")

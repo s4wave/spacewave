@@ -8,16 +8,19 @@ import (
 
 // ReadBatch reads the blocks of refs from the durable store with few
 // requests, calls fn with each block it read and verified, and may skip any
-// ref. Calls of fn never overlap. The pack store's ReadBatch is one.
+// ref. Calls of fn never overlap. The pack store's ReadBatch is one such
+// function.
 type ReadBatch func(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error
 
-// WarmCounts are the refs one WarmResident listed, found missing and fetched.
+// WarmCounts contains counts of the refs one WarmResident listed, found
+// missing and fetched.
 type WarmCounts struct {
-	// Listed is the distinct refs the list named, as MissingResident counts.
+	// Listed is the number of distinct refs the list recorded, as
+	// MissingResident counts.
 	Listed int
-	// Missing is the listed refs the cache lacked.
+	// Missing is the number of listed refs the cache lacked.
 	Missing int
-	// Fetched is the missing refs read and queued into the cache.
+	// Fetched is the number of missing refs read and queued into the cache.
 	Fetched int
 }
 

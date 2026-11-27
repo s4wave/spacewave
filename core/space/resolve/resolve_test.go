@@ -40,7 +40,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 
-	// Start session controller.
+	// Start the session controller.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&session_controller.Config{
 		VolumeId: tb.EngineVolumeID,
 	}), nil)
@@ -49,7 +49,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	}
 	defer sessCtrlRef.Release()
 
-	// Start local provider controller.
+	// Start the local provider controller.
 	providerID := "local"
 	_, provCtrlRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: providerID,

@@ -750,8 +750,8 @@ const signingInSteps = [
   'Opening your session',
 ]
 
-// PasswordSubmit renders the password submit button and, while it runs, the
-// progress card.
+// PasswordSubmit renders the password submit button and, while the password
+// submit runs, the progress card.
 function PasswordSubmit({
   busy,
   disabled,

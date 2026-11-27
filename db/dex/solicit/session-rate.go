@@ -13,7 +13,7 @@ const probeEvery = 16
 
 // probeRun is how many consecutive picks a probe takes. A run keeps as many
 // requests outstanding on the probed session as the fastest one carries, so
-// both are measured at the same depth; single wants would measure the probed
+// both are measured at the same depth. Single wants would measure the probed
 // session's round trip instead of its rate.
 const probeRun = 16
 

@@ -16,7 +16,8 @@ type Options struct {
 	InterpretationID string
 	// Witness validates native history and returns accepted/before/cover/refused World roots.
 	Witness func(context.Context, *WitnessInput, func([]byte) ([]byte, error)) (*WitnessEvidence, error)
-	// BeforeStep injects a fault before a durable scratch step; nil runs normally.
+	// BeforeStep injects a fault before a durable scratch step.
+	// A nil BeforeStep runs normally.
 	BeforeStep func(Phase) error
 	// Committed observes each durable batch commit, for interruption run-throughs.
 	Committed func(*Result) error

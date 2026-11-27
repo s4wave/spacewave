@@ -21,7 +21,7 @@ export const timeRanges: readonly TimeRange[] = [
   { id: '7d', ms: 7 * 24 * 60 * 60_000 },
 ]
 
-// defaultTimeRange is the range of a Dashboard path that names none.
+// defaultTimeRange is the range of a Dashboard path that specifies no range.
 export const defaultTimeRange = timeRanges[1]
 
 // clockPeriodMs is how often the viewers advance the wall clock that moves a

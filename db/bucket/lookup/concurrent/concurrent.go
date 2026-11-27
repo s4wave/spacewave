@@ -30,14 +30,14 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // LookupController implements the concurrent lookup controller.
 type LookupController struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 
-	// bucketHandleSetCtr contains the bucket handle set
+	// bucketHandleSetCtr contains the bucket handle set.
 	bucketHandleSetCtr *ccontainer.CContainer[*[]bucket.BucketHandle]
 	// fallbackBlockStoreRc is a refcount for the fallback block store.
 	fallbackBlockStoreRc *refcount.RefCount[block_store.Store]
@@ -172,7 +172,7 @@ func (c *LookupController) lookupBlock(
 		return res, nil
 	}
 
-	// perform concurrent lookup
+	// Look up the block concurrently.
 	var bcast broadcast.Broadcast
 	var rres *block.StoredBlock
 	var rerr error
@@ -610,7 +610,7 @@ func (c *LookupController) PutBlock(
 	}
 }
 
-// putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL
+// putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL.
 func (c *LookupController) putBlockAllVolumes(
 	rctx context.Context,
 	data []byte,
@@ -721,8 +721,8 @@ func (c *LookupController) writesBack() bool {
 const subtreeLookupBytes = 4 << 20
 
 // lookupWithDirective uses the dex directive to lookup a block. A subtree
-// read that writes back also asks for the blocks under it that the bucket
-// handles lack, and returns those the network sent.
+// read that writes back also asks for the blocks under the requested block
+// that the bucket handles lack, and returns those the network sent.
 func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) (*block.StoredBlock, []*block.PutBatchEntry, error) {
 	// Build a network lookup directive for the configured bucket.
 	bucketID := c.conf.GetBucketConf().GetId()
@@ -744,7 +744,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 		idle.Store(true)
 		cwait, err = bus.ReturnIfIdle(!wait)(isIdle, errs)
 		if cwait && err == nil && notFoundSeen.Load() {
-			// don't wait if we saw not-found or an error
+			// Do not wait if the lookup saw not-found or an error.
 			cwait = false
 		}
 		return cwait, err
@@ -768,8 +768,8 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 			if len(val.GetData()) == 0 {
 				notFoundSeen.Store(true)
 
-				// if we already saw idle=true and not-found is returned,
-				// return the not-found result immediately.
+				// If idle=true was already seen and not-found
+				// is returned, return not-found immediately.
 				return idle.Load(), nil
 			}
 			return true, nil
@@ -806,7 +806,7 @@ func (c *LookupController) getBucketHandles(ctx context.Context) ([]bucket.Bucke
 }
 
 // PushBucketHandles pushes the bucket handle list that the controller may use
-// to service requests. The controller should wait for this to be called before
+// to service requests. The controller should wait for PushBucketHandles before
 // beginning to service requests. The bucket handles pushed should always have
 // GetExists() == true.
 func (c *LookupController) PushBucketHandles(ctx context.Context, handles []bucket.BucketHandle) {
@@ -823,7 +823,8 @@ func (c *LookupController) GetControllerInfo() *controller.Info {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
+// If the handler can resolve the directive, HandleDirective returns a resolver.
+// Otherwise, HandleDirective returns nil.
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 // The context passed is canceled when the directive instance expires.

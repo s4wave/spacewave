@@ -210,7 +210,7 @@ func TestSOOperationVerifierSequence(t *testing.T) {
 		return inners
 	}
 
-	// A copy with one more position reuses every held body; verifying
+	// A copy with one more position reuses every held body. Verifying
 	// would decode a new one.
 	prev := build(state)
 	if len(prev) != 8 {
@@ -265,7 +265,7 @@ func TestSOOperationVerifierSignature(t *testing.T) {
 }
 
 // BenchmarkSequencedSet measures the set built for a copy of a state whose n
-// operations a sequencer placed, through the verifier that built the last.
+// operations a sequencer placed, through the verifier that built the last set.
 func BenchmarkSequencedSet(b *testing.B) {
 	for _, n := range []int{32, 300} {
 		b.Run(fmt.Sprintf("positions=%d", n), func(b *testing.B) {

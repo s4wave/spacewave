@@ -94,7 +94,7 @@ func TestRehearsalWarmsLockedWrite(t *testing.T) {
 		t.Skip("seeds a World of production size")
 	}
 
-	// Seed the World once; each run opens it fresh on a cold cache.
+	// Seed the World once. Each run opens the World fresh on a cold cache.
 	ctx := t.Context()
 	tbed, rootRef, err := seedWorld(ctx, worldSeedObjects)
 	if err != nil {

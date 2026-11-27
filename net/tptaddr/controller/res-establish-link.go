@@ -10,7 +10,7 @@ import (
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
-// establishLinkResolver resolves establishLink directives
+// establishLinkResolver resolves establishLink directives.
 type establishLinkResolver struct {
 	c   *Controller
 	ctx context.Context
@@ -49,8 +49,9 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 			}, o.dir.EstablishLinkSourcePeerId(), o.dir.EstablishLinkTargetPeerId()), true, nil
 		},
 		func(val directive.TransformedAttachedValue[tptaddr.LookupTptAddrValue, tptaddr.DialTptAddr]) func() {
-			// spawn a new resolver for this
-			// note: we won't return any values to the directive. we expect the link controller to do this.
+			// spawn a new resolver for the DialTptAddr directive.
+			// note: the resolver returns no directive values.
+			// The link controller is expected to return the values.
 			return handler.AddResolver(directive.NewTransformResolver(
 				o.c.bus,
 				val.GetTransformedValue(),

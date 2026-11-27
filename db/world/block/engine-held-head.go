@@ -14,7 +14,7 @@ type heldHead struct {
 	// refs counts the holders. Zero means released, and a released head is
 	// never held again.
 	refs atomic.Int64
-	// root is the held cursor; only cloned, never changed.
+	// root is the held cursor. The cursor is only cloned, never changed.
 	root *bucket_lookup.Cursor
 	// free drops root and the pin after the last holder.
 	free func()

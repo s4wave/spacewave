@@ -3,7 +3,8 @@ package block
 import "context"
 
 // recordWriteLocked records a block written to inner. A written tombstone
-// already released the block, so it leaves the record. Caller holds bcast.
+// already released the block, so the block leaves the record.
+// Caller holds bcast.
 func (s *BufferedStore) recordWriteLocked(key string, ref *BlockRef, refs []*BlockRef, tombstone bool) {
 	if s.written == nil {
 		return

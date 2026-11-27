@@ -11,10 +11,10 @@ message Config {
   // PluginId is the plugin to load and use as AccessRpcService.
   string plugin_id = 1;
   // ServiceIdRe is the regex of service IDs to forward.
-  // If empty, will forward any.
+  // If empty, forwards any service ID.
   string service_id_re = 2;
   // ServerIdRe is the regex of server IDs to forward for.
-  // If empty, will forward any.
+  // If empty, forwards any server ID.
   string server_id_re = 3;
   // Backoff is the backoff config for calling the RPC service.
   // If unset, defaults to reasonable defaults.

@@ -54,7 +54,7 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 
-	// Use the runner's workflow budget for copying and handoff; each startup
+	// Use the runner's workflow budget for copying and handoff. Each startup
 	// keeps its own deadline.
 	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
@@ -142,7 +142,7 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 }
 
 // TestDaemonUpdateRestartNowReplacesBusyDaemon hands off while a client still
-// holds the old daemon, after it reports that client to the launcher.
+// holds the old daemon, after the daemon reports that client to the launcher.
 func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	// Run the fixture daemon in a private state directory.
 	statePath := shortSocketDir(t)
@@ -152,7 +152,7 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 
-	// Use the runner's workflow budget for copying and handoff; each startup
+	// Use the runner's workflow budget for copying and handoff. Each startup
 	// keeps its own deadline.
 	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
@@ -285,7 +285,7 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 			return
 		}
 
-		// Name the stopped event of the last daemon process.
+		// Determine the stopped event path of the last daemon process.
 		pid, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
 		if err != nil {
 			t.Error(err)
@@ -294,7 +294,7 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 		stoppedPath := filepath.Join(statePath, "stopped-"+string(pid))
 
 		// The daemon releases its listener before acknowledging shutdown, so
-		// the acknowledgement can be lost; only a denial fails the request.
+		// the acknowledgement can be lost. Only a denial fails the request.
 		conn, err := (&net.Dialer{}).DialContext(stopCtx, "unix", socketPath)
 		if err == nil {
 			err = requestDaemonShutdown(stopCtx, conn)

@@ -27,29 +27,30 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "os/image/sign"
 
-// InputImage names the input holding the image store, a tree with
+// InputImage identifies the input holding the image store, a tree with
 // image.s4wave, whose built image the Step signs.
 const InputImage = "image"
 
-// InputRehearsed names the input holding the rehearsal's receipt, a tree whose
-// root file names the image root the rehearsal booted.
+// InputRehearsed identifies the input holding the rehearsal's receipt, a tree
+// whose root file records the image root the rehearsal booted.
 const InputRehearsed = "rehearsed"
 
-// OutputAuthorization names the output tree holding the authorization file,
-// the os_image.AuthorizationFile that install publishes into the image store.
+// OutputAuthorization identifies the output tree holding the authorization
+// file, the os_image.AuthorizationFile that install publishes into the image
+// store.
 const OutputAuthorization = "authorization"
 
 // Controller signs one image with the Worker peer's key.
 type Controller struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
 	// b is the Worker's bus, which reaches the holder of its peer's key.
 	b bus.Bus
-	// conf is the configuration
+	// conf is the configuration.
 	conf *Config
 	// inputVals holds the image and rehearsed inputs.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle contains the controller handle.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -75,7 +76,7 @@ func (c *Controller) InitForgeExecController(
 
 // Execute signs the built image of the image input's store as the peer the
 // Execution runs as, and outputs the authorization as the tree install
-// mounts. The key stays with its holder; only the signature crosses the bus.
+// mounts. The key stays with its holder. Only the signature crosses the bus.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Check out the image store and the rehearsal's receipt.
 	dir, err := os.MkdirTemp("", "os-image-sign-")
@@ -138,7 +139,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}, true)
 }
 
-// readRehearsedRoot reads the image root a rehearsal receipt names: the root
+// readRehearsedRoot reads the image root a rehearsal receipt records: the root
 // file rehearse.sh writes from the guest's own authorization report.
 func readRehearsedRoot(receipt string) (*block.BlockRef, error) {
 	data, err := os.ReadFile(filepath.Join(receipt, "root"))

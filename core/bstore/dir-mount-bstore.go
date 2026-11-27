@@ -47,7 +47,7 @@ func ExMountBlockStore(
 	return av.GetValue(), avRef, nil
 }
 
-// mountBlockStore implements MountBlockStore
+// mountBlockStore implements MountBlockStore.
 type mountBlockStore struct {
 	ref *BlockStoreRef
 }
@@ -60,7 +60,7 @@ func NewMountBlockStore(ref *BlockStoreRef) MountBlockStore {
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// The validation is cursory to see if the values "look correct."
 func (d *mountBlockStore) Validate() error {
 	return d.ref.Validate()
 }
@@ -99,14 +99,15 @@ func (d *mountBlockStore) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *mountBlockStore) GetName() string {
 	return "MountBlockStore"
 }
 
 // GetDebugVals returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The arguments should be something like param1="test", param2="test".
+// The values are not necessarily unique, and are primarily intended for
+// display.
 func (d *mountBlockStore) GetDebugVals() directive.DebugValues {
 	return directive.DebugValues{
 		"bstore-id":   []string{d.ref.GetProviderResourceRef().GetId()},

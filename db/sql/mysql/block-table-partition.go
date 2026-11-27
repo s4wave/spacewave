@@ -10,7 +10,7 @@ func (r *TablePartitionRoot) IsNil() bool {
 	return r == nil
 }
 
-// Validate performs cursory validation of the table partition root.
+// Validate cursorily validates the table partition root.
 func (r *TablePartitionRoot) Validate() error {
 	if err := r.GetRowKeyValue().Validate(); err != nil {
 		return err

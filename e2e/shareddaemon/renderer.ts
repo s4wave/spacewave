@@ -52,7 +52,8 @@ const view = webDocument.registerWebView({
   },
 })
 
-// Read waits for the Resource handshake and reads the displayed identity.
+// ready waits for the Resource handshake before Read reads the displayed
+// identity.
 const ready = openSession(view.rpcClient).then((session) => {
   document.getElementById('identity')!.textContent = [
     session.sessionIndex,

@@ -35,8 +35,8 @@ func NewLookupSessionTransport(id peer.ID) LookupSessionTransport {
 
 // ResolveSessionTransport borrows the Session's running transport while
 // release is retained. It returns nil when no transport runs for the Session.
-// Removing a resolved transport calls invalidated; callers must end the work
-// that depends on it.
+// Removing a resolved transport calls invalidated, so callers must end the
+// work that depends on the transport.
 func ResolveSessionTransport(ctx context.Context, parent bus.Bus, id peer.ID, invalidated func()) (*SessionTransport, func(), error) {
 	// Wait for the transport, or report none once the lookup goes idle.
 	resolved, _, ref, err := bus.ExecWaitValue[*SessionTransport](ctx, parent,
@@ -75,7 +75,7 @@ func AuthorizeAccountSessionPeer(ctx context.Context, b bus.Bus, ms link.Mounted
 
 // ResolveSessionBus borrows the Session's transport bus while release is
 // retained. A host without Session transports uses its supplied bus directly.
-// Removing a resolved transport calls invalidated; callers must end their
+// Removing a resolved transport calls invalidated, so callers must end their
 // pending streams.
 func ResolveSessionBus(ctx context.Context, parent bus.Bus, id peer.ID, invalidated func()) (bus.Bus, func(), error) {
 	// Fall back to the supplied bus when no Session transport runs.
@@ -110,7 +110,7 @@ func (t *SessionTransport) publishSessionTransport() (func(), error) {
 				return directive.R(directive.NewValueResolver([]*SessionTransport{t}), nil)
 			}
 		case peer.SignWithPeer:
-			// The running Session signs for its peer; the key stays here.
+			// The running Session signs for its peer. The key stays here.
 			if res := peer.NewSignWithPeerResolver(dir, t.sessionKey); res != nil {
 				return directive.R(res, nil)
 			}

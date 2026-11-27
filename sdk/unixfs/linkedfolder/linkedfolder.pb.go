@@ -24,7 +24,7 @@ type Config struct {
 	// Folder is the absolute path of the folder on the Device.
 	Folder string `protobuf:"bytes,3,opt,name=folder,proto3" json:"folder,omitempty"`
 	// Path is the path in the Drive the folder links to, with its parts
-	// separated by slashes; empty links the folder at the Drive's root.
+	// separated by slashes. An empty Path links the folder at the Drive's root.
 	Path string `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
 	// TwoWay also applies the changes others make to the Drive to the folder:
 	// a member's write reaches the file, a write that meets an edit on disk

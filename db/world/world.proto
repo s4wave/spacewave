@@ -4,14 +4,14 @@ package world;
 import "google/protobuf/descriptor.proto";
 
 // RefOption declares that a string or repeated string field holds the object
-// keys of other World objects, and names the graph edge each key forms from
+// keys of other World objects, and declares the graph edge each key forms from
 // the record's own object.
 //
 // The aptre Go generator reads it by field number and emits RangeWorldRefs on
 // every message holding such a field, directly or through a message field.
 message RefOption {
   // Predicate is the graph predicate of the edge as a bare IRI, such as
-  // glados/llm-session/parent; the quad holds <glados/llm-session/parent>.
+  // glados/llm-session/parent. The quad holds <glados/llm-session/parent>.
   string predicate = 1;
   // Index writes the edge as a graph quad with an empty label in the
   // transaction that creates the record, so the edge can be walked from
@@ -25,9 +25,9 @@ message RefOption {
 // google.protobuf.Timestamp. The aptre Go generator reads it by field number
 // and emits WorldSpan on the message.
 message SpanOption {
-  // Start names the field holding when the record's span begins.
+  // Start selects the field holding when the record's span begins.
   string start = 1;
-  // End names the field holding when the record's span ends. Empty when the
+  // End selects the field holding when the record's span ends. Empty when the
   // record declares no end.
   string end = 2;
 }
@@ -42,11 +42,11 @@ message TypeCount {
 }
 
 extend google.protobuf.FieldOptions {
-  // ref declares the World edge a reference field forms.
+  // Ref declares the World edge a reference field forms.
   RefOption ref = 51701;
 }
 
 extend google.protobuf.MessageOptions {
-  // span declares the fields holding a record's time span.
+  // Span declares the fields holding a record's time span.
   SpanOption span = 51702;
 }

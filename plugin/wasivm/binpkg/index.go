@@ -100,8 +100,9 @@ func AtomName(atom string) string {
 }
 
 // Depends returns the names of the packages pkg needs at runtime that pkgs
-// holds, in the order its dependency string lists them. In an any-of group the first alternative
-// present in pkgs is chosen; blockers and provided packages are dropped.
+// holds, in the order its dependency string lists them. In an any-of group
+// the first alternative present in pkgs is chosen. Blockers and provided
+// packages are dropped.
 func Depends(pkgs map[string]*Package, provided map[string]bool, pkg *Package) []string {
 	// Walk the tokens, choosing one alternative inside each any-of group.
 	var out []string

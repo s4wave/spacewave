@@ -6,8 +6,9 @@ import type { Account } from '@s4wave/sdk/account/account.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 
 // useMountAccount mounts a provider account resource from the root context.
-// Returns a Resource<Account> that resolves when both providerId and accountId
-// are non-empty. Pass an extra guard (e.g. isCloud) to conditionally skip.
+// The hook returns a Resource<Account> that resolves when both providerId and
+// accountId are non-empty. Pass an extra guard (e.g. isCloud) to conditionally
+// skip mounting.
 export function useMountAccount(
   providerId: string,
   accountId: string,

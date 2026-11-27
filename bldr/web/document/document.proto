@@ -26,9 +26,10 @@ service WebDocument {
   rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 
   // CreateWebWorker requests to spawn a WebWorker with an instance identifier.
-  // If a worker already exists with that ID, it will be terminated before starting the new.
+  // If a worker already exists with that ID, the worker will be terminated
+  // before starting the new worker.
   // Returns created: false if unable to create WebWorkers.
-  // This usually creates a new SharedWorker.
+  // CreateWebWorker usually creates a new SharedWorker.
   // The worker is expected to close itself if it becomes disconnected or broken.
   // The worker is passed a MessagePort that can be used to open WebRuntimeClient.
   rpc CreateWebWorker(CreateWebWorkerRequest) returns (CreateWebWorkerResponse);
@@ -41,7 +42,7 @@ message WatchWebDocumentStatusRequest {}
 
 // WebDocumentStatus contains a snapshot of status for a Document instance.
 message WebDocumentStatus {
-  // Snapshot indicates this is a full snapshot of the lists.
+  // Snapshot indicates the status is a full snapshot of the lists.
   bool snapshot = 1;
   // Hidden indicates that the web document is not visible.
   // The web document will unload all web views and suspend itself.
@@ -68,7 +69,7 @@ message WebViewStatus {
   // ParentId is the unique identifier for the parent web view.
   // May be empty.
   string parent_id = 3;
-  // Permanent indicates that this is a "root" webview and cannot be closed.
+  // Permanent indicates that the webview is a "root" and cannot be closed.
   bool permanent = 4;
 }
 
@@ -84,7 +85,8 @@ message WebWorkerStatus {
   // Ready indicates the worker finished startup and registered with WebRuntime.
   bool ready = 4;
   // Failed indicates the worker closed because of a runtime failure.
-  // Normal explicit worker removal or browser lifecycle close leaves this unset.
+  // Normal explicit worker removal or browser lifecycle close leaves Failed
+  // unset.
   bool failed = 5;
   // FailureReason contains the worker-provided failure reason, if any.
   string failure_reason = 6;
@@ -134,14 +136,14 @@ enum WebWorkerGenerationState {
 
 // CreateWebViewRequest is a request to create a new web view.
 message CreateWebViewRequest {
-  // id is the identifier for the new WebView.
+  // Id is the identifier for the new WebView.
   string id = 1;
 }
 
 // CreateWebViewResponse is the response to the CreateWebView request.
 message CreateWebViewResponse {
   // Created indicates the web view was created.
-  // If this is not set, assumes we cannot create WebViews.
+  // If Created is not set, the caller assumes WebViews cannot be created.
   bool created = 1;
 }
 
@@ -162,7 +164,7 @@ message CreateWebWorkerRequest {
   // Id is the identifier for the new WebWorker.
   string id = 1;
   // Path is the path to the source to load into the worker.
-  // This is passed to the shared-worker.ts loader.
+  // Path is passed to the shared-worker.ts loader.
   // Used as the path after the current host. For example /path/to/script.mjs
   string path = 2;
   // WorkerMode controls whether the worker should be shared or dedicated.
@@ -172,7 +174,8 @@ message CreateWebWorkerRequest {
   //
   // Usually a WebWorkerWasmPluginInit.
   bytes init_data = 4;
-  // Removed worker_type field; the browser has one plugin worker harness.
+  // Removed worker_type field because the browser has one plugin worker
+  // harness.
   reserved 5;
   reserved "worker_type";
   // Generation identifies the execution creating this worker.
@@ -182,7 +185,7 @@ message CreateWebWorkerRequest {
 // CreateWebWorkerResponse is the response to the CreateWebWorker request.
 message CreateWebWorkerResponse {
   // Created indicates the WebWorker was created.
-  // If this is not set, assumes we cannot create WebWorkers.
+  // If Created is not set, the caller assumes WebWorkers cannot be created.
   bool created = 1;
   // Shared indicates that SharedWorker was supported & used
   // Should only be set if shared was also set in the request

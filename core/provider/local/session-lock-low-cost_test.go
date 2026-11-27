@@ -1162,7 +1162,7 @@ func stopMountedSessionTransportOwner(t *testing.T, acc *ProviderAccount, sess *
 }
 
 // unreachableSignalingURL refuses connections. Tests use it to give a
-// transport a distinct signaling configuration; signaling retries in the
+// transport a distinct signaling configuration. Signaling retries in the
 // background without affecting readiness.
 const unreachableSignalingURL = "http://127.0.0.1:1"
 

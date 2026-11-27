@@ -21,10 +21,10 @@ type BlockStore interface {
 	GetFileSegments() *block_store_filesegment.Store
 	// ReclaimStorage drops the blocks no live root reaches from its storage
 	// backend. fence runs after the backend lists its blocks and before it
-	// drops any; when fence returns, every writer that may still reference a
-	// dropped block must upload it again. A store without a storage backend,
-	// or whose backend judges the pass would cost more than the storage it
-	// frees, returns without calling fence.
+	// drops any. When fence returns, every writer that may still reference
+	// a dropped block must upload it again. A store without a storage
+	// backend, or whose backend judges the pass would cost more than the
+	// storage it frees, returns without calling fence.
 	//
 	// Returns the time a pass next comes due if the store is not written
 	// again, or zero when none will. Asking again at that time runs the last

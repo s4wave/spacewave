@@ -21,10 +21,12 @@ const defaultPluginResourceOpenTimeout = 30 * time.Second
 // openPluginResources opens the plugin's Resource client within the open bound.
 // The bound covers only the open: the returned client lives as long as ctx, so
 // a long execution is not cut off. A plugin that stays silent fails with a
-// cause naming it, instead of leaving the execution RUNNING forever.
+// cause identifying the plugin, instead of leaving the execution RUNNING
+// forever.
 func (h *pluginExecHandler) openPluginResources(ctx context.Context, client SRPCPluginExecServiceClient) (*resource_client.Client, error) {
-	// Cancel the open with a cause once the bound passes; the client keeps the
-	// derived context, so it is released only when the execution returns.
+	// Cancel the open with a cause once the bound passes. The client keeps the
+	// derived context, so the client is released only when the execution
+	// returns.
 	timeout := h.resourceOpenTimeout
 	if timeout <= 0 {
 		timeout = defaultPluginResourceOpenTimeout
@@ -53,7 +55,7 @@ func (h *pluginExecHandler) openPluginResources(ctx context.Context, client SRPC
 	}
 
 	// Retire the open context with the client, which owns the stream from here.
-	// The wait also ends when ctx ends, which has already canceled openCtx.
+	// The wait also ends when ctx ends, after ctx has canceled openCtx.
 	go func() {
 		_ = resources.Wait(openCtx)
 		cancel(nil)
@@ -95,7 +97,7 @@ func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPlu
 		return err
 	}
 
-	// Attach the engine for this request only; persisted targets contain no IDs.
+	// Attach the engine for this request only. Persisted targets contain no IDs.
 	engineID, err := resources.AttachResourceTree(ctx, "forge-world", engine.GetMux())
 	if err != nil {
 		return errors.Wrap(err, "attach plugin execution World")

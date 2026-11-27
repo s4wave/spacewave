@@ -12,7 +12,7 @@ import (
 
 // Record is one logical storage operation.
 type Record struct {
-	// Op names the operation.
+	// Op identifies the operation.
 	Op Op
 	// ID identifies the transaction, iterator, read scope, or batch.
 	ID uint64

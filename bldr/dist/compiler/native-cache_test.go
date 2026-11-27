@@ -59,7 +59,7 @@ func TestNativeAssetPackageCache(t *testing.T) {
 
 		// Compile the package and capture the exported archive path. A main
 		// package compiles in the module's build info, whose VCS stamp turns
-		// dirty when any other test leaves a file in the checkout; without
+		// dirty when any other test leaves a file in the checkout. Without
 		// -buildvcs=false that stamp, not the asset, would decide reuse.
 		cmd := exec.CommandContext(t.Context(), "go", "list", "-mod=mod", "-buildvcs=false", "-export", "-f", "{{.Export}}", ".")
 		cmd.Dir = dir
@@ -81,7 +81,7 @@ func TestNativeAssetPackageCache(t *testing.T) {
 	_, before := measure(true)
 	first, after := measure(false)
 
-	// Edit the asset and measure again; the archive must be reused.
+	// Edit the asset and measure again. The archive must be reused.
 	asset[0]++
 	second, changed := measure(false)
 

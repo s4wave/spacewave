@@ -1,7 +1,7 @@
 // The boot download registry owns per-asset download progress accounting for
 // the browser boot sequence. Producers (the boot bootstrap streaming the
 // runtime wasm and app bundle, and the plugin module loader) report the
-// content length and streamed bytes of each download; the loading screen is a
+// content length and streamed bytes of each download. The loading screen is a
 // plain consumer that renders the watchable snapshot. Progress propagates by a
 // dispatched event, never polling, so a fresh listener reads the current array
 // and every mutation replaces the array reference for change detection.
@@ -29,8 +29,8 @@ declare global {
 
 const emptyBootDownloads: BootDownload[] = []
 
-// readBootDownloads returns the current snapshot; the array reference changes on
-// every mutation so useSyncExternalStore-style consumers detect updates.
+// readBootDownloads returns the current snapshot. The array reference changes
+// on every mutation so useSyncExternalStore-style consumers detect updates.
 export function readBootDownloads(): BootDownload[] {
   return globalThis.__swBootDownloads ?? emptyBootDownloads
 }
@@ -122,7 +122,7 @@ export function failBootDownload(id: string, error?: string): void {
 
 // streamResponseWithBootProgress reads a fetch Response body to completion while
 // reporting per-chunk byte progress under id. It holds the only getReader
-// accounting loop so producers never hand-roll byte counting; it returns the
+// accounting loop so producers never hand-roll byte counting. It returns the
 // collected chunks for the caller to assemble (Blob, module URL,
 // WebAssembly compile, ...). totalHint wins over content-length when a decoded
 // size is known ahead of the compressed transfer length.

@@ -411,7 +411,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	// Verify a stored empty value retains its key and reads back empty.
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
-		// verify exists
+		// verify the key exists
 		exists, err := tx.Exists(ctx, emptyKey)
 		if err != nil {
 			return err
@@ -592,7 +592,8 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 			return errors.Errorf("expected key b/1 but got %s", string(it.Key()))
 		}
 
-		// Moving next in reverse should give us no more keys since b/1 is the smallest in the b/ prefix
+		// Moving next in reverse should return no more keys since b/1
+		// is the smallest key in the b/ prefix.
 		if it.Next() || it.Valid() {
 			return errors.Errorf("expected no more valid keys but got %s", string(it.Key()))
 		}

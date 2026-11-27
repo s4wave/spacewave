@@ -121,9 +121,10 @@ async function handleInFlightReloadTrigger(
 type HeldStreamOutcome = { ok: boolean; err?: string }
 
 // handleTerminalOrphanFailFast holds an active plugin-to-runtime stream open,
-// signals armed, then reports how the stream settles once the fixture discards
-// the last WebDocument with a terminal close. A deliberate discard must fail the
-// orphaned stream fast rather than keep it waiting for a replacement route.
+// signals that the stream is armed, then reports how the stream settles once
+// the fixture discards the last WebDocument with a terminal close. A deliberate
+// discard must fail the orphaned stream fast rather than keep it waiting for a
+// replacement route.
 async function handleTerminalOrphanFailFast(port: MessagePort): Promise<void> {
   const active = Promise.withResolvers<void>()
   const outcome = openHeldStreamToWebRuntime(active.resolve)

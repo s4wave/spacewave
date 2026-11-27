@@ -260,7 +260,7 @@ func TestAccountPairingExchange(t *testing.T) {
 
 			// Open isolated source and receiver providers on one authenticated
 			// packet network. The network is set before each Session mounts and
-			// starts its transport; provider stores stay isolated.
+			// starts its transport. Provider stores stay isolated.
 			network := inproc.NewNetwork()
 			shareNetwork := func(p *Provider) {
 				if mode.direct {
@@ -695,8 +695,8 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 		t.Fatal(err)
 	}
 
-	// Build a World over the store, under a Space World transform, that names
-	// the root as an object.
+	// Build a World over the store, under a Space World transform, that
+	// references the root as an object.
 	initOp, err := space_world.NewInitWorldOp(nil)
 	if err != nil {
 		t.Fatal(err)

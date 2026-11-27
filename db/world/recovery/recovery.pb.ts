@@ -10,7 +10,7 @@ import { BlockRef } from '../../block/block.pb.js'
 import { Object$ } from '../block/world.pb.js'
 
 /**
- * PackTier names where a captured pack directory came from.
+ * PackTier identifies where a captured pack directory came from.
  *
  * @generated from enum world.recovery.PackTier
  */
@@ -41,7 +41,8 @@ export const PackTier_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * Phase is the durable scratch lifecycle; every non-counted result is provisional.
+ * Phase is the durable scratch lifecycle.
+ * Every non-counted result is provisional.
  *
  * @generated from enum world.recovery.Phase
  */
@@ -203,7 +204,7 @@ export const Source: MessageType<Source> =
  */
 export interface PackSource {
   /**
-   * Path selects the directory; its entries are read in name order.
+   * Path selects the directory. Its entries are read in name order.
    */
   path?: string
   /**
@@ -624,7 +625,8 @@ export const Counts: MessageType<Counts> =
   ])
 
 /**
- * Node is a disk-backed traversal item; interpretation identity includes its context.
+ * Node is a disk-backed traversal item.
+ * Interpretation identity includes its context.
  *
  * @generated from message world.recovery.Node
  */

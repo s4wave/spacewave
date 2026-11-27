@@ -56,7 +56,8 @@ export const ProviderFeature_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum ProviderAccountStatus {
   /**
-   * ProviderAccountStatus_NONE is if the account was not created yet (zero value)
+   * ProviderAccountStatus_NONE is the zero value for an account that has not
+   * been created yet.
    */
   ProviderAccountStatus_NONE = 0,
 
@@ -160,7 +161,7 @@ export const ProviderFeatureMap: MessageType<ProviderFeatureMap> =
  */
 export interface ProviderFeatureMapItem {
   /**
-   * ProviderFeatures is the set of features we are mapping.
+   * ProviderFeatures is the set of features being mapped.
    */
   providerFeatures?: ProviderFeature[]
   /**
@@ -271,7 +272,7 @@ export interface ProviderFeatureResourceRef {
   providerFeature?: ProviderFeature
   /**
    * ProviderFeatureMeta is encoded metadata specific to the resource type.
-   * Max size 120kb
+   * The maximum size is 120kb.
    */
   providerFeatureMeta?: Uint8Array
 }
@@ -302,7 +303,8 @@ export interface AccountTransition {
    */
   source?: ProviderResourceRef
   /**
-   * Destination identifies the surviving account; id is its settings object ID.
+   * Destination identifies the surviving account. Its id is the account's
+   * settings object ID.
    */
   destination?: ProviderResourceRef
   /**
@@ -318,7 +320,8 @@ export interface AccountTransition {
    */
   sessionPeerIds?: string[]
   /**
-   * SourceEndpoint identifies cloud authority; empty identifies a local account.
+   * SourceEndpoint identifies cloud authority. An empty SourceEndpoint
+   * identifies a local account.
    */
   sourceEndpoint?: string
 }

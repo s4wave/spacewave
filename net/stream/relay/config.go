@@ -13,7 +13,7 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This cursory validation checks whether the values "look correct."
 func (c *Config) Validate() error {
 	// Validate the source peer filter for the relay.
 	if _, err := c.ParsePeerID(); err != nil {

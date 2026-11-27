@@ -16,9 +16,9 @@ type BillyFs interface {
 
 // FileSystem implements the HTTP filesystem.
 type FileSystem struct {
-	// fs is the billy filesystem
+	// fs is the billy filesystem.
 	fs BillyFs
-	// prefix is the filesystem prefix for HTTP
+	// prefix is the filesystem prefix for HTTP.
 	prefix string
 }
 

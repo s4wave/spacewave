@@ -13,8 +13,8 @@ import (
 // does, with a SharedObjectOrigin holding source and marked arriving, stored
 // in the transaction that lists it. The account refuses to mount the object
 // with ErrSharedObjectArriving until ReplaceSharedObjectState writes its
-// state; a delete still removes it. When the account already lists id it
-// creates nothing and returns ErrSharedObjectExists.
+// state. A delete still removes the object. When the account already lists
+// id, the method creates nothing and returns ErrSharedObjectExists.
 func (a *ProviderAccount) CreateArrivingSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, source []byte) error {
 	_, err := a.createSharedObject(ctx, id, meta, func(ctx context.Context, tx kvtx.Tx, entry *sobject.SharedObjectListEntry) error {
 		return writeSharedObjectOrigin(ctx, tx, id, &SharedObjectOrigin{
@@ -53,7 +53,7 @@ func (s *StoredSharedObject) Unchanged() bool {
 func (a *ProviderAccount) ReadStoredSharedObject(ctx context.Context, id string) (*StoredSharedObject, error) {
 	out := &StoredSharedObject{}
 	err := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		// Read the entry and its origin; an unlisted id has neither.
+		// Read the entry and its origin. An unlisted id has neither.
 		*out = StoredSharedObject{}
 		entry, origin, err := readListedOrigin(ctx, tx, id)
 		if err != nil || entry == nil {
@@ -118,7 +118,8 @@ func writeSharedObjectOrigin(ctx context.Context, tx kvtx.Tx, id string, origin 
 }
 
 // refuseArriving returns ErrSharedObjectArriving when the listed object id
-// holds an arriving origin. It reads the list only when an origin is stored.
+// has an arriving origin. The function reads the list only when an origin
+// is stored.
 func refuseArriving(ctx context.Context, tx kvtx.Tx, id string) error {
 	// Skip the list read when no origin is stored.
 	found, err := tx.Exists(ctx, SobjectOriginKey(id))

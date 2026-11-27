@@ -86,7 +86,7 @@ export function isClosedStreamWriteError(err: unknown): boolean {
   )
 }
 
-// WebRuntimeClientInstance is an attached client instance.
+// WebRuntimeClientChildStream is a stream for an attached client instance.
 class WebRuntimeClientChildStream implements PacketStream {
   public readonly source: PacketStream['source']
   public readonly sink: PacketStream['sink']
@@ -132,7 +132,7 @@ class WebRuntimeClientChildStream implements PacketStream {
 
   private releaseIfBothDirectionsClosed(): void {
     // Runtime-to-client streams are generation-owned until both duplex halves
-    // end or the parent client closes; a single EOF can leave replies live.
+    // end or the parent client closes. A single EOF can leave replies live.
     if (this.sourceClosed && this.sinkClosed) {
       this.releaseOnce()
     }
@@ -219,7 +219,7 @@ class WebRuntimeClientInstance {
       return
     }
 
-    // Already armed
+    // The Web Lock watch is already armed.
     if (this.abortController) {
       return
     }
@@ -266,8 +266,8 @@ class WebRuntimeClientInstance {
   }
 
   // openStream opens a RPC stream with the remote client.
-  // note: the stream has message framing (via postMessage)
-  // it is not necessary to use length prefixing for packets
+  // note: the stream has message framing (via postMessage), so packets do not
+  // need length prefixing.
   public async openStream(): Promise<PacketStream> {
     if (this.isClosed) {
       throw new Error('WebRuntimeClientInstance is closed')
@@ -326,7 +326,7 @@ class WebRuntimeClientInstance {
       try {
         stream.abort(streamErr)
       } catch {
-        // ignored
+        // Stream abort errors are ignored.
       }
     }
     this.childStreams.clear()
@@ -549,17 +549,17 @@ export class WebRuntime {
   // runtimeHost is the WebRuntimeHost.
   public readonly runtimeHost: WebRuntimeHostClient
 
-  // _webStatusUpdates is a stream of web status updates.
+  // statusStream is a stream of web status updates.
   public readonly statusStream: ItState<WebRuntimeStatus>
 
   // clients contains the list of attached WebRuntime clients.
-  // keyed by client ID
+  // The records are keyed by client ID.
   private clients: Record<string, WebRuntimeClientInstance> = {}
   // clientWaiters contains promises waiting for a client to register.
-  // keyed by client ID
+  // The records are keyed by client ID.
   private clientWaiters: Record<string, WebRuntimeClientWaiter[]> = {}
   // webDocuments contains the list of attached WebDocuments.
-  // keyed by web document ID
+  // The records are keyed by web document ID.
   private webDocuments: Record<string, WebDocumentStatus> = {}
 
   // closed indicates the instance is closed.
@@ -814,7 +814,7 @@ export class WebRuntime {
   }
 
   // handleClient handles an incoming client connection MessagePort.
-  // msg should contain a WebRuntimeClientInit message
+  // msg should contain a WebRuntimeClientInit message.
   public handleClient(msg: WebRuntimeClientInit, port: MessagePort) {
     if (this.closed) {
       throw new Error('web runtime is closed')
@@ -874,7 +874,7 @@ export class WebRuntime {
       })
     }
 
-    // A document that attaches to a failed runtime learns of it first.
+    // A document that attaches to a failed runtime learns of the failure first.
     if (
       this.failure !== undefined &&
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
@@ -937,8 +937,8 @@ export class WebRuntime {
   }
 
   // buildWebRuntimeStatusSnapshot builds a snapshot of the status.
-  // if allWorkers is set, includes web views from other active workers.
-  // prevents duplicate web view entries
+  // if allWorkers is set, the snapshot includes web views from other active
+  // workers. The snapshot prevents duplicate web view entries.
   public async buildWebRuntimeStatusSnapshot(): Promise<WebRuntimeStatus> {
     if (this.closed) {
       return { snapshot: true, closed: true, webDocuments: [] }

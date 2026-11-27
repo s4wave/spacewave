@@ -176,10 +176,11 @@ func EncryptDistConfig(data []byte, senderPeerID string, signatureHashType hash.
 	return cipher.Seal(nil, nonce, data, []byte(senderPeerID+"/"+projectID)), nil
 }
 
-// FindDistConfigUpdate attempts to find a valid signed packedmsg with a rev greater than the given.
+// FindDistConfigUpdate attempts to find a valid signed packedmsg with a rev
+// greater than the given revision.
 //
 // Skips any configurations with a different project id.
-// Returns nil, nil, nil if none found with rev higher than given.
+// Returns nil, nil, nil if none found with rev higher than the given revision.
 // le can be nil to disable logging
 func FindDistConfigUpdate(
 	le *logrus.Entry,
@@ -188,7 +189,7 @@ func FindDistConfigUpdate(
 	distPeerIDs []peer.ID,
 	projectID string,
 ) (*DistConfig, string, peer.ID, error) {
-	// replace the breaks we add in the dist server
+	// replace the breaks added by the dist server
 	dataStr := strings.TrimSpace(string(data))
 	dataStr = strings.ReplaceAll(dataStr, "<br/>", "\n")
 

@@ -19,7 +19,7 @@ type remoteWebView struct {
 
 // buildRemoteWebView constructs a new remote WebView handle.
 //
-// if permanent, this web view is the primary and cannot be closed
+// if permanent, this web view is the primary and cannot be closed.
 func (r *Remote) buildRemoteWebView(rctx context.Context, id, parent, document string, permanent bool) *remoteWebView {
 	// #nosec G118 -- cancel func is returned on remoteWebView and invoked on view teardown.
 	ctx, ctxCancel := context.WithCancel(rctx)

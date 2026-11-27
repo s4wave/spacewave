@@ -7,7 +7,7 @@ import (
 	auth_method "github.com/s4wave/spacewave/auth/method"
 )
 
-// authLookupMethodResolver resolves AuthLookupMethod directives
+// authLookupMethodResolver resolves AuthLookupMethod directives.
 type authLookupMethodResolver struct {
 	c   *Controller
 	di  directive.Instance

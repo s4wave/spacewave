@@ -41,8 +41,8 @@ func LogSelected() bool {
 	return os.Getenv(LayoutEnv) != "whole"
 }
 
-// ErrOutOfOrder is returned by Write when a list of the state it is given is
-// not in the order SOState keeps it. The write stores nothing rather than
+// ErrOutOfOrder is returned by Write when a list in the supplied state is not
+// in the order SOState keeps that list. The write stores nothing rather than
 // store a delta computed from unsorted lists.
 var ErrOutOfOrder = errors.New("shared object state list is out of order")
 
@@ -62,9 +62,9 @@ var ErrOutOfOrder = errors.New("shared object state list is out of order")
 // order is the order SOState keeps it in: Load decodes without sorting, and
 // Write finds a delta by walking two sorted lists.
 //
-// Every state/ key belongs to the state the head names. Write deletes each key
-// its delta drops and Replace deletes every key it does not write, because
-// Load assembles whatever the keys hold, and a stray key would add an
+// Every state/ key belongs to the state the head identifies. Write deletes
+// each key its delta drops and Replace deletes every key it does not write,
+// because Load assembles whatever the keys hold, and a stray key would add an
 // operation to the state.
 type Store struct {
 	prefix []byte
@@ -75,7 +75,7 @@ func New(prefix []byte) Store {
 	return Store{prefix: prefix}
 }
 
-// HeadKey returns the key of the head. A state is stored when it exists.
+// HeadKey returns the key of the head. A state is stored when the head exists.
 func (s Store) HeadKey() []byte {
 	return s.key(headKey)
 }
@@ -99,7 +99,7 @@ func (s Store) key(parts ...string) []byte {
 // head is stored. It reads the head and iterates the state/ keys once, in key
 // order, which is the order of each list.
 func (s Store) Load(ctx context.Context, tx kvtx.TxOps) (state *sobject.SOState, head []byte, found bool, err error) {
-	// Read the head; with none, no state is stored.
+	// Read the head. With no head, no state is stored.
 	head, found, err = tx.Get(ctx, s.HeadKey())
 	if err != nil || !found {
 		return nil, nil, found, err
@@ -263,7 +263,8 @@ func (s Store) newWriter(ctx context.Context, tx kvtx.TxOps, head []byte) (*writ
 	return &writer{ctx: ctx, tx: tx, s: s, prev: prev, digest: digest}, nil
 }
 
-// fold adds one change to the digest: whether it sets, the key, and the value.
+// fold adds one change to the digest: whether the change sets a key, the key,
+// and the value.
 func (w *writer) fold(set bool, key, value []byte) {
 	// Frame the change by its kind and lengths, so no two changes hash alike.
 	var frame [17]byte
@@ -372,7 +373,8 @@ func diffList[T any, P part[T]](w *writer, prev, next []P, name func(P) (string,
 			continue
 		}
 
-		// Name the entries at the cursors, each once, and check the order.
+		// Compute the keys of the entries at the cursors, each once, and check
+		// the order.
 		if i < len(prev) && !prevOK {
 			n, err := name(prev[i])
 			if err != nil {
@@ -432,17 +434,17 @@ func equalList[T any, P part[T]](a, b []P) bool {
 	return true
 }
 
-// epochName names a key epoch by its number.
+// epochName returns a key epoch's key by its number.
 func epochName(e *sobject.SOKeyEpoch) (string, error) {
 	return epochKey + hex16(e.GetEpoch()), nil
 }
 
-// opName names an operation by its hash.
+// opName returns an operation's key by its hash.
 func opName(op *sobject.SOOperation) (string, error) {
 	return opKey + hex.EncodeToString(op.Hash()), nil
 }
 
-// seqName names a position by its height, then its hash.
+// seqName returns a position's key by its height, then its hash.
 func seqName(record *sobject.SOSequence) (string, error) {
 	height, err := record.UnmarshalHeight()
 	if err != nil {
@@ -451,7 +453,7 @@ func seqName(record *sobject.SOSequence) (string, error) {
 	return seqKey + hex16(height) + "/" + hex.EncodeToString(record.Hash()), nil
 }
 
-// controlName names a control message by its hash.
+// controlName returns a control message's key by its hash.
 func controlName(msg *sobject.SOControlMessage) (string, error) {
 	return controlKey + hex.EncodeToString(msg.Hash()), nil
 }

@@ -56,7 +56,7 @@ func SobjectObjectStoreID(providerID, accountID string) string {
 
 // SobjectBlockStoreID returns the block store id for a shared object.
 // Block stores backing a shared object share the shared object's ULID
-// verbatim; no prefix is added.
+// verbatim. No prefix is added.
 func SobjectBlockStoreID(sobjectID string) string {
 	return sobjectID
 }
@@ -133,7 +133,7 @@ func SobjectObjectStoreListKey() []byte {
 
 // SobjectReleaseMarkPrefix returns the object store prefix of the release
 // marks. A delete writes its mark in the transaction that unlists the object
-// and removes it once the object's block roots are released, so a mark names
+// and removes it once the object's block roots are released, so a mark records
 // a delete whose release has not finished. It is outside every so/<id>/
 // prefix, so the delete of an object's state keeps it.
 func SobjectReleaseMarkPrefix() []byte {

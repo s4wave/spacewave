@@ -24,20 +24,20 @@ const openStreamTimeout = time.Second * 10
 // multiaddress and forwards incoming connections as streams to the target peer
 // with the configured protocol ID attached.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 
-	// listenMa is the listen multiaddr
+	// listenMa is the listen multiaddr.
 	listenMa ma.Multiaddr
-	// localPeerID is the local peer id
+	// localPeerID is the local peer id.
 	localPeerID peer.ID
-	// remotePeerID is the remote peer id
+	// remotePeerID is the remote peer id.
 	remotePeerID peer.ID
-	// protocolID is the protocol ID to use
+	// protocolID is the protocol ID to use.
 	protocolID protocol.ID
 }
 

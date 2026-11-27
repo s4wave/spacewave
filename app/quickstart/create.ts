@@ -695,7 +695,7 @@ export async function createQuickstartSetup(
   )
   try {
     reportQuickstartProgress(progress, 'session', 'Preparing a local session')
-    // Reuse existing local session or create a new one.
+    // Reuse an existing local session or create a new one.
     const { accountResp, sessionIndex, session } = await createLocalSession(
       root,
       abortSignal,
@@ -705,8 +705,9 @@ export async function createQuickstartSetup(
       progress,
     )
 
-    // Reuse the account's existing space for this quickstart; creating again
-    // would duplicate it. A reused Space is ready only if its seed applied.
+    // Reuse the account's existing space for this quickstart because creating
+    // again would duplicate the space. A reused Space is ready only if its
+    // seed applied.
     const spaceName = getQuickstartSpaceName(quickstartId)
     reportQuickstartProgress(
       progress,
@@ -769,7 +770,8 @@ export async function createQuickstartSetup(
         populateSpace(quickstartId, result, abortSignal, timing),
       )
       if (quickstartId === 'drive') {
-        // Only a just seeded Drive has a known index; seeded Spaces keep theirs.
+        // Only a just seeded Drive has a known index. Seeded Spaces keep
+        // theirs.
         result.initialObjectRoute = {
           objectKey: UNIXFS_OBJECT_KEY,
           objectType: UnixFSTypeID,
@@ -822,8 +824,9 @@ export function buildQuickstartSpaceRoutePath(
 }
 
 // readSpaceSettings reads the Space's SpaceSettings, or undefined when the
-// object is missing or its block does not decode. It informs a decision only;
-// settings writes merge on the World under its writer and never read here.
+// object is missing or its block does not decode. The read informs a decision
+// only. Settings writes merge on the World under its writer and never read
+// here.
 async function readSpaceSettings(
   spaceWorld: IWorldState,
   abortSignal?: AbortSignal,
@@ -854,7 +857,7 @@ async function readSpaceSettings(
 
 // isQuickstartSpaceSeeded reports whether a quickstart Space holds its applied
 // seed. Every seed but the bare Space's sets the Space index as its last World
-// write, so a Space without an index was created but not seeded; the bare
+// write, so a Space without an index was created but not seeded. The bare
 // Space's seed is the settings object alone.
 async function isQuickstartSpaceSeeded(
   quickstartId: QuickstartSpaceCreateId,
@@ -903,10 +906,10 @@ export async function createSpaceSettingsObject(
 
 // spaceSettingsOps builds the ops that add pluginIds to the Space settings and,
 // when indexPath is given, set the index path, so a seed can apply them in one
-// batch with the ops that create what the index names. The index path op
-// comes last, since the index marks a seed applied, and it creates missing
-// settings too, so the plugins op is sent only when it adds plugins or nothing
-// else would create the settings.
+// batch with the ops that create what the index selects. The index path op
+// comes last, since the index marks a seed applied. The index path op creates
+// missing settings too, so the plugins op is sent only when the plugins op
+// adds plugins or nothing else would create the settings.
 function spaceSettingsOps(
   indexPath?: string,
   pluginIds?: string[],
@@ -1070,7 +1073,7 @@ export async function initUnixFS(
 }
 
 // hasDriveFile reports whether the Drive root holds name. A failed lookup
-// counts as missing; the upload that follows reports any real fault.
+// counts as missing. The upload that follows reports any real fault.
 async function hasDriveFile(
   root: FSHandle,
   name: string,
@@ -1417,8 +1420,8 @@ async function prepareNotesQuickstart(
 }
 
 // createDrive sets up a drive with UnixFS content. The index goes in last, so
-// a Space whose guide upload failed stays unseeded and a retry finishes it; a
-// retry keeps the filesystem and any guide already in it.
+// a Space whose guide upload failed stays unseeded and a retry finishes the
+// seed. A retry keeps the filesystem and any guide already in the filesystem.
 export async function createDrive(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,

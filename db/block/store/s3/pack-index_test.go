@@ -140,8 +140,8 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("warm start read %d entries, want only the new one", got)
 	}
 
-	// A pack removed from the listing leaves the index; its rows still say the
-	// block was placed, with no pack.
+	// A pack removed from the listing leaves the index. Its rows still say
+	// the block was placed, with no pack.
 	oldID, _, _ := store.index.Locate(ctx, hashKey(refs[0]))
 	store.index.mtx.RLock()
 	oldNum := store.index.rows[oldID].num
@@ -160,9 +160,9 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("cache holds %d entries, want 3", got)
 	}
 
-	// A row that names the removed pack shadows a block a live, indexed pack
-	// holds, as when the indexer finished a pack a tail merge had replaced:
-	// the read still finds it through the filters.
+	// A row that identifies the removed pack shadows a block a live,
+	// indexed pack holds, as when the indexer finished a pack a tail merge
+	// had replaced: the read still finds it through the filters.
 	shadowed := refs[len(refs)-1]
 	tx, err := kv.NewTransaction(ctx, true)
 	if err != nil {
@@ -179,7 +179,7 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("shadowed read = %q, %v, %v", data, found, err)
 	}
 
-	// The indexer does not replace a row that names another live pack.
+	// The indexer does not replace a row that identifies another live pack.
 	live := packOf(t, store, refs[len(refs)-2])
 	other := packOf(t, store, refs[20])
 	if other == live || other == "" {
@@ -268,15 +268,16 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("foreground write = %q, %v, %v", value, found, err)
 	}
 
-	// Every preserved key still names its live pack after the bounded scan.
+	// Every preserved key still identifies its live pack after the bounded
+	// scan.
 	for _, ref := range duplicates {
 		if got := packOf(t, store, ref); got != livePack {
 			t.Fatalf("preserved row names %q, want %q", got, livePack)
 		}
 	}
 
-	// A row that names a live pack lacking the block still reads it: the
-	// lookup tests every filter once the located pack misses.
+	// A row that identifies a live pack lacking the block still reads it:
+	// the lookup tests every filter once the located pack misses.
 	numOf := func(id string) uint32 {
 		store.index.mtx.RLock()
 		defer store.index.mtx.RUnlock()
@@ -578,8 +579,8 @@ func TestPackStoreLazyLookup(t *testing.T) {
 		t.Fatalf("published %d entries with extent reads off, want 2", n)
 	}
 
-	// A row whose extent names the wrong bytes still reads the right block:
-	// the bytes fail the block's hash, and the pack readers find it.
+	// A row whose extent identifies the wrong bytes still reads the right
+	// block: the bytes fail the block's hash, and the pack readers find it.
 	wrong := refs[0][4]
 	rowKey := hashRowKey(hashKey(wrong))
 	rtx, err := kv.NewTransaction(ctx, true)
@@ -708,7 +709,7 @@ func (s *stopAfterWrites) NewTransaction(ctx context.Context, write bool) (kvtx.
 // TestAddWrittenInterrupted stops indexing a pack of three slices after its
 // first, and reloads the index: the pack keeps its number, loads unindexed
 // so lookups test its filter and the indexer finishes it, and the next pack
-// takes a new number rather than the one the written h rows name.
+// takes a new number rather than the one the written h rows identify.
 func TestAddWrittenInterrupted(t *testing.T) {
 	// Index pack a, then stop pack b after its first slice.
 	ctx := t.Context()
@@ -729,7 +730,8 @@ func TestAddWrittenInterrupted(t *testing.T) {
 		t.Fatal("indexing b did not stop")
 	}
 
-	// Reload: b keeps its number unindexed, and its first slice names it.
+	// Reload: b keeps its number unindexed, and its first slice identifies
+	// it.
 	store.writes = -1
 	got := newPackIndex(store, false)
 	if _, _, err := got.load(ctx); err != nil {
@@ -745,7 +747,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 		t.Fatalf("b's last key located before its slice: %v", err)
 	}
 
-	// The next pack takes a number no h row names.
+	// The next pack takes a number no h row identifies.
 	if err := got.addWritten(ctx, &packfile.PackfileEntry{Id: "c"}, keysOf("c", 10), nil); err != nil {
 		t.Fatal(err)
 	}

@@ -20,7 +20,7 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	_ directive.Instance,
 	dir dex.LookupBlockFromNetwork,
 ) ([]directive.Resolver, error) {
-	// Resolve a lookup that names a block.
+	// Resolve a lookup that specifies a block.
 	ref := dir.LookupBlockFromNetworkRef()
 	if ref.GetEmpty() {
 		return nil, nil
@@ -33,7 +33,7 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 // without them would hide its children from the collector.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Join the want for the block, adding it to the want list if new, and
-	// leave it on return; the last waiter removes it.
+	// leave it on return. The last waiter removes it.
 	refStr := r.ref.MarshalString()
 	r.c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		w := r.c.wants[refStr]

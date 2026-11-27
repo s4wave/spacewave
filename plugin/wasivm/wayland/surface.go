@@ -198,8 +198,8 @@ func (s *surface) commit() error {
 		s.c.send(newEvent(buf.id, bufferRelease))
 	}
 
-	// Apply the state, then send the pixels it changed, and the layout when
-	// it moved.
+	// Apply the state, then send the pixels the state changed, and the layout
+	// when the surface moved.
 	comp := s.c.comp
 	comp.update(func() {
 		// Note which tree the surface was in.

@@ -15,7 +15,7 @@ type ClaimLiveError struct {
 	LeaseExpiresAt time.Time
 }
 
-// Error names the live claim and when its lease expires.
+// Error identifies the live claim and when its lease expires.
 func (e *ClaimLiveError) Error() string {
 	return "execution claim " + e.ClaimID + " at epoch " + strconv.FormatUint(e.Epoch, 10) +
 		" is live until " + e.LeaseExpiresAt.Format(time.RFC3339Nano)

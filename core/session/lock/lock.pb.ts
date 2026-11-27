@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface LockConfig {
   /**
-   * ScryptN is the scrypt cost factor exponent; the work factor is 2^N.
+   * ScryptN is the scrypt cost factor exponent. The work factor is 2^N.
    */
   scryptN?: number
   /**

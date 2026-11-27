@@ -255,7 +255,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 			client, rootClient, cleanup := newRegisterSQLHarness(t, fake)
 			defer cleanup()
 
-			// Attempt SQL registration and retain its partial references for cleanup.
+			// Try SQL registration and retain its partial references for cleanup.
 			refs, err := registerSQL(context.Background(), client, rootClient)
 			defer func() {
 				for _, ref := range refs {
@@ -283,7 +283,7 @@ func TestSQLHandlerSeedSQLQuickstartFinishesPartialSeedAndKeepsEdits(t *testing.
 	}
 	defer tb.Release()
 
-	// Leave the database object an earlier run created before it failed,
+	// Leave the database object an earlier run created before the run failed,
 	// with an empty root and no type.
 	created, err := tb.WorldState.CreateObject(ctx, sqlQuickstartDBKey, nil)
 	world.ReleaseObjectState(created)

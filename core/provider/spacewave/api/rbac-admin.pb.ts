@@ -14,7 +14,7 @@ import { RbacRole } from '../../../rbac/rbac.pb.js'
 export interface RbacListRolesRequest {
   afterId?: string
   /**
-   * Defaults to 100; maximum 200.
+   * Limit defaults to 100 and has a maximum of 200.
    */
   limit?: number
 }
@@ -102,7 +102,7 @@ export const RbacDeleteRoleResponse: MessageType<RbacDeleteRoleResponse> =
   )
 
 /**
- * RbacGrantRecord includes historical grants; revocation never deletes a grant.
+ * RbacGrantRecord includes historical grants. Revocation never deletes a grant.
  *
  * @generated from message provider.spacewave.api.RbacGrantRecord
  */
@@ -145,7 +145,7 @@ export interface RbacListGrantsRequest {
   includeInactive?: boolean
   afterId?: string
   /**
-   * Defaults to 100; maximum 200.
+   * Limit defaults to 100 and has a maximum of 200.
    */
   limit?: number
 }

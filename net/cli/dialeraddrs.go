@@ -9,7 +9,7 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// parseDialerAddrs parses a dialer map from a string slice
+// parseDialerAddrs parses a dialer map from a string slice.
 func parseDialerAddrs(ss cli.StringSlice) (map[string]*dialer.DialerOpts, error) {
 	m := make(map[string]*dialer.DialerOpts)
 	for _, s := range ss.Value() {

@@ -48,8 +48,8 @@ func newReplayFixture(t *testing.T, maxPending int) *replayFixture {
 	return &replayFixture{t: t, a: a, collect: collect}
 }
 
-// entry returns a page named name, padded to at least size bytes, that names
-// children.
+// entry returns a page named name, padded to at least size bytes, that
+// references children.
 func (f *replayFixture) entry(name string, size int, children ...*block.BlockRef) *block.PutBatchEntry {
 	f.t.Helper()
 	data := []byte("replay " + name)
@@ -115,11 +115,12 @@ func (f *replayFixture) save() {
 
 // TestReplayStageHoldsUnsavedWorlds checks, on a Volume that frees at once
 // and an adapter that keeps no page in memory, that every page replay stores
-// survives collections until a cursor save that names its World lands: before
-// any save, and while a save due during another one is skipped, as after a
-// remount whose replay stores again the pages an earlier run stored. Once a
-// later save lands, a page only an unsaved World named is freed. It fails,
-// whatever the timing, when replay writes to the PendingStore directly.
+// survives collections until a cursor save that references its World lands:
+// before any save, and while a save due during another one is skipped, as
+// after a remount whose replay stores again the pages an earlier run stored.
+// Once a later save lands, a page only an unsaved World referenced is freed.
+// The test fails, whatever the timing, when replay writes to the PendingStore
+// directly.
 func TestReplayStageHoldsUnsavedWorlds(t *testing.T) {
 	f := newReplayFixture(t, 0)
 	a, ctx := f.a, t.Context()
@@ -143,8 +144,8 @@ func TestReplayStageHoldsUnsavedWorlds(t *testing.T) {
 	f.requireFound("a World whose save was skipped", first, dead, second, page)
 	a.cursorSaving.Store(false)
 
-	// A save of the second World lands; a World applied while it ran stays
-	// held by the next epoch.
+	// A save of the second World lands, and a World applied while the
+	// save ran stays held by the next epoch.
 	if err := a.saveCursor(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -155,8 +156,8 @@ func TestReplayStageHoldsUnsavedWorlds(t *testing.T) {
 	f.requireFound("the saved World", second, page)
 	f.requireFound("a World applied during a save", third)
 
-	// The next save lands too, and its root move releases the first epoch:
-	// the pages only the unsaved first World named are freed.
+	// The next save lands too, and its root move releases the first
+	// epoch: the pages only the unsaved first World referenced are freed.
 	f.save()
 	f.collect()
 	f.requireFound("a saved World", second, third, page)
@@ -166,12 +167,12 @@ func TestReplayStageHoldsUnsavedWorlds(t *testing.T) {
 }
 
 // TestReplayStageHoldsEarlyDrains checks that a replayed transaction's early
-// drain survives its transaction's end until a save of a World that names it
-// lands. The transaction writes as the World engine's buildWriteState and
-// commit do: through a buffer over a stage the replay store opens, whose
-// commit batch skips the drained page. A drain past the bound that went to a
-// stage of its own is freed once the transaction releases that stage, while
-// the unsaved World still names it.
+// drain survives its transaction's end until a save of a World that
+// references it lands. The transaction writes as the World engine's
+// buildWriteState and commit do: through a buffer over a stage the replay
+// store opens, whose commit batch skips the drained page. A drain past the
+// bound that went to a stage of its own is freed once the transaction
+// releases that stage, while the unsaved World still references it.
 func TestReplayStageHoldsEarlyDrains(t *testing.T) {
 	f := newReplayFixture(t, 1000)
 	ctx := t.Context()
@@ -187,7 +188,7 @@ func TestReplayStageHoldsEarlyDrains(t *testing.T) {
 	writes := block.NewBufferedStoreWithSettings(ctx, staged, &block.BufferedStoreSettings{RecordWrites: true})
 
 	// Write a page past the bound and drain it early, then the World that
-	// names it.
+	// references it.
 	drained := f.entry("drained page", 500)
 	if _, err := writes.PutBlockBatch(ctx, []*block.PutBatchEntry{drained}); err != nil {
 		t.Fatal(err)
@@ -230,12 +231,12 @@ func TestReplayStageHoldsEarlyDrains(t *testing.T) {
 
 // TestReplayStageFloorCoversReleasedEpoch checks that a save that is not
 // full, landing after a full save was skipped, leaves no World at or above
-// the floor naming a page it freed. The skipped full save moves the floor
-// below a World whose page went past the bound to the current epoch; the
-// later save ends that epoch, and the World above the floor then names a
-// freed page unless the floor moves past it. An acknowledgment a reorder puts
-// in place of the later World takes the World before it, so the floor must
-// cover it too.
+// the floor referencing a page it freed. The skipped full save moves the
+// floor below a World whose page went past the bound to the current epoch.
+// The later save ends that epoch, and the World above the floor then
+// references a freed page unless the floor moves past it. An acknowledgment a
+// reorder puts in place of the later World takes the World before it, so the
+// floor must cover it too.
 func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	f := newReplayFixture(t, 1000)
 	a, ctx := f.a, t.Context()

@@ -62,7 +62,7 @@ func BenchmarkOPFSRead(b *testing.B) {
 			}
 			defer ops.Close()
 
-			// Seed file with data.
+			// Seed the file with data.
 			data := bytes.Repeat([]byte{0x61}, size*b.N)
 			_, err = ops.Write(data)
 			if err != nil {
@@ -104,7 +104,7 @@ func BenchmarkOPFSRandomRead(b *testing.B) {
 			}
 			defer ops.Close()
 
-			// Seed file with b.N chunks.
+			// Seed the file with b.N chunks.
 			totalSize := size * b.N
 			if totalSize == 0 {
 				totalSize = size

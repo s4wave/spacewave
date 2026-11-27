@@ -21,7 +21,7 @@ export interface OrganizationsSectionProps {
   onNavigateToOrganization?: (orgId: string) => void
 }
 
-// OrganizationsSection shows a collapsible list of orgs with create button.
+// OrganizationsSection shows a collapsible list of orgs with a create button.
 export function OrganizationsSection({
   open,
   onOpenChange,
@@ -110,8 +110,9 @@ export function OrganizationsSection({
   )
 }
 
-// CreateOrganizationForm collects an organization name and creates it. It owns
-// the draft state, so closing the form discards the draft and any error.
+// CreateOrganizationForm collects an organization name and creates the
+// organization. It owns the draft state, so closing the form discards the
+// draft and any error.
 function CreateOrganizationForm({
   session,
   onClose,

@@ -15,19 +15,19 @@ import (
 
 // Controller implements the PluginHost controller.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// info contains the controller info
+	// info contains the controller info.
 	info *controller.Info
-	// host is the plugin host
+	// host is the plugin host.
 	host bldr_plugin_host.PluginHost
-	// hostRoot is the process-lifetime host resource root
+	// hostRoot is the process-lifetime host resource root.
 	hostRoot *plugin_host_root.Root
-	// releaseHostLogHook releases the bus-scoped host log hook reference
+	// releaseHostLogHook releases the bus-scoped host log hook reference.
 	releaseHostLogHook func()
-	// platformID is the host platform id
+	// platformID is the host platform id.
 	platformID string
 }
 
@@ -97,7 +97,7 @@ func (c *Controller) HandleDirective(
 func (c *Controller) resolveLookupPluginHost(
 	dir bldr_plugin_host.LookupPluginHost,
 ) (directive.Resolver, error) {
-	// check if we can immediately reject this directive
+	// check if the controller can immediately reject this directive
 	matchPlatformIDs := dir.LookupPluginHostPlatformIDs()
 	if len(matchPlatformIDs) != 0 {
 		if !slices.Contains(matchPlatformIDs, c.platformID) {

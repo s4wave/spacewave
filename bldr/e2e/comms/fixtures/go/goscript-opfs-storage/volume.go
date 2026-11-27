@@ -16,9 +16,11 @@ import (
 )
 
 const (
-	// opfsVolume names the browser volume the device selection puts on OPFS.
+	// opfsVolume identifies the browser volume the device selection puts
+	// on OPFS.
 	opfsVolume = "goscript-browser-volume-opfs"
-	// idbVolume names the browser volume kept in its existing IndexedDB database.
+	// idbVolume identifies the browser volume kept in its existing
+	// IndexedDB database.
 	idbVolume = "goscript-browser-volume-idb"
 	// volumeBlock is the block written before and read after the restart.
 	volumeBlock = "browser volume block"

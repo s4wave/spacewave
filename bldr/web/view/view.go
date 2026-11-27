@@ -41,7 +41,8 @@ type WebView interface {
 
 	// Remove shuts down the WebView and closes the window/tab if possible.
 	// Returns ErrWebViewPermanent if the view cannot be closed.
-	// Returns context.Canceled if ctx is canceled (but still processes the op)
+	// Returns context.Canceled if ctx is canceled
+	// (but still processes the op).
 	// Note: browser windows not created by CreateWebView cannot be closed.
 	Remove(ctx context.Context) error
 }

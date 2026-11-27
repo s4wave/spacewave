@@ -27,7 +27,7 @@ func CompareBlobs(ctx context.Context, bcs1, bcs2 *block.Cursor) (bool, error) {
 		return true, nil
 	}
 
-	// compare
+	// Compare the blob contents.
 	r1, err := NewReader(ctx, bcs1)
 	if err != nil {
 		return false, err

@@ -16,8 +16,9 @@ export interface PacketMessagePort {
 }
 
 // messagePortPacketStream speaks the Go MessagePort protocol: raw byte packets
-// and null for write EOF. Finishing one direction preserves the other; close
-// and abort release both directions, including pending reads and writes.
+// and null for write EOF. Finishing one direction preserves the other.
+// The close and abort methods release both directions, including pending reads
+// and writes.
 export function messagePortPacketStream(port: PacketMessagePort): PacketStream {
   let closed = false
   let readClosed = false

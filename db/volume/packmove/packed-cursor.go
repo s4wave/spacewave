@@ -23,8 +23,9 @@ const (
 
 // packedCursor reads the committed entries of a sequence of pack logs in key
 // order, to answer what the logs recorded for a key. Each log covers a key
-// range after the one before it, as the shards of one Pack run do. Lookups must come in key order; the
-// cursor moves forward only, so a pass over the log costs one sequential read.
+// range after the one before it, as the shards of one Pack run do. Lookups must
+// come in key order. The cursor moves forward only, so a pass over the log
+// costs one sequential read.
 type packedCursor struct {
 	// paths are the logs not yet opened.
 	paths []string

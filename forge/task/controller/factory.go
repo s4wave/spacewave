@@ -12,7 +12,7 @@ import (
 
 // Factory constructs a Task controller.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

@@ -13,19 +13,19 @@ import (
 
 // Dialer manages a transport dialer.
 type Dialer struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// tptDialer is the transport dialer.
 	tptDialer TransportDialer
-	// backoff is the dialer backoff
+	// backoff is the dialer backoff.
 	backoff bo.BackOff
-	// peerID is the peer id
+	// peerID is the peer id.
 	peerID peer.ID
-	// address is the dial address
+	// address is the dial address.
 	address string
 }
 
-// NewDialer constructs a new Dialer
+// NewDialer constructs a new Dialer.
 func NewDialer(
 	le *logrus.Entry,
 	tptDialer TransportDialer,

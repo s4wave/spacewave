@@ -48,8 +48,8 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
   const [initPath, setInitPath] = useState('')
 
   // List the published images, newest first, and the filesystems in this
-  // Space; the newest published image is the default choice. When the CDN is unreachable only
-  // the Space filesystems are listed.
+  // Space. The newest published image is the default choice. When the CDN
+  // is unreachable only the Space filesystems are listed.
   const rootResource = useRootResource()
   const cdnImages =
     useResource(
@@ -82,7 +82,8 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
 
   // Link the published image when one is chosen, before the write
   // transaction opens since the link reads the CDN and skips an image already
-  // linked; then create the VM and replace the wizard with it in one list.
+  // linked. Then create the VM and replace the wizard with the VM in one
+  // list.
   const finish = useWizardFinish(ws)
   const handleFinalize = useCallback(async () => {
     if (!state) return

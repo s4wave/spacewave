@@ -10,7 +10,7 @@ const HotKeyPrefix = "store-bench/"
 
 // LoadConfig shapes the synthetic server load a run drives.
 type LoadConfig struct {
-	// Label names the run in the report.
+	// Label identifies the run in the report.
 	Label string
 	// Watchers is the number of view watchers.
 	Watchers int
@@ -41,7 +41,8 @@ type LoadConfig struct {
 	// Seed seeds the key sampling and the view key choice.
 	Seed uint64
 	// ProfilePath is where the CPU profile of the measured load is written.
-	// Empty skips writing it; the report still attributes the CPU.
+	// An empty path skips writing the profile, but the report still
+	// attributes the CPU.
 	ProfilePath string
 	// AllocProfilePath is where the heap allocation profile is written at the
 	// end of the window, beside one taken at its start (with a .start suffix)
@@ -53,7 +54,7 @@ type LoadConfig struct {
 	// StallThreshold is how long a write runs before it counts as stalled.
 	StallThreshold time.Duration
 	// StallStacks also writes every goroutine's stack at each stall. Each
-	// dump stops the world, which lengthens the stall it records.
+	// dump stops the world and lengthens the stall it records.
 	StallStacks bool
 	// GCMark runs collection passes on the account volume back to back
 	// through the measured window, so every write overlaps a pass.

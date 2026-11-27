@@ -20,6 +20,6 @@ message WebPkgRef {
   // Imports is the list of paths that were imported from the web pkg.
   repeated string imports = 3;
   // CrossRefs is the list of other web pkgs that this pkg imports.
-  // NOTE: this is not filled unless ResolveWebPkgRefsEsbuild is called.
+  // NOTE: CrossRefs is filled only when ResolveWebPkgRefsEsbuild is called.
   repeated string cross_refs = 4;
 }

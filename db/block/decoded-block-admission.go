@@ -187,8 +187,8 @@ func raiseRemovalGeneration(slot *atomic.Uint64, gen uint64) {
 
 // RemovedSince reports whether a durable store may have removed ref after
 // DurableReadGeneration returned gen. A store that keeps a block's bytes in
-// memory past the read that found it checks this before answering from them,
-// as the pool does before serving an entry.
+// memory past the read that found it checks for removals before answering
+// from those bytes, as the pool does before serving an entry.
 func RemovedSince(ref *BlockRef, gen uint64) bool {
 	refKey, ok := decodedBlockCacheRefKey(ref)
 	return ok && removedSince(refKey, gen)
@@ -230,7 +230,7 @@ func decodedBlockRemovalStripe(digest string) BlockRemovalStripe {
 }
 
 // decodedBlockRefHash hashes a ref key with unseeded FNV-1a. Ref keys encode
-// content hashes, so it spreads them evenly; a collision only invalidates
+// content hashes, so the hash spreads them evenly. A collision only invalidates
 // more entries than needed.
 func decodedBlockRefHash(refKey string) uint64 {
 	h := uint64(14695981039346656037)
@@ -250,7 +250,7 @@ type blockReadMark struct {
 	// ref is the block being read. Durable marks for other refs are ignored.
 	ref *BlockRef
 	// batch holds the mark of each block of a batch read by its ref's
-	// string; nil for a read of one block.
+	// string. Nil for a read of one block.
 	batch map[string]*blockReadMark
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -316,7 +316,7 @@ func blockReadMarkFromContext(ctx context.Context) *blockReadMark {
 // MarkDurableRead records on ctx that a store served ref from a snapshot
 // opened after DurableReadGeneration returned gen. Only a store whose served
 // bytes are committed, or kept in memory as immutable pages, may call it, and
-// only for a block it found; a store that calls it must also report its
+// only for a block it found. A store that calls it must also report its
 // removals with InvalidateRemovedBlock, or, for a client of a remote store,
 // admit only to the reading transaction's private scope.
 func MarkDurableRead(ctx context.Context, ref *BlockRef, gen uint64) {
@@ -343,8 +343,8 @@ func (m *blockReadMark) markDurable(gen uint64) {
 // MarkStagedRead records on ctx that the block being read came from staged
 // content: a write buffer, a publication being prepared, or any other bytes
 // that are not yet durably stored. It vetoes admission even when a durable
-// store also marked the read. It names no block, so in a batch read it vetoes
-// the admission of every block of the batch.
+// store also marked the read. It specifies no block, so in a batch read it
+// vetoes the admission of every block of the batch.
 func MarkStagedRead(ctx context.Context) {
 	mark := blockReadMarkFromContext(ctx)
 	if mark == nil {
@@ -379,7 +379,7 @@ func (m *blockReadMark) adopt(from *blockReadMark) {
 	from.keep = nil
 	from.mtx.Unlock()
 
-	// Merge it into the read's own record.
+	// Merge the batch's record into the read's own record.
 	if durable {
 		m.markDurable(gen)
 	}

@@ -79,9 +79,9 @@ type SessionResource struct {
 	localPairing *localPairingState
 
 	// cdnMtx guards cdnRootChangedRelease. The session no longer owns the
-	// CDN SharedObject itself (that moved to core/resource/cdn.Registry);
-	// it only forwards cdn-root-changed notifications to the root singleton
-	// via a hook set by the enclosing mount path.
+	// CDN SharedObject itself (that moved to core/resource/cdn.Registry).
+	// The session only forwards cdn-root-changed notifications to the root
+	// singleton via a hook set by the enclosing mount path.
 	cdnMtx sync.Mutex
 	// cdnRootChangedRelease releases the provider-level subscription that
 	// forwards cdn-root-changed frames to the hook. nil when the session's
@@ -216,7 +216,7 @@ func (r *SessionResource) Close() {
 // upstream CDN root wake up the process-scoped singleton.
 //
 // No-op when the session's provider is not spacewave (local-only never
-// receives cdn-root-changed). Safe to call once per SessionResource; a
+// receives cdn-root-changed). Safe to call once per SessionResource. A
 // second call releases the second subscription so one remains.
 func (r *SessionResource) SetCdnRootChangedHook(hook func(spaceID string)) {
 	// Bind one Cloud account root-change callback to this SessionResource.
@@ -651,8 +651,9 @@ func (r *SessionResource) WatchResourcesList(
 	}()
 
 	// Project each list revision and stream its current index ObjectTypes.
-	// pendingInitial holds the workers whose first projection has not arrived;
-	// projection updates are held until every one has.
+	// pendingInitial holds the workers whose first projection has not
+	// arrived.
+	// Projection updates are held until every first projection has arrived.
 	pendingInitial := make(map[string]uint64)
 	for {
 		select {
@@ -1182,7 +1183,7 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 		}
 	}
 
-	// Build ObjectStore handle for session keys.
+	// Build an ObjectStore handle for session keys.
 	objStoreHandle, _, osRef, err := volume.ExBuildObjectStoreAPI(ctx, r.b, false, objectStoreID, vol.GetID(), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "build object store for session cleanup")
@@ -1251,10 +1252,11 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 	osRef.Release()
 	osReleased = true
 
-	// Remove all session list entries for this account first. This
-	// triggers background goroutine shutdown and releases their IDB
-	// connections, which is required before vol.Delete() can proceed
-	// (IndexedDB deleteDatabase blocks while connections remain open).
+	// Remove all session list entries for this account first. Removing the
+	// entries triggers background goroutine shutdown and releases the
+	// sessions' IDB connections. The shutdown and connection release are
+	// required before vol.Delete() can proceed (IndexedDB deleteDatabase
+	// blocks while connections remain open).
 	for _, entry := range accountSessions {
 		if err := sessionCtrl.DeleteSession(ctx, entry.GetSessionRef()); err != nil {
 			r.le.WithError(err).Warn("failed to delete session from list")
@@ -1553,7 +1555,7 @@ func (r *SessionResource) RemoveSpaceParticipants(
 	}
 	defer rel()
 
-	// Describe the cuts the request names; a dry run stops here.
+	// Describe the cuts the request selects. A dry run stops here.
 	admitThrough := req.GetAdmitThrough()
 	removing := make(map[string]struct{}, len(peerIDs))
 	for _, peerID := range peerIDs {
@@ -1588,7 +1590,7 @@ func (r *SessionResource) RemoveSpaceParticipants(
 		return &s4wave_session.RemoveSpaceParticipantsResponse{Cuts: cuts}, nil
 	}
 
-	// Remove them, or agree to remove them under group control.
+	// Remove the participants, or agree to remove them under group control.
 	removed, err := sobject.RemoveSOParticipantsThrough(ctx, ih.GetSOHost(), peerIDs, admitThrough, ih.GetPrivKey(), nil)
 	if errors.Is(err, sobject.ErrAwaitingGroup) {
 		return &s4wave_session.RemoveSpaceParticipantsResponse{AwaitingGroup: true, Cuts: cuts}, nil
@@ -1630,7 +1632,7 @@ func (r *SessionResource) RevokeSpaceInvite(
 }
 
 // ResolveSpaceJoinRequest grants or refuses a pending join request. A grant
-// admits the requester at the role of the invite it redeemed; the requester
+// admits the requester at the role of the invite it redeemed. The requester
 // receives its grant when it redeems the invite again.
 func (r *SessionResource) ResolveSpaceJoinRequest(
 	ctx context.Context,
@@ -1704,7 +1706,7 @@ func (r *SessionResource) WithdrawSpaceJoinRequest(
 
 // resolveCloudJoinRequest grants or refuses the request of peerID, which waits
 // as the peer's pending entries in the Space's mailbox. A grant accepts the
-// newest entry and rejects the earlier ones; a refusal rejects them all.
+// newest entry and rejects the earlier ones. A refusal rejects them all.
 func resolveCloudJoinRequest(ctx context.Context, acc *provider_spacewave.ProviderAccount, spaceID, peerID string, grant bool) error {
 	// Collect the peer's pending entries.
 	entries, err := acc.GetPendingMailboxEntriesCached(ctx, spaceID)

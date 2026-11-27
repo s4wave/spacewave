@@ -16,7 +16,7 @@ import (
 const PlacementReservationPredicate = "<forge/runtime/placement>"
 
 // RuntimeStopper stops one backend runtime by identity. The Forge runtime
-// backend owns the mechanics; admission owns the fence and the ledger.
+// backend owns the mechanics. Admission owns the fence and the ledger.
 // Implementations must be idempotent: stopping an already-gone runtime
 // returns true, nil.
 type RuntimeStopper interface {
@@ -29,7 +29,7 @@ type RuntimeStopper interface {
 //
 // Every reservation and capacity mutation applies inside one world write
 // transaction, so create-plus-debit and release-plus-credit are atomic even
-// across a crash. All mutations for one Worker serialize on a per-Worker lock;
+// across a crash. All mutations for one Worker serialize on a per-Worker lock.
 // World commits reject stale roots, so transaction-scoped placement mutations
 // also serialize with the Worker's admission owner without a second ledger.
 type WorldRuntimeAdmission struct {
@@ -41,7 +41,7 @@ type WorldRuntimeAdmission struct {
 	lease time.Duration
 	// ownerLease is the owner claim lease duration.
 	ownerLease time.Duration
-	// now returns the current time; overridable in tests.
+	// now returns the current time and can be overridden in tests.
 	now func() time.Time
 
 	mtx sync.Mutex
@@ -50,7 +50,7 @@ type WorldRuntimeAdmission struct {
 }
 
 // NewWorldRuntimeAdmission constructs a world-backed RuntimeAdmission.
-// A zero lease uses DefaultLeaseDuration; a zero ownerLease uses
+// A zero lease uses DefaultLeaseDuration. A zero ownerLease uses
 // DefaultOwnerLeaseDuration.
 func NewWorldRuntimeAdmission(eng world.Engine, stopper RuntimeStopper, lease, ownerLease time.Duration) *WorldRuntimeAdmission {
 	if lease == 0 {
@@ -79,7 +79,7 @@ func NewTxAdmission(now func() time.Time) *WorldRuntimeAdmission {
 	return a
 }
 
-// SetTimeNow overrides the clock; tests use this to drive expiry.
+// SetTimeNow overrides the clock. Tests use the clock override to drive expiry.
 func (a *WorldRuntimeAdmission) SetTimeNow(now func() time.Time) {
 	a.now = now
 }
@@ -123,7 +123,8 @@ func (a *WorldRuntimeAdmission) withTx(
 // loadOwnedCapacity loads the capacity record inside the transaction and
 // verifies the caller's ref and epoch against its durable claim. The record
 // must be owned by the same Device and claim with the current epoch and an
-// unexpired lease. This is the in-transaction half of every gated mutation.
+// unexpired lease. This check is the in-transaction half of every gated
+// mutation.
 func loadOwnedCapacity(
 	ctx context.Context,
 	ws world.WorldState,
@@ -173,8 +174,8 @@ func verifyLiveClaim(capacity *WorkerCapacity, ref WorkerClaimRef, now time.Time
 // ClaimWorkerCapacity claims or reclaims the Worker's capacity record for the
 // calling instance. An absent record is created with zero totals at an epoch
 // seeded from the claim time in Unix milliseconds, so a completed drain, which
-// deletes the record, never lets a later claim repeat an earlier epoch;
-// an expired lease is reclaimed with an epoch bump that preserves OwnerState
+// deletes the record, never lets a later claim repeat an earlier epoch.
+// An expired lease is reclaimed with an epoch bump that preserves OwnerState
 // so resumed drains stay draining. A live foreign
 // Device claim fails with ErrCapacityOwned. The same Device and claim id renew
 // idempotently without bumping the epoch.
@@ -235,9 +236,10 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 				// Idempotent renew: extend the lease in place.
 				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
 			} else {
-				// Reclaim: an expired lease or a new claim id on the same
-				// Device. Preserve OwnerState and observed totals;
-				// bump the epoch so stale instances fence out.
+				// Reclaim: an expired lease or a new claim id
+				// on the same Device. Preserve OwnerState and
+				// observed totals. Bump the epoch so stale
+				// instances fence out.
 				prevEpoch := capacity.OwnerEpoch
 				capacity.OwnerDeviceObjectKey = ref.DeviceObjectKey
 				capacity.ClaimId = ref.ClaimID
@@ -324,13 +326,13 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 }
 
 // ObserveWorker upserts the Worker's observed capacity totals and backends
-// under a live owner claim at the given epoch. Reserved debits are preserved;
-// every observation bumps the record generation and stamps ObservedAt.
-// Declared totals below current debits move the record to DRAINING until
-// credits land; fitting totals return it to ACTIVE. Empty backends are a
-// validation error: only BeginDrainCapacity empties the backend list. cards
-// lists the graphics cards the Worker offers; a reserved card missing from it
-// drains the record, as shrunk CPU does.
+// under a live owner claim at the given epoch. Reserved debits are preserved.
+// Every observation bumps the record generation and stamps ObservedAt. Declared
+// totals below current debits move the record to DRAINING until credits land.
+// Fitting totals return the record to ACTIVE. Empty backends are a validation
+// error: only BeginDrainCapacity empties the backend list. cards lists the
+// graphics cards the Worker offers. A reserved card missing from cards drains
+// the record, as shrunk CPU does.
 func (a *WorldRuntimeAdmission) ObserveWorker(
 	ctx context.Context,
 	workerObjectKey string,
@@ -393,7 +395,7 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 }
 
 // BeginDrainCapacity moves the record to DRAINING with empty backends under a
-// live claim at the given epoch. Reserved debits stay held; sweeps continue.
+// live claim at the given epoch. Reserved debits stay held. Sweeps continue.
 // Idempotent.
 func (a *WorldRuntimeAdmission) BeginDrainCapacity(
 	ctx context.Context,
@@ -500,7 +502,7 @@ func (a *WorldRuntimeAdmission) StopWorkerReservations(
 
 // CompleteDrainCapacity deletes a fully drained capacity record exactly once.
 // It requires the DRAINING state and no non-terminal reservation referencing
-// the Worker; the scan runs inside the same transaction as the deletion.
+// the Worker. The scan runs inside the same transaction as the deletion.
 func (a *WorldRuntimeAdmission) CompleteDrainCapacity(
 	ctx context.Context,
 	workerObjectKey string,
@@ -576,7 +578,7 @@ func (a *WorldRuntimeAdmission) ScanOwnedCapacity(
 }
 
 // Reserve implements RuntimeAdmission. Creation and the capacity debit apply
-// in one transaction; the idempotent return proves the debit by re-reading the
+// in one transaction. The idempotent return proves the debit by re-reading the
 // capacity record before returning.
 func (a *WorldRuntimeAdmission) Reserve(
 	ctx context.Context,
@@ -633,9 +635,9 @@ func (a *WorldRuntimeAdmission) reserve(
 	return out, nil
 }
 
-// ReserveInTx reserves capacity in the caller's World write transaction.
-// The caller discards on error and retries stale commits. A placement grant
-// lives until its edge is removed; a nil placement retains Forge's leased custody.
+// ReserveInTx reserves capacity in the caller's World write transaction. The
+// caller discards on error and retries stale commits. A placement grant lives
+// until its edge is removed. A nil placement retains Forge's leased custody.
 func (a *WorldRuntimeAdmission) ReserveInTx(
 	ctx context.Context, ws world.WorldState,
 	workerObjectKey, holderObjectKey string, request *ResourceRequest,
@@ -899,7 +901,8 @@ func (a *WorldRuntimeAdmission) RenewWorkerReservations(ctx context.Context, wor
 		return err
 	}
 
-	// Renew runtime leases; standing grants follow their placement edge instead.
+	// Renew runtime leases. Standing grants follow their placement edge
+	// instead.
 	for _, key := range keys {
 		res, err := a.LookupReservation(ctx, key)
 		if err != nil {
@@ -934,7 +937,7 @@ func (a *WorldRuntimeAdmission) LookupReservation(ctx context.Context, reservati
 // capacity atomically. A stale generation is rejected without touching the
 // current runtime or capacity: that call belongs to a replaced runtime
 // instance returning late. A crash between transition and finalize leaves the
-// reservation durably in the pending-stop state; ReconcilePendingStops
+// reservation durably in the pending-stop state. ReconcilePendingStops
 // finishes it with the same idempotent stopper.
 func (a *WorldRuntimeAdmission) StopAndRelease(
 	ctx context.Context,
@@ -952,7 +955,8 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 		return receipt, nil
 	}
 
-	// Stop outside the Worker lock; the stop may block on backend mechanics.
+	// Stop outside the Worker lock because the stop may block on backend
+	// mechanics.
 	runtimeStopped := true
 	if !res.Runtime.IsZero() {
 		stopped, err := a.stopRuntimeChecked(ctx, res.Runtime)
@@ -971,7 +975,7 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 // persists the explicitly partial receipt: RuntimeStopped=false because the
 // runtime outcome is unknown, CapacityReleased=false because the debit is
 // held until the stop confirms. After committing, the sweep attempts the stop
-// outside the Worker lock; confirmation finalizes the truthful terminal
+// outside the Worker lock. Confirmation finalizes the truthful terminal
 // receipt and credits the debit exactly once. Failure leaves the work to
 // ReconcilePendingStops. Post-expiry calls fenced against the old generation
 // are stale and cannot receive the terminal receipt.
@@ -1017,9 +1021,10 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClai
 		}
 		receipts = append(receipts, receipt)
 
-		// Best-effort immediate stop outside the Worker lock;
-		// ReconcilePendingStops retries later. When the stop confirms here,
-		// report the completed truthful receipt instead of the partial one.
+		// Best-effort immediate stop outside the Worker lock.
+		// ReconcilePendingStops retries later. When the stop confirms
+		// here, report the completed truthful receipt instead of the
+		// partial one.
 		done, err := a.reconcilePendingStop(ctx, ref, receipt.ReservationObjectKey)
 		if err == nil && done != nil {
 			receipts[len(receipts)-1] = done
@@ -1029,9 +1034,9 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClai
 }
 
 // claimLiveForWorker reports whether the Worker's capacity record carries the
-// caller's live claim. It is the entry check for sweeps; the in-transaction
+// caller's live claim. It is the entry check for sweeps. The in-transaction
 // recheck inside each mutation remains authoritative. Missing records are
-// simply not live; other read failures propagate to the caller.
+// not live. Other read failures propagate to the caller.
 func (a *WorldRuntimeAdmission) claimLiveForWorker(ctx context.Context, workerObjectKey string, ref WorkerClaimRef) (bool, error) {
 	var live bool
 	err := a.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
@@ -1152,9 +1157,9 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRe
 
 // beginStopLocked validates the generation and moves a live reservation into
 // the pending-stop state without touching capacity. Caller does not hold the
-// lock; the function takes it. Returns the fenced reservation with its Worker
-// key, or a non-nil receipt when the reservation already released for this
-// generation.
+// lock. The function takes the lock. Returns the fenced reservation with its
+// Worker key, or a non-nil receipt when the reservation already released for
+// this generation.
 func (a *WorldRuntimeAdmission) beginStopLocked(
 	ctx context.Context,
 	ref WorkerClaimRef,
@@ -1230,9 +1235,9 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 // fence generation must match the receipt generation. When the stop did not
 // confirm yet, the explicitly partial receipt (RuntimeStopped=false and
 // CapacityReleased=false) stays durable under the pending-stop state with the
-// debit held; reconciliation finishes it. When the stop confirms, the same
-// transaction records the terminal receipt and credits the debit exactly
-// once: only the released state releases capacity.
+// debit held. Reconciliation finishes the receipt. When the stop confirms,
+// the same transaction records the terminal receipt and credits the debit
+// exactly once: only the released state releases capacity.
 func (a *WorldRuntimeAdmission) finalizeStop(
 	ctx context.Context,
 	ref WorkerClaimRef,
@@ -1252,9 +1257,10 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
 		// Recheck the Worker claim after stopping the backend runtime.
 		if _, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, ownerEpoch, a.now()); err != nil {
-			// Claim turnover between stop and finalize: for sweep/reconcile
-			// this is a benign skip. The partial receipt and debit stay
-			// durable so the new owner's reconcile finishes the release.
+			// Claim turnover between stop and finalize: for
+			// sweep/reconcile the turnover is a benign skip. The
+			// partial receipt and debit stay durable so the new
+			// owner's reconcile finishes the release.
 			if benignOnFence && isClaimFenceError(err) {
 				return nil
 			}
@@ -1272,10 +1278,11 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 }
 
 // ReleaseInTx records confirmed cleanup and credits capacity exactly once in
-// the caller's transaction. Runtime custody must already be pending-stop; a
+// the caller's transaction. Runtime custody must already be pending-stop. A
 // placement grant has no Forge runtime and may release directly from reserved.
 // The caller verifies runtime ownership before stopping an Execution. Placement
-// removal may release after the Worker claim expired, since its edge is authority.
+// removal may release after the Worker claim expired, since its edge is
+// authority.
 func (a *WorldRuntimeAdmission) ReleaseInTx(
 	ctx context.Context, ws world.WorldState,
 	objKey, executionObjectKey, runtimeIdentity string, generation uint64,
@@ -1308,8 +1315,8 @@ func (a *WorldRuntimeAdmission) ReleaseInTx(
 
 	// Retain the partial cleanup receipt while the runtime stop is unconfirmed.
 	if !runtimeStopped {
-		// The stop did not confirm; keep the truthful partial receipt and
-		// hold the debit for reconciliation.
+		// The stop did not confirm, so keep the truthful partial
+		// receipt and hold the debit for reconciliation.
 		receipt := &CleanupReceipt{
 			ReservationObjectKey: objKey,
 			ExecutionObjectKey:   res.ExecutionObjectKey,

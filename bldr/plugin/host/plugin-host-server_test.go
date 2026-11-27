@@ -65,7 +65,7 @@ func TestPluginRpcMissingManifestFails(t *testing.T) {
 }
 
 // TestHostPluginBuildSelectionRefused checks no plugin selects a build of a
-// host plugin: a manifest root named in a PluginRpc component ID or a
+// host plugin: a manifest root referenced in a PluginRpc component ID or a
 // PluginFsRpc artifact ID is refused at once, at the scheduler's own key, at
 // the caller's Space key, and from a host plugin itself.
 func TestHostPluginBuildSelectionRefused(t *testing.T) {
@@ -114,9 +114,9 @@ func TestHostPluginBuildSelectionRefused(t *testing.T) {
 	}
 }
 
-// TestLoadPluginRefusesBorrowedPeer keeps a plugin from naming another peer
+// TestLoadPluginRefusesBorrowedPeer keeps a plugin from selecting another peer
 // whose approvals would admit the roots it asks to load: only a plugin the
-// scheduler trusts to run plugins on its hosts may name one.
+// scheduler trusts to run plugins on its hosts may select one.
 func TestLoadPluginRefusesBorrowedPeer(t *testing.T) {
 	// Bound the test and start a bus with no LoadPlugin resolver, so an
 	// accepted load answers not running once its directive goes idle.
@@ -156,14 +156,14 @@ func TestLoadPluginRefusesBorrowedPeer(t *testing.T) {
 		return err
 	}
 
-	// A plugin outside the trusted set that names a peer is refused.
+	// A plugin outside the trusted set that selects a peer is refused.
 	err = load("space-plugin", false, "session-peer")
 	if err == nil || !strings.Contains(err.Error(), "may not name the approving peer") {
 		t.Fatalf("untrusted caller naming a peer: %v, want refused", err)
 	}
 
-	// The same plugin naming no peer loads, as does a trusted plugin that
-	// forwards a session's load naming the session's peer.
+	// The same plugin selecting no peer loads, as does a trusted plugin
+	// that forwards a session's load selecting the session's peer.
 	if err := load("space-plugin", false, ""); err != nil {
 		t.Fatalf("untrusted caller naming no peer: %v", err)
 	}

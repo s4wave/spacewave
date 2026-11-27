@@ -145,10 +145,11 @@ func buildGitRemoteServeCommand() *cli.Command {
 
 // parseGitRemoteURL parses a spacewave://<space>/<object-key> URL, or the
 // session-qualified spacewave:///u/<n>/so/<space>/-/<object-key>. The session
-// index is zero when the URL names none. Git passes the address without the
-// scheme for the spacewave::<address> form.
+// index is zero when the URL specifies no session. Git passes the address
+// without the scheme for the spacewave::<address> form.
 func parseGitRemoteURL(url string) (fsURI, error) {
-	// Parse a session-qualified address as a Spacewave URI naming one object.
+	// Parse a session-qualified address as a Spacewave URI identifying
+	// one object.
 	addr := strings.TrimPrefix(url, gitRemoteURLPrefix)
 	if strings.HasPrefix(addr, "/u/") {
 		uri, err := parseFsURI(addr, "", 0)

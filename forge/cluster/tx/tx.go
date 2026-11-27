@@ -21,7 +21,7 @@ type Transaction interface {
 
 	// GetTxType returns the type of transaction this is.
 	GetTxType() TxType
-	// Validate performs a cursory check of the transaction.
+	// Validate checks the transaction cursorily.
 	// Note: this should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against the cluster instance.
@@ -37,7 +37,7 @@ type Transaction interface {
 	) error
 }
 
-// Validate checks the transaction (cursory checks only)
+// Validate checks the transaction (cursory checks only).
 func (t *Tx) Validate() error {
 	// Require a cluster object key before validating the transaction payload.
 	if len(t.GetClusterObjectKey()) == 0 {
@@ -74,7 +74,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// ByteSliceToTx converts a byte slice block a Tx.
+// ByteSliceToTx converts a byte slice block to a Tx.
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {

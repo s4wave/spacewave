@@ -731,7 +731,7 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 // TestSyncControllerExecuteDrainsPendingWorkOnStop pushes dirty blocks when
 // the mount releases before the checkpoint deadline.
 func TestSyncControllerExecuteDrainsPendingWorkOnStop(t *testing.T) {
-	// Count push requests; their result does not matter to the drain.
+	// Count push requests. Their result does not matter to the drain.
 	requests := make(chan struct{}, 4)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests <- struct{}{}
@@ -1097,8 +1097,8 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	// Count block reads; secondChunkLoaded closes once the packer has loaded
-	// the second chunk.
+	// Count block reads. secondChunkLoaded closes once the packer has
+	// loaded the second chunk.
 	const blockCount = 6
 	var getCount, firstPushGetCount atomic.Int64
 	secondChunkLoaded := make(chan struct{})
@@ -1977,7 +1977,8 @@ func TestSyncControllerPartialPassKeepsHeld(t *testing.T) {
 // TestSyncControllerWriteClearsPartialHold holds a block on a flush that
 // fails its first push, then writes the block sound. The write empties the
 // held set, so the store is not held and the status shows nothing held, and a
-// flush that fails again before finding anything leaves it so.
+// flush that fails again before finding anything leaves the store unheld and
+// the status showing nothing held.
 func TestSyncControllerWriteClearsPartialHold(t *testing.T) {
 	// Hold the dirty block on a failed flush.
 	ctx := t.Context()
@@ -2001,7 +2002,7 @@ func TestSyncControllerWriteClearsPartialHold(t *testing.T) {
 	}
 	wantHold(t, "after the write", s, nil, false)
 
-	// A flush that fails before finding anything keeps it not held.
+	// A flush that fails before finding anything keeps the store unheld.
 	if err := s.FlushNowUnordered(ctx); err == nil {
 		t.Fatal("failing flush succeeded")
 	}
@@ -2032,7 +2033,7 @@ func wantMarker(t *testing.T, stage string, s *syncController, upper *corruptSet
 // TestSyncControllerPartialPassDropsSoundHeld holds a block that has since
 // read sound, with its recheck due, and damages a block in the same first
 // chunk. The flush reads both, pushes and commits that chunk, then fails the
-// next push. The block it proved sound must not be counted as held; the
+// next push. The block it proved sound must not be counted as held. The
 // damaged block stays held, partial, with its marker and bytes.
 func TestSyncControllerPartialPassDropsSoundHeld(t *testing.T) {
 	// Hold the dirty block, sound on disk, with a recheck due, and damage the
@@ -2124,8 +2125,8 @@ func TestSyncControllerHeldMarkerSurvives(t *testing.T) {
 // TestSyncControllerFailedPushKeepsRecheck holds a block that a write has
 // since made sound, with its recheck pending, in a chunk after the first. A
 // flush that consumes the recheck and fails its first push stops before that
-// chunk; it must hand the recheck back so the next flush reads the block and
-// uploads it rather than holding it unread.
+// chunk. The flush must hand the recheck back so the next flush reads the block
+// and uploads it rather than holding it unread.
 func TestSyncControllerFailedPushKeepsRecheck(t *testing.T) {
 	// Queue the held block, sound on disk, known and due a recheck, behind
 	// the chunks. The flushes are unordered so it packs after the first chunk.

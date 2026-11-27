@@ -51,11 +51,11 @@ func SetColdPackReads(on bool) { coldPackReadsOff.Store(!on) }
 // a range-read capability, no main PackStore or mutable bucket catalog. It
 // belongs below the Flowgraph because a World must be readable to load one.
 // A mount loads one immutable manifest. The LRU, negative cache and gone
-// marks never outlive it; changing the manifest requires a new mount.
-// A pack may leave the bucket only after a new manifest no longer names it
+// marks never outlive the mount. Changing the manifest requires a new mount.
+// A pack may leave the bucket only after a new manifest no longer lists it
 // and all old mounts are gone, or after its live keys are adopted into the
 // main index and cold reads are off. An observed 404 immediately fences its
-// cached evidence; caches cannot detect a deletion they have not observed.
+// cached evidence. Caches cannot detect a deletion they have not observed.
 type ColdPackStore struct {
 	// le reports ignored cold errors.
 	le *logrus.Entry
@@ -63,7 +63,7 @@ type ColdPackStore struct {
 	client ColdPackRangeReader
 	// bucket owns the configured cold prefix.
 	bucket string
-	// opts names the immutable catalog and the dedicated promoted log.
+	// opts specifies the immutable catalog and the dedicated promoted log.
 	opts ColdPackOptions
 	// cancel ends both background workers.
 	cancel context.CancelFunc
@@ -118,7 +118,7 @@ func NewColdPackStore(ctx context.Context, le *logrus.Entry, client ColdPackRang
 		le = logrus.NewEntry(logrus.StandardLogger())
 	}
 
-	// Start the workers under the mount’s lifetime, not a read scope.
+	// Start the workers under the mount's lifetime, not a read scope.
 	ctx, cancel := context.WithCancel(ctx)
 	s := &ColdPackStore{
 		le: le, client: client, bucket: bucket, opts: opts, cancel: cancel,
@@ -248,7 +248,8 @@ func (s *ColdPackStore) preload(ctx context.Context) {
 		return
 	}
 
-	// Treat the promoted log as optional; its failure never invalidates tails.
+	// Treat the promoted log as optional because its failure never
+	// invalidates tails.
 	log, err := s.promotions.open(s.opts.ManifestFile, catalog)
 	if err != nil {
 		s.le.WithError(err).Warn("recover cold promoted log")
@@ -325,7 +326,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 	canonical := keySize == coldKeySize
 
 	// Bound user lookups end to end. A move can wait for a slot until its own
-	// context ends; its per-range I/O deadline starts only after admission.
+	// context ends. The move's per-range I/O deadline starts only after
+	// admission.
 	if mode != coldExists && mode != coldMoveBlock {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, coldReadLimit)
@@ -351,7 +353,7 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		}
 	}
 
-	// Keep the canonical wire key in caller scratch; retain any extension
+	// Keep the canonical wire key in caller scratch. Retain any extension
 	// fields rather than silently changing which key the bloom and index see.
 	var scratch [coldKeySize]byte
 	var key []byte
@@ -380,7 +382,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			return true
 		}
 
-		// A bloom hit locates evidence to check; it never proves membership.
+		// A bloom hit locates evidence to check but never proves
+		// membership.
 		s.stats.bloomProbes.Add(1)
 		if !catalog.packs[pack].filter.TestKey(bkey) {
 			return true
@@ -413,7 +416,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 			}
 		}
 
-		// Locate the full index key; only a bound pack can prove presence.
+		// Locate the full index key because only a bound pack can prove
+		// presence.
 		off, length, hit, err := tail.locate(key)
 		if err != nil {
 			s.warn(ctx, err, "search cold pack index tail")
@@ -448,7 +452,8 @@ func (s *ColdPackStore) lookup(ctx context.Context, ref *block.BlockRef, mode co
 		size, found = int64(len(stored.Data)), true
 
 		// The authenticated index chose this exact wire key. A full digest
-		// names that key only for the canonical encoding without extensions.
+		// identifies that key only for the canonical encoding without
+		// extensions.
 		if canonical {
 			s.promotions.offer(digest, extent, size)
 		}
@@ -475,7 +480,8 @@ func (s *ColdPackStore) readPromoted(
 	ctx context.Context, catalog *coldPackCatalog, ref *block.BlockRef,
 	mode coldLookupMode, digest [sha256.Size]byte, rec coldPromotion,
 ) (*block.StoredBlock, int64, bool) {
-	// The full-key lookup found this record; honor the mount's bucket fences.
+	// Honor the mount's bucket fences for the record the full-key lookup
+	// found.
 	pack := &catalog.packs[rec.extent.pack]
 	if pack.unusable() {
 		return nil, 0, false
@@ -581,7 +587,7 @@ const (
 
 // admitRange never queues a user read. A move must hold one of two move
 // reservations before it can queue for a shared permit. On cancellation it
-// keeps neither; lookup treats the interrupted read as unresolved.
+// keeps neither permit. lookup treats the interrupted read as unresolved.
 func (s *ColdPackStore) admitRange(ctx context.Context, lane coldRangeLane) error {
 	// Reserve a move's share before joining the shared range lane.
 	if lane == coldMoveRange {

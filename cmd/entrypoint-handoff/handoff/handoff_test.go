@@ -135,7 +135,7 @@ func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
 		t.Skipf("symlink unavailable: %v", err)
 	}
 
-	// Attempt to write the entrypoint handoff containing the symlink.
+	// Try to write the entrypoint handoff containing the symlink.
 	err := WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 		RootDir:            root,
 		BrowserStagingDir:  filepath.Join(root, "browser-staging"),

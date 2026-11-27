@@ -39,7 +39,8 @@ func (e *errIterator) Value() ([]byte, error) {
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
-// If the slice is not big enough (cap), it must create a new one and return it.
+// If the slice is not big enough (cap), ValueCopy must create a new slice and
+// return it.
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (e *errIterator) ValueCopy([]byte) ([]byte, error) {

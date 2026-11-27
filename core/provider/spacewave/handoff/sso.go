@@ -23,6 +23,8 @@ import (
 )
 
 // deviceEncryptInfo is the HKDF info string matching the TS implementation.
+// deviceEncryptedKeyMaxLen caps, in bytes, the device-encrypted key envelope
+// and ciphertext that decryption accepts.
 const (
 	deviceEncryptInfo        = "spacewave-desktop-sso-v1"
 	deviceEncryptedKeyMaxLen = 1024 * 1024
@@ -72,14 +74,14 @@ func StartSSOHandoff(
 		cleanupSession()
 	}()
 
-	// 1. Generate ephemeral X25519 keypair.
+	// 1. Generate an ephemeral X25519 keypair.
 	x25519Priv, err := ecdh.X25519().GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, nil, "", errors.Wrap(err, "generate X25519 keypair")
 	}
 	x25519PubRaw := x25519Priv.PublicKey().Bytes()
 
-	// 2. POST /auth/sso/start with provider and device public key.
+	// 2. POST /auth/sso/start with the provider and device public key.
 	startReq := &api.DesktopSSOStartRequest{
 		Provider:        provider,
 		DevicePublicKey: x25519PubRaw,
@@ -133,12 +135,12 @@ func StartSSOHandoff(
 		cleanupAuthSession(httpCli, endpoint, nonce, wsTicket)
 	}
 
-	// 3. Connect WebSocket for result relay.
+	// 3. Connect the WebSocket for the result relay.
 	wsURL := strings.Replace(endpoint, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
 	wsURL += "/api/auth/session/ws?tk=" + wsTicket
 
-	// 4. Open system browser to SSO entry URL.
+	// 4. Open the system browser to the SSO entry URL.
 	allowedHosts := ssoProviderHosts[provider]
 	if len(allowedHosts) == 0 {
 		return nil, nil, "", errors.Errorf("unsupported sso provider %q", provider)
@@ -147,7 +149,8 @@ func StartSSOHandoff(
 		return nil, nil, "", errors.Wrap(openErr, "open browser for SSO")
 	}
 
-	// 5. Wait for SSO result via WS, falling back to HTTP exchange on read error.
+	// 5. Wait for the SSO result via WS, falling back to HTTP exchange on a
+	// read error.
 	// WS and HTTP both converge into the local SSOResult.
 	var resultPtr *SSOResult
 	for attempts := 0; ; attempts++ {
@@ -220,7 +223,8 @@ func StartSSOHandoff(
 		return &result, entityKeyPEM, nonce, nil
 	}
 
-	// If linked but not device-encrypted (no pubkey stored), return raw blob.
+	// If linked but not device-encrypted (no pubkey stored), return the raw
+	// blob.
 	if result.Linked && result.EncryptedBlob != "" {
 		blob, decErr := base64.StdEncoding.DecodeString(result.EncryptedBlob)
 		if decErr != nil {
@@ -230,7 +234,7 @@ func StartSSOHandoff(
 		return &result, blob, nonce, nil
 	}
 
-	// Not linked (new user) - return result without entity key.
+	// Not linked (new user): return the result without the entity key.
 	cleanupSession = func() {}
 	return &result, nil, nonce, nil
 }

@@ -29,7 +29,7 @@ type staticUDP struct {
 }
 
 // listedUDPPeers collects the static UDP address of each peer the listed
-// objects name. An unparsable peer ID is skipped.
+// objects list. An unparsable peer ID is skipped.
 func (a *ProviderAccount) listedUDPPeers(list *sobject.SharedObjectList) map[peer.ID]string {
 	var peers map[peer.ID]string
 	for _, entry := range list.GetSharedObjects() {

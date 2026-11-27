@@ -54,7 +54,7 @@ func (o *subManifestBuildOwner) setManifestConfig(
 	// Update the builder state and reject a changed configuration after a resolved value.
 	_, changed, _, _ := o.builderRoutine.SetState(manifestConf)
 	if changed && o.observed && (o.result != nil || o.resultErr != nil) {
-		// don't allow this, could cause infinite loops
+		// Reject a changed configuration to avoid infinite loops.
 		return nil, errors.New("called BuildSubManifest with different configuration after a value was already resolved")
 	}
 

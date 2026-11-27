@@ -172,7 +172,7 @@ func TestCloudSyncStatusUploadLifecycle(t *testing.T) {
 // pending work until the session reads synced with no error. The session's
 // own Space publishes its state on the checkpoint interval, which is longer
 // than the test waits. The watch sends only changes, so the caller passes the
-// last status it read, or nil before the first.
+// last status it read, or nil before the first status.
 func waitSyncStatusSynced(
 	ctx context.Context,
 	t *testing.T,

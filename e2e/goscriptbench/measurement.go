@@ -6,11 +6,11 @@ import "github.com/pkg/errors"
 
 // Measurement groups one sample with evidence captured in the same window.
 type Measurement struct {
-	// sample is the browser-local timing row
+	// Sample is the browser-local timing row.
 	Sample Sample
-	// runtimeTrace is present only for the traced diagnostic
+	// RuntimeTrace is present only for the traced diagnostic.
 	RuntimeTrace []byte
-	// browserCPUProfile is optional Chromium-only diagnostic evidence
+	// BrowserCPUProfile is optional Chromium-only diagnostic evidence.
 	BrowserCPUProfile []byte
 }
 

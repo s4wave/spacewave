@@ -19,8 +19,8 @@ import (
 // five minutes until a measured boot sets it.
 var trialDeadline = 5 * time.Minute
 
-// daemonReady names the file the daemon rewrites in its state directory once
-// its listener serves, as core/daemon's PublishReady describes.
+// daemonReady holds the name of the file the daemon rewrites in its state
+// directory once its listener serves, as core/daemon's PublishReady describes.
 const daemonReady = "spacewave.sock.ready"
 
 // Stop is how a console run ends.
@@ -66,7 +66,7 @@ func newTrialRun(accept []string) *trialRun {
 
 // expire ends a trial past its deadline. Under the console's loop it asks for
 // the ordered reboot. Before that a boot step may never return, so it syncs
-// and restarts the machine at once, as a power cut would; every store
+// and restarts the machine at once, as a power cut would. Every store
 // survives a power cut, and the next boot rolls back.
 func (t *trialRun) expire() {
 	if t.supervised.Load() {
@@ -132,13 +132,13 @@ func (t *trialRun) deadlineC() <-chan struct{} {
 }
 
 // startAccept starts the child that accepts the healthy trial. The console's
-// Wait4 loop reaps it; the deadline stays armed until it exits, so an accept
+// Wait4 loop reaps it. The deadline stays armed until it exits, so an accept
 // that hangs still reboots.
 func (t *trialRun) startAccept(executable string, tty *os.File) error {
-	// Health is reached once; stop waiting for it.
+	// Health is reached once. Stop waiting for it.
 	t.healthy = nil
 
-	// The child writes the accepted revision; release only Go's handle.
+	// The child writes the accepted revision. Release only Go's handle.
 	process, err := os.StartProcess(executable, append([]string{executable}, t.accept...), &os.ProcAttr{
 		Dir: "/", Files: []*os.File{tty, tty, tty},
 	})
@@ -167,7 +167,7 @@ func (t *trialRun) accepted(status unix.WaitStatus) error {
 	return nil
 }
 
-// close ends the deadline; a nil trialRun has none.
+// close ends the deadline. A nil trialRun has none.
 func (t *trialRun) close() {
 	if t == nil {
 		return
@@ -192,8 +192,8 @@ func watchWritten(dir, name string) (<-chan struct{}, func(), error) {
 		return nil, nil, errors.Join(err, file.Close())
 	}
 
-	// Close written on the first event for name; a closed descriptor ends
-	// the reader without closing it.
+	// Close written on the first event for name. A closed descriptor ends
+	// the reader without closing written.
 	written := make(chan struct{})
 	go func() {
 		buf := make([]byte, 4096)

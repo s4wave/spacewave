@@ -11,9 +11,9 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
-// SelectorMaxAge is the seconds a fetched selector may be cached. Launchers
-// polling an endpoint see a new release within a minute; connected clients
-// receive it at once through Forward.
+// SelectorMaxAge is the number of seconds a fetched selector may be cached.
+// Launchers polling an endpoint see a new release within a minute. Connected
+// clients receive it at once through Forward.
 const SelectorMaxAge = 60
 
 // Selector holds a Deployment's newest signed DistConfig. It serves the
@@ -50,8 +50,8 @@ func (s *Selector) SetReleased(r *Released) bool {
 	return s.Set(r.DistConfig.GetRev(), r.Signed)
 }
 
-// Get returns the current control revision and signed selector, or zero and
-// empty before the first Set.
+// Get returns the current control revision and signed selector, or zero and an
+// empty string before the first Set.
 func (s *Selector) Get() (uint64, string) {
 	var rev uint64
 	var signed string
@@ -89,9 +89,8 @@ func (s *Selector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Forward sends the current selector, then each newer one, to one connected
-// client until ctx ends or send fails. A server runs it per client
-// connection; the client hands each message to its launcher with
-// PushToLauncher.
+// client until ctx ends or send fails. A server runs it per client connection.
+// The client hands each message to its launcher with PushToLauncher.
 func (s *Selector) Forward(ctx context.Context, send func(ctx context.Context, signed string) error) error {
 	var sent uint64
 	for {
@@ -123,8 +122,8 @@ func (s *Selector) Forward(ctx context.Context, send func(ctx context.Context, s
 // PushToLauncher returns a send function for Forward that pushes each signed
 // selector to the launcher on the client's bus b. The launcher verifies the
 // selector as it would a fetched one and adopts it only when its revision is
-// higher, so a stale or badly signed selector changes nothing; a bad
-// signature or channel returns its error.
+// higher, so a stale or badly signed selector changes nothing. A bad signature
+// or channel returns its error.
 func PushToLauncher(b bus.Bus) func(ctx context.Context, signed string) error {
 	return func(ctx context.Context, signed string) error {
 		_, err := spacewave_launcher.ExPushDistConfigMsg(ctx, b, signed)

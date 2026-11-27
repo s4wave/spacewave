@@ -46,10 +46,11 @@ type EngineTx struct {
 	// operation is the encoded World operation batch a recording
 	// transaction proposes as its Candidate's Operation, set before Commit.
 	operation []byte
-	// recordedRoots are the roots operation names as payloads, set with it.
+	// recordedRoots are the roots operation references as payloads, set with
+	// operation.
 	// The commit keeps each beside the blocks its new root reaches, so a root
 	// the batch set and then replaced or deleted, or a payload the World does
-	// not reach, is still stored with the operation that names it.
+	// not reach, is still stored with the operation that references it.
 	recordedRoots []*block.BlockRef
 	// turn is the Authority's write turn, held from the open until the commit
 	// is decided or the transaction is discarded. Moved out under the Engine

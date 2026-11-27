@@ -35,7 +35,7 @@ import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
 import { SessionFrame } from './SessionFrame.js'
 
 // CDN_SPACE_DISPLAY_NAME is the label shown for the process-scoped CDN Space
-// on the session dashboard. The CDN SharedObject has no user-facing name;
+// on the session dashboard. The CDN SharedObject has no user-facing name, so
 // dashboards render a fixed label.
 const CDN_SPACE_DISPLAY_NAME = 'Spacewave CDN'
 
@@ -99,7 +99,7 @@ export function SessionDashboardContainer() {
   const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
 
   // cdnSpaceIdResource resolves the process-scoped default CDN Space ULID.
-  // The Cdn handle is released on unmount via the cleanup register; the
+  // The Cdn handle is released on unmount via the cleanup register. The
   // underlying CdnInstance is owned by the server-side process registry and
   // outlives the handle. Returning just the ULID keeps the dashboard layer
   // free of CDN resource plumbing.

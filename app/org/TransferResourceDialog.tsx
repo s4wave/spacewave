@@ -6,8 +6,8 @@ import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListCo
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
 // TransferResourceDialog lets the user transfer a space between personal
-// (their own account) and an organization. Personal target is encoded as the
-// caller's own accountId under the typed principal model.
+// (their own account) and an organization. The personal target is encoded as
+// the caller's own accountId under the typed principal model.
 export function TransferResourceDialog(props: {
   resourceId: string
   currentOwnerType: string
@@ -26,8 +26,8 @@ export function TransferResourceDialog(props: {
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
   const organizations = orgListCtx?.organizations ?? []
 
-  // Empty string in the select means "Personal" -> account principal targeting
-  // the caller's own account.
+  // An empty string in the select means "Personal" -> an account principal
+  // targeting the caller's own account.
   const [targetOrgId, setTargetOrgId] = useState('')
   const [transferring, setTransferring] = useState(false)
   const [error, setError] = useState<string | null>(null)

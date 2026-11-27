@@ -22,7 +22,7 @@ type LookupBlockStore interface {
 // Multiple results may be pushed to the directive.
 type LookupBlockStoreValue = Store
 
-// lookupBlockStore implements LookupBlockStore
+// lookupBlockStore implements LookupBlockStore.
 type lookupBlockStore struct {
 	blockStoreId string
 }
@@ -50,7 +50,7 @@ func ExLookupBlockStores(
 }
 
 // ExLookupFirstBlockStore waits for the first block store to be returned.
-// if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil,
+// if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil.
 func ExLookupFirstBlockStore(
 	ctx context.Context,
 	b bus.Bus,
@@ -73,7 +73,7 @@ func (d *lookupBlockStore) Validate() error {
 	return nil
 }
 
-// GetValueLookupBlockStoreOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupBlockStore) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Millisecond * 250,
@@ -114,7 +114,7 @@ func (d *lookupBlockStore) GetName() string {
 	return "LookupBlockStore"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupBlockStore) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if id := d.LookupBlockStoreId(); id != "" {

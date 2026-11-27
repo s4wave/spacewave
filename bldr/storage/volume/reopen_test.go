@@ -20,7 +20,7 @@ import (
 )
 
 // reopenTimeout bounds the second open. The loader retry becomes ready within
-// this window; a caller holding the failed controller waits out the context.
+// this window. A caller holding the failed controller waits out the context.
 const reopenTimeout = 4 * time.Second
 
 // openInProcessHook reports the first log entry for an in-process database open.

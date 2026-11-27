@@ -8,11 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// PolicyStore stores the current daemon-local Device policy and broadcasts reloads.
+// PolicyStore stores the current daemon-local Device policy and broadcasts
+// reloads.
 //
 // The zero value holds the empty policy, which grants nothing, until Load
-// names its state root. The process creates one store before it parses its
-// flags, so the controllers it composes and the serve command share it; serve
+// records its state root. The process creates one store before it parses its
+// flags, so the controllers it composes and the serve command share it. Serve
 // loads it before it starts the bus.
 type PolicyStore struct {
 	// bcast guards stateRoot and policy and wakes watchers after every load.
@@ -31,7 +32,7 @@ func NewPolicyStore(stateRoot string) (*PolicyStore, error) {
 }
 
 // Load reads the policy file under stateRoot, makes it the current policy,
-// and names stateRoot for later reloads.
+// and records stateRoot for later reloads.
 func (s *PolicyStore) Load(stateRoot string) error {
 	policy, err := ReadFile(stateRoot)
 	if err != nil {
@@ -71,7 +72,8 @@ func (s *PolicyStore) PermitsSecretPlugin(spaceID, pluginID string) bool {
 	return permits
 }
 
-// Reload rereads the policy file Load named and broadcasts the new current value.
+// Reload rereads the policy file Load selected and broadcasts the new current
+// value.
 func (s *PolicyStore) Reload() error {
 	var stateRoot string
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

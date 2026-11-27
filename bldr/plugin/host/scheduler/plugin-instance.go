@@ -17,17 +17,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// pluginInstance manages a running plugin instance
+// pluginInstance manages a running plugin instance.
 //
-// downloadManifestRoutine: given a manifest from FetchManifest, downloads + stores in the world.
-// watchWorldManifestRoutine: watches the world for the latest manifest for the plugin.
-// executePluginRoutine: with a ManifestSnapshot from watchWorldManifestRoutine, executes the plugin.
+// downloadManifestRoutine: given a manifest from FetchManifest, downloads +
+// stores in the world.
+// watchWorldManifestRoutine: watches the world for the latest manifest for the
+// plugin.
+// executePluginRoutine: with a ManifestSnapshot from watchWorldManifestRoutine,
+// executes the plugin.
 type pluginInstance struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// pluginID is the plugin id
+	// pluginID is the plugin id.
 	pluginID string
 	// instanceKey is the instance key (empty for shared instances).
 	instanceKey string
@@ -54,16 +57,17 @@ type pluginInstance struct {
 	executions *keyed.KeyedRefCount[executionReference, *pluginInstance]
 	// activeExecution is the admitted worker, protected by pluginUpdateMtx.
 	activeExecution *pluginInstance
-	// activeArgs is the candidate the admitted worker runs, and activeReadyAt
-	// when it finished startup, zero until then; both protected by
-	// pluginUpdateMtx.
+	// activeArgs and activeReadyAt record the candidate the admitted worker
+	// runs and when the worker finished startup, zero until then. Both are
+	// protected by pluginUpdateMtx.
 	activeArgs    *executePluginArgs
 	activeReadyAt time.Time
 	// releaseExecution retains the admitted worker through candidate changes.
 	releaseExecution func()
 	// executionsClosed prevents a finishing candidate from publishing after shutdown.
 	executionsClosed bool
-	// loggedNotFound indicates if we logged no manifests were found
+	// loggedNotFound indicates if the scheduler logged that no manifests
+	// were found.
 	loggedNotFound atomic.Bool
 	// manifestCopyAccounting owns demand and copy counters for the selected candidate.
 	manifestCopyAccounting atomic.Pointer[manifestCopyAccounting]
@@ -71,7 +75,7 @@ type pluginInstance struct {
 	// watchWorldManifestRoutine.
 	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
 	// bucketMounts wakes the running World manifest watch when a bucket an
-	// unreadable candidate names mounts. Nil while no watch runs.
+	// unreadable candidate references mounts. Nil while no watch runs.
 	bucketMounts atomic.Pointer[bucketMountWake]
 	// announcedManifests holds the manifest keys FetchManifest offered when it
 	// last went idle, or nil before it first went idle.
@@ -86,15 +90,16 @@ type pluginInstance struct {
 	// startupWaitBudgetTimer holds the armed startup wait budget deadline.
 	startupWaitBudgetTimer atomic.Pointer[time.Timer]
 
-	// runningPluginCtr contains the running plugin ref
+	// runningPluginCtr contains the running plugin ref.
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
 	// pluginLoadStateCtr atomically tracks the RPC client and initial
 	// capability-registration state.
 	pluginLoadStateCtr *ccontainer.CContainer[bldr_plugin.PluginLoadState]
 
-	// distAccess owns the lifetime of the plugin dist fs access provider
+	// distAccess owns the lifetime of the plugin dist fs access provider.
 	distAccess *unixfs_access.RotatingAccess
-	// assetsAccess owns the lifetime of the plugin assets fs access provider
+	// assetsAccess owns the lifetime of the plugin assets fs access
+	// provider.
 	assetsAccess *unixfs_access.RotatingAccess
 
 	// fetchWorldManifestRoutine calls FetchManifest and stores the results to the world.
@@ -103,8 +108,9 @@ type pluginInstance struct {
 	// watchWorldManifestRoutine watches the world for the latest manifest for the plugin.
 	watchWorldManifestRoutine *routine.StateRoutineContainer[*pluginHostSet]
 
-	// downloadManifestRoutine is the routine to download the contents of a manifest to a local bucket
-	// this routine only runs if watchWorldManifestRoutine triggers it.
+	// downloadManifestRoutine downloads the contents of a manifest to a
+	// local bucket. This routine only runs if watchWorldManifestRoutine
+	// triggers it.
 	downloadManifestRoutine *routine.StateRoutineContainer[*bldr_manifest.ManifestSnapshot]
 	// manifestCopyStatus exposes this instance's copy class for tests and diagnostics.
 	manifestCopyStatus *ccontainer.CContainer[*manifestCopyStatus]

@@ -121,7 +121,7 @@ func TestPackedStoreHeldWaitsDurable(t *testing.T) {
 			case <-time.After(300 * time.Millisecond):
 			}
 
-			// Answer the sync; both puts end.
+			// Answer the sync, so both puts end.
 			gate.answer <- tc.answer
 			results := make([]putResult, 2)
 			for i, ch := range []<-chan putResult{first, second} {

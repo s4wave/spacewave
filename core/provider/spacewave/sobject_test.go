@@ -50,7 +50,8 @@ func TestListSharedObjects_Success(t *testing.T) {
 	}
 }
 
-// TestListSharedObjects_ServerError verifies ListSharedObjects returns error on failure.
+// TestListSharedObjects_ServerError verifies ListSharedObjects returns an error
+// on failure.
 func TestListSharedObjects_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
@@ -116,7 +117,7 @@ func TestSObjectWritesAreSigned(t *testing.T) {
 	}
 }
 
-// TestPostOp_ServerError verifies PostOp returns error on server failure.
+// TestPostOp_ServerError verifies PostOp returns an error on server failure.
 func TestPostOp_ServerError(t *testing.T) {
 	// Serve every request with a 500.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -134,8 +135,8 @@ func TestPostOp_ServerError(t *testing.T) {
 	}
 }
 
-// TestCreateSharedObject_Success verifies CreateSharedObject sends the current
-// binary request contract to the correct path.
+// TestCreateSharedObject_Success verifies CreateSharedObject sends the binary
+// request contract to the correct path.
 func TestCreateSharedObject_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -180,7 +181,8 @@ func TestCreateSharedObject_Success(t *testing.T) {
 	}
 }
 
-// TestCreateSharedObject_ServerError verifies CreateSharedObject returns error on failure.
+// TestCreateSharedObject_ServerError verifies CreateSharedObject returns an
+// error on failure.
 func TestCreateSharedObject_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -609,7 +611,7 @@ func TestGetSOState_Success(t *testing.T) {
 	}
 }
 
-// TestGetSOState_ServerError verifies GetSOState returns error on failure.
+// TestGetSOState_ServerError verifies GetSOState returns an error on failure.
 func TestGetSOState_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

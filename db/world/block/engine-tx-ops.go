@@ -36,7 +36,8 @@ func (e *EngineTx) StageWorldState(ctx context.Context) (world.WorldStage, error
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
+// If the ref is empty, AccessWorldState returns an empty cursor in the
+// same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
 func (e *EngineTx) AccessWorldState(
 	ctx context.Context,
@@ -65,7 +66,7 @@ func (e *EngineTx) AccessWorldState(
 // ApplyWorldOp applies a batch operation at the world level.
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
-// If nil is returned for the error, implies success.
+// If nil is returned for the error, the operation succeeded.
 func (e *EngineTx) ApplyWorldOp(
 	ctx context.Context,
 	op world.Operation,
@@ -313,8 +314,8 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 		return err
 	}
 
-	// Swap the reader under snapMu, which a concurrent Discard detaches it
-	// under, unless that Discard already ran.
+	// Swap the reader under snapMu, the lock a concurrent Discard uses to
+	// detach the reader, unless that Discard already ran.
 	e.engine.snapMu.Lock()
 	if _, ok := e.engine.snapshotTxs[e]; !ok || e.readTx.Load() != previous {
 		e.engine.snapMu.Unlock()

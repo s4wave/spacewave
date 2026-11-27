@@ -155,14 +155,14 @@ export interface Config {
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
-   * This will be included in the plugin binary.
+   * The ConfigSet will be included in the plugin binary.
    * Merged with the plugin compiler ConfigSet field.
    */
   configSet?: { [key: string]: ControllerConfig }
   /**
    * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
    * This ConfigSet is applied to the plugin host bus.
-   * This will be included in the plugin binary.
+   * The HostConfigSet will be included in the plugin binary.
    * Adds a config to configSet with ID bldr/plugin/host/configset
    * Merged with the plugin compiler HostConfigSet field.
    */
@@ -183,11 +183,15 @@ export interface Config {
    */
   goscriptDeferredFunctions?: string[]
   /**
-   * WebPkgs is the list of web packages to externalize and include in the bundle.
+   * WebPkgs is the list of web packages to externalize and include in the
+   * bundle.
    *
-   * Externalized web packages (npm modules) are imported separately from the web bundle.
-   * They will be deduplicated such that a single version is imported at a time by the app.
-   * This is useful for packages that require a single instance per WebDocument.
+   * Externalized web packages (npm modules) are imported separately from
+   * the web bundle.
+   * They will be deduplicated such that a single version is imported at a
+   * time by the app.
+   * Deduplication is useful for packages that require a single instance
+   * per WebDocument.
    *
    * On default only the imports referenced by the plugin will be compiled in.
    * Everything else will be tree-shaken away to lower bundle size.
@@ -196,7 +200,8 @@ export interface Config {
    * These packages will be available with the LookupWebPkg directive.
    * They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
    *
-   * Note: only files & entrypoints imported by at least one js file will be included.
+   * Note: only files & entrypoints imported by at least one js file will
+   * be included.
    */
   webPkgs?: WebPkgRefConfig[]
   /**
@@ -213,16 +218,17 @@ export interface Config {
   /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
-   * You can also override config ID "rpc-fetch" in the config-set.
+   * The caller can also override config ID "rpc-fetch" in the config-set.
    * This service is used for the ServiceWorker HTTP calls.
    */
   disableRpcFetch?: boolean
   /**
    * DelveAddr is the address to listen for Delve remote connections.
-   * If the build mode is dev and this is set, uses delve to run the plugin.
+   * If the build mode is dev and DelveAddr is set, uses delve to run the
+   * plugin.
    * Ignored if build mode is not dev.
    * Allowed characters: [Z-a0-9.:]
-   * Special value: "wait" - waits for plugin entrypoint to be run manually.
+   * Special value: "wait", waits for plugin entrypoint to be run manually.
    * Example: ":5000"
    */
   delveAddr?: string
@@ -241,9 +247,10 @@ export interface Config {
    */
   goCompiler?: GoCompiler
   /**
-   * EnableCompression can optionally force-enable or force-disable binary compression.
+   * EnableCompression can optionally force-enable or force-disable binary
+   * compression.
    * The default is ENABLE for release-mode only.
-   * Only applicable for the web platform (WebAssembly) (currently).
+   * Only applicable for the web platform (WebAssembly).
    */
   enableCompression?: Enabled
   /**
@@ -283,11 +290,11 @@ export interface Config {
   /**
    * LinkerFlags are extra linker flags for the plugin binary, e.g.
    * "-X github.com/example/app/sdk.Version=1.2.3". Each entry is one
-   * whitespace-separated group of flags; an entry holding a value with spaces
-   * must quote it in the syntax of go build -ldflags. The compiler merges them
-   * after its own flags (-w -s in release builds, the Delve address in dev
-   * builds) into the single -ldflags argument of the build. Build type and
-   * platform type overrides append to the base list.
+   * whitespace-separated group of flags. An entry holding a value with spaces
+   * must quote the value in the syntax of go build -ldflags. The compiler
+   * merges them after its own flags (-w -s in release builds, the Delve
+   * address in dev builds) into the single -ldflags argument of the build.
+   * Build type and platform type overrides append to the base list.
    */
   linkerFlags?: string[]
 }
@@ -370,7 +377,8 @@ export interface InputManifestMeta {
    */
   webPkgRefs?: WebPkgRef[]
   /**
-   * WebPkgs is the list of web pkgs that we separate from the bundle.
+   * WebPkgs is the list of web pkgs that the compiler separates from the
+   * bundle.
    */
   webPkgs?: WebPkgRefConfig[]
   /**
@@ -407,15 +415,17 @@ export interface InputManifestMeta {
    */
   goCompiler?: GoCompiler
   /**
-   * GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
+   * GoscriptBuildFlags are the exact Go build flags forwarded to GoScript.
    */
   goscriptBuildFlags?: string[]
   /**
-   * GoScriptOverrideDirs are source-relative project-local GoScript override roots.
+   * GoscriptOverrideDirs are source-relative project-local GoScript
+   * override roots.
    */
   goscriptOverrideDirs?: string[]
   /**
-   * GoScriptAllDependencies records whether GoScript compiled the full dependency graph.
+   * GoscriptAllDependencies records whether GoScript compiled the full
+   * dependency graph.
    */
   goscriptAllDependencies?: boolean
 }

@@ -534,7 +534,7 @@ type TinyGoPluginDelivery = {
   resolve: (delivered: boolean) => void
 }
 
-// Main function exported by this module.
+// main is the main function exported by this module.
 export default async function main(
   api: BackendAPI,
   abortSignal?: AbortSignal,

@@ -112,7 +112,7 @@ describe('CanvasNode', () => {
       container.querySelector('[data-canvas-node="unmount-test"]'),
     ).toBeTruthy()
 
-    // Set visible=false and wait for debounce.
+    // Set visible=false and wait for the debounce period.
     rerender(
       <CanvasNode
         node={node}
@@ -127,12 +127,12 @@ describe('CanvasNode', () => {
       />,
     )
 
-    // Still mounted during debounce period.
+    // The node is still mounted during the debounce period.
     expect(
       container.querySelector('[data-canvas-node="unmount-test"]'),
     ).toBeTruthy()
 
-    // Advance past debounce.
+    // Advance past the debounce period.
     act(() => {
       vi.advanceTimersByTime(3000)
     })
@@ -163,14 +163,15 @@ describe('CanvasNode', () => {
     const el = document.querySelector(
       '[data-canvas-node="sel-handles"]',
     ) as HTMLElement
-    // 4 resize handles + 1 ring overlay when selected.
+    // The selected node has 4 resize handles + 1 ring overlay.
     const handles = el.querySelectorAll('.rounded-full')
     expect(handles.length).toBe(4)
   })
 
   it('shows outline-only style at low zoom', () => {
     const node = makeNode({ id: 'outline-test' })
-    // SEMANTIC_ZOOM_OUTLINE is 0.3, so scale=0.2 should be outline only.
+    // SEMANTIC_ZOOM_OUTLINE is 0.3, so the node at scale=0.2 should show
+    // only its outline.
     render(
       <CanvasNode
         node={node}

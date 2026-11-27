@@ -62,7 +62,7 @@ export const ApplyUpdateRequest: MessageType<ApplyUpdateRequest> =
  */
 export interface ApplyUpdateResponse {
   /**
-   * StagedPath is the verified desktop artifact; Electron owns its replacement.
+   * StagedPath is the verified desktop artifact. Electron owns its replacement.
    */
   stagedPath?: string
 }

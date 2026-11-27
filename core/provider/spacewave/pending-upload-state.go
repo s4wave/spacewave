@@ -11,13 +11,15 @@ import (
 )
 
 // pendingUploadMutationLimit bounds two records per block plus the summary.
-// This fits the OPFS engine's 4096-record transaction contract.
+// This limit fits the OPFS engine's 4096-record transaction contract.
 const pendingUploadMutationLimit = 1024
 
-// pendingUploadStateKey stores the summary committed with every queue mutation.
+// pendingUploadStateKey is the key for the summary committed with every queue
+// mutation.
 const pendingUploadStateKey = "sync/pending"
 
-// pendingUploadOrderPrefix stores complete blocks by insertion sequence.
+// pendingUploadOrderPrefix is the key prefix for complete blocks stored by
+// insertion sequence.
 const pendingUploadOrderPrefix = "dirty-order/"
 
 // readPendingUploadState reads committed accounting, or a new empty queue.

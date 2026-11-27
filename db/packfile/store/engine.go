@@ -77,7 +77,8 @@ type PackReader struct {
 	// workCount is the number of admitted index, fetch, and writeback jobs.
 	workCount int
 
-	// Tuning (mutable via setters, guarded by bcast).
+	// minWindow begins the tuning fields (mutable via setters, guarded by
+	// bcast).
 	minWindow              int
 	transportQuantum       int
 	maxWindow              int
@@ -92,13 +93,15 @@ type PackReader struct {
 	// exactReads fetches only the bytes a miss needs: no minimum window, no
 	// alignment, no adaptive growth and no read-ahead.
 	exactReads bool
-	// exactSwitch, when set, turns exact reads on for each miss planned while
-	// it holds true, so its owner can switch them at runtime.
+	// exactSwitch turns exact reads on, when set, for each miss planned
+	// while the switch holds true, so its owner can switch exact reads at
+	// runtime.
 	exactSwitch *atomic.Bool
 
-	// Span store. spans are sorted by offset and disjoint. lru orders the
-	// spans from least to most recently used. A fetch hands its span to its
-	// waiters directly, so eviction may take any span, the newest included.
+	// spans contains the span store's disjoint spans, sorted by offset. lru
+	// orders the spans from least to most recently used. A fetch hands its
+	// span to its waiters directly, so eviction may take any span, including
+	// the newest.
 	// spanRef is set by each span use and cleared by the budget's span ring
 	// sweep. spanElem is the reader's place in that ring, guarded by the
 	// budget's mtx.
@@ -112,7 +115,7 @@ type PackReader struct {
 	// gate admits this reader's transport fetches by class.
 	gate *demandGate
 
-	// Adaptive window tracking.
+	// lastFetchAt begins the adaptive window tracking fields.
 	lastFetchAt            time.Time
 	lastFetchBytes         int
 	lastTargetOff          int64
@@ -125,7 +128,7 @@ type PackReader struct {
 	indexTailFetchBytes    int64
 	indexTailResponseBytes int64
 
-	// Block index. published holds the keys handed to the writeback target.
+	// published holds the block index keys handed to the writeback target.
 	// indexRef is set by each index use and cleared by the budget's ring
 	// sweep. indexElem is the reader's place in that ring, guarded by the
 	// budget's mtx.
@@ -146,7 +149,7 @@ type PackReader struct {
 	remoteIndexBytes      int64
 	lastRemoteIndexBytes  int64
 
-	// Index cache and writeback.
+	// indexCache begins the index cache and writeback fields.
 	indexCache       IndexCache
 	writebackCtx     context.Context
 	writebackTarget  block.StoreOps
@@ -320,7 +323,7 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 //
 // ctx scopes background writeback work. target receives verified block
 // copies when non-nil. windowBytes is the neighborhood fetched around a miss
-// so its co-blocks are published with it. Pass 0 to use the default.
+// so its co-blocks are published with it. Pass 0 to use the default window.
 func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
 	// Choose the default neighbor window for pack writeback.
 	if windowBytes <= 0 {

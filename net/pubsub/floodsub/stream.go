@@ -152,7 +152,7 @@ func (s *streamHandler) processPacket(msg *Packet) {
 	}
 }
 
-// handlePublish handles incoming published packets
+// handlePublish handles incoming published packets.
 func (s *streamHandler) handlePublish(pkts []*peer.SignedMsg) {
 	for _, pkt := range pkts {
 		pktInner, _, _, err := pubmessage.ExtractAndVerify(pkt)
@@ -175,7 +175,7 @@ func (s *streamHandler) handlePublish(pkts []*peer.SignedMsg) {
 	}
 }
 
-// handleSubscriptions processes subscription packet data
+// handleSubscriptions processes subscription packet data.
 func (s *streamHandler) handleSubscriptions(subs []*SubscriptionOpts) {
 	s.m.mtx.Lock()
 	defer s.m.mtx.Unlock()

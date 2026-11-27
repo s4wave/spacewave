@@ -57,7 +57,8 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 					tkr.out, tkr.outSent, tkr.outAcked, tkr.outCancel = nil, false, false, false
 					broadcast()
 				} else if !tkr.outCancel {
-					// Otherwise mark to the main routine that we need to cancel this msg.
+					// Otherwise notify the main routine
+					// to cancel this msg.
 					tkr.outCancel = true
 					broadcast()
 				}
@@ -161,8 +162,8 @@ func (r *ClientPeerRef) Recv(ctx context.Context) (*signaling_rpc.SessionMsg, er
 }
 
 // GetPresence returns the presence epoch of the remote peer and a channel
-// closed when it may have changed. The epoch is zero while the remote peer is
-// absent from the signaling session.
+// closed when the epoch may have changed. The epoch is zero while the remote
+// peer is absent from the signaling session.
 func (r *ClientPeerRef) GetPresence() (epoch uint64, changed <-chan struct{}) {
 	r.tkr.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if r.tkr.open != nil {

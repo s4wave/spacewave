@@ -57,8 +57,8 @@ func (s *testIssuer) Issue(_ context.Context, session peer.ID) (*webrtc_relay.Cr
 	password := hex.EncodeToString(pass)
 	s.users.Store(user, password)
 
-	// Name the relay alongside a STUN URL and an uncredentialed server the
-	// client must drop.
+	// Include the relay alongside a STUN URL and an uncredentialed server
+	// the client must drop.
 	return &webrtc_relay.Credentials{
 		IceServers: []*webrtc.IceServerConfig{
 			{Urls: []string{"stun:" + s.addr}},
@@ -136,7 +136,7 @@ func TestSessionRelaysLink(t *testing.T) {
 	issuer := &testIssuer{}
 	startTURN(t, issuer)
 
-	// Signal through p1; p0 and p2 link only through relay candidates.
+	// Signal through p1. p0 and p2 link only through relay candidates.
 	g := graph.NewGraph()
 	addPeer := func() *graph.Peer {
 		p, err := graph.GenerateAddPeer(ctx, g)

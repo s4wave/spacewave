@@ -8,7 +8,7 @@ import (
 // SharedObject never reads the state. A BodyDriver replays the agreed order of
 // operations into the body, resets it to each checkpoint the SharedObject
 // adopts, and asks it for the state a new checkpoint carries. The driver calls
-// one method at a time; only the store Root returns may run beside them.
+// one method at a time. Only the store Root returns may run beside the methods.
 //
 // An index counts the operations above the checkpoint the body last
 // installed: index 0 is the first operation above it.
@@ -44,8 +44,8 @@ type Body interface {
 	// how they link, from it.
 	// Returns whether the body kept the operations it applied after the
 	// covered ones. It keeps them only when covered is not -1 and its state
-	// after the covered operations equals the checkpoint's; otherwise the
-	// driver applies every operation above checkpoint again.
+	// after the covered operations equals the checkpoint's. Otherwise the
+	// driver applies every operation above the checkpoint again.
 	Install(ctx context.Context, ev *OrderEvent, covered int, held *SOOperationSet) (bool, error)
 	// Hold keeps what the operations of ev above its checkpoint read, such as
 	// their payloads, readable on this device whether or not the body applies

@@ -8,9 +8,9 @@ import (
 
 // OpRefusedError is an operation its handler refused on the World it applied
 // to: a decision of the handler from the operation and that base alone, such
-// as a target that names another object or an object of the wrong type. Every
-// replica that applies the operation to the same base refuses it the same
-// way. A failure to read the base, such as a lookup or storage error, is
+// as a target that references another object or an object of the wrong type.
+// Every replica that applies the operation to the same base refuses it the
+// same way. A failure to read the base, such as a lookup or storage error, is
 // never one: it depends on the device and must wait.
 type OpRefusedError struct {
 	// Err is the handler's refusal.

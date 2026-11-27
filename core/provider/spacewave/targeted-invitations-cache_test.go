@@ -15,7 +15,8 @@ import (
 // TestTargetedInvitationsCache checks that the inbox is fetched once per
 // invalidation and that a fetch racing an invalidation is not kept as current.
 func TestTargetedInvitationsCache(t *testing.T) {
-	// Serve an inbox naming the fetch count, holding the third fetch open.
+	// Serve an inbox recording the fetch count, holding the third fetch
+	// open.
 	var hits atomic.Int32
 	thirdStarted := make(chan struct{})
 	releaseThird := make(chan struct{})

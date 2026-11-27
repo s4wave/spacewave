@@ -228,7 +228,7 @@ export function ForgeExecutionViewer({
     [execution],
   )
 
-  // The header line names what blocks the run while it waits, or why it
+  // The header line describes what blocks the run while it waits, or why it
   // failed once it completes.
   const waiting = waitingText(execution?.waiting)
   const failError =

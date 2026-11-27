@@ -18,12 +18,14 @@ import { createQuickjsCrypto, type QuickjsCrypto } from "./crypto.js";
 import { atob, btoa } from "./base64.js";
 
 // quickjs has a reduced standard library.
-// this file polyfills exactly what we need and probably will need to be expanded over time.
+// this file polyfills exactly what is needed and probably will need to be
+// expanded over time.
 // the implementations are often significantly simplified from the "real" ones.
 // it may be better long term to integrate a more capable js wasm engine.
 // see: https://github.com/saghul/txiki.js
 
-// QuickjsPolyfillGlobalScope represents QuickjsGlobalScope after the polyfills are applied.
+// QuickjsPolyfillGlobalScope represents QuickjsGlobalScope after the polyfills
+// are applied.
 export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   // AbortController is the polyfilled abort controller type.
   AbortController: AbortControllerPolyfillConstructor;
@@ -50,33 +52,35 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   crypto: QuickjsCrypto;
 
   /**
-   * Call the function func after delay ms. Return a handle to the timer.
+   * setTimeout calls the function func after delay ms. Returns a handle to the
+   * timer.
    * @param func - Function to call
    * @param delay - Delay in milliseconds
    */
   setTimeout(func: () => void, delay: number): NodeJS.Timeout;
 
   /**
-   * Cancel a timer.
+   * clearTimeout cancels a timer.
    * @param handle - Timer handle
    */
   clearTimeout(handle: NodeJS.Timeout): void;
 
   /**
-   * Call the function func periodically with the given interval. Return a handle to the timer.
+   * setInterval calls the function func periodically with the given interval.
+   * Returns a handle to the timer.
    * @param func - Function to call
    * @param delay - Interval in milliseconds
    */
   setInterval(func: () => void, delay: number): NodeJS.Timeout;
 
   /**
-   * Cancel an interval timer.
+   * clearInterval cancels an interval timer.
    * @param handle - Timer handle
    */
   clearInterval(handle: NodeJS.Timeout): void;
 
   /**
-   * Queue a microtask.
+   * queueMicrotask queues a microtask.
    * @param func - Function to call
    */
   queueMicrotask(func: () => void): void;

@@ -32,7 +32,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Readiness test plugin identifiers.
+// pluginReadinessPluginID identifies the readiness test plugin, with platform
+// and object type identifiers in the same group.
 const (
 	pluginReadinessPluginID   = "test-readiness-plugin"
 	pluginReadinessPlatformID = "test/platform"
@@ -233,7 +234,8 @@ func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
 		t.Fatal("desired plugin did not resolve the imported Manifest")
 	}
 
-	// A typed lookup waits until the desired plugin registers its type.
+	// lookupResult holds the result of a typed lookup that waits until the
+	// desired plugin registers its type.
 	type lookupResult struct {
 		objectType objecttype.ObjectType
 		ref        directive.Reference
@@ -518,7 +520,7 @@ func TestAdmissionGatePendingUntilAnswered(t *testing.T) {
 		}
 	}
 
-	// A root no resolver answers settles as refused; the slow one stays
+	// A root no resolver answers settles as refused. The slow root stays
 	// pending until its resolver answers, then reads as admitted.
 	waitFor([]*bldr_manifest.ManifestRef{unknown}, 0, false)
 	if admitted, open := gate.admitted(ctx, "colors", []*bldr_manifest.ManifestRef{slow}); len(admitted) != 0 || len(open) != 1 {
@@ -544,11 +546,11 @@ type testRunningPlugin struct{}
 // GetRpcClient returns nil.
 func (testRunningPlugin) GetRpcClient() srpc.Client { return nil }
 
-// TestRevokeWhilePendingNamesTheAwaitedRoot checks that a plugin whose running
-// root loses its admission while a newer root's admission has not answered
-// stops reading as running and is loaded naming the newer root, so the host
-// says which root awaits approval instead of the Space showing the stopped
-// load.
+// TestRevokeWhilePendingNamesTheAwaitedRoot checks that a plugin stops reading
+// as running when its running root loses admission while a newer root's
+// admission has not answered. The plugin is loaded specifying the newer root,
+// so the host says which root awaits approval instead of the Space showing the
+// stopped load.
 func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -561,8 +563,8 @@ func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
 	oldRef, newRef := testRootRef(t, "old"), testRootRef(t, "new")
 
 	// Approvals admit the old root until revoke closes and never answer for
-	// the new one. A load that names only the old root runs; any other load
-	// waits, as a host awaiting approval does.
+	// the new one. A load that specifies only the old root runs, but any
+	// other load waits, as a host awaiting approval does.
 	revoke := make(chan struct{})
 	resolver := func(fn func(context.Context, directive.ResolverHandler) error) ([]directive.Resolver, error) {
 		return directive.R(directive.NewFuncResolver(fn), nil)
@@ -666,8 +668,8 @@ func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
 		return len(ms) == 1 && manifestRoot(ms[0]) == manifestRoot(want)
 	}
 
-	// The old root runs; a newer root whose admission has not answered
-	// leaves it running.
+	// The old root runs. A newer root whose admission has not answered
+	// leaves the old root running.
 	pin(oldRef)
 	settle("old root running", func() bool { return running() && names(oldRef) })
 	pin(newRef, oldRef)
@@ -676,8 +678,8 @@ func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
 		t.Fatalf("pending newer root: running %v, load names old %v", running(), names(oldRef))
 	}
 
-	// Revoking the old root stops it reading as running, and the load names
-	// the root that awaits approval.
+	// Revoking the old root stops it reading as running, and the load
+	// specifies the root that awaits approval.
 	close(revoke)
 	settle("load naming the awaited root", func() bool { return names(newRef) })
 	if running() {
@@ -689,8 +691,8 @@ func TestRevokeWhilePendingNamesTheAwaitedRoot(t *testing.T) {
 }
 
 // TestPendingRootLoadNamesPeer checks that a Space with no session peer never
-// sends a load naming a root whose admission has not answered: such a load is
-// only sent to a host that asks for each root, so it must name the peer.
+// sends a load specifying a root whose admission has not answered: such a load
+// is only sent to a host that asks for each root, so it must specify the peer.
 func TestPendingRootLoadNamesPeer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -702,7 +704,7 @@ func TestPendingRootLoadNamesPeer(t *testing.T) {
 	const pluginID = "colors"
 	ref := testRootRef(t, "pending")
 
-	// Approvals never answer; record each load that names a root.
+	// Approvals never answer. Record each load that specifies a root.
 	hold := func(ctx context.Context, _ directive.ResolverHandler) error {
 		<-ctx.Done()
 		return ctx.Err()
@@ -756,8 +758,8 @@ func TestPendingRootLoadNamesPeer(t *testing.T) {
 	}
 	defer loads.gate.release()
 
-	// With no peer the root is refused at once: the pinned plugin is withdrawn
-	// and no load names the root.
+	// With no peer the root is refused at once: the pinned plugin is
+	// withdrawn and no load specifies the root.
 	c.reconcilePlugins(ctx, tb.WorldState, loads)
 	if _, ok := loads.refs[pluginID]; ok {
 		t.Fatal("Space with no peer loaded a pinned root")

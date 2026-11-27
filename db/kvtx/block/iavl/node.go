@@ -152,7 +152,7 @@ func (n *Node) FollowRight(ctx context.Context, cursor *block.Cursor) (*Node, *b
 }
 
 // FollowValue follows the value reference or blob.
-// Returns the cursor to the value and whether it is a blob.
+// Returns the cursor to the value and whether the value is a blob.
 func (n *Node) FollowValue(cursor *block.Cursor) (*block.Cursor, bool) {
 	if n.ValueIsBlob() {
 		return cursor.FollowSubBlock(8), true

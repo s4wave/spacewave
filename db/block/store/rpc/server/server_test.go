@@ -19,7 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlockStoreHTTPServer tests the block store rpc server and client.
+// TestBlockStoreRPCServer tests the block store rpc server and client.
 func TestBlockStoreRPCServer(t *testing.T) {
 	// Prepare the logger for the block store RPC testbeds.
 	ctx := context.Background()

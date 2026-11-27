@@ -3,9 +3,10 @@ package block
 import "context"
 
 // AtomicBlockPreparer stores blocks with their bucket ownership in one
-// transaction, without moving a root. Calls are synchronous; the caller keeps
-// its buffers until return. An empty bucketID disables GC bookkeeping. A store
-// that cannot returns ErrAtomicCommitUnsupported before any I/O.
+// transaction, without moving a root. Calls are synchronous, so the caller
+// keeps its buffers until return. An empty bucketID disables GC bookkeeping.
+// A store that cannot store blocks with ownership in one transaction returns
+// ErrAtomicCommitUnsupported before any I/O.
 type AtomicBlockPreparer interface {
 	// PrepareOwnedBlock stores one block with bucket ownership.
 	PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *PutOpts) (*BlockRef, bool, error)

@@ -157,7 +157,7 @@ func createFSNodeObjectWithFile(
 	}
 }
 
-// Open and read the copied filesystem file.
+// readFSNodeFile opens and reads the copied filesystem file.
 func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objKey, name string) []byte {
 	// Open a filesystem handle for the copied asset object.
 	t.Helper()
@@ -185,7 +185,7 @@ func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objK
 	return got
 }
 
-// Build diagnostic information for a filesystem object.
+// describeFSNodeObject builds diagnostic information for a filesystem object.
 func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) string {
 	// Open the filesystem object whose blocks need diagnostic inspection.
 	t.Helper()

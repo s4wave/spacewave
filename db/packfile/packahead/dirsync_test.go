@@ -74,7 +74,7 @@ func TestPackAheadDirSyncRetryFailedPack(t *testing.T) {
 		l.opts.Linger = 0
 	})
 
-	// Batch a syncs; a write then fails on the open pack.
+	// Batch a syncs, then a write fails on the open pack.
 	a, b := testBlock(t, 1, 3000), testBlock(t, 2, 3000)
 	if err := l.Append(ctx, []Block{a}); err != nil {
 		t.Fatal(err)
@@ -88,8 +88,9 @@ func TestPackAheadDirSyncRetryFailedPack(t *testing.T) {
 	})
 	release()
 
-	// The next Append rotates; the maintainer recovers and finalizes the
-	// failed pack, its directory sync fails once, and the retry finishes it.
+	// The next Append rotates, then the maintainer recovers and finalizes
+	// the failed pack. Its directory sync fails once, and the retry
+	// finishes it.
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.opts.Linger = 10 * time.Millisecond
 	})
@@ -176,8 +177,8 @@ func TestPackAheadDirSyncRetryDroppedPack(t *testing.T) {
 	})
 	release()
 
-	// The next Append rotates; the maintainer drops the empty failed pack, its
-	// directory sync fails once, and the retry forgets it.
+	// The next Append rotates, then the maintainer drops the empty failed
+	// pack. Its directory sync fails once, and the retry forgets it.
 	armed.Store(true)
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.opts.Linger = 10 * time.Millisecond

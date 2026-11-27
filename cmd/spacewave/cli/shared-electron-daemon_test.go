@@ -47,7 +47,7 @@ import (
 // sharedElectronIdleTimeout is the fixture daemon's final-release deadline.
 const sharedElectronIdleTimeout = 500 * time.Millisecond
 
-// sharedElectronApp locates the prepared Electron fixture.
+// sharedElectronApp contains the paths to the prepared Electron fixture.
 type sharedElectronApp struct {
 	// dir is the prepared app directory.
 	dir string
@@ -309,7 +309,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 }
 
 // setEnv points the next Electron launch at this daemon and its profile.
-// The process environment is global, so call it right before opening.
+// The process environment is global, so call setEnv right before opening.
 func (d *sharedElectronDaemon) setEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("BLDR_PLUGIN_STATE_PATH", filepath.Join(d.statePath, "electron-profile"))

@@ -11,7 +11,7 @@ func NewNamedRoot(root block.NamedRoot) *NamedRoot {
 	return &NamedRoot{Name: root.Name, Ref: root.Ref, Previous: root.Previous, RequireHeld: root.RequireHeld}
 }
 
-// ToNamedRoot returns the root the wire form names.
+// ToNamedRoot returns the root the wire form records.
 func (r *NamedRoot) ToNamedRoot() block.NamedRoot {
 	return block.NamedRoot{Name: r.GetName(), Ref: r.GetRef(), Previous: r.GetPrevious(), RequireHeld: r.GetRequireHeld()}
 }

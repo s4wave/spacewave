@@ -17,7 +17,7 @@ import (
 const zipReadChunkSize = 256 * 1024
 
 // WriteZipArchive writes a zip archive of the FSHandle tree to w. An empty
-// rootName archives the handle's full contents; otherwise the handle itself
+// rootName archives the handle's full contents. Otherwise the handle itself
 // is written under rootName.
 func WriteZipArchive(ctx context.Context, w io.Writer, h *FSHandle, rootName string) error {
 	zw := zip.NewWriter(w)

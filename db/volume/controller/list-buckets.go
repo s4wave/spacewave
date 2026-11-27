@@ -9,7 +9,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// listBucketsResolver resolves ListBuckets directives
+// listBucketsResolver resolves ListBuckets directives.
 type listBucketsResolver struct {
 	c   *Controller
 	dir volume.ListBuckets
@@ -99,7 +99,7 @@ func (c *Controller) resolveListBuckets(
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &listBucketsResolver{c: c, dir: dir}, nil
 }
 

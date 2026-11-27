@@ -44,8 +44,8 @@ func applyOp(t *testing.T, s *AccountSettings, op *AccountSettingsOp) error {
 	return s.applyOpData(data)
 }
 
-// TestStorageBackendOps checks the storage backend, default, and placement
-// rules together.
+// TestStorageBackendOps checks the storage backend, default backend, and
+// placement rules together.
 func TestStorageBackendOps(t *testing.T) {
 	// Apply each kind of op to one settings value.
 	s := &AccountSettings{}
@@ -83,7 +83,7 @@ func TestStorageBackendOps(t *testing.T) {
 		}
 	}
 
-	// Add two backends; a duplicate name fails.
+	// Add two backends. A duplicate name fails.
 	if err := upsert(testStorageBackend("a", "minio")); err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestStorageBackendOps(t *testing.T) {
 		t.Fatal("expected the renamed backend")
 	}
 
-	// The default and placements must name a known backend.
+	// The default backend and placements must select a known backend.
 	if err := setDefault("missing"); !errors.Is(err, ErrStorageBackendNotFound) {
 		t.Fatalf("expected ErrStorageBackendNotFound, got %v", err)
 	}
@@ -178,7 +178,8 @@ func TestStorageBackendOps(t *testing.T) {
 	}
 	expectReleases("space-1@a", "space-1@b")
 
-	// Removing a backend drops its pending releases; completing one removes it.
+	// Removing a backend drops its pending releases. Completing a release
+	// removes that release.
 	if err := remove("b"); err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +192,7 @@ func TestStorageBackendOps(t *testing.T) {
 	}
 	expectReleases()
 
-	// Removing the default backend clears the default.
+	// Removing the default backend clears the default backend selection.
 	if err := remove("a"); err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +262,7 @@ func TestBlockStoreFallbackPlacement(t *testing.T) {
 // same id in several delivery orders. Each multiset ends with the same
 // deleted set and the same live generation, or a tombstone, in every order,
 // and a deleted generation never returns, including one a tombstone record
-// written before deleted sets names.
+// written before deleted sets records.
 func TestCatalogTombstoneGenerations(t *testing.T) {
 	entry := func(generation string, deleted bool) *AccountSettingsOp {
 		ref := &sobject.SharedObjectRef{

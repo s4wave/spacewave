@@ -2,7 +2,7 @@ package kernel
 
 // File seals restrict the changes to an in-memory file, as on Linux. They
 // belong to the file, not the descriptor. A memfd created with
-// MFD_ALLOW_SEALING starts unsealed; every other in-memory file holds
+// MFD_ALLOW_SEALING starts unsealed. Every other in-memory file holds
 // sealSeal, so it reports that seal and takes no more.
 const (
 	// sealSeal refuses further seals.

@@ -14,7 +14,7 @@ import (
 
 // defaultReaderPinDelay is how long a replaced head may stay held by a reader
 // before the engine pins its root. While a head is current, the authority's
-// named root holds it; once replaced, the collector's grace period keeps its
+// named root holds it. Once replaced, the collector's grace period keeps its
 // blocks for a reader that has not pinned it. The delay is well inside the
 // shortest production grace, which is longer than the five minute root lease,
 // so a short reader costs no Volume transaction and a long one costs one.

@@ -38,5 +38,5 @@ func (h *desktopQuitAckHandler) InvokeMethod(serviceID, methodID string, stream 
 	return true, stream.CloseSend()
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ srpc.Handler = (*desktopQuitAckHandler)(nil)

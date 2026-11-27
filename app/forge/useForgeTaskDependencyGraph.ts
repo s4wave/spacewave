@@ -78,11 +78,11 @@ const dependencyPredicates = new Set([
 
 /**
  * forgeTaskDependencySource is the keyed set of a job's tasks, each with the
- * subtask and cached edges out of it. It lists the tasks by the job's task
- * links, so a task added to or removed from the job is a change of the set,
- * followed and read alone, and it wakes on a subtask or cached link only when
- * its subject is one of the tasks. A row holds every edge out of its task;
- * forgeTaskDependencyEdges keeps those between members.
+ * subtask and cached edges out of the task. The source lists the tasks by the
+ * job's task links, so a task added to or removed from the job is a change of
+ * the set, followed and read alone, and the source wakes on a subtask or cached
+ * link only when the link's subject is one of the tasks. A row holds every edge
+ * out of its task. forgeTaskDependencyEdges returns those between members.
  */
 export function forgeTaskDependencySource(
   jobKey: string,
@@ -136,7 +136,7 @@ export function forgeTaskDependencySource(
   }
 }
 
-// forgeTaskDependencyEdges returns the edges of set whose ends are both
+// forgeTaskDependencyEdges returns the edges of the set whose ends are both
 // members, in member order.
 export function forgeTaskDependencyEdges(
   set: KeyedSet<ForgeTaskDependencyEdge[]>,
@@ -148,9 +148,9 @@ export function forgeTaskDependencyEdges(
 }
 
 // useForgeTaskDependencyGraph follows the dependency edges among the tasks of
-// the job at jobKey. A task added to or removed from the job reads only that
-// task's edges, and a subtask or cached link out of a task reads only its
-// edges again.
+// the job at jobKey. When a task is added to or removed from the job, the
+// hook reads only that task's edges. A subtask or cached link out of a task
+// makes the hook read only that task's edges again.
 export function useForgeTaskDependencyGraph(
   worldState: Resource<IWorldState>,
   jobKey: string,

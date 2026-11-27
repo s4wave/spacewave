@@ -70,7 +70,7 @@ func newReadGate() *readGate {
 	}
 }
 
-// setPolicy sets the highest bound and the least slow read time, the
+// setPolicy sets the highest bound and the least slow read time, using the
 // defaults when zero.
 func (g *readGate) setPolicy(maxReads int, slowMin time.Duration) {
 	// Default the zero values.

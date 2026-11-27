@@ -104,7 +104,8 @@ if (!options['skip-build']) {
   await run('build', ['go', 'run', './scripts/sync-library'])
 }
 
-// Require reproducible source metadata unless this is an explicit development run.
+// Require reproducible source metadata unless the qualification run is an
+// explicit development run.
 const metadata = JSON.parse(
   await readFile('packages/spacewave/dist/build.json', 'utf8'),
 )

@@ -13,7 +13,7 @@ import {
 // storage, in place of a storage backend id.
 export const accountStorageChoice = 'account'
 
-// StoragePreset names a provider whose endpoint pattern fills the location.
+// StoragePreset selects a provider whose endpoint pattern fills the location.
 export type StoragePreset = 'aws' | 'r2' | 'b2' | 'minio' | 'custom'
 
 // StoragePresetInfo describes a preset in the add storage form.

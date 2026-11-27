@@ -42,7 +42,7 @@ message AddTabRequest {
   // AfterTabId is the ID of the tab to insert after.
   // If empty, the tab is added at the end of the tabset.
   string after_tab_id = 3;
-  // Select indicates whether to select the new tab after adding.
+  // Select indicates whether to select the new tab after adding the tab.
   bool select = 4;
 }
 
@@ -56,8 +56,9 @@ message AddTabResponse {
 message WatchLayoutModelRequest {
   oneof body {
     // SetModel sets a full snapshot of the layout model.
-    // May return an error if the model does not validate correctly.
-    // Updates the model internally & yields new version on WatchLayoutModel.
+    // SetModel may return an error if the model does not validate correctly.
+    // SetModel updates the model internally and yields a new version on
+    // WatchLayoutModel.
     LayoutModel set_model = 1;
   }
 }
@@ -72,7 +73,8 @@ message LayoutModel {
 }
 
 // LayoutSnapshot contains a complete layout state including local UI state.
-// Used for URL encoding of grid layouts to preserve selection state.
+// LayoutSnapshot is used to encode grid layouts in URLs to preserve selection
+// state.
 message LayoutSnapshot {
   // Model contains the structural layout (tabs, tabsets, rows).
   LayoutModel model = 1;
@@ -109,7 +111,8 @@ message BorderDef {
   BorderLocation border_location = 1;
   // Children contains the list of tabs in this border.
   repeated TabDef children = 2;
-  // Selected is the index of selected/visible tab in border; -1 means no tab selected
+  // Selected is the index of the selected/visible tab in the border.
+  // -1 means no tab is selected.
   int32 selected = 3;
   // Hide indicates if this border should be hidden
   bool hide = 4;

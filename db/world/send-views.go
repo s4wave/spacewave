@@ -22,7 +22,7 @@ func SendViews[T View[T]](
 // SendViewsWith sends the first projection and each later unequal projection,
 // evaluating like WatchViewWith with opts. source and read follow
 // WatchViewWith's contract, including context-carried transactions and
-// RerunAt. read must return an immutable message; send must not mutate it.
+// RerunAt. read must return an immutable message. send must not mutate it.
 // Returns when ctx ends or read or send fails.
 func SendViewsWith[T View[T]](
 	ctx context.Context,

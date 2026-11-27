@@ -3,7 +3,7 @@ package storebench;
 
 // Report is the result of one store speed run.
 message Report {
-  // Label names the run, such as the commit under test.
+  // Label identifies the run, such as the commit under test.
   string label = 1;
   // DurationMs is the length of the measured load, in milliseconds.
   uint64 duration_ms = 2;
@@ -18,7 +18,7 @@ message Report {
   // WriteLatency is the latency of a write from its NewTransaction to the
   // end of Commit.
   Latency write_latency = 7;
-  // Hold is the writer lock hold of each write.
+  // Hold is how long each write holds the writer lock.
   Latency hold = 8;
   // Stages are the stage times of each write, in stage order.
   repeated StageLatency stages = 9;
@@ -46,7 +46,7 @@ message Latency {
   uint64 p50_us = 2;
   // P99Us is the 99th percentile.
   uint64 p99_us = 3;
-  // MaxUs is the largest.
+  // MaxUs is the largest duration.
   uint64 max_us = 4;
   // MeanUs is the mean.
   uint64 mean_us = 5;
@@ -90,7 +90,7 @@ message GcStats {
 
 // CpuShare is the share of sampled CPU whose stack holds a code path.
 message CpuShare {
-  // Name names the code path, such as decode or gc.
+  // Name identifies the code path, such as decode or gc.
   string name = 1;
   // Fraction is the share of samples, from 0 to 1. A sample counts toward
   // every path its stack holds, so the shares can sum above 1.

@@ -128,8 +128,8 @@ func checkEngineGraph(ctx context.Context, name string, write bool) error {
 	return volume_browser.Delete(accountName)
 }
 
-// produceEngineGraph uses public provider, Session, Space and sequencer APIs;
-// only the known device choice and fixture namespace differ from the app.
+// produceEngineGraph uses public provider, Session, Space and sequencer APIs.
+// Only the known device choice and fixture namespace differ from the app.
 func produceEngineGraph(ctx context.Context, tb *db_testbed.Testbed, name string) (ref *sobject.SharedObjectRef, head *bucket.ObjectRef, rerr error) {
 	// Add only the account storage primitives the public provider needs.
 	ctx, cancel := context.WithCancel(ctx)
@@ -379,7 +379,8 @@ func walkEngineGraph(ctx context.Context, tb *db_testbed.Testbed, head *bucket.O
 		return err
 	}
 
-	// Walk every child once; this fixture has one object and a bounded graph.
+	// Walk every child once. This fixture has one object and a bounded
+	// graph.
 	seen := make(map[string]bool)
 	pending := []*block.BlockRef{head.GetRootRef()}
 	for len(pending) != 0 {

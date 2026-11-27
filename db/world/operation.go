@@ -33,7 +33,7 @@ type Operation interface {
 type ValidatedOperation interface {
 	Operation
 
-	// Validate performs cursory validation of the operation.
+	// Validate validates the operation cursorily.
 	// Should not block.
 	Validate() error
 }
@@ -111,10 +111,10 @@ type PayloadOperation interface {
 
 	// GetPayloadRefs returns the roots of the operation's payload.
 	GetPayloadRefs() []*block.BlockRef
-	// PayloadRefsVersion identifies what GetPayloadRefs names for the
+	// PayloadRefsVersion identifies what GetPayloadRefs returns for the
 	// operation type. Saved payload roots are reused only under the same
-	// version; change what GetPayloadRefs names and the golden test makes you
-	// bump it. It is never zero.
+	// version. The version must be bumped when what GetPayloadRefs returns
+	// changes, as the golden test checks. It is never zero.
 	PayloadRefsVersion() uint32
 }
 
@@ -129,7 +129,8 @@ type LookupOpSlice []LookupOp
 // LookupOp performs the LookupOp call against a list of funcs.
 func (s LookupOpSlice) LookupOp(ctx context.Context, opTypeID string) (Operation, error) {
 	for _, cb := range s {
-		// we shouldn't have nil funcs, but check to be sure
+		// LookupOpSlice functions are expected to be non-nil, but skip
+		// nil entries.
 		if cb == nil {
 			continue
 		}

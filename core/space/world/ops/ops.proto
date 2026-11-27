@@ -10,17 +10,17 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 // Config configures the LookupWorldOp controller for common space world ops.
 message Config {
   // EngineId restricts the LookupWorldOp resolver to a specific engine id.
-  // If unset, resolves the ops for all engines.
+  // If unset, the resolver resolves the ops for all engines.
   string engine_id = 1;
 }
 
 // SetSpaceSettingsOp is an operation to set the space settings.
-// Can be applied as either an object op or a world op.
+// SetSpaceSettingsOp can be applied as either an object op or a world op.
 message SetSpaceSettingsOp {
   option (typeid.id) = "space/world/set-settings";
 
   // ObjectKey is the object key for the settings.
-  // If empty, defaults to "settings".
+  // If empty, ObjectKey defaults to "settings".
   string object_key = 1;
   // Settings contains the space settings to set.
   .space.world.SpaceSettings settings = 2;
@@ -62,14 +62,15 @@ message InitUnixFSOp {
   option (typeid.id) = "space/world/init-unixfs";
 
   // ObjectKey is the object key for the UnixFS filesystem.
-  // Must be set.
+  // ObjectKey must be set.
   string object_key = 1;
   // Timestamp is the modification time.
   .google.protobuf.Timestamp timestamp = 2;
 }
 
-// InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
-// This creates an ObjectLayout with a simple tabset containing one tab.
+// InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter
+// content. The operation creates an ObjectLayout with a simple tabset
+// containing one tab.
 message InitObjectLayoutOp {
   option (typeid.id) = "space/world/init-object-layout";
 
@@ -80,19 +81,20 @@ message InitObjectLayoutOp {
 }
 
 // InitCanvasDemoOp is an operation to initialize a Canvas with demo content.
-// This creates a canvas object and populates it with a git repo node.
+// The operation creates a canvas object and populates it with a git repo node.
 message InitCanvasDemoOp {
   option (typeid.id) = "space/world/init-canvas-demo";
 
   // ObjectKey is the object key for the Canvas.
-  // Must be set.
+  // ObjectKey must be set.
   string object_key = 1;
   // Timestamp is the modification time.
   .google.protobuf.Timestamp timestamp = 2;
 }
 
 // CanvasInitOp is an operation to initialize a blank canvas.
-// Creates an empty CanvasState and sets the object type to "canvas".
+// CanvasInitOp creates an empty CanvasState and sets the object type to
+// "canvas".
 message CanvasInitOp {
   option (typeid.id) = "space/world/init-canvas";
 
@@ -123,7 +125,7 @@ message CanvasRemoveNodeOp {
 }
 
 // CanvasSetNodeOp is an operation to replace a node in a canvas.
-// The full node is provided; it replaces the existing node with the same ID.
+// The full node is provided and replaces the existing node with the same ID.
 message CanvasSetNodeOp {
   option (typeid.id) = "space/world/canvas-set-node";
 

@@ -22,7 +22,7 @@ func GetLicense() string {
 
 // BuildMetaSourcesFSCursor builds a *fs.Cursor for the MetaSources.
 func BuildMetaSourcesFSCursor() *unixfs_iofs.FSCursor {
-	// NOTE: we assert there is no error in assets_test.go
+	// NOTE: the absence of errors is asserted in assets_test.go.
 	fs, _ := unixfs_iofs.NewFSCursor(MetaSources)
 	return fs
 }
@@ -30,7 +30,7 @@ func BuildMetaSourcesFSCursor() *unixfs_iofs.FSCursor {
 // BuildMetaSourcesFSHandle builds a unixfs FSHandle for the MetaSources.
 func BuildMetaSourcesFSHandle(ctx context.Context, le *logrus.Entry) *unixfs.FSHandle {
 	fsCursor := BuildMetaSourcesFSCursor()
-	// NOTE: we assert there is no error in assets_test.go
+	// NOTE: the absence of errors is asserted in assets_test.go.
 	fs, _ := unixfs.NewFSHandle(fsCursor)
 	return fs
 }

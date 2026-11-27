@@ -30,8 +30,8 @@ const namedKeysyms: Record<string, number> = {
 }
 
 // keysymOf returns the X keysym of a browser key event's key and code, or 0
-// for a key X has no keysym for. A character below U+0100 is its own keysym;
-// any other character is its Unicode keysym.
+// for a key X has no keysym for. A character below U+0100 is its own keysym.
+// Any other character is its Unicode keysym.
 export function keysymOf(key: string, code: string): number {
   const named = codeKeysyms[code] ?? namedKeysyms[key]
   if (named) return named

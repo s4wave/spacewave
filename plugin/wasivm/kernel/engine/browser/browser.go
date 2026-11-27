@@ -12,7 +12,7 @@
 //
 // GoScript replaces this package with its TypeScript implementation in the
 // repository's gs directory. These declarations give the kernel the package's
-// API to compile against; compiled by Go, the engine reports errUnsupported.
+// API to compile against. Compiled by Go, the engine reports errUnsupported.
 package browser
 
 import (

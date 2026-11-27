@@ -22,8 +22,8 @@ const goScriptWorkerEnv = "BLDR_GOSCRIPT_COMPILE_WORKER"
 // goScriptWorkerMemoryLimitMiB is the worker's default GOMEMLIMIT in MiB: four
 // fifths of the GoScriptCompileWeight GiB its compile reserves from the build
 // budget. Without a limit the Go collector lets a cold compile's heap grow to
-// about twice its live set; with one, its peak RSS runs about a fifth over the
-// limit, so four fifths keeps the worker inside its reservation.
+// about twice its live set. With a limit, its peak RSS runs about a fifth over
+// the limit, so four fifths keeps the worker inside its reservation.
 const goScriptWorkerMemoryLimitMiB = bldr_buildbudget.GoScriptCompileWeight << 10 * 4 / 5
 
 // init turns a process started with goScriptWorkerEnv into the compile

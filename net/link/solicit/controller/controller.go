@@ -38,7 +38,8 @@ const SolicitStreamPrefix = "solicit:"
 
 // solicitAcceptByte is written by the receiver of a solicited stream once it
 // accepts the stream's offer pair. The opener publishes the stream only after
-// reading it, because its view of the remote incarnation may be stale.
+// reading the byte, because the opener's view of the remote incarnation may be
+// stale.
 const solicitAcceptByte = 1
 
 // solicitationIncarnationSize is the number of random bytes in an offer incarnation.
@@ -84,7 +85,7 @@ type solicitState struct {
 	// handler receives the stream produced for each bilateral incarnation.
 	handler directive.ResolverHandler
 	// ctx is the resolver lifetime of handler. Releasing the directive cancels
-	// it synchronously, before the dispose callback withdraws the offer.
+	// ctx synchronously, before the dispose callback withdraws the offer.
 	ctx context.Context
 	// incarnation distinguishes this lifetime from equivalent successors.
 	incarnation []byte
@@ -100,7 +101,7 @@ type linkState struct {
 	ml link.MountedLink
 	// sessionID is the derived control-stream session ID.
 	sessionID []byte
-	// localIsLower records whether our peer ID sorts below the remote's.
+	// localIsLower records whether the local peer ID sorts below the remote's.
 	localIsLower bool
 	// refCount counts active users of this state, guarded by Controller.bcast.
 	refCount int
@@ -144,9 +145,9 @@ type solicitationOffer struct {
 
 // solicitationExchange is one complete control-stream offer generation.
 type solicitationExchange struct {
-	// hashes carries stable discovery identities for legacy peers.
+	// hashes contains stable discovery identities for legacy peers.
 	hashes [][]byte
-	// offers carries incarnation-bound identities for upgraded peers.
+	// offers contains incarnation-bound identities for upgraded peers.
 	offers []solicitationOffer
 	// supportsOfferIncarnations selects the incarnation-aware match contract.
 	supportsOfferIncarnations bool
@@ -256,7 +257,7 @@ func (c *Controller) buildOpenRoutine(key solicitationOpenKey) (keyed.Routine, s
 		return nil, struct{}{}
 	}
 
-	// Run one opening; the keyed exit callback retires its metadata.
+	// Run one opening. The keyed exit callback retires the opening's metadata.
 	return func(ctx context.Context) error {
 		c.openSolicitedStream(ctx, open.ls, open.match)
 		return nil
@@ -599,7 +600,8 @@ func (c *Controller) retireLinkOpens(uuid uint64) {
 }
 
 // initiateControlStream opens the bifrost/solicit control stream on a link.
-// Only called by the lower peer ID side via keyed routine.
+// Only the side with the lower peer ID calls it, and only via the keyed
+// routine.
 func (c *Controller) initiateControlStream(ctx context.Context, ls *linkState) error {
 	// Open the control stream and run its exchange loop.
 	ms, err := ls.ml.OpenMountedStream(ctx, ControlProtocolID, stream.OpenOpts{})
@@ -961,7 +963,8 @@ func (c *Controller) openSolicitedStream(
 		return
 	}
 
-	// Wait for the receiver to accept the pair; it closes stale pairs.
+	// Wait for the receiver to accept the pair. The receiver closes stale
+	// pairs.
 	strm := ms.GetStream()
 	stopClose := context.AfterFunc(ctx, func() { _ = strm.Close() })
 	var accept [1]byte
@@ -1486,8 +1489,8 @@ func findSolicitationMatches(
 }
 
 // exchangesAcknowledged reports whether the exchanges may admit matches.
-// Legacy peers do not acknowledge generations; upgraded peers must each have
-// observed the other's complete offer generation.
+// Legacy peers do not acknowledge generations, but upgraded peers must each
+// have observed the other's complete offer generation.
 func exchangesAcknowledged(local, remote *solicitationExchange) bool {
 	if !local.supportsOfferIncarnations || !remote.supportsOfferIncarnations {
 		return true

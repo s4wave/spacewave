@@ -17,7 +17,7 @@ type FSHandleReadWriter struct {
 }
 
 // NewFSHandleReadWriter constructs a new ReadWriter from a FSHandle.
-// if ts is nil, uses now()
+// if ts is nil, uses now().
 func NewFSHandleReadWriter(ctx context.Context, h *FSHandle, ts func() time.Time) *FSHandleReadWriter {
 	if ts == nil {
 		ts = time.Now

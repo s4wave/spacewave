@@ -17,7 +17,7 @@ import (
 // StartPasskeyHandoff initiates desktop passkey by opening the system browser
 // to the passkey ceremony URL and waiting for the result via WebSocket relay.
 //
-// The cloud-returned openUrl must use the configured accountEndpoint host; the
+// The cloud-returned openUrl must use the configured accountEndpoint host. The
 // launcher does not shell-interpret the URL.
 func StartPasskeyHandoff(
 	ctx context.Context,

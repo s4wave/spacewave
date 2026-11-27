@@ -10,7 +10,7 @@ import { WebPkgRef } from '../../../pkg/pkg.pb.js'
 import { EsbuildBundleEntrypoint, EsbuildOutputMeta } from '../esbuild.pb.js'
 
 /**
- * InputFileKind is the kind of file this is.
+ * InputFileKind is the kind of input file.
  *
  * @generated from enum bldr.web.bundler.esbuild.compiler.InputFileKind
  */
@@ -53,16 +53,19 @@ export interface Config {
   /**
    * WebPkgs is the list of web packages to externalize and include in the bundle.
    *
-   * Externalized web packages (npm modules) are imported separately from the web bundle.
-   * They will be deduplicated such that a single version is imported at a time by the app.
-   * This is useful for packages that require a single instance per WebDocument.
+   * Externalized web packages (npm modules) are imported separately from the
+   * web bundle. They will be deduplicated such that a single version is
+   * imported at a time by the app.
+   * Deduplication is useful for packages that require a single instance per
+   * WebDocument.
    *
    * On default only the imports referenced by the plugin will be compiled in.
    * Everything else will be tree-shaken away to lower bundle size.
    * Additional imports to reference can be specified in the config.
    *
    * These packages will be available with the LookupWebPkg directive.
-   * They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+   * They will also be available at /b/pkg:
+   * e.g. /b/pkg/@my/npm-package/foo/bar/index.js
    *
    * Note: only files & entrypoints imported by at least one js file will be included.
    */
@@ -146,7 +149,8 @@ export interface InputManifestMeta {
    */
   webPkgRefs?: WebPkgRef[]
   /**
-   * WebPkgs is the list of web pkgs that we separate from the bundle.
+   * WebPkgs is the list of web pkgs that the compiler separates from the
+   * bundle.
    */
   webPkgs?: WebPkgRefConfig[]
   /**

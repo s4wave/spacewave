@@ -18,7 +18,7 @@ func (c *PluginCaller) ComponentID() string {
 
 // ParsePluginCallerComponentID decodes a PluginRpc component ID into the
 // caller the host stamped on it. It refuses an ID that does not decode or
-// names no valid plugin.
+// identifies no valid plugin.
 func ParsePluginCallerComponentID(componentID string) (*PluginCaller, error) {
 	// Decode the message and require a valid caller plugin ID.
 	data, err := base64.RawURLEncoding.DecodeString(componentID)

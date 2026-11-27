@@ -14,11 +14,11 @@ import (
 
 // proxyHost executes plugins on one exported plugin host.
 type proxyHost struct {
-	// client reaches the exporting host
+	// client reaches the exporting host.
 	client SRPCHostExportClient
-	// platformID is the exported host's platform ID
+	// platformID is the exported host's platform ID.
 	platformID string
-	// root is the host resource root for plugins on this host
+	// root is the host resource root for plugins on this host.
 	root *plugin_host_root.Root
 }
 

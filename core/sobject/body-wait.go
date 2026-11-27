@@ -11,7 +11,7 @@ package sobject
 // A writer refused while replay waits gets a *WriteWait instead, so every
 // BodyWait carries the replay wait it stands for.
 type BodyWait struct {
-	// Wait is what the health shows; never nil. The driver sets its
+	// Wait is what the health shows. Never nil. The driver sets its
 	// CheckpointHeight and Position.
 	Wait *SOReplayWait
 	// Wake is closed once the body may apply the operation. Nil when only a

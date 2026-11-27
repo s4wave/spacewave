@@ -15,12 +15,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// errNoAdmissionPeer refuses a load that names manifest roots without the peer
-// whose approvals decide them.
+// errNoAdmissionPeer is the error for refusing a load that specifies manifest
+// roots without the peer whose approvals decide them.
 var errNoAdmissionPeer = errors.New("load names manifests without a peer to admit them")
 
-// errNoApprovalOwner refuses a load whose root the trust set did not admit on
-// a host with no approvals owner, where nothing else can ever admit it.
+// errNoApprovalOwner is the error for refusing a load whose root the trust set
+// did not admit on a host with no approvals owner, where nothing else can ever
+// admit the root.
 var errNoApprovalOwner = errors.New("host has no approval owner to admit this root")
 
 // executionReference identifies a candidate and its registration startup mode.
@@ -76,8 +77,9 @@ func (t *pluginInstance) execSelectedPlugin(ctx context.Context, args *executePl
 		return err
 	}
 
-	// A proven protocol mismatch is terminal for these candidates. Returning nil
-	// stops backoff retries; World selection repeats without the rejected roots.
+	// A proven protocol mismatch is terminal for these candidates.
+	// Returning nil stops backoff retries. World selection repeats without
+	// the rejected roots.
 	t.stopStartupWaitBudget()
 	if t.runningPluginCtr.GetValue() == nil {
 		t.finishExecution(err)
@@ -101,8 +103,8 @@ func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
 }
 
 // activationProbeSlow is how long a running worker may take to answer
-// Activation.Check before the plugin's swap state says it waits on it.
-// Tests shorten it.
+// Activation.Check before the plugin's swap state says the plugin waits on
+// the worker. Tests shorten activationProbeSlow.
 var activationProbeSlow = 5 * time.Second
 
 // probeActivation asks the running worker whether it supports prepared
@@ -112,10 +114,10 @@ var activationProbeSlow = 5 * time.Second
 //   - answered: prepared, the candidate starts beside the worker.
 //   - absent method: unprepared, the candidate replaces the worker in place.
 //   - worker gone: unprepared, nothing is left to keep.
-//   - transport error: returned and recorded; the worker is preserved.
+//   - transport error: returned and recorded. The worker is preserved.
 //
 // While no answer has come after activationProbeSlow, the swap state is
-// waiting; the answer returns it to preparing.
+// waiting. The answer returns the swap state to preparing.
 //
 // Go and JavaScript RPC servers report an absent method differently.
 func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.RunningPlugin, candidate swapCandidate) (bool, error) {
@@ -154,9 +156,10 @@ func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.Run
 	}
 }
 
-// execSelectedCandidate prepares a candidate while retaining the admitted worker.
-// Legacy plugins retain their in-place replacement contract; typed plugins
-// publish their complete registration scope only after startup succeeds.
+// execSelectedCandidate prepares a candidate while retaining the admitted
+// worker. Legacy plugins retain their in-place replacement contract. Typed
+// plugins publish their complete registration scope only after startup
+// succeeds.
 func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *executePluginArgs, recovery bool) (rerr error) {
 	// Reject a candidate the binding no longer accepts.
 	if !t.acceptsManifest(args) {
@@ -180,9 +183,10 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		return t.serveAssets(ctx, args)
 	}
 
-	// Keep an admitted worker whose own candidate is selected again, as when a
-	// released installation returns the binding to it. One that finished
-	// startup is supervised again; one still starting finishes like a new one.
+	// Keep an admitted worker whose own candidate is selected again, as
+	// when a released installation returns the binding to it. One that
+	// finished startup is supervised again. One still starting finishes
+	// like a new one.
 	if worker, readyAt := t.admittedWorker(args); worker != nil {
 		if !readyAt.IsZero() {
 			t.settleAdmitted(ctx, worker)
@@ -207,15 +211,17 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		}
 	}()
 	if args.pluginHost == nil {
-		// A host change selects the candidate again; retrying finds no host.
+		// A host change selects the candidate again. Retrying finds no
+		// host.
 		err := errors.New("installed plugin has no compatible host")
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", err)
 		t.setSwapFailed(ctx, candidate, "prepare plugin: "+err.Error())
 		return nil
 	}
 
-	// Probe the current worker's declared admission contract. A prepared worker
-	// stays until the candidate activates; otherwise it is replaced in place.
+	// Probe the current worker's declared admission contract. A prepared
+	// worker stays until the candidate activates. Otherwise the worker is
+	// replaced in place.
 	prepared := false
 	if current := t.runningPluginCtr.GetValue(); current != nil && t.manifestRoot == "" {
 		var err error
@@ -303,8 +309,9 @@ func (t *pluginInstance) runAdmitted(ctx context.Context, worker *pluginInstance
 	return t.superviseExecution(ctx, worker, readyAt)
 }
 
-// admittedWorker returns the admitted worker if it runs args itself, and when
-// it finished startup, zero while it is still starting; otherwise nil.
+// admittedWorker returns the admitted worker if the worker runs args itself,
+// and the time the worker finished startup (zero while still starting).
+// Otherwise, admittedWorker returns nil.
 func (t *pluginInstance) admittedWorker(args *executePluginArgs) (*pluginInstance, time.Time) {
 	t.pluginUpdateMtx.Lock()
 	defer t.pluginUpdateMtx.Unlock()
@@ -355,8 +362,8 @@ func (t *pluginInstance) superviseExecution(ctx context.Context, worker *pluginI
 }
 
 // admitExecution switches the family alias and filesystem access to a worker.
-// Its load-state lock precedes pluginUpdateMtx, matching the worker callback;
-// the scheduler's status mutex comes after both. ctx is the selection
+// Its load-state lock precedes pluginUpdateMtx, matching the worker callback.
+// The scheduler's status mutex comes after both. ctx is the selection
 // attempt's: a superseded or released candidate is canceled under
 // pluginUpdateMtx, so its attempt admits nothing afterwards.
 func (t *pluginInstance) admitExecution(ctx context.Context, worker *pluginInstance, release func(), args *executePluginArgs) bool {
@@ -375,7 +382,8 @@ func (t *pluginInstance) admitExecution(ctx context.Context, worker *pluginInsta
 		previous = t.releaseExecution
 		t.releaseExecution = release
 
-		// Record the worker and the candidate it runs; it is not ready yet.
+		// Record the worker and the candidate it runs. The worker is
+		// not ready yet.
 		t.activeExecution = worker
 		t.activeArgs = args
 		t.activeReadyAt = time.Time{}
@@ -401,7 +409,7 @@ func (t *pluginInstance) admitExecution(ctx context.Context, worker *pluginInsta
 
 // restart ends the admitted worker and runs the selection attempt again at
 // once, skipping any restart delay. The new attempt finds nothing running, so
-// it starts the selected manifest in place. This is the way out of a swap
+// it starts the selected manifest in place. Restarting is the way out of a swap
 // waiting on a worker that neither answers its activation check nor exits:
 // ending the worker first means the restarted attempt cannot probe it again.
 func (t *pluginInstance) restart() {
@@ -450,9 +458,9 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 // admissionPeer returns the peer whose approvals decide the candidate's root,
 // and whether the root needs admission. A removal, with no manifest, needs
 // none. A scheduler that requires admission serves one peer and asks for its
-// configured peer about every root, so a load cannot name another. Any other
-// scheduler asks only about the roots a load names, for the load's peer; the
-// roots its own catalog selects run as before.
+// configured peer about every root, so a load cannot specify another. Any
+// other scheduler asks only about the roots a load specifies, for the load's
+// peer. The roots its own catalog selects run as before.
 func (t *pluginInstance) admissionPeer(args *executePluginArgs) (string, bool) {
 	switch {
 	case args == nil || args.manifestSnapshot == nil:
@@ -474,16 +482,16 @@ func (t *pluginInstance) awaitsOwner() bool {
 }
 
 // admittedCandidates returns the candidates that may run, keeping their order:
-// each is decided by its own peer, and passes when it needs no admission or
-// its root is admitted. Before each root is read, the swap state says its
-// approval is being checked, so a read that does not answer shows what it
-// waits for, and an admitted root never shows as awaiting approval. With none passing it waits until a waiting root is admitted, so
-// an unadmitted preferred candidate never holds back an admitted fallback. A
-// candidate that names a root without a peer never runs, nor does an
-// unadmitted one on a host with no approvals owner, and one whose read failed
-// is skipped. When none passes and a read or wait failed, the failed
-// swap state names that error and the load retries instead of showing a wait
-// that never ends.
+// each is decided by its own peer, and passes when it needs no admission or its
+// root is admitted. Before each root is read, the swap state says its approval
+// is being checked, so a read that does not answer shows what it waits for, and
+// an admitted root never shows as awaiting approval. With no candidate passing,
+// admittedCandidates waits until a waiting root is admitted, so an unadmitted
+// preferred candidate never holds back an admitted fallback. A candidate that
+// specifies a root without a peer never runs, nor does an unadmitted one on a
+// host with no approvals owner, and one whose read failed is skipped. When none
+// passes and a read or wait failed, the failed swap state records that error
+// and the load retries instead of showing a wait that never ends.
 func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*executePluginArgs) ([]*executePluginArgs, error) {
 	for {
 		// Sort the candidates into those that pass now, those that wait for
@@ -542,7 +550,7 @@ func (t *pluginInstance) admittedCandidates(ctx context.Context, candidates []*e
 }
 
 // failAdmission publishes that reading or waiting for the candidate's
-// admission failed with err and returns err; setSwap drops the write when ctx
+// admission failed with err and returns err. setSwap drops the write when ctx
 // ended. The execute routine retries the failed load with backoff and fills
 // the retry time.
 func (t *pluginInstance) failAdmission(ctx context.Context, args *executePluginArgs, err error) error {
@@ -588,7 +596,7 @@ func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, waiting []*execu
 	peerID, _ := t.admissionPeer(waiting[0])
 	t.setSwapAwaitingApproval(ctx, newSwapCandidate(waiting[0]), peerID)
 
-	// Wait on every root at once; the first result cancels the rest.
+	// Wait on every root at once. The first result cancels the rest.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	results := make(chan admissionResult, len(waiting))
@@ -612,10 +620,11 @@ func (t *pluginInstance) awaitAnyAdmission(ctx context.Context, waiting []*execu
 // when the root needs admission, and reports whether the candidate may start.
 // The swap state says the root's approval is being checked until the resolvers
 // answer, and that it awaits approval once they answered without admitting it.
-// A root no resolver admits waits until ctx ends. A load that names no peer,
-// or whose root is not admitted on a host with no approvals owner, can never
-// be admitted: it returns false with a nil error and the swap state failed,
-// as admittedCandidates refuses it, so the execute routine does not retry it.
+// A root no resolver admits waits until ctx ends. A load that specifies no
+// peer, or whose root is not admitted on a host with no approvals owner, can
+// never be admitted: awaitAdmission returns false with a nil error and the swap
+// state failed, as admittedCandidates refuses the load, so the execute routine
+// does not retry the load.
 func (t *pluginInstance) awaitAdmission(ctx context.Context, args *executePluginArgs) (bool, error) {
 	// Skip a root the scheduler runs without asking.
 	peerID, ask := t.admissionPeer(args)

@@ -117,8 +117,8 @@ func TestDedicatedWorkerOwnerWorkerFailureDoesNotTransferSingleton(t *testing.T)
 		t.Fatalf("state after worker failure = %v, want failed", got)
 	}
 
-	// Worker failure is reported by the tracker; the singleton owner changes only
-	// when the owning document is removed.
+	// Worker failure is reported by the tracker. The singleton owner changes
+	// only when the owning document is removed.
 	create, wake = owner.beginCreate("doc-b")
 	if create || wake {
 		t.Fatalf("visible second document create = %v, wake = %v; want blocked after owner worker failure", create, wake)

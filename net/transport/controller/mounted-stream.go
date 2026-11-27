@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/stream"
 )
 
-// mountedStream implements mounted stream from link
+// mountedStream implements a mounted stream from a link.
 type mountedStream struct {
 	strm         stream.Stream
 	strmOpenOpts stream.OpenOpts

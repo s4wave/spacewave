@@ -91,7 +91,7 @@ func (s *pluginApprovalsSession) close() {
 }
 
 // decisions returns the session's current decisions from the first message
-// of WatchPluginApprovals, which holds every decision.
+// of WatchPluginApprovals. The message contains every decision.
 func (s *pluginApprovalsSession) decisions(ctx context.Context) ([]*s4wave_plugin_approval.PluginApproval, error) {
 	// Open the decisions watch.
 	strm, err := s.sess.WatchPluginApprovals(ctx)
@@ -161,9 +161,9 @@ func (s *pluginApprovalsSession) spacePlugins(ctx context.Context, spaceID strin
 	return state.GetPlugins(), nil
 }
 
-// pendingApprovalRows returns a row for each plugin whose swap awaits
-// approval, naming the root by the key the scheduler admits it by: the hash
-// of the candidate manifest's root ref.
+// pendingApprovalRows returns a row for each plugin whose swap awaits approval,
+// identifying the root by the key the scheduler admits it by: the hash of the
+// candidate manifest's root ref.
 func pendingApprovalRows(space string, plugins []*s4wave_space.SpacePluginStatus) ([]*pluginApprovalRow, error) {
 	var rows []*pluginApprovalRow
 	for _, p := range plugins {
@@ -173,7 +173,7 @@ func pendingApprovalRows(space string, plugins []*s4wave_space.SpacePluginStatus
 			continue
 		}
 
-		// Name the root by the hash of the candidate manifest's root ref.
+		// Identify the root by the hash of the candidate manifest's root ref.
 		ref, err := bucket.ParseObjectRef(st.GetCandidateManifestRef())
 		if err != nil {
 			return nil, errors.Wrapf(err, "plugin %s candidate manifest ref", p.GetPluginId())
@@ -238,7 +238,7 @@ func mergeApprovalRows(pending []*pluginApprovalRow, decisions []*s4wave_plugin_
 // formatApprovalRow renders one row: plugin, root, state, and for a pending
 // root where it waits.
 func formatApprovalRow(row *pluginApprovalRow, loc *time.Location) string {
-	// Name the decision, or undecided when there is none.
+	// Format the decision, or undecided when there is none.
 	state := strings.ToLower(strings.TrimPrefix(row.state.String(), "PluginApprovalState_"))
 	if row.state == s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_UNKNOWN {
 		state = "undecided"
@@ -362,7 +362,7 @@ func (a *pluginApprovalsApproveArgs) Run(c *cli.Context) error {
 		return s.approve(ctx, &pluginApprovalRow{pluginID: c.Args().Get(0), manifestRoot: c.Args().Get(1)})
 	}
 
-	// Approve each root waiting on this session's peer; a root waiting on
+	// Approve each root waiting on this session's peer. A root waiting on
 	// another peer is that peer's decision and is only reported.
 	pending, err := s.pending(ctx)
 	if err != nil {

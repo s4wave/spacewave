@@ -76,8 +76,8 @@ func TestBufferedStorePinsPendingRootWithoutDraining(t *testing.T) {
 		t.Fatalf("pin drained the buffer: batches=%d", inner.batchCalls)
 	}
 
-	// A pin released before the drain never reaches the inner store; one
-	// still held moves there with its root.
+	// A pin released before the drain never reaches the inner store,
+	// but one still held moves there with its root.
 	releaseDropped()
 	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err)

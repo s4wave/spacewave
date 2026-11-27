@@ -74,7 +74,7 @@ export interface ViewerRegistration {
   /**
    * DefaultForType declares this viewer the one an object of type_id opens
    * with when the person has not chosen a viewer. When several viewers of a
-   * type declare it, the first in list order wins; when none does, the first
+   * type declare it, the first in list order wins. When none does, the first
    * viewer of the type opens.
    */
   defaultForType?: boolean
@@ -142,7 +142,8 @@ export interface ListViewersRequest {
    */
   surface?: ViewerSurface
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty InstanceKey lists
+   * global registrations.
    */
   instanceKey?: string
 }
@@ -185,7 +186,8 @@ export interface WatchViewersRequest {
    */
   surface?: ViewerSurface
   /**
-   * InstanceKey selects a logical installation; empty lists global registrations.
+   * InstanceKey selects a logical installation. An empty InstanceKey lists
+   * global registrations.
    */
   instanceKey?: string
 }

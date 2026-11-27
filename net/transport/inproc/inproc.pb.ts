@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * TransportPeerID sets the peer ID to attach the transport to.
+   * TransportPeerId sets the peer ID to attach the transport to.
    * If unset, attaches to any running peer with a private key.
    */
   transportPeerId?: string

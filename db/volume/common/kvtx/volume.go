@@ -47,7 +47,8 @@ type Volume struct {
 	kvtxStore kvtx.Store
 	// kvKey is the underlying kvkey.
 	kvKey *store_kvkey.KVKey
-	// procID names this process's reader pins and stages, unique per open.
+	// procID identifies this process's reader pins and stages and is unique
+	// per open.
 	procID string
 	// clock returns the time log pages, leases and the grace period are
 	// read on, nil for time.Now.
@@ -81,8 +82,8 @@ type Volume struct {
 	hidesNone atomic.Bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
-	// atomic is set when the store commits transactions atomically, which
-	// the Volume's liveness, roots, pins and stages need.
+	// atomic is set when the store commits transactions atomically. The
+	// Volume's liveness, roots, pins and stages need atomic commits.
 	atomic bool
 	// ordered flushes direct atomic writes committed with write ordering, may
 	// be nil.
@@ -105,7 +106,8 @@ type Volume struct {
 	// fills groups concurrent cache fills into shared transactions.
 	fills fillQueue
 	// fillHold is how long a fill's leased root holds the block it gives
-	// birth to, the collector's grace period; zero for the default grace.
+	// birth to, the collector's grace period. Zero uses the default grace
+	// period.
 	fillHold time.Duration
 	// closeErr stores the error from Close.
 	closeErr error
@@ -121,7 +123,7 @@ type Volume struct {
 	// stages are the open stages by name, and released stages whose roots no
 	// commit has released yet.
 	stages map[string]*openStage
-	// releasedStages names the released stages whose roots no commit has
+	// releasedStages records the released stages whose roots no commit has
 	// released yet.
 	releasedStages map[string]struct{}
 	// rootPinsClosed records that Close released the reader pins.
@@ -130,7 +132,7 @@ type Volume struct {
 	renewCancel context.CancelFunc
 	// renewDone closes when the renewal has stopped.
 	renewDone chan struct{}
-	// lease names the leases this process holds its roots under.
+	// lease records the leases this process holds its roots under.
 	lease processLease
 	// obsoleteCancel stops the obsolete records sweep, nil without one.
 	obsoleteCancel context.CancelFunc
@@ -191,13 +193,13 @@ type Volume struct {
 	upgraded     bool
 	upgradedFrom uint64
 	// stageSlice bounds the entries one transaction of a staged batch lands,
-	// as prepareStaged describes; zero lands each batch in one transaction.
+	// as prepareStaged describes. Zero lands each batch in one transaction.
 	stageSlice int
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
 type KvtxVolume interface {
-	// KvtxVolume extends Volume
+	// Volume is extended by KvtxVolume.
 	volume.Volume
 
 	// GetKvtxStore returns the underlying kvtx store.
@@ -309,7 +311,8 @@ func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode 
 }
 
 // newCollector returns the collector of the Volume over store, which frees
-// when frees is set, with grace as its grace period, zero for the default.
+// when frees is set, with grace as its grace period, zero for the default
+// grace period.
 func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
 		Frees: frees,
@@ -323,12 +326,12 @@ func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Durat
 	return block_gc.NewCollector(store, opts)
 }
 
-// parseGrace parses the collector's grace period, zero for the default. It
-// refuses a grace no longer than the lease of a leased root, rootLease, as the
-// Config field says, outside a test binary, where a test sets a shorter one
-// to collect at once.
+// parseGrace parses the collector's grace period, zero for the default grace
+// period. It refuses a grace no longer than the lease of a leased root,
+// rootLease, as the Config field says, outside a test binary, where a test
+// sets a shorter one to collect at once.
 func parseGrace(dur string) (time.Duration, error) {
-	// An empty setting uses the default.
+	// An empty setting uses the default grace period.
 	if dur == "" {
 		return 0, nil
 	}
@@ -506,7 +509,7 @@ func initVolume(
 	}
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
-	// Name this process's pins and stages.
+	// Assign an ID to this process's pins and stages.
 	v.procID = ulid.NewULID()
 	v.rootPins = make(map[string]*rootPin)
 	v.idlePins = make(map[string]*rootPin)
@@ -597,8 +600,8 @@ func (v *Volume) ScanObjectStoreKeys(ctx context.Context, storeID string, fn fun
 }
 
 // ScanChildListCoverage visits every stored block and whether it has a child
-// list, in one read snapshot. For an unlisted block it also reads its size;
-// listed blocks report zero bytes without reading their values. The caller must
+// list, in one read snapshot. For an unlisted block it also reads its size.
+// Listed blocks report zero bytes without reading their values. The caller must
 // not open another transaction on this Volume from fn.
 func (v *Volume) ScanChildListCoverage(ctx context.Context, fn func(ref *block.BlockRef, listed bool, unlistedBytes uint64) error) error {
 	// Keep blocks and their child lists in the same physical snapshot.

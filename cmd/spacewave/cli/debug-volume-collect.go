@@ -96,9 +96,9 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 	}
 	defer vol.Close()
 
-	// Turning frees on returned the Volume to unadopted for a recount, which
-	// the background adoption would run later; count it now, so the passes
-	// free rather than find an unadopted Volume and stop.
+	// Turning frees on returned the Volume to unadopted for a recount,
+	// which the background adoption would run later. Count the Volume now,
+	// so the passes free rather than find an unadopted Volume and stop.
 	start := time.Now()
 	defer func() { rep.res.Duration = time.Since(start) }()
 	if rep.frees {
@@ -123,11 +123,11 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 	return rep, err
 }
 
-// adoptLogged adopts vol and logs what the count found and how long it took.
-// A recount of a large Volume runs for hours and the command's report prints
-// only at exit, so this line is what says the passes have begun.
+// adoptLogged adopts vol and logs what the count found and how long it took. A
+// recount of a large Volume runs for hours and the command's report prints only
+// at exit, so this log line is what says the passes have begun.
 func adoptLogged(ctx context.Context, le *logrus.Entry, vol *volume_s4db.Volume) error {
-	// Adopt; a Volume already adopted counted nothing.
+	// Adopt. A Volume already adopted counted nothing.
 	start := time.Now()
 	res, err := vol.Adopt(ctx)
 	if err != nil || res.Already {
@@ -163,10 +163,10 @@ func (r *collectReport) collectToEnd(ctx context.Context, vol *volume_s4db.Volum
 	}
 }
 
-// collectUnderLoad runs a writer on vol as load sets, and passes beside it in
-// the same process until its window ends, each pass after one that left no
-// work waiting for the writer's next commit. It then releases the writer's
-// scratch root.
+// collectUnderLoad runs a writer on vol as load sets, and passes beside the
+// writer in the same process until the writer's window ends. Each pass after
+// one that left no work waits for the writer's next commit. The function then
+// releases the writer's scratch root.
 func (r *collectReport) collectUnderLoad(ctx context.Context, vol *volume_s4db.Volume, load volumeLoadOpts) error {
 	// Start the writer, which ends the window early if a commit fails.
 	w, err := newVolumeLoad(ctx, vol, load.rate)

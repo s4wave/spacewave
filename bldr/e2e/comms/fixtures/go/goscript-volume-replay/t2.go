@@ -209,8 +209,8 @@ func (o t2Ops) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, 
 	return block.GetStoredBlockBatch(ctx, o.StoreOps, refs, fn)
 }
 
-// t2Tx is a transaction reached through a relay. Reads pay a round trip each;
-// writes buffer and travel with the commit.
+// t2Tx is a transaction reached through a relay. Reads pay a round trip each,
+// but writes buffer and travel with the commit.
 type t2Tx struct {
 	kvtx.Tx
 	// relay charges the round trips.
@@ -248,7 +248,7 @@ func (t *t2Tx) Delete(ctx context.Context, key []byte) error {
 	return t.Tx.Delete(ctx, key)
 }
 
-// Iterate opens an iterator in one round trip; its entries stream back.
+// Iterate opens an iterator in one round trip, and its entries stream back.
 func (t *t2Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	_ = t.relay.hop(ctx, len(prefix), 0)
 	return t.Tx.Iterate(ctx, prefix, sort, reverse)

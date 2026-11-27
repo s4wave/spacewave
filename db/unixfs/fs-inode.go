@@ -20,24 +20,24 @@ const fsInodeTries = 100
 // the inode will be released if:
 //   - there is any error fetching/refreshing the parent cursors
 //   - the underlying FSCursor is released.
-//   - there are 0 references to the node and 0 child nodes
+//   - there are 0 references to the node and 0 child nodes.
 type fsInode struct {
 	// isReleased indicates the node is released.
 	isReleased atomic.Bool
-	// parent is the inode which created this inode
+	// parent is the inode which created this inode.
 	// root node: parent is nil
-	// immutable
+	// immutable.
 	parent *fsInode
-	// name is the name associated with the inode
-	// immutable
+	// name is the name associated with the inode.
+	// immutable.
 	name string
 
-	// relCbs is an atomic last-in-first-out set of callbacks
+	// relCbs is an atomic last-in-first-out set of callbacks.
 	relCbs cqueue.AtomicLIFO[func()]
 	// w holds buffered writes to a file inode.
 	w fsInodeWrites
 	// treeWrites tracks buffered writes and unreported flush failures.
-	// used on the root inode only
+	// used on the root inode only.
 	treeWrites fsTreeWrites
 
 	// rmtx is the read/write mutex for the inode (fields below) and children.
@@ -46,25 +46,25 @@ type fsInode struct {
 
 	// relErr is the error set when releasing.
 	relErr error
-	// refs is the list of inode ref handles
+	// refs is the list of inode ref handles.
 	refs []*FSHandle
-	// children contains any child inodes
-	// sorted by name
+	// children contains any child inodes.
+	// sorted by name.
 	children []*fsInode
-	// fsWait is set if a routine is currently resolving fsCursors or fsOps
+	// fsWait is set if a routine is currently resolving fsCursors or fsOps.
 	fsWait chan struct{}
 	// fsCursors contains the current fs cursor instances.
 	// multiple can be set if one cursor proxies to another.
 	// the last element in the list is the cursor used for fsOps.
-	// nil until resolved
+	// nil until resolved.
 	fsCursors []FSCursor
 	// fsOps contains the current fs ops instance.
-	// nil until resolved (after fsCursors)
+	// nil until resolved (after fsCursors).
 	fsOps FSCursorOps
 }
 
 // newFsInode constructs a new FS inode.
-// if parent is nil, indicates root node
+// if parent is nil, indicates root node.
 func newFsInode(parent *fsInode, name string, cursors []FSCursor) *fsInode {
 	return &fsInode{
 		parent:    parent,
@@ -73,7 +73,7 @@ func newFsInode(parent *fsInode, name string, cursors []FSCursor) *fsInode {
 	}
 }
 
-// accessInodeCb is a callback for accessInode
+// accessInodeCb is a callback for accessInode.
 type accessInodeCb func(cursor FSCursor, ops FSCursorOps) error
 
 // checkReleased checks if released without locking anything.
@@ -82,7 +82,7 @@ func (i *fsInode) checkReleased() bool {
 	return i.isReleased.Load()
 }
 
-// checkReleasedWithErr checks if the node was released
+// checkReleasedWithErr checks if the node was released.
 // if released (true), also returns any error set when releasing.
 // returns ErrReleased if no rel err was set.
 func (i *fsInode) checkReleasedWithErr() (bool, error) {
@@ -95,8 +95,8 @@ func (i *fsInode) checkReleasedWithErr() (bool, error) {
 	return true, unixfs_errors.ErrReleased
 }
 
-// addReferenceLocked adds a new FSHandle pointing to this location
-// if checkReleased is false this cannot return an error.
+// addReferenceLocked adds a new FSHandle pointing to this location.
+// if checkReleased is false, addReferenceLocked cannot return an error.
 func (i *fsInode) addReferenceLocked(checkReleased bool) (*FSHandle, error) {
 	// Require a live inode when the caller requests release checking.
 	if checkReleased {
@@ -156,7 +156,7 @@ func (i *fsInode) mergeReferencesLocked(refs []*FSHandle) {
 // and children of the given inode. merges the references and children
 // recursively into i and children of i.
 // caller must hold the mutexes
-// if err is set, sets the released inode errors to the err
+// if err is set, sets the released inode errors to the err.
 func (i *fsInode) mergeWithNodeLocked(node *fsInode, err error) {
 	// build list of inodes to release in depth order
 	toRelease := make([]*fsInode, 0, 1)
@@ -216,10 +216,11 @@ func (i *fsInode) mergeWithNodeLocked(node *fsInode, err error) {
 	}
 }
 
-// clearCursorsWithChildrenLocked clears all fscursor and fscursor ops on the inode and children.
-// does not release the inodes: just releases the cursors.
+// clearCursorsWithChildrenLocked clears all fscursor and fscursor ops on the
+// inode and children.
+// does not release the inodes: only releases the cursors.
 // caller must hold the mutexes for the node & all children
-// if err is set, sets the released inode errors to the err
+// if err is set, sets the released inode errors to the err.
 func (i *fsInode) clearCursorsWithChildrenLocked() {
 	// build list of inodes to release in depth order
 	toRelease := make([]*fsInode, 0, 1)
@@ -259,9 +260,9 @@ func (i *fsInode) clearCursorsWithChildrenLocked() {
 	}
 }
 
-// lookup attempts to lookup a directory entry returning a new FSHandle.
+// lookup tries to look up a directory entry returning a new FSHandle.
 // must be called with mtx UNLOCKED
-// returns with mtx UNLOCKED
+// returns with mtx UNLOCKED.
 func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	// lock i
 	rel, lerr := i.rmtx.Lock(ctx, true)
@@ -308,7 +309,8 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 		// create the new child inode
 		childInode = newFsInode(i, name, nil)
 
-		// no need to lock the child inode yet since we are the first to use it.
+		// no need to lock the child inode yet since this lookup is the first to
+		// use it.
 		nref, _ = childInode.addReferenceLocked(false)
 		if wasReleased {
 			// insert at the old released index
@@ -328,7 +330,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	}
 
 	// wait until the child inode ops are resolved
-	// this verifies that the inode actually exists.
+	// resolving the ops verifies that the inode actually exists.
 	if err := childInode.accessInode(ctx, nil); err != nil {
 		nref.Release()
 		return nil, err
@@ -339,7 +341,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 }
 
 // findChildInode looks for an existing non-released child by name.
-// returns nil, insertIdx, error
+// returns nil, insertIdx, error.
 func (i *fsInode) findChildInode(name string, checkReleased bool) (*fsInode, int) {
 	// Locate the named inode in the sorted child list.
 	idx := sort.Search(len(i.children), func(ix int) bool {
@@ -387,7 +389,7 @@ func (i *fsInode) removeRefLocked(h *FSHandle) {
 
 // releaseIfNecessaryLocked releases this inode if it has no refs and no
 // non-released children, pruning released children from the list.
-// returns if the node was released
+// returns if the node was released.
 func (i *fsInode) releaseIfNecessaryLocked() bool {
 	// Preserve an inode already marked released.
 	if i.checkReleased() {
@@ -403,7 +405,7 @@ func (i *fsInode) releaseIfNecessaryLocked() bool {
 
 // releaseParentsIfNecessary walks up from a released inode, releasing each
 // parent left with no refs and no non-released children.
-// must be called with mtx UNLOCKED on i and all parents
+// must be called with mtx UNLOCKED on i and all parents.
 func (i *fsInode) releaseParentsIfNecessary() {
 	for node := i; node.checkReleased() && node.parent != nil; node = node.parent {
 		rel, err := node.parent.rmtx.Lock(context.Background(), true)
@@ -421,7 +423,7 @@ func (i *fsInode) releaseParentsIfNecessary() {
 // releaseLocked marks the fsInode as released.
 // caller must hold the lock
 // caller must ensure all children are released first
-// if err is set, sets the fs inode error to err
+// if err is set, sets the fs inode error to err.
 func (i *fsInode) releaseLocked(err error) {
 	// Mark the inode released and discard its resolved state.
 	if i.isReleased.Swap(true) {
@@ -452,8 +454,8 @@ func (i *fsInode) releaseLocked(err error) {
 	}
 }
 
-// releaseWithChildrenLocked releases this inode and all child inodes
-// if err is set, sets the fs inode error to the err
+// releaseWithChildrenLocked releases this inode and all child inodes.
+// if err is set, sets the fs inode error to the err.
 func (i *fsInode) releaseWithChildrenLocked(err error) {
 	// build list of inodes to release in depth order
 	var toRelease []*fsInode
@@ -474,7 +476,7 @@ func (i *fsInode) releaseWithChildrenLocked(err error) {
 		}
 	}
 
-	// TODO: do we need to lock the child nodes as well?
+	// TODO: do the child nodes need to be locked as well?
 
 	// release in the correct order (bottom-up)
 	for len(toRelease) != 0 {

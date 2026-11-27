@@ -18,13 +18,13 @@ const DefaultProtocolID = protocol.ID("bifrost/echo")
 // Controller implements the stream echo controller. The controller handles
 // HandleMountedStream directives by echoing all data.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// localPeerID is the peer ID to echo for
+	// localPeerID is the peer ID to echo for.
 	localPeerID peer.ID
 }
 

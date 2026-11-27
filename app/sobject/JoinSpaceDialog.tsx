@@ -602,7 +602,7 @@ async function backfillJoinedSpace(
 }
 
 // resolveInvite resolves the user's input to an SOInviteMessage.
-// Full links and pending bearer handoffs decode locally; unmarked inputs are
+// Full links and pending bearer handoffs decode locally. Unmarked inputs are
 // cloud short codes.
 async function resolveInvite(
   session: Session,

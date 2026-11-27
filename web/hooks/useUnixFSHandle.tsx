@@ -21,7 +21,7 @@ import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 export { UnixFSTypeID }
 
 // useUnixFSRootHandle returns a root FSHandle for the given UnixFS object.
-// This is the entry point for handle-based UnixFS operations.
+// This hook is the entry point for handle-based UnixFS operations.
 export function useUnixFSRootHandle(
   worldState: Resource<IWorldState>,
   objectKey: string | null,
@@ -30,7 +30,7 @@ export function useUnixFSRootHandle(
 }
 
 // useUnixFSHandle opens a handle at the given path relative to a root handle.
-// Returns a new FSHandle for the target path.
+// The hook returns a new FSHandle for the target path.
 export function useUnixFSHandle(
   rootHandle: Resource<FSHandle>,
   path: string,
@@ -116,8 +116,8 @@ async function* watchListing(
 async function* emptyAsyncIterable<T>(): AsyncIterable<T> {}
 
 /**
- * useUnixFSHandleListing follows the directory listing of a handle. Returns
- * null while the handle is null or disabled.
+ * useUnixFSHandleListing follows the directory listing of a handle. The hook
+ * returns null while the handle is null or disabled.
  */
 export function useUnixFSHandleListing(
   handle: Resource<FSHandle | null>,
@@ -141,7 +141,7 @@ export function useUnixFSHandleListing(
 
 /**
  * useUnixFSHandleEntries follows the file browser rows of a handle's
- * directory. Returns null while the handle is null or disabled.
+ * directory. The hook returns null while the handle is null or disabled.
  */
 export function useUnixFSHandleEntries(
   handle: Resource<FSHandle | null>,
@@ -238,7 +238,7 @@ export function useUnixFSHandleTextContent(
   )
 }
 
-// MIME type mappings from file extension.
+// MIME_TYPES maps file extensions to MIME types.
 const MIME_TYPES: Record<string, string> = {
   // Text
   txt: 'text/plain',

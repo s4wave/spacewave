@@ -307,7 +307,8 @@ func (e *Pass) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor).
+// Note: the returned references do not include pending references
+// (in a cursor).
 func (e *Pass) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
 	m[3] = e.GetTargetRef()

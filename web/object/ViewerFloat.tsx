@@ -19,7 +19,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 // once the media could not load.
 export type ViewerMedia = 'still' | 'moving' | 'failed'
 
-// FloatState is the part of ViewerFloat.tla the stage holds; media comes from
+// FloatState is the part of ViewerFloat.tla the stage holds. media comes from
 // the viewer.
 interface FloatState {
   // active is true while the pointer moved or a key went down within the
@@ -78,7 +78,7 @@ const defaultIdleMs = 2500
 
 // ViewerStageProps are the props for ViewerStage.
 export interface ViewerStageProps {
-  // media is what the content is doing; floats leave only while it moves.
+  // media is what the content is doing. Floats leave only while it moves.
   media: ViewerMedia
   // idleMs is how long a still pointer keeps the floats over moving content.
   idleMs?: number
@@ -99,7 +99,7 @@ export function ViewerStage({
   className,
   children,
 }: ViewerStageProps) {
-  // The stage holds the pointer and focus state; the viewer passes media.
+  // The stage holds the pointer and focus state. The viewer passes media.
   const [state, dispatch] = useReducer(reduceFloat, initialFloatState)
   const stageRef = useRef<HTMLDivElement | null>(null)
   const lastTouch = useRef(0)
@@ -255,7 +255,7 @@ export function ViewerFloat({
 
 // ViewerFloatPressProps are the props for ViewerFloatPress.
 export interface ViewerFloatPressProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  // label names the press; an icon-only press shows it as its tooltip.
+  // label names the press. An icon-only press shows the label as its tooltip.
   label: string
   // icon draws the press as a 24px square with label as its name.
   icon?: ReactNode

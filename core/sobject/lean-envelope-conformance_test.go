@@ -326,7 +326,8 @@ func (e *envelopeScenario) authors() []*SOOperationPosition {
 
 // request writes an oracle request for op with the envelope under field.
 func (e *envelopeScenario) request(op, field string, envelope *fastjson.Value) []byte {
-	// Name the object and the participants the envelope is checked under.
+	// Specify the object and the participants the envelope is checked
+	// under.
 	a := &e.a
 	req := a.NewObject()
 	req.Set("op", a.NewString(op))

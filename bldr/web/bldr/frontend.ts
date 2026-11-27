@@ -157,7 +157,7 @@ export class FrontendResource {
     )
   }
 
-  /** disconnect detaches Vite; its owner still retains the subscription. */
+  /** disconnect detaches Vite. Its owner still retains the subscription. */
   public disconnect(): void {
     this.handlers = undefined
   }

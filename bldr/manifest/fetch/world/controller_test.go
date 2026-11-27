@@ -118,7 +118,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 	}
 
 	// Advance the world while the first traversal is blocked. No resolver may
-	// publish that sequence-one map; they must coalesce again at sequence two.
+	// publish that sequence-one map. Resolvers must coalesce again at
+	// sequence two.
 	countedWS.setSeqno(2)
 	close(release)
 
@@ -300,7 +301,7 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	}
 
 	// Each graph level is one batch. The selected and full walks of the stale
-	// store each read the store and the bad manifest's empty edge set; the
+	// store each read the store and the bad manifest's empty edge set. The
 	// selected walk of the empty replacement reads only the store.
 	if got := countedWS.traversals(); got != 5 {
 		t.Fatalf("manifest graph traversals across reset = %d, want 5", got)

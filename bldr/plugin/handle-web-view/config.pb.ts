@@ -18,8 +18,8 @@ export interface Config {
    */
   pluginId?: string
   /**
-   * WebViewidRe is the regex of web view IDs to fetch with this controller.
-   * If empty, will forward any.
+   * WebViewIdRe is the regex of web view IDs to fetch with this controller.
+   * If empty, the controller forwards any web view.
    */
   webViewIdRe?: string
 }

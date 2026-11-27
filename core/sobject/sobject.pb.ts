@@ -255,7 +255,7 @@ export enum SOParticipantAddOutcome {
 
   /**
    * SOParticipantAddOutcome_UNCHANGED means the peer already held the role
-   * asked for or a higher one; nothing was written.
+   * asked for or a higher one. Nothing was written.
    */
   SOParticipantAddOutcome_UNCHANGED = 3,
 }
@@ -485,8 +485,8 @@ export enum SOControlMessageType {
   SO_CONTROL_MESSAGE_TYPE_UNKNOWN = 0,
 
   /**
-   * SO_CONTROL_MESSAGE_TYPE_AGREE records that a voter agrees to a change.
-   * It carries the value; height and round are zero. A control record is
+   * SO_CONTROL_MESSAGE_TYPE_AGREE records that a voter agrees to a change. The
+   * message carries the value. Height and round are zero. A control record is
    * agreed with its sealed_checkpoint cleared, which the proposer fills in.
    */
   SO_CONTROL_MESSAGE_TYPE_AGREE = 1,
@@ -595,12 +595,13 @@ export interface SharedObjectListEntry {
    */
   udpPeerAddrs?: { [key: string]: string }
   /**
-   * Generation names one lifetime of the object under its id: the local
+   * Generation identifies one lifetime of the object under its id: the local
    * provider mints it in the list write that first lists the object, every
-   * install from the account catalog carries the catalog's unchanged, and
-   * every later write and publish reads it from the list. A tombstone removes
-   * only the lifetime it names, and a deleted lifetime stays deleted. Empty
-   * on entries made before generations, and on other providers.
+   * install from the account catalog carries the catalog's unchanged
+   * generation, and every later write and publish reads it from the list. A
+   * tombstone removes only the lifetime it identifies, and a deleted lifetime
+   * stays deleted. Empty on entries made before generations, and on other
+   * providers.
    */
   generation?: string
 }
@@ -683,15 +684,18 @@ export interface SharedObjectHealth {
    */
   metadata?: Uint8Array
   /**
-   * SyncDeniedPeerIds lists base58 participant IDs whose latest authenticated sync admission denied this object identity.
-   * Each peer was readable under local authority. This is source availability, not proof of membership removal.
-   * A successful admission from that participant clears its denial; transport failures leave it unchanged.
+   * SyncDeniedPeerIds lists base58 participant IDs whose latest authenticated
+   * sync admission denied this object identity. Each peer was readable under
+   * local authority. A denial indicates source availability, not proof of
+   * membership removal. A successful admission from that participant clears its
+   * denial. Transport failures leave the denial unchanged.
    */
   syncDeniedPeerIds?: string[]
   /**
-   * SyncRecoveryPeerIds lists authenticated participants whose direct sync needs
-   * an upgrade or trusted history recovery. Local content remains available.
-   * Verified convergence clears the participant; admission alone does not.
+   * SyncRecoveryPeerIds lists authenticated participants whose direct sync
+   * needs an upgrade or trusted history recovery. Local content remains
+   * available. Verified convergence clears the participant from the list.
+   * Admission alone does not.
    */
   syncRecoveryPeerIds?: string[]
   /**
@@ -821,7 +825,7 @@ export interface SOReplayWait {
    */
   opTypeId?: string
   /**
-   * PluginId is the plugin a pinned operation type names, or empty for an
+   * PluginId is the plugin a pinned operation type specifies, or empty for an
    * unpinned type.
    */
   pluginId?: string
@@ -918,7 +922,7 @@ export const SOReplayWaitUpgrade: MessageType<SOReplayWaitUpgrade> =
   )
 
 /**
- * SOReplayWaitRetry waits to step again after a failure that names no wait.
+ * SOReplayWaitRetry waits to step again after a failure that specifies no wait.
  *
  * @generated from message sobject.SOReplayWaitRetry
  */
@@ -1066,7 +1070,7 @@ export interface SharedObjectConfig {
   /**
    * SealedCheckpoint is the checkpoint the group held when it decided this
    * config. The config vouches for it by hash, so it stays valid after the
-   * voters who committed it change. Required under group control; a change
+   * voters who committed it change. Required under group control. A change
    * back to owner control keeps it.
    */
   sealedCheckpoint?: SOCheckpointHead
@@ -1102,7 +1106,7 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
  */
 export interface SOSkippedOperation {
   /**
-   * Position names the operation by author, nonce and hash.
+   * Position identifies the operation by author, nonce and hash.
    */
   position?: SOOperationPosition
   /**
@@ -1121,7 +1125,7 @@ export const SOSkippedOperation: MessageType<SOSkippedOperation> =
   )
 
 /**
- * SOCheckpointHead names one checkpoint.
+ * SOCheckpointHead identifies one checkpoint.
  *
  * @generated from message sobject.SOCheckpointHead
  */
@@ -1146,8 +1150,8 @@ export const SOCheckpointHead: MessageType<SOCheckpointHead> =
   )
 
 /**
- * SOSequencer names the device or service that signs the sequence: one
- * position per operation, each naming the position before it.
+ * SOSequencer identifies the device or service that signs the sequence: one
+ * position per operation, each referencing the position before it.
  *
  * @generated from message sobject.SOSequencer
  */
@@ -1160,7 +1164,7 @@ export interface SOSequencer {
   /**
    * Start is the last position of the sequence before this sequencer, as the
    * owner who appointed it held the sequence. Positions up to start are
-   * authenticated by their hash links to it; the sequencer signs every later
+   * authenticated by their hash links to start. The sequencer signs every later
    * one. Unset when no position came before.
    */
   start?: SOSequenceHead
@@ -1173,7 +1177,7 @@ export const SOSequencer: MessageType<SOSequencer> =
   ])
 
 /**
- * SOSequenceHead names one position of the sequence.
+ * SOSequenceHead identifies one position of the sequence.
  *
  * @generated from message sobject.SOSequenceHead
  */
@@ -1277,7 +1281,8 @@ export interface SOLeaveRequest {
    */
   configHash?: Uint8Array
   /**
-   * Signatures prove each departing identity; each signs this message with Signatures cleared.
+   * Signatures prove each departing identity. Each identity signs this message
+   * with Signatures cleared.
    */
   signatures?: Signature[]
 }
@@ -1386,7 +1391,7 @@ export interface SOConfigChange {
   /**
    * Signatures sign the record with signatures and commit cleared, under
    * owner control. Each signer is distinct and authorized by the parent
-   * config; genesis is signed by an owner of its own config.
+   * config. Genesis is signed by an owner of its own config.
    */
   signatures?: Signature[]
   /**
@@ -1678,8 +1683,9 @@ export interface SOCheckpointInner {
   sequence?: SOSequenceHead
   /**
    * Outcomes are the outcomes of the operations this checkpoint newly covers.
-   * A signer that sets it declares that it records them; unset, an admission
-   * covered by the checkpoint learns no outcome from it.
+   * A signer that sets Outcomes declares that the signer records the outcomes.
+   * With Outcomes unset, an admission covered by the checkpoint learns no
+   * outcome from the checkpoint.
    */
   outcomes?: SOCheckpointOutcomes
 }
@@ -1799,7 +1805,7 @@ export interface SOOperationInner {
   /**
    * OpData is the operation data, encrypted with the key of key_epoch.
    * Empty for an acknowledgment, which applies nothing and records that its
-   * author has built on every operation it names.
+   * author has built on every operation it references.
    */
   opData?: Uint8Array
   /**
@@ -2130,7 +2136,7 @@ export const SOInvite: MessageType<SOInvite> =
   ])
 
 /**
- * SOInviteParticipation names the Spaces whose participants an invite admits.
+ * SOInviteParticipation lists the Spaces whose participants an invite admits.
  * An empty list admits nobody by participation.
  *
  * @generated from message sobject.SOInviteParticipation
@@ -2253,7 +2259,7 @@ export const SOState: MessageType<SOState> =
 
 /**
  * SOKeyEpoch is one encryption key of a shared object. A key rotation starts
- * the next epoch; operations and checkpoints name the epoch they used.
+ * the next epoch. Operations and checkpoints specify the epoch they used.
  *
  * @generated from message sobject.SOKeyEpoch
  */

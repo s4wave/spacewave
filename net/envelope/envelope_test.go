@@ -189,7 +189,7 @@ func TestBuildAndUnlockEnvelope(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Only one key -- insufficient.
+		// Only one key, insufficient.
 		got, result, err := UnlockEnvelope(ctx, env, []crypto.PrivKey{priv1})
 		if err != nil {
 			t.Fatal(err)

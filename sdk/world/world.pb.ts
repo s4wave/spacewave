@@ -155,9 +155,9 @@ export enum WorldErrorCode {
   STALE_GENERATION = 8,
 
   /**
-   * WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree names
-   * a block the Volume does not hold, so the Volume refused the root and
-   * nothing was committed.
+   * WORLD_ERROR_CODE_ROOT_NOT_HELD indicates that the transaction's tree
+   * references a block the Volume does not hold, so the Volume refused the
+   * root and nothing was committed.
    */
   ROOT_NOT_HELD = 9,
 
@@ -166,7 +166,7 @@ export enum WorldErrorCode {
    * because its replay is not caught up: it is opening, or waits at an
    * operation, such as for a handler this device lacks or the approval of a
    * plugin. Nothing was written. Reads go on. The Space's health shows the
-   * replay state in SharedObjectHealth.replay; the caller may write again
+   * replay state in SharedObjectHealth.replay. The caller may write again
    * once it is caught_up.
    */
   REPLAY_WAITS = 10,
@@ -174,9 +174,9 @@ export enum WorldErrorCode {
   /**
    * WORLD_ERROR_CODE_DURABILITY_UNKNOWN indicates that the World may or may
    * not hold the write: its outcome is unknown, so it is not a refusal. The
-   * caller must not send the same write again as if nothing was written; it
-   * reads the World to learn the outcome. A client that does not decode this
-   * code gets the bare durability unknown text as the call's error.
+   * caller must not send the same write again as if nothing was written. The
+   * caller reads the World to learn the outcome. A client that does not
+   * decode this code gets the bare durability unknown text as the call's error.
    */
   DURABILITY_UNKNOWN = 11,
 }
@@ -635,11 +635,11 @@ export interface WatchChangesRequest {
    */
   afterSeqno?: bigint
   /**
-   * Interest names the changes the stream sends. On the first request, an
+   * Interest selects the changes the stream sends. On the first request, an
    * unset interest sends every change, and a set one, even empty, starts a
    * named interest from nothing and applies it. Each later request must set
    * it, on a stream opened with one, and changes the interest by it. Closing
-   * the request side ends only the deltas; the changes keep coming.
+   * the request side ends only the deltas. The changes keep coming.
    */
   interest?: ChangeInterestDelta
 }
@@ -657,7 +657,7 @@ export const WatchChangesRequest: MessageType<WatchChangesRequest> =
  * ChangeInterestDelta changes a named interest. A change reaches the stream
  * when it changes one of the interest's object keys, or sets or deletes a
  * graph quad matching one of its patterns. The stream may also send other
- * changes; a client filters what it receives.
+ * changes. A client filters what it receives.
  *
  * @generated from message s4wave.world.ChangeInterestDelta
  */
@@ -665,7 +665,7 @@ export interface ChangeInterestDelta {
   /**
    * Version numbers the delta. The interest sent with the first request is
    * version 1, and each later delta's version is one more than the one
-   * before; the stream fails on any other. The ack that applies a delta
+   * before. The stream fails on any other version. The ack that applies a delta
    * carries its version.
    */
   version?: bigint
@@ -679,7 +679,7 @@ export interface ChangeInterestDelta {
   removeKeys?: string[]
   /**
    * AddPatterns are graph quad patterns to add. An empty field matches any
-   * value; a pattern must set at least one field.
+   * value. A pattern must set at least one field.
    */
   addPatterns?: Quad[]
   /**
@@ -727,7 +727,7 @@ export const WatchChangesResponse: MessageType<WatchChangesResponse> =
 /**
  * InterestAck reports which interest filtered which changes. The changes the
  * stream sent before the ack, up to after_seqno, were filtered under the
- * earlier interest; every change after after_seqno is filtered under the
+ * earlier interest. Every change after after_seqno is filtered under the
  * interest with the deltas up to version applied. Nothing after after_seqno
  * was sent before the ack, so nothing is sent twice. When the World no longer
  * records the revision at after_seqno, the next change is unknown.
@@ -855,7 +855,7 @@ export const WaitObjectRevResponse: MessageType<WaitObjectRevResponse> =
 export interface AccessWorldStateRequest {
   /**
    * Ref is an optional reference to access a specific object.
-   * If unset, we will access the Root of the WorldState.
+   * If unset, the Root of the WorldState is accessed.
    */
   ref?: ObjectRef
 }
@@ -1389,7 +1389,7 @@ export interface ListObjectsRequest {
   prefix?: string
   /**
    * StartAfter resumes the listing after this object key. It must start with
-   * prefix. Empty starts at the first key.
+   * prefix. An empty start_after starts at the first key.
    */
   startAfter?: string
   /**
@@ -1401,8 +1401,8 @@ export interface ListObjectsRequest {
   /**
    * Delimiter groups keys by the next path segment. When set, each key whose
    * remainder after prefix contains the delimiter is listed once as its prefix
-   * up to and including the first delimiter, instead of as an object. Empty
-   * lists every key under prefix.
+   * up to and including the first delimiter, instead of as an object. An empty
+   * delimiter lists every key under prefix.
    */
   delimiter?: string
 }
@@ -1684,10 +1684,10 @@ export interface ListGraphEdgeBucketsRequest {
   /**
    * After resumes each listing just past all edges of this endpoint object
    * key: pass the endpoint of the previous page's last edge. It requires a
-   * predicate. Empty starts at the first edge.
+   * predicate. An empty after starts at the first edge.
    *
    * With a predicate on a node graph World, edges come in endpoint creation
-   * order and each page reads only itself; otherwise every matching edge is
+   * order and each page reads only itself. Otherwise every matching edge is
    * read and ordered by quad text.
    */
   after?: string
@@ -1788,7 +1788,7 @@ export interface ListObjectsWithTypeRequest {
   typeId?: string
   /**
    * StartAfter is the last object key returned by the previous page.
-   * Empty starts at the first subject in graph-index order.
+   * An empty start_after starts at the first subject in graph-index order.
    */
   startAfter?: string
   /**
@@ -1868,7 +1868,7 @@ export interface TypeCountEntry {
    */
   typeId?: string
   /**
-   * Count is the number of objects of the type; zero in a watch step means
+   * Count is the number of objects of the type. Zero in a watch step means
    * the type's last object went.
    */
   count?: bigint
@@ -1935,7 +1935,7 @@ export const WatchTypeCountsRequest: MessageType<WatchTypeCountsRequest> =
 
 /**
  * WatchTypeCountsResponse is one step of a type count watch. The first
- * response holds every count; each later one holds only the counts that
+ * response holds every count. Each later one holds only the counts that
  * changed, with a zero count for a type whose last object went.
  *
  * @generated from message s4wave.world.WatchTypeCountsResponse
@@ -1967,17 +1967,17 @@ export const WatchTypeCountsResponse: MessageType<WatchTypeCountsResponse> =
  */
 export interface SearchObjectsWithTypeRequest {
   /**
-   * TypeId is the type whose objects are searched; it must be set.
+   * TypeId is the type whose objects are searched. It must be set.
    */
   typeId?: string
   /**
-   * Query matches an object whose key or title holds it, ignoring case. An
-   * empty query matches every object of the type.
+   * Query matches an object whose key or title contains the query, ignoring
+   * case. An empty query matches every object of the type.
    */
   query?: string
   /**
    * PageSize bounds the matches in one response. Zero selects the default of
-   * 100; the server caps it at the type listing page limit.
+   * 100. The server caps the page size at the type listing page limit.
    */
   pageSize?: number
 }
@@ -2148,12 +2148,12 @@ export interface ObjectDeclaration {
    */
   title?: string
   /**
-   * State names the object's state in lower case, such as running or failed.
-   * Empty shows no state.
+   * State records the object's state in lower case, such as running or failed.
+   * An empty state shows no state.
    */
   state?: string
   /**
-   * Time is when the object was made. Unset shows no age.
+   * Time is when the object was made. An unset time shows no age.
    */
   time?: Date
   /**
@@ -2185,7 +2185,8 @@ export interface ObjectMeasure {
    */
   name?: string
   /**
-   * Unit is how the sum reads, such as "usd"; empty counts the named things.
+   * Unit is how the sum reads, such as "usd". An empty unit counts the named
+   * things.
    */
   unit?: string
   /**
@@ -2289,7 +2290,7 @@ export interface ObjectBody {
   bodyJson?: string
   /**
    * WithheldSize is the length of a body left out of its page because the
-   * entry alone exceeds the page budget; body and body_json are then empty.
+   * entry alone exceeds the page budget. body and body_json are then empty.
    * The object read returns a withheld body.
    */
   withheldSize?: bigint
@@ -2327,9 +2328,9 @@ export interface GetObjectBodiesBatchRequest {
   json?: boolean
   /**
    * PageBudget, when set, asks for one page of at most this many encoded body
-   * bytes, capped at the default budget; the stream ends after it, and its
-   * bodies answer a prefix of object_keys. Zero streams every key in pages of
-   * the default budget.
+   * bytes, capped at the default budget. The stream ends after that page, and
+   * its bodies answer a prefix of object_keys. Zero streams every key in
+   * pages of the default budget.
    */
   pageBudget?: number
 }
@@ -2555,7 +2556,7 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
  */
 export interface ApplyWorldOpResponse {
   /**
-   * Seqno is the sequence number following the operation execution.
+   * Seqno is the sequence number after the operation executes.
    */
   seqno?: bigint
   /**
@@ -2788,8 +2789,8 @@ export const ExecuteWorldBatchRequest: MessageType<ExecuteWorldBatchRequest> =
 
 /**
  * ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.
- * A refused batch wrote nothing, and names the mutation that refused it with
- * error_code or rejection_code; an applied batch carries neither.
+ * A refused batch wrote nothing, and identifies the mutation that refused the
+ * batch with error_code or rejection_code. An applied batch carries neither.
  *
  * @generated from message s4wave.world.ExecuteWorldBatchResponse
  */
@@ -3521,8 +3522,8 @@ export interface WatchTypedObjectResponse {
   /**
    * ResourceId identifies a child bound to this handler generation, or zero if
    * the object, its type or its handler is absent. Each available generation
-   * receives a new child; the child implements the RPC service for TypeId.
-   * The consumer adopts and releases its reference; the watch also releases
+   * receives a new child. The child implements the RPC service for TypeId.
+   * The consumer adopts and releases its reference. The watch also releases
    * the child on loss, replacement or cancellation, including adopted children.
    */
   resourceId?: number

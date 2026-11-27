@@ -33,7 +33,7 @@ func (r *WizardResource) failGitClone(objectKey, message string, err error) {
 		Message:   message,
 		ObjectKey: objectKey,
 	}
-	// Name a refusal's cause, or carry any other error as the detail.
+	// Identify a refusal's cause, or carry any other error as the detail.
 	var taken *GitRepoKeyTakenError
 	switch {
 	case errors.Is(err, ErrWizardGone):
@@ -86,7 +86,8 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 
 	// Clone the repository through a stage held until the publish commits,
 	// publishing progress to the wizard. The engine is present: StartGitClone
-	// refuses a wizard without one in requireWizard before this runs.
+	// refuses a wizard without one in requireWizard before runGitClone
+	// runs.
 	stage, err := r.engine.StageWorldState(ctx)
 	if err != nil {
 		r.failGitClone(req.GetObjectKey(), "Clone failed.", err)
@@ -120,8 +121,8 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 }
 
 // publishGitClone creates the repository object at objectKey from the staged
-// clone at repoRef, points the Space index at it while the index names this
-// wizard, and deletes the wizard, all in one World transaction.
+// clone at repoRef, points the Space index at the repository while the index
+// references this wizard, and deletes the wizard, all in one World transaction.
 //
 // Returns ErrWizardGone, before the repository is created, when the wizard
 // was finished or deleted elsewhere, and a GitRepoKeyTakenError when another
@@ -135,7 +136,8 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 // The transaction holds the World writer only for local reads and writes:
 // validating the staged repository root, creating the object and its type,
 // the Space settings write and the delete. The network clone finished before
-// it opened. The caller holds the stage until this returns.
+// the transaction opened. The caller holds the stage until publishGitClone
+// returns.
 func (r *WizardResource) publishGitClone(
 	ctx context.Context,
 	objectKey string,
@@ -143,7 +145,8 @@ func (r *WizardResource) publishGitClone(
 	ts *timestamppb.Timestamp,
 	sender peer.ID,
 ) error {
-	// Open the write transaction; a return before Commit discards it.
+	// Open the write transaction. A return before Commit discards the
+	// transaction.
 	wtx, err := r.newTransaction(ctx, true)
 	if err != nil {
 		return err

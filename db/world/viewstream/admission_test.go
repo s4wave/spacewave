@@ -50,7 +50,8 @@ func TestAdmission(t *testing.T) {
 			t.Fatal("slot released more than once", a.free)
 		}
 
-		// An explicit maximum hold returns a stalled slot; its later release is inert.
+		// An explicit maximum hold returns a stalled slot.
+		// Its later release is inert.
 		a = NewAdmission(1, 1, 0, time.Minute, nil)
 		late, err := a.Acquire(t.Context())
 		if err != nil {
@@ -66,8 +67,9 @@ func TestAdmission(t *testing.T) {
 			t.Fatal("late release freed an extra slot")
 		}
 
-		// Raising the slots admits waiting streams at once; lowering them
-		// retires held slots as they return before admitting another.
+		// Raising the slots admits waiting streams at once.
+		// Lowering them retires held slots as they return before
+		// admitting another stream.
 		a = NewAdmission(1, 1, 0, 0, nil)
 		first, err := a.Acquire(t.Context())
 		if err != nil {
@@ -161,7 +163,7 @@ func TestTicketTakesOneSlotAtTheFirstColdRead(t *testing.T) {
 	ctx := t.Context()
 	a := NewAdmission(1, 1, 0, 0, nil)
 
-	// A warm run closes without a slot; the slot stays free.
+	// A warm run closes without a slot. The slot stays free.
 	a.Ticket().Close()
 
 	// Eight cold reads of one run take the slot once.
@@ -205,8 +207,8 @@ func TestTicketTakesOneSlotAtTheFirstColdRead(t *testing.T) {
 // and then the run computing a value wait in the desktop line, and has a
 // website run wait on that value. The computing run inherits the website
 // priority and moves ahead, so the freed slot goes to it and not to the
-// desktop run that queued first; after the loan ends it acquires at its own
-// priority again.
+// desktop run that queued first. After the loan ends, the computing run
+// acquires at its own priority again.
 func TestTicketInheritsItsWaitersPriority(t *testing.T) {
 	// One slot, held, with two desktop runs in line, the computer last.
 	const website, desktop = 0, 1

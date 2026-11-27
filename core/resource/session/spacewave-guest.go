@@ -11,11 +11,12 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
-// ApproveGuestSpaceLink approves an independently keyed guest without registering
-// a Session under the approving cloud account. The caller must authorize the
-// guest's application identity before invoking this operation. The signed ticket
-// proves possession of the guest key; it does not prove application membership.
-// The returned invite is restricted to that key and permits one redemption.
+// ApproveGuestSpaceLink approves an independently keyed guest without
+// registering a Session under the approving cloud account. The caller must
+// authorize the guest's application identity before invoking this operation.
+// The signed ticket proves possession of the guest key. It does not prove
+// application membership. The returned invite is restricted to that key and
+// permits one redemption.
 func (r *SpacewaveSessionResource) ApproveGuestSpaceLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ApproveSpaceLinkRequest,

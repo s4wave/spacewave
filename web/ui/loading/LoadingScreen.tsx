@@ -12,7 +12,7 @@ interface LoadingScreenProps {
   view: LoadingView
   logo?: ReactNode
   topLeftSlot?: ReactNode
-  // children present the owning operation’s current phases.
+  // children present the owning operation's current phases.
   children?: ReactNode
   footer?: ReactNode
   containerClassName?: string

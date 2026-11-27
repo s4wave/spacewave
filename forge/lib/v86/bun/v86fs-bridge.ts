@@ -1,5 +1,5 @@
 /**
- * v86fs-bridge.ts - V86FSAdapter backed by v86fs SRPC client.
+ * v86fs-bridge.ts: V86FSAdapter backed by v86fs SRPC client.
  *
  * Bridges the v86 VirtioV86FS adapter callback interface to a remote
  * v86fs SRPC server over a bidirectional stream. Each adapter callback
@@ -12,7 +12,7 @@ import type { V86fsMessage as V86fsMessageType } from '@go/github.com/s4wave/spa
 import { V86fsServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs_srpc.pb.js'
 import type { ProtoRpc } from 'starpc'
 
-// Reply handler receives the full V86fsMessage and extracts what it needs.
+// ReplyHandler receives the full V86fsMessage and extracts what it needs.
 type ReplyHandler = (msg: V86fsMessageType) => void
 
 type V86fsRelayClient = {
@@ -22,12 +22,12 @@ type V86fsRelayClient = {
 }
 
 /**
- * Creates a V86FSAdapter backed by a v86fs SRPC client.
+ * createV86fsSrpcAdapter creates a V86FSAdapter backed by a v86fs SRPC client.
  *
  * The adapter implements all v86fs callbacks by forwarding them as
  * tagged SRPC requests and dispatching replies back to the caller.
  *
- * @param rpc - SRPC ProtoRpc connection to the v86fs server.
+ * @param rpc: SRPC ProtoRpc connection to the v86fs server.
  * @returns adapter compatible with V86 constructor's virtio_v86fs_adapter option.
  */
 export function createV86fsSrpcAdapter(rpc: ProtoRpc): {

@@ -27,10 +27,10 @@ vi.mock('@s4wave/web/object/object.js', () => ({
   getObjectKey: vi.fn(() => 'mock-object-key'),
 }))
 
-// The UnixFS hooks return the same resource on every render, as the real
-// hooks do while nothing changes. A fresh object per render would change the
-// note list's memoized entries each render and restart its note read without
-// end.
+// unixfs holds the resources the UnixFS hooks return. Each hook returns the
+// same resource on every render, as the real hooks do while nothing changes. A
+// fresh object per render would change the note list's memoized entries each
+// render and restart its note read without end.
 const unixfs = vi.hoisted(() => {
   const empty = (value: unknown) => ({
     value,
@@ -366,7 +366,7 @@ describe('NotebookViewer', () => {
     // The outer container should have the three-panel flex layout.
     const outer = container.firstElementChild as HTMLElement
     expect(outer.className).toContain('flex')
-    // Should render the sidebar with source name.
+    // The viewer should render the sidebar with the source name.
     expect(screen.getAllByText('My Docs')).toHaveLength(2)
   })
 
@@ -385,7 +385,8 @@ describe('NotebookViewer', () => {
     view.rerender()
     expect(screen.getByText('Remove “B” from the notebook?')).toBeDefined()
 
-    // The confirm sends B, which index 1 no longer holds, so nothing goes.
+    // The confirmation sends B, which index 1 no longer holds, so no source
+    // is removed.
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
     await waitFor(() => {
       expect(
@@ -681,10 +682,10 @@ describe('NotebookViewer', () => {
       expect(notebook.stored).toEqual([A, C])
     })
 
-    // Another writer's B lands before ours in the watched list.
+    // Another writer's B lands before C in the watched list.
     watchSources([A, B, C])
     view.rerender()
-    // The bar names the selected source beside its sidebar entry.
+    // The bar displays the selected source name beside its sidebar entry.
     await waitFor(() => {
       expect(screen.getAllByText('C')).toHaveLength(2)
     })

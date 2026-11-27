@@ -115,7 +115,7 @@ func TestCommitMsgHookRejectsLowercaseSignOff(t *testing.T) {
 	// --parse implies --unfold and canonicalizes the trailer it returns, so a
 	// lowercase sign-off looks correct by the time the trailer loop sees it. The
 	// DCO workflow greps the raw message case-sensitively and rejects it after a
-	// push, which is the round trip this hook exists to spare the author.
+	// push. This hook spares the author that round trip.
 	_, stderr, err := runCommitMsgHook(t, `fix(hook): sign off in lowercase
 
 The body explains why the change is needed.

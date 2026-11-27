@@ -86,7 +86,7 @@ func newPromptSession(strm s4wave_cli_terminal.SRPCCliTerminalService_RunCliStre
 }
 
 func (s *promptSession) run(ctx context.Context) error {
-	// Announce readiness and print the first prompt; close the stream on return.
+	// Announce readiness and print the first prompt. Close the stream on return.
 	if err := s.strm.Send(&s4wave_terminal.TerminalFrame{Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY}); err != nil {
 		return err
 	}
@@ -201,7 +201,8 @@ func (s *promptSession) startCommand(ctx context.Context, line string) *commandS
 }
 
 func (s *promptSession) finishCommand(command *commandState, result commandResult) error {
-	// Echo an interrupt after the command stops so it follows the last output.
+	// Echo an interrupt after the command stops so the interrupt follows the
+	// last output.
 	if command.interrupted {
 		if err := s.writeOutput("^C\r\n"); err != nil {
 			return err

@@ -115,7 +115,8 @@ func TestApplyFetchedAccountStateUpdatesSessionPresentationReconcileState(t *tes
 		},
 	})
 
-	// The reconcile state names the settings Space and the live session.
+	// The reconcile state references the settings Space and the live
+	// session.
 	got := acc.sessionPresentationReconcile.GetState()
 	if got == nil {
 		t.Fatal("expected reconcile state to be stored")

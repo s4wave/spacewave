@@ -128,7 +128,7 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.New("source and target sessions must be different")
 	}
 
-	// Check for existing active transfer.
+	// Check for an existing active transfer.
 	r.transferMgr.mtx.Lock()
 	if r.transferMgr.running {
 		r.transferMgr.mtx.Unlock()
@@ -136,14 +136,14 @@ func (r *SessionResource) StartTransfer(
 	}
 	r.transferMgr.mtx.Unlock()
 
-	// Look up session controller.
+	// Look up the session controller.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup session controller")
 	}
 	defer sessionCtrlRef.Release()
 
-	// Look up source and target sessions.
+	// Look up the source and target sessions.
 	srcEntry, err := sessionCtrl.GetSessionByIdx(ctx, srcIdx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get source session")
@@ -184,7 +184,7 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.New("migrate to a cloud account is not supported")
 	}
 
-	// Build checkpoint store on source account.
+	// Build the checkpoint store on the source account.
 	checkpoint, err := buildCheckpointStore(ctx, r.b, srcEntry)
 	if err != nil {
 		return nil, errors.Wrap(err, "build checkpoint store")
@@ -339,7 +339,7 @@ func (r *SessionResource) WatchTransferProgress(
 			prev = state
 		}
 
-		// If transfer has ended, send final state and return.
+		// If the transfer has ended, send the final state and return.
 		phase := state.GetPhase()
 		if phase == provider_transfer.TransferPhase_TransferPhase_COMPLETE ||
 			phase == provider_transfer.TransferPhase_TransferPhase_NOT_MOVED ||
@@ -394,7 +394,7 @@ func (r *SessionResource) GetTransferStatus(
 	ctx context.Context,
 	req *s4wave_session.GetTransferStatusRequest,
 ) (*s4wave_session.GetTransferStatusResponse, error) {
-	// Check for active in-memory transfer.
+	// Check for an active in-memory transfer.
 	r.transferMgr.mtx.Lock()
 	xfer := r.transferMgr.transfer
 	r.transferMgr.mtx.Unlock()
@@ -413,7 +413,8 @@ func (r *SessionResource) GetTransferStatus(
 		}
 	}
 
-	// Check for checkpoint from interrupted transfer on the current session.
+	// Check for a checkpoint from an interrupted transfer on the current
+	// session.
 	// Only local providers support checkpoints.
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
 	if !ok {

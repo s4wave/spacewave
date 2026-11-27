@@ -12,11 +12,11 @@ import (
 
 // proxyVolumeTracker tracks a ProxyVolume.
 type proxyVolumeTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
 	// volumeID is the volume identifier.
 	volumeID string
-	// proxyVolCtr contains the proxy volume
+	// proxyVolCtr contains the proxy volume.
 	// set when the mux is ready to use
 	proxyVolCtr *ccontainer.CContainer[*ProxyVolume]
 	// muxCtr contains the srpc mux.

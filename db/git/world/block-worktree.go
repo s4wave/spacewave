@@ -16,7 +16,7 @@ func NewWorktreeBlock() block.Block {
 }
 
 // UnmarshalWorktree unmarshals a repo from a cursor.
-// If empty, returns nil, nil
+// If empty, returns nil, nil.
 func UnmarshalWorktree(ctx context.Context, bcs *block.Cursor) (*Worktree, error) {
 	return block.UnmarshalBlock[Worktree](ctx, bcs)
 }

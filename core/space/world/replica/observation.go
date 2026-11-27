@@ -10,7 +10,7 @@ type Observation struct {
 	// LocalPeerID is the Session peer ID of the Device running the node.
 	LocalPeerID string
 	// StoragePeerID is the storage peer ID of the Device, which signs for its
-	// copy. The creator of a SharedObject owns it as this peer, and a join adds
+	// copy. The creator owns the SharedObject as this peer, and a join adds
 	// both peers. Empty when the Device does not participate.
 	StoragePeerID string
 	// Spec is the node's own spec.
@@ -29,7 +29,7 @@ type Observation struct {
 	// copy, nil before one finishes.
 	Backfill *space_world.BackfillState
 	// ProofAccepted reports whether this Device, as owner, verified the desired
-	// owner's proof against a state it holds.
+	// owner's proof against a state this Device holds.
 	ProofAccepted bool
 }
 

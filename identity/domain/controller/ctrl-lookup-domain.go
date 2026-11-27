@@ -7,7 +7,7 @@ import (
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
 )
 
-// lookupIdentityDomainResolver resolves lookup domain directives
+// lookupIdentityDomainResolver resolves lookup domain directives.
 type lookupIdentityDomainResolver struct {
 	c   *Controller
 	ctx context.Context

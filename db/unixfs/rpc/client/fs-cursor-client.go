@@ -17,21 +17,22 @@ import (
 type FSCursorClient struct {
 	// remoteFSCursor implements FSCursor with remote rootCursorHandleID.
 	*remoteFSCursor
-	// ctx is the context to use for global operations (release handle)
+	// ctx is the context to use for global operations (release handle).
 	ctx context.Context
-	// cancel cancels the context for the cursor client
+	// cancel cancels the context for the cursor client.
 	cancel context.CancelFunc
-	// client is the client object for requests
+	// client is the client object for requests.
 	client unixfs_rpc.SRPCFSCursorServiceClient
 	// clientHandleID is the client handle id to use for requests.
 	clientHandleID uint64
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// cursors contains the mapping from remote cursor id to cursor
+	// cursors contains the mapping from remote cursor id to cursor.
 	cursors map[uint64]*remoteFSCursor
-	// ops contains the mapping from remote ops id to ops
+	// ops contains the mapping from remote ops id to ops.
 	ops map[uint64]*remoteFSCursorOps
-	// cursorOps contains the mapping from remote cursor id to remote ops id
+	// cursorOps contains the mapping from remote cursor id to
+	// remote ops id.
 	cursorOps map[uint64]uint64
 }
 

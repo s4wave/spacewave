@@ -1,5 +1,5 @@
 /**
- * boot.ts - v86 boot script for forge bun subprocess controller.
+ * boot.ts: v86 boot script for forge bun subprocess controller.
  *
  * Boots a v86 VM headless in bun, runs commands via serial console,
  * and reports the exit code. Supports two filesystem modes:
@@ -40,7 +40,7 @@ interface V86fsBridge {
 // Support file:// URLs and local paths for assets and the rootfs.
 installLocalFetchPatch()
 
-// Parse CLI arguments
+// parseArgs parses CLI arguments.
 function parseArgs(): {
   socket: string
   memory: number
@@ -108,7 +108,7 @@ function parseArgs(): {
   }
 }
 
-// Connect to SRPC unix socket and create v86fs adapter.
+// connectV86fsSrpc connects to an SRPC unix socket and creates a v86fs adapter.
 async function connectV86fsSrpc(socketPath: string): Promise<V86fsBridge> {
   const streamConn = new StreamConn(undefined, { direction: 'outbound' })
   const client = streamConn.buildClient()
@@ -176,14 +176,16 @@ async function main() {
 
   if (useV86fsRoot) {
     // v86fs root: rootfs.tar served through the v86fs SRPC server.
-    // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
+    // Boot through /sbin/init so busybox gives ttyS0 job control.
+    // Bash PID 1 breaks Ctrl-C/SIGINT.
     cmdline =
       'rw init=/sbin/init root=v86fs rootfstype=v86fs rootflags= console=ttyS0'
     console.error('[forge-v86] booting with v86fs root')
   } else {
     // 9p root: load rootfs from local fs.json + flat/ files.
     handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
-    // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
+    // Boot through /sbin/init so busybox gives ttyS0 job control.
+    // Bash PID 1 breaks Ctrl-C/SIGINT.
     cmdline =
       'rw init=/sbin/init root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0'
     console.error('[forge-v86] booting with 9p root')

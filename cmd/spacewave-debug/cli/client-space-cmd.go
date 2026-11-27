@@ -21,8 +21,8 @@ type SpaceArgs struct {
 	client *ClientArgs
 
 	// resClient is the resource client opened by mountSpaceResource and reused
-	// by getResourceClient for the duration of one mounted space; cleared when
-	// the mount cleanup runs.
+	// by getResourceClient for the duration of one mounted space.
+	// The client is cleared when the mount cleanup runs.
 	resClient *resource_client.Client
 
 	// SpaceID is the target space ID.
@@ -180,7 +180,7 @@ func (sa *SpaceArgs) RunStatus(c *appcli.Context) error {
 }
 
 // RunPlugins prints plugin statuses by calling MountSpaceContents + WatchState.
-// This mirrors exactly what the UI SpacePlugins component does.
+// RunPlugins mirrors exactly what the UI SpacePlugins component does.
 func (sa *SpaceArgs) RunPlugins(c *appcli.Context) error {
 	// Mount the Space resource for this command and release it on return.
 	ctx := c.Context

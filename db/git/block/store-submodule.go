@@ -31,7 +31,7 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 	return modRefTree.SetCursorAtKey(r.ctx, key, refCs, false)
 }
 
-// LookupSubmodule looks up module reference by name.
+// LookupSubmodule looks up the module reference by name.
 // Returns nil, nil, nil if not found.
 func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) {
 	// Require a submodule name before looking up its reference.
@@ -60,8 +60,8 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 	return sub, refCs, err
 }
 
-// Module returns a Storer representing a submodule, if not exists returns a new
-// empty Storer is returned
+// Module returns a Storer representing a submodule. If the submodule does not
+// exist, Module returns a new empty Storer.
 func (r *Store) Module(name string) (storage.Storer, error) {
 	// Look up the submodule reference before opening its repository.
 	subm, submCs, err := r.LookupSubmodule(name)
@@ -117,7 +117,8 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 
 // _ is a type assertion
 var (
-	// ModuleStorer stores information about submodules.
+	// _ is a ModuleStorer assertion for storing information about
+	// submodules.
 	// Submodules are represented as references to other Repo DAGs.
 	_ storage.ModuleStorer = (*Store)(nil)
 )

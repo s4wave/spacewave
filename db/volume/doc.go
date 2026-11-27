@@ -16,6 +16,6 @@
 //   - Coordination. The embedded coord.Coordinator serves the leases and
 //     watches that let several writers share the volume's ObjectStore.
 //
-// Close releases the volume and keeps its data; Delete closes it and removes
+// Close releases the volume and keeps its data. Delete closes it and removes
 // the backing store.
 package volume

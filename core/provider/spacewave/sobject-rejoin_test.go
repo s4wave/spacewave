@@ -140,7 +140,8 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
-	// Cache the valid grant in the verified epoch; local state holds the stale one.
+	// Cache the valid grant in the verified epoch. Local state holds the stale
+	// one.
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,

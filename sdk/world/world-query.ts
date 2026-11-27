@@ -23,8 +23,9 @@ export interface WorldQuerySnapshot<T> {
  * decide when to run again. The iterator retains its own Engine reference and
  * releases every snapshot before yielding.
  *
- * Watches of one owner with the same key share one run of the query; the key
- * must name everything the query reads. Without a key, the watch runs alone.
+ * Watches of one owner with the same key share one run of the query. The key
+ * must identify everything the query reads. Without a key, the watch runs
+ * alone.
  */
 export function watchWorldQuery<T>(
   owner: Engine,
@@ -43,8 +44,8 @@ export function watchWorldQuery<T>(
 }
 
 // runWorldQuery runs one watch of query on its own Engine reference. A watch
-// without a signal reads with one of its own that aborts when it ends, so no
-// signal outlives the watch or is shared between watches.
+// without a signal reads with a signal of its own that aborts when the watch
+// ends, so no signal outlives the watch or is shared between watches.
 async function* runWorldQuery<T>(
   owner: Engine,
   query: WorldQuery<T>,

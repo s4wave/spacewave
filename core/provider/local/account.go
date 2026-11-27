@@ -31,21 +31,21 @@ import (
 
 // providerAccountTracker tracks a ProviderAccount in the world.
 type providerAccountTracker struct {
-	// p is the provider
+	// p is the provider.
 	p *Provider
-	// accCtr is the provider account container
+	// accCtr is the provider account container.
 	accCtr *ccontainer.CContainer[*ProviderAccount]
-	// accountInfo is the account info to create if not exists in the world
+	// accountInfo is the account info to create if absent from the world.
 	accountInfo *provider.ProviderAccountInfo
 }
 
 // ProviderAccount implements the local provider account.
 type ProviderAccount struct {
-	// t is the tracker
+	// t is the tracker.
 	t *providerAccountTracker
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// vol is the parent volume for storage for the account
+	// vol is the parent volume for storage for the account.
 	vol volume.Volume
 	// lifecycleCtx ends when the provider account loses its final reference.
 	lifecycleCtx context.Context
@@ -57,12 +57,12 @@ type ProviderAccount struct {
 	// sessions contains the set of mounted sessions (usually only one).
 	sessions *keyed.KeyedRefCount[string, *sessionTracker]
 
-	// mtx guards /changing/ below fields
+	// mtx guards /changing/ below fields.
 	mtx csync.Mutex
 	// replicaAuth serializes local account enrollment, checkpoint grants, and revocation.
 	replicaAuth csync.Mutex
 	// enrolling counts, per shared object id, the enrollments writing its
-	// state before they list it; see beginEnrollmentLocked. Guarded by mtx.
+	// state before they list it. See beginEnrollmentLocked. Guarded by mtx.
 	enrolling map[string]int
 	// soListCtr is the list of shared objects.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
@@ -84,7 +84,8 @@ type ProviderAccount struct {
 	p2pPeerIDs map[string]peer.ID
 	// p2pHeldPeers are the peers each holder, such as one Space's hosting,
 	// keeps links to, by holder and then peer ID. A peer's link is released
-	// once neither p2pPeerIDs nor any holder names it. Guarded by p2pSyncBcast.
+	// once neither p2pPeerIDs nor any holder lists it. Guarded by
+	// p2pSyncBcast.
 	p2pHeldPeers map[string]map[string]peer.ID
 	// p2pPendingEnrollPeers are device peers recorded by SpaceLink approval that
 	// have not joined through their invite yet. The Device dials the owner via

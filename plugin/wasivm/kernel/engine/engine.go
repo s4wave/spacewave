@@ -33,7 +33,7 @@ type Module interface {
 // ValueType is a WebAssembly value type in its binary encoding.
 type ValueType = byte
 
-// Value types host functions use.
+// I32 and I64 are the value types host functions use.
 const (
 	// I32 is a 32-bit integer, the type of a C int or pointer.
 	I32 ValueType = 0x7f
@@ -77,7 +77,7 @@ type Function interface {
 type Global interface {
 	// Get returns the current value.
 	Get() uint64
-	// Set changes the value; it has no effect on an immutable global.
+	// Set changes the value. Set has no effect on an immutable global.
 	Set(val uint64)
 }
 

@@ -40,7 +40,7 @@ func eventSourceKeys(ctx context.Context, ws world.WorldState, runKey string) ([
 		return nil, nil
 	}
 
-	// Select each node that names its source object.
+	// Select each node that references its source object.
 	var keys []eventSourceKey
 	for _, id := range slices.Sorted(maps.Keys(graph.GetNodes())) {
 		node := graph.GetNodes()[id]
@@ -124,7 +124,7 @@ func (w *eventSourceWatcher) serve(ctx context.Context, watch *s4wave_flowgraph.
 
 // stream opens WatchEvents on the object's resource from the run's stored
 // cursor and delivers each batch. It opens the stream again from the stored
-// cursor when a delivery names a stale cursor, and returns when the stream
+// cursor when a delivery reports a stale cursor, and returns when the stream
 // fails or the context ends.
 func (w *eventSourceWatcher) stream(ctx context.Context, binding *s4wave_flowgraph.FlowgraphBinding) error {
 	// Build the object's resource client.
@@ -183,8 +183,8 @@ func (w *eventSourceWatcher) openClient(ctx context.Context, typeID string) (flo
 }
 
 // watchEvents delivers the batches of one WatchEvents stream opened after
-// cursor. It returns nil when a delivery names a stale cursor, so the caller
-// resumes from the stored one, and an error when the stream ends or fails.
+// cursor. It returns nil when a delivery reports a stale cursor, so the caller
+// resumes from the stored cursor, and an error when the stream ends or fails.
 func (w *eventSourceWatcher) watchEvents(ctx context.Context, client flowgraph_eventsource.SRPCEventSourceServiceClient, cursor []byte, binding *s4wave_flowgraph.FlowgraphBinding) error {
 	// Open the stream after the cursor.
 	stream, err := client.WatchEvents(ctx, &flowgraph_eventsource.WatchEventsRequest{Cursor: cursor})
@@ -233,7 +233,7 @@ func (w *eventSourceWatcher) readCursor(ctx context.Context) ([]byte, error) {
 }
 
 // deliver hands one batch to the run in one World transaction. A batch whose
-// events have no payload object names the source object.
+// events have no payload object references the source object.
 func (w *eventSourceWatcher) deliver(ctx context.Context, cursor []byte, batch *flowgraph_eventsource.WatchEventsResponse, binding *s4wave_flowgraph.FlowgraphBinding) (DeliverEventsResult, error) {
 	// Translate the source's events to the run's delivery.
 	req := &DeliverEventsRequest{
@@ -254,7 +254,7 @@ func (w *eventSourceWatcher) deliver(ctx context.Context, cursor []byte, batch *
 		})
 	}
 
-	// Apply the delivery; a concurrent writer replays the attempt.
+	// Apply the delivery. A concurrent writer replays the attempt.
 	var result DeliverEventsResult
 	err := world.ExecTransaction(ctx, w.c.engine, true, func(ctx context.Context, tx world.WorldState) error {
 		var err error

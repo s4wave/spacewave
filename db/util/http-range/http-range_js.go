@@ -19,16 +19,17 @@ import (
 // Call SetSize to avoid a HEAD request.
 type HTTPRangeReader = http_range_fetch.FetchRangeReader
 
-// HTTPRangeReader uses HTTP requests with Range headers to implement
-// io.ReadSeeker and io.ReaderAt. It is not concurrency safe.
+// NewHTTPRangeReader creates an HTTPRangeReader that uses HTTP requests with
+// Range headers to implement io.ReadSeeker and io.ReaderAt. The reader is not
+// concurrency safe.
 //
 // Uses net/http on native and http_range_fetch on js.
 //
 // The method of the request is changed to HEAD for Size().
 // Call SetSize to avoid a HEAD request.
 //
-// if le is set, requests will be logged
-// verbose logs successful as well as errored http requests
+// if le is set, requests will be logged.
+// verbose logs successful as well as errored http requests.
 func NewHTTPRangeReader(
 	ctx context.Context,
 	le *logrus.Entry,

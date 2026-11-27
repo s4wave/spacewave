@@ -51,8 +51,9 @@ const initialPdfPreviewState: PdfPreviewState = {
 }
 
 // pdfFailure says what a PDF.js load error means for the person. A file PDF.js
-// cannot parse or unlock fails the same way on every read, so it points at
-// Download; any other failure, such as a stopped fetch, can succeed again.
+// cannot parse or unlock fails the same way on every read, so the failure
+// message points at Download. Any other failure, such as a stopped fetch,
+// can succeed again.
 function pdfFailure(error: Error): PdfFailure {
   if (error.name === 'InvalidPDFException') {
     return {
@@ -76,9 +77,9 @@ function pdfFailure(error: Error): PdfFailure {
 
 // declinePassword answers pdf.js's password request with an Error, which
 // pdf.js takes as a refusal: the load then fails with its PasswordException.
-// react-pdf's default prompts with window.prompt, and its null answer on
-// Cancel makes pdf.js ask again, forever. react-pdf types the callback as
-// taking only a password, though pdf.js accepts an Error too.
+// react-pdf's default callback prompts with window.prompt, and its null
+// answer on Cancel makes pdf.js ask again, forever. react-pdf types the
+// callback as taking only a password, though pdf.js accepts an Error too.
 const declinePassword: NonNullable<DocumentProps['onPassword']> = (
   callback,
 ) => {

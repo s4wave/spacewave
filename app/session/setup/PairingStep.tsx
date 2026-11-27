@@ -46,7 +46,8 @@ function PairingQRCode({ code }: { code: string }) {
 }
 
 // useCodeCountdown counts down the pairing code lifetime from the moment the
-// code arrives, and calls onExpired once when it reaches zero.
+// code arrives, and calls onExpired once when the remaining lifetime reaches
+// zero.
 function useCodeCountdown(code: string | null, onExpired: () => void) {
   const [elapsed, setElapsed] = useState(0)
 

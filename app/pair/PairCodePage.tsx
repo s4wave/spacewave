@@ -30,11 +30,12 @@ type PairStep = 'enter' | 'direct' | 'verify' | 'done'
 type DisposableResource = { [Symbol.dispose](): void }
 
 export interface PairCodePageProps {
-  // When provided, uses this session instead of creating one on submit.
+  // session is used instead of creating one on submit when provided.
   session?: Session | null
-  // Where the back button navigates. Defaults to '/'.
+  // backPath specifies where the back button navigates. Defaults to '/'.
   backPath?: string
-  // Where to navigate after pairing completes. Defaults to '/u/{idx}'.
+  // donePath specifies where to navigate after pairing completes.
+  // Defaults to '/u/{idx}'.
   donePath?: string
 }
 
@@ -237,7 +238,7 @@ export function PairCodePage(props: PairCodePageProps) {
   )
   const sessionRef = useRef<Session | null>(providedSession)
 
-  // Keep sessionRef in sync when prop changes.
+  // Keep sessionRef in sync when the session prop changes.
   useEffect(() => {
     if (!providedSession) return
     sessionRef.current = providedSession
@@ -254,7 +255,7 @@ export function PairCodePage(props: PairCodePageProps) {
       const controller = new AbortController()
       registerCleanup({ [Symbol.dispose]: () => controller.abort() })
       if (!session) {
-        // No session provided, create one (top-level route).
+        // Create a session when none is provided (top-level route).
         if (!root) return
         session = await preparePairingSession(
           root,
@@ -370,7 +371,7 @@ export function PairCodePage(props: PairCodePageProps) {
   )
 }
 
-// -- Direct pairing (no-cloud WebRTC answerer) --
+// Direct pairing (no-cloud WebRTC answerer).
 
 interface PairDirectStepProps {
   initialOfferPayload?: string
@@ -449,7 +450,7 @@ function PairDirectStep({
     [ensureSession, registerCleanup, offerCurrentAccount],
   )
 
-  // Auto-accept if initial offer payload was provided via URL.
+  // Auto-accept if the initial offer payload was provided via URL.
   const autoAccepted = useRef(false)
   useEffect(() => {
     if (initialOfferPayload && !autoAccepted.current) {
@@ -479,7 +480,7 @@ function PairDirectStep({
     setTimeout(() => setCopied(false), 2000)
   }, [answerPayload])
 
-  // Watch pairing status for peer connection after answer is shared.
+  // Watch pairing status for peer connection after the answer is shared.
   useEffect(() => {
     const sess = sessionRef.current
     if (!sess || !answerPayload) return

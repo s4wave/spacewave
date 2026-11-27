@@ -14,8 +14,8 @@ import (
 )
 
 // PredTaskToReuseKey is the graph predicate linking a Task whose Target reuses
-// outputs to its reuse key, so a later Task with the same key finds it through
-// the graph index instead of a scan.
+// outputs to its reuse key, so a later Task with the same key finds the linked
+// Task through the graph index instead of a scan.
 const PredTaskToReuseKey = quad.IRI("forge/task-reuse-key")
 
 // reuseKeyPrefix prefixes the IRI a reuse key is stored under.
@@ -23,9 +23,10 @@ const reuseKeyPrefix = "forge/task-reuse/"
 
 // NewReuseKey returns the reuse key of a Target run with the given inputs, or
 // "" when the Target does not reuse outputs. The key covers the Exec and the
-// Outputs of the Target and every input value except those the Exec names in
-// ReuseIgnoreInputs. It leaves out the Target's input declarations, which name
-// where a value came from, such as an upstream Task, and not what it is.
+// Outputs of the Target and every input value except those the Exec lists in
+// ReuseIgnoreInputs. The key leaves out the Target's input declarations, which
+// identify where a value came from, such as an upstream Task, and not what the
+// value is.
 func NewReuseKey(tgt *forge_target.Target, inputs forge_value.ValueSlice) (string, error) {
 	// Only a Target that declares its outputs reusable has a key.
 	exec := tgt.GetExec()
@@ -117,7 +118,7 @@ func UnlinkTaskReuse(ctx context.Context, ws world.WorldState, taskKey string) e
 			return err
 		}
 
-		// Delete each one.
+		// Delete each edge.
 		for _, gq := range gqs {
 			if err := ws.DeleteGraphQuad(ctx, gq); err != nil {
 				return err

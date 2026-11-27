@@ -120,8 +120,8 @@ func TestLocalCDNDevelopmentReact(t *testing.T) {
 }
 
 // newDevReactPage opens a page with browser diagnostics and returns their
-// mute. A reload tears down the plugin runtimes, which log their closed
-// clients as console errors, so each subtest mutes diagnostics at its
+// mute callback. A reload tears down the plugin runtimes, which log their
+// closed clients as console errors, so each subtest mutes diagnostics at its
 // deliberate reload and checks the next document directly.
 func newDevReactPage(t *testing.T, ctx playwright.BrowserContext) (playwright.Page, func()) {
 	t.Helper()

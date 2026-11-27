@@ -25,10 +25,11 @@ type SessionProvider interface {
 	// the session without the current PIN.
 	GetPINSessionRecoveryState(ctx context.Context, ref *SessionRef) (SessionRecoveryState, error)
 
-	// ResetPINSession resets a PIN-locked session according to the provider's
-	// recovery model. Local providers require a credential and preserve the
-	// session identity through envelope recovery; cloud providers may clear the
-	// lock and allow a replacement key on the next mount.
+	// ResetPINSession resets a PIN-locked session according to the
+	// provider's recovery model. Local providers require a credential and
+	// preserve the session identity through envelope recovery. Cloud
+	// providers may clear the lock and allow a replacement key on the next
+	// mount.
 	ResetPINSession(ctx context.Context, ref *SessionRef, cred *EntityCredential) error
 }
 

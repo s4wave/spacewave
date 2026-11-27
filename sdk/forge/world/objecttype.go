@@ -34,8 +34,9 @@ var PassType = objecttype.NewObjectType(forge_pass.PassTypeID, ForgeReadOnlyFact
 var ExecutionType = objecttype.NewObjectType(forge_execution.ExecutionTypeID, ForgeReadOnlyFactory)
 
 // WorkerType is the ObjectType for forge/worker objects.
-// Uses forgeWorkerFactory which returns a PersistentExecutionService invoker
-// when the session peer ID matches the Worker's linked keypair.
+// WorkerType uses forgeWorkerFactory, which returns a
+// PersistentExecutionService invoker when the session peer ID matches the
+// Worker's linked keypair.
 var WorkerType = objecttype.NewObjectType(forge_worker.WorkerTypeID, forgeWorkerFactory)
 
 // DashboardType is the ObjectType for spacewave/forge/dashboard objects.

@@ -14,15 +14,16 @@ import (
 // admitResolver holds an approved value while the owner's stream says the
 // root is admitted.
 //
-// States: asking (no value, not idle) until the owner answers; admitted (a
-// value, idle) or refused (no value, idle) while its stream answers; and back to
-// asking, with the value removed, whenever the owner exits or its stream
-// breaks, until it answers again. A plugin the value admitted keeps running
-// when the value goes: stopping it is not this resolver's decision.
+// States: asking (no value, not idle) until the owner answers, then admitted
+// (a value, idle) or refused (no value, idle) while the owner's stream answers,
+// and back to asking, with the value removed, whenever the owner exits or its
+// stream breaks, until the owner's stream answers again. A plugin the value
+// admitted keeps running when the value goes: stopping the plugin is not this
+// resolver's decision.
 type admitResolver struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// dir is the directive
+	// dir is the directive.
 	dir bldr_plugin.AdmitPluginRoot
 }
 
@@ -40,8 +41,8 @@ func (r *admitResolver) Resolve(ctx context.Context, handler directive.ResolverH
 }
 
 // watchOwner applies one owner stream's answers to handler. When the stream
-// ends for any reason it removes the value and marks the resolver busy, so
-// readers see the root as unanswered rather than a stale answer.
+// ends for any reason watchOwner removes the value and marks the resolver
+// busy, so readers see the root as unanswered rather than a stale answer.
 func watchOwner(
 	ctx context.Context,
 	handler directive.ResolverHandler,

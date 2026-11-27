@@ -327,8 +327,8 @@ type HandleReadAtRequest struct {
 	Offset int64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
 	// Length is the number of bytes to read. A positive length may be capped by
 	// the resource response limit. A length <= 0 reads the remaining file only if
-	// it fits in one response; large callers should GetSize and issue chunked
-	// positive-length ReadAt calls.
+	// the remaining file fits in one response. Large callers should GetSize
+	// and issue chunked positive-length ReadAt calls.
 	Length int64 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
 }
 
@@ -707,7 +707,7 @@ type HandleMknodRequest struct {
 	NodeType MknodType `protobuf:"varint,2,opt,name=node_type,json=nodeType,proto3" json:"nodeType,omitempty"`
 	// Mode is the file mode/permissions.
 	Mode uint32 `protobuf:"varint,3,opt,name=mode,proto3" json:"mode,omitempty"`
-	// CheckExist if true, returns error if entry already exists.
+	// CheckExist, if true, returns an error if the entry already exists.
 	CheckExist bool `protobuf:"varint,4,opt,name=check_exist,json=checkExist,proto3" json:"checkExist,omitempty"`
 }
 
@@ -1018,9 +1018,10 @@ type HandleUploadTreeDirectory struct {
 	// Mode is the directory permissions.
 	Mode uint32 `protobuf:"varint,2,opt,name=mode,proto3" json:"mode,omitempty"`
 	// ExpectMissing creates the directory only if the path holds nothing when
-	// the upload commits, checked in the commit's transaction; otherwise the
-	// upload ends in a conflict and nothing is committed. Unset, an existing
-	// directory at the path is reused and the entries under it merge into it.
+	// the upload commits, checked in the commit's transaction. Otherwise the
+	// upload ends in a conflict and nothing is committed. With ExpectMissing
+	// unset, an existing directory at the path is reused and the entries under
+	// the directory merge into the directory.
 	ExpectMissing bool `protobuf:"varint,3,opt,name=expect_missing,json=expectMissing,proto3" json:"expectMissing,omitempty"`
 }
 
@@ -1059,8 +1060,8 @@ type HandleUploadTreeFileStart struct {
 	// TotalSize is the total file size in bytes.
 	TotalSize int64 `protobuf:"varint,2,opt,name=total_size,json=totalSize,proto3" json:"totalSize,omitempty"`
 	// Mode is the permissions of a file the upload creates, zero for the
-	// default. A file the path already holds keeps its stored mode, so an
-	// upload never undoes another writer's chmod.
+	// default permissions. A file the path already holds keeps its stored mode,
+	// so an upload never undoes another writer's chmod.
 	Mode uint32 `protobuf:"varint,3,opt,name=mode,proto3" json:"mode,omitempty"`
 	// Expect is what the path must hold when the upload commits, checked in
 	// the commit's transaction against the root it applies to. With neither
@@ -1363,8 +1364,8 @@ func (x *HandleUploadTreeFileVersion) GetVersion() []byte {
 	return nil
 }
 
-// HandleUploadTreeConflict names the first entry whose path did not hold what
-// the upload expected.
+// HandleUploadTreeConflict identifies the first entry whose path did not hold
+// what the upload expected.
 type HandleUploadTreeConflict struct {
 	unknownFields []byte
 	// Path is the entry's slash-separated path relative to the handle.
@@ -1444,7 +1445,7 @@ type HandleWatchFilesRequest struct {
 	// ignores case.
 	Extensions []string `protobuf:"bytes,1,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	// Limit bounds the number of matched paths, taken in path order. Zero
-	// selects the server default.
+	// selects the server default limit.
 	Limit uint32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 }
 

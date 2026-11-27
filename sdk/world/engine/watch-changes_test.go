@@ -158,8 +158,8 @@ func TestWatchChanges_HalfClose(t *testing.T) {
 }
 
 // TestWatchChanges_Named checks that a named interest receives only the
-// changes naming its keys or matching its patterns, including a link to an
-// object it did not name.
+// changes referencing its keys or matching its patterns, including a link to
+// an object the interest did not list.
 func TestWatchChanges_Named(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -180,7 +180,7 @@ func TestWatchChanges_Named(t *testing.T) {
 		Interest:   s4wave_world.NewChangeInterestDelta(1, []string{"named/key"}, []world.GraphQuad{link}),
 	})
 
-	// An unnamed object is skipped; the named key arrives.
+	// An unnamed object is skipped. The named key arrives.
 	commitObject(ctx, t, engine, "named/other")
 	seqno := commitObject(ctx, t, engine, "named/key")
 	if change := s.nextChange(); change.GetSeqno() != seqno {
@@ -215,7 +215,8 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 		Interest:   &s4wave_world.ChangeInterestDelta{Version: 1, AddKeys: []string{"race/sentinel"}},
 	})
 
-	// state follows the stream: the last seqno seen, and the ack in force.
+	// last and ackAt track the stream's last seqno seen and the ack in
+	// force.
 	var last, ackAt uint64
 	version := uint64(1)
 	// await reads until the ack for version, then until a change reaching
@@ -254,8 +255,8 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// delivered reports whether changes carry a change through seqno naming
-	// key or a quad from key.
+	// delivered reports whether changes carry a change through seqno
+	// referencing key or a quad from key.
 	delivered := func(changes []*s4wave_world.WorldChange, seqno uint64, key string) bool {
 		for _, change := range changes {
 			if change.GetSeqno() < seqno {
@@ -322,8 +323,8 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 // member's commit lands before a later change the earlier interest sends, so
 // the ack's seqno L is past both the client's read revision R and the
 // member's commit. The member's change is not sent, and the client must read
-// the member again because L > R. It runs for a member added by key and for
-// one matched only by a pattern.
+// the member again because L > R. The test runs for a member added by key
+// and for one matched only by a pattern.
 func TestWatchChanges_AckPastMember(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -364,8 +365,8 @@ func TestWatchChanges_AckPastMember(t *testing.T) {
 	for i, c := range cases {
 		version := uint64(i + 2)
 
-		// The member commits, then the old key; the old key's change moves L
-		// past the member before the delta is sent.
+		// The member commits, then the old key. The old key's change
+		// moves L past the member before the delta is sent.
 		member := c.commit(0)
 		old := toggleObject(ctx, t, engine, "ack/old")
 		if change := s.nextChange(); change.GetSeqno() != old {
@@ -386,8 +387,8 @@ func TestWatchChanges_AckPastMember(t *testing.T) {
 		}
 		read = ack.GetAfterSeqno()
 
-		// The member's next commit arrives under the new interest; its earlier
-		// commit was never sent.
+		// The member's next commit arrives under the new interest.
+		// Its earlier commit was never sent.
 		next := c.commit(1)
 		if change := s.nextChange(); change.GetSeqno() != next {
 			t.Fatalf("%s: change = %v, want the member at %d", c.name, change, next)
@@ -427,7 +428,7 @@ func TestWatchChanges_OldSeqno(t *testing.T) {
 }
 
 // TestWatchChanges_QuietDelta checks a delta after more commits than the World
-// records, none of which the interest names: the ack's seqno reaches the head
+// records, none of which the interest selects: the ack's seqno reaches the head
 // the watch last compared, not the last change sent, so the next watch starts
 // from a recorded head and no unknown change follows.
 func TestWatchChanges_QuietDelta(t *testing.T) {

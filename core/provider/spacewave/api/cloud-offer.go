@@ -59,7 +59,7 @@ func readCloudOffer() CloudOffer {
 		DefaultOverageLimitCents:       cloudOfferUint32(value.GetUint64("defaultOverageLimitCents"), "defaultOverageLimitCents"),
 	}
 
-	// Read the spending limits, which must offer the default.
+	// Read the spending limits, which must offer the default spending limit.
 	limits := value.GetArray("overageLimitsCents")
 	offer.OverageLimitsCents = make([]uint32, len(limits))
 	for idx, limit := range limits {

@@ -12,7 +12,8 @@ const clientErrorReportCodeSharedObjectInitialStateRejected = "shared_object_ini
 const clientErrorReportComponentSharedObjectTracker = "shared-object-tracker"
 
 // reportClientError submits a best-effort diagnostic report to the cloud.
-// Errors are logged and otherwise ignored so local failure handling stays bounded.
+// Errors are logged and otherwise ignored so local failure handling stays
+// bounded.
 func (a *ProviderAccount) reportClientError(
 	ctx context.Context,
 	errorCode string,

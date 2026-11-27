@@ -1,11 +1,11 @@
 // Package browser runs kernel guests on the browser's WebAssembly API. See
-// the package's Go declaration for the design; this is its implementation.
+// the package's Go declaration for the design. This file is its implementation.
 //
 // A guest call is a Frame. A host import that returns a promise, or that took
 // a snapshot, unwinds the guest with Asyncify: the import starts the unwind,
 // the export returns, and Function.Call copies the unwound stack out of guest
 // memory. Function.Call then awaits the host call, copies the stack back and
-// calls the export again to rewind; the rewound import returns the host call's
+// calls the export again to rewind. The rewound import returns the host call's
 // results. A snapshot keeps the copied stack, so restoring it rewinds to the
 // same import again with other results, in the same instance or in a fork of
 // it.
@@ -196,7 +196,7 @@ export class Function {
   }
 }
 
-// call runs the export name of inst with args as a new frame of inst. It
+// callExport runs the export name of inst with args as a new frame of inst. It
 // unwinds and rewinds the guest at each host call that awaits or takes a
 // snapshot, and at each snapshot restore that targets this call. When rewind
 // is set, the call first rewinds to that unwound stack, whose host import
@@ -275,8 +275,8 @@ class Frame {
   constructor(
     readonly inst: Instance,
     ctx: context.Context | null,
-    // name and args are the export the call runs and its arguments, which
-    // a fork resumes.
+    // name and args are the export the call runs and its arguments.
+    // A fork resumes the call with name and args.
     readonly name: string,
     readonly args: bigint[],
   ) {
@@ -425,9 +425,9 @@ class Snapshot {
   constructor(private readonly capture: Capture) {}
 
   // Restore resumes the guest call running under ctx at the capture,
-  // returning returnValues from the host function that took it. It does not
-  // return: the thrown Restore unwinds to the call of the frame at the
-  // capture's depth.
+  // returning returnValues from the host function that took the capture.
+  // Restore does not return: the thrown Restore unwinds to the call of the
+  // frame at the capture's depth.
   Restore(ctx: context.Context | null, returnValues: $.Slice<bigint>): void {
     const frame = ctx?.Value(frameKey) as Frame | null | undefined
     const target = frame?.inst.frames[this.capture.depth]
@@ -442,8 +442,9 @@ class Snapshot {
   }
 
   // Resume runs the captured guest call in inst, a fork of the instance the
-  // capture was taken in, as if the host function that took it returned
-  // returnValues. It waits for the capture and returns when the call does.
+  // capture was taken in, as if the host function that took the capture
+  // returned returnValues. It waits for the capture and returns when the call
+  // does.
   async Resume(
     ctx: context.Context | null,
     inst: engine.Instance | null,
@@ -459,7 +460,7 @@ class Snapshot {
       ]
     }
 
-    // Rewind a new outermost frame of inst to it.
+    // Rewind a new outermost frame of inst to the captured stack.
     if (
       !(inst instanceof Instance) ||
       !inst.unwinder ||
@@ -486,8 +487,9 @@ class Restore {
 }
 
 // Unwinder drives a guest's Asyncify exports. The unwound stack lives in a
-// region of guest memory reserved past the guest's own pages; between unwind
-// and rewind it is held as a copy, so a nested call can reuse the region.
+// region of guest memory reserved past the guest's own pages. Between unwind
+// and rewind, the stack is held as a copy, so a nested call can reuse the
+// region.
 class Unwinder {
   private constructor(
     private readonly asyncify: AsyncifyExports,
@@ -688,7 +690,7 @@ type FunctionType = {
   results: number[]
 }
 
-// Value types in their binary encoding.
+// i32, i64, f32 and f64 are value types in their binary encoding.
 const i32 = 0x7f
 const i64 = 0x7e
 const f32 = 0x7d

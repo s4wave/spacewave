@@ -39,7 +39,7 @@ type restoreFixture struct {
 }
 
 // newRestoreFixture builds a stopped volume with the Space's bucket and a
-// replay cursor naming a fresh World transform. Each block of preset is
+// replay cursor holding a fresh World transform. Each block of preset is
 // written owned by the bucket.
 func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	// Open a fresh volume with a Space bucket.
@@ -56,7 +56,7 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 		t.Fatal(err)
 	}
 
-	// Build a World state that names a fresh transform.
+	// Build a World state that holds a fresh transform.
 	initOp, err := space_world.NewInitWorldOp(nil)
 	if err != nil {
 		t.Fatal(err)

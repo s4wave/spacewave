@@ -75,7 +75,7 @@ func controlAgreements(cfg *SharedObjectConfig, msgs []ControlMessage) ([]*Contr
 	return out, nil
 }
 
-// checkpointHead names the held checkpoint.
+// checkpointHead returns the held checkpoint head.
 func (s *SOState) checkpointHead() (*SOCheckpointHead, error) {
 	inner, err := s.GetCheckpointInner()
 	if err != nil {
@@ -186,15 +186,16 @@ func (s *SOState) agreedControlRecord(sharedObjectID, self string, msgs []Contro
 }
 
 // ErrAwaitingGroup reports that a voter agreed to a change of a config under
-// group control, which applies once the group decides it.
+// group control. The change applies once the group decides it.
 var ErrAwaitingGroup = errors.New("the change waits for the group to agree")
 
 // ChangeSOConfig makes one change of state's config to next. Under owner
 // control signer, an owner, signs the change and it applies with fn, as in
 // ApplyConfigChange. Under group control signer, a voter, agrees to it and
-// ChangeSOConfig returns ErrAwaitingGroup; the group applies it once more than
-// two thirds of the voting weight agree, which with two or three voters is all
-// of them, and hands the key to the members it admits instead of calling fn.
+// ChangeSOConfig returns ErrAwaitingGroup. The group applies the change once
+// more than two thirds of the voting weight agree. With two or three voters,
+// all voters must agree. The group hands the key to the members the change
+// admits instead of calling fn.
 func ChangeSOConfig(
 	ctx context.Context,
 	host *SOHost,
@@ -293,7 +294,7 @@ func agreeControlRecord(ctx context.Context, host *SOHost, head, value []byte, s
 
 // applyOwnerConfigChange signs the change as signer, an owner, and applies it
 // with fn. A change to group control seals the held checkpoint, which must
-// still be held when it applies.
+// still be held when the change applies.
 func applyOwnerConfigChange(
 	ctx context.Context,
 	host *SOHost,
@@ -406,8 +407,8 @@ type ControlHost interface {
 // by signer. Group control gives one vote to the first writing device of each
 // entity, and seals the held checkpoint so the group's decisions follow it.
 // Owner control takes every vote away. A group's return to owner control
-// needs the group to decide it, so it returns ErrAwaitingGroup. It does
-// nothing when control already matches.
+// needs the group to decide the change, so SetSOControl returns
+// ErrAwaitingGroup. SetSOControl does nothing when control already matches.
 func SetSOControl(ctx context.Context, host *SOHost, control SOControl, signer crypto.PrivKey) error {
 	// Read the current config.
 	state, err := host.GetHostState(ctx)

@@ -15,7 +15,7 @@ import (
 
 // storeOutputs stores each declared output in dir and sets it as the output of
 // that name: a regular file as a blob, a directory as a UnixFS tree. An absent
-// entry leaves its output unset; any other entry, or a file over
+// entry leaves its output unset. Any other entry, or a file over
 // block.MaxBlockSize, fails the execution.
 func (c *Controller) storeOutputs(ctx context.Context, dir string) error {
 	var values forge_value.ValueSlice

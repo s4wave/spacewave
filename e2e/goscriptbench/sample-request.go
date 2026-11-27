@@ -16,10 +16,10 @@ const (
 
 // SampleRequest describes one action the runner asks a workload to perform.
 type SampleRequest struct {
-	// kind identifies the sample population
+	// Kind identifies the sample population.
 	Kind SampleKind
-	// number is one-based within the sample population
+	// Number is one-based within the sample population.
 	Number int
-	// trace enables diagnostic tracing for this action
+	// Trace enables diagnostic tracing for this action.
 	Trace bool
 }

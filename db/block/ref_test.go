@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// TestBlockRef ensures the marshaling is consistent
+// TestBlockRef ensures the marshaling is consistent.
 func TestBlockRef(t *testing.T) {
 	// Build and marshal a block reference for encoding checks.
 	h, err := hash.Sum(DefaultHashType, []byte("test"))

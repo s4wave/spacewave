@@ -368,8 +368,8 @@ func (c *Controller) HandleWebViewViaHandlers(
 //
 // Each lookup may wait for its provider plugin to start and each mount reads
 // its manifest's files, so the independent lookups run concurrently, as do the
-// mounts. They share the caller's context because the returned handles stay
-// bound to the context that opened them.
+// mounts. The lookups and mounts share the caller's context because the
+// returned handles stay bound to the context that opened them.
 func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_handler.WebViewHandlersConfig) (func(), error) {
 	// Resolve each empty package prefix once, however many handlers share it.
 	var ids []string
@@ -407,7 +407,7 @@ func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_h
 		}
 	}
 
-	// Select each pinned manifest the URLs name, once.
+	// Select each pinned manifest the URLs select, once.
 	var artifactIDs []string
 	held := make(map[string]struct{})
 	for _, url := range urls {
@@ -441,7 +441,8 @@ func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_h
 
 // lookupWebPkgPaths resolves the asset base path of each package in ids
 // concurrently and returns them in the order of ids. The release function
-// drops every lookup; the caller holds it while the paths are served.
+// drops every lookup. The caller holds the release function while the paths
+// are served.
 func (c *Controller) lookupWebPkgPaths(ctx context.Context, ids []string) ([]string, func(), error) {
 	// Look up every package, keeping each reference by index.
 	paths := make([]string, len(ids))
@@ -569,8 +570,10 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
-// addControllerSendReadyAndWait adds a controller, sends ready, and waits for context cancellation or controller failure.
-// Returning nil from Execute means the controller did no active work; the handler remains attached until the stream closes.
+// addControllerSendReadyAndWait adds a controller, sends ready, and waits for
+// context cancellation or controller failure.
+// Returning nil from Execute means the controller did no active work.
+// The handler remains attached until the stream closes.
 // Returns the exit error or context.Canceled if the context was cancelled.
 func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl controller.Controller, sendReady func() error) error {
 	// Attach the routing controller and retain its execution result.

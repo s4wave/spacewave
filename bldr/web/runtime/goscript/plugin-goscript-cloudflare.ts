@@ -95,7 +95,7 @@ class GoScriptCloudflarePluginGeneration {
   }
 
   // acceptStream delivers one incoming channel to the Go plugin. The channel
-  // is wrapped as an openStreamFunc; the handler resolves when the stream
+  // is wrapped as an openStreamFunc. The handler resolves when the stream
   // closes in either direction.
   private async acceptStream(
     channel: PacketStream,

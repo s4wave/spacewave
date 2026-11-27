@@ -51,7 +51,7 @@ type fsTreeWrites struct {
 // writeAt buffers a write to the file at i, committing the buffer first when
 // the write does not continue it. A write of at least the optimal write size,
 // or to a file without one, is committed directly.
-// caller must NOT hold rmtx
+// caller must NOT hold rmtx.
 func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	// Hold the buffer for the whole write.
 	w := &i.w
@@ -116,7 +116,7 @@ func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts tim
 // flushLocked commits the buffered extent. The extent is kept when ctx ends
 // first, and dropped after any other result. If keepErr is set, the caller
 // cannot report a failure, so retain the first one for the next operation.
-// caller must hold w.mtx and must NOT hold rmtx
+// caller must hold w.mtx and must NOT hold rmtx.
 func (i *fsInode) flushLocked(ctx context.Context, keepErr bool) error {
 	// Cancel the idle commit, which this flush replaces.
 	w := &i.w
@@ -158,7 +158,7 @@ func (i *fsInode) flushUnreported() {
 }
 
 // sync commits the buffered writes at i and returns any unreported flush error.
-// caller must NOT hold rmtx
+// caller must NOT hold rmtx.
 func (i *fsInode) sync(ctx context.Context) error {
 	// Commit the extent, then report an earlier unreported failure.
 	w := &i.w
@@ -174,7 +174,7 @@ func (i *fsInode) sync(ctx context.Context) error {
 }
 
 // buffered returns the end offset and timestamp of the buffered writes, or a
-// zero end when nothing is buffered, and any unreported flush error.
+// zero end offset when nothing is buffered, and any unreported flush error.
 func (i *fsInode) buffered(ctx context.Context) (int64, time.Time, error) {
 	// Report an earlier unreported flush failure first.
 	w := &i.w
@@ -195,7 +195,7 @@ func (i *fsInode) buffered(ctx context.Context) (int64, time.Time, error) {
 }
 
 // takeErr returns and clears the unreported flush error and its pending entry.
-// caller must hold w.mtx
+// caller must hold w.mtx.
 func (i *fsInode) takeErr() error {
 	// Remove only a failure that this operation reports, keeping buffered data.
 	w := &i.w
@@ -208,7 +208,7 @@ func (i *fsInode) takeErr() error {
 }
 
 // syncTree commits buffered writes and reports pending failures in i's tree.
-// caller must NOT hold rmtx on any inode
+// caller must NOT hold rmtx on any inode.
 func (i *fsInode) syncTree(ctx context.Context) error {
 	var firstErr error
 	for _, node := range i.tree().snapshot() {

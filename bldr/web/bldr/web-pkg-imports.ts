@@ -4,8 +4,8 @@ export function bindWebPkgImports(
   target: Document = document,
 ): void {
   // Browsers retain the first resolution for the document's complete lifetime,
-  // and Firefox rejects every import map after the document's first, so a
-  // package whose URL the document's maps already resolve adds no map. The
+  // and Firefox rejects every import map after the document's first import map,
+  // so a package whose URL the document's maps already resolve adds no map. The
   // maps in the document are the record, because separately bundled callers
   // cannot share module state. Bare prefixes work with both HTTPS and
   // Electron's app: scheme.

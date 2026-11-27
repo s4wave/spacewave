@@ -19,7 +19,8 @@ message OrgState {
   // Empty until a subscription is created for the org.
   string billing_account_id = 3;
   // Members is the list of organization members with metadata.
-  // SOParticipantConfig is the authority for membership, this is supplementary.
+  // SOParticipantConfig is the authority for membership. Member metadata is
+  // supplementary.
   repeated OrgMemberInfo members = 4;
   // ChildSharedObjects is the list of child SO references (Spaces under this org).
   repeated OrgChildRef child_shared_objects = 5;

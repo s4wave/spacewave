@@ -9,7 +9,7 @@ type Finish = {
 export const title = 'Wizard Finish: one atomic list'
 
 export const state = (v: Finish) => {
-  // The chart follows tab a; tab b acts as the other writer.
+  // The chart follows tab a. Tab b acts as the other writer.
   const c = v.control.a
   if (
     c === 'gone' ||
@@ -29,14 +29,14 @@ export const step = (action: string, from: Finish, to: Finish) => {
   // A step that keeps the drawn state draws no edge.
   if (state(from) === state(to)) return null
 
-  // A refused press ends done only when the ending names the object, which
-  // a list an earlier press sent made.
+  // A refused press ends done only when the ending records the object
+  // created by a list sent by an earlier press.
   const refused = ['Discard', 'Reject', 'Unsupported']
   if (refused.includes(action) && to.control.a === 'done') {
     return 'list refused, ending names the object'
   }
 
-  // Each action names the edge it draws.
+  // Each action labels the edge the action draws.
   if (action === 'Press') return 'presses Finish or Retry'
   if (action === 'Commit') return 'list commits, or is refused as gone'
   if (action === 'Discard') return 'a write fails, list discarded'

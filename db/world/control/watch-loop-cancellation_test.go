@@ -14,7 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Journal-aware snapshot construction may wrap cancellation in storage context.
+// TestWatchLoopWakeAcceptsWrappedCancellation covers journal-aware snapshot
+// construction, which may wrap cancellation in storage context.
 // A Wake still cancels only the current wait, not the owning controller.
 func TestWatchLoopWakeAcceptsWrappedCancellation(t *testing.T) {
 	for _, key := range []string{"", "object"} {

@@ -107,7 +107,7 @@ func TestGenerateBootstrapHtml(t *testing.T) {
 
 func TestBuildSaucerJSBundle(t *testing.T) {
 	// This test requires the full bldr source tree to be available
-	// Skip if we can't find the source directory
+	// Skip if the test cannot find the source directory.
 	testDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -123,7 +123,8 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 	}
 
 	// The build directory sits under the package so module resolution finds
-	// the repository's node_modules; a unique name keeps concurrent runs apart.
+	// the repository's node_modules. A unique name keeps concurrent runs
+	// apart.
 	buildDir, err := os.MkdirTemp(testDir, ".test-build-")
 	if err != nil {
 		t.Fatal(err)

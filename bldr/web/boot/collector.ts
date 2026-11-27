@@ -30,11 +30,11 @@ import { bootMarkErrorCodes, bootMarkLabels, bootMarkPhases } from './vocabulary
 export const bootReportGlobalKey = '__swBootReport'
 
 // BootReportStoreLike is the persistence surface the collector needs. The
-// durable implementation comes from store.ts; tests may pass a double.
+// durable implementation comes from store.ts. Tests may pass a double.
 export interface BootReportStoreLike {
   recoverOnStartup(): Promise<void>
   put(report: BootReport): Promise<unknown>
-  // HoldBootLock resolves true only after the Web Locks grant, so attachStore
+  // holdBootLock resolves true only after the Web Locks grant, so attachStore
   // awaits it before journaling a recording boot.
   holdBootLock?(reportId: string): Promise<boolean>
   sealReport?(
@@ -46,26 +46,26 @@ export interface BootReportStoreLike {
 }
 
 export interface BootReportCollectorOptions {
-  // EntrypointId is the public entrypoint contract name (canvas, computers,
+  // entrypointId is the public entrypoint contract name (canvas, computers,
   // drive, forge, or space).
   entrypointId: string
-  // UsableMark is the single mark label that completes this entrypoint's
+  // usableMark is the single mark label that completes this entrypoint's
   // startup. The first occurrence seals the report READY.
   usableMark: string
-  // Commit is the public source commit when available.
+  // commit is the public source commit when available.
   commit?: string
-  // ReleaseGeneration is the immutable public release generation when known.
+  // releaseGeneration is the immutable public release generation when known.
   releaseGeneration?: string
 }
 
 export interface BootReportCollectorDeps {
-  // Store persists recording journals and sealed reports. When omitted, the
+  // store persists recording journals and sealed reports. When omitted, the
   // collector stays memory-only and opens the real store lazily in a browser
   // that provides IndexedDB.
   store?: BootReportStoreLike
 }
 
-// Optional persistence extensions live on the durable store only; memory
+// Optional persistence extensions live on the durable store only, so memory
 // doubles in tests omit them.
 
 interface StartupMarkRecord {
@@ -86,7 +86,7 @@ type CollectorGlobals = typeof globalThis & {
 // This module is one instance per document per bundle evaluation. A hot
 // module replacement would create a second module instance, but the collector
 // remains a single document-global owner through liveCollector and the
-// __swBootReport seam; no second global owner exists or is added.
+// __swBootReport seam. No second global owner exists or is added.
 
 
 // readReleaseGeneration returns the validator-compatible release-generation
@@ -189,7 +189,7 @@ export class BootReportCollector {
         projectId: 'spacewave',
         buildType: this.detectBuildType(),
         runtimeKind: this.detectRuntimeKind(),
-        // The browser runtime defaults to a dedicated worker today.
+        // The browser runtime defaults to a dedicated worker.
         workerMode: BootWorkerMode.DEDICATED,
       }),
       environment: BootEnvironment.create({
@@ -201,7 +201,7 @@ export class BootReportCollector {
         cacheState: BootCacheState.COLD,
         recoveryDecision: BootRecoveryDecision.NONE,
       }),
-      // Accounting and privacy start empty; counter samples arrive with the
+      // Accounting and privacy start empty. Counter samples arrive with the
       // later attribution phases, and local-only capture keeps the v1 export
       // policy with nothing shared.
       accounting: BootAccounting.create({}),
@@ -226,7 +226,7 @@ export class BootReportCollector {
 
   // takeLeaseAndJournal orders the durable lifecycle: recover stale boots,
   // hold this report's lease, then allow durable RECORDING writes. A denied
-  // or unavailable lease leaves no durable RECORDING row; collection keeps
+  // or unavailable lease leaves no durable RECORDING row, so collection keeps
   // running in memory until the terminal seal.
   private async takeLeaseAndJournal(): Promise<void> {
     const store = this.deps.store
@@ -249,12 +249,12 @@ export class BootReportCollector {
     )
   }
 
-  // IsSealed reports whether this collector already wrote its terminal state.
+  // isSealed reports whether this collector already wrote its terminal state.
   isSealed(): boolean {
     return this.sealed
   }
 
-  // AttachStore binds persistence after construction so the entrypoint can
+  // attachStore binds persistence after construction so the entrypoint can
   // install synchronously while the durable store opens asynchronously. The
   // collector owns exactly one report: on attachment it recovers stale boots,
   // then either takes its unique Web Lock before the first durable RECORDING
@@ -295,8 +295,8 @@ export class BootReportCollector {
 
   // journal persists one snapshot of the recording report without blocking
   // the boot: producers enqueue and never await storage on the critical path.
-  // Durable RECORDING writes require the held lease; without it the report
-  // stays memory-only until seal persists its terminal record.
+  // Durable RECORDING writes require the held lease. Without the lease, the
+  // report stays memory-only until seal persists its terminal record.
   private journal(): void {
     if (!this.sealed && this.leaseHeld) {
       void this.deps.store
@@ -444,7 +444,7 @@ export class BootReportCollector {
   }
 
   private detectBuildType(): BootBuildType {
-    // The bundled app always ships minified release bytes today.
+    // The bundled app always ships minified release bytes.
     return BootBuildType.RELEASE
   }
 
@@ -523,7 +523,7 @@ export function initBootReportCollector(
         }),
       )
       .then((store) => {
-        // A fast seal can land before the store finishes opening; attach
+        // A fast seal can land before the store finishes opening. Attach
         // anyway so attachStore persists the complete sealed snapshot. Skip
         // only when a different live collector took over this document.
         if (liveCollector && liveCollector !== collector) return

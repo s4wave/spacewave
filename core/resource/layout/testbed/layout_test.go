@@ -164,7 +164,7 @@ func TestLayoutResource(t *testing.T) {
 			t.Fatalf("expected 1 child (main tabset), got %d", len(children))
 		}
 
-		// Verify main tabset
+		// Verify the main tabset.
 		mainTabSet := children[0].GetTabSet()
 		if mainTabSet == nil {
 			t.Fatal("expected main tabset")
@@ -274,7 +274,7 @@ func TestLayoutResource(t *testing.T) {
 		}
 		t.Logf("Received initial model with root id: %s", initialModel.GetLayout().GetId())
 
-		// Create an updated model with a new tab in main tabset
+		// Create an updated model with a new tab in the main tabset.
 		updatedModel := initialModel.CloneVT()
 		mainTabSet := updatedModel.GetLayout().GetChildren()[0].GetTabSet()
 		mainTabSet.Children = append(mainTabSet.Children, &s4wave_layout.TabDef{
@@ -334,7 +334,8 @@ func TestLayoutResource(t *testing.T) {
 		// Create a client for the layout host service
 		layoutClient := s4wave_layout.NewSRPCLayoutHostClient(layoutSrpcClient)
 
-		// Call NavigateTab (default implementation returns empty response)
+		// Call NavigateTab (the default implementation returns an empty
+		// response).
 		resp, err := layoutClient.NavigateTab(ctx, &s4wave_layout.NavigateTabRequest{
 			TabId: "file-browser",
 			Path:  "/some/path",
@@ -639,7 +640,8 @@ func TestLayoutResource(t *testing.T) {
 			t.Fatalf("Recv failed: %v", err)
 		}
 
-		// Get the file browser tab (first tab in main tabset) and deserialize its data
+		// Get the file browser tab (the first tab in the main tabset)
+		// and deserialize its data.
 		mainTabSet := model.GetLayout().GetChildren()[0].GetTabSet()
 		fileBrowserTab := mainTabSet.GetChildren()[0]
 

@@ -31,7 +31,8 @@ export type ServerOptions<S extends Schema, P extends Principal> = Omit<
     migration?: Migration<S>
   }
 
-// SyncServer owns admission and any engine it opened; supplied engines retain their owner.
+// SyncServer owns admission and any engine it opened.
+// Supplied engines retain their owner.
 export class SyncServer<
   S extends Schema,
   P extends Principal,

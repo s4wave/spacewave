@@ -115,7 +115,7 @@ func (c *Config) Validate() error {
 const DefaultStartupWaitBudget = time.Minute
 
 // BuildStartupWaitBudget gets the StartupWaitBudgetDur and fills the default
-// if unset. Rejects negative and unparseable durations.
+// budget if unset. Rejects negative and unparseable durations.
 func (c *Config) BuildStartupWaitBudget() (time.Duration, error) {
 	// Parse the configured duration.
 	budget, err := confparse.ParseDuration(c.GetStartupWaitBudgetDur())
@@ -123,7 +123,7 @@ func (c *Config) BuildStartupWaitBudget() (time.Duration, error) {
 		return 0, errors.Wrap(err, "startup_wait_budget_dur")
 	}
 
-	// Reject negative budgets and fill the default.
+	// Reject negative budgets and fill the default budget.
 	if budget < 0 {
 		return 0, errors.New("startup_wait_budget_dur cannot be negative")
 	}

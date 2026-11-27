@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * MaxHashes is the maximum number of hashes per exchange.
-   * If 0, defaults to 256.
+   * If MaxHashes is 0, MaxHashes defaults to 256.
    */
   maxHashes?: number
 }

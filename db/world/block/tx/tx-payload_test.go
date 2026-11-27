@@ -71,15 +71,15 @@ func TestTxPayloadRefs(t *testing.T) {
 }
 
 // txPayloadRefsGolden records, for each transaction type, a fixture and the
-// roots PayloadRefs names for it under PayloadRefsVersion. Each fixture sets
+// roots PayloadRefs returns for it under PayloadRefsVersion. Each fixture sets
 // every block reference the transaction carries to a distinct named root, and
 // refs lists the names of the roots PayloadRefs returns, in order. An applied
-// operation's own payload is a FsWriteAtOp naming its blob, whose version the
-// operation golden test covers.
+// operation's own payload is a FsWriteAtOp referencing its blob, whose version
+// the operation golden test covers.
 //
 // A saved replay cursor reuses a transaction's roots only under the same
-// version, so when what PayloadRefs names changes, bump PayloadRefsVersion and
-// record the new refs here together.
+// version, so when what PayloadRefs returns changes, bump PayloadRefsVersion
+// and record the new refs here together.
 var txPayloadRefsGolden = map[world_block_tx.TxType]struct {
 	tx   func(t *testing.T, ref func(name string) *block.BlockRef) *world_block_tx.Tx
 	refs []string
@@ -235,7 +235,7 @@ func unsetTxRefs(t *testing.T, tx *world_block_tx.Tx) []string {
 
 // TestTxPayloadRefsGolden checks that every transaction type has a golden
 // fixture that sets every block reference it carries, and that what
-// PayloadRefs names changes only together with PayloadRefsVersion.
+// PayloadRefs returns changes only together with PayloadRefsVersion.
 func TestTxPayloadRefsGolden(t *testing.T) {
 	if world_block_tx.PayloadRefsVersion == 0 {
 		t.Fatal("PayloadRefsVersion is zero")

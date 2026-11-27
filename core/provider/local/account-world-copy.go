@@ -13,10 +13,10 @@ import (
 const AccountWorldRoot = "account-world"
 
 // copyWorldGraph copies the World graph under root from src into store under a
-// stage, then moves the account World root onto it. It skips each subtree the stage
-// holds, as block.StageCopy describes. visited observes each block the copy
-// reads; missing, when set, accepts a block no source serves as a hole, which
-// leaves its ancestors unproved and the root unmoved.
+// stage, then moves the account World root onto it. It skips each subtree the
+// stage holds, as block.StageCopy describes. visited observes each block the
+// copy reads. When set, missing accepts a block no source serves as a hole,
+// which leaves its ancestors unproved and the root unmoved.
 //
 // Unless mode is full, the copy leaves the chunks of linked files where they
 // are: it counts as present a block a linked file on this Device serves, and
@@ -82,8 +82,8 @@ func copyWorldGraph(
 }
 
 // holdAccountWorld moves the account World root onto the copied World. The
-// copy routine is the root's only writer, so it reads the root it moves from;
-// a move that loses a race returns ErrRootMoved and the next copy tries again.
+// copy routine is the root's only writer, so it reads the root it moves from.
+// A move that loses a race returns ErrRootMoved and the next copy tries again.
 // A store that holds no roots frees nothing by liveness, so the copy needs
 // no hold there.
 func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {

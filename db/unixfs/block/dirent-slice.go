@@ -13,8 +13,8 @@ import (
 type DirentSlice struct {
 	alias   block.AliasIdentityToken
 	dirents *[]*Dirent
-	// bcs may be nil
-	// should be located at the dirent slice sub-block
+	// bcs may be nil.
+	// bcs should be located at the dirent slice sub-block.
 	bcs *block.Cursor
 }
 
@@ -47,7 +47,7 @@ func (d *DirentSlice) Len() int {
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-// does not do bounds checks
+// does not do bounds checks.
 func (d *DirentSlice) Less(i, j int) bool {
 	if d.dirents == nil {
 		return false
@@ -196,9 +196,9 @@ func (d *DirentSlice) LookupDirent(name string) (*Dirent, int) {
 }
 
 // FollowDirentAsCursor follows a directory entry to its node reference.
-// bcs must be set on the dirent slice
-// ensures that the next node type is as expected
-// may return ErrOutOfBounds
+// bcs must be set on the dirent slice.
+// ensures that the next node type is as expected.
+// may return ErrOutOfBounds.
 func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, error) {
 	// Require a directory slice and cursor before following an entry.
 	if d.dirents == nil || d.bcs == nil {
@@ -217,9 +217,9 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 }
 
 // FollowDirent follows a directory entry to its node reference.
-// bcs must be set on the dirent slice
-// ensures that the next node type is as expected
-// may return ErrOutOfBounds
+// bcs must be set on the dirent slice.
+// ensures that the next node type is as expected.
+// may return ErrOutOfBounds.
 func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dirent, error) {
 	// Open the inode cursor for the requested directory entry.
 	bcs, dirent, err := d.FollowDirentAsCursor(didx)
@@ -339,7 +339,7 @@ DirentLoop:
 }
 
 // AppendDirent appends a entry to the dirent slice.
-// Ensure the entry does not exist BEFORE calling this.
+// Ensure the entry does not exist BEFORE calling AppendDirent.
 // After appending all directories, be sure to call SortDirents.
 func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 	// Require a directory slice before appending an entry.
@@ -357,7 +357,7 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 		return nil
 	}
 
-	// we already appended to the slice: mark the block as dirty
+	// Mark the block as dirty after appending to the slice.
 	subBlk := d.bcs.FollowSubBlock(uint32(nextIdx)) //nolint:gosec
 	subBlk.MarkDirty()
 

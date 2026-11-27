@@ -78,8 +78,8 @@ type Store struct {
 	dev device.Device
 	// index holds the key-value store and the block locations.
 	index Index
-	// hashType is the hash type of new block references; zero selects the
-	// default.
+	// hashType is the hash type of new block references. Zero selects the
+	// default hash type.
 	hashType hash.HashType
 
 	// writer is held by each write transaction from open to end, so no
@@ -108,7 +108,7 @@ type Store struct {
 
 // pendingBlock is one unpublished block write or remove.
 type pendingBlock struct {
-	// loc is the payload location; nil for a remove.
+	// loc is the payload location. Nil for a remove.
 	loc *location
 }
 
@@ -194,7 +194,8 @@ func (s *Store) commitIndex(ctx context.Context, tx kvtx.Tx, ordered bool) error
 // durable, so leaving a put pending could keep the commit without its block,
 // and a crash before the flush could keep a published put without its payload.
 func (s *Store) publish(ctx context.Context, tx kvtx.Tx, own map[string]*pendingBlock, ordered bool) error {
-	// Snapshot pending after the payload writes it names were issued.
+	// Snapshot pending after the payload writes recorded in pending were
+	// issued.
 	s.mtx.Lock()
 	pending := maps.Clone(s.pending)
 	published := maps.Clone(pending)
@@ -228,7 +229,7 @@ func (s *Store) publish(ctx context.Context, tx kvtx.Tx, own map[string]*pending
 		}
 	}
 
-	// Apply the statistics changes and commit; the commit's flush covers the
+	// Apply the statistics changes and commit. The commit's flush covers the
 	// payloads.
 	for segment, delta := range stats {
 		if err := addSegmentStats(ctx, tx, segment, delta); err != nil {

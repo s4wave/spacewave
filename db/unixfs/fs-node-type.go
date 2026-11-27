@@ -19,13 +19,13 @@ func DefaultPermissions(nt FSCursorNodeType) fs.FileMode {
 	return 0o644
 }
 
-// fsCursorNodeType is a static node type value
+// fsCursorNodeType is a static node type value.
 type fsCursorNodeType struct {
-	// isDir indicates this is a dir
+	// isDir indicates the node is a dir.
 	isDir bool
-	// isFile indicates this is a file
+	// isFile indicates the node is a file.
 	isFile bool
-	// isSymlink indicates this is a symlink
+	// isSymlink indicates the node is a symlink.
 	isSymlink bool
 }
 
@@ -68,7 +68,7 @@ func NodeTypeToMode(nodeType FSCursorNodeType, permissions fs.FileMode) fs.FileM
 	return os.ModeIrregular
 }
 
-// ModeToNodeType converts a os.fileMode to a NodeType.
+// FileModeToNodeType converts a os.fileMode to a NodeType.
 func FileModeToNodeType(mode fs.FileMode) (FSCursorNodeType, error) {
 	switch {
 	case mode.IsDir():

@@ -27,7 +27,7 @@ func TestMergeInviteSnapshotKeepsHeldOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Name a writer the invitation owner adds.
+	// Declare a writer the invitation owner adds.
 	writer, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,8 @@ func TestMergeInviteSnapshotKeepsHeldOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Its snapshot records the invite this replica redeemed.
+	// The invitation owner's snapshot records the invite this replica
+	// redeemed.
 	candidate := held.CloneVT()
 	candidate.Config, err = sobject.VerifyConfigChange(testSharedObjectID, held.GetConfig(), addWriter)
 	if err != nil {
@@ -55,7 +56,8 @@ func TestMergeInviteSnapshotKeepsHeldOperations(t *testing.T) {
 	}
 	candidate.Invites = []*sobject.SOInvite{{InviteId: "fresh", MaxUses: 1, Uses: 1}}
 
-	// Installing it adopts the newer config and invite and keeps the operation.
+	// Installing the snapshot adopts the newer config and invite and keeps
+	// the operation.
 	if err := host.MergeInviteSnapshot(ctx, candidate, []*sobject.SOConfigChange{genesis, addWriter}); err != nil {
 		t.Fatal(err)
 	}

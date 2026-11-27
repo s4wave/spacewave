@@ -60,7 +60,7 @@ func resolveLocalEntrypoints(
 	pkgRoot string,
 	entrypoints []WebPkgEntrypointConfig,
 ) ([]string, error) {
-	// Default to root index if no entrypoints configured.
+	// Default to the root index if no entrypoints are configured.
 	if len(entrypoints) == 0 {
 		entrypoints = []WebPkgEntrypointConfig{{Path: "."}}
 	}
@@ -244,12 +244,12 @@ func resolveExportCondition(raw *fastjson.Value) string {
 		return ""
 	}
 
-	// Try string first.
+	// Try a string value first.
 	if s := string(raw.GetStringBytes()); s != "" {
 		return s
 	}
 
-	// Try condition object.
+	// Try a condition object.
 	obj := raw.GetObject()
 	if obj == nil {
 		return ""
@@ -463,7 +463,8 @@ func ResolveWebPkgRefsFromConfig(
 // source, because go mod vendor strips the module's pure-TS dirs from the
 // vendor tree. The monorepo build resolves the pkg from its own source via the
 // earlier stages and never creates this directory, so this stage is inert
-// there. Only single-segment scoped IDs map; "@scope/name" -> ".scope/name".
+// there. Only single-segment scoped IDs map, so "@scope/name" maps to
+// ".scope/name".
 func resolveMaterializedWebPkgRoot(codeRootPath, pkgID string) string {
 	// Require a scoped package identifier before resolving its materialized root.
 	if !strings.HasPrefix(pkgID, "@") {

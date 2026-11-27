@@ -30,25 +30,25 @@ const StateAtomObjectStoreID = "testbed-state-atoms"
 // TestbedResourceServer implements the TestbedResourceService.
 // It acts as the root resource for creating world engine resources.
 type TestbedResourceServer struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// volumeID is the volume ID for engine storage
+	// volumeID is the volume ID for engine storage.
 	volumeID string
-	// bucketID is the bucket ID for engine storage
+	// bucketID is the bucket ID for engine storage.
 	bucketID string
-	// ctx is the context for long-lived resources
+	// ctx is the context for long-lived resources.
 	ctx context.Context
-	// testResult handles test result broadcasting
+	// testResult broadcasts test results.
 	testResult broadcast.Broadcast
-	// testSuccess stores whether the test passed
+	// testSuccess stores whether the test passed.
 	testSuccess bool
-	// testError stores the test error message
+	// testError stores the test error message.
 	testError string
-	// testCompleted is true when MarkTestResult has been called
+	// testCompleted is true when MarkTestResult has been called.
 	testCompleted bool
-	// stateAtomMgr manages state atom stores
+	// stateAtomMgr manages state atom stores.
 	stateAtomMgr *resource_state.StateAtomManager
 }
 
@@ -67,19 +67,19 @@ func NewTestbedResourceServer(ctx context.Context, le *logrus.Entry, bus bus.Bus
 
 // CreateWorld creates a new world engine and returns an EngineResource.
 func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_testbed.CreateWorldRequest) (*s4wave_testbed.CreateWorldResponse, error) {
-	// Generate engine ID if not provided
+	// Generate an engine ID if none is provided
 	engineID := req.EngineId
 	if engineID == "" {
 		nextID := nextTestbedEngineID.Add(1)
 		engineID = fmt.Sprintf("%s-engine-%d", s.bucketID, nextID)
 	}
 
-	// Setup world engine configuration
+	// Set up the world engine configuration
 	volumeID := s.volumeID
 	bucketID := s.bucketID
 	objectStoreID := engineID + "-store"
 
-	// Create bucket if it doesn't exist
+	// Create the bucket if it doesn't exist
 	bucketConf, err := bucket.NewConfig(bucketID, 1, nil)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		return nil, err
 	}
 
-	// Create world engine config
+	// Create the world engine config
 	engConf := world_block_engine.NewConfig(
 		engineID,
 		volumeID,
@@ -114,7 +114,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		return nil, err
 	}
 
-	// Create engine resource
+	// Create an engine resource
 	engineInfo := &s4wave_world.EngineInfo{
 		EngineId: engineID,
 		BucketId: bucketID,
@@ -126,7 +126,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		worldCtrlRef.Release()
 	}
 
-	// Add resource via the resource system.
+	// Add the resource via the resource system.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		worldCtrlRef.Release()
@@ -167,7 +167,8 @@ func (s *TestbedResourceServer) MarkTestResult(ctx context.Context, req *s4wave_
 }
 
 // WaitForTestResult waits for the test to complete and returns the result.
-// This is useful for the Go test harness to wait for the TypeScript test to finish.
+// WaitForTestResult lets the Go test harness wait for the TypeScript test
+// to finish.
 func (s *TestbedResourceServer) WaitForTestResult(ctx context.Context) (success bool, errorMsg string, err error) {
 	// Wait until the server has received a completed test result.
 	err = s.testResult.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {

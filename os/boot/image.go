@@ -41,7 +41,7 @@ func imageCursor(ctx context.Context, le *logrus.Entry, store bucket.BucketOps, 
 	return bucket_lookup.NewCursor(ctx, nil, le, sfs, store, xfrm, head, &bucket.BucketOpArgs{BucketId: imageBucket}, conf), nil
 }
 
-// imageBlock returns the block that names image in the image store: the
+// imageBlock returns the block that records image in the image store: the
 // marshaled reference, with its root as the one child, so the named root that
 // holds it holds the image's whole graph.
 func imageBlock(image *bucket.ObjectRef) (*block.PutBatchEntry, error) {
@@ -59,7 +59,7 @@ func imageBlock(image *bucket.ObjectRef) (*block.PutBatchEntry, error) {
 
 // WriteImage writes an image's UnixFS tree through cs and returns the image:
 // the tree's root with cs's transform, which must be set. The tree holds
-// executable as /workload and the probe payload; busybox, when set, adds the
+// executable as /workload and the probe payload. busybox, when set, adds the
 // tool layout, and archive, when set, its regular files and directories.
 func WriteImage(ctx context.Context, cs *bucket_lookup.Cursor, executable, busybox, archive io.Reader) (*bucket.ObjectRef, error) {
 	// Refuse an untransformed image.
@@ -87,7 +87,7 @@ func WriteImage(ctx context.Context, cs *bucket_lookup.Cursor, executable, busyb
 	wr.SetFS(fs)
 	defer fs.Release()
 
-	// Write the layout through it and return the moved root.
+	// Write the layout through the writable view and return the moved root.
 	handle, err := unixfs.NewFSHandle(fs)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func buildImage(ctx context.Context, root *unixfs.FSHandle, executable, busybox,
 		return err
 	}
 
-	// Retained images add tools; the diskless probe keeps its two files.
+	// Retained images add tools. The diskless probe keeps its two files.
 	if busybox != nil {
 		if err := buildTools(ctx, root, busybox); err != nil {
 			return err
@@ -139,7 +139,7 @@ func ExportImage(ctx context.Context, le *logrus.Entry, dir string, src block.St
 	}
 	defer func() { retErr = errors.Join(retErr, vol.Close()) }()
 
-	// Copy the graph, then name it.
+	// Copy the graph, then select the built image.
 	copied, err := copyRevision(ctx, vol, src, image.GetRootRef())
 	if err != nil {
 		return copied, err
@@ -149,7 +149,7 @@ func ExportImage(ctx context.Context, le *logrus.Entry, dir string, src block.St
 
 // SeedRoot creates the image store in the absent directory dir and writes an
 // image into it under transform from the independent executable, a static
-// BusyBox and an optional application archive, then names it as the built
+// BusyBox and an optional application archive, then selects it as the built
 // image. A failure leaves the partial store for inspection, never a reset.
 func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, transform *block_transform.Config, executable, busybox, archive io.Reader) (retErr error) {
 	// Retained images always include explicit tools, never a partial probe image.
@@ -173,7 +173,7 @@ func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, transform *bloc
 		return errors.Join(errors.New("seed content"), err)
 	}
 
-	// Name it as the built image.
+	// Select the image as the built image.
 	built, err := imageBlock(image)
 	if err != nil {
 		return err
@@ -194,8 +194,8 @@ func createImageStore(ctx context.Context, le *logrus.Entry, dir string) (*volum
 	return volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: filepath.Join(dir, "image.s4wave")})
 }
 
-// publishBuiltImage stores built and names it as the built image, refusing a
-// store that already names one.
+// publishBuiltImage stores built and selects it as the built image, refusing a
+// store that already selects a built image.
 func publishBuiltImage(ctx context.Context, vol *volume_s4db.Volume, built *block.PutBatchEntry) error {
 	return vol.SetBucketRoots(ctx, imageBucket, []*block.PutBatchEntry{built}, []block.NamedRoot{{Name: builtImageRoot, Ref: built.Ref}})
 }

@@ -84,7 +84,7 @@ func (e *PackReader) prepareWritebackLocked(start, end int64) func() {
 
 // writeback verifies blocks and writes them to target in one batch.
 //
-// A block that fails verification is skipped; a later read of it rejects the
+// A block that fails verification is skipped. A later read of it rejects the
 // same bytes and drops them. A failed batch unmarks its blocks so a later
 // fetch covering them publishes them again.
 func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, blocks []writebackBlock) {

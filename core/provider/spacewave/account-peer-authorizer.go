@@ -13,7 +13,7 @@ import (
 
 // authorizeAccountSession admits a remote peer listed among the account's live
 // cloud sessions. Revoked sessions leave that list. The account state is
-// cached; the cloud's account_changed push refreshes it.
+// cached. The cloud's account_changed push refreshes the account state.
 func (a *ProviderAccount) authorizeAccountSession(ctx context.Context, remotePeer peer.ID) error {
 	// Read the account's session list.
 	state, err := a.GetAccountState(ctx)
@@ -36,7 +36,8 @@ func (a *ProviderAccount) authorizeAccountSession(ctx context.Context, remotePee
 func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func()) error {
 	var last []*api.AccountSessionInfo
 	for {
-		// Read the cached session list and the wait for its next change.
+		// Read the cached session list and the channel for its next
+		// change.
 		var sessions []*api.AccountSessionInfo
 		var waitCh <-chan struct{}
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -62,7 +63,7 @@ func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func
 }
 
 // authorizeSpaceMember admits to a listener's links a peer that a listed
-// Space names as a participant who reads its state. The link carries no
+// Space lists as a participant who reads its state. The link carries no
 // account authority: each request on it is checked against its object.
 func (a *ProviderAccount) authorizeSpaceMember(ctx context.Context, remotePeer peer.ID) error {
 	return sobject.AuthorizeListedParticipant(ctx, a.soListCtr.GetValue(), a.MountSharedObject, remotePeer)

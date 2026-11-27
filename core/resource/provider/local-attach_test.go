@@ -149,7 +149,8 @@ func TestAttachAccountRecoversSpaceAfterCatalogLoss(t *testing.T) {
 		t.Fatalf("drop Session catalog: %v", err)
 	}
 
-	// The replacement state.s4wave has no entries; the account volume remains.
+	// The replacement state.s4wave has no entries, but the account volume
+	// remains.
 	reopenedTB, reopened, emptyCatalog, releaseReopened := open()
 	defer releaseReopened()
 

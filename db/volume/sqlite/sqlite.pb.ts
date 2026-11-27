@@ -52,7 +52,7 @@ export interface Config {
   path?: string
   /**
    * Table is the table to store the data in.
-   * The table will be created on startup if not exists.
+   * The table will be created on startup if the table does not exist.
    */
   table?: string
   /**
@@ -60,7 +60,7 @@ export interface Config {
    */
   kvKeyOpts?: Config$1
   /**
-   * Verbose indicates we should log every operation.
+   * Verbose indicates the store should log every operation.
    */
   verbose?: boolean
   /**
@@ -73,15 +73,16 @@ export interface Config {
   storeConfig?: Config$3
   /**
    * NoGenerateKey indicates to skip generating a private key.
-   * This has no effect if a key already exists.
+   * NoGenerateKey has no effect if a key already exists.
    */
   noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
-   * storage if it generates one. This results in an ephemeral volume peer
-   * identity if there is no key present in the store already.
+   * storage if it generates one. Skipping the write results in
+   * an ephemeral volume peer identity if there is no key present in the
+   * store already.
    *
-   * Has no effect if the store has a peer private key.
+   * NoWriteKey has no effect if the store has a peer private key.
    */
   noWriteKey?: boolean
   /**
@@ -102,7 +103,8 @@ export interface Config {
   /**
    * PageSize sets the SQLite page_size pragma in bytes. Must be a power of
    * two between 512 and 65536. 0 leaves the SQLite default (4096). Only
-   * takes effect on a fresh database; ignored if the file already exists.
+   * takes effect on a fresh database. The setting is ignored if the file
+   * already exists.
    */
   pageSize?: number
 }

@@ -53,7 +53,8 @@ func TestSpaceIndexRepairPreservesConcurrentPluginInstallation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Only the requested field changes; the later installation stays accepted.
+	// Only the requested field changes, and the later installation stays
+	// accepted.
 	current.IndexPath = "files-1"
 	check := func() {
 		t.Helper()

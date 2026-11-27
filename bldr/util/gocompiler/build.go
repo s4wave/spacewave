@@ -41,7 +41,7 @@ func shouldRunWasmOpt(diagnostic bool) (bool, error) {
 	return GoWasmOptimizeEnabled()
 }
 
-// ExecBuildEntrypoint executes building an entrypoint main package.
+// ExecBuildEntrypoint builds an entrypoint main package.
 func ExecBuildEntrypoint(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -104,7 +104,7 @@ func ExecBuildEntrypoint(
 
 		// if release or not native platform drop debugging symbols.
 		// Diagnostic mode keeps the linker name section for CPU-profile
-		// symbolization; release/default output is unchanged.
+		// symbolization. Release/default output is unchanged.
 		if shouldDropWasmDebugSymbols(isRelease, isNativeBuildPlatform, isWasmOutput, goWasmDiagnostic) {
 			ldFlags = append(ldFlags, "-w", "-s")
 		}
@@ -239,8 +239,8 @@ func newTinyGoBuildArgs(
 		"-target", tinygoPlat,
 	}, tinygoArgs...)
 
-	// Browser staging investigations sometimes need TinyGo DWARF symbols;
-	// otherwise release and non-native builds drop debug info to keep wasm small.
+	// Browser staging investigations sometimes need TinyGo DWARF symbols.
+	// Otherwise release and non-native builds drop debug info to keep wasm small.
 	if !tinygoDebugInfo && (buildType.IsRelease() || buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP) {
 		args = append(args, "-no-debug")
 	}

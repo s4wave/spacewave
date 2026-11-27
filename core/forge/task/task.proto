@@ -7,7 +7,8 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 option go_package = "github.com/s4wave/spacewave/core/forge/task;forge_task_ops";
 
 // ForgeTaskCreateOp creates a Forge Task and optionally links it to a Job.
-// Wraps CreateTaskWithTarget + graph linking in a single world op.
+// The operation wraps CreateTaskWithTarget + graph linking in a single
+// world op.
 message ForgeTaskCreateOp {
   option (typeid.id) = "spacewave/forge/task/create";
 

@@ -225,7 +225,8 @@ export const FSClientInit: MessageType<FSClientInit> =
   )
 
 /**
- * GetCursorOpsRequest requests that we resolve the FSCursorOps for an FSCursor.
+ * GetCursorOpsRequest requests that the server resolve the FSCursorOps for an
+ * FSCursor.
  *
  * @generated from message unixfs.rpc.GetCursorOpsRequest
  */
@@ -554,7 +555,7 @@ export interface OpsReadAtRequest {
   offset?: bigint
   /**
    * Size is the size of data to read (buffer max size).
-   * This will automatically be capped by the hardcoded limit of 256e7 (256MB).
+   * Size will automatically be capped by the hardcoded limit of 256e7 (256MB).
    */
   size?: bigint
   /**
@@ -711,7 +712,7 @@ export interface OpsTruncateRequest {
    */
   opsHandleId?: bigint
   /**
-   * NewSize is the desired new size for the file.
+   * Nsize is the desired new size for the file.
    */
   nsize?: bigint
   /**
@@ -925,7 +926,7 @@ export const OpsMknodResponse: MessageType<OpsMknodResponse> =
   )
 
 /**
- * OpsMknodWithContentStart names the file and its complete size.
+ * OpsMknodWithContentStart declares the file and its complete size.
  *
  * @generated from message unixfs.rpc.OpsMknodWithContentStart
  */
@@ -947,7 +948,7 @@ export interface OpsMknodWithContentStart {
    */
   totalSize?: bigint
   /**
-   * Permissions is the new file's mode. Zero selects the default.
+   * Permissions is the new file's mode. Zero selects the default mode.
    */
   permissions?: number
   /**
@@ -1171,7 +1172,7 @@ export interface OpsCopyToRequest {
    */
   targetDirOpsHandleId?: bigint
   /**
-   * Target name of the inode for the copy operation.
+   * TargetName is the target name of the inode for the copy operation.
    */
   targetName?: string
   /**
@@ -1227,7 +1228,7 @@ export interface OpsCopyFromRequest {
    */
   opsHandleId?: bigint
   /**
-   * Name of the inode for the copy operation.
+   * Name is the name of the inode for the copy operation.
    */
   name?: string
   /**
@@ -1291,7 +1292,7 @@ export interface OpsMoveToRequest {
    */
   targetDirOpsHandleId?: bigint
   /**
-   * Target name of the inode for the move operation.
+   * TargetName is the target name of the inode for the move operation.
    */
   targetName?: string
   /**
@@ -1347,7 +1348,7 @@ export interface OpsMoveFromRequest {
    */
   opsHandleId?: bigint
   /**
-   * Name of the inode for the move operation.
+   * Name is the name of the inode for the move operation.
    */
   name?: string
   /**

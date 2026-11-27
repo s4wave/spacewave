@@ -66,9 +66,11 @@ message ChatMessageInfo {
   .spacewave.chat.ChatMessageContent content = 7;
   // PersonId is the accepted entity ID or local-only device ID.
   string person_id = 8;
-  // RedactedByKey is the redaction message that removed this body, empty while intact.
+  // RedactedByKey is the redaction message that removed this body, empty while
+  // the body is intact.
   string redacted_by_key = 9;
-  // ReplacesKey is the state message this state change replaced, empty for the first of its identity.
+  // ReplacesKey is the state message this state change replaced, empty for the
+  // first message of its identity.
   string replaces_key = 10;
   // Author is the agent or tool that sent the message for its person, empty
   // when the person sent it.
@@ -93,8 +95,9 @@ message GetChannelInfoResponse {
   .google.protobuf.Timestamp created_at = 4;
   // CreatorPeerId is the peer identity that created the channel.
   string creator_peer_id = 5;
-  // EncryptionAlgorithm reports the channel encryption policy. Empty allows plaintext;
-  // otherwise message bodies require this algorithm. State and annotations remain public.
+  // EncryptionAlgorithm reports the channel encryption policy. An empty value
+  // allows plaintext. Otherwise message bodies require this algorithm. State
+  // and annotations remain public.
   string encryption_algorithm = 6;
 }
 
@@ -116,8 +119,8 @@ message GetMessageRequest {
 
 // GetMessageResponse contains the selected channel message.
 message GetMessageResponse {
-  // Message is the selected message projection, unset when the key names no
-  // message.
+  // Message is the selected message projection, unset when the key identifies
+  // no message.
   ChatMessageInfo message = 1;
 }
 
@@ -177,7 +180,7 @@ message WatchMessagesRequest {
 
 // WatchMessagesResponse contains a batch of new messages.
 message WatchMessagesResponse {
-  // Messages is the list of new messages since last response.
+  // Messages is the list of new messages since the last response.
   repeated ChatMessageInfo messages = 1;
 }
 
@@ -188,22 +191,24 @@ message SendMessageRequest {
   // ReplyToKey is the optional key of the message to reply to.
   string reply_to_key = 2;
   // TransactionId identifies a retryable send within the authenticated sender
-  // and channel. By default, differing content is rejected; empty always appends.
+  // and channel. By default, differing content is rejected. An empty value
+  // always appends.
   string transaction_id = 3;
   // Content is the typed message content. When set, it is persisted as given
   // and the legacy text field is rejected if also supplied.
   .spacewave.chat.ChatMessageContent content = 4;
   // ExpectedStateMessageKey requires the current state event to have this key.
-  // An empty value requires absent state; omission makes the write unconditional.
-  // Only state changes accept this condition. Accepted transaction retries retain
-  // their original result even when current state has since changed.
+  // An empty value requires absent state. Omission makes the write
+  // unconditional. Only state changes accept this condition. Accepted
+  // transaction retries retain their original result even when current state
+  // has since changed.
   optional string expected_state_message_key = 5;
   // ReuseAcceptedTransaction returns the original message for a valid retry
   // even when its content or reply differs. The authenticated author must still
-  // match. It has no effect when TransactionId is empty.
+  // match. ReuseAcceptedTransaction has no effect when TransactionId is empty.
   bool reuse_accepted_transaction = 6;
-  // Author names the agent or tool sending for the authenticated person. It
-  // must be a DNS label or empty, and a retry must repeat it.
+  // Author identifies the agent or tool sending for the authenticated person.
+  // It must be a DNS label or empty, and a retry must repeat it.
   string author = 7;
   // Envelope stores a message another protocol originated. Its ID selects the
   // message key in place of TransactionId, so a repeated envelope returns the
@@ -214,7 +219,7 @@ message SendMessageRequest {
 // SendMessageResponse is the response after sending a message.
 message SendMessageResponse {
   // MessageKey is the object key of the created message. It is empty when
-  // expected_state_message_key no longer names the current state.
+  // expected_state_message_key no longer identifies the current state.
   string message_key = 1;
 }
 
@@ -222,8 +227,8 @@ message SendMessageResponse {
 message AttachEnvelopeRequest {
   // MessageKey identifies the message.
   string message_key = 1;
-  // Envelope is the message's wire form. Its ID must not name another message's
-  // envelope key.
+  // Envelope is the message's wire form. Its ID must not identify another
+  // message's envelope key.
   .spacewave.chat.ChatEnvelope envelope = 2;
 }
 
@@ -251,11 +256,12 @@ message UpdateReadPositionRequest {
   // NextIndex is the first unread index, bounded by the channel's message count.
   uint64 next_index = 1;
   // ThreadRootKey limits the position to one timeline when present: a thread
-  // root message key selects that thread, and the empty key the main timeline.
+  // root message key selects that thread, and the empty key selects the main
+  // timeline.
   optional string thread_root_key = 2;
-  // Author names the agent or tool reading for the authenticated person. It
-  // selects that author's own position, so an author never moves the person's.
-  // It must be a DNS label or empty.
+  // Author identifies the agent or tool reading for the authenticated person.
+  // It selects that author's own position, so an author never moves the
+  // person's position. It must be a DNS label or empty.
   string author = 3;
 }
 

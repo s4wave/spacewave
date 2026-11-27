@@ -18,10 +18,10 @@ import (
 	"github.com/s4wave/spacewave/db/packfile/writer"
 )
 
-// openExt names a pack being written or left unfinalized.
+// openExt is the extension for a pack being written or left unfinalized.
 const openExt = ".open"
 
-// packExt names a finalized pack.
+// packExt is the extension for a finalized pack.
 const packExt = ".pack"
 
 // indexEntryReserve bounds the kvfile index bytes one entry costs beyond its
@@ -71,7 +71,7 @@ type pack struct {
 	firstAt time.Time
 	// state is the pack's place in its life.
 	state packState
-	// id names a finalized pack.
+	// id identifies a finalized pack.
 	id string
 	// blocks is a finalized pack's value count.
 	blocks int
@@ -144,7 +144,7 @@ func (p *pack) indexReserve(n int, keyBytes int64) int64 {
 
 // finalized is what finalize made of a pack.
 type finalized struct {
-	// id names the pack.
+	// id identifies the pack.
 	id string
 	// path is the pack's finalized file name.
 	path string

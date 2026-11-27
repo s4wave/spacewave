@@ -13,8 +13,8 @@ enum StreamState {
 
 // Data is a data packet.
 message Data {
-  // State indicates stream state in-band.
   // Data is packet data from the remote.
+  // State indicates stream state in-band.
   bytes data = 1;
   // State indicates the stream state.
   StreamState state = 2;

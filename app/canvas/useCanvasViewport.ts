@@ -6,8 +6,8 @@ import { MIN_SCALE, MAX_SCALE } from './types.js'
 import gridPattern from '@s4wave/web/images/patterns/grid.png'
 
 // PAN_THROTTLE_MS is how often React state is flushed during pan-only
-// gestures. DOM transforms are applied immediately; this controls how
-// often culling (useVisibleNodes) and other React-dependent consumers
+// gestures. DOM transforms are applied immediately. PAN_THROTTLE_MS controls
+// how often culling (useVisibleNodes) and other React-dependent consumers
 // re-evaluate.
 const PAN_THROTTLE_MS = 150
 

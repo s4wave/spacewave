@@ -11,8 +11,8 @@ import (
 // Transaction. Manages interacting with block handles, the transaction cache,
 // the decoder and marshaller, and the transformers.
 type Cursor struct {
-	// t is the transaction
-	// if nil: cursor is ephemeral (no associated block graph)
+	// t is the transaction.
+	// if nil: cursor is ephemeral (no associated block graph).
 	t *Transaction
 	// store is the block store to read from
 	// if nil, use the store from transaction.
@@ -267,7 +267,7 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 // Adds c to the list of parents for cursor.
 // The cursors must be from the same transaction.
 // A clean stored block moved under c keeps its ref and is not encoded again.
-// Note: this should only be used if refID and cursor are not sub-blocks.
+// Note: SetRef should only be used if refID and cursor are not sub-blocks.
 func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 	// Clear the reference for a nil target and ignore invalid targets.
 	if c == nil {
@@ -305,7 +305,7 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 		return
 	}
 
-	// A clean stored block keeps its ref; only its new parents change.
+	// A clean stored block keeps its ref, and only its new parents change.
 	unchanged := !cursor.pos.dirty || cursor.pos.moved
 	moved := !wasSubBlock && unchanged && !cursor.pos.ref.GetEmpty()
 	cursor.markDirty()
@@ -314,7 +314,7 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 
 // MarkDirty marks the cursor location dirty, so that it will be re-written.
 //
-// Note: if cursor is ephemeral (no transaction) this is no-op.
+// Note: if cursor is ephemeral (no transaction) MarkDirty is a no-op.
 func (c *Cursor) MarkDirty() {
 	if c == nil || c.t == nil {
 		return
@@ -344,7 +344,7 @@ func (c *Cursor) FollowRef(
 	return c.followRef(refID, blkRef)
 }
 
-// followRef implements followRef assuming the mutex is locked
+// followRef implements followRef assuming the mutex is locked.
 func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
 	// Ignore a missing cursor when following a block reference.
 	if c == nil {
@@ -374,10 +374,11 @@ func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
 // Once FollowSubBlock has been called, the field will be overwritten if dirty.
 // If ClearRef is called on the parent then this relation is removed.
 //
-// Note: there may already be a reference with the same ID, which would be returned.
+// Note: there may already be a reference with the same ID, which would be
+// returned.
 // The cursor must have the block decoded or set with SetBlock.
 // The cursor block blk must be a BlockWithSubBlocks.
-// If these conditions are not met, returns nil
+// If these conditions are not met, returns nil.
 func (c *Cursor) FollowSubBlock(refID uint32) *Cursor {
 	if c == nil {
 		return nil
@@ -427,8 +428,8 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		return nil
 	}
 
-	// A writer may change the sub-block in place, so it gets a private copy
-	// of a sub-block inside a shared block.
+	// A writer may change the sub-block in place, so the writer gets a
+	// private copy of a sub-block inside a shared block.
 	shared := c.pos.shared
 	if shared && (c.t == nil || !c.t.readOnly.Load()) {
 		cloned, err := CloneBlock(sbBlk)
@@ -493,7 +494,7 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 		return ErrNotSubBlock
 	}
 
-	// check if we need to clear the old ref
+	// Check if the parent needs to clear the old ref.
 	prevRef := parent.pos.refHandles[refID]
 	if prevRef != nil {
 		if c.pos == prevRef.target && c.pos.isSubBlock {
@@ -516,7 +517,7 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 		return err
 	}
 
-	// we changed the parent, so mark it dirty
+	// Mark the changed parent dirty.
 	parent.markDirty()
 	return nil
 }
@@ -539,7 +540,7 @@ func (c *Cursor) ClearRef(refID uint32) {
 }
 
 // clearRef clears a reference removing the parent edge if necessary.
-// expects caller to lock c.t.mtx
+// expects caller to lock c.t.mtx.
 func (c *Cursor) clearRef(refID uint32) {
 	// Find the traversed reference to detach from the cursor.
 	if c.pos.refHandles == nil {
@@ -853,8 +854,8 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 
 		// Cache the decoded block of verified stored bytes. Only bytes a
-		// durable store served enter the pool shared across transactions;
-		// any other bytes may never be published, so they stay in this read
+		// durable store served enter the pool shared across transactions.
+		// Any other bytes may never be published, so they stay in this read
 		// operation's front cache.
 		switch {
 		case !cacheable:
@@ -919,7 +920,8 @@ func (c *Cursor) setUnmarshaledBlock(b Block, shared bool) (Block, error) {
 		c.t.mtx.Lock()
 	}
 	if c.pos.blk != nil {
-		// fixes race condition of two Unmarshal calls happen simultaneously.
+		// Retain the existing block when two Unmarshal calls run
+		// simultaneously.
 		b, err = CastToBlock(c.pos.blk)
 	} else {
 		c.pos.blk, c.pos.shared = b, shared
@@ -941,7 +943,7 @@ func (c *Cursor) GetRef() *BlockRef {
 
 // unloadedRef returns the stored ref a read of the position would fetch, or
 // nil when the position holds its decoded block, is a sub-block, has a change
-// of its own, or names no block.
+// of its own, or references no block.
 func (c *Cursor) unloadedRef() *BlockRef {
 	if c.t != nil {
 		c.t.mtx.Lock()
@@ -977,8 +979,8 @@ func (c *Cursor) GetExistingRef(refID uint32) *Cursor {
 
 // SetPreWriteHook sets a hook for final transforms to the block.
 //
-// Note: this should not call any cursor functions that will be locked during
-// the Write process.
+// Note: the hook should not call any cursor functions that will be locked
+// during the Write process.
 //
 // Also valid for sub-blocks.
 func (c *Cursor) SetPreWriteHook(h func(b any) error) {
@@ -989,7 +991,7 @@ func (c *Cursor) SetPreWriteHook(h func(b any) error) {
 
 // SetBlock sets a block at the location, and marks the block as dirty.
 // If the location is a Block, b should implement Block interface.
-// If it is a SubBlock, b should implement the SubBlock interface.
+// If the location is a SubBlock, b should implement the SubBlock interface.
 // If dirty is set, sets the block as dirty.
 //
 // Clears BlockPreWrite.
@@ -1131,7 +1133,7 @@ func (c *Cursor) markDirty() {
 }
 
 // addParent adds the given cursor as a parent of the location.
-// assumes c.t.mtx is locked
+// assumes c.t.mtx is locked.
 func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 	// Require distinct parent and child positions before linking them.
 	if parent == nil || parent.pos == nil || c == nil || c.pos == nil {
@@ -1172,7 +1174,7 @@ func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 // removeParent removes the given cursor location as a parent.
 // if parent == nil, removes all parents
 //
-// returns the old removed refhandles
+// returns the old removed refhandles.
 func (c *Cursor) removeParent(parent *Cursor) []*refHandle {
 	// Require a cursor position before removing parent edges.
 	if c == nil || c.pos == nil {
@@ -1199,7 +1201,7 @@ func (c *Cursor) removeParent(parent *Cursor) []*refHandle {
 }
 
 // clearRefHandles clears all ref handles.
-// expects tx mtx to be locked
+// expects tx mtx to be locked.
 func (c *Cursor) clearRefHandles() {
 	if c.pos.refHandles == nil {
 		return
@@ -1214,7 +1216,7 @@ func (c *Cursor) clearRefHandles() {
 }
 
 // copyToRecursive detaches and/or copies to a new tx.
-// caller must lock mtxs as needed
+// caller must lock mtxs as needed.
 func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) {
 	// clone cursors down the tree
 	remap := make(map[*handle]*handle, len(c.pos.refHandles)+1)
@@ -1250,9 +1252,9 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 			}
 			rstk.refHandles[nrh.id] = nrh
 
-			// Sub-blocks are not updated here. A read-only transaction never
-			// writes, so it skips the update; a writer copies a shared block
-			// before changing it.
+			// Sub-blocks are not updated here. A read-only transaction
+			// never writes, so it skips the update. A writer copies a
+			// shared block before changing it.
 			if !nextPos.isSubBlock && (targetCs.t == nil || !targetCs.t.readOnly.Load()) && rstk.ownBlock() == nil {
 				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
 					// note: ignoring error here

@@ -54,7 +54,7 @@ class ItemsStore {
 
   getOverlayHost = () => this.overlayHost
 
-  // overlayHostRef names el as the overlay host until React detaches it. A
+  // overlayHostRef sets el as the overlay host until React detaches it. A
   // detach only clears the host it set, so a replacing frame keeps its own.
   overlayHostRef = (el: HTMLElement | null) => {
     this.setOverlayHost(el)

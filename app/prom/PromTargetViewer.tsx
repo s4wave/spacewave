@@ -50,8 +50,9 @@ export function PromTargetViewer({
   )
   const contextContents = SpaceContentsContext.useContext()
 
-  // Past its reconnect backoff the watch fails; the target it last served
-  // stays drawn under the failure and through the reload after it.
+  // Past its reconnect backoff the watch fails. The target the watch last
+  // served stays drawn under the failure and through the reload after the
+  // failure.
   const value = handle.value
   const held = useHeldTypedHandle(handle, objectKey)
   if (held) {
@@ -123,8 +124,8 @@ function reduceApproval(_: Approval, ev: ApprovalEvent): Approval {
 }
 
 // TargetBody follows the target's info and this Device's binding. Unless
-// live, query is the last handle the watch served, which failed with lost
-// or reloads: the targets watch stays failed over its last record, its
+// live, query is the last handle the watch served. The watch failed with
+// lost or reloads: the targets watch stays failed over its last record, its
 // Retry watches the handle, and the chart runs no query.
 function TargetBody({
   objectKey,
@@ -181,7 +182,7 @@ function TargetBody({
     contentsState.value?.processBindings?.find((b) => b.objectKey === objectKey)
       ?.approved ?? false
 
-  // Derive the state now; the clock moves a silent target to stale. Past
+  // Derive the state now. The clock moves a silent target to stale. Past
   // its reconnect backoff the targets watch fails and keeps its last record,
   // drawn under the failure.
   const targetsValue = resourceContent(targets)

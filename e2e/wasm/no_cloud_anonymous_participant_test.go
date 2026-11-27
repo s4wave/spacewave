@@ -15,7 +15,7 @@ import (
 // TestNoCloudAnonymousParticipantSync covers Phase 15.6 of the account-
 // lifecycle scope: an anonymous P2P-only participant added via direct
 // pairing receives SharedObject state without a cloud relay. Both peers
-// run on local providers (no spacewave provider, no cloud account); the
+// run on local providers (no spacewave provider, no cloud account). The
 // only transport between them is the WebRTC link established by the no-
 // cloud pair-code flow exercised in TestNoCloudPairingDirect.
 //

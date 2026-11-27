@@ -9,7 +9,7 @@ import (
 )
 
 func TestResolveBldrDependencyUsesExplicitSpacewaveRepoRoot(t *testing.T) {
-	// Write a go.mod that names the Spacewave module.
+	// Write a go.mod that declares the Spacewave module.
 	repoRoot := t.TempDir()
 	if err := os.WriteFile(
 		filepath.Join(repoRoot, "go.mod"),

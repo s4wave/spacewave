@@ -89,11 +89,12 @@ func newRPCTestBus(t *testing.T, le *logrus.Entry) bus.Bus {
 }
 
 // serveTestSpaceWorld answers SpaceWorld lookups on b with an invoker that
-// names busName in its error.
+// records busName in its error.
 func serveTestSpaceWorld(t *testing.T, b bus.Bus, busName string) {
 	t.Helper()
 
-	// Name the bus in every call so a lookup shows whose service it found.
+	// Record the bus in every call so a lookup shows which bus served the
+	// call.
 	invoker := srpc.InvokerFunc(func(string, string, srpc.Stream) (bool, error) {
 		return true, &servedOnError{bus: busName}
 	})
@@ -109,7 +110,7 @@ func serveTestSpaceWorld(t *testing.T, b bus.Bus, busName string) {
 	addTestController(t, b, ctrl)
 }
 
-// servedOnError names the bus whose test service answered a call.
+// servedOnError records the bus whose test service answered a call.
 type servedOnError struct {
 	bus string
 }

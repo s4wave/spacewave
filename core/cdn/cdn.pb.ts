@@ -11,14 +11,15 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * CdnRootPointer is the top-level CDN artifact for a public_read Space.
  * Its writer serves it at {pointer base}/{spaceId}/root.packedmsg as a
  * packedmsg-encoded blob (see repos/bldr/util/packedmsg) after every commit.
- * The pointer base is the CDN base unless the reader is given another, as
- * cdn_bstore.RootPointerBaseURL picks. The pointer changes on every commit and
- * is served with no-cache and a strong ETag; the packs it lists never change
- * and stay on the CDN host, cached for a year. Spacewave's Worker writes
- * cdn.spacewave.app; a self-hosted writer serves the pointer from its own host
- * with core/cdn/rootserve. Anonymous clients fetch and decode this blob to
- * discover the current signed checkpoint and the set of packs they need to
- * reconstruct Space state; no writer round-trip is required for the packs.
+ * The pointer base is the CDN base unless the reader is given another base
+ * URL, as cdn_bstore.RootPointerBaseURL picks. The pointer changes on every
+ * commit and is served with no-cache and a strong ETag. The packs it lists
+ * never change and stay on the CDN host, cached for a year. Spacewave's
+ * Worker writes cdn.spacewave.app. A self-hosted writer serves the pointer
+ * from its own host with core/cdn/rootserve. Anonymous clients fetch and
+ * decode this blob to discover the current signed checkpoint and the set of
+ * packs they need to reconstruct Space state. No writer round-trip is
+ * required for the packs.
  *
  * @generated from message cdn.CdnRootPointer
  */
@@ -41,7 +42,7 @@ export interface CdnRootPointer {
    */
   configChainSeqno?: bigint
   /**
-   * Packs is the list of packfile entries currently published to the CDN for
+   * Packs is the list of packfile entries published to the CDN for
    * this Space. Each pack lives at
    * cdn.spacewave.app/{spaceId}/packs/{shard}/{id}.kvf. Bloom filters are
    * included so clients can skip packs that don't contain blocks they need.
@@ -49,7 +50,8 @@ export interface CdnRootPointer {
   packs?: PackfileEntry[]
   /**
    * CreatedAtMs is when this root pointer was regenerated, expressed as unix
-   * epoch milliseconds. Informational only; does not affect verification.
+   * epoch milliseconds. The timestamp is informational only and does not
+   * affect verification.
    */
   createdAtMs?: bigint
 }
@@ -71,7 +73,7 @@ export const CdnRootPointer: MessageType<CdnRootPointer> =
  * CdnSpaceGrant lets its holder read one private CDN Space straight from the
  * bucket, and when may_write is set publish to it, until expires_at_ms. The
  * server issues it and never relays pack bytes. The authorization covers only
- * the Space's prefix, so a grant for one Space reads no other.
+ * the Space's prefix, so a grant for one Space reads no other Space.
  *
  * @generated from message cdn.CdnSpaceGrant
  */

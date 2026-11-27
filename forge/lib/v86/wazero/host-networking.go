@@ -19,7 +19,8 @@ var defaultGuestMAC = [6]byte{0x02, 0x22, 0x15, 0x00, 0x00, 0x01}
 // guest/gateway/DNS addresses, dialer, and resolver with their defaults, and a
 // zero GuestMAC becomes defaultGuestMAC.
 type NetworkConfig struct {
-	// GuestMAC is the NE2000 hardware address; zero selects defaultGuestMAC.
+	// GuestMAC is the NE2000 hardware address. A zero value selects
+	// defaultGuestMAC.
 	GuestMAC [6]byte
 	// GuestIP is the IPv4 address leased to the guest over DHCP.
 	GuestIP netip.Addr
@@ -29,11 +30,12 @@ type NetworkConfig struct {
 	Netmask netip.Addr
 	// DNSServer is the DHCP-advertised resolver address proxied by the stack.
 	DNSServer netip.Addr
-	// Dialer opens host TCP and UDP sockets; nil uses a default net.Dialer.
+	// Dialer opens host TCP and UDP sockets. nil uses a default net.Dialer.
 	Dialer usernet.ContextDialer
-	// Resolver answers DNS proxy questions; nil uses net.DefaultResolver.
+	// Resolver answers DNS proxy questions. nil uses net.DefaultResolver.
 	Resolver *net.Resolver
-	// Logger receives host-socket error logs; nil is replaced inside the stack.
+	// Logger receives host-socket error logs. nil is replaced inside the
+	// stack.
 	Logger *logrus.Entry
 }
 

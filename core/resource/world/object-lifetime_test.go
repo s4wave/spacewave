@@ -36,7 +36,7 @@ func TestObjectResourceRetiresUnderlyingHandle(t *testing.T) {
 		for _, stage := range []string{"retirement", "acquisition error", "registration error"} {
 			t.Run(name+"/"+stage, func(t *testing.T) {
 
-				// background ctx via context.
+				// Get ctx via context.Background.
 				ctx := context.Background()
 				obj := &rpcLifetimeObject{}
 				ws := &rpcLifetimeWorld{obj: obj}

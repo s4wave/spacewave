@@ -242,7 +242,8 @@ func (s *Scanner) children(ctx context.Context, node *Node, value any, tree stri
 		return out, nil
 	}
 
-	// Tree values retain the exact object key; graph values are byte leaves.
+	// Tree values retain the exact object key. Graph values are byte
+	// leaves.
 	if n, ok := value.(*iavl.Node); ok {
 		suffix := ""
 		if tree != "" {

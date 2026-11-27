@@ -18,7 +18,7 @@ const (
 	StatusVerifyingEmoji
 	// StatusVerified means the emoji were approved on this client.
 	StatusVerified
-	// StatusFailed means the operation failed; ErrMsg describes why.
+	// StatusFailed means the operation failed. ErrMsg describes why.
 	StatusFailed
 	// StatusSignalingFailed means the pairing relay could not connect the clients.
 	StatusSignalingFailed
@@ -57,10 +57,10 @@ type Snapshot struct {
 	// ProviderID is the provider that holds the selected account.
 	ProviderID string
 	// RemoteLabel is the name the other client gave itself, shown on the
-	// approval screen and recorded for the Session it enrolls.
+	// approval screen and recorded for the enrolled Session.
 	RemoteLabel string
 	// SessionPeerID is the receiving Session the approval enrolls. It differs
-	// from RemotePeerID, which names the pairing link.
+	// from RemotePeerID, which identifies the pairing link.
 	SessionPeerID string
 	// Receiving indicates this client is adding the selected account.
 	Receiving bool

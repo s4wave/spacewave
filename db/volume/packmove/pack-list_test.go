@@ -120,7 +120,7 @@ func TestPackListFill(t *testing.T) {
 		}
 	}
 
-	// Pack the list in small packs; the first run dies after one upload.
+	// Pack the list in small packs. The first run dies after one upload.
 	packList := func(packer packmove.BlockPacker) (packmove.PackProgress, error) {
 		db, err := s4db.Open(src, s4db.Options{ReadOnly: true})
 		if err != nil {

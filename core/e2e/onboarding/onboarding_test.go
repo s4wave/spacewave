@@ -307,7 +307,7 @@ func (e *testEnv) close() {
 
 // startCoordinator builds the coordinator from cloudDir and serves it on a
 // free port with an in-memory database and the /api/test helpers. Email is
-// logged rather than sent; tests read its tokens with emailToken.
+// logged rather than sent. Tests read the email tokens with emailToken.
 func (e *testEnv) startCoordinator(cloudDir string) error {
 	// Allocate this run's directory and build the coordinator into it.
 	tempDir, err := os.MkdirTemp("", "onboarding-e2e-*")
@@ -603,7 +603,7 @@ func TestQuickstartLocal(t *testing.T) {
 	entry, accountID := createLocalSession(ctx, t, cloudAcctID)
 	t.Logf("local session created: idx=%d account=%s", entry.GetSessionIndex(), accountID)
 
-	// Verify session in list.
+	// Verify the session appears in the list.
 	sessCtrl, relSess, err := lookupSessionController(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -633,18 +633,18 @@ func TestUpgradeToCloud(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session first to get the account ID.
+	// Create a cloud session first to get the account ID.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
 	cloudSessionID := cloudRef.GetId()
 	t.Logf("cloud session: idx=%d account=%s", cloudEntry.GetSessionIndex(), cloudAccountID)
 
-	// Create and register local session keyed to cloud account.
+	// Create and register a local session keyed to the cloud account.
 	localEntry, _ := createLocalSession(ctx, t, cloudAccountID)
 	t.Logf("local session: idx=%d", localEntry.GetSessionIndex())
 
-	// Access the spacewave provider account to set linked local.
+	// Access the spacewave provider account to set the linked local session.
 	prov, provRef, err := provider.ExLookupProvider(ctx, b, "spacewave", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -663,7 +663,7 @@ func TestUpgradeToCloud(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify linked state.
+	// Verify the linked state.
 	found, linkedIdx, err := swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
@@ -762,7 +762,7 @@ func TestQuickstartUpgradeFullFlow(t *testing.T) {
 		t.Fatal("linked local session should be distinct from cloud session")
 	}
 
-	// Check that the cloud Session names the new local destination.
+	// Check that the cloud Session records the new local destination.
 	found, linkedIdx, err := swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
@@ -859,14 +859,14 @@ func TestDeleteAndResignup(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session.
+	// Create a cloud session.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
 	cloudSessionID := cloudRef.GetId()
 	t.Logf("cloud session created: idx=%d account=%s", cloudEntry.GetSessionIndex(), cloudAccountID)
 
-	// Create and link local.
+	// Create and link a local session.
 	localEntry, _ := createLocalSession(ctx, t, cloudAccountID)
 
 	// Resolve the provider through the testbed bus.
@@ -888,7 +888,7 @@ func TestDeleteAndResignup(t *testing.T) {
 	}
 	relAcc()
 
-	// Verify linked before delete.
+	// Verify the local session is linked before deleting the cloud session.
 	accIface2, relAcc2, err := swProv.AccessProviderAccount(ctx, cloudAccountID, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -903,7 +903,7 @@ func TestDeleteAndResignup(t *testing.T) {
 	}
 	relAcc2()
 
-	// Delete cloud session.
+	// Delete the cloud session.
 	sessCtrl, relSess, err := lookupSessionController(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -914,14 +914,14 @@ func TestDeleteAndResignup(t *testing.T) {
 	}
 	t.Log("cloud session deleted")
 
-	// Re-create cloud session (new account to simulate fresh signup).
+	// Re-create a cloud session (a new account to simulate fresh signup).
 	newCloudEntry := createCloudSession(ctx, t)
 	newCloudRef := newCloudEntry.GetSessionRef().GetProviderResourceRef()
 	newCloudAccountID := newCloudRef.GetProviderAccountId()
 	newCloudSessionID := newCloudRef.GetId()
 	t.Logf("new cloud session: idx=%d account=%s", newCloudEntry.GetSessionIndex(), newCloudAccountID)
 
-	// Verify no stale linked local on new account.
+	// Verify the new account has no stale linked local session.
 	accIface3, relAcc3, err := swProv.AccessProviderAccount(ctx, newCloudAccountID, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -946,7 +946,7 @@ func TestCloudSpaceLifecycle(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session.
+	// Create a cloud session.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
@@ -954,7 +954,7 @@ func TestCloudSpaceLifecycle(t *testing.T) {
 	// Subscribe the account so it can create cloud resources.
 	subscribeCloudAccount(ctx, t, cloudAccountID)
 
-	// Access provider account for SessionClient.
+	// Access the provider account for SessionClient.
 	prov, provRef, err := provider.ExLookupProvider(ctx, b, "spacewave", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -974,14 +974,14 @@ func TestCloudSpaceLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create SharedObject on cloud.
+	// Create a SharedObject on the cloud.
 	soID := ulid.NewULID()
 	if err := cli.CreateSharedObject(ctx, soID, "Test Space", "space", "", "", false); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("created SharedObject on cloud: %s", soID)
 
-	// List SharedObjects and verify it appears.
+	// List SharedObjects and verify the new SharedObject appears.
 	listData, err := cli.ListSharedObjects(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -999,7 +999,7 @@ func TestCloudSpaceLifecycle(t *testing.T) {
 		provider_spacewave.SeedReasonReconnect,
 	)
 	if err != nil {
-		// New SO may not have state yet; that's OK.
+		// A new SO may not have state yet. That absence is OK.
 		t.Logf("GetSOState (expected for new SO): %v", err)
 	} else {
 		t.Logf("SO state: %d bytes", len(stateData))
@@ -1105,7 +1105,7 @@ func TestUnlinkLocalSession(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud + local and link them.
+	// Create cloud + local sessions and link them.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
@@ -1128,12 +1128,12 @@ func TestUnlinkLocalSession(t *testing.T) {
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
 
-	// Link.
+	// Link the local session to the cloud session.
 	if err := swAcc.SetLinkedLocalSession(ctx, cloudSessionID, localEntry.GetSessionIndex()); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify linked.
+	// Verify the local session is linked.
 	found, _, err := swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
@@ -1143,12 +1143,12 @@ func TestUnlinkLocalSession(t *testing.T) {
 	}
 	t.Log("linked local to cloud")
 
-	// Unlink (the "keep separate" path).
+	// Unlink the local session (the "keep separate" path).
 	if err := swAcc.DeleteLinkedLocalSession(ctx, cloudSessionID); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify unlinked.
+	// Verify the local session is unlinked.
 	found, _, err = swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
@@ -1173,18 +1173,18 @@ func TestMultipleSessionListing(t *testing.T) {
 	}
 	t.Cleanup(relSess)
 
-	// Record session count before.
+	// Record the session count before creating sessions.
 	before, err := sessCtrl.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	countBefore := len(before)
 
-	// Create cloud session.
+	// Create a cloud session.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudAccountID := cloudEntry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
-	// Create local session.
+	// Create a local session.
 	localEntry, _ := createLocalSession(ctx, t, cloudAccountID)
 
 	// List sessions again.
@@ -1193,7 +1193,7 @@ func TestMultipleSessionListing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// We created 2 sessions (cloud + local).
+	// The test created 2 sessions (cloud + local).
 	newCount := len(after) - countBefore
 	if newCount < 2 {
 		t.Fatalf("expected at least 2 new sessions, got %d (before=%d after=%d)",
@@ -1248,7 +1248,7 @@ func TestOrganizationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create organization.
+	// Create an organization.
 	orgName := "Test Org " + ulid.NewULID()
 	createResp, err := cli.CreateOrganization(ctx, orgName)
 	if err != nil {
@@ -1276,7 +1276,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session and access account.
+	// Create a cloud session and access the account.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
@@ -1353,7 +1353,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	t.Logf("packed %d blocks, %d bytes, bloom %d bytes",
 		result.BlockCount, result.BytesWritten, len(result.BloomFilter))
 
-	// Push packfile to cloud.
+	// Push the packfile to the cloud.
 	packID, err := identity.BuildPackID(bstoreID, result)
 	if err != nil {
 		t.Fatal(err)
@@ -1363,7 +1363,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	}
 	t.Logf("pushed pack %s", packID)
 
-	// Pull manifest and verify the pack appears.
+	// Pull the manifest and verify the pack appears.
 	pullResp, err := cli.SyncPull(ctx, bstoreID, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -1399,7 +1399,7 @@ func TestPasskeyRegistrationAndAuth(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session.
+	// Create a cloud session.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
@@ -1424,7 +1424,7 @@ func TestPasskeyRegistrationAndAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create virtual authenticator.
+	// Create a virtual authenticator.
 	va, err := newVirtualAuthenticator()
 	if err != nil {
 		t.Fatal(err)
@@ -1437,13 +1437,13 @@ func TestPasskeyRegistrationAndAuth(t *testing.T) {
 	}
 	t.Logf("register options: %d chars", len(optionsJSON))
 
-	// Extract challenge from options JSON.
+	// Extract the challenge from the options JSON.
 	challenge := extractJSONField(optionsJSON, "challenge")
 	if challenge == "" {
 		t.Fatal("no challenge in registration options")
 	}
 
-	// Step 2: Create registration credential.
+	// Step 2: Create a registration credential.
 	credJSON := va.createRegistrationResponse(challenge)
 
 	// Generate a fake entity keypair for the passkey binding.
@@ -1483,7 +1483,7 @@ func TestPasskeyRegistrationAndAuth(t *testing.T) {
 		t.Fatal("no challenge in auth options")
 	}
 
-	// Step 5: Create authentication assertion.
+	// Step 5: Create an authentication assertion.
 	authCredJSON := va.createAuthenticationResponse(authChallenge)
 
 	// Step 6: Verify authentication with the cloud.
@@ -1553,7 +1553,7 @@ func TestAccountRecovery(t *testing.T) {
 	t.Cleanup(cancel)
 	b := env.tb.Bus
 
-	// Create cloud session with entity key access.
+	// Create a cloud session with entity key access.
 	cloudEntry, entityPrivKey, entityPeerID := createCloudSessionWithKey(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
@@ -1593,7 +1593,7 @@ func TestAccountRecovery(t *testing.T) {
 	// Step 3: Read the token the recovery email carries.
 	recoveryToken, _ := emailToken(ctx, t, cloudAccountID, "recovery")
 
-	// Step 4: Verify recovery token.
+	// Step 4: Verify the recovery token.
 	verifyResult, err := provider_spacewave.RecoverVerify(ctx, httpClient, env.cloudURL, recoveryToken)
 	if err != nil {
 		t.Fatalf("recover verify: %v", err)
@@ -1722,7 +1722,7 @@ func TestFailsafeLogin(t *testing.T) {
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
 
-	// Set verified email on the account via test helper.
+	// Set a verified email on the account via the test helper.
 	testEmail := "failsafe-" + ulid.NewULID() + "@example.com"
 	setTestEmailVerified(t, ctx, cloudAccountID, testEmail)
 	t.Logf("set email %s on account %s", testEmail, cloudAccountID)

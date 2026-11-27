@@ -26,7 +26,7 @@ func TestMaintenance(t *testing.T) {
 			refs := putBlocks(t, s, "first block", "other block")
 			checkStats(t, s, 2, 22)
 
-			// Remove the first from a reopened store writing segment 2.
+			// Remove the first block from a reopened store writing segment 2.
 			s = reopen(t, e, d, s)
 			if err := s.RmBlock(ctx, refs[0]); err != nil {
 				t.Fatal(err)
@@ -60,7 +60,7 @@ func TestMaintenance(t *testing.T) {
 func TestMaintenanceRemoved(t *testing.T) {
 	for _, e := range engines {
 		t.Run(e.name, func(t *testing.T) {
-			// Store two blocks and remove the first after a reopen.
+			// Store two blocks and remove the first block after a reopen.
 			ctx := t.Context()
 			d := &hookDevice{Device: device.NewMemory()}
 			s := reopen(t, e, d, nil)
@@ -73,8 +73,8 @@ func TestMaintenanceRemoved(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Remove the second while maintenance reads it for the move. The
-			// move publishes only the blocks still in place.
+			// Remove the second block while maintenance reads it for the move.
+			// The move publishes only the blocks still in place.
 			onRead := func() {
 				if err := s.RmBlock(ctx, refs[1]); err != nil {
 					t.Error(err)

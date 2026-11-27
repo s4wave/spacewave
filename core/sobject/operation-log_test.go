@@ -12,7 +12,7 @@ import (
 
 // TestSOOperationSetOrder checks that the replay order is a function of the
 // set: parents come first, concurrent operations sort by hash, and an
-// operation naming one the set lacks waits with its descendants. Ancestors
+// operation referencing one the set lacks waits with its descendants. Ancestors
 // follows both links within the set.
 func TestSOOperationSetOrder(t *testing.T) {
 	// Derive one key per author.

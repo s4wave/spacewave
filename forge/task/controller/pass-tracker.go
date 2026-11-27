@@ -14,13 +14,13 @@ import (
 
 // passTracker tracks the latest Pass of the Task.
 type passTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// objKey is the object key
+	// objKey is the object key.
 	objKey string
-	// objLoop tracks the object changes
+	// objLoop tracks the object changes.
 	objLoop *world_control.WatchLoop
-	// prevState is the previous pass state
+	// prevState is the previous pass state.
 	prevState *forge_pass.Pass
 }
 
@@ -97,7 +97,7 @@ func (t *passTracker) processState(
 	}
 
 	// submit a transaction to update the Task with any changes to the Pass
-	// this only can be submitted while the Task is RUNNING
+	// the transaction only can be submitted while the Task is RUNNING
 	if err := t.c.updateWithPassState(ctx); err != nil {
 		return true, err
 	}

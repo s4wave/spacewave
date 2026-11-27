@@ -30,7 +30,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ResolvedProjectID returns ProjectId or the default.
+// ResolvedProjectID returns ProjectId or the default project id.
 func (c *Config) ResolvedProjectID() string {
 	if id := c.GetProjectId(); id != "" {
 		return id
@@ -48,7 +48,7 @@ var defaultWatchPluginIDs = []string{
 	"web",
 }
 
-// ResolvedWatchPluginIDs returns WatchPluginIds or the default set.
+// ResolvedWatchPluginIDs returns WatchPluginIds or the default plugin set.
 func (c *Config) ResolvedWatchPluginIDs() []string {
 	if ids := c.GetWatchPluginIds(); len(ids) != 0 {
 		out := make([]string, len(ids))

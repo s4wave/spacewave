@@ -213,8 +213,8 @@ export class Session extends Resource {
   }
 
   // setStorageBackendPricing overrides the price list storage reclaim uses
-  // for a backend. No pricing returns it to the published prices of the
-  // endpoint's service.
+  // for a backend. No pricing returns the backend to the published prices of
+  // the endpoint's service.
   public async setStorageBackendPricing(
     storageBackendId: string,
     pricing?: Pricing,
@@ -395,8 +395,8 @@ export class Session extends Resource {
   }
 
   // deleteAccount deletes the account associated with this session.
-  // Cleans ObjectStore keys, removes GC edges, runs volume GC, and
-  // removes the session from the list.
+  // deleteAccount cleans ObjectStore keys, removes GC edges, runs volume GC,
+  // and removes the session from the list.
   public async deleteAccount(
     sessionIdx: number,
     abortSignal?: AbortSignal,
@@ -483,7 +483,8 @@ export class Session extends Resource {
   }
 
   // createSpaceInvite creates an invite for a space shared object.
-  // Returns the full response including the invite message and optional short code.
+  // createSpaceInvite returns the full response including the invite message
+  // and optional short code.
   public async createSpaceInvite(
     request: CreateSpaceInviteRequest,
     abortSignal?: AbortSignal,
@@ -556,8 +557,8 @@ export class Session extends Resource {
   }
 
   // leaveSpace relinquishes the session account's grants on a space. When the
-  // account owns the space and others remain, successorPeerId names the new
-  // owner; empty selects one.
+  // account owns the space and others remain, successorPeerId selects the new
+  // owner. An empty successorPeerId selects an owner.
   public async leaveSpace(
     sharedObjectId: string,
     successorPeerId = '',

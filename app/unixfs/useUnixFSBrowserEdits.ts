@@ -13,9 +13,10 @@ import type {
 } from './useUnixFSBrowserState.js'
 
 // runEdit runs one write to the Space, as an upload does: while the Space
-// takes no writes it says why and writes nothing, and a write the Space
-// refuses says what did not happen. It returns whether the write landed, so
-// the edit's input or dialog stays open for another try when it did not.
+// takes no writes, runEdit says why and writes nothing, and a write the Space
+// refuses says what did not happen. runEdit returns whether the write landed,
+// so the edit's input or dialog stays open for another try when the write did
+// not land.
 async function runEdit(
   saveHold: string | null,
   failed: string,

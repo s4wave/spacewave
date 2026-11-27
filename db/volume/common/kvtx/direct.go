@@ -216,10 +216,10 @@ func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entri
 
 // observeNotHeld counts the blocks not held, by reason, that a root move
 // requiring its blocks held landed over while observing, or the error that
-// stopped the check with no counts, and logs either at Debug: an ordinary
-// admit over a released stage counts a child. The health snapshot reports the counts.
-// The reason names which block failed, the root or a child outside the batch;
-// it does not tell whether a repeat cures it.
+// stopped the check with no counts, and logs either at Debug: an ordinary admit
+// over a released stage counts a child. The health snapshot reports the counts.
+// The reason identifies the block that failed, the root or a child outside the
+// batch. The reason does not tell whether a repeat cures the failure.
 func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldPut + 1]uint64, err error) {
 	for reason, n := range notHeld {
 		v.notHeld[reason].Add(n)
@@ -240,8 +240,8 @@ func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldPut + 1]uint64, err err
 // ref by a root p's records still hold. Land asks it for a root that requires
 // its blocks held, when ref's netted holders read zero. Any open stage serves
 // as proof: a stage put lands each block's children before the block, in the
-// same transactions as its stage roots, so a block a stage root holds is
-// stored whole. It is proof only at the instant of the Land; from that
+// same transactions as its stage roots, so a block a stage root holds is stored
+// whole. An open stage is proof only at the instant of the Land. From that
 // transaction on the move's own holders keep ref, so a later release of the
 // stage changes nothing.
 //
@@ -298,10 +298,10 @@ func (v *Volume) now() time.Time {
 }
 
 // PrepareOwnedBlock durably stores a potentially oversized block in one
-// physical transaction. Unlike queue admission this call retains no caller
-// data after return. bucketID names the bucket the write came through; a put
-// holds nothing in the bucket, so a block no root reaches stays until the
-// audit finds it.
+// physical transaction. Unlike queue admission this call retains no caller data
+// after return. bucketID identifies the bucket the write came through. A put
+// holds nothing in the bucket, so a block no root reaches stays until the audit
+// finds it.
 func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	// Send a cache fill to the fill writer, which counts it.
 	ctx = block.WithPutOpts(ctx, opts)
@@ -381,13 +381,14 @@ func (v *Volume) putEntries(
 	return existed, err
 }
 
-// putEntry returns the batch entry of a PutBlock, named the way the store
-// names it. A forced ref is taken as given, unhashed: this Volume trusts the
-// bytes it is handed, so every caller that forces a ref must have hashed the
-// bytes, built them in this process, or read them from a store that verified
-// them. Bytes from another process are hashed at the edge that receives them:
-// the block RPC server's PutBlock and PutBlockBatch, the HTTP block server's
-// PUT, the daemon API's bucket put, and the bucket lookup Resource's puts.
+// putEntry returns the batch entry of a PutBlock, with the ref the store
+// assigns to the block. A forced ref is taken as given, unhashed: this Volume
+// trusts the bytes it is handed, so every caller that forces a ref must have
+// hashed the bytes, built them in this process, or read them from a store that
+// verified them. Bytes from another process are hashed at the edge that
+// receives them: the block RPC server's PutBlock and PutBlockBatch, the HTTP
+// block server's PUT, the daemon API's bucket put, and the bucket lookup
+// Resource's puts.
 func putEntry(data []byte, opts *block.PutOpts, hashType hash.HashType) (*block.PutBatchEntry, error) {
 	ref := opts.GetForceBlockRef()
 	if ref.GetEmpty() {

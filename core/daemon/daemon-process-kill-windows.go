@@ -33,7 +33,7 @@ func startProcess(cmd *exec.Cmd) (*process, error) {
 // A signaled exit event establishes os.ErrProcessDone even when Windows reports
 // access denied for termination of an already-exited process.
 func killChild(child *os.Process) error {
-	// TerminateProcess is asynchronous; success authorizes the caller to join.
+	// TerminateProcess is asynchronous. Success authorizes the caller to join.
 	err := child.Kill()
 	if err == nil {
 		return nil

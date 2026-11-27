@@ -4,7 +4,7 @@ package block_store_memcache
 type Stats struct {
 	// Blocks counts the blocks held.
 	Blocks int
-	// Bytes is the memory they take, as the bound counts it.
+	// Bytes is the memory the blocks take, as the bound counts it.
 	Bytes int64
 	// Hits counts the reads the cache served.
 	Hits uint64

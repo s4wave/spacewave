@@ -27,7 +27,7 @@ export interface VmMachineCardProps {
   // operationError is the failure of the last request from this view.
   operationError: string
   imageKey: string
-  // imageLabel names the image for display, or is "" to show imageKey.
+  // imageLabel is the image display name, or "" to show imageKey.
   imageLabel: string
   memoryMb: number
   mounts: VmMount[]

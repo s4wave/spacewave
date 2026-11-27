@@ -19,7 +19,7 @@ import (
 
 // NewHTTPHandlerBuilder constructs a HTTPHandlerBuilder function.
 //
-// if returnIfIdle is set and the directive becomes idle, returns ErrFsNotFound
+// if returnIfIdle is set and the directive becomes idle, returns ErrFsNotFound.
 func NewHTTPHandlerBuilder(
 	b bus.Bus,
 	unixFsID, unixFsPrefix string,

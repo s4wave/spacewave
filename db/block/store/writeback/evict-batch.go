@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// Bounds of one eviction batch. A batch reads at most the store's current
+// evictBatchStartBlocks is the initial block limit of one eviction batch.
+// A batch reads at most the store's current
 // block limit of entries, and stops before an entry that would take it past
 // the batch byte bound, evictBatchBytes by default. The limit starts at
 // evictBatchStartBlocks on each open and follows the time the batch's drop

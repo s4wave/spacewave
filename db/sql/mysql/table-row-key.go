@@ -16,11 +16,12 @@ const tableKeyFormat = 1
 // encodeTableKey encodes SQL equality keys, one self-delimiting component per
 // column. Values are converted to their column type. A number is a fixed-width
 // word in SQL order (see orderedWord), so the keys of a number column sort as
-// SQL sorts its values; any other value is length framed, text by its
-// collation's weights, which preserves equality but not order. NULL sorts
-// before every value.
+// SQL sorts its values. Any other value is length framed, text by its
+// collation's weights. This framing preserves equality but not order. NULL
+// sorts before every value.
 // The second result reports whether any component is NULL. Row and schema must
-// have equal lengths; columns is nil or supplies one prefix definition per column.
+// have equal lengths. columns is nil or supplies one prefix definition per
+// column.
 func encodeTableKey(ctx *sql.Context, schema sql.Schema, row sql.Row, columns []*TableIndexColumn) ([]byte, bool, error) {
 	// Encode each component independently so NULL and composite keys cannot collide.
 	key := make([]byte, 0, len(row)*8)

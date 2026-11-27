@@ -11,7 +11,7 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 // EmailManagement captures the reactive email list and the full mutation
 // surface shared between the onboarding VerifyEmailPage and the post-onboarding
 // EmailSection. All handlers route errors through toast.error and success
-// through toast.success; mutation state is exposed per action so callers can
+// through toast.success. Mutation state is exposed per action so callers can
 // disable specific buttons without conflating global busy flags.
 export interface EmailManagement {
   emails: EmailInfo[] | null
@@ -70,7 +70,7 @@ export function useEmailManagement(): EmailManagement {
   }, [retryAfter])
 
   // Auto-clear the verify flow when the watched row becomes verified
-  // elsewhere; keeps stale forms from lingering across tabs or sessions.
+  // elsewhere, so stale forms do not linger across tabs or sessions.
   useEffect(() => {
     if (!verifyingEmail || !emails) return
     const row = emails.find((e) => e.email === verifyingEmail)

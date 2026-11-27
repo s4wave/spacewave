@@ -218,8 +218,8 @@ type standaloneSpaceInitState struct {
 }
 
 // buildStandaloneGenesisParticipants builds the genesis participant list. A
-// single-owner Space names its owner with username; a friend DM takes each
-// account's username from friendAccounts.
+// single-owner Space identifies its owner with username. A friend DM takes
+// each account's username from friendAccounts.
 func buildStandaloneGenesisParticipants(
 	localPeerID peer.ID,
 	accountID string,
@@ -422,7 +422,7 @@ func buildStandaloneSpaceInitState(
 		return nil, err
 	}
 
-	// Sign the genesis config naming the participants.
+	// Sign the genesis config listing the participants.
 	participants, err := buildStandaloneGenesisParticipants(
 		localPeerID,
 		accountID,

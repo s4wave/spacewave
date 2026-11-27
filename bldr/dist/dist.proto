@@ -27,10 +27,12 @@ message DistMeta {
   string manifest_id = 8;
   // ManifestRev is the Bldr Manifest revision for this entrypoint binary.
   uint64 manifest_rev = 9;
-  // UpdateGuardPluginIds name plugins that quiesce owned work before replacement.
+  // UpdateGuardPluginIds identify plugins that quiesce owned work before
+  // replacement.
   repeated string update_guard_plugin_ids = 10;
-  // AdmissionPluginId names the plugin that owns this device's plugin
+  // AdmissionPluginId identifies the plugin that owns this device's plugin
   // approvals. The host builds its root admission controller asking that
-  // plugin in code at startup; empty leaves admission to the trusted roots.
+  // plugin in code at startup. An empty AdmissionPluginId leaves admission to
+  // the trusted roots.
   string admission_plugin_id = 11;
 }

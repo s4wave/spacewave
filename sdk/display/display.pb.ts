@@ -8,8 +8,8 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { DeviceAvailability } from '../device/device.pb.js'
 
 /**
- * Display is the world-block state for a display a Device serves. It names the
- * Device object and the capability, not the Device's peer, so the viewer
+ * Display is the world-block state for a display a Device serves. It references
+ * the Device object and the capability, not the Device's peer, so the viewer
  * follows the Device through re-enrollment.
  *
  * @generated from message s4wave.display.Display

@@ -27,7 +27,7 @@ func (t *callerTurn) Base() world.Head {
 }
 
 // Admit stores the candidate's entries and accepts it. In deferred mode the
-// entries stay in the engine's buffer until Sync; otherwise the store's fence
+// entries stay in the engine's buffer until Sync. Otherwise the store's fence
 // makes them durable and the root's completion proof is recorded.
 func (t *callerTurn) Admit(ctx context.Context, candidate world.Candidate) (world.Admission, error) {
 	// Store the entries the commit wrote under the engine's stage. In

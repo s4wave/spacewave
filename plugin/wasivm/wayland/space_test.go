@@ -157,7 +157,7 @@ func TestPopOutUnmap(t *testing.T) {
 // before it is sent, and a press there reaches the window at the viewer's
 // point.
 func TestPopOutInput(t *testing.T) {
-	// Map two windows; the second takes the keyboard.
+	// Map two windows. The second takes the keyboard.
 	tc := newTestCompositor(t, 160, 120)
 	c := tc.connect()
 	first := c.window(32, 32, bufRed)

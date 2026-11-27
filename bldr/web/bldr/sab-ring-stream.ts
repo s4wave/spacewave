@@ -55,7 +55,7 @@ export function createSabPair(opts?: SabRingStreamOpts): {
   }
 }
 
-// sabBufferSize returns the SharedArrayBuffer byte size for given opts.
+// sabBufferSize returns the SharedArrayBuffer byte size for the given opts.
 export function sabBufferSize(opts?: SabRingStreamOpts): number {
   const { slotSize, numSlots } = resolveSabRingStreamOpts(opts)
   return CTRL_BYTES + numSlots * slotSize
@@ -67,7 +67,7 @@ export function sabPairBufferSize(opts?: SabRingStreamOpts): number {
 }
 
 // waitForChange waits until arr[index] differs from expected.
-// Uses Atomics.waitAsync when available, otherwise polls.
+// waitForChange uses Atomics.waitAsync when available, otherwise polls.
 async function waitForChange(
   arr: Int32Array,
   index: number,
@@ -94,12 +94,13 @@ async function waitForChange(
 //   [0..15]  Control region: writeIdx(i32), readIdx(i32), state(i32), reserved(i32)
 //   [16..]   Data region: numSlots * slotSize bytes
 //
-// Each slot is [4-byte LE length][payload]. Writer advances writeIdx with
-// Atomics.add and Atomics.notify. Reader waits on writeIdx with
+// Each slot is [4-byte LE length][payload]. The writer advances writeIdx with
+// Atomics.add and Atomics.notify. The reader waits on writeIdx with
 // Atomics.waitAsync (or polling fallback) and advances readIdx.
 //
-// Satisfies the same Duplex<AsyncGenerator<Uint8Array>, Source<Uint8Array>,
-// Promise<void>> interface as ChannelStream from starpc.
+// SabRingStream satisfies the same
+// Duplex<AsyncGenerator<Uint8Array>, Source<Uint8Array>, Promise<void>>
+// interface as ChannelStream from starpc.
 export class SabRingStream implements Duplex<
   AsyncGenerator<Uint8Array>,
   Source<Uint8Array>,
@@ -143,7 +144,7 @@ export class SabRingStream implements Duplex<
   }
 
   // _readLoop delivers messages from the rx ring buffer to the source.
-  // Drains all available messages before checking close state so that
+  // _readLoop drains all available messages before checking close state so that
   // messages written before close are always delivered.
   private async _readLoop(): Promise<void> {
     while (true) {

@@ -39,7 +39,7 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		// Parse the writeback timeout
-		// We assert this does not return an error in the config.Validate function.
+		// config.Validate asserts that parsing the timeout returns no error.
 		writebackTimeout, _ := conf.ParseWritebackTimeoutDur()
 
 		// Lookup the lower block store.

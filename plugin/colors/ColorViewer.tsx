@@ -118,7 +118,8 @@ export default function ColorViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
-  // The viewer owns its attachment; query and mutation hooks share its authority.
+  // The viewer owns its attachment. Query and mutation hooks share its
+  // authority.
   const app = useAppAttachment(worldState, colors, getObjectKey(objectInfo))
   const [selected, setSelected] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -140,7 +141,8 @@ export default function ColorViewer({
   }
   const current = result.value.find(({ key }) => key === selected)
 
-  // Shared values are rendered directly from the query; no optimistic copy is kept.
+  // Shared values are rendered directly from the query. No optimistic copy is
+  // kept.
   return (
     <section className="mx-auto flex max-w-xl flex-col gap-4 p-4">
       <header>

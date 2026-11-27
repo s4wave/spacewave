@@ -16,7 +16,7 @@ import (
 
 // NewCreateWasiVmOp constructs a new CreateWasiVmOp. rootfsObjectKey points at
 // the UnixFS object holding the root filesystem and imageObjectKey at the
-// WasiVmImage supplying it; at least one is required.
+// WasiVmImage supplying it. At least one is required.
 func NewCreateWasiVmOp(objKey, name, rootfsObjectKey, imageObjectKey string, ts time.Time) *CreateWasiVmOp {
 	return &CreateWasiVmOp{
 		ObjectKey:       objKey,

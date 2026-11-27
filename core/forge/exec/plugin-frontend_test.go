@@ -177,7 +177,8 @@ func TestPluginFrontendSource(t *testing.T) {
 	}
 
 	// Closing the authoring stream completes and joins its retained execution.
-	// Watch has already closed its send half; Close still releases its transport.
+	// Watch has already closed its send half, but Close still releases its
+	// transport.
 	if err := watch.Close(); err != nil && !errors.Is(err, srpc.ErrCompleted) {
 		t.Fatal(err)
 	}

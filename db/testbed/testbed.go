@@ -49,7 +49,7 @@ type Testbed struct {
 	rels []func()
 }
 
-// Verbose controls if we build verbose testbeds.
+// Verbose controls if NewTestbed builds verbose testbeds.
 var Verbose bool
 
 // Option is an option passed to NewTestbed.

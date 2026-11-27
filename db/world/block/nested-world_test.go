@@ -53,9 +53,9 @@ func TestNestedWorldBucketBoundary(t *testing.T) {
 	}
 }
 
+// errStopWatch ends a watch after the change it waited for.
 // TestNestedWorldPublication verifies that a typed outer object retains an
 // immutable, independently readable World snapshot through a block roundtrip.
-// errStopWatch ends a watch after the change it waited for.
 var errStopWatch = errors.New("stop after the first change")
 
 func TestNestedWorldPublication(t *testing.T) {

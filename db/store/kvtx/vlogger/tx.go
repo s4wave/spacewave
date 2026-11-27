@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Tx is a verbose transaction
+// Tx is a verbose transaction.
 type Tx = kvtx_vlogger.Tx
 
 // NewTx constructs a new transaction.

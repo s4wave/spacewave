@@ -63,8 +63,9 @@ func (e *PackReader) SetExactReadsSwitch(sw *atomic.Bool) {
 
 // SetReadWindow sets the minimum transport window and its alignment quantum,
 // which bound the bytes one miss fetches. A transport with cheap round trips
-// over packs without locality, such as SFTP, wants a window near one block; a
-// transport with costly requests wants a wide one. Zero keeps the default.
+// over packs without locality, such as SFTP, wants a window near one block. A
+// transport with costly requests wants a wide window. Zero keeps the default
+// window.
 func (e *PackReader) SetReadWindow(size int) {
 	if size <= 0 {
 		return

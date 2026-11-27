@@ -20,11 +20,11 @@ type tty struct {
 	node *VNode
 	// pty is the pseudo-terminal whose slave this is, or nil for the console.
 	pty *pty
-	// terminal reports whether the device is a terminal. A pty always is; the
-	// console is when its host side is a terminal or it is virtual.
+	// terminal reports whether the device is a terminal. A pty always is.
+	// The console is when its host side is a terminal or it is virtual.
 	terminal bool
 	// virt reports whether the kernel applies the line discipline. A pty
-	// always does; the console does when it is a virtual terminal.
+	// always does. The console does when it is a virtual terminal.
 	virt bool
 	// in is the input the terminal's readers take.
 	in *ttyInput
@@ -179,7 +179,7 @@ func (t *tty) readWasiTermios(mem engine.Memory, ptr uint32) {
 }
 
 // size returns the window size. A console on a host terminal reports the
-// host terminal's.
+// host terminal's size.
 func (t *tty) size() (cols, rows uint32) {
 	k := t.kernel
 	if t == k.console && k.termFD >= 0 && k.termGetSize != nil {
@@ -287,7 +287,7 @@ func (t *tty) processOutput(buf []byte) []byte {
 		return buf
 	}
 
-	// Put a carriage return before each.
+	// Put a carriage return before each bare newline.
 	out := make([]byte, 0, len(buf)+extra)
 	for i, b := range buf {
 		if b == '\n' && (i == 0 || buf[i-1] != '\r') {

@@ -19,8 +19,9 @@ type Options struct {
 	// Linger rotates the open pack once its first batch is this old, so a
 	// trickle of writes still reaches the upload. Zero rotates only when full.
 	Linger time.Duration
-	// PackID names a finalized pack from its contents. Nil names each pack
-	// with identity.NewPackID, as a store that deletes packs needs.
+	// PackID identifies a finalized pack from its contents. Nil identifies
+	// each pack with identity.NewPackID, as a store that deletes packs
+	// needs.
 	PackID func(result *writer.PackResult) (string, error)
 	// ReserveBytes is the free disk an Append must leave: one whose blocks
 	// would leave less returns ErrReserve and writes nothing, so the log never

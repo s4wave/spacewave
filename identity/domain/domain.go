@@ -27,5 +27,5 @@ type Domain interface {
 }
 
 // Handler handles callbacks from the domain
-// usually implemented by the domain controller
+// usually implemented by the domain controller.
 type Handler any

@@ -44,7 +44,7 @@ export function VmRunningView({
           onCtrlAltDel={() =>
             postScreenInput(objectKey, { kind: 'ctrl-alt-del' })
           }
-          // The browser may refuse fullscreen; the panel then stays put.
+          // The browser may refuse fullscreen. The panel then stays put.
           onFullscreen={() =>
             void panelRef.current?.requestFullscreen().catch(() => undefined)
           }

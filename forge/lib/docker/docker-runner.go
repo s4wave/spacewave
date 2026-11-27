@@ -6,7 +6,7 @@ import (
 )
 
 // DockerRunner executes docker CLI commands.
-// The env parameter is the complete subprocess environment; implementations
+// The env parameter is the complete subprocess environment. Implementations
 // must not inherit the host environment.
 type DockerRunner interface {
 	// Run executes the named binary with args and env, returning stdout.

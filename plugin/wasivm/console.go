@@ -133,7 +133,8 @@ func (c *console) Console(strm s4wave_vm.SRPCWasiVmConsoleService_ConsoleStream)
 			waitCh = getWaitCh()
 		})
 
-		// Send it, then wait for more.
+		// Send the new output. Once the program has exited, send the exit
+		// frame and return; otherwise wait for more output.
 		if len(data) != 0 {
 			if err := strm.Send(&s4wave_terminal.TerminalFrame{
 				Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
@@ -154,7 +155,7 @@ func (c *console) Console(strm s4wave_vm.SRPCWasiVmConsoleService_ConsoleStream)
 }
 
 // consoleTable holds the console of each running VM by object key. Each
-// Space loads its own plugin instance, so an object key names one VM.
+// Space loads its own plugin instance, so an object key identifies one VM.
 type consoleTable struct {
 	// bcast guards consoles and wakes callers waiting for a console.
 	bcast broadcast.Broadcast

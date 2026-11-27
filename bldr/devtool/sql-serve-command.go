@@ -17,7 +17,7 @@ import (
 type sqlServeArgs struct {
 	// listen is the TCP address the endpoint listens on.
 	listen string
-	// database names the database the schema builds.
+	// database selects the database the schema builds.
 	database string
 	// schema lists the .sql files and directories applied in order.
 	schema cli.StringSlice

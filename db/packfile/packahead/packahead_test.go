@@ -273,7 +273,7 @@ func TestPackAheadWriteFailure(t *testing.T) {
 		t.Fatal("failed block is readable")
 	}
 
-	// The next write rotates and succeeds; the failed pack goes.
+	// The next write rotates and succeeds, and the failed pack goes.
 	if err := l.Append(ctx, []Block{a, b}); err != nil {
 		t.Fatal(err)
 	}

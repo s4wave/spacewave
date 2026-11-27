@@ -20,7 +20,7 @@ type heldWrite struct {
 // Delete and DeleteCursorAtKey write, and apply them as one batch on Flush or
 // Commit, so a key written many times, or many keys in one page, rebuild the
 // page and its path to the root once. Each held value is written to the
-// staging store when it is set, as before; only the page rebuild waits.
+// staging store when it is set, as before. Only the page rebuild waits.
 //
 // Exists and GetCursorAtKey answer from the held entries. Every other method
 // applies them first, so its result is the one an immediate write gives. A
@@ -38,9 +38,9 @@ func (t *Tx) Held() int {
 }
 
 // Flush applies the held cursor writes as one batch. A failed batch can leave
-// the tree partly written, so its error sticks: this and every later Flush,
-// and so every read that applies held writes and Commit, return it, and the
-// caller discards the transaction.
+// the tree partly written, so its error sticks: this Flush and every later
+// Flush, and so every read that applies held writes and Commit, return it,
+// and the caller discards the transaction.
 func (t *Tx) Flush(ctx context.Context) error {
 	// A failed batch left the tree partly written.
 	if t.flushErr != nil {

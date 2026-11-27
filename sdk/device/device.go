@@ -36,7 +36,7 @@ func UnmarshalDevice(ctx context.Context, bcs *block.Cursor) (*Device, error) {
 	return block.UnmarshalBlock[Device](ctx, bcs)
 }
 
-// Validate performs cursory checks on the Device block.
+// Validate checks the Device block cursorily.
 func (d *Device) Validate() error {
 	// Require a peer identity for the Device.
 	if strings.TrimSpace(d.GetPeerId()) == "" {
@@ -109,7 +109,8 @@ func (d *Device) Validate() error {
 }
 
 // NativePlatformID returns the Bldr platform ID of the Device's daemon, such as
-// desktop/linux/amd64. It returns empty if the Device reports no platform.
+// desktop/linux/amd64. It returns an empty string if the Device reports no
+// platform.
 func (d *Device) NativePlatformID() string {
 	platform := d.GetPlatform()
 	if platform.GetOs() == "" || platform.GetArch() == "" {
@@ -271,7 +272,8 @@ func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
 	return cap
 }
 
-// hasCheckoutRootLink reports whether link names a Device protocol or a World object.
+// hasCheckoutRootLink reports whether link references a Device protocol or a
+// World object.
 func hasCheckoutRootLink(link *DeviceCapabilityLink) bool {
 	return strings.TrimSpace(link.GetProtocolId()) != "" ||
 		(strings.TrimSpace(link.GetObjectKey()) != "" && strings.TrimSpace(link.GetTypeId()) != "")

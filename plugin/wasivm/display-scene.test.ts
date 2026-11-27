@@ -93,7 +93,8 @@ describe('Scene', () => {
     expect(at(1)).toMatchObject({ x: 9, y: 8 })
     expect(at(2)).toMatchObject({ x: 20, y: 20 })
 
-    // Its top stops at the least, and the pointer stays on the screen.
+    // Root 1's top stops at the minimum y coordinate, and the pointer stays
+    // on the screen.
     scene.point(-50, 0)
     expect(at(1)).toMatchObject({ x: -6, y: 5 })
 
@@ -101,7 +102,7 @@ describe('Scene', () => {
     scene.apply({ roots: { roots: [{ id: 1, x: 7, y: 7 }] } })
     expect(at(1)).toMatchObject({ x: -6, y: 5 })
 
-    // When the grab ends, the roots place it again.
+    // When the grab ends, the roots place root 1 again.
     scene.apply({ grab: {}, roots: { roots: [{ id: 1, x: -6, y: 5 }] } })
     expect(scene.point(100, 100)).toBe(false)
     expect(at(1)).toMatchObject({ x: -6, y: 5 })
@@ -229,8 +230,8 @@ describe('Scene', () => {
     scene.point(22, 27)
     expect(scene.press()).toBe(false)
 
-    // One on the title bar does, and the window follows the pointer at
-    // once, its top held at the least.
+    // A press on the title bar starts a move, and the window follows the
+    // pointer at once, its top held at the minimum y coordinate.
     scene.point(8, 27)
     expect(scene.press()).toBe(true)
     expect(scene.point(18, 37)).toBe(true)

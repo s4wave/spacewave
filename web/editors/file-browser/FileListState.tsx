@@ -22,7 +22,7 @@ export function sortFileEntries<T extends SortableFileEntry>(
     column === 'date' ? e.details?.modTime?.getTime() : e.details?.size
 
   return entries.toSorted((a, b) => {
-    // Directories first
+    // Sort directories first.
     if (a.isDir && !b.isDir) return -1
     if (!a.isDir && b.isDir) return 1
     if (column === 'name') return multiplier * byName(a, b)

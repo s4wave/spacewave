@@ -31,13 +31,13 @@ func NewTxRetryTxn() Transaction {
 	return &TxRetry{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction's type.
 func (t *TxRetry) GetTxType() TxType {
 	return TxType_TxType_RETRY
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate checks the transaction cursorily.
+// Note: Validate should not fetch network data.
 func (t *TxRetry) Validate() error {
 	// Validate the replacement inputs when provided.
 	nextInputs := t.GetNextInputs()

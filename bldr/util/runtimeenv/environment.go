@@ -1,5 +1,5 @@
 // Package runtimeenv resolves process-local performance policy from runtime facts.
-// Gates choose equivalent implementations; they do not grant capabilities or
+// Gates choose equivalent implementations. They do not grant capabilities or
 // change stored formats. Unknown environments retain the baseline policy.
 package runtimeenv
 
@@ -23,7 +23,7 @@ type Environment struct {
 	Engine Engine
 }
 
-// Feature names a performance choice with a baseline implementation.
+// Feature identifies a performance choice with a baseline implementation.
 type Feature uint8
 
 const (

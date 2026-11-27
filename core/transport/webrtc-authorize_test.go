@@ -45,7 +45,7 @@ func TestSessionTransportWebRTCRefusesStream(t *testing.T) {
 		}
 	}
 
-	// Report each refusal on its stream; no stream may reach the handler.
+	// Report each refusal on its stream. No stream may reach the handler.
 	const protocolID = protocol.ID("test/refuse")
 	admitted := make(chan stream.Stream, 1)
 	release, err := listener.ServeAuthorized(
@@ -61,7 +61,7 @@ func TestSessionTransportWebRTCRefusesStream(t *testing.T) {
 	defer release()
 
 	// Open a stream over WebRTC. Opening writes the establishment header, which
-	// delivers the stream to the listener; the dialer writes nothing more, since
+	// delivers the stream to the listener. The dialer writes nothing more, since
 	// the listener may already have refused and closed the stream.
 	ms, msRel, err := link.OpenStreamWithPeerEx(
 		ctx,
@@ -98,7 +98,7 @@ func TestSessionTransportWebRTCRefusesStream(t *testing.T) {
 type signalingPeerKey struct{}
 
 // newRelaySignalingServer serves signal tickets and the signaling WebSocket
-// and returns its URL. A ticket names the peer that requested it, and the
+// and returns its URL. A ticket identifies the peer that requested it, and the
 // WebSocket identifies its caller by the ticket, as the cloud does.
 func newRelaySignalingServer(t *testing.T) string {
 	// Relay signaling between the peers identified by their tickets.

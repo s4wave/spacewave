@@ -5,14 +5,14 @@ export type SuggestContext =
   | { kind: 'metric'; prefix: string; start: number }
   // The caret ends a label name inside the braces of metric's selector.
   | { kind: 'label'; metric: string; prefix: string; start: number }
-  // Nothing to suggest at the caret.
+  // The caret has no suggestions.
   | { kind: 'none' }
 
 // wordChar matches a character of a metric or label name.
 const wordChar = /[a-zA-Z0-9_:]/
 
-// suggestContext reads the word before caret in expr and whether it sits
-// inside a selector's braces.
+// suggestContext reads the word before caret in expr and whether the word
+// sits inside a selector's braces.
 export function suggestContext(expr: string, caret: number): SuggestContext {
   // Find the word that ends at the caret.
   let start = caret

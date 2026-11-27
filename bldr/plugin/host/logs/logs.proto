@@ -89,7 +89,7 @@ message StructuredLogState {
   StructuredLogFilter filter = 1;
   // Range is the active sequence window.
   StructuredLogRange range = 2;
-  // Events are the retained events currently visible in the view.
+  // Events are the retained events visible in the view.
   repeated StructuredLogEvent events = 3;
   // DroppedEventCount is the number of matching events dropped before Events.
   uint64 dropped_event_count = 4;

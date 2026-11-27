@@ -80,7 +80,8 @@ func TestDemandGatePromotion(t *testing.T) {
 		entered <- err
 	}()
 
-	// Promotion admits it without waiting for the foreground fetch.
+	// Promotion admits the background fetch without waiting for the
+	// foreground fetch.
 	close(promote)
 	if err := <-entered; err != nil {
 		t.Fatal(err)

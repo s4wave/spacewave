@@ -17,7 +17,10 @@ export interface Access<P extends Principal> {
 
 export interface ApplicationConfig<S extends Schema, P extends Principal> {
   schema: S
-  /** instance selects one application dataset in the supplied World; defaults to schema.id. */
+  /**
+   * instance selects one application dataset in the supplied World and defaults
+   * to schema.id.
+   */
   instance?: string
   authorize(access: Access<P>): boolean | Promise<boolean>
   mutations: MutationHandlers<S, P>

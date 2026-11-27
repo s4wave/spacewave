@@ -136,7 +136,7 @@ func createUnknownViewChange(t *testing.T, ctx context.Context, engine world.Eng
 	}
 	defer tx.Discard()
 
-	// The public change watch currently bounds a precise set at 4096 entries.
+	// The public change watch bounds a precise set at 4096 entries.
 	for i := range 4097 {
 		obj, err := tx.CreateObject(ctx, "counter/bulk/"+strconv.Itoa(i), nil)
 		world.ReleaseObjectState(obj)

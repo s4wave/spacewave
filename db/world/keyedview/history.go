@@ -5,10 +5,11 @@ import (
 	"sync"
 )
 
-// History remembers the most recent Views by version, so a reader naming one
-// can be answered with changes. Views are named by content, so readers in the
-// same state share one entry. It forgets the least recently used View past
-// its size and everything when the process ends; readers then read in full.
+// History remembers the most recent Views by version, so a reader supplying a
+// version can be answered with changes. Views are named by content, so readers
+// in the same state share one entry. It forgets the least recently used View
+// past its size and everything when the process ends. Readers then read in
+// full.
 type History struct {
 	// size is the most Views held.
 	size int

@@ -87,8 +87,8 @@ func (t *localTurn) Release() {
 }
 
 // published records a head this turn swapped in, wakes this process's head
-// watches, and announces it to the other processes' through the lease. The
-// head is durable already, so an announcement that fails only delays them
+// watches, and announces it to the other processes' watches through the lease.
+// The head is durable already, so an announcement that fails only delays them
 // until their next coordinator event.
 func (t *localTurn) published(ctx context.Context, head world.Head) {
 	// Wake this process's watches.

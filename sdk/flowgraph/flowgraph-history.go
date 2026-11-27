@@ -100,7 +100,8 @@ func (h *historyReader) apply(seqno uint64, change *world_block.WorldChange) err
 		return nil
 	}
 
-	// A deletion ends the graph's history; a revision change keeps its body.
+	// A deletion ends the graph's history. A revision change keeps its
+	// body.
 	switch change.GetChangeType() {
 	case world_block.WorldChangeType_WorldChange_OBJECT_DELETE:
 		*h = historyReader{ctx: h.ctx, root: h.root, key: h.key}

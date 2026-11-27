@@ -34,7 +34,7 @@ type compactTestCloud struct {
 	pulls int
 	// trash are the trash requests, in order.
 	trash []*packfile.TrashRequest
-	// reject, when set, answers pushes with this status and error body.
+	// reject answers pushes with this status and error body when set.
 	reject     int
 	rejectBody string
 	// pushed, when set, receives one value per accepted push.
@@ -210,7 +210,7 @@ func TestSyncControllerCompactMergesSmallPacks(t *testing.T) {
 		t.Fatalf("pushes = %d, want 1", len(cloud.pushes))
 	}
 
-	// The replacement list must name every input pack oldest first.
+	// The replacement list must list every input pack oldest first.
 	var want []string
 	for i := range packs {
 		want = append(want, "pack-"+strconv.Itoa(i))

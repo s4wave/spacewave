@@ -31,7 +31,7 @@ interface UseCanvasCommandsParams {
 // ARROW_STEP is the number of canvas units to move per arrow key press.
 const ARROW_STEP = 10
 
-// CanvasCommandContext carries the per-mount state the command table's
+// CanvasCommandContext contains the per-mount state the command table's
 // predicates and handlers read.
 interface CanvasCommandContext {
   isTabActive: boolean
@@ -64,7 +64,7 @@ interface CanvasCommandSpec {
   menuOrder?: number
   combo?: string
   active: (ctx: CanvasCommandContext) => boolean
-  // writes marks a command that changes the canvas; a read-only canvas
+  // writes marks a command that changes the canvas. A read-only canvas
   // neither binds nor offers it.
   writes?: boolean
   enabled?: (ctx: CanvasCommandContext) => boolean
@@ -76,10 +76,10 @@ interface CanvasCommandSpec {
 const tabActive = (ctx: CanvasCommandContext): boolean => ctx.isTabActive
 const borderActive = (ctx: CanvasCommandContext): boolean => ctx.borderActive
 
-// CANVAS_COMMANDS is the shortcut table; useCanvasCommands registers each
+// CANVAS_COMMANDS is the shortcut table. useCanvasCommands registers each
 // entry. The table is module-level so the hook call count stays constant.
 const CANVAS_COMMANDS: CanvasCommandSpec[] = [
-  // Escape: content-focused switches to border, otherwise deselect.
+  // Escape: switch content focus to border focus, otherwise deselect nodes.
   {
     commandId: 'canvas.escape',
     label: 'Deselect / Exit Content',

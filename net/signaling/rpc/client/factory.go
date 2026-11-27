@@ -12,7 +12,7 @@ import (
 
 // Factory constructs a Signaling RPC Client.
 type Factory struct {
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 }
 

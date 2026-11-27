@@ -22,7 +22,7 @@ export interface Config {
   objectStoreId?: string
   /**
    * VolumeId is the volume id to use for the object store.
-   * Can be empty to select any.
+   * Can be empty to select any volume.
    */
   volumeId?: string
   /**

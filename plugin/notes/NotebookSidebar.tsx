@@ -24,8 +24,8 @@ interface NotebookSidebarProps {
   onAddSource?: () => void
   onRemoveSource?: (index: number) => void
   onMoveSource?: (index: number, delta: -1 | 1) => void
-  // sourceEdit is the source edit control's state; the sidebar shows a
-  // refused edit and a failed Reorder, and disables edits while one sends.
+  // sourceEdit is the source edit control's state. The sidebar shows a
+  // refused edit and a failed Reorder, and disables edits while an edit sends.
   sourceEdit?: SourceEditState
   onRetryReorder?: () => void
   namespace: StateNamespace
@@ -58,7 +58,7 @@ function NotebookSidebar({
     [setExpandedSources],
   )
 
-  // A refused edit and a failed Reorder show by the list; a failed Add or
+  // A refused edit and a failed Reorder show by the list. A failed Add or
   // Remove shows in its own dialog.
   const reorderProblem = sourceEditProblem(sourceEdit, 'reorder')
   let editNotice: ReactNode = null

@@ -42,7 +42,7 @@ func Build(rows []*Row) []*desktop_runtime.DesktopRuntimeNavigationItem {
 }
 
 // ReadSnapshot reads the current shared-object list without waiting for the
-// first non-nil value; the caller owns watching for future changes.
+// first non-nil value. The caller owns watching for future changes.
 func ReadSnapshot(
 	soListWatchable ccontainer.Watchable[*sobject.SharedObjectList],
 	excludedBlockStoreIDs ...string,

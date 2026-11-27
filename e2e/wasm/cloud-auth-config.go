@@ -21,13 +21,14 @@ import (
 	"github.com/s4wave/spacewave/e2e/wasm/internal/configjson"
 )
 
-// e2eCloudAuthConfigPath serves discovery for the loopback cloud fixture.
+// e2eCloudAuthConfigPath is the discovery path for the loopback cloud fixture.
 const e2eCloudAuthConfigPath = "/api/auth/config"
 
 // stableE2ECloudAuthConfigAddr keeps cached startup manifests reusable. The
 // endpoint is baked into the plugin config, so the port derives from the state
-// root's name, which names the build configuration, and not from the checkout
-// path: another checkout of the same sources then replays the same plugin.
+// root's name, which identifies the build configuration, and not from the
+// checkout path: another checkout of the same sources then replays the same
+// plugin.
 func stableE2ECloudAuthConfigAddr(stateRoot string) string {
 	sum := sha256.Sum256([]byte("e2e-cloud-auth|" + filepath.Base(stateRoot)))
 	port := 20000 + int(binary.BigEndian.Uint16(sum[:2])%30000)
@@ -125,7 +126,7 @@ func applyE2ECloudAuthConfigEndpoint(projectConfig *bldr_project.ProjectConfig, 
 	manifest := projectConfig.GetManifests()["spacewave-core"]
 	if manifest == nil {
 		// Downstream Bldr apps can reuse the WASM harness without bundling the
-		// Spacewave product provider; there is no cloud auth config to rewrite.
+		// Spacewave product provider. There is no cloud auth config to rewrite.
 		return nil
 	}
 	builder := manifest.GetBuilder()

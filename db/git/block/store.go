@@ -57,7 +57,7 @@ type Store struct {
 // NewStore constructs a new repo handle.
 // btx can be nil to indicate a read-only tree.
 // bcs is located at the root of the repo (the Repo block).
-// refStore can be nil
+// refStore can be nil.
 func NewStore(
 	ctx context.Context,
 	btx *block.Transaction,
@@ -81,7 +81,7 @@ func (r *Store) GetReadOnly() bool {
 }
 
 // GetRoot returns the root object.
-// Note: this should be treated as read-only.
+// Note: the root object should be treated as read-only.
 func (r *Store) GetRoot() *Repo {
 	return r.root
 }
@@ -101,7 +101,8 @@ func (r *Store) GetRef() *block.BlockRef {
 // builds IAVL trees from bulk-written objects on the cursor. The caller
 // is responsible for writing the external transaction.
 func (r *Store) Commit() error {
-	// Build IAVL trees from bulk-written objects and wire into Repo.
+	// Build IAVL trees from bulk-written objects and wire the trees
+	// into Repo.
 	if r.storeOps != nil {
 		if err := r.bulkCommit(); err != nil {
 			return err
@@ -176,7 +177,7 @@ func (r *Store) buildRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	return v, storeCs, nil
 }
 
-// buildModRefTree builds the sub-module references tree
+// buildModRefTree builds the sub-module references tree.
 func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	// Open the repository submodule store and its reference tree.
 	encStore, storeCs, err := r.root.FollowModuleReferencesStore(r.ctx, r.bcs)
@@ -248,8 +249,8 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 // _ is a type assertion
 var (
 	_ io.Closer = (*Store)(nil)
-	// this covers all storage interfaces
+	// _ covers all storage interfaces.
 	_ storage.Storer = (*Store)(nil)
-	// covers Hydra git storage interface
+	// _ covers the Hydra git storage interface.
 	_ hydra_git.Storer = (*Store)(nil)
 )

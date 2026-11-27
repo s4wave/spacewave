@@ -151,11 +151,11 @@ export interface ResourceRequest {
    */
   memoryBytes?: bigint
   /**
-   * Backend names the runtime backend required by the attempt.
+   * Backend identifies the runtime backend required by the attempt.
    */
   backend?: string
   /**
-   * Cards asks for whole graphics cards; unset or a zero count asks for none.
+   * Cards asks for whole graphics cards. Unset or a zero count asks for none.
    */
   cards?: GraphicsCardRequest
 }
@@ -180,7 +180,7 @@ export const ResourceRequest: MessageType<ResourceRequest> =
  */
 export interface BackendRuntimeIdentity {
   /**
-   * Backend names the runtime backend that owns the runtime.
+   * Backend identifies the runtime backend that owns the runtime.
    */
   backend?: string
   /**
@@ -240,8 +240,8 @@ export interface CleanupReceipt {
   generation?: bigint
   /**
    * RuntimeStopped records that the backend runtime was confirmed stopped, or
-   * that no runtime ever launched. It stays false while a stop is pending; the
-   * receipt never fabricates this fact.
+   * that no runtime ever launched. RuntimeStopped stays false while a stop is
+   * pending. The receipt never fabricates this fact.
    */
   runtimeStopped?: boolean
   /**
@@ -271,7 +271,7 @@ export const CleanupReceipt: MessageType<CleanupReceipt> =
 
 /**
  * WorkerCapacity is the observed and reserved capacity for one Forge Worker.
- * The Worker process owns this record; Forge validates and debits it, and
+ * The Worker process owns this record. Forge validates and debits it, and
  * callers never keep a parallel ledger.
  *
  * @generated from message forge.runtime.WorkerCapacity
@@ -280,7 +280,7 @@ export interface WorkerCapacity {
   /**
    * WorkerObjectKey is the Forge Worker object key this record describes. The
    * record's own object key is a one-way hash of this value, so scans and
-   * reclaim need it stored to name the Worker.
+   * reclaim need it stored to identify the Worker.
    */
   workerObjectKey?: string
   /**
@@ -288,7 +288,7 @@ export interface WorkerCapacity {
    */
   milliCpuTotal?: bigint
   /**
-   * MilliCpuReserved is the CPU currently debited by live reservations.
+   * MilliCpuReserved is the CPU debited by live reservations.
    */
   milliCpuReserved?: bigint
   /**
@@ -296,7 +296,7 @@ export interface WorkerCapacity {
    */
   memoryBytesTotal?: bigint
   /**
-   * MemoryBytesReserved is the memory currently debited by live reservations.
+   * MemoryBytesReserved is the memory debited by live reservations.
    */
   memoryBytesReserved?: bigint
   /**
@@ -322,7 +322,7 @@ export interface WorkerCapacity {
    */
   claimId?: string
   /**
-   * OwnerEpoch increments on every claim transition; calls fencing against an
+   * OwnerEpoch increments on every claim transition. Calls fencing against an
    * older epoch are stale. A new record starts at its claim time in Unix
    * milliseconds, so deleting the record never lets an epoch repeat.
    */
@@ -342,7 +342,7 @@ export interface WorkerCapacity {
   cards?: GraphicsCard[]
   /**
    * ReservedCardIds lists the card ids debited by live reservations. An ACTIVE
-   * record reserves only cards it offers; a DRAINING record may hold an id
+   * record reserves only cards it offers. A DRAINING record may hold an id
    * whose card left the host until its reservation credits it.
    */
   reservedCardIds?: string[]
@@ -372,7 +372,7 @@ export const WorkerCapacity: MessageType<WorkerCapacity> =
 
 /**
  * Reservation records a generation-fenced capacity grant. Runtime custody
- * follows its lease; a standing grant follows its placement edge. The record is
+ * follows its lease. A standing grant follows its placement edge. The record is
  * the durable truth: a Worker restart reconciles by reading it.
  *
  * @generated from message forge.runtime.Reservation
@@ -393,7 +393,7 @@ export interface Reservation {
   request?: ResourceRequest
   /**
    * Generation fences runtime custody. Resume after uncertainty increments the
-   * generation; calls fenced against an older generation are stale.
+   * generation. Calls fenced against an older generation are stale.
    */
   generation?: bigint
   /**
@@ -411,7 +411,7 @@ export interface Reservation {
   runtime?: BackendRuntimeIdentity
   /**
    * Placement snapshots the edge that owns a standing grant. The graph edge is
-   * the lifetime authority; this receipt locates it after a restart.
+   * the lifetime authority. Placement locates the edge after a restart.
    */
   placement?: Quad
   /**

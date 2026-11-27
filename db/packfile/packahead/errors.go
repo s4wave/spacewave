@@ -12,6 +12,6 @@ var ErrKeyTooShort = errors.New("packahead key is shorter than 16 bytes")
 var ErrValueTooLarge = errors.New("packahead block does not fit in a pack")
 
 // ErrReserve is returned by an Append that would leave less free disk than
-// Options.ReserveBytes. It writes nothing; the same Append succeeds once the
+// Options.ReserveBytes. The Append writes nothing and succeeds once the
 // disk has room again.
 var ErrReserve = errors.New("packahead log is below its disk reserve")

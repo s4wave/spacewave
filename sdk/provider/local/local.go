@@ -46,7 +46,8 @@ func (l *LocalProvider) AttachAccount(ctx context.Context, accountID string) (*A
 	return l.service.AttachAccount(ctx, &AttachAccountRequest{AccountId: accountID})
 }
 
-// PreparePairingSession creates an unregistered local Session for receiving an account.
+// PreparePairingSession creates an unregistered local Session for receiving
+// an account.
 func (l *LocalProvider) PreparePairingSession(ctx context.Context) (*CreateAccountResponse, error) {
 	return l.service.CreateAccount(ctx, &CreateAccountRequest{DeferRegistration: true})
 }

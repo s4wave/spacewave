@@ -125,7 +125,8 @@ func (a *args) run(ctx context.Context) error {
 	// Upload finished packs until ctx ends.
 	go a.drain(ctx, le, log, block_store_nodepush.NewReportingRemote(remote, server))
 
-	// Serve one connection at a time; a newer one replaces the older.
+	// Serve one connection at a time. A newer connection replaces the older
+	// one.
 	return serve(ctx, le, a.listen, server)
 }
 

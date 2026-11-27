@@ -80,7 +80,8 @@ func attachWasiVmConsole(c *cli.Context, statePath string, uri fsURI) error {
 		return errors.Wrap(err, "open VM console")
 	}
 
-	// Forward input until stdin ends; the VM keeps running after it does.
+	// Forward input until stdin ends. The VM keeps running after stdin
+	// ends.
 	go func() {
 		in := &serialEscapeReader{src: os.Stdin, quit: cancel}
 		buf := make([]byte, 4096)

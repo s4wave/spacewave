@@ -81,7 +81,7 @@ func HealthSnapshots() []*VolumeHealth {
 	}
 	healthSources.mtx.Unlock()
 
-	// Snapshot each and sort them.
+	// Snapshot each watcher and sort the health snapshots.
 	out := make([]*VolumeHealth, 0, len(watchers))
 	for _, w := range watchers {
 		h, _ := w.GetHealthSnapshotWithWait()

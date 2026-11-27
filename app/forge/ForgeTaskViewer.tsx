@@ -82,7 +82,7 @@ function comparePasses(a: ForgeSetRow<Pass>, b: ForgeSetRow<Pass>): number {
   return bTime - aTime
 }
 
-// PassRow draws one pass; it draws again only when its body changed.
+// PassRow draws one pass. It draws again only when its body changed.
 const PassRow = memo(function PassRow({ objectKey, value }: ForgeSetRow<Pass>) {
   const execCount = value.execStates?.length ?? 0
   return (

@@ -207,7 +207,7 @@ func (d *watchFilesDir) collectInto(res *watchFilesResult, prefix string, limit 
 		return
 	}
 
-	// Walk the entries in path order until the limit.
+	// Walk the entries in path order until the path limit.
 	for _, ent := range d.entries {
 		if res.truncated {
 			return
@@ -225,8 +225,8 @@ func (d *watchFilesDir) collectInto(res *watchFilesResult, prefix string, limit 
 }
 
 // diff returns the response that changes prev into res, and whether it changes
-// anything. A nil prev is the state before the first response, which always
-// sends.
+// anything. A nil prev is the state before the first response, and the watch
+// always sends that first response.
 func (res *watchFilesResult) diff(prev *watchFilesResult) (*s4wave_unixfs.HandleWatchFilesResponse, bool) {
 	// Merge the two sorted path lists.
 	resp := &s4wave_unixfs.HandleWatchFilesResponse{Truncated: res.truncated, Errors: res.errors}

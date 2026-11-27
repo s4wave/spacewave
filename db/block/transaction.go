@@ -34,7 +34,7 @@ const (
 type transactionReachableNode struct {
 	// from lists handles whose encoding must finish before this handle: the
 	// referenced blocks and any alias-linked blocks. A handle may appear twice,
-	// as a reference and an alias; every reader tolerates repeats.
+	// as a reference and an alias. Every reader tolerates repeats.
 	from []*handle
 	// encodeDone is closed when encoding this node is done.
 	encodeDone chan struct{}
@@ -64,13 +64,13 @@ type Transaction struct {
 	// dirty indicates whether anything changed in the transaction.
 	dirty bool
 	// bufferedStoreSettings overrides the default BufferedStore settings used
-	// inside WriteAtRoot. nil uses the defaults.
+	// inside WriteAtRoot. nil uses the default settings.
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
 	decodedBlocks atomic.Pointer[DecodedBlockCache]
 	// privateBlocks is the transaction's own scope in the process-wide pool,
 	// made on a reader's first read without an enabled borrowed scope. The pool's
-	// budget bounds it with every other reader; other scopes never see its
+	// budget bounds it with every other reader. Other scopes never see its
 	// entries, which age out of the pool once the transaction is gone.
 	privateBlocks atomic.Pointer[DecodedBlockCache]
 	// readOnly rejects writes.
@@ -99,7 +99,8 @@ func NewTransaction(
 	opts.ForceBlockRef = nil
 	putOpts = opts
 
-	// Resolve the hash type from explicit options, the store, or the default.
+	// Resolve the hash type from explicit options, the store, or the default
+	// hash type.
 	hashType := putOpts.GetHashType()
 	if hashType == 0 && store != nil {
 		hashType = store.GetHashType()
@@ -216,10 +217,10 @@ func (t *Transaction) readCache() *DecodedBlockCache {
 
 // readerCache returns the scope a ReadCursor reads through: the borrowed scope
 // when it is enabled, otherwise the transaction's private scope in the
-// process-wide pool, bounded by the pool's budget, whose entries age out after
-// the transaction. A reader without an enabled borrowed scope, including one
-// whose scope is Disabled or closed, thus decodes a page once rather than on
-// every follow.
+// process-wide pool, bounded by the pool's budget. The private scope's entries
+// age out after the transaction. A reader without an enabled borrowed scope,
+// including one whose scope is Disabled or closed, thus decodes a page once
+// rather than on every follow.
 func (t *Transaction) readerCache() *DecodedBlockCache {
 	// Prefer the lifecycle's scope.
 	cache := t.decodedBlocks.Load()
@@ -227,7 +228,7 @@ func (t *Transaction) readerCache() *DecodedBlockCache {
 		return cache
 	}
 
-	// Make the private scope once; a racing reader adopts the winner.
+	// Make the private scope once. A racing reader adopts the winner.
 	if private := t.privateBlocks.Load(); private != nil {
 		return private
 	}
@@ -269,9 +270,9 @@ func (t *Transaction) sharesDecodedBlock(blk any) bool {
 }
 
 // SetBufferedStoreSettings overrides the BufferedStore settings used to wrap
-// the write store inside WriteAtRoot. Pass nil to reset to defaults. This must
-// be called before Write/WriteAtRoot begins committing for the override to
-// take effect on that commit.
+// the write store inside WriteAtRoot. Pass nil to reset to default settings.
+// SetBufferedStoreSettings must be called before Write/WriteAtRoot begins
+// committing for the override to take effect on that commit.
 func (t *Transaction) SetBufferedStoreSettings(s *BufferedStoreSettings) {
 	// Ignore settings for an absent transaction.
 	if t == nil {
@@ -420,7 +421,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	ctx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	// Mark blocks reachable from the write root; full writes cut other blocks.
+	// Mark blocks reachable from the write root. Full writes cut other blocks.
 	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	reachable := markReachable(writeRoot)
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/reachable", "nodes=%d", len(reachable))
@@ -440,7 +441,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	hashType := t.putOpts.GetHashType()
 
 	// A single reachable node has no parallel work. Run its encode and put on
-	// the caller; larger graphs use the existing bounded worker queues.
+	// the caller. Larger graphs use the existing bounded worker queues.
 	var encodeQueue, writeQueue *conc.ConcurrentQueue
 	if len(reachable) > 1 {
 		encodeQueue = conc.NewConcurrentQueue(maxEncodeConcurrency)
@@ -479,7 +480,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	for _, bn := range order {
 		reachableNod := reachable[bn]
 
-		// A clean node encodes nothing; its parents wait on its dirty
+		// A clean node encodes nothing, so its parents wait on its dirty
 		// descendants instead (see resolveEncodeWaits).
 		if !bn.dirty {
 			continue
@@ -642,7 +643,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			}
 		}
 
-		// A leaf finishes here; graph nodes keep their existing queue lifetime.
+		// A leaf finishes here. Graph nodes keep their existing queue lifetime.
 		if encodeQueue == nil {
 			encode()
 			continue
@@ -670,7 +671,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 	}
 
-	// Drain only this write's coalescer; borrowed buffers belong to the caller.
+	// Drain only this write's coalescer. Borrowed buffers belong to the caller.
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", encodedBlocks.Load(), putBlocks.Load())
 	if buffered != nil && drainBuffered {
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
@@ -784,14 +785,14 @@ func addMarshalAliasWaits(reachable map[*handle]*transactionReachableNode) {
 	}
 
 	// Add alias dependencies to each reachable block's existing child waits.
-	// Each walk starts from an empty seen set; one map is cleared and reused.
+	// Each walk starts from an empty seen set. One map is cleared and reused.
 	seen := make(map[*AliasIdentityToken]struct{})
 	for h, node := range reachable {
 		if h.isSubBlock || h.blk == nil {
 			continue
 		}
 
-		// Each identity adds its aliases once; most nodes have none, so the
+		// Each identity adds its aliases once. Most nodes have none, so the
 		// set is made on the first identity that has any.
 		var added map[*AliasIdentityToken]struct{}
 		clear(seen)
@@ -846,7 +847,7 @@ func resolveEncodeWaits(reachable map[*handle]*transactionReachableNode) map[*ha
 			}
 		}
 
-		// A dirty child is its own wait; a clean child passes its frontier up.
+		// A dirty child is its own wait. A clean child passes its frontier up.
 		for _, child := range reachable[h].from {
 			if child.dirty {
 				add(reachable[child].encodeDone)
@@ -928,8 +929,8 @@ func rangeSubBlocks(v any, fn func(SubBlock)) {
 }
 
 // cloneDetached copies the transaction for use as a detached tx. A detached
-// tx that shares the source's decoded blocks stays read-only; one that owns
-// cloned blocks may write.
+// tx that shares the source's decoded blocks stays read-only. A detached tx
+// that owns cloned blocks may write.
 func (t *Transaction) cloneDetached(nroot *handle, sharesBlocks bool) *Transaction {
 	// Detached transactions retain storage policy but own their cursor graph.
 	if t == nil {

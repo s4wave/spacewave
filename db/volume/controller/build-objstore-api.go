@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// buildObjectStoreAPIResolver resolves BuildObjectStoreAPI directives
+// buildObjectStoreAPIResolver resolves BuildObjectStoreAPI directives.
 type buildObjectStoreAPIResolver struct {
 	c   *Controller
 	dir volume.BuildObjectStoreAPI
@@ -54,7 +54,7 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	di directive.Instance,
 	dir volume.BuildObjectStoreAPI,
 ) (directive.Resolver, error) {
-	// check if we can immediately reject this directive
+	// Check if the controller can immediately reject this directive.
 	if vb := c.volume.GetValue(); vb != nil {
 		targetVolID := dir.BuildObjectStoreAPIVolumeID()
 		if !volume.CheckIDMatchesAliases(targetVolID, vb.vol.GetID(), c.config.GetVolumeIdAlias()) {
@@ -62,7 +62,7 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 		}
 	}
 
-	// Return resolver.
+	// Return the resolver.
 	return &buildObjectStoreAPIResolver{c: c, dir: dir}, nil
 }
 

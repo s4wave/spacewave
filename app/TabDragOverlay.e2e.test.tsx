@@ -154,7 +154,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     })
     layoutElement.dispatchEvent(dragEnterEvent)
 
-    // Step 3: Drag over tab bar area - overlay should appear
+    // Step 3: Drag over tab bar area: overlay should appear
     const dragOverTabBar = new DragEvent('dragover', {
       bubbles: true,
       cancelable: true,
@@ -189,7 +189,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     expect(outlineRectAtTabBar.style.visibility).toBe('visible')
 
     // Step 4: Now drag DOWN into the content area (~100px below)
-    // This is where the bug occurs - the overlay should remain visible
+    // The bug occurs in the content area: the overlay should remain visible
     const contentY = startY + 100 // 100px below the tab button
 
     const dragOverContent = new DragEvent('dragover', {
@@ -403,7 +403,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
         : 'NOT FOUND',
     )
 
-    // BUG: This should not be null or hidden
+    // BUG: The outline rect should not be null or hidden
     expect(outlineAfterDrag).not.toBeNull()
     if (outlineAfterDrag) {
       expect(outlineAfterDrag.style.visibility).toBe('visible')
@@ -460,7 +460,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     await expect
       .poll(
         () => {
-          // Should have 2 flexlayout__layout elements (outer + nested)
+          // The DOM should have 2 flexlayout__layout elements (outer + nested)
           const layouts = document.querySelectorAll('.flexlayout__layout')
           return layouts.length
         },
@@ -530,7 +530,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
       .poll(() => document.querySelector('.flexlayout__outline_rect'))
       .not.toBeNull()
 
-    // Should have outline visible
+    // The outline should be visible
     const outlineAtTabBar = document.querySelector(
       '.flexlayout__outline_rect',
     ) as HTMLElement
@@ -606,7 +606,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
       // BUG CHECK: Outline should still be visible
       expect(outlineAfterNestedEnter).not.toBeNull()
       if (outlineAfterNestedEnter) {
-        // This might fail if the bug is present
+        // The visibility assertion might fail if the bug is present
         expect(outlineAfterNestedEnter.style.visibility).toBe('visible')
       }
     }
@@ -626,10 +626,10 @@ describe('Tab Drag Overlay Visibility Bug', () => {
   it('drag overlay disappears with dragleave - simulates real browser behavior', async () => {
     // This test attempts to reproduce the bug by simulating the dragleave event
     // that occurs when the cursor leaves one element and enters another.
-    // In a real browser, when you drag from shell to nested layout:
+    // In a real browser, when a tab is dragged from shell to nested layout:
     // 1. dragenter fires on nested layout
     // 2. dragleave fires on shell layout (for the specific child element)
-    // This can cause dragEnterCount imbalance in FlexLayout.
+    // The event sequence can cause dragEnterCount imbalance in FlexLayout.
 
     const shellModel = Model.fromJson({
       global: {},
@@ -689,7 +689,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
       }),
     )
 
-    // Enter shell layout - this sets dragEnterCount = 1
+    // Enter shell layout: the dragenter event sets dragEnterCount = 1
     shellLayout.dispatchEvent(
       new DragEvent('dragenter', {
         bubbles: true,
@@ -738,7 +738,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     ) as HTMLElement
 
     if (tabContent) {
-      // Fire dragleave on the tab content - simulating cursor leaving it
+      // Fire dragleave on the tab content, simulating cursor leaving it
       // to enter the nested layout's area.
       // In real browser, relatedTarget would be set to the element being entered.
       tabContent.dispatchEvent(
@@ -756,7 +756,8 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     // Now fire dragleave on shell layout itself
     // In real browser, when moving to a child element, relatedTarget
     // would be the child element (which is still inside the layout).
-    // Our fix checks if relatedTarget is inside the layout and preserves the outline.
+    // The fix checks if relatedTarget is inside the layout and preserves
+    // the outline.
     shellLayout.dispatchEvent(
       new DragEvent('dragleave', {
         bubbles: true,
@@ -782,7 +783,8 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     )
 
     // If the bug is present, the outline will be removed or hidden
-    // With our fix, the outline should still exist because relatedTarget is inside the layout
+    // With the fix, the outline should still exist because relatedTarget is
+    // inside the layout
     expect(outline).not.toBeNull()
     expect(outline.style.visibility).toBe('visible')
 
@@ -1078,12 +1080,12 @@ describe('Grid Mode Visual Issues', () => {
       )
       .toBe(2)
 
-    // Initially should have 1 tabset
+    // The layout should initially have 1 tabset
     let tabsets = document.querySelectorAll('.flexlayout__tabset')
     expect(tabsets.length).toBe(1)
 
     // Simulate moving tab2 to create a split by using FlexLayout's action API
-    // This simulates what happens when you drop a tab on the right edge
+    // The move simulates dropping a tab on the right edge
     model.doAction(
       Actions.moveNode('tab2', 'main-tabset', DockLocation.RIGHT, -1),
     )
@@ -1093,7 +1095,7 @@ describe('Grid Mode Visual Issues', () => {
       .poll(() => document.querySelectorAll('.flexlayout__tabset').length)
       .toBe(2)
 
-    // Now should have 2 tabsets
+    // The layout should now have 2 tabsets
     tabsets = document.querySelectorAll('.flexlayout__tabset')
     console.log('=== AFTER SPLIT ===', {
       tabsetCount: tabsets.length,
@@ -1117,14 +1119,15 @@ describe('Grid Mode Visual Issues', () => {
     // Both tabsets should start at the same vertical position
     expect(Math.abs(leftRect.top - rightRect.top)).toBeLessThan(2)
 
-    // Both should have reasonable widths (roughly equal for 50/50 split)
+    // Both tabsets should have reasonable widths (roughly equal for a
+    // 50/50 split)
     expect(leftRect.width).toBeGreaterThan(100)
     expect(rightRect.width).toBeGreaterThan(100)
   })
 
   it('OptimizedLayout click-to-select activates parent tabset', async () => {
     // This test verifies that clicking on tab content in OptimizedLayout
-    // activates the parent tabset. This is important because OptimizedLayout
+    // activates the parent tabset. Activation matters because OptimizedLayout
     // renders tab content in a sibling TabContainer element, not inside
     // FlexLayout's DOM, so click events need special handling.
 
@@ -1220,7 +1223,7 @@ describe('Grid Mode Visual Issues', () => {
       )
       .toBe(2)
 
-    // Helper to check which tabset is active using the model
+    // getActiveTabsetId checks which tabset is active using the model.
     const getActiveTabsetId = (): string | undefined => {
       let activeId: string | undefined
       model.visitNodes((node) => {
@@ -1797,7 +1800,7 @@ describe('Grid Mode CSS Visual Issues', () => {
       // In with-menu mode, tab bar should have left padding for menu
       // The actual padding comes from CSS variable --menu-bar-width
       const paddingValue = parseFloat(paddingLeft)
-      expect(paddingValue).toBeGreaterThan(200) // Should be ~233px
+      expect(paddingValue).toBeGreaterThan(200) // Expect ~233px
     }
   })
 

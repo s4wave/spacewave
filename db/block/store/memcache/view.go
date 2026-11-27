@@ -11,7 +11,7 @@ import (
 // view is the read side of a Cache as a block store: it serves the blocks the
 // cache holds and nothing else. It reports no block as existing, so an
 // existence check asks the store below the cache, which alone is the truth of
-// what exists, and it takes no writes.
+// what exists. The view takes no writes.
 type view struct {
 	// cache is the cache the view reads.
 	cache *Cache

@@ -29,7 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// blockStoreBucketConfigRev 2 keeps local-provider buckets local-only.
+// blockStoreBucketConfigRev is 2 to keep local-provider buckets local-only.
 const blockStoreBucketConfigRev = 2
 
 // BlockStore implements the bstore interface.
@@ -242,11 +242,11 @@ func NewBlockStoreRef(providerID, providerAccountID, bstoreID string) *bstore.Bl
 type bstoreTracker struct {
 	// nodeClient reaches the store's storage node, nil while none is up.
 	nodeClient atomic.Pointer[block_store_nodepush.Client]
-	// a is the provider account
+	// a is the provider account.
 	a *ProviderAccount
-	// id is the bstore id
+	// id is the bstore id.
 	id string
-	// bstoreCtr is the bstore container
+	// bstoreCtr is the bstore container.
 	bstoreCtr *ccontainer.CContainer[*BlockStore]
 	// remote is the open storage backend store, or nil.
 	remote atomic.Pointer[openBackend]
@@ -313,8 +313,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return err
 	}
 
-	// Apply bucket config. Note that if there is a config with a higher rev,
-	// nothing will happen and the one with the higher revision will be used.
+	// Apply bucket config. If there is a config with a higher rev, nothing
+	// will happen and the config with the higher revision will be used.
 	volID := t.a.vol.GetID()
 	applyBucketResult, err := bucket.ExApplyBucketConfig(
 		ctx,
@@ -399,8 +399,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer markersRef.Release()
 
-	// Keep the SegmentIndex beside the markers, in the volume that holds the
-	// store's blocks. Its entries name files on this Device only.
+	// Keep the SegmentIndex beside the markers, in the volume that holds
+	// the store's blocks. Its entries reference files on this Device only.
 	segmentsID := BlockStoreFileSegmentsObjectStoreID(
 		t.a.t.p.info.GetProviderId(),
 		t.a.t.accountInfo.GetProviderAccountId(),
@@ -554,7 +554,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 
 	// A peer's request reads the store below its local volume too, without
-	// peers and filling nothing; the DEX bucket lookup alone holds only the
+	// peers and filling nothing. The DEX bucket lookup alone holds only the
 	// resident blocks.
 	var serve block.StoreOps
 	if sqlStore != nil {
@@ -579,8 +579,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		placement:     placement,
 	}
 
-	// Push publications to the storage node, for a store the account names.
-	// Serve mode only reads the node.
+	// Push publications to the storage node, for a store the account
+	// selects. Serve mode only reads the node.
 	if sqlStore == nil && placement.serveOnly {
 		stopReads := t.startNodeReads(ctx, le)
 		defer stopReads()
@@ -780,7 +780,8 @@ func (a *ProviderAccount) CreateBlockStore(ctx context.Context, id string) (*bst
 	return a.createBlockStoreLocked(ctx, id)
 }
 
-// MountBlockStore attempts to mount a BlockStore returning the bstore and a release function.
+// MountBlockStore tries to mount a BlockStore returning the bstore and a
+// release function.
 //
 // usually called by the provider controller
 //

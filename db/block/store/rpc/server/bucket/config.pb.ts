@@ -34,7 +34,7 @@ export interface Config {
   serviceId?: string
   /**
    * ServerIdRe is the regex of server IDs to accept for LookupRpcService.
-   * If empty, will accept any.
+   * If empty, will accept any server ID.
    */
   serverIdRe?: string
   /**

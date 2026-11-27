@@ -26,7 +26,7 @@ func ReplayAccessOrderRecord(
 
 // ReplayAccessOrderRecordWithFallback puts recorded reads first and retains
 // the caller's structural order for all other blocks. Each nonempty identity
-// is emitted once; the input order is also used when the record is stale.
+// is emitted once. The input order is also used when the record is stale.
 func ReplayAccessOrderRecordWithFallback(
 	ctx context.Context,
 	identity AccessOrderManifestIdentity,

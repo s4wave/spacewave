@@ -8,8 +8,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * BloomFilter contains a bloom filter in a Block.
- * uses FNV64 hash function
- * m factor is determined by len(bit_set)*64
+ * BloomFilter uses the FNV64 hash function.
+ * The m factor is determined by len(bit_set)*64.
  *
  * @generated from message bloom.BloomFilter
  */

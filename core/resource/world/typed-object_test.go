@@ -130,7 +130,8 @@ func TestTypedObjectResource(t *testing.T) {
 		}
 		t.Logf("Created object with key: %s", obj2.GetKey())
 
-		// Now try to access it as a typed object - should fail because it has no type
+		// Now try to access the object as a typed object. Access should
+		// fail because the object has no type
 		srpcClient, err := readTx.GetResourceRef().GetClient()
 		if err != nil {
 			t.Fatalf("GetClient failed: %v", err)

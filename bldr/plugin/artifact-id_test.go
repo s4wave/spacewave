@@ -51,7 +51,8 @@ func TestPinAssetsHref(t *testing.T) {
 	unknown := NewPluginContextInfo(meta, "", "")
 	href := PluginAssetsHttpPrefix + "colors/esb/viewer.js"
 
-	// The pinned path names the same file under the immutable artifact ID.
+	// The pinned path selects the same file under the immutable artifact
+	// ID.
 	want := PluginAssetsHttpPrefix + PluginArtifactID("colors", root.MarshalString()) + "/esb/viewer.js"
 	if got := pinned.PinAssetsHref(href); got != want {
 		t.Fatalf("pinned href: %q, want %q", got, want)

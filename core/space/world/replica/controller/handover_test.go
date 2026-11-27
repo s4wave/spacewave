@@ -23,9 +23,11 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// The shape of the large World: rounds of writes, each followed by a block
-// pass, with payloads large enough to chunk, then a churn of one-object
-// commits long enough that the payloads the rounds replaced become garbage.
+// fixtureRounds, fixtureCreates, fixtureMaxPayload, fixtureChurn,
+// fixtureChurnPayload and fixtureChurnPass define the shape of the large World:
+// rounds of writes, each followed by a block pass, with payloads large enough
+// to chunk, then a churn of one-object commits long enough that the payloads
+// the rounds replaced become garbage.
 const (
 	// fixtureRounds is the number of write rounds, one block pass after each.
 	fixtureRounds = 12
@@ -35,8 +37,8 @@ const (
 	fixtureMaxPayload = 128 << 10
 	// fixtureChurn is the number of one-object commits after the rounds. The
 	// World's changelog keeps up to two segments of 1024 commits, each change
-	// naming the object it replaced, so a replaced payload stays reachable
-	// until more commits than that follow it.
+	// identifying the object the change replaced, so a replaced payload
+	// stays reachable until more commits than that follow the change.
 	fixtureChurn = 2200
 	// fixtureChurnPayload is the largest churn payload, in bytes.
 	fixtureChurnPayload = 4 << 10
@@ -378,8 +380,8 @@ func worldDiff(ctx context.Context, t *testing.T, ws world.WorldState, fix *larg
 const departedKey = "departed-write"
 
 // tryDepartedWrite tries to write departedKey into acc's departed copy of id.
-// The write may fail or land only in that copy; either way it must not reach
-// the owner.
+// The write may fail or land only in that copy, but either way the write
+// must not reach the owner.
 func tryDepartedWrite(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_local.ProviderAccount, id string) {
 	// Bound the attempt, since a departed copy may never confirm it.
 	t.Helper()
@@ -399,9 +401,9 @@ func tryDepartedWrite(ctx context.Context, t *testing.T, b bus.Bus, acc *provide
 	t.Logf("departed write: %v", err)
 }
 
-// departure is the successor's state when it first no longer names the
-// departed owner: the checkpoint height and the departed owner's ops still
-// pending. Nothing above it may come from the departed owner.
+// departure is the successor's state when the state first no longer lists
+// the departed owner: the checkpoint height and the departed owner's ops still
+// pending. Nothing above that state may come from the departed owner.
 type departure struct {
 	// height is the checkpoint height.
 	height uint64
@@ -410,9 +412,9 @@ type departure struct {
 }
 
 // watchDeparted watches acc's state of id and records each write from
-// departed after the state no longer names it: a checkpoint it signed above
-// the departure, or an op it submitted after. The returned func stops the
-// watch and returns what it recorded.
+// departed after the state no longer lists departed: a checkpoint departed
+// signed above the departure, or an op departed submitted after the departure.
+// The returned func stops the watch and returns what the watch recorded.
 func watchDeparted(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, id, departed string) func() []string {
 	// Mount the SharedObject and its state.
 	t.Helper()
@@ -455,9 +457,9 @@ func watchDeparted(ctx context.Context, t *testing.T, acc *provider_local.Provid
 }
 
 // departedWrites returns the writes from departed in state above the
-// departure, setting base from the first state that no longer names departed.
+// departure, setting base from the first state that no longer lists departed.
 func departedWrites(id, departed string, state *sobject.SOState, base **departure) []string {
-	// Only a state that no longer names departed counts.
+	// Only a state that no longer lists departed counts.
 	if slices.ContainsFunc(state.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
 		return p.GetPeerId() == departed
 	}) || state.GetCheckpoint() == nil {
@@ -486,7 +488,8 @@ func departedWrites(id, departed string, state *sobject.SOState, base **departur
 		return nil
 	}
 
-	// Report a later checkpoint it signed and an op it submitted after.
+	// Report a later checkpoint the departed owner signed and an op the
+	// owner submitted after the departure.
 	var found []string
 	if inner.GetHeight() > (*base).height && slices.Contains(signers, departed) {
 		found = append(found, "checkpoint "+strconv.FormatUint(inner.GetHeight(), 10)+" signed by the departed owner")
@@ -532,8 +535,8 @@ func cutOff(t *testing.T, acc *provider_local.ProviderAccount) {
 }
 
 // restartSession stops acc's P2P sync and Session transport, then starts
-// both as a Session mount does, which restarts the replica controller on the
-// new bus.
+// both as a Session mount does. Starting both restarts the replica controller
+// on the new bus.
 func restartSession(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, session *provider_local.Session, state string) {
 	// Stop the transport and its sync.
 	t.Helper()
@@ -558,7 +561,7 @@ func waitListed(ctx context.Context, t *testing.T, acc *provider_local.ProviderA
 	release()
 }
 
-// waitOwnership waits until acc's state of id has an ownership ok accepts.
+// waitOwnership waits until acc's state of id has ownership that ok accepts.
 func waitOwnership(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, id string, ok func(*sobject.SOOwnership) bool) {
 	// Mount the listed SharedObject and its state.
 	t.Helper()

@@ -108,7 +108,7 @@ func TestSessionTransportUDPAuthorizesPeers(t *testing.T) {
 }
 
 // TestSessionTransportUDPAdmitsNamedPeers checks that a Session whose
-// authorizer refuses every peer still links to a peer it names to StartUDP.
+// authorizer refuses every peer still links to a peer it selects for StartUDP.
 func TestSessionTransportUDPAdmitsNamedPeers(t *testing.T) {
 	// Build a Session that refuses every peer and one that admits any.
 	ctx, _, strict := newTestSessionTransport(t, "", transport.WithPeerAuthorizer(
@@ -125,7 +125,7 @@ func TestSessionTransportUDPAdmitsNamedPeers(t *testing.T) {
 		}
 	}
 
-	// The strict Session names the remote one and dials it.
+	// The strict Session selects the remote one and dials it.
 	addr, err := remote.StartUDP(ctx, transport.UDPConfig{ListenAddr: "127.0.0.1:0"})
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +160,8 @@ func TestSessionTransportUDPAdmitsNamedPeers(t *testing.T) {
 }
 
 // TestSessionTransportUDPNamedOnly checks that a named-only listener links a
-// peer it names without an address and refuses one its authorizer would admit.
+// peer it selects without an address and refuses one its authorizer would
+// admit.
 func TestSessionTransportUDPNamedOnly(t *testing.T) {
 	// Build a listener whose authorizer admits anyone but reports each
 	// question, and two dialers that admit any peer.
@@ -184,8 +185,8 @@ func TestSessionTransportUDPNamedOnly(t *testing.T) {
 		}
 	}
 
-	// The listener names only one dialer, which dials in, so it has no
-	// address to dial.
+	// The listener selects only one dialer, which dials in, so the listener has
+	// no address to dial.
 	addr, err := listener.StartUDP(ctx, transport.UDPConfig{
 		ListenAddr: "127.0.0.1:0",
 		Peers:      map[peer.ID]string{named.GetPeerID(): ""},
@@ -298,7 +299,7 @@ func TestSessionTransportReauthorizeClosesRevokedPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Open a held stream; the first write delivers it to the listener.
+	// Open a held stream. The first write delivers it to the listener.
 	ms, msRel, err := link.OpenStreamWithPeerEx(
 		ctx,
 		dialer.GetChildBus(),

@@ -28,7 +28,7 @@ func NewStoreFillReads(lower block.StoreOps, fill CopyFill) *StoreFillReads {
 }
 
 // GetSupportedFeatures reports no native features: the store takes no
-// writes, as a read-through over a cache's view reported.
+// writes, as a read-through over a cache's view reports.
 func (s *StoreFillReads) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
@@ -52,7 +52,8 @@ func (s *StoreFillReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 }
 
 // GetStoredBlock reads the block and its refs from lower and fills it. The
-// fill runs on a context without the read's cancel, as it outlives the read.
+// fill runs on a context without the read's cancel, as the fill outlives
+// the read.
 func (s *StoreFillReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := s.StoreOps.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil {

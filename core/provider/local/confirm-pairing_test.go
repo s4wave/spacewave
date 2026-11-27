@@ -28,7 +28,7 @@ func verifyParticipantOnAllSOs(
 		soID := ref.GetProviderResourceRef().GetId()
 		hostState := getSOState(ctx, t, acc, ref, soID)
 
-		// Check participant is OWNER.
+		// Check that the participant is OWNER.
 		found := false
 		for _, p := range hostState.GetConfig().GetParticipants() {
 			if p.GetPeerId() == remotePeerIDStr {
@@ -43,7 +43,7 @@ func verifyParticipantOnAllSOs(
 			t.Fatalf("SO %s: remote peer not found in participants", soID)
 		}
 
-		// Check grant exists.
+		// Check that the grant exists.
 		if hostState.CurrentKeyEpoch().FindGrant(remotePeerIDStr) == nil {
 			t.Fatalf("SO %s: no grant found for remote peer", soID)
 		}
@@ -176,7 +176,7 @@ func TestUnlinkDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify participant exists on all SOs.
+	// Verify that the participant exists on all SOs.
 	verifyParticipantOnAllSOs(ctx, t, acc, soList, remotePeerIDStr)
 
 	// Unlink the device.
@@ -184,7 +184,7 @@ func TestUnlinkDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify participant and grant removed from all SOs.
+	// Verify that the participant and grant are removed from all SOs.
 	for _, entry := range soList.GetSharedObjects() {
 		ref := entry.GetRef()
 		soID := ref.GetProviderResourceRef().GetId()

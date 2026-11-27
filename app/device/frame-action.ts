@@ -38,7 +38,10 @@ export function getFrameAction(capability: DeviceCapability) {
   }
 }
 
-/** buildCreateFrameOpData names the Device object and its served capability. */
+/**
+ * buildCreateFrameOpData references the Device object and its served
+ * capability.
+ */
 export async function buildCreateFrameOpData({
   device,
   deviceObjectKey,

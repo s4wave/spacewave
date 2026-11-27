@@ -291,7 +291,7 @@ describe('SessionFrame', () => {
             )}
           >
             <SessionFrame>
-              {/* This item is INSIDE SessionFrame - key test case! */}
+              {/* This item is INSIDE SessionFrame: key test case! */}
               <BottomBarLevel
                 id="child"
                 button={(selected, onClick) => (
@@ -316,7 +316,7 @@ describe('SessionFrame', () => {
       expect(parent).toBeTruthy()
       expect(child).toBeTruthy()
 
-      // Verify both can be clicked
+      // Verify both items can be clicked
       fireEvent.keyDown(parent!, { key: ' ' })
       expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('parent')
 

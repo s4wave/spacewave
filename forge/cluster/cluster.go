@@ -48,7 +48,7 @@ func UnmarshalCluster(ctx context.Context, bcs *block.Cursor) (*Cluster, error) 
 	return block.UnmarshalBlock[Cluster](ctx, bcs)
 }
 
-// Validate performs cursory checks of the Cluster object.
+// Validate checks the Cluster object cursorily.
 func (e *Cluster) Validate() error {
 	// Validate the Cluster name and require a nonempty controlling peer.
 	if err := identity.ValidateEntityID(e.GetName()); err != nil {

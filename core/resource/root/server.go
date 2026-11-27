@@ -23,9 +23,9 @@ import (
 
 // CoreRootServer implements the RootResourceService for s4wave core.
 type CoreRootServer struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus to look up and perform actions on
+	// b is the bus to look up and perform actions on.
 	b bus.Bus
 	// hostPluginID is the plugin id that owns this resource root.
 	hostPluginID string
@@ -33,7 +33,7 @@ type CoreRootServer struct {
 	appPluginIDs []string
 	// mountApp attaches a child installation through the composition root.
 	mountApp MountAppFunc
-	// stateAtomMgr manages state atom stores
+	// stateAtomMgr manages state atom stores.
 	stateAtomMgr *resource_state.StateAtomManager
 	// spaceRootAliasBcast broadcasts configured root registry changes.
 	spaceRootAliasBcast broadcast.Broadcast

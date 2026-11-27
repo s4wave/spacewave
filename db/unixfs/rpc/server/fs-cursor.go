@@ -36,9 +36,10 @@ type FSCursorService struct {
 	// hidden hides backend-private names from listings and lookups.
 	hidden func(string) bool
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	// note: mtx is only ever locked for very short periods of time.
-	// long-lived operations (like GetProxyCursor) are taken while mtx is unlocked.
+	// long-lived operations (like GetProxyCursor) are taken while mtx is
+	// unlocked.
 	mtx sync.Mutex
 
 	// handleIDCtr is a counter for new handle ids.
@@ -46,28 +47,30 @@ type FSCursorService struct {
 	handleIDCtr uint64
 
 	// bcastCh is closed whenever any of the below fields change.
-	// nil until at least one waiter is listening
+	// nil until at least one waiter is listening.
 	bcastCh chan struct{}
 	// handleIDToCursor maps the handle ID to the FSCursor.
 	handleIDToCursor map[uint64]*localFSCursor
 	// clients contains the map of ongoing FSCursorClient sessions.
 	clients map[uint64]*fsCursorClient
-	// handleIDToOps converts a handle ID to a FSCursorOps object.
+	// handleIDToOps maps a handle ID to a FSCursorOps object.
 	handleIDToOps map[uint64]unixfs.FSCursorOps
 }
 
-// localFSCursor contains a local FSCursor we expose to the remote.
-// manages reference count tracking and event routing for interested clients.
-// all fields are guarded by FSCursorService.mtx
+// localFSCursor contains a local FSCursor exposed to the remote.
+// Tracks reference counts and routes events for interested clients.
+// all fields are guarded by FSCursorService.mtx.
 type localFSCursor struct {
-	// released contains a multi-state of the released/init status of localFSCursor
+	// released contains a multi-state of the released/init status of
+	// localFSCursor.
 	released atomic.Int32 // 0: not initialized yet, 1: initialized (send event), 2: released
 	// parent is the identifier of the parent cursor, zero if root.
 	parent uint64
-	// name is the name of the entry traversed from parent via Lookup
-	// set only if parent != 0
+	// name is the name of the entry traversed from parent via Lookup.
+	// set only if parent != 0.
 	name string
-	// clients contains the list of client IDs referencing this cursor location
+	// clients contains the list of client IDs referencing this cursor
+	// location.
 	// these clients will receive notifications when the cursor changes.
 	clients []uint64
 	// cursor contains the FSCursor at this location.
@@ -114,7 +117,7 @@ func (l *localFSCursor) stopWatching() {
 
 // fsCursorClient contains information about an ongoing FSCursorClient request.
 type fsCursorClient struct {
-	// released indicates the client was released
+	// released indicates the client was released.
 	released bool
 	// txQueue is a queue of messages to transmit to the client.
 	txQueue []*unixfs_rpc.FSCursorChange
@@ -145,8 +148,10 @@ func (c *fsCursorClient) enqueueChange(ch *unixfs_rpc.FSCursorChange) bool {
 
 // NewFSCursorService constructs a FSCursorService from a FSCursor.
 //
-// NOTE: The FSCursor should never be released as long as the rpc service is available.
-// Wrap your FSCursor with a unixfs.FSCursorGetter if you need to auto re-construct the root.
+// NOTE: The FSCursor should never be released as long as the rpc service is
+// available.
+// Wrap the FSCursor with a unixfs.FSCursorGetter if the caller needs to
+// auto re-construct the root.
 func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
 	return newFSCursorService(rootCursor, false)
 }
@@ -184,9 +189,10 @@ func NewFSCursorServiceWithHandle(rootHandle *unixfs.FSHandle) *FSCursorService 
 }
 
 // lookupFSCursorLocked looks up the given fs cursor handle id while locked.
-// if the cursor is released, drops the cursor from the set & transmits release notifications.
+// if the cursor is released, drops the cursor from the set & transmits release
+// notifications.
 // checks if the cursor was released before returning
-// returns nil if the cursor was not found
+// returns nil if the cursor was not found.
 func (f *FSCursorService) lookupFSCursorLocked(cursorHandleID uint64) *localFSCursor {
 	cursor := f.handleIDToCursor[cursorHandleID]
 	if cursor == nil {
@@ -199,15 +205,17 @@ func (f *FSCursorService) lookupFSCursorLocked(cursorHandleID uint64) *localFSCu
 	return cursor
 }
 
-// releaseFSCursorLocked releases the fs cursor and enqueues a notification to clients.
-// if the passed cursor is nil, we will look it up by cursorHandleID
-// if ch is nil, we will construct a change object.
+// releaseFSCursorLocked releases the fs cursor and enqueues a notification to
+// clients.
+// if the passed cursor is nil, the service looks up the cursor by
+// cursorHandleID.
+// if ch is nil, the service constructs a change object.
 func (f *FSCursorService) releaseFSCursorLocked(
 	cursorHandleID uint64,
 	cursor *localFSCursor,
 	ch *unixfs_rpc.FSCursorChange,
 ) {
-	// lookup the cursor if we didn't pass it
+	// lookup the cursor if the caller didn't pass the cursor
 	if cursor == nil {
 		cursor = f.handleIDToCursor[cursorHandleID]
 		if cursor == nil {
@@ -231,7 +239,7 @@ func (f *FSCursorService) releaseFSCursorLocked(
 
 	// transmit the released event if there are any clients
 	if len(cursor.clients) != 0 {
-		// build the change if we didn't pre-allocate it
+		// build the change if the caller didn't pre-allocate the change
 		if ch == nil {
 			ch = &unixfs_rpc.FSCursorChange{
 				CursorHandleId: cursorHandleID,
@@ -264,8 +272,9 @@ func (f *FSCursorService) releaseFSCursorLocked(
 	f.broadcastLocked()
 }
 
-// enqueueCursorChangeLocked enqueues a cursor change to all clients of the cursor.
-// expects mtx is locked by caller
+// enqueueCursorChangeLocked enqueues a cursor change to all clients of the
+// cursor.
+// expects mtx is locked by caller.
 func (f *FSCursorService) enqueueCursorChangeLocked(cursor *localFSCursor, ch *unixfs_rpc.FSCursorChange) {
 	// enqueue the change to all interested clients
 	var dirty bool
@@ -319,13 +328,13 @@ func (f *FSCursorService) notifyDirectory(id uint64, cursor *localFSCursor, sub 
 
 // lookupCursorOpsLocked gets the CursorOps for the given ops handle id.
 // expects mtx to be locked
-// returns the ops or an error (ErrReleased)
+// returns the ops or an error (ErrReleased).
 func (f *FSCursorService) lookupCursorOpsLocked(opsHandleID uint64) (unixfs.FSCursorOps, error) {
 	ops, opsExists := f.handleIDToOps[opsHandleID]
 	if !opsExists {
 		return nil, unixfs_errors.ErrReleased
 	}
-	// TODO: check if this is needed or not
+	// TODO: check if calling ops.CheckReleased() is needed
 	if ops.CheckReleased() {
 		delete(f.handleIDToOps, opsHandleID)
 		return nil, unixfs_errors.ErrReleased
@@ -335,7 +344,7 @@ func (f *FSCursorService) lookupCursorOpsLocked(opsHandleID uint64) (unixfs.FSCu
 
 // accessCursorOps locks the mtx and calls a callback to access the CursorOps.
 // expects mtx to NOT be locked
-// translates the returned error to a UnixFSError, if any
+// translates the returned error to a UnixFSError, if any.
 func (f *FSCursorService) accessCursorOps(opsHandleID uint64, cb func(ops unixfs.FSCursorOps) error) *unixfs_errors.UnixFSError {
 	// Resolve the cursor operations handle before invoking the requested operation.
 	if opsHandleID == 0 {
@@ -363,7 +372,7 @@ func (f *FSCursorService) accessWritableCursorOps(opsHandleID uint64, cb func(op
 
 // resolveFSCursorProxy gets the FSCursor proxy for a parent handle ID.
 // expects mtx to NOT be locked
-// returns the cursor or an error
+// returns the cursor or an error.
 // returns nil, 0, nil if GetProxyCursor returned nil.
 func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursorHandleID, clientID uint64) (unixfs.FSCursor, uint64, error) {
 	if parentCursorHandleID == 0 {
@@ -373,7 +382,7 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 		return nil, 0, unixfs_rpc.ErrClientIDEmpty
 	}
 
-	// we may need to wait some time for the cursor to be resolved by a different routine.
+	// Wait if a different routine needs time to resolve the cursor.
 	var wait <-chan struct{}
 	for {
 		if wait != nil {
@@ -400,7 +409,7 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 			return nil, 0, unixfs_errors.ErrReleased
 		}
 
-		// we have to wait for the cursor to be resolved.
+		// Wait for the cursor to be resolved.
 		fsCursor := parentCursor.cursor
 		if fsCursor == nil {
 			wait = f.getWaitChLocked()
@@ -408,7 +417,8 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 			continue
 		}
 
-		// if the pointer is set, another routine has/is resolving it.
+		// if the pointer is set, another routine has resolved or is
+		// resolving the proxy cursor.
 		if parentCursor.proxyHandleID != nil {
 			proxyHandleID := *parentCursor.proxyHandleID
 			if proxyHandleID == 0 {
@@ -434,7 +444,8 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 					f.releaseFSCursorLocked(uint64(proxyHandleID), proxyCursor, nil) //nolint:gosec
 					parentCursor.proxyHandleID = nil
 				} else {
-					// the proxy cursor is good. add our client & return it
+					// the proxy cursor is good. add the
+					// client & return the cursor
 					if !slices.Contains(proxyCursor.clients, clientID) {
 						proxyCursor.clients = append(proxyCursor.clients, clientID)
 						clientObj.cursors = append(clientObj.cursors, uint64(proxyHandleID)) //nolint:gosec
@@ -450,7 +461,8 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 			}
 		}
 
-		// we are the first to call resolveFSCursorProxy for this cursor
+		// This call is the first to call resolveFSCursorProxy for this
+		// cursor.
 		parentCursor.proxyHandleID = new(int64)
 
 		// call GetProxyCursor
@@ -498,7 +510,7 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 // returns ErrReleased if the cursor is not found
 // will temporarily lock mtx while resolving the ops.
 func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID uint64) (unixfs.FSCursorOps, uint64, error) {
-	// we may need to wait some time for the ops to be resolved by a different routine.
+	// Wait if a different routine needs time to resolve the ops.
 	var wait <-chan struct{}
 	for {
 		if wait != nil {
@@ -509,7 +521,7 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 			}
 		}
 
-		// this checks that the cursor is still registered & not released.
+		// Check that the cursor is still registered & not released.
 		f.mtx.Lock()
 		cursor := f.lookupFSCursorLocked(cursorHandleID)
 		if cursor == nil {
@@ -517,7 +529,7 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 			return nil, 0, unixfs_errors.ErrReleased
 		}
 
-		// we have to wait for the cursor to be resolved.
+		// Wait for the cursor to be resolved.
 		fsCursor := cursor.cursor
 		if fsCursor == nil {
 			wait = f.getWaitChLocked()
@@ -544,7 +556,8 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 				return ops, opsHandleID, nil
 			}
 
-			// the ops handle was released already, let's drop it and rebuild.
+			// the ops handle was released already, drop the handle
+			// and rebuild.
 			delete(f.handleIDToOps, opsHandleID)
 		}
 
@@ -628,10 +641,11 @@ func (f *FSCursorService) needsDirectoryWatch(cursor *localFSCursor, ops unixfs.
 
 // resolveFSCursorLookup resolves a lookup for a child of an FSCursor by name.
 // expects mtx to NOT be locked
-// returns the cursor or an error
+// returns the cursor or an error.
 // returns nil, 0, nil if GetProxyCursor returned nil.
 // checks that the cursor handle id matches the ops handle id.
-// returns ErrReleased if either the cursor or the ops handle id are released or mismatch.
+// returns ErrReleased if either the cursor or the ops handle id are released or
+// mismatch.
 func (f *FSCursorService) resolveFSCursorLookup(
 	ctx context.Context,
 	parentCursorHandleID,
@@ -650,7 +664,7 @@ func (f *FSCursorService) resolveFSCursorLookup(
 		return nil, 0, unixfs_errors.ErrEmptyPath
 	}
 
-	// we may need to wait some time for the cursor to be resolved by a different routine.
+	// Wait if a different routine needs time to resolve the cursor.
 	var wait <-chan struct{}
 	for {
 		if wait != nil {
@@ -710,7 +724,8 @@ func (f *FSCursorService) resolveFSCursorLookup(
 			return nil, 0, unixfs_errors.ErrReleased
 		}
 
-		// we are the first to call Lookup for this cursor->name combination
+		// This call is the first to call Lookup for this cursor->name
+		// combination.
 		retHandleID := f.handleIDCtr
 		f.handleIDCtr++
 		if parentCursor.children == nil {
@@ -798,8 +813,8 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 
 // maybeReleaseFSCursorLocked conditionally releases the FSCursor.
 // expects mtx to be locked
-// if cursor is nil, we will look it up in this function.
-// if no clients and (cursor is nil OR no children), release the cursor
+// if cursor is nil, the service looks up the cursor in this function.
+// if no clients and (cursor is nil OR no children), release the cursor.
 func (f *FSCursorService) maybeReleaseFSCursorLocked(cursorHandleID uint64, cursor *localFSCursor) {
 	// The service owns the root through every temporary child's release.
 	if cursorHandleID <= 1 {
@@ -820,7 +835,7 @@ func (f *FSCursorService) maybeReleaseFSCursorLocked(cursorHandleID uint64, curs
 	}
 }
 
-// resolveFSCursorLocked adds the FSCursor to the working set and resolves it.
+// ingestFSCursorLocked adds the FSCursor to the working set and resolves it.
 // expects mtx to be locked when calling
 // returns with mtx LOCKED.
 // calls resolveFSCursor while mtx is UNLOCKED.
@@ -843,7 +858,8 @@ func (f *FSCursorService) ingestFSCursorLocked(
 		clients: []uint64{clientID},
 	}
 	if name != "" {
-		// note: we expect that the caller already updated the parent->children map.
+		// note: the caller is expected to have updated the
+		// parent->children map.
 		// otherwise defer registering the cursor until later.
 		f.handleIDToCursor[fsCursorID] = nextFSCursor
 		f.broadcastLocked()
@@ -868,16 +884,21 @@ func (f *FSCursorService) ingestFSCursorLocked(
 			released := ch.Released
 			if released {
 				if nextFSCursor.released.Load() > 1 {
-					// if we already released, return & remove handler
+					// if the cursor is already released,
+					// return & remove the handler
 					return false
 				}
 				if ch.Released && nextFSCursor.released.Swap(2) != 1 {
-					// if released == 0 we released before initialization was complete.
-					// avoid a mutex contention by returning now.
+					// if released == 0 the cursor was
+					// released before initialization was
+					// complete.
+					// avoid a mutex contention by returning
+					// now.
 					return false
 				}
 			} else if nextFSCursor.released.Load() == 0 {
-				// if released == 0 we didn't finish init yet.
+				// if released == 0 cursor initialization is not
+				// complete yet.
 				return true
 			}
 
@@ -886,9 +907,12 @@ func (f *FSCursorService) ingestFSCursorLocked(
 			cc := unixfs_rpc.NewFSCursorChange(fsCursorID, ch)
 			f.mtx.Lock()
 			if released {
-				// the cursor is already released: mark it as such so we don't call Release again.
+				// the cursor is already released: mark the
+				// cursor as released so the service does not
+				// call Release again.
 				nextFSCursor.released.Store(2)
-				// release from our internal structures
+				// release the cursor from the service's
+				// internal structures
 				f.releaseFSCursorLocked(fsCursorID, nextFSCursor, cc)
 			} else {
 				f.enqueueCursorChangeLocked(nextFSCursor, cc)
@@ -898,7 +922,8 @@ func (f *FSCursorService) ingestFSCursorLocked(
 			return true
 		})
 
-		// we already marked as released in the call above if != 0
+		// the call above already marked the cursor as released if the
+		// state != 0
 		if swapped := nextFSCursor.released.CompareAndSwap(0, 1); !swapped {
 			err = unixfs_errors.ErrReleased
 		}
@@ -914,10 +939,11 @@ func (f *FSCursorService) ingestFSCursorLocked(
 		}
 	}
 
-	// if we already returned an error, stop early.
+	// if an earlier step already returned an error, stop early.
 	nextFSCursor.cursor = fsCursor
 	if err != nil {
-		// drop the list of clients first so we don't send a change notification.
+		// drop the list of clients first so the service sends no change
+		// notification.
 		if name != "" {
 			nextFSCursor.clients = nil
 			f.releaseFSCursorLocked(fsCursorID, nextFSCursor, nil)
@@ -925,7 +951,7 @@ func (f *FSCursorService) ingestFSCursorLocked(
 			nextFSCursor.release()
 		}
 	} else if name == "" {
-		// we did this already above if name != ""
+		// the cursor was already registered above if name != ""
 		f.handleIDToCursor[fsCursorID] = nextFSCursor
 	}
 
@@ -1061,7 +1087,7 @@ func (f *FSCursorService) GetCursorOps(
 }
 
 // ReleaseFSCursor releases an FSCursor handle.
-// This is a Fire and Forget RPC which will return instantly.
+// ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
 func (f *FSCursorService) ReleaseFSCursor(
 	ctx context.Context,
 	req *unixfs_rpc.ReleaseFSCursorRequest,
@@ -1357,7 +1383,7 @@ func (f *FSCursorService) OpsReadlink(
 	return &resp, nil
 }
 
-// OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+// OpsCopyTo copies a dirent inode to another inode with an optimized operation.
 func (f *FSCursorService) OpsCopyTo(
 	ctx context.Context,
 	req *unixfs_rpc.OpsCopyToRequest,
@@ -1386,7 +1412,7 @@ func (f *FSCursorService) OpsCopyTo(
 	return &resp, nil
 }
 
-// OpsCopyFrom performs an optimized copy from another inode.
+// OpsCopyFrom copies from another inode with an optimized operation.
 func (f *FSCursorService) OpsCopyFrom(
 	ctx context.Context,
 	req *unixfs_rpc.OpsCopyFromRequest,
@@ -1415,7 +1441,7 @@ func (f *FSCursorService) OpsCopyFrom(
 	return &resp, nil
 }
 
-// OpsMoveTo performs an atomic and optimized move to another inode.
+// OpsMoveTo moves to another inode with an atomic, optimized operation.
 func (f *FSCursorService) OpsMoveTo(
 	ctx context.Context,
 	req *unixfs_rpc.OpsMoveToRequest,
@@ -1452,7 +1478,7 @@ func (f *FSCursorService) OpsMoveTo(
 	return &resp, nil
 }
 
-// OpsMoveFrom performs an atomic and optimized move from another inode.
+// OpsMoveFrom moves from another inode with an atomic, optimized operation.
 func (f *FSCursorService) OpsMoveFrom(
 	ctx context.Context,
 	req *unixfs_rpc.OpsMoveFromRequest,
@@ -1539,12 +1565,12 @@ func (f *FSCursorService) broadcastLocked() {
 	}
 }
 
-// TODO: if we return the same FSCursor from GetProxyCursor or the same ops from
-// GetCursorOps, in other words, if we re-use objects multiple times, they will
-// be treated as separate objects here.
+// TODO: if GetProxyCursor returns the same FSCursor or GetCursorOps returns
+// the same ops, in other words, if those calls re-use objects multiple times,
+// the service treats those objects as separate objects here.
 //
-// this may lead to cursors being spuriously released
-// luckily, the client will just re-build the cursors in this case.
+// Treating reused objects as separate objects may spuriously release cursors.
+// The client will re-build the cursors in this case.
 // if this is a real performance issue we can add mapping for this later.
 const _ int = 0
 

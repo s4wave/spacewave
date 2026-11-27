@@ -15,19 +15,19 @@ import (
 
 // ReleaseOptions configures one release of a Deployment.
 type ReleaseOptions struct {
-	// Deployment names the Space and the identifiers launchers mount.
+	// Deployment declares the Space and the identifiers launchers mount.
 	Deployment Deployment
-	// Metadata is the release's channel metadata; its channel defaults to the
-	// Deployment's.
+	// Metadata is the release's channel metadata. Its channel defaults to
+	// the Deployment's.
 	Metadata *release.ReleaseMetadata
 	// ReleaseKey signs each selected manifest root.
 	ReleaseKey crypto.PrivKey
-	// DistKey signs the DistConfig; launchers pin its peer.
+	// DistKey signs the DistConfig. Launchers pin its peer.
 	DistKey crypto.PrivKey
 	// Rev is the DistConfig control revision, above every earlier selector's.
 	Rev uint64
-	// Retain is the revisions of each manifest platform kept in the release
-	// World; zero keeps DefaultRetain.
+	// Retain is the number of revisions of each manifest platform kept in
+	// the release World. Zero keeps DefaultRetain.
 	Retain int
 	// LauncherConfigs are applied to the launcher bus with the selector.
 	LauncherConfigs map[string]*configset_proto.ControllerConfig
@@ -39,7 +39,7 @@ type ReleaseOptions struct {
 // Release stages the channel in eng, publishes the release World to the
 // Deployment's Space, and only then signs the DistConfig selecting the
 // channel. Launchers mount the head of the Space's root pointer, so the root
-// is posted before any selector naming the release exists.
+// is posted before any selector referencing the release exists.
 //
 // A launcher adopts a selector and fetches its root at once, so no selector
 // is signed before its root is durable: a manifest whose content the World
@@ -54,9 +54,9 @@ func Release(ctx context.Context, eng world.Engine, opts ReleaseOptions) (*Relea
 	return orderedRelease(ctx, eng, opts, nil)
 }
 
-// Reissue rolls back by releasing a copy of the retained manifest meta names
-// at a revision above the newest of its platform. Launchers adopt the highest
-// revision, so a rollback is a release. The copy is staged in the same
+// Reissue rolls back by releasing a copy of the retained manifest meta selects
+// at a revision above the newest revision of its platform. Launchers adopt the
+// highest revision, so a rollback is a release. The copy is staged in the same
 // transaction as the channel.
 func Reissue(ctx context.Context, eng world.Engine, opts ReleaseOptions, meta *bldr_manifest.ManifestMeta) (*Released, error) {
 	if meta == nil {
@@ -109,8 +109,8 @@ func orderedRelease(ctx context.Context, eng world.Engine, opts ReleaseOptions, 
 		return nil, errors.Wrap(err, "stage release")
 	}
 
-	// Publish verifies every selected manifest's closure before uploading and
-	// returns once the checkpoint naming the root is posted.
+	// Publish verifies every selected manifest's closure before uploading
+	// and returns once the checkpoint referencing the root is posted.
 	checkpoint, head, err := publish(ctx, eng, staged, pub)
 	if err != nil {
 		return nil, errors.Wrap(err, "publish release")

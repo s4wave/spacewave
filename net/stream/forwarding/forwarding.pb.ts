@@ -13,7 +13,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface Config {
   /**
    * PeerId is the peer ID to listen for incoming streams.
-   * Can be empty to accept any.
+   * PeerId can be empty to accept any peer.
    */
   peerId?: string
   /**

@@ -17,7 +17,7 @@ func NewPluginMeta(projectID, pluginID, platformID, buildType string) *PluginMet
 }
 
 // UnmarshalPluginMetaB58 unmarshals a b58 meta.
-// Note: we compress with gzip compression.
+// The metadata uses gzip compression.
 func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
 	// Decode the base58 payload containing the plugin metadata.
 	m := &PluginMeta{}

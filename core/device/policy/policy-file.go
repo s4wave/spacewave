@@ -144,7 +144,8 @@ func Validate(policy *DevicePolicy) error {
 		return errors.Errorf("duplicate device policy served space %q", value)
 	}
 
-	// Reject an approval naming an empty or repeated child model or Secret plugin.
+	// Reject an approval listing an empty or repeated child model or Secret
+	// plugin.
 	for _, approval := range policy.GetLaunchApproval() {
 		if value, ok := firstInvalid(approval.GetAllowedChildModels()); ok {
 			if value == "" {

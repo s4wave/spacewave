@@ -23,7 +23,7 @@ import (
 // FolderLinkBatchFiles is the number of files one World transaction of a
 // FolderLink sync adds. Each costs the batch a pending entry and its Blob
 // block. The merge builds off the World writer and holds it under a
-// millisecond to publish; the batch bounds the build a commit repeats, under
+// millisecond to publish. The batch bounds the build a commit repeats, under
 // the writer, after it lost the race to other writers too often.
 const FolderLinkBatchFiles = 512
 
@@ -91,7 +91,7 @@ type FolderLink struct {
 // NewFolderLink constructs the link of the absolute folder into the Drive at
 // objKey, at the path dest within it, with its files' ranges kept in idx. A
 // two-way link also applies the changes others make to the Drive to the
-// folder; a one-way link replaces them with the folder's files.
+// folder. A one-way link replaces them with the folder's files.
 func NewFolderLink(eng world.Engine, idx *block_store_filesegment.Index, objKey, folder string, dest []string, twoWay bool) (*FolderLink, error) {
 	if !filepath.IsAbs(folder) {
 		return nil, errors.Errorf("folder must be an absolute path: %q", folder)
@@ -131,8 +131,8 @@ func NewFolderLink(eng world.Engine, idx *block_store_filesegment.Index, objKey,
 // A two-way sync first applies the changes others made to the Drive, and
 // leaves each entry that holds a change it could not apply yet. A batch whose
 // entries another writer changed after the comparison returns a
-// *FileConflictError with nothing of it committed; syncing again applies that
-// change first.
+// *FileConflictError with none of the batch committed. Syncing again applies
+// that change first.
 func (l *FolderLink) Sync(ctx context.Context, progress func(files, bytes uint64) error) error {
 	// Apply the Drive's changes, declare the destination, then walk the whole
 	// folder.
@@ -157,7 +157,7 @@ func (l *FolderLink) Sync(ctx context.Context, progress func(files, bytes uint64
 
 // SyncDirs makes the Drive equal to the folder in the directories at dirs,
 // paths relative to the folder, as Sync does, without walking their existing
-// subdirectories: a watcher names each directory whose entries changed. A
+// subdirectories: a watcher selects each directory whose entries changed. A
 // subdirectory the Drive lacks is walked whole. A directory the Drive lacks
 // is synced from its nearest ancestor the Drive holds, and one the folder
 // lacks is left to its parent's sync.
@@ -279,7 +279,7 @@ func (l *FolderLink) checkRoot(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
-	// Refuse a root that left its file system; record the first one.
+	// Refuse a root that left its file system. Record the first one.
 	switch {
 	case found && errors.Is(statErr, fs.ErrNotExist):
 		return 0, &FolderRootChangedError{Folder: l.folder, Recorded: rec, Missing: true}
@@ -366,7 +366,7 @@ type entryAction struct {
 	// link links the entry, a regular file the Drive lacks or holds changed.
 	link bool
 	// declare declares the entry, a directory the Drive lacks as one, and
-	// walks it whole; replace removes the Drive's other entry first.
+	// walks it whole. replace removes the Drive's other entry first.
 	declare, replace bool
 	// walk walks the entry, a directory the Drive holds.
 	walk bool
@@ -575,8 +575,8 @@ func (s *folderSync) syncDir(rel []string) error {
 // set. A subdirectory the Drive lacks is always walked whole. A directory
 // removed from the folder since its parent listed it is skipped.
 func (s *folderSync) dir(path string, parent []string, all bool) error {
-	// List the directory in name order and stat each entry; one removed
-	// since the listing is left out.
+	// List the directory in name order and stat each entry. An entry
+	// removed since the listing is left out.
 	ents, err := os.ReadDir(path)
 	if errors.Is(err, fs.ErrNotExist) && path != s.folder {
 		return nil
@@ -586,7 +586,7 @@ func (s *folderSync) dir(path string, parent []string, all bool) error {
 	}
 	infos := make([]fs.FileInfo, 0, len(ents))
 	for _, d := range ents {
-		// Never publish a fetched or staged file; the first remote pass
+		// Never publish a fetched or staged file. The first remote pass
 		// settles one a crash left.
 		if isApplyFile(d.Name()) {
 			continue
@@ -777,7 +777,7 @@ func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo, known map[string]*bl
 // nil when the Drive lacks one, needs on a, given the base of its file. It
 // reports false when the Drive holds a remote change not applied yet, which
 // the change would replace: a file other than its base, or no file where the
-// base names one.
+// base records one.
 func checkChange(a *entryAction, dirent *unixfs_block.Dirent, base *block_store_filesegment.FolderVersion) bool {
 	switch {
 	case dirent == nil:
@@ -923,7 +923,7 @@ func (s *folderSync) link(path string, parent []string, name string, a entryActi
 		return nil
 	}
 
-	// Link the file, hashing its bytes in a two-way sync; its index entries
+	// Link the file, hashing its bytes in a two-way sync. Its index entries
 	// commit before the batch does.
 	var sum gohash.Hash
 	if s.twoWay {
@@ -953,7 +953,8 @@ func (s *folderSync) link(path string, parent []string, name string, a entryActi
 	// Check what the link replaces, and ask for its version.
 	if s.twoWay {
 		if a.prev != nil {
-			// The new version replaces the base; its own lands at commit.
+			// The new version replaces the base. Its own base is
+			// recorded at commit.
 			if err := s.writer().ExpectFile(parent, name, a.prev); err != nil {
 				return err
 			}

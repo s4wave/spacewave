@@ -36,7 +36,7 @@ func TestCacheSeedInspector(t *testing.T) {
 		t.Fatalf("GetCacheSeedReasons: %v", err)
 	}
 
-	// Drain initial snapshot.
+	// Drain the initial snapshot.
 	for i, want := range []string{"/pre-0", "/pre-1"} {
 		msg, err := strm.Recv()
 		if err != nil {
@@ -74,7 +74,8 @@ func TestCacheSeedInspector(t *testing.T) {
 		if err == io.EOF || err == context.Canceled {
 			break
 		}
-		// Accept any stream-close error; SRPC may wrap the cancellation.
+		// Accept any stream-close error. SRPC may wrap the
+		// cancellation.
 		break
 	}
 }

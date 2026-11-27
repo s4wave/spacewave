@@ -28,13 +28,13 @@ func NewTxUpdateExecStatesTxn() Transaction {
 	return &TxUpdateExecStates{}
 }
 
-// GetTxType returns the type of transaction this is.
+// GetTxType returns the transaction type.
 func (t *TxUpdateExecStates) GetTxType() TxType {
 	return TxType_TxType_UPDATE_EXEC_STATES
 }
 
-// Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
+// Validate cursorily checks the transaction.
+// Note: Validate should not fetch network data.
 func (t *TxUpdateExecStates) Validate() error {
 	return nil
 }
@@ -63,7 +63,7 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		return err
 	}
 
-	// copy to the states slice & validate
+	// copy executions to the states slice & validate
 	// note: bcs can be nil here
 	err = root.ApplyExecStates(bcs, execObjKeys, execObjs)
 	if err != nil {

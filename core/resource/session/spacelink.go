@@ -195,7 +195,7 @@ func validateSpaceLinkLoopbackCallbackURL(raw string) error {
 	}
 }
 
-// approveVerifiedSpaceLink registers the agent session named by a verified
+// approveVerifiedSpaceLink registers the agent session referenced by a verified
 // SpaceLink ticket and adds it to the target Space as a participant.
 func approveVerifiedSpaceLink(
 	ctx context.Context,

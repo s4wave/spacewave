@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/cli"
 )
 
-// Commands are the CLI commands
+// commands are the CLI commands.
 var commands []*cli.Command
 
 var version string

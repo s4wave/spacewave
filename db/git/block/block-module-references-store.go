@@ -19,7 +19,7 @@ func (r *ModuleReferencesStore) IsNil() bool {
 	return r == nil
 }
 
-// Validate performs cursory validation of the object.
+// Validate validates the object cursorily.
 func (r *ModuleReferencesStore) Validate() error {
 	if err := r.GetKvtxRoot().Validate(); err != nil {
 		return errors.Wrap(err, "kvtx_root")

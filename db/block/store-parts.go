@@ -4,7 +4,8 @@ import "context"
 
 // StorePart is one labeled child of a block store built from other stores.
 type StorePart struct {
-	// Label names the child's role in its parent, such as "lower" or "upper".
+	// Label identifies the child's role in its parent, such as "lower" or
+	// "upper".
 	Label string
 	// Store is the child store.
 	Store StoreOps

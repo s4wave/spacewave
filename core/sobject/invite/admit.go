@@ -24,7 +24,7 @@ type Redeemer struct {
 }
 
 // ValidateRedeemer verifies a redemption's join responses, which must both
-// name the same invite.
+// identify the same invite.
 func ValidateRedeemer(joinResp, storageJoinResp *sobject.SOJoinResponse) (*Redeemer, error) {
 	// Verify the session peer's signature.
 	peerID, pubKey, err := ValidateJoinResponse(joinResp)
@@ -53,11 +53,11 @@ func ValidateRedeemer(joinResp, storageJoinResp *sobject.SOJoinResponse) (*Redee
 
 // Admit enrolls a redeemer of result's invite at the invite's role and counts
 // the use. It returns the session peer's grant, nil when that peer already
-// held one, the outcome and the role the peer holds after.
+// held one, the outcome and the role the peer holds after enrollment.
 //
 // Admission is the redemption's effect, whether the invite admitted the peer
 // at once or an owner approved its queued request. The caller decides that the
-// redeemer may join; Admit checks nothing about the invite.
+// redeemer may join. Admit checks nothing about the invite.
 func Admit(
 	ctx context.Context,
 	enroll EnrollFn,

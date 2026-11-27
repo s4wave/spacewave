@@ -107,7 +107,7 @@ func (c *Controller) SetBindingRegistry(registry *process_binding.BindingRegistr
 // runtime state or a process binding of the Space changes.
 //
 // The generation is nil while none runs. err is the last startup or runtime
-// failure while the controller waits to retry; the channel still reports the
+// failure while the controller waits to retry. The channel still reports the
 // retry.
 func (c *Controller) GetGeneration() (*Generation, <-chan struct{}, error) {
 	// Capture the Space generation and its next change notification together.
@@ -229,7 +229,8 @@ func (c *Controller) holdWhileRegistering(ctx context.Context, handler directive
 			pending, spaceCh = gen.GetSpaceController().GetRegistrationPendingAndWaitCh()
 		}
 
-		// Report the state and wait for either to change.
+		// Report the registration state and wait for the generation or
+		// registration state to change.
 		handler.MarkIdle(!pending)
 		select {
 		case <-ctx.Done():

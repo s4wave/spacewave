@@ -29,12 +29,12 @@ type Tx struct {
 
 	rootChangedCb func(*block.Cursor)
 
-	// deferCursors holds cursor writes until Flush; see DeferCursorWrites.
+	// deferCursors holds cursor writes until Flush. See DeferCursorWrites.
 	deferCursors bool
 	// held are the held cursor writes by key.
 	held map[string]heldWrite
 	// flushErr is the error of a failed Flush, which left the tree partly
-	// written; Flush returns it from then on, so no later read or Commit
+	// written. Flush returns it from then on, so no later read or Commit
 	// builds on that tree.
 	flushErr error
 }

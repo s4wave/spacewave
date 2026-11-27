@@ -1017,10 +1017,10 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	}
 }
 
-// TestPublishResultCanceledStoreLeavesPromisePending checks that a result
-// store a newer change cancels leaves the result promise pending. Resolving it
-// with the cancellation made watch followers treat a superseded build as a
-// failed one and stop following the builder.
+// TestPublishResultCanceledStoreLeavesPromisePending checks that canceling a
+// result store for a newer change leaves the result promise pending. Resolving
+// the promise with the cancellation makes watch followers treat a superseded
+// build as a failed one and stop following the builder.
 func TestPublishResultCanceledStoreLeavesPromisePending(t *testing.T) {
 	// Build the testbed and a valid result stored in its World.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -1147,7 +1147,8 @@ func TestFollowBuilderWatchSurvivesFailedBuild(t *testing.T) {
 	}
 	built := func(d delivered) bool { return d.err == nil && d.result != nil }
 
-	// Built, then failed, then built again after the next change.
+	// Verify a build succeeds, then fails, then succeeds after the next
+	// change.
 	until(false, func(d delivered) bool {
 		if !built(d) {
 			t.Fatalf("first build: %v", d.err)

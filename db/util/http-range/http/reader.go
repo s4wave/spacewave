@@ -26,12 +26,12 @@ var ErrNoContentLength = errors.New("no content length returned")
 // While Read() and Seek() are concurrency safe, the behavior while using them
 // concurrently is undefined. Only use ReadAt concurrently.
 //
-// Note that the body of the passed request is ignored.
+// The body of the passed request is ignored.
 // The method of the request is changed to HEAD for Size().
 // Call SetSize to avoid a HEAD request.
 //
 // if le is nil all logging will be disabled
-// verbose logs all http responses even if successful
+// verbose logs all http responses even if successful.
 type HTTPRangeReader struct {
 	le      *logrus.Entry
 	client  HttpClient
@@ -86,8 +86,9 @@ func (r *HTTPRangeReader) ReadAt(buf []byte, off int64) (int, error) {
 }
 
 // SliceReadAt reads a slice of data from the requested location.
-// NOTE: the returned slice may start before or after the requested location and length.
-// NOTE: this may return a completely different range than what you asked for!
+// NOTE: the returned slice may start before or after the requested location
+// and length.
+// NOTE: SliceReadAt may return a completely different range than requested!
 func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, data []byte, err error) {
 	// Reject a range with a negative offset or no buffer space.
 	if offset < 0 {
@@ -126,7 +127,8 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
 		// For both OK and Partial Content, read the body.
-		// Note: OK means the server does not support Range and returned the entire content.
+		// Note: OK means the server does not support Range and returned the
+		// entire content.
 		var bodyBytes []byte
 		var err error
 		if resp.StatusCode == http.StatusOK {
@@ -182,7 +184,8 @@ func (r *HTTPRangeReader) Read(buf []byte) (int, error) {
 
 // Seek sets the offset for the next Read or ReadAt operation.
 func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
-	// Resolve the requested position relative to the start, current position, or end.
+	// Resolve the requested position relative to the start, current position,
+	// or end.
 	var seek int64
 	switch whence {
 	case io.SeekStart:
@@ -219,8 +222,10 @@ func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
 	return seek, nil
 }
 
-// getSizeFromRequest makes an HTTP request with the specified method and attempts to determine the content length.
-// If the Content-Length header is missing in a GET response, it reads the entire body to calculate the size.
+// getSizeFromRequest makes an HTTP request with the specified method and tries
+// to determine the content length.
+// If the Content-Length header is missing in a GET response, getSizeFromRequest
+// reads the entire body to calculate the size.
 func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 	// Prepare the HTTP request used to determine the remote file size.
 	req := r.request.Clone(r.request.Context())
@@ -283,8 +288,10 @@ func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 }
 
 // Size uses an HTTP HEAD request to find out the total available bytes.
-// If the HEAD request does not return a Content-Length, it attempts a GET request.
-// If the GET request also lacks a Content-Length, it reads the entire body to determine the size.
+// If the HEAD request does not return a Content-Length, Size tries a GET
+// request.
+// If the GET request also lacks a Content-Length, Size reads the entire body
+// to determine the size.
 func (r *HTTPRangeReader) Size() (uint64, error) {
 	// Reuse the remote file size when the reader already knows it.
 	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {

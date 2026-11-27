@@ -45,12 +45,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestPluginNodeFixture runs an isolated Device through plugin arrival and withdrawal.
-// The compiler crosses a bidirectional Resource stream and never joins the Device bus.
-// A second node type's controller exists only on its plugin's bus: the Device runs
-// it there, restarts it on a changed config, and stops it when the plugin unloads.
+// TestPluginNodeFixture runs an isolated Device through plugin arrival and
+// withdrawal. The compiler crosses a bidirectional Resource stream and never
+// joins the Device bus. A second node type's controller exists only on its
+// plugin's bus: the Device runs it there, restarts it on a changed config, and
+// stops it when the plugin unloads.
 // Two Space installations of that plugin then register the same type through
-// their generation scopes, and the Device runs only its own World's.
+// their generation scopes, and the Device runs only its own World's
+// installation.
 func TestPluginNodeFixture(t *testing.T) {
 	// Create an isolated Device World and an allowed plugin node placement.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -265,7 +267,8 @@ func TestPluginNodeFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Publish echo services only on the plugin's isolated bus; grant only Echoer.
+	// Publish echo services only on the plugin's isolated bus. Grant only
+	// Echoer.
 	echoMux := srpc.NewMux()
 	if err := echo.SRPCRegisterEchoer(echoMux, echo.NewEchoServer(nil)); err != nil {
 		t.Fatal(err)

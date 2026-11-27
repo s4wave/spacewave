@@ -23,7 +23,7 @@ type scrapeSample struct {
 type scrapeSource func(ctx context.Context) ([]scrapeSample, error)
 
 // scraper scrapes one target's source into the target's Store on the
-// target's interval. It appends samples only; a commitGroup commits them.
+// target's interval. It appends samples only. A commitGroup commits them.
 type scraper struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -56,7 +56,7 @@ func newScraper(le *logrus.Entry, store *Store, cfg *s4wave_prom.ScrapeConfig, p
 }
 
 // run scrapes now and then once per interval until ctx ends or the store is
-// stood down, which returns ErrStoodDown.
+// stood down, in which case run returns ErrStoodDown.
 func (s *scraper) run(ctx context.Context) error {
 	//gostyle:timer deadline
 	t := time.NewTicker(s.cfg.Interval())
@@ -74,8 +74,8 @@ func (s *scraper) run(ctx context.Context) error {
 }
 
 // scrape fetches and appends one scrape stamped at start. A failed scrape
-// appends up as 0 and marks every series of the last successful scrape stale;
-// a successful one marks stale the series that vanished since then.
+// appends up as 0 and marks every series of the last successful scrape stale.
+// A successful scrape marks stale the series that vanished since then.
 func (s *scraper) scrape(ctx context.Context, start time.Time) {
 	// Read the whole scrape within the timeout before appending any of it.
 	ts := start.UnixMilli()

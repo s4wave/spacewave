@@ -30,12 +30,13 @@ import (
 	exptrace "golang.org/x/exp/trace"
 )
 
-// sharedHarness is the package-level harness, booted lazily on first access via
-// harness(). It owns the devtool bus, WASM build, HTTP server, and Playwright
-// browser process. Booting is deferred so test slices that exercise only
-// pure-unit logic (config resolution, crash classifier, peer watcher, script
-// compilation) never pay the multi-minute Manifest build. Individual tests
-// create isolated sessions via h.NewCleanSession(t).
+// harnessOnce, sharedHarness, and harnessBootErr coordinate lazy package-level
+// harness boot on first access via harness(). sharedHarness owns the devtool
+// bus, WASM build, HTTP server, and Playwright browser process. Booting is
+// deferred so test slices that exercise only pure-unit logic (config
+// resolution, crash classifier, peer watcher, script compilation) never pay the
+// multi-minute Manifest build. Individual tests create isolated sessions via
+// h.NewCleanSession(t).
 var (
 	harnessOnce    sync.Once
 	sharedHarness  *Harness
@@ -51,7 +52,8 @@ func TestMain(m *testing.M) {
 	}
 
 	// Optional prebuilding keeps cold compiler startup outside the test timer.
-	// The default remains lazy so unit-only selections do not build the app.
+	// The default build mode remains lazy so unit-only selections do not
+	// build the app.
 	if E2EWasmEnabled() && os.Getenv("E2E_WASM_PREBUILD") == "true" {
 		harnessOnce.Do(func() {
 			sharedHarness, harnessBootErr = bootSharedHarness()
@@ -96,9 +98,9 @@ func harness(t testing.TB) *Harness {
 }
 
 // sharedHarnessBooted reports whether the package harness has already been
-// built. A test that needs the harness compiled a particular way checks this
-// before configuring the build environment, since harnessOnce will not rebuild
-// what an earlier test in the same slice already built.
+// built. A test that needs the harness compiled a particular way checks the
+// boot state before configuring the build environment, since harnessOnce will
+// not rebuild what an earlier test in the same slice already built.
 func sharedHarnessBooted() bool {
 	return sharedHarness != nil || harnessBootErr != nil
 }
@@ -486,7 +488,7 @@ func TestEndToEndLinkEstablishment(t *testing.T) {
 		t.Fatalf("SignalRelay B: %v", err)
 	}
 
-	// Send init messages naming each remote peer.
+	// Send init messages identifying each remote peer.
 	if err := strmA.Send(&e2e_wasm_session.SignalRelayMessage{
 		Body: &e2e_wasm_session.SignalRelayMessage_Init{
 			Init: &e2e_wasm_session.SignalRelayInit{RemotePeerId: respB.GetPeerId()},
@@ -2069,9 +2071,10 @@ func TestQuickstartDriveTrace(t *testing.T) {
 }
 
 // TestDriveNavigationBurstTrace writes a trace artifact for repeated
-// file-open / navigate-up cycles in the drive browser. This exercises the
-// block commit hot path with sustained navigation traffic, producing
-// enough write transactions to measure coalescing and batching behavior.
+// file-open / navigate-up cycles in the drive browser. This navigation
+// exercises the block commit hot path with sustained navigation traffic,
+// producing enough write transactions to measure coalescing and batching
+// behavior.
 func TestDriveNavigationBurstTrace(t *testing.T) {
 	// Skip when the trace service is disabled.
 	skipTraceServiceWhenDisabled(t)

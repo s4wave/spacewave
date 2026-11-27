@@ -17,8 +17,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// pluginIdentityText names one plugin process for a person reading its debug
-// endpoint: which plugin, and which instance (for a Space, its installation).
+// pluginIdentityText identifies one plugin process for a person reading its
+// debug endpoint: which plugin, and which instance (for a Space, its
+// installation).
 // The instance key is empty for a shared plugin.
 func pluginIdentityText(info *bldr_plugin.PluginStartInfo) string {
 	return fmt.Sprintf(
@@ -40,7 +41,7 @@ func servePluginDebug(ctx context.Context, le *logrus.Entry, info *bldr_plugin.P
 		return
 	}
 
-	// Serve pprof, plus an endpoint that names this process.
+	// Serve pprof, plus an endpoint that identifies this process.
 	identity := pluginIdentityText(info)
 	mux := prof.NewProfMux()
 	mux.HandleFunc("/debug/plugin", func(w http.ResponseWriter, _ *http.Request) {

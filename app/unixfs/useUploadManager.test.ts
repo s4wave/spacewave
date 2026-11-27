@@ -197,7 +197,7 @@ describe('useUploadManager', () => {
     })
 
     // The new folder is sent alone, expecting nothing at its name, and the
-    // folder inside it once it commits.
+    // folder inside it once the new folder commits.
     expect(uploadTree.mock.calls.map(([entry]) => entry[0])).toEqual([
       { kind: 'directory', path: 'nested', expectMissing: true },
       { kind: 'directory', path: 'nested/empty', expectMissing: false },
@@ -455,8 +455,9 @@ describe('useUploadManager', () => {
   })
 
   describe('a failed folder row', () => {
-    // statuses returns the statuses of the dropped folder A and its file.
-    // The folder row keeps its id under a kept name such as A (2).
+    // folderOf returns the dropped folder A. statuses returns the statuses of A
+    // and its file. The folder row keeps its id under a kept name such as A
+    // (2).
     const folderOf = (result: { current: UploadManager }) =>
       result.current.items.find((item) => item.kind === 'directory')
     const statuses = (result: { current: UploadManager }) => [
@@ -689,7 +690,8 @@ describe('useUploadManager', () => {
     })
 
     it('asks about a file another writer put in it first', async () => {
-      // The folder commits; another writer adds a.txt before the file does.
+      // The folder commits, then another writer adds a.txt before the file
+      // does.
       const folder = fakeFolder({}, [{}, { 'A/a.txt': 1 }])
       const { result } = renderHook(() => useUploadManager())
       dropTree(result.current, folder, ['A/a.txt'])
@@ -848,24 +850,24 @@ describe('useUploadManager', () => {
   })
 })
 
-// A FakeFolder is a folder handle over disk, which maps each path below it to
-// a file at a one byte version, a folder or a link. Its uploadTree commits
-// like the store: it refuses a file expectation the path does not meet with
-// the version it holds, and a folder expecting missing where anything is; it
-// merges any other folder into a folder, and creates a file's missing parent
+// Holds maps each path in a FakeFolder's disk to a file at a one byte version,
+// a folder or a link. A FakeFolder is a folder handle over disk. Its uploadTree
+// commits like the store: it refuses a file expectation the path does not meet
+// with the version it holds, and a folder expecting missing where anything is.
+// It merges any other folder into a folder, and creates a file's missing parent
 // folders. Each later write in writes lands, as another writer's, just before
 // the next commit. Its listing omits the names in unlisted. The listings and
 // commits counted in faults (from 1) reject, a listing whose signal ends
 // rejects, and a commit of a path in faults.holds waits until release(path).
-// clone hands out handles to the same folder; a released handle refuses every
+// clone hands out handles to the same folder. A released handle refuses every
 // call.
 type Holds = Record<string, number | 'dir' | 'link'>
 
-// A Sent is one commit: its path, and what it expected.
+// Sent is one commit: its path, and what it expected.
 type Sent = [string, TreeUploadExpect | Folder]
 
-// newFolder is a folder sent expecting nothing at its path, and merged one
-// sent into whatever folder is there.
+// Folder describes newFolder, a folder sent expecting nothing at its path, and
+// merged, a folder sent into whatever folder is there.
 type Folder = { kind: 'directory'; expectMissing?: true }
 const newFolder: Folder = { kind: 'directory', expectMissing: true }
 const merged: Folder = { kind: 'directory' }
@@ -1008,8 +1010,8 @@ function fakeFolder(
   }
 }
 
-// plain returns a handle on an empty folder whose only work is uploadTree;
-// its clones share it.
+// plain returns a handle on an empty folder whose only work is uploadTree. Its
+// clones share the handle.
 function plain(uploadTree: FSHandle['uploadTree']): FSHandle {
   const handle = {
     uploadTree,

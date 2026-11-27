@@ -38,7 +38,7 @@ func NewCreateAppConnectorOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *CreateAppConnectorOp) Validate() error {
 	// Require an object key for the connector.
 	if len(o.GetObjectKey()) == 0 {

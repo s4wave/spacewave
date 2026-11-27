@@ -152,7 +152,7 @@ export function HandoffPage() {
   )
 
   const handleNavigateToSession = useCallback(() => {
-    // In handoff mode, do not navigate to session.
+    // In handoff mode, do not navigate to the session.
     // The completion message is shown instead.
   }, [])
 

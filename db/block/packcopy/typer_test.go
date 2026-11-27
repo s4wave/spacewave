@@ -58,14 +58,15 @@ func (m mapSource) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*bloc
 	return m[ref.MarshalString()], nil
 }
 
-// typedBlock is a test block whose bytes name its typed children.
+// typedBlock is a test block whose bytes identify its typed children.
 type typedBlock struct {
 	ref  *block.BlockRef
 	data []byte
 	refs []*block.BlockRef
 }
 
-// newTypedBlock builds a block naming each child with its type, "-" for none.
+// newTypedBlock builds a block identifying each child with its type, "-" for
+// none.
 func newTypedBlock(t *testing.T, name string, kids ...any) *typedBlock {
 	t.Helper()
 	b := &typedBlock{}
@@ -124,7 +125,8 @@ func TestCopyTyped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The typed subtree is copied with its decoded refs; the others are holes.
+	// The typed subtree is copied with its decoded refs. The others are
+	// holes.
 	want := map[string]string{
 		opaque.ref.MarshalString():  ReasonUndecodable,
 		untyped.ref.MarshalString(): ReasonRefsUnknown,

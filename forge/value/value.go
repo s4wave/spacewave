@@ -52,7 +52,7 @@ func (v ValueType) Validate() error {
 	return nil
 }
 
-// Validate performs cursory validation of the value.
+// Validate validates the value with cursory checks.
 func (v *Value) Validate(allowEmptyName bool) error {
 	// Require a value name and a recognized type for nonempty values.
 	if len(v.GetName()) == 0 && !allowEmptyName {
@@ -60,7 +60,7 @@ func (v *Value) Validate(allowEmptyName bool) error {
 	}
 	vt := v.GetValueType()
 	if vt == ValueType_ValueType_UNKNOWN {
-		// unknown is the empty value; nothing further to validate.
+		// unknown is the empty value. Nothing further to validate.
 		return nil
 	}
 	switch vt {
@@ -176,7 +176,7 @@ func (v *Value) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: the returned map does not include pending references (in a cursor).
 func (v *Value) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
 	m[3] = v.GetBlockRef()

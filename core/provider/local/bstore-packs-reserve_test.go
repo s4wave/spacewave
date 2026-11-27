@@ -17,7 +17,7 @@ import (
 // TestPackaheadReserveRefusesPut writes through a placed store whose diverting
 // log keeps a disk reserve. Below the reserve a put fails with ErrReserve and
 // stores nothing, so nothing is acknowledged, while the blocks written before
-// still read; once the space returns the refused block lands.
+// still read. Once the space returns the refused block lands.
 func TestPackaheadReserveRefusesPut(t *testing.T) {
 	// Open the placed store with a log whose free disk the test sets.
 	ctx := t.Context()

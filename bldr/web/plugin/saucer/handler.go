@@ -123,7 +123,7 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 		h.handler.ServeHTTP(rw, httpReq)
 	}
 
-	// Send final done frame.
+	// Send the final done frame.
 	rw.finish()
 }
 
@@ -161,7 +161,7 @@ type fetchBodyReader struct {
 
 // Read implements io.Reader.
 func (r *fetchBodyReader) Read(p []byte) (int, error) {
-	// Drain buffer first.
+	// Drain the buffer first.
 	if r.bufOff < len(r.buf) {
 		n := copy(p, r.buf[r.bufOff:])
 		r.bufOff += n
@@ -173,7 +173,7 @@ func (r *fetchBodyReader) Read(p []byte) (int, error) {
 		return 0, io.EOF
 	}
 
-	// Read next frame.
+	// Read the next frame.
 	frame, err := readFrame(r.rwc)
 	if err != nil {
 		return 0, err

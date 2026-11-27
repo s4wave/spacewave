@@ -66,11 +66,11 @@ type QueryReads = Map<string, Map<string, JsonValue | undefined>>
 /**
  * AppQueries owns live function queries for one authenticated app attachment.
  * Subscribers with identical definition and arguments share a producer. Each
- * producer reads tracked World snapshots, so a commit wakes it only when it
- * changes what the previous snapshot read; a commit to an unrelated object does
- * no work. A wake checks the collection roots first, and immutable tree
- * comparison filters the changed roots before record reads. Missing prior roots
- * and retyped objects trigger full reevaluation.
+ * producer reads tracked World snapshots, so a commit wakes the producer only
+ * when the commit changes what the previous snapshot read. A commit to an
+ * unrelated object does no work. A wake checks the collection roots first, and
+ * immutable tree comparison filters the changed roots before record reads.
+ * Missing prior roots and retyped objects trigger full reevaluation.
  */
 export class AppQueries<S extends Schema, P extends Principal> {
   private readonly engine: Engine
@@ -248,7 +248,8 @@ export class AppQueries<S extends Schema, P extends Principal> {
   /**
    * evaluate filters changed snapshots before rerunning the pure callback. The
    * server yields the next snapshot after a commit that changes what the
-   * previous one read, including a commit made while it was being read.
+   * previous snapshot read, including a commit made while that snapshot was
+   * being read.
    */
   private async *evaluate<A extends Validator, R>(
     definition: QueryDefinition<S, A, R>,

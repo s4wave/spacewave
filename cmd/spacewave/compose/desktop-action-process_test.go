@@ -270,7 +270,8 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 		t.Fatalf("desktop artifact = %q", first.GetUiManifestRef())
 	}
 
-	// Removing the app source makes any second copy impossible; attach still works.
+	// Removing the app source makes any second copy impossible, but
+	// attachment still works.
 	if err := os.Remove(source); err != nil {
 		t.Fatal(err)
 	}

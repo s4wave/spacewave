@@ -123,7 +123,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('@s4wave/web/state/index.js', () => ({
-  // Fresh object per call mirrors the real atom() factory identity behavior.
+  // A fresh object per call mirrors the real atom() factory identity behavior.
   atom: () => ({}),
   StateNamespaceProvider: ({
     rootAtom,
@@ -170,7 +170,8 @@ import type { StateType } from '@s4wave/web/state/index.js'
 
 import { SpacewaveRuntimeProviders } from './SpacewaveRuntimeProviders.js'
 
-// Real atom factory from the unmocked state module for rootAtom instances.
+// realState supplies the real atom factory from the unmocked state module
+// for rootAtom instances.
 const realState = await vi.importActual<
   typeof import('@s4wave/web/state/index.js')
 >('@s4wave/web/state/index.js')
@@ -324,7 +325,8 @@ describe('SpacewaveRuntimeProviders', () => {
     expect(mocks.resourceClientInstances).toHaveLength(0)
     cleanup()
 
-    // A present-but-undefined prop is explicit pending too, not omitted:
+    // A present-but-undefined prop is an explicit pending connection too,
+    // not an omitted prop:
     // presence dispatch, not nullness, selects the connection mode.
     const { unmount: unmountPending } = render(
       <SpacewaveRuntimeProviders

@@ -131,11 +131,11 @@ func (n *netting) release(ctx context.Context, key []byte, children []*block.Blo
 	return n.continueRelease(ctx)
 }
 
-// continueRelease moves the children of the paged release in progress down
-// from its release pages, within the slice's moves and stopping between
-// pages once a writer waits, and moves its Next past them; once the last
-// child moves it clears the state's release. It deletes each page once its
-// last child moves. The slice writes the state.
+// continueRelease moves the children of the paged release in progress down from
+// its release pages, within the slice's moves and stopping between pages once a
+// writer waits, and moves its Next past them. Once the last child moves it
+// clears the state's release. It deletes each page once its last child moves.
+// The slice writes the state.
 //
 // Invariants, which together keep every child's count exact:
 //
@@ -144,9 +144,9 @@ func (n *netting) release(ctx context.Context, key []byte, children []*block.Blo
 //     moves in the slice that moves the children before it, so a crash or
 //     restart resumes at the first child not moved, never moving one twice
 //     or skipping one.
-//  2. A child counts the freed block until it moves; the audit counts the
-//     unmoved part so. That only delays a free: a child's count runs high,
-//     and nothing frees while the release is in progress.
+//  2. A child counts the freed block until it moves. The audit counts the
+//     unmoved part so. That count only delays a free: a child's count runs
+//     high, and nothing frees while the release is in progress.
 //  3. At most one paged release is in progress.
 //  4. A page missing before its children move is an error, naming the
 //     block, that stops every pass until a repair, so a damaged release
@@ -206,7 +206,8 @@ func (n *netting) write(ctx context.Context) error {
 
 	// While Sweeping an unmarked block's holders are in its
 	// kindUnmarkedCount record, as countKind routes it, at one more read of
-	// its run entry; outside Sweeping every node's is its kindCount record.
+	// its run entry. Outside Sweeping every node's holders are in its
+	// kindCount record.
 	sweeping := n.state.GetGeneration() == Generation_GENERATION_SWEEPING
 	reads := make([][]byte, len(nodes))
 	for i, nd := range nodes {
@@ -228,7 +229,7 @@ func (n *netting) write(ctx context.Context) error {
 		}
 	}
 
-	// Write each.
+	// Write each node.
 	for i, nd := range nodes {
 		holders0, ripe0 := uint64(1), uint64(0)
 		if found[i] {

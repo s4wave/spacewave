@@ -21,8 +21,9 @@ const ChromiumGPUEnv = "E2E_CHROMIUM_GPU"
 type ChromiumGPUPreference int
 
 const (
-	// ChromiumGPUPreferGPU is the unset default. Launch with hardware GPU
-	// enabled; on a launch error, retry the legacy software launch once.
+	// ChromiumGPUPreferGPU is the default policy when E2E_CHROMIUM_GPU is
+	// unset. Launch with hardware GPU enabled. On a launch error, retry the
+	// legacy software launch once.
 	ChromiumGPUPreferGPU ChromiumGPUPreference = iota
 	// ChromiumGPULegacy is an explicit opt-out (false/0/no/off). Launch
 	// legacy software Chromium only.
@@ -66,7 +67,7 @@ func (p ChromiumGPUPreference) String() string {
 
 // ChromiumLaunchOptions returns the Playwright launch options for one
 // Chromium launch mode. gpu requests acceleration in full Chromium using its
-// platform-selected backend; forcing Vulkan can select software on macOS.
+// platform-selected backend. Forcing Vulkan can select software on macOS.
 func ChromiumLaunchOptions(headless bool, gpu bool) playwright.BrowserTypeLaunchOptions {
 	// Allow loopback WebRTC peers and report a fine pointer that can hover.
 	// CI runners have no pointing device, so Chromium would otherwise match
@@ -97,8 +98,8 @@ func ChromiumLaunchOptions(headless bool, gpu bool) playwright.BrowserTypeLaunch
 }
 
 // ChromiumLaunchPolicy carries the resolved E2E_CHROMIUM_GPU preference and
-// the sticky launch choice for one harness boot. The zero value is invalid;
-// use NewChromiumLaunchPolicy.
+// the sticky launch choice for one harness boot. The zero value is invalid.
+// Use NewChromiumLaunchPolicy.
 type ChromiumLaunchPolicy struct {
 	le   *logrus.Entry
 	pref ChromiumGPUPreference
@@ -120,13 +121,13 @@ func NewChromiumLaunchPolicy(le *logrus.Entry) (*ChromiumLaunchPolicy, error) {
 	return &ChromiumLaunchPolicy{le: le, pref: pref}, nil
 }
 
-// LaunchChromium performs one Chromium launch under the sticky policy. launch
+// LaunchChromium launches Chromium once under the sticky policy. launch
 // receives true when the GPU options must be used. The first launch resolves
 // the sticky GPU choice: prefer-GPU probes the GPU launch once and falls back
-// to the legacy launch on error; legacy never attempts GPU; required never
-// falls back. Concurrent callers serialize only while the choice is
-// unresolved; relaunches reuse it without retrying. Cancellation aborts a
-// launch that has not started yet.
+// to the legacy launch on error. The legacy mode never attempts GPU.
+// The required mode never falls back. Concurrent callers serialize only while
+// the choice is unresolved. Relaunches reuse it without retrying.
+// Cancellation aborts a launch that has not started yet.
 func LaunchChromium[B any](
 	ctx context.Context,
 	p *ChromiumLaunchPolicy,

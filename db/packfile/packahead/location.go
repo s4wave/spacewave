@@ -12,7 +12,7 @@ func tailOf(key []byte) keyTail {
 	return t
 }
 
-// location places a value in a local pack.
+// location identifies a value's position in a local pack.
 type location struct {
 	// p is the pack holding the value.
 	p *pack

@@ -21,12 +21,12 @@ export interface Config {
   pluginId?: string
   /**
    * ServiceIdRe is the regex of service IDs to forward.
-   * If empty, will forward any.
+   * If empty, forwards any service ID.
    */
   serviceIdRe?: string
   /**
    * ServerIdRe is the regex of server IDs to forward for.
-   * If empty, will forward any.
+   * If empty, forwards any server ID.
    */
   serverIdRe?: string
   /**

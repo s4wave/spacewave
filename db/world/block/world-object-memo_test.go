@@ -173,9 +173,9 @@ func TestHasObjectMemoResetsWithBlockTransaction(t *testing.T) {
 		t.Fatal("expected created object memoized")
 	}
 
-	// Discard resets the transaction-local knowledge; a re-created memo starts
-	// empty so a later HasObject re-checks storage rather than trusting stale
-	// cross-transaction knowledge.
+	// Discard resets the transaction-local knowledge. A re-created memo
+	// starts empty so a later HasObject re-checks storage rather than
+	// trusting stale cross-transaction knowledge.
 	ws.Discard()
 	if ws.objectExistsKnown(key) {
 		t.Fatal("expected object memo reset after Discard")

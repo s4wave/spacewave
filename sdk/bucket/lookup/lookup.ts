@@ -146,7 +146,8 @@ export class BucketLookupCursor extends Resource {
 
   // release releases the cursor resources.
   public release(abortSignal?: AbortSignal): void {
-    // Best-effort notify the server; don't await (Resource.release must be synchronous)
+    // Notify the server on a best-effort basis. Don't await the call
+    // (Resource.release must be synchronous).
     void this.service.Release({}, abortSignal).catch(() => {})
     super.release()
   }

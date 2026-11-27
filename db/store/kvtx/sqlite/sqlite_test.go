@@ -133,7 +133,7 @@ func TestSQLiteWithMode(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Test that we can create and use the database
+	// Test that the database can be created and used.
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -409,7 +409,7 @@ func TestSQLiteWriterContract(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Commit it.
+		// Commit the transaction.
 		if err := commit(tx); err != nil {
 			t.Fatal(err)
 		}
@@ -417,7 +417,7 @@ func TestSQLiteWriterContract(t *testing.T) {
 	commitOrdered := func(tx kvtx.Tx) error { return kvtx.CommitOrdered(ctx, tx) }
 	commitFull := func(tx kvtx.Tx) error { return tx.Commit(ctx) }
 
-	// An ordered commit stays pending until Sync; a full commit is durable.
+	// An ordered commit stays pending until Sync. A full commit is durable.
 	write("k", "1", commitOrdered)
 	if durable() {
 		t.Fatal("ordered commit durable before a flush")
@@ -444,7 +444,7 @@ func TestSQLiteWriterContract(t *testing.T) {
 		t.Fatalf("deadline flush took %v", waited)
 	}
 
-	// A second writer queues behind the first and runs once it commits.
+	// A second writer queues behind the first and runs once the first commits.
 	first, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -776,7 +776,7 @@ func TestSQLiteWALRestartsUnderSteadyWrites(t *testing.T) {
 
 	// Writers queue for the turn so each begins as the last commits, and each
 	// holds the write lock for many rows. Watch the log after every commit
-	// until it shrinks, which only a restart does.
+	// until the log shrinks, a change only a restart causes.
 	value := make([]byte, 256)
 	writes := make(chan error, 4)
 	shrank := make(chan struct{})

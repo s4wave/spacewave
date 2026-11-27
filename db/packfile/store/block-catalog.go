@@ -136,7 +136,8 @@ func (e *PackReader) startIndexLoad(ctx context.Context, cache IndexCache, parse
 		var writeback func()
 		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			// A closed reader drops the index; otherwise publish it.
+			// Drop the index if the reader is closed.
+			// Otherwise publish it.
 			loadCh := e.indexLoadCh
 			if e.closed {
 				err = ErrPackReaderClosed
@@ -200,7 +201,7 @@ func (e *PackReader) withIndex(ctx context.Context, fn func()) error {
 }
 
 // dropIndex drops the index unless a use referenced it since the
-// ring's sweep chose it; a referenced index stays and the sweep passes it
+// ring's sweep chose it. A referenced index stays and the sweep passes it
 // again. The next use loads a dropped index again, from the index cache when
 // one is set.
 func (e *PackReader) dropIndex() {
@@ -331,7 +332,7 @@ func (e *PackReader) readIndex(ctx context.Context, parsed bool) ([]byte, blockI
 }
 
 // fetchIndexTail reads length bytes at off for the index tail as foreground
-// demand. The bytes go to the caller alone; they never enter the span store.
+// demand. The bytes go to the caller alone and never enter the span store.
 func (e *PackReader) fetchIndexTail(ctx context.Context, off int64, length int) ([]byte, error) {
 	// Fetch through the demand gate so background fetches yield to it.
 	var gate *demandGate
@@ -475,7 +476,7 @@ func (e *PackReader) findBlockLocked(key []byte) (blockExtent, bool) {
 // every neighbor block fully contained within the configured writeback
 // window on each side.
 //
-// When no writeback target is configured the window shrinks to just the
+// When no writeback target is configured the window shrinks to the
 // target bytes.
 func (e *PackReader) semanticWindowLocked(target blockExtent) (int64, int64) {
 	// Use the target block extent when neighbor writeback is disabled.

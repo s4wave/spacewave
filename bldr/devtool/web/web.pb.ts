@@ -33,7 +33,8 @@ export interface DevtoolInitBrowser {
   /**
    * ForceDedicatedWorkers overrides the default SharedWorker mode to use
    * dedicated Workers for plugins. Useful for testing with Playwright
-   * which can capture console output from dedicated workers but not shared.
+   * which can capture console output from dedicated workers but not shared
+   * workers.
    */
   forceDedicatedWorkers?: boolean
   /**
@@ -42,9 +43,10 @@ export interface DevtoolInitBrowser {
    */
   platformSelectionPolicies?: PlatformSelectionPolicy[]
   /**
-   * AdmissionPluginId names the plugin that owns this device's plugin
+   * AdmissionPluginId identifies the plugin that owns this device's plugin
    * approvals. The host builds its root admission controller asking that
-   * plugin in code at startup; empty leaves admission to the trusted roots.
+   * plugin in code at startup. An empty AdmissionPluginId leaves admission to
+   * the trusted roots.
    */
   admissionPluginId?: string
 }

@@ -62,7 +62,7 @@ func buildSQLFallbackStore(
 }
 
 // sqlConfig returns the store config of the location with the credentials,
-// whose access key id is the user and secret access key the password.
+// whose access key id is the user and secret access key is the password.
 func sqlConfig(location *account_settings.SqlLocation, creds *block_store_s3.Credentials) *block_store_sql.Config {
 	return &block_store_sql.Config{
 		Host:     location.GetHost(),

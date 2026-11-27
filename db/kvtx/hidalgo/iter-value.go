@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// txScanIterator implements kv.Iterator
+// txScanIterator implements kv.Iterator.
 type txScanIterator struct {
 	// ctx is the context the iterator was created with.
 	ctx context.Context
@@ -135,13 +135,13 @@ func (i *txScanIterator) Err() error {
 }
 
 // Key returns the current key. The value becomes invalid on Next or Close.
-// Caller should not modify or store the value; use Clone.
+// Caller should not modify or store the value. Use Clone.
 func (i *txScanIterator) Key() kv.Key {
 	return i.key
 }
 
 // Val returns the current value. The value becomes invalid on Next or Close.
-// Caller should not modify or store the value; use Clone.
+// Caller should not modify or store the value. Use Clone.
 func (i *txScanIterator) Val() kv.Value {
 	return i.value
 }

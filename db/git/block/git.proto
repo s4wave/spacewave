@@ -39,7 +39,7 @@ message EncodedObjectStore {
 // Packfile contains a Git packfile and its index.
 message Packfile {
   // PackHash contains the packfile checksum.
-  // Note: currently, this is enforced to hash type SHA1.
+  // The hash type must be SHA1.
   hash.Hash pack_hash = 1;
   // PackBlob contains the raw Git packfile bytes.
   blob.Blob pack_blob = 2;
@@ -60,7 +60,8 @@ message ReferencesStore {
   .kvtx.block.KeyValueStore kvtx_root = 1;
 }
 
-// ModuleReferences maps between submodule name and a block ref to the Repo.
+// ModuleReferencesStore maps between submodule name and a block ref to
+// the Repo.
 message ModuleReferencesStore {
   // KvtxRoot is the root of the module reference tree.
   // Key: submodule name, value: Submodule object.
@@ -99,7 +100,7 @@ message Reference {
   // One of: HashReference(1), SymbolicReference(2)
   ReferenceType reference_type = 2;
   // Hash contains the sha1 hash (20 bytes) if hash reference.
-  // Note: currently, this is enforced to hash type SHA1.
+  // The hash type must be SHA1.
   .hash.Hash hash = 3;
   // TargetReferenceName is the target reference name if symbolic.
   string target_reference_name = 4;
@@ -123,9 +124,9 @@ message EncodedObject {
   // DataBlob is the encoded object data.
   blob.Blob data_blob = 1;
   // DataHash is the hash of DataBlob.
-  // Note: currently, this is enforced to hash type SHA1.
+  // The hash type must be SHA1.
   hash.Hash data_hash = 2;
-  // ObjectType is the encoded object type.
+  // EncodedObjectType is the encoded object type.
   EncodedObjectType encoded_object_type = 3;
 }
 
@@ -160,12 +161,12 @@ message TreeEntry {
   // Trees is the number that represents the number of subtrees this tree has.
   int32 trees = 3;
   // Hash is the hash of the object that would result from writing this span of
-  // index as a tree. Note: currently this is sha1.
+  // index as a tree. The hash type is sha1.
   hash.Hash hash = 4;
 }
 
 // ResolveUndo is used when a conflict is resolved (e.g. with "git add path"),
-// these higher stage entries are removed and a stage-0 entry with proper
+// higher stage entries are removed and a stage-0 entry with proper
 // resolution is added. When these higher stage entries are removed, they are
 // saved in the resolve undo extension.
 message ResolveUndo {
@@ -181,7 +182,7 @@ message ResolveUndoEntry {
   map<uint32, hash.Hash> stages = 2;
 }
 
-// EndOfIndexEntry is the End of Index Entry (EOIE) is used to locate the end of
+// EndOfIndexEntry is the End of Index Entry (EOIE) used to locate the end of
 // the variable length index entries and the beginning of the extensions.
 message EndOfIndexEntry {
   // Offset is the offset to the end of the index entries.
@@ -193,7 +194,7 @@ message EndOfIndexEntry {
 // IndexEntry stores an entry in the git index.
 message IndexEntry {
   // DataHash is the hash of the index entry.
-  // Note: currently, this is enforced to hash type SHA1.
+  // The hash type must be SHA1.
   hash.Hash data_hash = 1;
   // Name is the entry path name relative to top directory.
   string name = 2;
@@ -205,7 +206,7 @@ message IndexEntry {
   uint32 dev = 5;
   // Inode is the inode of the tracked path.
   uint32 inode = 6;
-  // Mode is the Git file mode used for the entry.
+  // FileMode is the Git file mode used for the entry.
   // i.e. Dir, Regular, Executable, Symlink, Submodule
   uint32 file_mode = 7;
   // Uid is the user id of the owner.
@@ -226,8 +227,8 @@ message IndexEntry {
 
 // TagMode is the available modes for fetching tags.
 enum TagMode {
-  // TagMode_DEFAULT indicates to use default tag mode.
-  // Default is to fetch ALL.
+  // TagMode_DEFAULT indicates to use the default tag mode.
+  // The default tag mode is to fetch ALL.
   TagMode_DEFAULT = 0;
   // TagMode_NONE fetches no tags from the remote.
   TagMode_NONE = 1;
@@ -241,7 +242,7 @@ enum TagMode {
 message AuthOpts {
   // Username is the ssh username to authenticate with.
   string username = 1;
-  // PeerId configures looking up peer priv key by id for ssh.
+  // PeerId selects the peer priv key to look up by id for ssh.
   string peer_id = 2;
 }
 
@@ -251,7 +252,7 @@ message CloneOpts {
   string url = 1;
   // RemoteName is the name of the remote to add, by default "origin."
   string remote_name = 2;
-  // Ref is the reference name to clone, uses default if empty.
+  // Ref is the reference name to clone, uses the default reference if empty.
   string ref = 3;
   // SingleBranch fetches the ref and nothing more.
   bool single_branch = 4;
@@ -263,7 +264,7 @@ message CloneOpts {
   // Recursive indicates submodules will be fetched as well.
   bool recursive = 7;
   // RecursionDepth overrides the default submodule recursion depth (10).
-  // Only used when recursive is true. Zero means use the default.
+  // Only used when recursive is true. Zero means use the default depth.
   uint32 recursion_depth = 11;
   // TagMode controls the fetching of tags.
   TagMode tag_mode = 8;
@@ -302,7 +303,7 @@ message FetchOpts {
 // CheckoutOpts are options when checking out a repo.
 message CheckoutOpts {
   // Commit is the commit hash to check out.
-  // Note: currently, this is enforced to hash type SHA1.
+  // The hash type must be SHA1.
   .hash.Hash commit = 1;
   // Branch is the branch to check out.
   // If !create, cannot be set if commit is also set.

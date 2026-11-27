@@ -8,11 +8,11 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
 
-// ReadStatus counts a placed store's block reads by where they were served:
-// the local store, or the storage backend, whose pack store tells the storage
+// ReadStatus counts a placed store's block reads by where they were served: the
+// local store, or the storage backend, whose pack store tells the storage
 // node's answers from the bucket's. A read a fill cache served counts in
-// neither; the cache counts its own. It also counts the peer reads by outcome
-// and the blocks they filled.
+// neither. The cache counts its own reads. ReadStatus also counts the peer
+// reads by outcome and the blocks they filled.
 type ReadStatus struct {
 	// Local counts the blocks the local store served.
 	Local uint64
@@ -29,7 +29,7 @@ type ReadStatus struct {
 	// waited, by cause.
 	PeerFailed PeerFailedCauses
 	// PeerCanceled counts the peer reads whose caller went away before the
-	// read ended; they say nothing of the peers.
+	// read ended. These reads say nothing of the peers.
 	PeerCanceled uint64
 	// PeerRemembered counts the reads answered unavailable without asking a
 	// peer, because the peers refused the block within peerUnservedFor. They

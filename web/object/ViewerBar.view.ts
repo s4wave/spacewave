@@ -12,7 +12,8 @@ export const title = 'Object viewer: the one-line bar'
 
 const order = ['cramped', 'narrow', 'wide', 'full']
 
-// wide is the 28rem band and up; full, from 42rem, removes the narrow press.
+// wide is the 28rem band and up. The full band, from 42rem, removes the narrow
+// press.
 const wide = (v: Bar) => v.width === 'wide' || v.width === 'full'
 const gone = (v: Bar, a: string) => v.width === 'full' && a === 'a'
 

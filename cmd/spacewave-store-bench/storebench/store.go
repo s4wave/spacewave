@@ -174,7 +174,7 @@ func (s *Store) Close() {
 	s.rels = nil
 }
 
-// findSharedObject returns the SharedObject conf names in acc, creating it
+// findSharedObject returns the SharedObject conf selects in acc, creating it
 // when create is set and the account does not hold it.
 func findSharedObject(ctx context.Context, acc provider.ProviderAccount, conf *StoreConfig, create bool) (*sobject.SharedObjectRef, error) {
 	// Read the account's SharedObject list.

@@ -34,7 +34,7 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
     if (nextPost) navigate({ path: nextPost.url })
   }, [navigate, nextPost])
 
-  // Inject JSON-LD structured data into document head.
+  // Inject JSON-LD structured data into the document head.
   useEffect(() => {
     const script = document.createElement('script')
     script.type = 'application/ld+json'

@@ -103,7 +103,8 @@ func DialSessionViaTransport(
 //
 // Negotiates a TLS session. Specify a empty peer ID to allow any. The listener
 // is closed before returning. quic-go keeps the accepted session open after
-// the listener closes, and closes the single-use transport when it ends.
+// the listener closes, and closes the single-use transport when the session
+// ends.
 func ListenSession(
 	ctx context.Context,
 	le *logrus.Entry,

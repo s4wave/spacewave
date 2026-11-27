@@ -14,8 +14,8 @@ type Sender interface {
 }
 
 // StreamWatchable streams SharedObject health from a watchable. The first
-// message is the current health, or loading while the watchable is empty;
-// each later message is a change.
+// message is the current health, or loading while the watchable is empty.
+// Each later message is a change.
 func StreamWatchable(
 	ctx context.Context,
 	sender Sender,

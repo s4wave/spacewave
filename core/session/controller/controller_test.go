@@ -99,7 +99,8 @@ func TestRegisterSessionSetsCreatedAt(t *testing.T) {
 		t.Fatalf("created_at %d not in range [%d, %d]", stored.GetCreatedAt(), before, after)
 	}
 
-	// Register a second session with explicit CreatedAt; verify it is preserved.
+	// Register a second session with explicit CreatedAt and verify it is
+	// preserved.
 	sessRef2, err := localProv.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		t.Fatal(err)

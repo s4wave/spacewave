@@ -6,7 +6,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * WatchPluginRootAdmittedRequest names the root to watch.
+ * WatchPluginRootAdmittedRequest identifies the root to watch.
  *
  * @generated from message bldr.plugin.admit.WatchPluginRootAdmittedRequest
  */

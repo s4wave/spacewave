@@ -97,7 +97,7 @@ func (qs *QuadStore) bestRange(ctx context.Context, f quadRef) (edgeRange, error
 
 // CollectFilteredQuadsBatch returns the quads matching each filter, at most
 // limitPerFilter each when it is set. A filter's unset directions match any
-// value; a filter with no direction set returns every quad.
+// value. A filter with no direction set returns every quad.
 func (qs *QuadStore) CollectFilteredQuadsBatch(ctx context.Context, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error) {
 	names := newNameCache(qs)
 	results := make([][]quad.Quad, len(filters))
@@ -136,7 +136,7 @@ func (qs *QuadStore) CollectFilteredQuadsBatch(ctx context.Context, filters []qu
 // when reverse, and an endpoint's labeled edges follow its unlabeled one in
 // label ID order, or precede it in reverse. The walk starts just past all
 // edges of the endpoint after, or at the first edge when after is nil, and
-// stops when cb returns false or an error, which it returns.
+// stops when cb returns false or an error, which IterateEdges returns.
 func (qs *QuadStore) IterateEdges(
 	ctx context.Context,
 	origin, pred graph.Ref,
@@ -145,7 +145,7 @@ func (qs *QuadStore) IterateEdges(
 	reverse bool,
 	cb func(endpoint, label graph.Ref) (bool, error),
 ) error {
-	// Refs from another store name nothing here.
+	// Refs from another store identify nothing here.
 	o, ok := asNodeID(origin)
 	if !ok {
 		return nil

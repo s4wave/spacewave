@@ -6,7 +6,7 @@ package block.gc;
 message RootEntry {
   // Ref is the block the name holds, as its hash type byte and digest.
   bytes ref = 1;
-  // Field 2 was the root's own expiry, which store format 10 kept; format 11
+  // Field 2 was the root's own expiry, which store format 10 kept. Format 11
   // keeps the expiry on the root's lease.
   reserved 2;
   // Lease is the ID of the lease that holds the root, empty for a root held
@@ -28,9 +28,9 @@ enum Adoption {
   ADOPTION_ADOPTED = 2;
 }
 
-// Generation is how far a Volume has settled the blocks an older store
-// format left, whose child lists may lack a child the block names. Each
-// state is one value; nothing else of the settle remains once it is Settled.
+// Generation is how far a Volume has settled the blocks an older store format
+// left, whose child lists may lack a child the block references. Each state is
+// one value. Nothing else of the settle remains once it is Settled.
 enum Generation {
   // GENERATION_SETTLED is a Volume whose every stored list was written from
   // its block's content, or whose unwritten ones are gone. A Volume created
@@ -62,7 +62,7 @@ message LivenessState {
   reserved "next_seq", "cursor", "net_offset", "legacy_graph", "hold_mark", "cascades", "hold_rule", "adopt_mark";
   // Adoption is whether the counts describe the Volume's blocks.
   Adoption adoption = 1;
-  // AdoptionRun names the adoption that marked the Volume adopting, or the
+  // AdoptionRun identifies the adoption that marked the Volume adopting, or the
   // one that abandoned it. Each transaction of an adoption refuses to write
   // unless the Volume is still in its run, so a run another superseded writes
   // nothing more.
@@ -74,12 +74,12 @@ message LivenessState {
   // Release is the paged release in progress of the children of one freed
   // block, unset when none is.
   Release release = 11;
-  // Frees is whether the collector's frees were on at the last writable
-  // open, or at the birth of an empty Volume. The write that turns it on
-  // also returns the Volume to unadopted, so an adoption counts every holder
-  // again before the first free; a writable open with frees off clears it,
-  // so the next switch-on counts again (SetFrees). It reads as off unless
-  // frees_mark matches the record.
+  // Frees is whether the collector's frees were on at the last writable open,
+  // or at the birth of an empty Volume. The write that turns it on also returns
+  // the Volume to unadopted, so an adoption counts every holder again before
+  // the first free. A writable open with frees off clears it, so the next
+  // switch-on counts again (SetFrees). It reads as off unless frees_mark
+  // matches the record.
   bool frees = 15;
   // FreesMark is a hash of the record's other known fields, salted with
   // the build's frees epoch, which every write of this format computes. A
@@ -112,8 +112,8 @@ message LivenessState {
   // AdoptAtUnixMilli is the wall time of the last adoption's mark, in Unix
   // milliseconds. A block the adoption settles may be a head a reader saw
   // before the mark, whose move off it the dropped logs carried, so the
-  // collector frees, pops and flips nothing until Grace has passed since
-  // this time. Only Adopt's mark transaction writes it.
+  // collector frees, pops and flips nothing until Grace has passed since this
+  // time. Only Adopt's mark transaction writes it.
   int64 adopt_at_unix_milli = 21;
   // ObsoleteKinds are the record kinds under the liveness prefix that an
   // older store format wrote and this one neither writes nor reads, one
@@ -121,10 +121,10 @@ message LivenessState {
   // kind once none of its records remain. None is a block, a block's bytes
   // or a child list.
   bytes obsolete_kinds = 22;
-  // AdoptCursor is how far the adoption in progress has counted, set only
-  // while the Volume is adopting. Each slice of the count writes it in the
-  // transaction that writes the slice's counts, so a run that takes the
-  // Volume over continues strictly after the last key it names.
+  // AdoptCursor is how far the adoption in progress has counted, set only while
+  // the Volume is adopting. Each slice of the count writes it in the
+  // transaction that writes the slice's counts, so a run that takes the Volume
+  // over continues strictly after the last key the cursor records.
   AdoptCursor adopt_cursor = 23;
   // DownCursor is the sequence of the first down page the netting has not
   // deleted. The netting deletes down pages only from the log's head, in
@@ -166,18 +166,18 @@ message AdoptCursor {
   uint64 queued = 6;
   // Unknown counts the holders of blocks stored without a child list.
   uint64 unknown = 7;
-  // Run is the adoption run that wrote the cursor. A run takes the cursor
-  // over only when it names the run the state names in the same
-  // transaction: a build without the cursor carries it through a claim of
-  // its own as an unknown field, and its counts are not the cursor's.
+  // Run is the adoption run that wrote the cursor. A run takes the cursor over
+  // only when the cursor records the run the state records in the same
+  // transaction: a build without the cursor carries it through a claim of its
+  // own as an unknown field, and its counts are not the cursor's.
   string run = 8;
 }
 
-// Release is the release of the children of a freed block whose child list
-// is longer than one collector slice moves. The slice that frees the block
-// moves the list to release pages; each later slice drops the next
-// children's holders by one and moves Next in the same transaction, and the
-// last deletes the pages and clears the release.
+// Release is the release of the children of a freed block whose child list is
+// longer than one collector slice moves. The slice that frees the block moves
+// the list to release pages. Each later slice drops the next children's holders
+// by one and moves Next in the same transaction, and the last deletes the pages
+// and clears the release.
 message Release {
   reserved 4;
   reserved "rehold";
@@ -185,6 +185,6 @@ message Release {
   bytes block = 1;
   // Next is the index in the list of the first child not moved yet.
   uint64 next = 2;
-  // Children is how many children the list names.
+  // Children is how many children the list contains.
   uint64 children = 3;
 }

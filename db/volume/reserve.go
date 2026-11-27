@@ -8,7 +8,7 @@ type reserveExemptKey struct{}
 
 // WithReserveExempt marks ctx so that a volume admits its writes below the
 // disk reserve. A delete writes the smaller state that replaces the one it
-// removes, so it must write to free space; mark only such writes. The
+// removes, so it must write to free space. Mark only such writes. The
 // reserve's slack, not a separate bound, covers them.
 func WithReserveExempt(ctx context.Context) context.Context {
 	return context.WithValue(ctx, reserveExemptKey{}, true)

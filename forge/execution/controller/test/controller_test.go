@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/forge/testbed"
 )
 
-// TestExecutionController_Simple tests basic mechanics of the execution controller.
+// TestExecutionController tests basic mechanics of the execution controller.
 func TestExecutionController(t *testing.T) {
 	// Start the Forge testbed used by the end-to-end execution controller.
 	ctx := context.Background()

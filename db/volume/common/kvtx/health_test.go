@@ -9,7 +9,8 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// collection asks, and no longer after Close.
+// TestHealthSizes checks that sizes are measured when collection asks, and no
+// longer after Close.
 func TestHealthSizes(t *testing.T) {
 	// Measure a growing file.
 	v, _ := newTestVolume(t)

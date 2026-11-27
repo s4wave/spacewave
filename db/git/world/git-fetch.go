@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// GitFetch performs a git fetch operation against an existing repo in the world.
+// GitFetch fetches updates into an existing git repo in the world.
 // Fetches new objects from the remote into the existing world object repo and
 // returns the repo's root reference after the fetch.
 // authMethod and progress can be empty.

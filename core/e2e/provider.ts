@@ -74,7 +74,7 @@ export async function testProvider(
     })
     console.log('mounted space and accessed world state')
 
-    // create drive with demo content
+    // create a drive with demo content
     await createDrive(setup.spaceWorld, abortSignal)
     console.log('created drive with demo content')
   } finally {

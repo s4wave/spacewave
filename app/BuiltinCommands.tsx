@@ -18,7 +18,7 @@ import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import { SelectAccountCommand } from '@s4wave/app/session/SelectAccountCommand.js'
 
 // BuiltinCommands registers built-in commands with the command registry.
-// Returns null (no UI).
+// BuiltinCommands returns null (no UI).
 export function BuiltinCommands() {
   const { getAppPath, setAppPath } = useAppNavigation()
   const { activeTabId, openPathInActiveTabset, resetShellTabs } = useShellTabs()

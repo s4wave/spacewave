@@ -59,7 +59,7 @@ function describeResult(result?: {
 const executionDecoder = messageDecoder(Execution)
 const executionIcon = <LuActivity className="size-3 shrink-0" />
 
-// ExecutionRow draws one execution; it draws again only when its body
+// ExecutionRow draws one execution. It draws again only when its body
 // changed.
 const ExecutionRow = memo(function ExecutionRow({
   objectKey,

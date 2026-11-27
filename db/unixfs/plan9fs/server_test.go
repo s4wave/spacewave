@@ -147,7 +147,7 @@ func TestCodecShortReadBytes(t *testing.T) {
 }
 
 func TestCodecShortReadQID(t *testing.T) {
-	r := NewReadBuffer([]byte{1, 2, 3, 4, 5}) // need 13
+	r := NewReadBuffer([]byte{1, 2, 3, 4, 5}) // need 13 bytes
 	r.ReadQID()
 	if r.Err() == nil {
 		t.Fatal("expected error on short QID")
@@ -324,7 +324,7 @@ func TestUnknownMessageType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// should get RLERROR
+	// The response should be RLERROR.
 	if resp[4] != RLERROR {
 		t.Fatalf("expected RLERROR for unknown type, got %d", resp[4])
 	}
@@ -388,7 +388,7 @@ func TestVersionMsizeLarger(t *testing.T) {
 	srv := newTestServer(t)
 	defer srv.ReleaseAll()
 
-	// client requests larger msize; server caps to its default
+	// client requests larger msize, but server caps to its default msize
 	resp := sendVersion(t, ctx, srv, 1048576, "9P2000.L")
 	r := NewReadBuffer(resp[headerSize:])
 	msize := r.ReadU32()
@@ -636,7 +636,7 @@ func TestWalkPartialSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// partial walk returns RWALK with the QIDs that succeeded
+	// partial walk returns RWALK with QIDs for successful components
 	if resp[4] != RWALK {
 		t.Fatalf("expected RWALK for partial walk, got %d", resp[4])
 	}
@@ -904,7 +904,7 @@ func TestReadNestedFile(t *testing.T) {
 	doVersion(t, ctx, srv)
 	doAttach(t, ctx, srv, 0)
 
-	// walk two components and read
+	// walk two components and read the file
 	walkPayload := NewWriteBuffer(64)
 	walkPayload.WriteU32(0)
 	walkPayload.WriteU32(1)

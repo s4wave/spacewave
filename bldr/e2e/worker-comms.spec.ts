@@ -1,4 +1,4 @@
-// worker-comms.spec.ts - Full-stack worker communication integration tests.
+// worker-comms.spec.ts: Full-stack worker communication integration tests.
 //
 // Runs against the full bldr dev server (bun run start:web:wasm).
 // Verifies the complete plugin lifecycle: WASM runtime boot, worker
@@ -28,7 +28,7 @@ interface StartupMarkEventPayload {
   detail?: Record<string, unknown>
 }
 
-// Collect console messages matching a pattern within a timeout.
+// waitForConsole collects console messages matching a pattern within a timeout.
 async function waitForConsole(
   page: Page,
   pattern: string | RegExp,
@@ -310,8 +310,8 @@ test.describe('cross-tab communication', () => {
   })
 })
 
-// Create a browser context where SharedWorker is unavailable,
-// forcing DedicatedWorker runtime mode with Web Lock singleton.
+// newDedicatedRuntimeContext creates a browser context where SharedWorker is
+// unavailable, forcing DedicatedWorker runtime mode with a Web Lock singleton.
 async function newDedicatedRuntimeContext(browser: Browser) {
   const context = await browser.newContext()
   await context.addInitScript(() => {

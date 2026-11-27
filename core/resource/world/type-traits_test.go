@@ -32,7 +32,7 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	t.Cleanup(cleanup)
 
-	// Serve the four host types; the plugin type stays unknown.
+	// Serve the four host types. The plugin type stays unknown.
 	const pluginTypeID = "test/plugin"
 	rel, err := tb.Bus.AddController(ctx, blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		switch typeID {
@@ -92,7 +92,7 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 		t.Fatalf("internal flags %v", internal)
 	}
 
-	// Workers carry their names; an unnamed worker shows its key.
+	// Workers carry their names, but an unnamed worker shows its key.
 	list := func(typeID string, declared bool) *s4wave_world.ListObjectsWithTypeResponse {
 		resp, err := client.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{TypeId: typeID, Limit: 10, Declared: declared})
 		if err != nil {
@@ -113,7 +113,8 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 		t.Fatalf("plugin titles %q", got)
 	}
 
-	// Jobs declare states and times but no titles; workers declare no states.
+	// Jobs declare states and times but no titles. Workers declare no
+	// states.
 	if got := list(forge_job.JobTypeID, true); got.GetTitles() != nil || !slices.Equal(got.GetStates(), []string{"running", "passed"}) {
 		t.Fatalf("job titles %q states %q", got.GetTitles(), got.GetStates())
 	}

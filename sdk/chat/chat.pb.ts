@@ -46,8 +46,9 @@ export interface ChatChannel {
    */
   creatorPeerId?: string
   /**
-   * EncryptionAlgorithm is the channel encryption policy. Empty allows plaintext;
-   * once enabled it cannot change. Annotations and state changes remain public.
+   * EncryptionAlgorithm is the channel encryption policy.
+   * Empty allows plaintext. Once enabled the algorithm cannot change.
+   * Annotations and state changes remain public.
    */
   encryptionAlgorithm?: string
   /**
@@ -258,8 +259,9 @@ export interface CreateChatChannelOp {
    */
   timestamp?: Date
   /**
-   * EncryptionAlgorithm initializes the channel encryption policy. Empty allows plaintext;
-   * once enabled it cannot change. Annotations and state changes remain public.
+   * EncryptionAlgorithm initializes the channel encryption policy.
+   * Empty allows plaintext. Once enabled the algorithm cannot change.
+   * Annotations and state changes remain public.
    */
   encryptionAlgorithm?: string
   /**

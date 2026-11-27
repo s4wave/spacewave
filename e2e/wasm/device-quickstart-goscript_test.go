@@ -15,6 +15,7 @@ const (
 	deviceQuickstartProbeWaitMS = 120000
 )
 
+// TestGoScriptDeviceQuickstartOpensDurableComputersDashboard checks
 // STORY_DEV_001 / STORY_DEV_002: the Device quickstart opens Computers first,
 // then the Add Device control launches the setup wizard.
 func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
@@ -82,8 +83,9 @@ func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 	waitForAddDeviceWizard(t, page)
 }
 
-// Presentation-only smoke coverage for the Device viewer. This intentionally
-// seeds a world object and must not be used as enrollment or lifecycle proof.
+// TestGoScriptDeviceViewerPresentationSmoke provides presentation-only smoke
+// coverage for the Device viewer. The test intentionally seeds a world object
+// and must not be used as enrollment or lifecycle proof.
 func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
 	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()

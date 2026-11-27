@@ -211,7 +211,7 @@ func createDevtoolWorld(ctx context.Context, le *logrus.Entry, path string) (*mo
 }
 
 // openMountedWorld opens the devtool database at path and mounts its World.
-// An existing World is opened without writing its key; otherwise the World is
+// An existing World is opened without writing its key. Otherwise the World is
 // created.
 func openMountedWorld(ctx context.Context, le *logrus.Entry, path string, existing bool) (*mountedWorld, error) {
 	// Open the volume.

@@ -176,7 +176,8 @@ class ResourceServer implements ResourceServiceHandler {
   }
 
   // ResourceRpc implements the bidi-streaming RPC.
-  // Routes sub-RPCs after one typed acknowledgement of the resource ID.
+  // ResourceRpc routes sub-RPCs after one typed acknowledgement of the resource
+  // ID.
   ResourceRpc(
     request: MessageStream<ResourceRpcPacket>,
     _abortSignal?: AbortSignal,
@@ -218,7 +219,7 @@ class ResourceServer implements ResourceServiceHandler {
 
   // ResourceAttach handles a client attaching resources that
   // server-side RPC handlers can invoke via getAttachedRef(id).
-  // Session-only Init/Ack, then Add/AddAck per resource.
+  // Init/Ack runs once per session only, then Add/AddAck per resource.
   // After Init/Ack, mux_data carries yamux frames for all resources.
   ResourceAttach(
     request: MessageStream<ResourceAttachRequest>,
@@ -247,7 +248,7 @@ class ResourceServer implements ResourceServiceHandler {
 
   // runResourceAttach owns the ResourceAttach session protocol while
   // ResourceAttach itself returns a plain async queue. The browser QuickJS
-  // backend has historically crashed when this long-lived control/mux stream
+  // backend has crashed when this long-lived control/mux stream
   // is represented as a class async generator resumed by unrelated RPC work.
   private async runResourceAttach(
     request: MessageStream<ResourceAttachRequest>,
@@ -257,7 +258,7 @@ class ResourceServer implements ResourceServiceHandler {
   ): Promise<void> {
     const packetRx = request[Symbol.asyncIterator]()
 
-    // 1. Read Init packet.
+    // 1. Read the Init packet.
     const initResult = await packetRx.next()
     if (initResult.done) {
       throw new Error('stream closed before init')
@@ -268,7 +269,7 @@ class ResourceServer implements ResourceServiceHandler {
     }
     const clientHandleId = initBody.value.clientHandleId ?? 0
 
-    // 2. Find owning client.
+    // 2. Find the owning client.
     const client = this.clients.get(clientHandleId)
     if (!client || client.released) {
       outgoing.push({
@@ -285,7 +286,7 @@ class ResourceServer implements ResourceServiceHandler {
       return
     }
 
-    // 3. Send session Ack.
+    // 3. Send the session Ack.
     outgoing.push({
       body: {
         case: 'ack' as const,
@@ -293,8 +294,8 @@ class ResourceServer implements ResourceServiceHandler {
       },
     })
 
-    // 4. Create yamux StreamConn.
-    // SERVER side is yamux client (outbound) -- opens sub-streams
+    // 4. Create a yamux StreamConn.
+    // The SERVER side is the yamux client (outbound) and opens sub-streams
     // to invoke the client's muxes via routed SRPC.
     const attachController = new AbortController()
     const conn = new StreamConn(undefined, {
@@ -317,7 +318,7 @@ class ResourceServer implements ResourceServiceHandler {
         const label = body.value.label ?? ''
         const resourceId = this.nextResourceID()
 
-        // Per-resource controller linked to the session controller.
+        // The per-resource controller is linked to the session controller.
         const resController = new AbortController()
         const resClient = createRoutedClient(
           baseClient,

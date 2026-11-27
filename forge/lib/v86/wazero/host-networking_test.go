@@ -63,7 +63,7 @@ func TestRegisterNetworkingARPRoundTrip(t *testing.T) {
 		t.Fatalf("queued inbound frames = %d, want 1 (the ARP reply)", queued)
 	}
 
-	// drainNetwork hands the queue to the device; ring delivery itself is
+	// drainNetwork hands the queue to the device. Ring delivery itself is
 	// covered by the NE2K device tests.
 	host.drainNetwork(context.Background())
 	host.ne2k.mtx.Lock()

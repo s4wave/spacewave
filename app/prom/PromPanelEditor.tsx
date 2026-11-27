@@ -44,8 +44,8 @@ type Editor = {
   caret: number
   // focused is set while the expression field has focus.
   focused: boolean
-  // preview is the expression the preview runs; it follows the draft when
-  // the field loses focus or on Run, not on every keystroke.
+  // preview is the expression the preview runs. The expression follows the
+  // draft when the field loses focus or on Run, not on every keystroke.
   preview: string
   save:
     | { state: 'idle' }
@@ -180,7 +180,7 @@ export function PromPanelEditor({
     exprRef.current.setSelectionRange(caret, caret)
   })
 
-  // Store the draft; the editor closes once the edit lands.
+  // Store the draft. The editor closes once the edit lands.
   const save = useCallback(async () => {
     dispatch({ kind: 'saving' })
     try {
@@ -411,5 +411,6 @@ function FormatFields({
   )
 }
 
-// noHover ignores the preview's hover; it does not share the Dashboard's.
+// noHover ignores the preview's hover and does not share the Dashboard's
+// hover.
 function noHover() {}

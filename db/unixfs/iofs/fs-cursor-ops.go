@@ -16,18 +16,18 @@ import (
 type FSCursorOps struct {
 	// FSCursorNodeType contains the node type.
 	unixfs.FSCursorNodeType
-	// isReleased is an atomic int indicating released
+	// isReleased is an atomic boolean indicating release status.
 	isReleased atomic.Bool
-	// cursor is the fs cursor
+	// cursor is the fs cursor.
 	cursor *FSCursor
-	// fs is the root of the filesystem
-	// lookups should use the path
+	// fs is the root of the filesystem.
+	// Lookups should use the path.
 	fs fs.FS
-	// path is the path to this node
+	// path is the path to this node.
 	path string
-	// fileInfo is the information at the path
+	// fileInfo is the information at the path.
 	fileInfo fs.FileInfo
-	// dirents is the directory entry list, if a directory
+	// dirents is the directory entry list, if a directory.
 	dirents []fs.DirEntry
 }
 
@@ -65,7 +65,7 @@ func newFSCursorOps(fsCursor *FSCursor, ifs fs.FS) (*FSCursorOps, error) {
 	}, nil
 }
 
-// CheckReleased checks if the ops is released without locking anything
+// CheckReleased checks if the ops is released without locking anything.
 func (f *FSCursorOps) CheckReleased() bool {
 	if f == nil {
 		return true
@@ -80,7 +80,7 @@ func (f *FSCursorOps) GetName() string {
 }
 
 // GetSize returns the size of the inode (in bytes).
-// Usually applicable only if this is a FILE.
+// Usually applicable only if the inode is a FILE.
 func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
@@ -122,7 +122,7 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 	return unixfs_errors.ErrReadOnly
 }
 
-// Read reads from an offset inside a file node.
+// ReadAt reads from an offset inside a file node.
 func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	// Require a live file cursor before opening its contents.
 	if f.CheckReleased() {
@@ -235,7 +235,7 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 
 // Mknod creates child entries in a directory.
 // inode must be a directory.
-// if checkExist, checks if name exists, returns ErrExist if so
+// if checkExist, checks if name exists, returns ErrExist if so.
 func (f *FSCursorOps) Mknod(
 	ctx context.Context,
 	checkExist bool,
@@ -266,12 +266,12 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool
 		return nil, false, unixfs_errors.ErrNotSymlink
 	}
 
-	// Readlink is not currently supported by fs.FS
+	// Readlink is not supported by fs.FS.
 	// https://github.com/golang/go/issues/49580
 	return nil, false, errors.New("io/fs: does not support symbolic links")
 }
 
-// CopyTo performs an optimized copy of an dirent inode to another inode.
+// CopyTo optimizes copying a dirent inode to another inode.
 func (f *FSCursorOps) CopyTo(
 	ctx context.Context,
 	tgtCursorOps unixfs.FSCursorOps,
@@ -281,13 +281,13 @@ func (f *FSCursorOps) CopyTo(
 	return false, nil
 }
 
-// CopyFrom performs an optimized copy from another inode.
+// CopyFrom optimizes copying from another inode.
 func (f *FSCursorOps) CopyFrom(ctx context.Context, name string, srcCursorOps unixfs.FSCursorOps, ts time.Time) (done bool, err error) {
 	return false, nil
 }
 
-// MoveTo performs an atomic and optimized move to another inode.
-// If the src is a directory, this should be a recursive copy.
+// MoveTo moves atomically to another inode using an optimized operation.
+// If the src is a directory, the move should be a recursive copy.
 // Callers should still check MoveFrom even if MoveTo is not implemented.
 //
 // In a single operation: overwrite the target fully with the source data,
@@ -303,8 +303,8 @@ func (f *FSCursorOps) MoveTo(
 	return false, nil
 }
 
-// MoveFrom performs an atomic and optimized move from another inode.
-// If the src is a directory, this should be a recursive copy.
+// MoveFrom moves atomically from another inode using an optimized operation.
+// If the src is a directory, the move should be a recursive copy.
 // Callers should still check MoveTo even if MoveFrom is not implemented.
 //
 // In a single operation: overwrite the inode fully with the target data,

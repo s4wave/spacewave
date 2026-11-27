@@ -8,7 +8,8 @@ import (
 
 // OperationShape is the compact per-run storage/frontier summary derived from
 // runtime trace tasks and numeric trace-log payloads. Raw runtime.trace remains
-// the replay source; this projection is the comparison surface for plan ranking.
+// the replay source. This projection is the comparison surface for plan
+// ranking.
 type OperationShape struct {
 	// Operations lists the operation summaries.
 	Operations []OperationSummary `json:"operations,omitempty"`

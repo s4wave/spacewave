@@ -98,7 +98,7 @@ func runDaemon(c *cli.Context) error {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Load private key.
+	// Load the private key.
 	peerPriv, err := keyfile.OpenOrWritePrivKey(le, daemonFlags.PeerPrivPath)
 	if err != nil {
 		return err
@@ -115,10 +115,10 @@ func runDaemon(c *cli.Context) error {
 	// Obtain the daemon bus for controller and configuration requests.
 	b := d.GetControllerBus()
 
-	// Construct config set.
+	// Construct the config set.
 	confSet := configset.ConfigSet{}
 
-	// Load config file
+	// Load the config file.
 	configLe := le.WithField("config", daemonFlags.ConfigPath)
 	if confPath := daemonFlags.ConfigPath; confPath != "" {
 		// Read the daemon configuration, allowing a missing file when writing it.

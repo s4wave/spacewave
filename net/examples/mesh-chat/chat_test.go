@@ -19,7 +19,8 @@ import (
 )
 
 // TestDirectChat tests peer-to-peer messaging between directly connected peers.
-// This demonstrates the core functionality of opening a stream and sending messages.
+// This test demonstrates the core functionality of opening a stream and sending
+// messages.
 func TestDirectChat(t *testing.T) {
 	ctx := t.Context()
 

@@ -9,7 +9,7 @@ import (
 
 // PluginServer implements the plugin rpc server.
 type PluginServer struct {
-	// b is the bus to invoke rpc calls
+	// b is the bus to invoke rpc calls.
 	b bus.Bus
 }
 

@@ -49,8 +49,8 @@ func BuildTree(
 		cursor *block.Cursor
 		height uint32
 		size   uint64
-		key    []byte // the node's IAVL key
-		minKey []byte // leftmost key in this subtree
+		key    []byte // key holds the node's IAVL key.
+		minKey []byte // minKey holds the leftmost key in this subtree.
 	}
 
 	// Create the leaf layer with a cursor for each sorted entry.
@@ -90,9 +90,9 @@ func BuildTree(
 			h := max(left.height, right.height) + 1
 			s := left.size + right.size
 
-			// The internal node's key is the leftmost key of the right
-			// subtree. This is the separator: keys < separator go left,
-			// keys >= separator go right.
+			// The internal node's key is the leftmost key of the
+			// right subtree. This key is the separator:
+			// keys < separator go left, keys >= separator go right.
 			parent := rootCs.Detach(false)
 			nod := &Node{
 				Key:    right.minKey,

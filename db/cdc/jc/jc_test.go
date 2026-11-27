@@ -112,7 +112,8 @@ func TestAlgorithm_MaxClampAndBounds(t *testing.T) {
 	}
 
 	// When n>targetSize, if a boundary is found it must be >= minSize
-	// Otherwise, if none found, it returns n (clamped to maxSize).
+	// Otherwise, if no boundary is found, Algorithm returns n
+	// (clamped to maxSize).
 	if got < c.minSize {
 		t.Fatalf("Algorithm returned %d < minSize %d", got, c.minSize)
 	}
@@ -305,7 +306,8 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 		t.Fatalf("streaming chunker produced different results than non-streaming; got %v vs %v", streamingChunks[:min(3, len(streamingChunks))], chunks[:min(3, len(chunks))])
 	}
 
-	// Verify we get reasonable chunk count (not too many tiny chunks)
+	// Verify the chunker produces a reasonable chunk count (not too many
+	// tiny chunks).
 	expectedChunks := (total / int(targetSize)) + 2 // rough estimate with some buffer
 	if len(chunks) > expectedChunks {
 		t.Fatalf("got %d chunks, expected roughly %d or fewer (may indicate chunking issues)", len(chunks), expectedChunks)

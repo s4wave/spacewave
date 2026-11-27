@@ -9,7 +9,7 @@ import (
 )
 
 // resourceRPCContext retains published children until the route closes.
-// Handler completion releases unpublished children; abandonment also releases
+// Handler completion releases unpublished children. Abandonment also releases
 // published children that remain pending adoption.
 type resourceRPCContext struct {
 	// client owns the resource generation and guards this state with server.bcast.

@@ -129,7 +129,7 @@ func (s *queryService) lookupLabels(ctx context.Context, match []string, lookup 
 }
 
 // convertValue converts a PromQL value to its wire form. Histogram samples
-// are left out; targets store float samples only.
+// are left out because targets store float samples only.
 func convertValue(v any) *s4wave_prom.QueryResponse {
 	resp := &s4wave_prom.QueryResponse{}
 	switch v := v.(type) {

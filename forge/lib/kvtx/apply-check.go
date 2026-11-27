@@ -54,7 +54,7 @@ func ApplyOpCheck(
 		return err
 	}
 
-	// if in different buckets, need to compare values
+	// If the values are in different buckets, compare the values.
 	valueBktRef := value.GetBucketRef()
 	if value.GetValueType() == forge_value.ValueType_ValueType_BUCKET_REF &&
 		valueBktRef.GetBucketId() != "" {
@@ -89,7 +89,7 @@ func ApplyOpCheck(
 		return nil
 	}
 
-	// compare references
+	// compare the references
 	if !value.GetBlockRef().EqualsRef(bcsRef) {
 		return ErrValueMismatch
 	}

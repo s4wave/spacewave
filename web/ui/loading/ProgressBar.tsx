@@ -9,7 +9,7 @@ interface ProgressBarProps {
 }
 
 // ProgressBar renders a slim progress track with an optional right-side label.
-// Determinate mode shows percent or a rate label; indeterminate mode runs the
+// Determinate mode shows percent or a rate label. Indeterminate mode runs the
 // animate-progress-indeterminate keyframe.
 export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
   const pct =

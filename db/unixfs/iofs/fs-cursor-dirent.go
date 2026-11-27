@@ -8,7 +8,7 @@ import (
 
 // FSCursorDirent is a directory entry wrapped to be a FSCursorDirent.
 type FSCursorDirent struct {
-	// dirent is the directory entry
+	// dirent is the directory entry.
 	dirent fs.DirEntry
 }
 

@@ -22,7 +22,7 @@ const amdPCIVendor = "0x1002"
 // not listed: a container reaches it only through the NVIDIA container
 // toolkit, which no Worker host runs yet.
 func DetectGraphicsCards(sys fs.FS) ([]*GraphicsCard, error) {
-	// List the render nodes; no DRM class means no cards.
+	// List the render nodes. No DRM class means no cards.
 	entries, err := fs.ReadDir(sys, "class/drm")
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -62,7 +62,7 @@ func DetectGraphicsCards(sys fs.FS) ([]*GraphicsCard, error) {
 // detectAMDCard describes the AMD card whose sysfs device directory is dev and
 // whose render node is renderNode.
 func detectAMDCard(sys fs.FS, dev, renderNode string) (*GraphicsCard, error) {
-	// Identify the card by the PCI address its uevent names.
+	// Identify the card by the PCI address its uevent records.
 	uevent, err := fs.ReadFile(sys, path.Join(dev, "uevent"))
 	if err != nil {
 		return nil, err

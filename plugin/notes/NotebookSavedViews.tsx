@@ -227,7 +227,8 @@ export default function NotebookSavedViews({
   const disabled = saved.pending || !saved.ready
   const canSaveDraft = !!draft.sourceRef
 
-  // Loading is a personal action; incoming shared edits never replace a local draft.
+  // load is a personal action. Incoming shared edits never replace a local
+  // draft.
   const load = () => {
     if (current) setLoadError(onLoad(current))
   }

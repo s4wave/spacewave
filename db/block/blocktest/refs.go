@@ -72,7 +72,7 @@ func (w *refWalker) walk(v reflect.Value, path string) {
 // holdsRef reports whether a value of type t can hold a block reference,
 // skipping the types in visiting, which a recursive message reaches again.
 func holdsRef(t reflect.Type, visiting []reflect.Type) bool {
-	// A block reference holds itself; a type already on the path adds nothing.
+	// A block reference holds itself. A type already on the path adds nothing.
 	if t == refType {
 		return true
 	}

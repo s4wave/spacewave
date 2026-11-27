@@ -240,7 +240,7 @@ func (r *SessionResource) placeNewSpaceBlockStore(
 }
 
 // releaseNewSpaceBlockStore removes the placement of a Space that failed to
-// create. The placement names no data, so a failure only logs.
+// create. The placement references no data, so a failure only logs.
 func (r *SessionResource) releaseNewSpaceBlockStore(ctx context.Context, blockStoreID string) {
 	localAcc, err := r.localProviderAccount()
 	if err != nil {

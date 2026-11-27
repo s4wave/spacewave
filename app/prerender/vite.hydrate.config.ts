@@ -34,8 +34,8 @@ export default defineConfig({
     emptyOutDir: true,
     manifest: true,
     // Externalize React packages so they resolve via the importmap
-    // shared with the bldr entrypoint. This keeps the hydration bundle
-    // small and avoids duplicate React instances.
+    // shared with the bldr entrypoint. This externalization keeps the hydration
+    // bundle small and avoids duplicate React instances.
     rolldownOptions: {
       input: resolve(__dirname, 'hydrate.tsx'),
       external: [

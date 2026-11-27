@@ -115,7 +115,7 @@ func TestEntityKeypairsWatchStateCoalescesNearSimultaneousChanges(t *testing.T) 
 // EqualVT suppression at the emit boundary catches the case where a source
 // broadcasts an update whose computed snapshot is byte-identical to the
 // previous emission. Two no-op writes (same value as the current snapshot)
-// must not produce any extra emission; a subsequent real change must still
+// must not produce any extra emission, but a subsequent real change must still
 // emit so the test cannot pass via a stuck loop.
 func TestEntityKeypairsWatchStateEqualityGateSuppressesDuplicates(t *testing.T) {
 	// Bind the duplicate-suppression watch loop to a cancelable test lifetime.

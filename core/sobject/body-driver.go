@@ -31,10 +31,11 @@ type bodyPosition struct {
 }
 
 // BodyDriver replays the agreed order of a SharedObject's operations into its
-// Body. For each state it installs the checkpoint the state holds when it
-// moved, keeps the operations the body applied that the order still places
-// first, and applies the rest in order, on every member alike. An error from
-// the body stops the step at that operation, and the next step starts there.
+// Body. For each state it installs the checkpoint the state holds when the
+// checkpoint moved, keeps the operations the body applied that the order
+// still places first, and applies the rest in order, on every member alike.
+// An error from the body stops the step at that operation, and the next step
+// starts there.
 //
 // The driver serializes every call into the body under mtx, which also
 // guards its fields.
@@ -45,7 +46,8 @@ type BodyDriver struct {
 	so SharedObject
 	// body receives the order.
 	body Body
-	// report receives what the health shows when it changes, or is nil.
+	// report receives what the health shows when the health changes, or
+	// is nil.
 	report func(*BodyReport)
 	// checkpointer signs this device's checkpoints, or is nil for a device
 	// that signs none.
@@ -206,10 +208,11 @@ func (d *BodyDriver) wakeOn(ctx context.Context, ch <-chan struct{}) func() {
 }
 
 // Step brings the body to the order of snap: it has the body hold what snap's
-// operations read, installs snap's checkpoint when it moved, then applies every
-// operation above it the body has not applied in this order. It returns the first error, with the body at the
-// operations before it; a *BodyWait comes back unwrapped, for Execute to step
-// again when it ends.
+// operations read, installs snap's checkpoint when the checkpoint moved, then
+// applies every operation above the checkpoint the body has not applied in
+// this order. It returns the first error, with the body at the operations
+// before the error. A *BodyWait comes back unwrapped, for Execute to step again
+// when the wait ends.
 func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) error {
 	// Hold the body for the step.
 	d.mtx.Lock()
@@ -406,7 +409,7 @@ func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *BodyCheckpointer, s
 // MinCheckpointOperations operations are stable or the body has not applied
 // them in that order. The driver of a group voter answers for it.
 func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SOCheckpointInner, error) {
-	// Hold the body; a driver without a signer proposes nothing.
+	// Hold the body. A driver without a signer proposes nothing.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if d.checkpointer == nil {
@@ -620,7 +623,7 @@ func (d *BodyDriver) concurrentAuthors(set *SOOperationSet, earlier []bodyPositi
 		}
 	}
 
-	// Sort them so every member names them alike.
+	// Sort the authors so every member lists them alike.
 	if len(authors) == 0 {
 		return nil
 	}

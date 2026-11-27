@@ -122,7 +122,7 @@ func TestFileOpsSeekRead(t *testing.T) {
 		t.Fatalf("Read: got %q, want %q", buf, "efgh")
 	}
 
-	// Seek from end.
+	// Seek from the end of the file.
 	pos, err = ops.Seek(-4, io.SeekEnd)
 	if err != nil {
 		t.Fatal("SeekEnd:", err)

@@ -92,7 +92,8 @@ describe('ChangeFeed', () => {
       },
     ])
 
-    // b is followed after the ack; each change goes only to the one it names.
+    // b is followed after the ack. Each change goes only to the subscriber
+    // the change references.
     s.ack(2n, 6n)
     s.change(7n, ['a'])
     s.change(8n, ['b'])

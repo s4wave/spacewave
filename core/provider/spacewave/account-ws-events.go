@@ -86,8 +86,8 @@ func (e accountWSEvents) connected() {
 	acc.InvalidateTargetedInvitations()
 	acc.orgListJobs.Trigger()
 
-	// The list refetch reconciles cached metadata by revision; without
-	// one, every entry is stale.
+	// The list refetch reconciles cached metadata by revision. Without
+	// a list refetch, every entry is stale.
 	if !acc.invalidateSharedObjectList() {
 		acc.InvalidateSharedObjectMetadataCache()
 	}
@@ -171,7 +171,7 @@ func (e accountWSEvents) dormantChanged(dormant bool) {
 		return
 	}
 
-	// Exiting dormant means cloud access reopened; force a fresh account
+	// Exiting dormant means cloud access reopened. Force a fresh account
 	// state fetch so onboarding reflects the restored subscription.
 	acc.BumpLocalEpoch()
 }
@@ -204,5 +204,5 @@ func (e accountWSEvents) accountWasDeleted() {
 	acc.p.accountRc.RestartRoutine(acc.accountID)
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ wsEvents = accountWSEvents{}

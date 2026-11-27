@@ -12,7 +12,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  * World's own block transform, so its blocks are encrypted as every other
  * block of the Space and a Device stages them with the walk that copies only
  * the blocks it lacks. It also exports the same blocks, unchanged, into an
- * image store that the rehearsal and install Steps read, and names the tree
+ * image store that the rehearsal and install Steps read, and records the tree
  * there as the built image, the image the sign Step authorizes.
  *
  * Inputs:

@@ -39,7 +39,7 @@ test('repository entrypoint uses compiled configuration without build-time globa
 })
 
 test('a QuickJS plugin answers calls before a browser shows its views', async () => {
-  // Register capabilities at once; the web plugin never reports running, as on
+  // Register capabilities at once. The web plugin never reports running, as on
   // a serve with no browser attached.
   const complete = vi
     .spyOn(

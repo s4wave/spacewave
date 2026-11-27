@@ -20,7 +20,7 @@ export interface ManifestMeta {
    */
   manifestId?: string
   /**
-   * BuildType is the type of build this is.
+   * BuildType is the type of build.
    * Usually "development" or "production".
    */
   buildType?: string
@@ -30,7 +30,7 @@ export interface ManifestMeta {
   platformId?: string
   /**
    * Rev is the rev number of the manifest.
-   * Higher revision numbers take priority over lower.
+   * Higher revision numbers take priority over lower revision numbers.
    * The number is incremented with each manifest build.
    */
   rev?: bigint
@@ -46,14 +46,14 @@ export interface ManifestMeta {
   /**
    * NodeTypeIds hints at the Flowgraph node type IDs the plugin registers while
    * it runs. A Device starts a listed plugin when a placed node needs one of
-   * them; the running plugin's registrations decide what resolves.
+   * them. The running plugin's registrations decide what resolves.
    */
   nodeTypeIds?: string[]
   /**
    * OpTypeIds lists the World operation type IDs the plugin handles. A Space
    * replica that meets one of them before the plugin registers its handler
-   * runs the plugin and waits for the handler; one no installed plugin lists
-   * is rejected.
+   * runs the plugin and waits for the handler. An operation type ID that no
+   * installed plugin lists is rejected.
    */
   opTypeIds?: string[]
 }
@@ -292,7 +292,7 @@ export const FetchManifestRequest: MessageType<FetchManifestRequest> =
 export interface FetchManifestValue {
   /**
    * ManifestRefs is the list of references to the fetched manifests.
-   * We fetch multiple in one pass to avoid race conditions.
+   * Multiple references are fetched in one pass to avoid race conditions.
    */
   manifestRefs?: ManifestRef[]
 }
@@ -314,7 +314,7 @@ export interface FetchManifestResponse {
    */
   valueId?: number
   /**
-   * Value is the value if we are adding a value.
+   * Value is the value if a value is being added.
    */
   value?: FetchManifestValue
   /**

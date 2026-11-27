@@ -86,8 +86,8 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 		t.Fatal("distribution mounts an independent Release World CDN block store")
 	}
 
-	// Verify the launcher neither mounts Release World in its worker nor late
-	// through its host.
+	// Verify the launcher neither mounts Release World in its worker nor
+	// mounts Release World late through its host.
 	for id := range launcherConf.GetConfigSet() {
 		if strings.HasPrefix(id, "release-world") {
 			t.Fatalf("browser launcher worker mounts independent Release World config %q", id)

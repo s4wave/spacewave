@@ -572,7 +572,8 @@ func (a *ProviderAccount) wakeSessionWaiters() {
 // fallbackSignalingEndpoint returns the configured trusted cloud signaling
 // endpoint for sessions whose cloud relay lookup found nothing. Standalone
 // local sessions have no linked cloud account, so the persisted provider
-// signaling URL is their only rendezvous. Empty keeps them without signaling.
+// signaling URL is their only rendezvous. An empty signaling URL keeps
+// standalone local sessions without signaling.
 func (a *ProviderAccount) fallbackSignalingEndpoint() cloudRelayEndpoint {
 	return cloudRelayEndpoint{
 		url:              a.t.p.signalingURL,
@@ -739,7 +740,7 @@ func (a *ProviderAccount) ensureSessionTransportWithoutReplacement(
 }
 
 // GetOnlinePeerIDsWithWait returns the base58 peer IDs of paired devices that
-// currently have an active bifrost link and change channels for transport and
+// have an active bifrost link and change channels for transport and
 // link state.
 func (a *ProviderAccount) GetOnlinePeerIDsWithWait(peerIDs []string) ([]string, []<-chan struct{}) {
 	// Return no peers when the session transport is not running.

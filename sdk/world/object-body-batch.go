@@ -190,7 +190,7 @@ func GetObjectBodiesPage(
 }
 
 // GetObjectBodiesBatch collects all pages from a WorldState resource. A body
-// over the page budget arrives withheld; world.GetObjectBodiesBatch reads it.
+// over the page budget arrives withheld. world.GetObjectBodiesBatch reads it.
 func GetObjectBodiesBatch(ctx context.Context, service ObjectBodiesBatchService, keys []string) ([]*world.ObjectBody, error) {
 	for retry := 0; retry <= world.MaxObjectBodiesBatchRevisionRetries; retry++ {
 		// Collect all object body pages from a consistent World revision.

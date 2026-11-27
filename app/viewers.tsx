@@ -5,7 +5,7 @@ import { getBaseObjectViewers } from '@s4wave/web/sdk/app/base-viewers.js'
 import { createViewerCatalog } from '@s4wave/web/sdk/app/viewer-catalog.js'
 import { getViewersForType } from '@s4wave/web/hooks/useViewerRegistry.js'
 
-// Viewer metadata is available synchronously; implementations load only when
+// Viewer metadata is available synchronously. Implementations load only when
 // ObjectViewerContent renders them within its existing Suspense boundary.
 const productObjectViewers: ObjectViewerComponent[] = [
   {

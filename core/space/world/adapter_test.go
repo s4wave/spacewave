@@ -48,7 +48,8 @@ type adapterFixture struct {
 	freed uint64
 	// passes are the results of the last collect's passes.
 	passes []block_gc.CollectResult
-	// maxPending bounds the pages the adapter keeps, zero for its default.
+	// maxPending bounds the pages the adapter keeps, zero for its default
+	// bound.
 	maxPending uint64
 	// acc is the provider account.
 	acc *provider_local.ProviderAccount
@@ -56,13 +57,14 @@ type adapterFixture struct {
 
 // fixtureOpts selects how a fixture stores its Space.
 type fixtureOpts struct {
-	// sql and creds make an SQL location the account's primary store.
+	// sql makes an SQL location the account's primary store with creds.
 	sql   *account_settings.SqlLocation
 	creds *block_store_s3.Credentials
 	// frees has the account's Volume free every block no root holds, at
 	// once, whenever the test collects.
 	frees bool
-	// maxPending bounds the pages the adapter keeps, zero for its default.
+	// maxPending bounds the pages the adapter keeps, zero for its default
+	// bound.
 	maxPending uint64
 	// opTypes resolves the operation types, or nil for the mock operations.
 	opTypes *space_world.OpTypes
@@ -113,7 +115,7 @@ func (f *adapterFixture) collectReport(ctx context.Context) string {
 	return fmt.Sprintf("%s; liveness state {%v}, parked %v, err %v", report, state, parked, err)
 }
 
-// sqlTestLocation returns the database BLOCK_STORE_SQL_TEST_HOST names, such
+// sqlTestLocation returns the database BLOCK_STORE_SQL_TEST_HOST selects, such
 // as a MariaDB container, with its credentials, and skips the test without
 // one.
 func sqlTestLocation(t *testing.T) (*account_settings.SqlLocation, *block_store_s3.Credentials) {
@@ -221,9 +223,9 @@ func (f *adapterFixture) start(t *testing.T) (*world.BusEngine, directive.Refere
 }
 
 // remount releases ref, waits for the engine eng served to retire, then
-// starts the Space World engine again, so no read or write after it reaches
-// the released engine. Starting before the retire would let the bus keep the
-// same controller. The retire is prompt: the engine ends its open
+// starts the Space World engine again, so no read or write after the remount
+// reaches the released engine. Starting before the retire would let the bus
+// keep the same controller. The retire is prompt: the engine ends its open
 // transactions as superseded.
 func (f *adapterFixture) remount(ctx context.Context, t *testing.T, eng world.Engine, ref directive.Reference) (*world.BusEngine, directive.Reference) {
 	t.Helper()
@@ -319,10 +321,10 @@ func backfillHolds(ctx context.Context, t *testing.T, store block.StoreOps, root
 }
 
 // TestAdapterRunThrough serves a Space World through its adapter on the
-// local provider: the World engine suite runs through the bus; concurrent
-// writers pipeline and each reads its own write after its commit; the owner
-// checkpoints its stable history, which moves the replay base root and
-// releases the checkpoint root; and a remounted engine reads every object.
+// local provider. The World engine suite runs through the bus. Concurrent
+// writers pipeline and each reads its own write after its commit. The owner
+// checkpoints its stable history, moving the replay base root and releasing
+// the checkpoint root. A remounted engine reads every object.
 func TestAdapterRunThrough(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
 		runAdapterThrough(t, newAdapterFixture(t))
@@ -364,10 +366,10 @@ func TestAdapterRunThrough(t *testing.T) {
 		}
 
 		// A remount applies only the operations past the saved replay
-		// cursor, whatever stands above the checkpoint. The cursor falls at
-		// most 64 operations behind, and a save in flight at the remount at
-		// most 64 more; each operation resolves the mock type twice, to run
-		// and for its payloads.
+		// cursor, whatever stands above the checkpoint. The cursor
+		// falls at most 64 operations behind, and a save in flight at
+		// the remount at most 64 more. Each operation resolves the
+		// mock type twice, to run and for its payloads.
 		small, large = measureRemountReplay(t, 40), measureRemountReplay(t, 300)
 		t.Logf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 300", small, large)
 		if small > 256 || large > 256 {
@@ -376,18 +378,18 @@ func TestAdapterRunThrough(t *testing.T) {
 	})
 }
 
-// payloadMockOp is a mock World operation that names payload roots derived
+// payloadMockOp is a mock World operation that declares payload roots derived
 // from its object key: the first, and the second too once extra is set, as a
 // new build of its handler would, under the version in version.
 type payloadMockOp struct {
 	*world_mock.MockWorldOp
-	// extra is set when the handler names the second root.
+	// extra is set when the handler declares the second root.
 	extra *atomic.Bool
 	// version is the handler's PayloadRefsVersion.
 	version *atomic.Uint32
 }
 
-// PayloadRefsVersion identifies what GetPayloadRefs names.
+// PayloadRefsVersion identifies what GetPayloadRefs returns.
 func (o *payloadMockOp) PayloadRefsVersion() uint32 {
 	return o.version.Load()
 }
@@ -411,13 +413,13 @@ func payloadRef(data string) *block.BlockRef {
 }
 
 // runPayloadHandlers checks invariant 6 of the payload hold: after a remount,
-// the payloads root holds every root the registered handlers name for every
+// the payloads root holds every root the registered handlers declare for every
 // operation above the checkpoint. A remount with the saved cursor, which
 // reuses its roots under the same handler version, holds the same roots as one
-// with the cursor removed, and a remount after the handler changed to name one
-// more root under a bumped version holds that root, although the cursor
+// with the cursor removed, and a remount after the handler changed to declare
+// one more root under a bumped version holds that root, although the cursor
 // recorded the old handler's roots. Each remount starts from an empty payloads
-// root, so only what it held counts.
+// root, so only what the remount held counts.
 func runPayloadHandlers(t *testing.T) {
 	// Serve the operations through a handler whose roots and identity the
 	// test switches.
@@ -443,8 +445,8 @@ func runPayloadHandlers(t *testing.T) {
 	addDevice(t, so)
 
 	// Store both payloads of each operation, then write more operations
-	// than a cursor save covers, which the silent device keeps above the
-	// checkpoint.
+	// than a cursor save covers. The silent device keeps those operations
+	// above the checkpoint.
 	const n = 70
 	keys := make([]string, n)
 	var entries []*block.PutBatchEntry
@@ -559,8 +561,8 @@ func runPayloadHandlers(t *testing.T) {
 
 	// A cursor an older build saved, whose handlers lack the transaction
 	// rules' version, holds the same roots after the upgrade, by resolving
-	// its outcomes again once: a handler that names one more root under the
-	// same version holds it, which the reused roots of a current cursor
+	// its outcomes again once: a handler that declares one more root under
+	// the same version holds it, which the reused roots of a current cursor
 	// would not. The current cursor is then put back.
 	waitCursor("after the remount")
 	current, err := space_world.ReadSavedCursor(ctx, so)
@@ -583,7 +585,7 @@ func runPayloadHandlers(t *testing.T) {
 		return space_world.WriteSavedCursor(ctx, so, current)
 	}))
 
-	// A handler that names one more root under a bumped version holds it
+	// A handler that declares one more root under a bumped version holds it
 	// although the cursor recorded the old handler's roots.
 	extra.Store(true)
 	version.Store(2)
@@ -742,8 +744,9 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	}
 	f.collect(t)
 
-	// Backfill copies the installed checkpoint's World and the retained roots
-	// and holds them; a retained root holds the head it names.
+	// Backfill copies the installed checkpoint's World and the retained
+	// roots and holds them. A retained root holds the head the root
+	// references.
 	store := f.space(t).GetBlockStore()
 	var se *space_world.Engine
 	var retained *block.BlockRef
@@ -976,7 +979,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 
 // deleteSpace deletes f's Space beside a second Space on the account, and
 // checks that a collection frees the deleted Space's blocks and keeps every
-// object of the other. served is the engine engRef holds; the collection
+// object of the other. served is the engine engRef holds. The collection
 // waits for it to retire, since until then its replay may hold the Space's
 // blocks.
 func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, served *space_world.Engine, engRef directive.Reference) {

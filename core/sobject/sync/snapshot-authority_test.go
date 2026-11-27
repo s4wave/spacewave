@@ -38,7 +38,8 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 		name string
 		// mutate changes an otherwise valid candidate and, when needed, its held checkpoint.
 		mutate func(held, candidate *sobject.SOState)
-		// wantError names the decisive boundary rather than an unrelated earlier failure.
+		// wantError identifies the decisive boundary rather than an
+		// unrelated earlier failure.
 		wantError string
 	}{
 		{name: "authorized height jump"},
@@ -110,7 +111,7 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 // TestPeerSnapshotSameContentKeepsHeldProof accepts an independently signed
 // copy of the held checkpoint while rejecting a different one at its height.
 func TestPeerSnapshotSameContentKeepsHeldProof(t *testing.T) {
-	// Two owners; the first signed the held genesis checkpoint.
+	// Two owners. The first signed the held genesis checkpoint.
 	const soID = "same-content-independent-owners"
 	first, second := mustKeyPair(t), mustKeyPair(t)
 	localID, err := peer.IDFromPrivateKey(first)

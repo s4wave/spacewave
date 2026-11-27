@@ -13,11 +13,11 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface V86fsMessage {
   /**
-   * tag correlates requests with responses.
+   * Tag correlates requests with responses.
    */
   tag?: number
   /**
-   * body is the message payload.
+   * Body is the message payload.
    *
    * @generated from oneof unixfs.v86fs.V86fsMessage.body
    */
@@ -118,7 +118,7 @@ export const V86fsMessage: MessageType<V86fsMessage> =
  */
 export interface V86fsMountRequest {
   /**
-   * name identifies which filesystem to mount (empty = root).
+   * Name identifies which filesystem to mount (empty = root).
    */
   name?: string
 }
@@ -136,15 +136,15 @@ export const V86fsMountRequest: MessageType<V86fsMountRequest> =
  */
 export interface V86fsMountReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * root_inode_id is the inode ID of the mount root.
+   * RootInodeId is the inode ID of the mount root.
    */
   rootInodeId?: bigint
   /**
-   * mode is the file mode of the root inode (includes type bits).
+   * Mode is the file mode of the root inode (includes type bits).
    */
   mode?: number
 }
@@ -166,11 +166,11 @@ export const V86fsMountReply: MessageType<V86fsMountReply> =
  */
 export interface V86fsLookupRequest {
   /**
-   * parent_id is the inode ID of the parent directory.
+   * ParentId is the inode ID of the parent directory.
    */
   parentId?: bigint
   /**
-   * name is the child entry name to look up.
+   * Name is the child entry name to look up.
    */
   name?: string
 }
@@ -191,19 +191,19 @@ export const V86fsLookupRequest: MessageType<V86fsLookupRequest> =
  */
 export interface V86fsLookupReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * inode_id is the inode ID of the found entry.
+   * InodeId is the inode ID of the found entry.
    */
   inodeId?: bigint
   /**
-   * mode is the file mode (includes type bits).
+   * Mode is the file mode (includes type bits).
    */
   mode?: number
   /**
-   * size is the file size in bytes.
+   * Size is the file size in bytes.
    */
   size?: bigint
 }
@@ -226,7 +226,7 @@ export const V86fsLookupReply: MessageType<V86fsLookupReply> =
  */
 export interface V86fsGetattrRequest {
   /**
-   * inode_id is the inode to query.
+   * InodeId is the inode to query.
    */
   inodeId?: bigint
 }
@@ -244,23 +244,23 @@ export const V86fsGetattrRequest: MessageType<V86fsGetattrRequest> =
  */
 export interface V86fsGetattrReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * mode is the file mode (includes type bits).
+   * Mode is the file mode (includes type bits).
    */
   mode?: number
   /**
-   * size is the file size in bytes.
+   * Size is the file size in bytes.
    */
   size?: bigint
   /**
-   * mtime_sec is the modification time (seconds since epoch).
+   * MtimeSec is the modification time (seconds since epoch).
    */
   mtimeSec?: bigint
   /**
-   * mtime_nsec is the modification time nanosecond component.
+   * MtimeNsec is the modification time nanosecond component.
    */
   mtimeNsec?: number
 }
@@ -284,15 +284,15 @@ export const V86fsGetattrReply: MessageType<V86fsGetattrReply> =
  */
 export interface V86fsDirEntry {
   /**
-   * inode_id is the inode ID of the entry.
+   * InodeId is the inode ID of the entry.
    */
   inodeId?: bigint
   /**
-   * dt_type is the dirent type (DT_DIR=4, DT_REG=8, DT_LNK=10).
+   * DtType is the dirent type (DT_DIR=4, DT_REG=8, DT_LNK=10).
    */
   dtType?: number
   /**
-   * name is the entry name.
+   * Name is the entry name.
    */
   name?: string
 }
@@ -314,7 +314,7 @@ export const V86fsDirEntry: MessageType<V86fsDirEntry> =
  */
 export interface V86fsReaddirRequest {
   /**
-   * dir_id is the inode ID of the directory.
+   * DirId is the inode ID of the directory.
    */
   dirId?: bigint
 }
@@ -332,11 +332,11 @@ export const V86fsReaddirRequest: MessageType<V86fsReaddirRequest> =
  */
 export interface V86fsReaddirReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * entries contains the directory listing.
+   * Entries contains the directory listing.
    */
   entries?: V86fsDirEntry[]
 }
@@ -357,11 +357,11 @@ export const V86fsReaddirReply: MessageType<V86fsReaddirReply> =
  */
 export interface V86fsOpenRequest {
   /**
-   * inode_id is the inode to open.
+   * InodeId is the inode to open.
    */
   inodeId?: bigint
   /**
-   * flags are the open flags.
+   * Flags are the open flags.
    */
   flags?: number
 }
@@ -382,11 +382,11 @@ export const V86fsOpenRequest: MessageType<V86fsOpenRequest> =
  */
 export interface V86fsOpenReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * handle_id is the opened file handle ID.
+   * HandleId is the opened file handle ID.
    */
   handleId?: bigint
 }
@@ -407,7 +407,7 @@ export const V86fsOpenReply: MessageType<V86fsOpenReply> =
  */
 export interface V86fsCloseRequest {
   /**
-   * handle_id is the file handle to close.
+   * HandleId is the file handle to close.
    */
   handleId?: bigint
 }
@@ -425,7 +425,7 @@ export const V86fsCloseRequest: MessageType<V86fsCloseRequest> =
  */
 export interface V86fsCloseReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
 }
@@ -443,15 +443,15 @@ export const V86fsCloseReply: MessageType<V86fsCloseReply> =
  */
 export interface V86fsReadRequest {
   /**
-   * handle_id is the open file handle.
+   * HandleId is the open file handle.
    */
   handleId?: bigint
   /**
-   * offset is the byte offset to read from.
+   * Offset is the byte offset to read from.
    */
   offset?: bigint
   /**
-   * size is the number of bytes to read.
+   * Size is the number of bytes to read.
    */
   size?: number
 }
@@ -473,11 +473,11 @@ export const V86fsReadRequest: MessageType<V86fsReadRequest> =
  */
 export interface V86fsReadReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * data contains the bytes read.
+   * Data contains the bytes read.
    */
   data?: Uint8Array
 }
@@ -498,15 +498,15 @@ export const V86fsReadReply: MessageType<V86fsReadReply> =
  */
 export interface V86fsCreateRequest {
   /**
-   * parent_id is the parent directory inode ID.
+   * ParentId is the parent directory inode ID.
    */
   parentId?: bigint
   /**
-   * name is the new file name.
+   * Name is the new file name.
    */
   name?: string
   /**
-   * mode is the file mode to set.
+   * Mode is the file mode to set.
    */
   mode?: number
 }
@@ -528,15 +528,15 @@ export const V86fsCreateRequest: MessageType<V86fsCreateRequest> =
  */
 export interface V86fsCreateReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * inode_id is the new file inode ID.
+   * InodeId is the new file inode ID.
    */
   inodeId?: bigint
   /**
-   * mode is the actual file mode set.
+   * Mode is the actual file mode set.
    */
   mode?: number
 }
@@ -558,15 +558,15 @@ export const V86fsCreateReply: MessageType<V86fsCreateReply> =
  */
 export interface V86fsWriteRequest {
   /**
-   * inode_id is the file inode to write to.
+   * InodeId is the file inode to write to.
    */
   inodeId?: bigint
   /**
-   * offset is the byte offset to write at.
+   * Offset is the byte offset to write at.
    */
   offset?: bigint
   /**
-   * data is the bytes to write.
+   * Data is the bytes to write.
    */
   data?: Uint8Array
 }
@@ -588,11 +588,11 @@ export const V86fsWriteRequest: MessageType<V86fsWriteRequest> =
  */
 export interface V86fsWriteReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * bytes_written is the number of bytes written.
+   * BytesWritten is the number of bytes written.
    */
   bytesWritten?: number
 }
@@ -613,15 +613,15 @@ export const V86fsWriteReply: MessageType<V86fsWriteReply> =
  */
 export interface V86fsMkdirRequest {
   /**
-   * parent_id is the parent directory inode ID.
+   * ParentId is the parent directory inode ID.
    */
   parentId?: bigint
   /**
-   * name is the directory name.
+   * Name is the directory name.
    */
   name?: string
   /**
-   * mode is the directory mode.
+   * Mode is the directory mode.
    */
   mode?: number
 }
@@ -643,15 +643,15 @@ export const V86fsMkdirRequest: MessageType<V86fsMkdirRequest> =
  */
 export interface V86fsMkdirReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * inode_id is the new directory inode ID.
+   * InodeId is the new directory inode ID.
    */
   inodeId?: bigint
   /**
-   * mode is the actual directory mode set.
+   * Mode is the actual directory mode set.
    */
   mode?: number
 }
@@ -673,19 +673,19 @@ export const V86fsMkdirReply: MessageType<V86fsMkdirReply> =
  */
 export interface V86fsSetattrRequest {
   /**
-   * inode_id is the inode to modify.
+   * InodeId is the inode to modify.
    */
   inodeId?: bigint
   /**
-   * valid is the bitmask of fields to set (ATTR_MODE=1, ATTR_SIZE=8).
+   * Valid is the bitmask of fields to set (ATTR_MODE=1, ATTR_SIZE=8).
    */
   valid?: number
   /**
-   * mode is the new file mode (if ATTR_MODE set).
+   * Mode is the new file mode (if ATTR_MODE set).
    */
   mode?: number
   /**
-   * size is the new file size (if ATTR_SIZE set).
+   * Size is the new file size (if ATTR_SIZE set).
    */
   size?: bigint
 }
@@ -708,7 +708,7 @@ export const V86fsSetattrRequest: MessageType<V86fsSetattrRequest> =
  */
 export interface V86fsSetattrReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
 }
@@ -726,7 +726,7 @@ export const V86fsSetattrReply: MessageType<V86fsSetattrReply> =
  */
 export interface V86fsFsyncRequest {
   /**
-   * inode_id is the inode to sync.
+   * InodeId is the inode to sync.
    */
   inodeId?: bigint
 }
@@ -744,7 +744,7 @@ export const V86fsFsyncRequest: MessageType<V86fsFsyncRequest> =
  */
 export interface V86fsFsyncReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
 }
@@ -762,11 +762,11 @@ export const V86fsFsyncReply: MessageType<V86fsFsyncReply> =
  */
 export interface V86fsUnlinkRequest {
   /**
-   * parent_id is the parent directory inode ID.
+   * ParentId is the parent directory inode ID.
    */
   parentId?: bigint
   /**
-   * name is the entry to remove.
+   * Name is the entry to remove.
    */
   name?: string
 }
@@ -787,7 +787,7 @@ export const V86fsUnlinkRequest: MessageType<V86fsUnlinkRequest> =
  */
 export interface V86fsUnlinkReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
 }
@@ -805,19 +805,19 @@ export const V86fsUnlinkReply: MessageType<V86fsUnlinkReply> =
  */
 export interface V86fsRenameRequest {
   /**
-   * old_parent_id is the source directory inode ID.
+   * OldParentId is the source directory inode ID.
    */
   oldParentId?: bigint
   /**
-   * old_name is the source entry name.
+   * OldName is the source entry name.
    */
   oldName?: string
   /**
-   * new_parent_id is the destination directory inode ID.
+   * NewParentId is the destination directory inode ID.
    */
   newParentId?: bigint
   /**
-   * new_name is the destination entry name.
+   * NewName is the destination entry name.
    */
   newName?: string
 }
@@ -840,7 +840,7 @@ export const V86fsRenameRequest: MessageType<V86fsRenameRequest> =
  */
 export interface V86fsRenameReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
 }
@@ -858,15 +858,15 @@ export const V86fsRenameReply: MessageType<V86fsRenameReply> =
  */
 export interface V86fsSymlinkRequest {
   /**
-   * parent_id is the parent directory inode ID.
+   * ParentId is the parent directory inode ID.
    */
   parentId?: bigint
   /**
-   * name is the symlink name.
+   * Name is the symlink name.
    */
   name?: string
   /**
-   * target is the symlink target path.
+   * Target is the symlink target path.
    */
   target?: string
 }
@@ -888,15 +888,15 @@ export const V86fsSymlinkRequest: MessageType<V86fsSymlinkRequest> =
  */
 export interface V86fsSymlinkReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * inode_id is the new symlink inode ID.
+   * InodeId is the new symlink inode ID.
    */
   inodeId?: bigint
   /**
-   * mode is the symlink mode.
+   * Mode is the symlink mode.
    */
   mode?: number
 }
@@ -918,7 +918,7 @@ export const V86fsSymlinkReply: MessageType<V86fsSymlinkReply> =
  */
 export interface V86fsReadlinkRequest {
   /**
-   * inode_id is the symlink inode.
+   * InodeId is the symlink inode.
    */
   inodeId?: bigint
 }
@@ -936,11 +936,11 @@ export const V86fsReadlinkRequest: MessageType<V86fsReadlinkRequest> =
  */
 export interface V86fsReadlinkReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * target is the symlink target path.
+   * Target is the symlink target path.
    */
   target?: string
 }
@@ -974,31 +974,31 @@ export const V86fsStatfsRequest: MessageType<V86fsStatfsRequest> =
  */
 export interface V86fsStatfsReply {
   /**
-   * status is 0 for success, or an errno value.
+   * Status is 0 for success, or an errno value.
    */
   status?: number
   /**
-   * blocks is the total data blocks in the filesystem.
+   * Blocks is the total number of data blocks in the filesystem.
    */
   blocks?: bigint
   /**
-   * bfree is the free blocks.
+   * Bfree is the number of free blocks.
    */
   bfree?: bigint
   /**
-   * bavail is the free blocks available to unprivileged users.
+   * Bavail is the number of free blocks available to unprivileged users.
    */
   bavail?: bigint
   /**
-   * files is the total file nodes.
+   * Files is the total number of file nodes.
    */
   files?: bigint
   /**
-   * ffree is the free file nodes.
+   * Ffree is the number of free file nodes.
    */
   ffree?: bigint
   /**
-   * bsize is the filesystem block size.
+   * Bsize is the filesystem block size.
    */
   bsize?: number
 }
@@ -1025,15 +1025,15 @@ export const V86fsStatfsReply: MessageType<V86fsStatfsReply> =
  */
 export interface V86fsInvalidate {
   /**
-   * inode_id is the inode to invalidate.
+   * InodeId is the inode to invalidate.
    */
   inodeId?: bigint
   /**
-   * offset is the start of the range to invalidate (0 = full inode).
+   * Offset is the start of the range to invalidate (0 = full inode).
    */
   offset?: bigint
   /**
-   * size is the length of the range to invalidate (0 = full inode).
+   * Size is the length of the range to invalidate (0 = full inode).
    */
   size?: bigint
 }
@@ -1056,7 +1056,7 @@ export const V86fsInvalidate: MessageType<V86fsInvalidate> =
  */
 export interface V86fsInvalidateDir {
   /**
-   * dir_id is the directory inode to invalidate.
+   * DirId is the directory inode to invalidate.
    */
   dirId?: bigint
 }
@@ -1075,11 +1075,11 @@ export const V86fsInvalidateDir: MessageType<V86fsInvalidateDir> =
  */
 export interface V86fsMountNotify {
   /**
-   * name is the mount name (resolved by mount-name resolver).
+   * Name is the mount name (resolved by mount-name resolver).
    */
   name?: string
   /**
-   * mount_path is the guest path to mount at.
+   * MountPath is the guest path to mount at.
    */
   mountPath?: string
 }
@@ -1101,7 +1101,7 @@ export const V86fsMountNotify: MessageType<V86fsMountNotify> =
  */
 export interface V86fsUmountNotify {
   /**
-   * mount_path is the guest path to unmount.
+   * MountPath is the guest path to unmount.
    */
   mountPath?: string
 }
@@ -1119,7 +1119,7 @@ export const V86fsUmountNotify: MessageType<V86fsUmountNotify> =
  */
 export interface V86fsErrorReply {
   /**
-   * status is the errno value.
+   * Status is the errno value.
    */
   status?: number
 }

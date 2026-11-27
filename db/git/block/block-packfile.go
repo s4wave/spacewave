@@ -13,7 +13,7 @@ func NewPackfileBlock() block.Block {
 	return &Packfile{}
 }
 
-// Validate performs cursory validation of the Packfile.
+// Validate validates the Packfile cursorily.
 func (r *Packfile) Validate() error {
 	// Validate the packfile hash, backing blobs, object count, and sizes.
 	if err := ValidateHash(r.GetPackHash()); err != nil {

@@ -23,7 +23,7 @@ func NewSqlWorkbenchInitializeRootOp(objectKey string, rootRef *bucket.ObjectRef
 	return &SqlWorkbenchSetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone(), InitializeOnly: true}
 }
 
-// Validate performs cursory checks on the operation.
+// Validate cursorily checks the operation.
 func (o *SqlWorkbenchSetRootOp) Validate() error {
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey

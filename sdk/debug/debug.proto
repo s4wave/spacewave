@@ -14,7 +14,7 @@ message EvalJSRequest {
   // Code is the JavaScript code to evaluate.
   string code = 1;
   // Url is a URL to import as an ES module (alternative to code).
-  // Set by the bridge service; the default export is used as the result.
+  // Url is set by the bridge service. The default export is used as the result.
   string url = 2;
   // IsModule indicates the code is already a full ES module.
   // When true, the bridge stores the code as-is without wrapping in an async IIFE.

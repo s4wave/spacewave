@@ -68,8 +68,9 @@ describe('startWorkerPluginEntrypoint', () => {
     ).rejects.toBe(err)
   })
 
-  // A lifecycle entrypoint and a promise one, as plugin builds bundle before
-  // their main returned a lifecycle, both answer when they serve no RPC.
+  // A lifecycle entrypoint and a promise entrypoint both answer when they
+  // serve no RPC. The promise form covers plugin builds bundled before their
+  // main returned a lifecycle.
   it.each([
     ['lifecycle', () => ({ startup: Promise.resolve() })],
     ['promise', () => Promise.resolve()],

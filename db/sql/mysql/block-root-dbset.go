@@ -10,7 +10,7 @@ type rootDbsSetContainer struct {
 	r *Root
 }
 
-// newRootDbsSetContainer builds a new named ref slice subobject
+// newRootDbsSetContainer builds a new named ref slice subobject.
 func newRootDbsSetContainer(r *Root, bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 	if r == nil {
 		return nil

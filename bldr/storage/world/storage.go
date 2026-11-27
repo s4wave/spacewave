@@ -19,7 +19,7 @@ import (
 
 // Storage allocates named Volume objects beneath one stable World prefix.
 // The caller retains the engine and its backing storage for this lifetime.
-// A prefix separates names; access to the World determines authority.
+// A prefix separates names. Access to the World determines authority.
 type Storage struct {
 	ctx      context.Context
 	engine   world.Engine

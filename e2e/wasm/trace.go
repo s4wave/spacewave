@@ -57,7 +57,7 @@ func (s *TestSession) StopTrace(ctx context.Context) ([]byte, error) {
 }
 
 // CaptureTrace starts a trace, runs fn, stops the trace, and returns the
-// raw bytes. This brackets only the profiled interaction.
+// raw bytes. The trace brackets only the profiled interaction.
 func (s *TestSession) CaptureTrace(ctx context.Context, label string, fn func(ctx context.Context) error) ([]byte, error) {
 	// Start a trace, run the function, and return the captured bytes.
 	if err := s.StartTrace(ctx, label); err != nil {

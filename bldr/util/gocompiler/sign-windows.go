@@ -36,8 +36,8 @@ const WindowsSignAccountEnv = "BLDR_WINDOWS_SIGN_ACCOUNT"
 const WindowsSignEndpointEnv = "BLDR_WINDOWS_SIGN_ENDPOINT"
 
 // defaultWindowsSignEndpoint is the default Trusted Signing endpoint when
-// WindowsSignEndpointEnv is unset. West US 2 is where our signing account
-// lives; override via env for accounts in other regions.
+// WindowsSignEndpointEnv is unset. West US 2 is where the project's signing
+// account lives. Override via env for accounts in other regions.
 const defaultWindowsSignEndpoint = "https://wus.codesigning.azure.net/"
 
 // WindowsSignDescriptionEnv is the env var holding the Authenticode

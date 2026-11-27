@@ -6,7 +6,7 @@
 // commits the packs in that order while several upload at once. Every block
 // the Space lists therefore has its whole subtree listed, so a copy that is
 // cut resumes by skipping each subtree whose root the Space already holds,
-// and the checkpoint, posted last, names a tree that is complete.
+// and the checkpoint, posted last, references a tree that is complete.
 package cdn_mirror
 
 import (
@@ -35,7 +35,7 @@ const DefaultUploads = 4
 
 // Options configures a mirror.
 type Options struct {
-	// Publish names the destination Space, its pack base URL and owner key.
+	// Publish specifies the destination Space, its pack base URL and owner key.
 	// Its Client must be a cdn_publish.StagingClient.
 	Publish cdn_publish.Options
 	// Uploads is the number of packs uploaded at once. Zero selects
@@ -58,7 +58,7 @@ type Result struct {
 	// Packs counts the packs committed.
 	Packs int
 	// Checkpoint is the checkpoint posted, or nil when the Space's checkpoint
-	// already named the tree.
+	// already referenced the tree.
 	Checkpoint *sobject.SOCheckpointInner
 }
 
@@ -75,8 +75,8 @@ func MirrorWorld(ctx context.Context, eng world.Engine, opts Options) (*Result, 
 }
 
 // Mirror copies the tree under head from src into the destination Space, then
-// posts a checkpoint naming head. src must report each block's refs, as a
-// Volume does. The caller must be the Space's only writer while it runs.
+// posts a checkpoint referencing head. src must report each block's refs, as a
+// Volume does. The caller must be the Space's only writer while Mirror runs.
 func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opts Options) (*Result, error) {
 	// Require a destination and a tree.
 	pub := opts.Publish
@@ -90,7 +90,8 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 		return nil, errors.New("the session client cannot stage a pack")
 	}
 
-	// Hold a writing grant before the first request, since it admits us.
+	// Hold a writing grant before the first request, since the grant admits the
+	// caller.
 	var grants *cdn_bstore.GrantKeeper
 	if opts.Grants != nil {
 		grants = cdn_bstore.NewGrantKeeper(opts.Grants, pub.DstSpaceID)
@@ -99,7 +100,7 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 		}
 	}
 
-	// Skip the copy when the Space's checkpoint already names the tree. A
+	// Skip the copy when the Space's checkpoint already references the tree. A
 	// published head carries no bucket binding.
 	current, err := destinationHead(ctx, pub)
 	if err != nil {
@@ -156,7 +157,7 @@ func requireWrite(ctx context.Context, grants *cdn_bstore.GrantKeeper) error {
 	return nil
 }
 
-// destinationHead returns the head the Space's checkpoint names, or nil.
+// destinationHead returns the head the Space's checkpoint references, or nil.
 func destinationHead(ctx context.Context, pub cdn_publish.Options) (*bucket.ObjectRef, error) {
 	// Read the authoritative state, since the served pointer can lag.
 	data, err := pub.Client.GetSOState(ctx, pub.DstSpaceID, 0, spacewave_provider.SeedReasonColdSeed)
@@ -168,7 +169,7 @@ func destinationHead(ctx context.Context, pub cdn_publish.Options) (*bucket.Obje
 		return nil, errors.Wrap(err, "decode destination state")
 	}
 
-	// Decode the head its checkpoint names.
+	// Decode the head the Space's checkpoint references.
 	if msg.GetSnapshot().GetCheckpoint() == nil {
 		return nil, nil
 	}

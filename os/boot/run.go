@@ -53,7 +53,8 @@ func Run(ctx context.Context, workload, store string) (retErr error) {
 	}
 	defer func() { retErr = errors.Join(retErr, os.Setenv("PATH", oldPath)) }()
 
-	// Open never regenerates retained content; the empty store keeps the baseline.
+	// Open never regenerates retained content. The empty store keeps the
+	// baseline.
 	le := logrus.NewEntry(logrus.New())
 	var root *Root
 	if store == "" {
@@ -91,9 +92,10 @@ func Run(ctx context.Context, workload, store string) (retErr error) {
 	served := make(chan error, 1)
 	println("SPACEWAVE_OS_MOUNTED")
 	go func() {
-		// Disconnect on an unexpected server exit so kernel users cannot wait
-		// indefinitely on a dead server's still-open FUSE channel. Cancel the
-		// workload too; storage remains alive until ordered Root cleanup.
+		// Disconnect on an unexpected server exit so kernel users
+		// cannot wait indefinitely on a dead server's still-open FUSE
+		// channel. Cancel the workload too. Storage remains alive until
+		// ordered Root cleanup.
 		err := rfs.Serve()
 		rfs.Close()
 		cancel()
@@ -120,11 +122,12 @@ func Run(ctx context.Context, workload, store string) (retErr error) {
 		println("SPACEWAVE_OS_SERVER_JOINED")
 	}()
 
-	// First exec bootstrap pages in a separate address space. Direct vfork exec
-	// from our own FUSE mount can retain the sole Go processor while the kernel
-	// waits for that processor's server. The bootstrap child enters UnixFS only
-	// after the parent's vfork has finished. Chroot is rooting, not a sandbox.
-	// Launch with inherited serial descriptors but without bootstrap paths.
+	// First exec bootstrap pages in a separate address space. Direct vfork
+	// exec from the process's own FUSE mount can retain the sole Go
+	// processor while the kernel waits for that processor's server. The
+	// bootstrap child enters UnixFS only after the parent's vfork has
+	// finished. Chroot is rooting, not a sandbox. Launch with inherited
+	// serial descriptors but without bootstrap paths.
 	cmd := exec.CommandContext(workCtx, executable, "enter", mountPath, workload)
 	cmd.Dir = "/"
 	cmd.Env = []string{"GOMAXPROCS=1"}

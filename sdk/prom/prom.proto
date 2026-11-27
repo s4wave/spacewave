@@ -41,7 +41,8 @@ message TargetMeta {
   ScrapeConfig scrape = 2;
   // RetentionMs is how long the target keeps samples, measured back from its
   // latest sample. Expired samples are dropped every two hours, so they can
-  // outlive it by that much. Zero keeps 15 days, as Prometheus does.
+  // outlive the retention period by that much. Zero keeps 15 days, as
+  // Prometheus does.
   uint64 retention_ms = 3;
 }
 
@@ -105,7 +106,7 @@ message TargetInfo {
 // every committed series of every target.
 message LabelNamesRequest {
   // Match holds series selectors such as up{job="node"}. A series matches
-  // when any selector matches it; none matches every series.
+  // when any selector matches it. With no selectors, every series matches.
   repeated string match = 1;
 }
 
@@ -253,7 +254,7 @@ message WatchDashboardRequest {}
 // PutPanelRequest adds or replaces a panel.
 message PutPanelRequest {
   // Panel is the panel to store. An empty id adds it at the end under a new
-  // id; any other id replaces that panel, and fails with ErrPanelRemoved when
+  // id. Any other id replaces that panel, and fails with ErrPanelRemoved when
   // another writer removed it.
   Panel panel = 1;
 }

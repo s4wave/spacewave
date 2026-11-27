@@ -196,8 +196,8 @@ func TestSnapshotTransitions(t *testing.T) {
 }
 
 // TestUploadErrorFollowsPendingUploads checks that UploadError reports only a
-// push error of a store with uploads still pending, and that UploadHold names
-// an account limit that refused one.
+// push error of a store with uploads still pending, and that UploadHold
+// identifies an account limit that refused a push.
 func TestUploadErrorFollowsPendingUploads(t *testing.T) {
 	// A pull error on a store with pending uploads is not an upload error.
 	store := &Store{}
@@ -208,14 +208,14 @@ func TestUploadErrorFollowsPendingUploads(t *testing.T) {
 		t.Fatalf("upload error = %q after a pull error", snap.UploadError)
 	}
 
-	// A failed flush with uploads pending is.
+	// A failed flush with uploads pending is an upload error.
 	pushErr := errors.New("push failed")
 	store.RecordError("bstore-1", pushErr)
 	if snap := store.Snapshot(); snap.UploadError != pushErr.Error() {
 		t.Fatalf("upload error = %q, want %q", snap.UploadError, pushErr.Error())
 	}
 
-	// A push error left on a store with nothing pending is not.
+	// A push error left on a store with nothing pending is not an upload error.
 	store.SetPendingPublications("bstore-1", 0)
 	if snap := store.Snapshot(); snap.UploadError != "" {
 		t.Fatalf("upload error = %q with no uploads pending", snap.UploadError)

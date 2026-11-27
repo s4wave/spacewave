@@ -18,11 +18,11 @@ import (
 type Testbed struct {
 	// Context is the root context.
 	Context context.Context
-	// Logger is the logger
+	// Logger is the logger.
 	Logger *logrus.Entry
 	// StaticResolver is the static resolver.
 	StaticResolver *srr.Resolver
-	// Bus is the controller bus
+	// Bus is the controller bus.
 	Bus bus.Bus
 	// PrivKey is the private key.
 	PrivKey crypto.PrivKey

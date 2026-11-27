@@ -34,7 +34,7 @@ type httpTransport struct {
 // Fetch reads length bytes starting at off via HTTP Range.
 //
 // A 200 OK (non-partial) response is accepted as a best-effort fallback for
-// servers that ignore Range; prefix bytes are skipped. Short reads at the
+// servers that ignore Range, with prefix bytes skipped. Short reads at the
 // end of the pack return the partial slice without error so the caller can
 // detect EOF by comparing lengths. A network error or 5xx response is
 // retried once.
@@ -86,7 +86,7 @@ func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([
 		t.recordFullResponseFallback(off)
 	}
 
-	// Read the range; a short read is the end of the pack.
+	// Read the range. A short read is the end of the pack.
 	buf := make([]byte, length)
 	n, err := io.ReadFull(resp.Body, buf)
 	if err == io.ErrUnexpectedEOF {
@@ -126,7 +126,7 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 //
 // packID identifies index-cache entries independently of the transport URL.
 // readAheadSize sets the engine's minimum transport window (and alignment
-// quantum); zero accepts the default. signReq optionally prepares each
+// quantum). Zero accepts the default window. signReq optionally prepares each
 // request, such as signing it or replacing its URL with a granted one.
 func NewHTTPRangeReader(
 	cli *http.Client,

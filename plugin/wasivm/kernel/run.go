@@ -1,8 +1,8 @@
 package kernel
 
 // BusyboxApplets returns a VFS file map installing wasm at /bin/busybox
-// and common applet paths. All entries point to the same binary; busybox
-// determines its behavior from argv[0].
+// and common applet paths. All entries point to the same binary. The busybox
+// binary determines its behavior from argv[0].
 func BusyboxApplets(wasm []byte) map[string][]byte {
 	return map[string][]byte{
 		"/bin/busybox":  wasm,

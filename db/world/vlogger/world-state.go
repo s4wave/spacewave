@@ -15,7 +15,7 @@ type WorldState struct {
 	// WorldState is the underlying WorldState object.
 	world.WorldState
 
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 }
 

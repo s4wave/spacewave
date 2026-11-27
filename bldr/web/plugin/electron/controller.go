@@ -59,7 +59,8 @@ type Controller struct {
 	generation uint64
 	// launchErr is the result of the most recent ended launch.
 	launchErr error
-	// run starts one shell and publishes its runtime; tests replace it with a fixture.
+	// run starts one shell and publishes its runtime. Tests replace it with
+	// a fixture.
 	run func(context.Context) error
 }
 

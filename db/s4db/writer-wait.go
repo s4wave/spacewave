@@ -66,7 +66,8 @@ func (q *writerRequests) remove(r *writerRequest) {
 // including a slice already running when it queued.
 // Caller bodies, storage, scheduling and memtable backpressure have no time bound.
 type writerAdmission struct {
-	// mtx guards queue changes and grants; it never covers I/O or a caller body.
+	// mtx guards queue changes and grants. The mutex never covers I/O or a
+	// caller body.
 	mtx sync.Mutex
 	// foreground and background keep FIFO order within each kind of work.
 	foreground, background writerRequests
@@ -136,7 +137,7 @@ func (a *writerAdmission) cancel(r *writerRequest) {
 	a.waiting.Add(-1)
 }
 
-// dispatch grants one queue head when idle; the caller holds mtx.
+// dispatch grants one queue head when idle. The caller holds mtx.
 func (a *writerAdmission) dispatch() {
 	// Finishing the last cohort member reserves one shared background turn.
 	if a.holder != nil {

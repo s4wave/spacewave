@@ -43,8 +43,8 @@ func TestDiagnosticFlagCannotUnstripNativeRelease(t *testing.T) {
 }
 
 // TestDiagnosticWasmModeBypassesWasmOptPostProcessing verifies the actual
-// release wasm-opt gating decision: diagnostic mode skips wasm-opt, default
-// keeps it, and BLDR_GO_WASM_OPTIMIZE=false also skips it.
+// release wasm-opt gating decision: diagnostic mode skips wasm-opt, the default
+// mode keeps it, and BLDR_GO_WASM_OPTIMIZE=false also skips it.
 func TestDiagnosticWasmModeBypassesWasmOptPostProcessing(t *testing.T) {
 	// Verify the default release wasm build runs wasm-opt.
 	t.Setenv(GoWasmOptimizeEnv, "")

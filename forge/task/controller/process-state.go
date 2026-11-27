@@ -52,7 +52,8 @@ func (c *Controller) ProcessState(
 		c.syncWatchPassStates(nil)
 	}
 
-	// Explicit cancellation remains stopped until the operator retries it.
+	// Explicit cancellation remains stopped until the operator retries the
+	// Task.
 	if currState == forge_task.State_TaskState_COMPLETE && taskState.GetResult().GetCanceled() {
 		c.syncWatchInputObjects(nil, false)
 		return true, nil
@@ -78,7 +79,8 @@ func (c *Controller) ProcessState(
 	targetDirty := !taskTarget.EqualVT(tgt)
 
 	// Seed target resolution with stored inputs so scheduler-supplied names
-	// survive reconciliation; target resolvers may overwrite their own names.
+	// survive reconciliation. Target resolvers may overwrite their own
+	// names.
 	storedInputs, err := forge_value.ValueSlice(taskState.GetValueSet().GetInputs()).
 		BuildValueMap(true, true)
 	if err != nil {
@@ -98,7 +100,7 @@ func (c *Controller) ProcessState(
 	var oldInputSet forge_value.ValueSlice = taskState.GetValueSet().GetInputs()
 	addedInputs, removedInputs, changedInputs := oldInputSet.Compare(inputSet)
 
-	// release the map, we don't need it anymore.
+	// release the map, which is no longer needed.
 	inputMapRel()
 
 	// determine if the inputs are dirty and need to trigger a update
@@ -244,9 +246,10 @@ func buildUpdateInputValueSet(
 }
 
 // reuseOutputs completes the PENDING Task with the outputs of an earlier
-// successful Task with the same reuse key. It reports whether it did. A
-// candidate the transaction refuses, such as one deleted or changed since the
-// lookup, is skipped, and the Task starts as usual when none is left.
+// successful Task with the same reuse key. The bool reports whether the
+// PENDING Task was completed with reused outputs. A candidate the transaction
+// refuses, such as one deleted or changed since the lookup, is skipped, and
+// the Task starts as usual when no candidate is left.
 func (c *Controller) reuseOutputs(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -17,17 +17,17 @@ import (
 // Each incoming stream context should have a MountedStreamContext.
 // To override this value use NewServerWithIdentity.
 type Server struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// ident determines the peer for a stream context
+	// ident determines the peer for a stream context.
 	ident func(ctx context.Context) (peer.ID, error)
-	// mtx guards below fields
+	// mtx guards the peers and sessions fields.
 	mtx sync.Mutex
 	// peers contains the list of listening peers
-	// keyed by peer id string
+	// keyed by peer id string.
 	peers map[string]*serverPeerTracker
-	// sessions is the map of ongoing session RPCs to ensure no duplicates
-	// close the channel to signal that the session was userped
+	// sessions is the map of ongoing session RPCs to ensure no duplicates.
+	// Close the channel to signal that the session was userped.
 	sessions map[sessionKey]*sessionTracker
 }
 
@@ -76,7 +76,7 @@ func (s *Server) getPeer(pidStr string) (*serverPeerTracker, bool) {
 }
 
 // maybeReleasePeer releases the peer tracker if it has no references.
-// returns if it was found & released
+// returns if it was found & released.
 func (s *Server) maybeReleasePeer(pidStr string) bool {
 	// Keep the signaling peer tracker while a listener or session request needs it.
 	tkr := s.peers[pidStr]

@@ -71,9 +71,10 @@ func ReadFlowgraphRun(ctx context.Context, ws world.WorldState, key string) (*Fl
 	return run, rev, err
 }
 
-// UpdateFlowgraph changes the body and placement graph in the caller's transaction.
-// The caller commits on success or discards the transaction on error. It has no
-// object type registry, so a bound node offers its authored ports only.
+// UpdateFlowgraph changes the body and placement graph in the caller's
+// transaction. The caller commits on success or discards the transaction on
+// error. UpdateFlowgraph has no object type registry, so a bound node offers
+// its authored ports only.
 func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, request *UpdateFlowgraphRequest) (*FlowgraphSnapshot, error) {
 	return UpdateBoundFlowgraph(ctx, ws, nil, "", key, request)
 }
@@ -232,9 +233,10 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		}
 	}
 
-	// Write the object after its placement edges, so its World change closes
-	// this edit's placements in the changelog. A placement-only edit leaves the body as it was, so it marks
-	// the object with a revision change instead.
+	// Write the object after its placement edges, so its World change
+	// closes this edit's placements in the changelog. A placement-only edit
+	// leaves the body as it was, so the edit marks the object with a
+	// revision change instead.
 	obj, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {

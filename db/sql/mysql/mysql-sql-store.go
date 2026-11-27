@@ -6,7 +6,7 @@ import (
 	"github.com/s4wave/spacewave/db/sql"
 )
 
-// NewTransaction returns a new SqlDB transaction.
+// NewSqlTransaction returns a new SqlDB transaction.
 func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (sql.SqlTransaction, error) {
 	// Open the database transaction for the requested SQL access mode.
 	mtx, err := t.NewMysqlTransaction(ctx, write)

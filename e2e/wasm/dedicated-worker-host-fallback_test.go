@@ -148,7 +148,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 
 // TestWebDocumentLivenessLockReleaseNoDeletion proves a liveness Web Lock grant
 // in the runtime is suspect evidence while the document port stays open. The
-// unit test pins the runtime-side suspect transition; this browser path releases
+// unit test pins the runtime-side suspect transition. This browser path releases
 // and re-acquires the page-held lock, then checks that Go did not observe a
 // remote-document teardown signal.
 func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
@@ -481,8 +481,8 @@ func assertNoDedicatedWorkerFailoverReload(t testing.TB, page playwright.Page) {
 // elected host closed. The fetch may settle on either side of the close: the
 // runtime relay promises that the request completes, not that it is still
 // pending at any chosen instant, and on a fast machine the response arrives
-// before the two round trips that follow it. Asserting the instant would fail
-// exactly when the system did the right thing.
+// before the two round trips that follow the fetch. Asserting the instant would
+// fail exactly when the system did the right thing.
 func assertDedicatedWorkerPluginAssetFetch(t testing.TB, page playwright.Page, url string) {
 	// Require the dedicated-worker plugin asset fetch.
 	t.Helper()

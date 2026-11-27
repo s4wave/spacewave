@@ -125,7 +125,8 @@ func TestFeed(t *testing.T) {
 		t.Fatal("frames reencoded the publication")
 	}
 
-	// Late subscribers get the current publication; cancellation frees each watch.
+	// Late subscribers get the current publication. Cancellation frees each
+	// watch.
 	late, stopLate, lateDone := watch(nil)
 	if pub := <-late; pub != changed {
 		t.Fatal("late join used an older publication")

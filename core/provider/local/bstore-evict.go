@@ -118,8 +118,8 @@ func (r *readSet) add(h *hash.Hash) {
 }
 
 // load restores the saved generations into an empty set and drops the older
-// ones. The newest saved generation is current and the one before it previous;
-// the next pass turns them when they have aged.
+// ones. The newest saved generation is current and the one before it is
+// previous. The next pass turns them when they have aged.
 func (r *readSet) load(ctx context.Context, store readStore) error {
 	// Read the saved chunks.
 	r.store = store
@@ -259,9 +259,10 @@ func (r *readSet) take(ctx context.Context) (func(*hash.Hash) bool, error) {
 	}, nil
 }
 
-// CacheReadsEnv names the environment variable that stops eviction counting
-// reads served from decoded-block caches when set to "off", which restores
-// the eviction before it: only reads that reach the local store keep a block.
+// CacheReadsEnv references the environment variable that stops eviction
+// counting reads served from decoded-block caches when set to "off", which
+// restores the eviction before it: only reads that reach the local store
+// keep a block.
 const CacheReadsEnv = "SPACEWAVE_EVICT_CACHE_READS"
 
 // cacheReadsOff is read once at startup from CacheReadsEnv.
@@ -271,15 +272,15 @@ var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
 // Every other value, including an unset variable, keeps the default off.
 const EvictRefusedRetryEnv = "SPACEWAVE_EVICT_REFUSED_RETRY"
 
-// EvictConfirmEnv names the environment variable that, set to "remote", makes
-// eviction ask the backend's bucket whether it holds each block, as
+// EvictConfirmEnv references the environment variable that, set to "remote",
+// makes eviction ask the backend's bucket whether it holds each block, as
 // block_store_writeback.SetEvictRemoteProbe describes, instead of confirming
 // from the backend's local pack index. Every other value, including an unset
 // variable, confirms locally where the backend can.
 const EvictConfirmEnv = "SPACEWAVE_EVICT_CONFIRM"
 
 // EvictQueueIndexEnv enables indexed accounting only at the exact value on.
-// Refusal retry must also be on; every other combination keeps legacy metadata.
+// Refusal retry must also be on. Every other combination keeps legacy metadata.
 const EvictQueueIndexEnv = "SPACEWAVE_EVICT_QUEUE_INDEX"
 
 // init selects the provider's refusal, accounting and confirmation
@@ -299,8 +300,8 @@ func init() {
 //
 // Invariant: eviction may only keep more blocks than before, never drop one
 // it would have kept. Both sources are separate from every placement's
-// readSet, so they never start or turn its generations or take its slots;
-// the keep test only adds them to what the readSet keeps.
+// readSet, so they never start or turn its generations or take its slots.
+// The keep test only adds them to what the readSet keeps.
 var cacheHits hitSet
 
 // startCacheHits installs the decoded-block hit observer and enables holds,
@@ -334,7 +335,7 @@ const hitSlots = 1 << 21
 // fingerprint and the readKeepAge generation of its latest hit, so recording
 // and testing take no lock. A slot counts while its generation is the current
 // one or the one before. A hit into a full bucket replaces its oldest slot,
-// and two hits racing for one slot may lose one; either only shortens how
+// and two hits racing for one slot may lose one. Either only shortens how
 // long a cache hit keeps its block, never what a readSet keeps.
 type hitSet struct {
 	// clock returns the current time, time.Now when nil.
@@ -463,7 +464,7 @@ const evictBusyWait = 30 * time.Second
 // resident bytes fall below the high mark, as EvictLatch describes, until they
 // reach the low mark, nothing uploaded is left to evict, or the marks change.
 // Uploads and writes change the status, which starts the next check, or
-// evictShortWait after a pass that fell short of the mark; a policy change,
+// evictShortWait after a pass that fell short of the mark. A policy change,
 // such as SetResidentMarks lowering the high mark, starts it at once either
 // way. A pass that ends on a busy database, after its own retries, is retried
 // after evictBusyWait instead of ending the loop. Between passes it saves the
@@ -495,9 +496,10 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		// Run a pass while the store is past its budget.
 		// Before the upload opens the backend no pass can run, so wait for
 		// the next status change rather than the short wait: a restart
-		// checks before the backend opens, and waiting evictShortWait then
-		// left the disk filling for ten minutes after every start. A policy
-		// wake sent before this status read is answered by it.
+		// checks before the backend opens, and waiting evictShortWait
+		// then left the disk filling for ten minutes after every start.
+		// A policy wake sent before this status read is answered by
+		// the status read.
 		select {
 		case <-p.policyWake:
 		default:
@@ -544,8 +546,8 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 
 // passStartLog says that an eviction pass starts, why, and how many bytes it
 // wants to drop. A pass the loop's first check, a policy wake or a retry
-// starts logs at info, so a resume or a retry shows when it takes effect;
-// one a status change starts logs at debug, since those follow every upload
+// starts logs at info, so a resume or a retry shows when it takes effect.
+// A pass a status change starts logs at debug, since those follow every upload
 // round while the store is past its budget, and logEvictionPasses sums them.
 func passStartLog(le *logrus.Entry, cause string, want int64) {
 	entry := le.WithFields(logrus.Fields{"cause": cause, "want-bytes": want})
@@ -585,7 +587,7 @@ func logEvictionPasses(le *logrus.Entry, passes <-chan block_store_writeback.Evi
 	}
 	defer flush()
 
-	// Wait on results and the active deadline; an idle worker has no timer.
+	// Wait on results and the active deadline. An idle worker has no timer.
 	for {
 		select {
 		case result, ok := <-passes:
@@ -661,9 +663,9 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	// peer fills uploading, a peer fill the backend does not yet hold keeps
 	// its local value: it is refused until its upload queues it again. A pack
 	// store with a local index that keeps its packs confirms from the index
-	// alone, and a block the index cannot vouch for is kept, not probed; any
-	// other backend, or every backend under EvictConfirmEnv "remote", answers
-	// through an existence probe per batch.
+	// alone, and a block the index cannot vouch for is kept, not probed.
+	// Any other backend, or every backend under EvictConfirmEnv "remote",
+	// answers through an existence probe per batch.
 	return p.wb.Evict(ctx, remote.store, maxBytes, keep, admit)
 }
 

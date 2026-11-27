@@ -53,7 +53,8 @@ func TestDaemonIdleTrackerClaimDesktopQuit(t *testing.T) {
 	t.Cleanup(releaseOther)
 	t.Cleanup(desktop.release)
 
-	// Count and name only the client and service outside the requesting desktop.
+	// Count and describe only the client and service outside the requesting
+	// desktop.
 	claimed, snapshot := tracker.claimDesktopQuit(requester)
 	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
 		t.Fatalf("admitted requester demand = %+v", snapshot)

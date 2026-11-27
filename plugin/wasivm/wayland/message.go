@@ -17,7 +17,7 @@ type message struct {
 	// args is the unread argument bytes.
 	args []byte
 	// files is the client's queue of received files, from which fd takes
-	// the next.
+	// the next file.
 	files *[]*kernel.File
 	// err is the first decoding error.
 	err error
@@ -40,7 +40,7 @@ func (m *message) int() int32 {
 }
 
 // bytes reads a string or an array: a length and that many bytes padded to
-// four.
+// four bytes.
 func (m *message) bytes() []byte {
 	// Check the padded bytes are present.
 	n := m.uint()

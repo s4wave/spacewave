@@ -52,7 +52,8 @@ func (s *H264Source) CanRequestKeyframe() bool {
 	return false
 }
 
-// ReadFrame waits for the next tick and returns the next immutable AVC access unit.
+// ReadFrame waits for the next tick and returns the next immutable AVC access
+// unit.
 func (s *H264Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frametrack.Frame, error) {
 	// Pace playback with the same clock as the JPEG test pattern.
 	captured, err := s.next(ctx)
@@ -92,5 +93,5 @@ func readBarsTag(offset int) (videoHeader byte, payload []byte, next int) {
 	return barsClip[offset+11], barsClip[offset+16 : end : end], end + 4
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ frametrack.Source = (*H264Source)(nil)

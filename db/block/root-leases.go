@@ -9,7 +9,7 @@ import "context"
 // themselves are RootOps, and completion proofs are RootProofs.
 type LeasedRoots interface {
 	// HoldsRoots reports whether the store holds roots. The other methods
-	// require it.
+	// require HoldsRoots to report true.
 	HoldsRoots() bool
 	// PinRoot holds a root until the returned release is called.
 	PinRoot(context.Context, *BlockRef) (func(), error)
@@ -38,7 +38,7 @@ func PinRoot(ctx context.Context, store StoreOps, ref *BlockRef) (func(), error)
 
 // OpenStage returns a store whose writes the stage holds, and the stage's
 // release. The stage holds each block until a parent written outside the stage
-// references it; after the release, the collector frees every block no other
+// references it. After the release, the collector frees every block no other
 // holder keeps. Hold the stage until the transaction that references the
 // stage's roots returns. A store that holds no roots returns itself and a
 // no-op release.

@@ -85,7 +85,7 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 
 // PreparePairingReceiver reserves a receiving Session without granting account access.
 func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pairing.AccountOffer, sourcePeer, receivingPeer peer.ID) (*pairing.Receiver, error) {
-	// Require the offer to name this account and a valid storage peer.
+	// Require the offer to identify this account and a valid storage peer.
 	if offer.GetSettingsId() == "" || offer.GetAccountId() != a.GetAccountID() {
 		return nil, errors.New("pairing source did not offer this local account")
 	}

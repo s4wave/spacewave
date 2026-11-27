@@ -63,8 +63,8 @@ type wsEvents interface {
 	// updateAvailable runs when the release orchestrator published a new dist
 	// config and the launcher should re-fetch it.
 	updateAvailable()
-	// cdnRootChanged runs when the CDN Space's root.packedmsg regenerated; the
-	// receiver invalidates any cached root pointer for that Space.
+	// cdnRootChanged runs when the CDN Space's root.packedmsg regenerated.
+	// The receiver invalidates any cached root pointer for that Space.
 	cdnRootChanged(spaceID string)
 }
 
@@ -139,7 +139,8 @@ func newWSTracker(
 // every give-up except cancellation, since the daemon receives no cloud push
 // events until the tracker restarts.
 func (t *wsTracker) shouldRetry(err error) bool {
-	// Stop quietly on success or cancellation, and loudly on a final error.
+	// Stop silently on success or cancellation, and loudly on a final
+	// error.
 	if err == nil || errors.Is(err, context.Canceled) {
 		return false
 	}
@@ -166,7 +167,7 @@ func (t *wsTracker) AddRef() *refcount.Ref[struct{}] {
 }
 
 // resolve runs the shared websocket lifecycle for one refcount epoch. Retry
-// backoff is handled by the refcount itself; idleable cloud errors stay in the
+// backoff is handled by the refcount itself. Idleable cloud errors stay in the
 // routine so account broadcasts can wake the next dial attempt.
 func (t *wsTracker) resolve(ctx context.Context, _ func()) (struct{}, func(), error) {
 	return struct{}{}, nil, t.Execute(ctx)
@@ -298,8 +299,8 @@ func (t *wsTracker) runWebSocket(ctx context.Context) (retErr error) {
 		return errors.Wrap(err, "get session ticket")
 	}
 
-	// Build WS URL with ticket as query param. The endpoint may be the
-	// serving origin "/", so join rather than concatenate.
+	// Build the WS URL with the ticket as a query param. The endpoint may
+	// be the serving origin "/", so join rather than concatenate.
 	wsPath, err := url.JoinPath(client.baseURL, "/api/session/ws")
 	if err != nil {
 		return errors.Wrap(err, "build session websocket URL")
@@ -313,7 +314,7 @@ func (t *wsTracker) runWebSocket(ctx context.Context) (retErr error) {
 	}
 	defer conn.CloseNow()
 
-	// Read the 32-byte challenge from server.
+	// Read the 32-byte challenge from the server.
 	_, challenge, err := conn.Read(ctx)
 	if err != nil {
 		return errors.Wrap(err, "read challenge")
@@ -563,9 +564,9 @@ func parseAccountIDFromPayload(payload []byte) string {
 }
 
 // parseSONotifyEventPayload decodes the proto-encoded SONotifyEventPayload
-// attached to so_notify session events. Returns false when the payload is
-// empty or fails to parse; the receiver should treat that as a bare notify
-// without inline state.
+// attached to so_notify session events. Returns false when the payload is empty
+// or fails to parse. The receiver should treat that as a bare notify without
+// inline state.
 func parseSONotifyEventPayload(payload []byte) (*api.SONotifyEventPayload, bool) {
 	if len(payload) == 0 {
 		return nil, false

@@ -31,7 +31,7 @@ type decodedBlockResidentCopy struct {
 
 // Resident returns the scope's live entries: each one a Lookup of the same
 // key would hit when the walk reaches it. Every entry in the pool came from a
-// durable read, so the walk names only blocks a durable store held. A ref
+// durable read, so the walk lists only blocks a durable store held. A ref
 // stored under several types or transforms appears once for each.
 //
 // The walk visits one shard at a time. It copies the shard's entries of this

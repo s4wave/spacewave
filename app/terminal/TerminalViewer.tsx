@@ -79,9 +79,10 @@ export function TerminalViewer({
 }
 
 // terminalViewState derives what the viewer draws, as TerminalViewer.tla
-// models it. The handle's status takes the body until it opens. The watch
-// reports its parent's failure as its own, so it is read only on an open
-// handle, where its failure is a notice above the screen with its own Retry.
+// models the view. The body shows the handle's status until the handle opens.
+// The watch reports its parent's failure as its own, so the watch is read only
+// on an open handle, where the watch's failure is a notice above the screen
+// with its own Retry.
 // The screen's connection draws its own card inside TerminalPane.
 export function terminalViewState(
   handle: Resource<TerminalHandle>,

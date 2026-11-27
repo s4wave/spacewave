@@ -23,11 +23,11 @@ func (s *updateSource) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 	return true, strm.MsgSend(srpc.NewRawMessage(s.update, true))
 }
 
-// TestDisplayUpdateRelayedUnchanged checks a hop that forwards the Display RPC
-// with srpc.NewClientInvoker, as the core plugin does for a plugin's
-// resource, delivers an update's bytes as the plugin encoded them. The update
-// is written with its fields out of order, which decoding and encoding the
-// update would put back in order.
+// TestDisplayUpdateRelayedUnchanged checks that a hop delivers an update's
+// bytes as the plugin encoded them. The hop forwards the Display RPC with
+// srpc.NewClientInvoker, as the core plugin does for a plugin's resource.
+// The update is written with its fields out of order, which decoding and
+// encoding the update would put back in order.
 func TestDisplayUpdateRelayedUnchanged(t *testing.T) {
 	// Encode an update the way the plugin does, then append its screen,
 	// which an encoder writes first.

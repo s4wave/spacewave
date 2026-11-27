@@ -13,7 +13,7 @@ const objectBodyLookahead = 16
 
 // GetObjectBodiesBatchPage reads one page of object bodies and the seqno of
 // this world state, each body through its object. A read-only state overlaps
-// the lookups, since its trees serve concurrent reads; a write state reads one
+// the lookups, since its trees serve concurrent reads. A write state reads one
 // at a time, as its held writes are not safe to read concurrently.
 func (t *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
 	width := objectBodyLookahead

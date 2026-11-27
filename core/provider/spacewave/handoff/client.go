@@ -43,7 +43,8 @@ func StartHandoff(
 		cleanupSession()
 	}()
 
-	// Generate the receiving Session's key locally; only its public key leaves.
+	// Generate the receiving Session's key locally. Only its public key
+	// leaves.
 	ephPriv, ephPub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "generate ephemeral keypair")
@@ -174,7 +175,8 @@ func readHandoffResult(ctx context.Context, wsURL string) (*websocket.Conn, []by
 	delay := time.Second
 	var failures int
 	for {
-		// Dial and read one frame; a successful dial resets the failure count.
+		// Dial and read one frame. A successful dial resets the failure
+		// count.
 		conn, _, err := websocket.Dial(ctx, wsURL, nil)
 		if err == nil {
 			failures = 0

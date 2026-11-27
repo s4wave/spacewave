@@ -5,7 +5,7 @@ package spacewave_cli
 import "testing"
 
 // TestParseGitRemoteURL checks both remote address forms and that only the
-// session-qualified form names a session.
+// session-qualified form specifies a session.
 func TestParseGitRemoteURL(t *testing.T) {
 	cases := []struct {
 		url  string

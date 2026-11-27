@@ -11,19 +11,19 @@ import (
 
 // sessionTracker wraps an ongoing session with a peer.
 type sessionTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
 	// key is the string encoding of the peer id.
 	key string
-	// peerID is the parsed version of the peer id
+	// peerID is the parsed version of the peer id.
 	peerID peer.ID
 }
 
 // newSessionTracker constructs a new sessionTracker.
 func (c *Controller) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTracker) {
-	// note: we confirmed that parsePeerID is valid before adding the key
+	// parsePeerID is validated before the key is added.
 	// Parse the peer id and attach it to the session logger.
 	peerID, _ := peer.IDB58Decode(peerIDStr)
 	le := c.le.WithField("remote-peer-id", peerIDStr)

@@ -61,8 +61,8 @@ func (b *BlockStore) copyToBackend(ctx context.Context, vol volume_kvtx.KvtxVolu
 	return b.placement.copyToBackend(ctx, listVolumeBlocks(vol), opts)
 }
 
-// copyToBackend copies the blocks list names, in its order, to the placement's
-// open backend, waiting for one to open.
+// copyToBackend copies the blocks list returns, in its order, to the
+// placement's open backend, waiting for one to open.
 func (p *placementState) copyToBackend(ctx context.Context, list block_store_writeback.CopyList, opts block_store_writeback.CopyOptions) error {
 	// Wait for an open backend, capturing its change channel under the lock
 	// that publishes it.

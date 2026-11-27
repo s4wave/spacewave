@@ -235,7 +235,7 @@ export function writeBrowserBootStatus(status: BrowserBootStatus): void {
 
 // bindBrowserBootStatusToStartupMarks re-renders the static boot shell on
 // every startup mark and starts a one-shot quiet-window timer. Marks advance
-// the bar and label immediately; a gap keeps the accumulated percentage but
+// the bar and label immediately, but a gap keeps the accumulated percentage and
 // adds the indeterminate shimmer until the next mark. Returns the unsubscribe
 // function.
 export function bindBrowserBootStatusToStartupMarks(): () => void {

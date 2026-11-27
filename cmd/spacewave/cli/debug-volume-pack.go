@@ -27,8 +27,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Environment variables holding the bucket's credentials. The command never
-// prints them.
+// packKeyIDEnv and packKeyEnv identify the environment variables holding the
+// bucket's credentials. The command never prints the credentials.
 const (
 	packKeyIDEnv = "HYPERLINE_PROD_BUCKET_KEY_ID"
 	packKeyEnv   = "HYPERLINE_PROD_BUCKET_KEY" //nolint:gosec // an environment variable name, not a credential.
@@ -44,23 +44,24 @@ type packArgs struct {
 	bucket, endpoint, region, keyPrefix string
 	// ftps targets an FTPS server instead of the bucket when its host is set.
 	ftps ftpsArgs
-	// bytesPerSecond limits the upload; zero does not.
+	// bytesPerSecond limits the upload. Zero does not.
 	bytesPerSecond int64
-	// packMiB is the block data of one pack in MiB; zero uses the default.
+	// packMiB is the block data of one pack in MiB. Zero uses the default
+	// size.
 	packMiB int
 	// uploads is the number of packs uploading at once in each shard.
 	uploads int
 	// shards is the number of key ranges each pass packs in parallel.
 	shards int
-	// listPath, when set, packs only the blocks the key list names.
+	// listPath selects only the blocks the key list contains when set.
 	listPath string
 	// skipRest leaves out the count of keys outside the block range.
 	skipRest bool
-	// sqlLog, when set, also packs the SQL block store's rows the volume
-	// lacks, logging them there.
+	// sqlLog also packs the SQL block store's rows missing from the volume
+	// when set, logging the rows there.
 	sqlLog string
-	// sql locates the SQL block store, sqlPort its port and sqlStoreID its
-	// block store id.
+	// sql locates the SQL block store, sqlPort holds its port and
+	// sqlStoreID holds its block store id.
 	sql        block_store_sql.Config
 	sqlPort    uint
 	sqlStoreID string
@@ -193,7 +194,7 @@ func packVolumeFile(ctx context.Context, path string, args *packArgs, w io.Write
 	return g.Wait()
 }
 
-// packVolumeList packs the blocks of cfg.Source the key list names, writing
+// packVolumeList packs the blocks of cfg.Source the key list contains, writing
 // progress lines to w.
 func packVolumeList(ctx context.Context, cfg packmove.PackConfig, args *packArgs, w io.Writer, start time.Time) error {
 	// Refuse the options a list run does not take.
@@ -217,7 +218,7 @@ func packVolumeList(ctx context.Context, cfg packmove.PackConfig, args *packArgs
 }
 
 // digestLen is the length of the block hash digest that ends every block and
-// row key; the shards split on its first byte.
+// row key. The shards split on the digest's first byte.
 const digestLen = 32
 
 // runShards starts n runs of pack over the key ranges that split the digest
@@ -306,7 +307,7 @@ func firstVolumeBlock(ctx context.Context, vol kvtx.Store, prefix []byte) ([]byt
 }
 
 // objectStore connects to the FTPS server when --ftps-host is set and to the
-// bucket otherwise, returning the store and the bucket to name in it.
+// bucket otherwise, returning the store and the bucket to select in the store.
 func (args *packArgs) objectStore() (block_store_s3.ObjectStore, string, error) {
 	// Prefer the FTPS server.
 	if args.ftps.host != "" {

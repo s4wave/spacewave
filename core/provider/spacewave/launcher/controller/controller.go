@@ -26,18 +26,18 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller manages running the launcher.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// mux implements the Launcher RPC service
+	// mux implements the Launcher RPC service.
 	mux srpc.Mux
 
-	// endps is the endpoint url list
+	// endps is the endpoint url list.
 	endps []*HttpEndpoint
-	// distPeerIDs is the list of distribution peer ids
+	// distPeerIDs is the list of distribution peer ids.
 	distPeerIDs []peer.ID
 	// launcherInfoCtr contains the current launcher info, including the
 	// DistConfig fetch status. Values are immutable: every change swaps in a
@@ -53,7 +53,7 @@ type Controller struct {
 	// configSetRoutine applies signed launcher controller configs carried by
 	// the current DistConfig.
 	configSetRoutine *routine.RoutineContainer
-	// stagingDirFunc overrides the platform staging dir in tests
+	// stagingDirFunc overrides the platform staging dir in tests.
 	stagingDirFunc func() (string, error)
 	// currentExecutableBundleFunc overrides current executable bundle detection in tests.
 	currentExecutableBundleFunc func() (execPath string, isBundle bool, bundleRoot string, err error)
@@ -61,9 +61,9 @@ type Controller struct {
 	keepStagedReleases bool
 	// adoptMtx orders adoptDistConf calls.
 	adoptMtx sync.Mutex
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// confFetcherRefetch is a timer to restart confFetcherRoutine on success
+	// confFetcherRefetch is a timer to restart confFetcherRoutine on success.
 	confFetcherRefetch *time.Timer
 	// daemonUpdateWatchers counts live serving-daemon update streams.
 	daemonUpdateWatchers int
@@ -311,7 +311,7 @@ func (c *Controller) resolveWatchFetchStatus(ctx context.Context, handler direct
 }
 
 // updateFetchStatus applies update to a copy of the fetch status and publishes
-// the launcher info when it changed.
+// the launcher info when the fetch status changed.
 func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStatus)) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		if info.FetchStatus == nil {

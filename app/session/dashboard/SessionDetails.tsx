@@ -96,8 +96,8 @@ function describeSessionHeader(
   }
 }
 
-// useLocalDisplayName watches the local provider's display name. It is
-// undefined for cloud sessions or before the first value arrives.
+// useLocalDisplayName watches the local provider's display name. The display
+// name is undefined for cloud sessions or before the first value arrives.
 function useLocalDisplayName(
   session: Session | null | undefined,
   isLocal: boolean,
@@ -230,7 +230,8 @@ export function SessionDetails({
     providerId,
   )
 
-  // Only show transfer button when there are multiple sessions to transfer between.
+  // Only show the transfer button when there are multiple sessions to transfer
+  // between.
   const sessionsResource = useSessionList()
   const showTransfer = (sessionsResource.value?.sessions?.length ?? 0) > 1
 

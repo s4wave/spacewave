@@ -34,7 +34,7 @@ message AddSourceRequest {
 
 // AddSourceResponse is the response for AddSource.
 message AddSourceResponse {
-  // Outcome is what became of the edit; an add never reports changed.
+  // Outcome is what became of the edit. An add never reports changed.
   NotebookEditOutcome outcome = 1;
 }
 
@@ -42,13 +42,13 @@ message AddSourceResponse {
 // resource's editNotebook produces every value from the result of its one
 // notes/notebook/edit World op.
 enum NotebookEditOutcome {
-  // NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome; no producer sets it.
+  // NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome. No producer sets it.
   NOTEBOOK_EDIT_OUTCOME_UNKNOWN = 0;
   // NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written. The op returned
   // without an error.
   NOTEBOOK_EDIT_OUTCOME_APPLIED = 1;
   // NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
-  // the caller saw, so nothing was written; the caller refreshes instead of
+  // the caller saw, so nothing was written. The caller refreshes instead of
   // resending. The op's own conflict rejection produces it.
   NOTEBOOK_EDIT_OUTCOME_CHANGED = 2;
   // NOTEBOOK_EDIT_OUTCOME_TIMED_OUT means the plugin did not finish the edit in
@@ -67,8 +67,8 @@ enum NotebookEditOutcome {
 message RemoveSourceRequest {
   // Index is the source index to remove.
   uint32 index = 1;
-  // Source is the source the caller saw at index; the remove applies only
-  // while the stored source at index equals it.
+  // Source is the source the caller saw at index. The remove applies only
+  // while the stored source at index equals source.
   NotebookSource source = 2;
 }
 
@@ -82,8 +82,8 @@ message RemoveSourceResponse {
 message ReorderSourcesRequest {
   // Order is the new index ordering.
   repeated uint32 order = 1;
-  // Sources is the source list the caller saw; the reorder applies only
-  // while the stored list equals it.
+  // Sources is the source list the caller saw. The reorder applies only
+  // while the stored list equals sources.
   repeated NotebookSource sources = 2;
 }
 

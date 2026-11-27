@@ -8,7 +8,7 @@ import (
 // transaction-local object-existence memo without a storage read when the key
 // is already known to exist, and otherwise checks the object tree, recording a
 // positive result for the rest of the transaction. Positive existence is stable
-// within a transaction snapshot, so read-only states memo it safely; the memo
+// within a transaction snapshot, so read-only states memo it safely. The memo
 // is invalidated when the object is deleted or renamed and reset when the
 // transaction rebuilds or discards its block state.
 func (t *WorldState) HasObject(ctx context.Context, key string) (bool, error) {

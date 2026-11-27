@@ -145,7 +145,7 @@ export interface CoordinatorScope {
    */
   participantId?: string
   /**
-   * Key names a caller-chosen exclusion subject inside the Volume.
+   * Key selects a caller-chosen exclusion subject inside the Volume.
    */
   key?: string
 }
@@ -784,7 +784,7 @@ export interface SetBucketRootsResponse {
    */
   result?: SetBucketRootsResult
   /**
-   * Name is the root a refusal names.
+   * Name is the root a refusal identifies.
    */
   name?: string
 }
@@ -874,7 +874,7 @@ export const HoldStageRequest: MessageType<HoldStageRequest> =
   )
 
 /**
- * HoldStageResponse names the stage the stream holds.
+ * HoldStageResponse identifies the stage the stream holds.
  *
  * @generated from message volume.rpc.HoldStageResponse
  */
@@ -991,7 +991,7 @@ export const PrepareStagedBlockBatchResponse: MessageType<PrepareStagedBlockBatc
   )
 
 /**
- * StageRefsRequest names blocks of a stage.
+ * StageRefsRequest identifies blocks of a stage.
  *
  * @generated from message volume.rpc.StageRefsRequest
  */
@@ -1029,7 +1029,7 @@ export const ReleaseStageRootsResponse: MessageType<ReleaseStageRootsResponse> =
   )
 
 /**
- * RefsRequest names blocks.
+ * RefsRequest identifies blocks.
  *
  * @generated from message volume.rpc.RefsRequest
  */

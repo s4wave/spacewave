@@ -14,7 +14,7 @@ import (
 var ErrQuicRwcUnavailable = errors.New("quic rwc fixture requires a non-tinygo compiler")
 
 // RunQuicRwcFixture keeps the QUIC RWC fixture service registered under
-// tinygo builds; the real browser WebRTC fixture excludes tinygo.
+// tinygo builds. The real browser WebRTC fixture excludes tinygo.
 func (c *Controller) RunQuicRwcFixture(
 	ctx context.Context,
 	req *RunQuicRwcFixtureRequest,

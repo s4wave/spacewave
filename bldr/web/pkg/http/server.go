@@ -13,12 +13,13 @@ import (
 
 // Server serves web packages by performing LookupWebPkg directives.
 type Server struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// returnIfIdle indicates we will return 404 if not found
-	// if set to false, we will wait for the web pkg to be available.
+	// returnIfIdle indicates the server returns 404 if the web pkg
+	// is not found. If set to false, the server waits for the web pkg
+	// to be available.
 	returnIfIdle bool
 }
 

@@ -7,7 +7,8 @@ import (
 
 // ReadSeekerAt implements ReadAt with a ReadSeeker.
 //
-// Note: this prevents concurrent read calls, use only if absolutely necessary.
+// Note: ReadSeekerAt prevents concurrent read calls. Use ReadSeekerAt only if
+// absolutely necessary.
 type ReadSeekerAt struct {
 	rs  io.ReadSeeker
 	mtx sync.Mutex
@@ -30,7 +31,7 @@ func (r *ReadSeekerAt) Read(p []byte) (n int, err error) {
 	return r.rs.Read(p)
 }
 
-// Seeker is the interface that wraps the basic Seek method.
+// Seek implements the basic Seek method of the Seeker interface.
 //
 // Seek sets the offset for the next Read or Write to offset,
 // interpreted according to whence:
@@ -52,7 +53,7 @@ func (r *ReadSeekerAt) Seek(offset int64, whence int) (int64, error) {
 	return r.rs.Seek(offset, whence)
 }
 
-// ReaderAt is the interface that wraps the basic ReadAt method.
+// ReadAt implements the basic ReadAt method of the ReaderAt interface.
 //
 // ReadAt reads len(p) bytes into p starting at offset off in the
 // underlying input source. It returns the number of bytes

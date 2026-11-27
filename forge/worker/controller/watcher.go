@@ -87,7 +87,7 @@ func (c *Controller) ProcessState(
 			return true, nil
 		}
 
-		// override the list of peer ids with the configured
+		// Override the list of peer ids with the configured peer id.
 		// workerPeerIDs = []peer.ID{peerID}
 		// workerKeypairs = []*identity.Keypair{workerKeypairs[matched]}
 		workerKeypairKeys = []string{workerKeypairKeys[matched]}

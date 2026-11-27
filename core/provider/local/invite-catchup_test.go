@@ -10,8 +10,9 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// TestInvitedProviderCatchup proves invitation checkpoint installation and
-// encrypted operation convergence through the account-owned sync compositions.
+// TestInvitedProviderCatchup proves that an invitation checkpoint is installed
+// and encrypted operations converge through the account-owned sync
+// compositions.
 func TestInvitedProviderCatchup(t *testing.T) {
 	// Start an owner and a reader provider.
 	skipFullP2PSyncUnderGoScript(t)
@@ -109,7 +110,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	ownerID := ownerObject.GetPeerID().String()
 
-	// Restart sync; the reader accepts the operation and the config change.
+	// Restart sync. The reader accepts the operation and the config change.
 	if err := reader.StartPersistentP2PSync(ctx, reader.GetSessionTransport()); err != nil {
 		t.Fatal(err)
 	}

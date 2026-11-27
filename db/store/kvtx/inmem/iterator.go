@@ -15,18 +15,18 @@ import (
 // and, in a write transaction, one over the transaction's added values, with
 // committed keys the transaction deleted or replaced skipped. Opening takes an
 // O(1) copy-on-write snapshot of each tree, so the iterator sees the
-// transaction as it was when it opened, holds no tree lock, and costs nothing
-// per entry it never reaches.
+// transaction as it was when the iterator opened, holds no tree lock, and
+// costs nothing per entry it never reaches.
 type Iterator struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// tx is the transaction
+	// tx is the transaction.
 	tx *Tx
-	// prefix is the key prefix to filter by
+	// prefix is the key prefix to filter by.
 	prefix []byte
-	// reverse indicates if iteration should be reversed
+	// reverse indicates if iteration should be reversed.
 	reverse bool
-	// err is any error that occurred
+	// err is any error that occurred.
 	err error
 	// base walks the committed tree.
 	base cursor
@@ -38,7 +38,7 @@ type Iterator struct {
 	started bool
 	// cur is the current entry, nil before the start and after the end.
 	cur *valType
-	// released indicates if the iterator was closed
+	// released indicates if the iterator was closed.
 	released atomic.Bool
 }
 
@@ -265,7 +265,8 @@ func (it *Iterator) Next() bool {
 		it.seek(nil)
 	case it.cur != nil:
 		// The added value shadows the committed one, so the base cursor
-		// moves past the key only when it points at it.
+		// moves past the key only when the base cursor points at
+		// that key.
 		if b := it.base.item(); b != nil && bytes.Equal(b.key, it.cur.key) {
 			it.step(&it.base)
 		}

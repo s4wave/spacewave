@@ -33,7 +33,7 @@ message FollowRefRequest {
   // RefId is the reference field ID to follow.
   uint32 ref_id = 1;
   // BlkRef is the optional block reference to follow.
-  // If not provided, will follow the ref stored at RefId.
+  // If BlkRef is not provided, the cursor follows the ref stored at RefId.
   .block.BlockRef blk_ref = 2;
 }
 
@@ -74,7 +74,7 @@ message GetBlockRequest {}
 message GetBlockResponse {
   // Data is the raw block data.
   bytes data = 1;
-  // IsSubBlock indicates if this is a sub-block.
+  // IsSubBlock indicates if the block is a sub-block.
   bool is_sub_block = 2;
 }
 

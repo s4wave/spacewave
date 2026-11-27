@@ -103,7 +103,7 @@ describe('ForgeViewerShell', () => {
   })
 
   it('hides Details, the tabs and the actions while a status shows', () => {
-    // A failed block takes the body; only the bar's title stays.
+    // A failed block takes the body. Only the bar's title stays.
     render(
       <ForgeViewerShell
         icon={<span aria-hidden="true">F</span>}

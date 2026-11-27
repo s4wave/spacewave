@@ -13,17 +13,17 @@ import (
 
 // establishedLink holds state for an established link.
 type establishedLink struct {
-	// le is the log entry
+	// le is the log entry.
 	le *logrus.Entry
-	// c is the transport controller
+	// c is the transport controller.
 	c *Controller
 	// lnk is the link.
 	lnk link.Link
-	// mlnk is the mounted link
+	// mlnk is the mounted link.
 	mlnk link.MountedLink
-	// tpt is the transport
+	// tpt is the transport.
 	tpt transport.Transport
-	// di is the directive instance
+	// di is the directive instance.
 	di directive.Instance
 	// cancel stops the goroutines of the link and drops its directive dispose
 	// callback. It is safe to call more than once.
@@ -41,7 +41,7 @@ func newEstablishedLink(
 	tpt transport.Transport,
 	ctrl *Controller,
 ) (*establishedLink, error) {
-	// Construct EstablishLink directive.
+	// Construct an EstablishLink directive.
 	// The controller will match the directive to this link.
 	// Note: the directive has an UnrefDisposeDur assigned: minimum hold-open time.
 	di, dir, err := b.AddDirective(
@@ -94,7 +94,8 @@ func (e *establishedLink) acceptStreamPump(ctx context.Context) {
 	lnk, ctrl := e.lnk, e.c
 	defer func() {
 		// close the directive instance early if there are no non-weak refs.
-		// this skips the hold-open (unref dispose dur) timer.
+		// Closing the directive skips the hold-open (unref dispose dur)
+		// timer.
 		_ = e.di.CloseIfUnreferenced(false)
 		e.cancel()
 		lnk.Close()

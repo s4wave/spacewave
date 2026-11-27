@@ -68,17 +68,17 @@ export const V86WizardConfig: MessageType<V86WizardConfig> =
  */
 export enum V86WizardConfig_Source {
   /**
-   * Source_SOURCE_UNSPECIFIED leaves the image source unset.
+   * SOURCE_UNSPECIFIED leaves the image source unset.
    */
   SOURCE_UNSPECIFIED = 0,
 
   /**
-   * Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
+   * EXISTING_IN_SPACE uses an existing V86Image from the Space.
    */
   EXISTING_IN_SPACE = 1,
 
   /**
-   * Source_LINK_FROM_CDN links a V86Image that reads its assets from a CDN
+   * LINK_FROM_CDN links a V86Image that reads its assets from a CDN
    * source object.
    */
   LINK_FROM_CDN = 2,

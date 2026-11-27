@@ -7,14 +7,14 @@ import { authors } from './authors.js'
 import type { BlogPost, BlogPostFrontmatter } from './types.js'
 
 // postModules imports all .md files from the posts directory.
-// Vite's import.meta.glob handles this at build time.
+// Vite's import.meta.glob handles these imports at build time.
 const postModules = import.meta.glob('./posts/*.md', {
   query: '?raw',
   eager: true,
   import: 'default',
 })
 
-// cachedPosts holds the parsed posts after first load.
+// cachedPosts holds the parsed posts after the first load.
 let cachedPosts: BlogPost[] | null = null
 
 // loadPosts parses all blog posts from the imported modules.
@@ -31,11 +31,11 @@ export function loadPosts(): BlogPost[] {
     const content = parsed.body
     if (fm.draft === true) continue
 
-    // Derive slug from filename.
+    // Derive the slug from the filename.
     const filename = path.split('/').pop()?.replace(/\.md$/, '') ?? ''
     const slug = filename.replace(/^\d{4}-\d{2}-\d{2}-/, '')
 
-    // Derive URL from date.
+    // Derive the URL from the date.
     const dateParts = fm.date.split('-')
     const year = dateParts[0]
     const month = dateParts[1]

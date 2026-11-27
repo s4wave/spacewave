@@ -18,17 +18,17 @@ import (
 	"github.com/s4wave/spacewave/db/s4db"
 )
 
-// writerFileEnv names the volume file the helper process writes; unset in the
-// test binary's own run.
+// writerFileEnv selects the volume file the helper process writes. It is unset
+// in the test binary's own run.
 const writerFileEnv = "PACKMOVE_TEST_WRITER_FILE"
 
-// writerPrefix names the blocks the helper process writes.
+// writerPrefix is the name prefix of the blocks the helper process writes.
 const writerPrefix = "child"
 
 // TestWriterProcess is the body of the helper process that TestPackSwitch
 // starts, standing in for the backend: it holds the file open, as the backend
-// does, and adds one World block per round until its input closes. It prints "ready", then "wrote N" after each durable block and
-// "done N" on exit.
+// does, and adds one World block per round until its input closes. It prints
+// "ready", then "wrote N" after each durable block and "done N" on exit.
 func TestWriterProcess(t *testing.T) {
 	// Run only as the helper process.
 	path := os.Getenv(writerFileEnv)
@@ -36,7 +36,7 @@ func TestWriterProcess(t *testing.T) {
 		t.Skip("helper process of TestPackSwitch")
 	}
 
-	// Stop when the parent closes our input.
+	// Stop when the parent closes the helper process's input.
 	stop := make(chan struct{})
 	go func() {
 		_, _ = io.Copy(io.Discard, os.Stdin)
@@ -65,7 +65,7 @@ func TestWriterProcess(t *testing.T) {
 type writerProcess struct {
 	// cmd is the process.
 	cmd *exec.Cmd
-	// stdin closes to stop the process.
+	// stdin is closed to stop the process.
 	stdin io.WriteCloser
 	// wrote is the last count the process reported.
 	wrote atomic.Int64

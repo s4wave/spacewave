@@ -37,20 +37,21 @@ type volumeLoadOpts struct {
 }
 
 // volumeLoad is a writer that commits, at a set rate, a new tree of
-// volumeLoadLeaves leaves and a parent naming them, stored and held in one
+// volumeLoadLeaves leaves and a parent referencing them, stored and held in one
 // transaction that moves the scratch named root onto the parent, so the tree
-// the root held before becomes garbage and the collector has steady work. It
-// records each commit's latency, from the transaction's start to its return.
+// the root held before becomes garbage and the collector has steady work. The
+// writer records each commit's latency, from the transaction's start to its
+// return.
 //
 // The scratch root lives in its own bucket and holds no lease, so a writer
-// killed before release leaves it; the next load starts from the tree it
-// holds and releases it at the end.
+// killed before release leaves the root. The next load starts from the tree
+// the root holds and releases the root at the end.
 type volumeLoad struct {
 	// vol is the Volume the load writes.
 	vol *volume_s4db.Volume
 	// interval is the time between commits.
 	interval time.Duration
-	// head is the parent the scratch root holds, nil when it is free.
+	// head is the parent the scratch root holds, nil when the root is free.
 	head *block.BlockRef
 	// fill generates the leaves' content, seeded once per load.
 	fill *mrand.ChaCha8
@@ -89,11 +90,11 @@ func newVolumeLoad(ctx context.Context, vol *volume_s4db.Volume, rate float64) (
 
 // run commits at the load's rate until ctx ends, kicking kick without
 // blocking after each commit, and returns the first commit's error. A commit
-// that overruns its interval delays the next; the ticker drops the ticks it
-// missed, which the target count shows.
+// that overruns its interval delays the next. The ticker drops the ticks it
+// missed, and the target count shows those missed ticks.
 func (l *volumeLoad) run(ctx context.Context, kick chan<- struct{}) error {
 	// Commit on each tick until the window ends. Each tick is the deadline
-	// of the next commit the rate schedules; it watches no state.
+	// of the next commit the rate schedules. The ticker watches no state.
 	start := time.Now()
 	defer func() { l.elapsed = time.Since(start) }()
 	ticker := time.NewTicker(l.interval) //gostyle:timer deadline
@@ -122,7 +123,7 @@ func (l *volumeLoad) run(ctx context.Context, kick chan<- struct{}) error {
 // commit stores a new tree and moves the scratch root onto its parent in one
 // transaction, and records the transaction's latency.
 func (l *volumeLoad) commit(ctx context.Context) error {
-	// Build the leaves and the parent naming them.
+	// Build the leaves and the parent referencing them.
 	entries := make([]*block.PutBatchEntry, 0, volumeLoadLeaves+1)
 	refs := make([]*block.BlockRef, 0, volumeLoadLeaves)
 	for range volumeLoadLeaves {
@@ -193,7 +194,8 @@ func (l *volumeLoad) fields() [][2]string {
 	}
 }
 
-// volumeLoadEntry returns the put of a block holding data and naming refs.
+// volumeLoadEntry returns a put entry for a block holding data and referencing
+// refs.
 func volumeLoadEntry(data []byte, refs []*block.BlockRef) (*block.PutBatchEntry, error) {
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {

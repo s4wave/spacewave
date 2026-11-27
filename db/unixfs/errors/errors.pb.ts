@@ -163,9 +163,10 @@ export interface UnixFSError {
   errorType?: UnixFSErrorType
   /**
    * ErrorBody is the body of the error.
-   * If this is set and the error is type OTHER, return errors.New(ErrorBody).
-   * If this is set and the error is another type, return errors.Wrap(the_error, ErrorBody).
-   * If this is unset and error_type is OTHER, return errors.New("unknown unixfs error").
+   * If ErrorBody is set and the error is type OTHER, return
+   * errors.New(ErrorBody). If ErrorBody is set and the error is another type,
+   * return errors.Wrap(the_error, ErrorBody). If ErrorBody is unset and
+   * error_type is OTHER, return errors.New("unknown unixfs error").
    */
   errorBody?: string
 }

@@ -47,7 +47,7 @@ type wizardStateWatchSnapshot struct {
 }
 
 // NewWizardResource creates a new WizardResource. engine may be nil, as for
-// every object type factory; the wizard then serves its state and clone
+// every object type factory. The wizard then serves its state and clone
 // progress and refuses each write with ErrNoWorldEngine.
 func NewWizardResource(ws world.WorldState, engine world.Engine, objKey string, state *wizard.WizardState) *WizardResource {
 	// Initialize the wizard state and clone lifecycle.
@@ -136,7 +136,7 @@ func (r *WizardResource) watchWizardWorld(ctx context.Context) error {
 
 // readWizardWorld publishes the wizard state and returns the object root it
 // was read at. The revision is read before the state, so a later change ends
-// the wait on it.
+// the wait on that revision.
 func (r *WizardResource) readWizardWorld(ctx context.Context) (*world.ObjectRootRef, error) {
 	// Look up the wizard object and its revision.
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
@@ -360,7 +360,7 @@ func (r *WizardResource) WatchGitCloneProgress(_ *wizard.WatchGitCloneProgressRe
 }
 
 // replaceSpaceIndexIfWizardIsCurrent points the Space index at objectKey when
-// the index names exactly this wizard, writing through ws.
+// the index references exactly this wizard, writing through ws.
 func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 	ctx context.Context,
 	ws world.WorldState,
@@ -378,8 +378,9 @@ func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 		settings = &space_world.SpaceSettings{}
 	}
 
-	// Replace the Space index only while it names exactly this wizard; an
-	// index at a path under the wizard stays, as the TypeScript finish does.
+	// Replace the Space index only while the index references exactly this
+	// wizard. An index at a path under the wizard stays, as the TypeScript
+	// finish does.
 	if settings.GetIndexPath() != r.objKey {
 		return nil
 	}

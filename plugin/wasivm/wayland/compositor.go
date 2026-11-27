@@ -38,8 +38,9 @@ type Compositor struct {
 	listener *kernel.UnixListener
 	// start is the origin of event timestamps.
 	start time.Time
-	// lastSceneID is the last scene id given to a surface. Scene ids name
-	// layers and roots to the viewers; object ids repeat across clients.
+	// lastSceneID is the last scene id given to a surface. Scene ids
+	// identify layers and roots to the viewers. Object ids repeat across
+	// clients.
 	lastSceneID atomic.Uint32
 	// keymap is the keyboard's xkbcommon keymap, sent to each keyboard.
 	keymap *kernel.File

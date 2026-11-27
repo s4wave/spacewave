@@ -38,10 +38,10 @@ type flakyRootStore struct {
 	roots map[string]*block.BlockRef
 	// fail counts the root moves left to fail.
 	fail int
-	// failOn, when set, names a root whose every move fails.
+	// failOn identifies a root whose every move fails, when set.
 	failOn string
-	// failed, when set, receives a value at each failed move without
-	// blocking.
+	// failed receives a value at each failed move without blocking, when
+	// set.
 	failed chan struct{}
 	// moved records each root a move landed, as name and ref.
 	moved []string
@@ -361,9 +361,9 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 // lock holds the payloads an admission added while it waited. A reset after
 // the admission is decided releases them, and the next admission holds only
 // its own. A payload page another payload shares survives the release of the
-// set that named both. A reset that changes nothing keeps the stored root.
-// An adapter opened again over the same roots keeps the stored payloads when
-// it adds more.
+// set that referenced both. A reset that changes nothing keeps the stored
+// root. An adapter opened again over the same roots keeps the stored payloads
+// when it adds more.
 func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// Build an adapter with no replayed positions over the Volume.
 	ctx := t.Context()
@@ -373,8 +373,8 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// holds, so a reset holds only the admissions' payloads.
 	a.stateHold = &payloadState{}
 
-	// put keeps a payload page naming children in a's pages, as a writer
-	// keeps its pages.
+	// put keeps a payload page referencing children in a's pages, as a
+	// writer keeps its pages.
 	put := func(a *Adapter, name string, children ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
 		data := []byte("payload " + name)
@@ -459,14 +459,15 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	}
 	release()
 
-	// The reset holds the admission's payload and the page it names.
+	// The reset holds the admission's payload and the page it references.
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
 	expect(a, "reset beside an admission", []*block.BlockRef{first}, first, shared)
 
-	// Once it is decided, a reset releases the name, and the collection
-	// frees the payload, so the checks below see a collector that frees.
+	// Once the admission is decided, a reset releases the name, and the
+	// collection frees the payload, so the checks below see a collector
+	// that frees.
 	decide(adm)
 	if err := a.resetPayloads(ctx, false); err != nil {
 		t.Fatal(err)
@@ -531,9 +532,9 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	}
 	expect(b, "admission after the open", []*block.BlockRef{second, third, fifth}, second, third, fifth, shared)
 
-	// Each later admission writes one block naming only its own payload and
-	// the block before, however many the root holds, and a reopen reads them
-	// all back in order.
+	// Each later admission writes one block referencing only its own
+	// payload and the block before, however many the root holds, and a
+	// reopen reads them all back in order.
 	want := []*block.BlockRef{second, third, fifth}
 	for i := range 8 {
 		extra := put(b, "payload "+strconv.Itoa(i))
@@ -554,9 +555,10 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 			t.Fatalf("admission %d wrote %v after %v, want only its payload after the last block", i, held, prev)
 		}
 	}
-	// Adding payloads the set holds already, twice over and beside an empty
-	// ref, moves nothing; adding them beside a new payload names only the new
-	// one. The collection then keeps every payload the set holds.
+	// Adding payloads the set holds already, twice over and beside an
+	// empty ref, moves nothing. Adding them beside a new payload records
+	// only the new payload. The collection then keeps every payload the
+	// set holds.
 	held = b.held[RootReplayPayloads]
 	if err := b.addPayloads(ctx, []*block.BlockRef{second, want[4], second, nil}, false); err != nil {
 		t.Fatal(err)
@@ -581,9 +583,9 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatalf("a mixed add wrote %v after %v, want only the new payload", mixed, held)
 	}
 
-	// That block, an append after an earlier one, does not read as the block
-	// a published graph of several roots gets. Two roots alone do, and not
-	// with one more field.
+	// That block, an append after an earlier one, does not read as the
+	// block a published graph of several roots gets. Two roots alone read
+	// as that block, and not with one more field.
 	if _, ok := PublishedRoots(data); ok {
 		t.Fatal("a HeldRoots block after an earlier one read as a published graph")
 	}
@@ -608,8 +610,9 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	}
 
 	// An open that does not find the block the payloads root or a history
-	// names fails: opening on an empty set would let the next move name the
-	// unread block as Previous and release every root it names.
+	// references fails: opening on an empty set would let the next move
+	// reference the unread block as Previous and release every root it
+	// references.
 	world := put(b, "world", shared)
 	release, err = b.rootMtx.Lock(ctx)
 	if err != nil {
@@ -663,7 +666,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 }
 
 // hiddenBlockStore reports the block hide as not found, as a store does that
-// lost or has not fetched the block a root names.
+// lost or has not fetched the block a root references.
 type hiddenBlockStore struct {
 	block.StoreOps
 	// hide is the block reported as not found.
@@ -681,7 +684,7 @@ func (s *hiddenBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 // TestInstallKeepsLaterCheckpointWorlds checks that an install of an earlier
 // checkpoint keeps holding a later World Root returned while a kept position
 // still is that World: Root stored its pages and dropped them from memory, so
-// releasing it would leave the position naming unheld pages.
+// releasing it would leave the position referencing unheld pages.
 func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	// Build an adapter whose checkpoint root holds an earlier and a later
 	// World, with a position at the later one.
@@ -736,7 +739,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 // history or by moving the replay base off it, first holds the live Worlds in
 // memory in its place: the head, the writer head, and a World a reader of the
 // engine still reads. The pages only the released World held, which the live
-// Worlds still name, survive a collection. It fails without each hold,
+// Worlds still reference, survive a collection. It fails without each hold,
 // whatever the timing.
 func TestTrimHoldsPagesLiveWorldsName(t *testing.T) {
 	for _, name := range []string{RootReplayCursor, RootCheckpoint, RootReplayBase} {
@@ -789,9 +792,9 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 		t.Fatal(err)
 	}
 
-	// The head names one page, the writer head, a candidate not yet
-	// admitted, another, and a reader still reads a replaced head that names
-	// the third.
+	// The head references one page, the writer head, a candidate not yet
+	// admitted, references another, and a reader still reads a replaced
+	// head that references the third.
 	head, writer, read := put("head World", pages[0]), put("writer World", pages[1]), put("read World", pages[2])
 	a.head, a.writer = world.Head{Root: head}, world.Head{Root: writer}
 	a.readers = readRoots{read}
@@ -803,8 +806,8 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: head}}}}
 	trimNow(t, a)
 
-	// The base moved, the saved World is released, the live Worlds are held,
-	// and the pages they name survive a collection.
+	// The base moved, the saved World is released, the live Worlds are
+	// held, and the pages they reference survive a collection.
 	if !refEqual(a.held[RootReplayBase], base) {
 		t.Fatalf("replay base after the trim = %v, want the base World", a.held[RootReplayBase])
 	}
@@ -917,8 +920,8 @@ func (s *bucketStore) ReclaimStorage(context.Context, bstore.ReclaimFence) (time
 
 // TestTrimKeepsRestoredWorlds checks that an install at mount, before replay
 // applied any operation, keeps the World the saved cursor ends at under the
-// cursor root: the restored positions name it, and no later save may hold it
-// again before a collection.
+// cursor root: the restored positions reference it, and no later save may
+// hold it again before a collection.
 func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	// Build an adapter whose cursor root holds the saved cursor's World, with
 	// no position, head or reader yet.
@@ -1079,16 +1082,17 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The second install moves the base on and sweeps; the first trim's base
-	// keeps its page.
+	// The second install moves the base on and sweeps. The first trim's
+	// base keeps its page.
 	a.replay.base = &InnerState{HeadRef: &bucket.ObjectRef{RootRef: second}}
 	a.sweep()
 	if _, found, err := a.pages.GetBlock(ctx, firstPage); err != nil || !found {
 		t.Fatalf("a sweep dropped the page of a waiting trim's base: %v, %v", found, err)
 	}
 
-	// The second install gathers its trim; once the turn opens, the first is
-	// skipped and the replay base moves onto the second World alone.
+	// The second install gathers its trim. Once the turn opens, the first
+	// trim is skipped and the replay base moves onto the second World
+	// alone.
 	if err := a.trimInBackground(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -1118,8 +1122,8 @@ func TestBackgroundStoresKeepTheirOwnRoots(t *testing.T) {
 	first, _ := a.startBackground(root)
 	second, _ := a.startBackground(root)
 
-	// The second's end leaves it live for the first; the first's end does
-	// not.
+	// The second store's end leaves the root live for the first store,
+	// but the first store's end does not.
 	second()
 	if !live() {
 		t.Fatal("one store's end dropped a root another store holds")
@@ -1423,10 +1427,11 @@ func TestStaleAdapterTrimFails(t *testing.T) {
 }
 
 // TestStaleAdapterHistoryRewriteFails checks that a trim whose checkpoint
-// history a stale Adapter rewrote, dropping a World the trim's base names,
-// fails with ErrRootMoved and moves no root, rather than read the rewritten
-// history and move the base onto a World nothing holds. Only an append that
-// keeps the held block in its Prev chain lets the trim read again.
+// history a stale Adapter rewrote, dropping a World the trim's base
+// references, fails with ErrRootMoved and moves no root, rather than read the
+// rewritten history and move the base onto a World nothing holds. Only an
+// append that keeps the held block in its Prev chain lets the trim read
+// again.
 func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 	// Open two Adapters on one bucket that frees at once.
 	ctx := t.Context()
@@ -1531,8 +1536,8 @@ func putPayloads(ctx context.Context, t *testing.T, store block.StoreOps, prefix
 	return refs
 }
 
-// holdOrder records an order whose resolved operations each name one of refs
-// as the last order Hold saw, on the checkpoint World w.
+// holdOrder records an order whose resolved operations each reference one of
+// refs as the last order Hold saw, on the checkpoint World w.
 func holdOrder(a *Adapter, w *block.BlockRef, refs []*block.BlockRef, unresolved bool) {
 	st := &payloadState{world: w, ops: make(map[string]opHold, len(refs)), keys: make(map[string]int, len(refs)), unresolved: unresolved}
 	for i, ref := range refs {
@@ -1546,10 +1551,11 @@ func holdOrder(a *Adapter, w *block.BlockRef, refs []*block.BlockRef, unresolved
 // TestResetPayloadsKeepsUnresolved checks, on a Volume that frees at once,
 // that a cursor save at a held checkpoint World drops no payload while an
 // operation of the order is unresolved, as after a restart before a plugin
-// registers, since the payload may be that operation's; and that it drops the
-// payloads no operation names once every operation resolved.
+// registers, since the payload may be that operation's, and that the save
+// drops the payloads no operation references once every operation resolved.
 func TestResetPayloadsKeepsUnresolved(t *testing.T) {
-	// Hold a named payload and one only an unresolved operation names.
+	// Hold a named payload and one only an unresolved operation
+	// references.
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	store := a.so.GetBlockStore()
@@ -1581,7 +1587,8 @@ func TestResetPayloadsKeepsUnresolved(t *testing.T) {
 	requireRead("unresolved", named, true)
 	requireRead("unresolved", unnamed, true)
 
-	// Once it resolved naming nothing more, the save drops the other.
+	// Once the operation resolved without referencing more payloads, the
+	// save drops the other.
 	holdOrder(a, w, []*block.BlockRef{named}, false)
 	if err := a.resetPayloads(ctx, true); err != nil {
 		t.Fatal(err)
@@ -1606,9 +1613,9 @@ func TestResetPayloadsKeepsAdmittedPayload(t *testing.T) {
 }
 
 // TestResetPayloadsKeepsPayloadAdmittedAfterPlan checks, on a Volume that
-// frees at once, that a cursor save keeps a held payload an admission names
-// between the save's plan to drop it and its move, which appends nothing
-// since the set already holds it.
+// frees at once, that a cursor save keeps a held payload an admission
+// references between the save's plan to drop it and its move, which appends
+// nothing since the set already holds it.
 func TestResetPayloadsKeepsPayloadAdmittedAfterPlan(t *testing.T) {
 	ctx := t.Context()
 	f := newAdmittedPayloads(t)
@@ -1627,8 +1634,8 @@ func TestResetPayloadsKeepsPayloadAdmittedAfterPlan(t *testing.T) {
 }
 
 // admittedPayloads is an adapter on a Volume that frees at once, holding
-// three payloads at a held checkpoint World: one the order names, one an
-// admission may name, and one nothing names, which a save drops.
+// three payloads at a held checkpoint World: one the order references, one an
+// admission may reference, and one nothing references, which a save drops.
 type admittedPayloads struct {
 	// a is the adapter.
 	a *Adapter
@@ -1667,7 +1674,7 @@ func (f *admittedPayloads) admit(payloads ...*block.BlockRef) {
 	})
 }
 
-// save runs a cursor save at the World of an order naming only the named
+// save runs a cursor save at the World of an order referencing only the named
 // payload, then collects.
 func (f *admittedPayloads) save(ctx context.Context, t *testing.T) {
 	t.Helper()
@@ -1700,17 +1707,18 @@ func (f *admittedPayloads) check(ctx context.Context, t *testing.T, kept ...*blo
 }
 
 // TestResetPayloadsLockTime times cursor saves that drop payloads at the
-// state's operation bound, MaxOperations operations each naming a payload,
-// and the longest a local writer waits for rootMtx meanwhile.
+// state's operation bound, MaxOperations operations each referencing a
+// payload, and the longest a local writer waits for rootMtx meanwhile.
 func TestResetPayloadsLockTime(t *testing.T) {
 	t.Run("keep all, drop half", func(t *testing.T) { timeResetPayloads(t, sobject.MaxOperations, sobject.MaxOperations/2) })
 	t.Run("keep 64, drop the rest", func(t *testing.T) { timeResetPayloads(t, 64, sobject.MaxOperations) })
 }
 
-// timeResetPayloads times a cursor save at a held World whose order names n
-// held payloads, dropping drop more, and the longest rootMtx wait meanwhile.
+// timeResetPayloads times a cursor save at a held World whose order
+// references n held payloads, dropping drop more, and the longest rootMtx
+// wait meanwhile.
 func timeResetPayloads(t *testing.T, n, drop int) {
-	// Hold the order's payloads and the ones no operation names.
+	// Hold the order's payloads and the ones no operation references.
 	ctx := t.Context()
 	a, _ := newVolumeAdapter(t, 1<<20, time.Hour)
 	staged, endStage, err := block.OpenStage(ctx, a.so.GetBlockStore())

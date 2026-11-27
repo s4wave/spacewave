@@ -29,7 +29,7 @@ export interface CacheSeedTabProps {
 
 // CacheSeedTab streams the provider's cache-seed inspector RPC entries and
 // renders them as a rolling list. Only populates when the provider binary is
-// built with the =alphadebug= build tag; otherwise the stream returns an
+// built with the =alphadebug= build tag. Otherwise the stream returns an
 // unknown-service error which is surfaced inline.
 export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
   const root = rootResource.value

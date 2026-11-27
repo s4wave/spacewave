@@ -38,7 +38,7 @@ func (w *windowFillOps) PutBlockBatch(ctx context.Context, entries []*block.PutB
 		return nil, err
 	}
 
-	// Fill the rest.
+	// Fill the remaining blocks.
 	for i, e := range entries {
 		if have[i] || e.Tombstone {
 			continue

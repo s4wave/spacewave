@@ -17,15 +17,15 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller listens for incoming HTTP connections on a port.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// srv is the http server
+	// srv is the http server.
 	srv *http.Server
 
-	// certFile is the path to the cert file if tls is enabled
+	// certFile is the path to the cert file if tls is enabled.
 	// can be empty
 	certFile string
-	// keyFile is the path to the key file if tls is enabled
+	// keyFile is the path to the key file if tls is enabled.
 	// cannot be empty if certFile is set
 	// can be empty otherwise
 	keyFile string

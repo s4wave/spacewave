@@ -22,7 +22,7 @@ import (
 // packIndexArgs are the arguments of the volume-pack-index command.
 type packIndexArgs struct {
 	pack packArgs
-	// width is the packs read at once.
+	// width is the number of packs read at once.
 	width int
 }
 

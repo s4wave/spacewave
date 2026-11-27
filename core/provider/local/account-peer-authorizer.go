@@ -52,7 +52,7 @@ func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func
 }
 
 // authorizeSpaceMember admits to a listener's links a peer that a listed
-// Space names as a participant who reads its state. The link carries no
+// Space lists as a participant who reads its state. The link carries no
 // account authority: each request on it is checked against its object.
 func (a *ProviderAccount) authorizeSpaceMember(ctx context.Context, remotePeer peer.ID) error {
 	return sobject.AuthorizeListedParticipant(ctx, a.soListCtr.GetValue(), a.MountSharedObject, remotePeer)

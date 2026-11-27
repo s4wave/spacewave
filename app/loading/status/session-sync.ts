@@ -4,7 +4,7 @@ import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatu
 
 // toSessionSyncView projects the rich SessionSyncStatusView onto a LoadingView
 // suitable for the LoadingCard primitive. The shape of the existing view is
-// preserved; only fields relevant to a generic loading surface are surfaced.
+// preserved. Only fields relevant to a generic loading surface are surfaced.
 export function toSessionSyncView(
   status: SessionSyncStatusView,
   options: { onRetry?: () => void } = {},

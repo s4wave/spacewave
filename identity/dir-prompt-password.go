@@ -73,7 +73,7 @@ func ExPromptPassword(
 	return *val, nil
 }
 
-// promptPassword implements PromptPassword
+// promptPassword implements PromptPassword.
 type promptPassword struct {
 	domainID, reason string
 	reasonDetail     string
@@ -125,7 +125,7 @@ func (s *promptPassword) Validate() error {
 	return nil
 }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *promptPassword) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -149,7 +149,7 @@ func (s *promptPassword) GetName() string {
 	return "PromptPassword"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (s *promptPassword) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if domainID := s.PromptPasswordDomainID(); domainID != "" {

@@ -49,9 +49,9 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, valid time.Duration
 		out.BlockSize = refBlockSize
 	}
 
-	// Nlink - not very well documented - sshfs uses constant 1
-	// it's supposedly used to indicate the # of children in a directory
-	// "find" might care about it
+	// Nlink (not very well documented): sshfs uses constant 1.
+	// Nlink is supposedly used to indicate the # of children in a directory.
+	// "find" might care about Nlink.
 	out.Nlink = 1
 
 	// NOTE: all values use the modification time

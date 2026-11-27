@@ -19,7 +19,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
-// childService names the service whose Open method adds a child resource
+// childService identifies the service whose Open method adds a child resource
 // beneath the resource it is called on.
 const childService = "test.Children"
 
@@ -44,10 +44,10 @@ var rules = resource_proxy.Rules{
 // first restart a held Retry call is answered by the new upstream, a Once call
 // in flight fails with a reset, a Reopen stream continues without repeating
 // its state, and the Replay call reaches the new upstream first. Across the
-// second, the children the client opened, one nested in another, open again
-// after the Replay call and keep their IDs, while the one the new upstream
-// refuses is released. An upstream release reaches the client by the proxy's
-// ID. A unary call past the held call cap is reset at once.
+// second restart, the children the client opened, one nested in another,
+// open again after the Replay call and keep their IDs, while the one the new
+// upstream refuses is released. An upstream release reaches the client by the
+// proxy's ID. A unary call past the held call cap is reset at once.
 func TestProxyCarriesCallsAcrossRestart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
@@ -238,7 +238,7 @@ type backend struct {
 	server *srpc.Server
 	// dead is set once the backend is killed.
 	dead atomic.Bool
-	// refuse names the child the backend refuses to open.
+	// refuse identifies the child the backend refuses to open.
 	refuse string
 
 	// mtx guards the fields below.
@@ -249,7 +249,7 @@ type backend struct {
 	called chan struct{}
 	// conns holds the server side of every connection.
 	conns []net.Conn
-	// releases releases each opened child by name.
+	// releases holds functions that release each opened child by name.
 	releases map[string]func()
 }
 
@@ -281,7 +281,7 @@ func (b *backend) invoke(serviceID, methodID string, strm srpc.Stream) (bool, er
 	return false, nil
 }
 
-// openChild opens the child the request names beneath the resource the call
+// openChild opens the child the request specifies beneath the resource the call
 // runs on, answering with its ID in field 1 as an opener does.
 func (b *backend) openChild(strm srpc.Stream) error {
 	var req echo.EchoMsg
@@ -477,8 +477,8 @@ func (b *backend) waitAdopted(t *testing.T, ctx context.Context, names ...string
 	b.waitRecorded(t, ctx, func() []string { return b.adopted }, names)
 }
 
-// waitRecorded waits until the records list returns, read under mtx, hold
-// every entry of want.
+// waitRecorded waits until the records returned by list contain every entry
+// of want. The records are read under mtx.
 func (b *backend) waitRecorded(t *testing.T, ctx context.Context, list func() []string, want []string) {
 	t.Helper()
 	for {

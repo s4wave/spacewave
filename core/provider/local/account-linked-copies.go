@@ -11,11 +11,11 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// LinkedFullCopyEnv names the environment variable that, when set to "on",
+// LinkedFullCopyEnv identifies the environment variable that, when set to "on",
 // makes every account replica copy on this Device keep a full copy, as
 // SetKeepLinkedCopies(true) does: the copy fetches the data of every block,
 // including the chunks only a linked file on another Device holds, as account
-// replication did before linked files. It is read once, at startup.
+// replication did before linked files. The variable is read once, at startup.
 const LinkedFullCopyEnv = "SPACEWAVE_LINKED_FULL_COPY"
 
 // linkedFullCopy selects LinkedFullCopyEnv's whole copy.
@@ -38,7 +38,7 @@ func (a *ProviderAccount) KeepLinkedCopies(ctx context.Context) (bool, error) {
 	}
 	defer release()
 
-	// Read the setting; a missing key reads as off.
+	// Read the setting. A missing key reads as off.
 	var keep bool
 	openRead := func(ctx context.Context) (kvtx.Tx, error) { return objStore.NewTransaction(ctx, false) }
 	err = kvtx.RunTransaction(ctx, false, openRead, func(ctx context.Context, tx kvtx.Tx) error {
@@ -88,7 +88,7 @@ type linkedCopy struct {
 	recheck bool
 	// peers admits the peers whose linked answers the walk honours: the
 	// unrevoked sessions of this account and the Space's writers and owners
-	// when the walk began; nil when it honours none.
+	// when the walk began. Nil when the walk honours none.
 	peers func(peer.ID) bool
 }
 
@@ -133,7 +133,8 @@ func (a *ProviderAccount) readLinkedCopy(ctx context.Context, so sobject.SharedO
 // nil, and the participants of config that may write. A reader answering
 // linked falsely would make the copy skip a block the reader could then
 // withhold, losing data a writer could not have touched. A writer gains
-// nothing by it: it can already overwrite or delete the same files.
+// nothing by answering linked falsely: it can already overwrite or delete
+// the same files.
 func linkedAnswerPeers(settings *account_settings.AccountSettings, config *sobject.SharedObjectConfig) func(peer.ID) bool {
 	return func(id peer.ID) bool {
 		session := settings.FindAccountSession(id.String())

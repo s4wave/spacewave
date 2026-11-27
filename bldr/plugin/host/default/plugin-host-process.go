@@ -16,7 +16,7 @@ import (
 )
 
 // quickjsCacheDir is the QuickJS host cache directory under the plugins state
-// root. A plugin id is a DNS label, so it never names this directory.
+// root. A plugin id is a DNS label, so it never matches this directory's name.
 const quickjsCacheDir = ".quickjs-cache"
 
 // PluginHostControllerFactories construct the plugin host controller factory.

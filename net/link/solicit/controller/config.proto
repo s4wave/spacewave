@@ -4,6 +4,6 @@ package link.solicit.controller;
 // Config is the solicitation controller config.
 message Config {
   // MaxHashes is the maximum number of hashes per exchange.
-  // If 0, defaults to 256.
+  // If MaxHashes is 0, MaxHashes defaults to 256.
   uint32 max_hashes = 1;
 }

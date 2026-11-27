@@ -12,7 +12,7 @@ import (
 
 // PluginHostStorage provides storage via the plugin host.
 type PluginHostStorage struct {
-	// storageID selects the host provider; empty selects its default.
+	// storageID selects the host provider. Empty selects its default provider.
 	storageID string
 }
 

@@ -92,9 +92,10 @@ func (c *SpaceWorldController) HandleDirective(_ context.Context, di directive.I
 	}), nil)
 }
 
-// resolve publishes the Space's World while the host serves it and it is
-// engineID, marked idle once published. It returns when the host connection
-// ends, so the lookup retries, or at once for another engine.
+// resolve publishes the Space's World while the host serves the World and the
+// World's engine ID is engineID, marking the resolver idle once published.
+// resolve returns when the host connection ends, so the lookup retries, or at
+// once for another engine.
 func (c *SpaceWorldController) resolve(ctx context.Context, handler directive.ResolverHandler, engineID string) error {
 	// Reach the service on the plugin host, ending with the host client.
 	ctx, cancel := context.WithCancel(ctx)
@@ -113,7 +114,7 @@ func (c *SpaceWorldController) resolve(ctx context.Context, handler directive.Re
 	}
 	defer engine.Release()
 
-	// Publish it only if it is the one looked up.
+	// Publish the engine only if its ID is the one looked up.
 	info, err := engine.GetEngineInfo(ctx)
 	if err != nil {
 		return err

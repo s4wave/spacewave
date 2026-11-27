@@ -39,7 +39,7 @@ import { markStartupBoundary } from './startup-marks.js'
 
 declare let BLDR_DEBUG: boolean
 
-// Default type of `self` is `WorkerGlobalScope & typeof globalThis`
+// self has the default type `WorkerGlobalScope & typeof globalThis`.
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: ServiceWorkerGlobalScope
 
@@ -74,8 +74,9 @@ const CACHES: Record<string, Cache | undefined> = {
   [controlCacheName]: undefined,
 }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
-// Lifecycle probes bound repeated refocus checks; direct manifest fetches
-// always check for updates in the background.
+// browserReleaseLifecycleSyncFreshMs bounds repeated refocus checks by
+// lifecycle probes. Direct manifest fetches always check for updates in the
+// background.
 const browserReleaseLifecycleSyncFreshMs = 30000
 
 // BrowserReleaseSyncOptions selects release-sync freshness semantics.
@@ -144,7 +145,7 @@ export interface BrowserFetchSource {
   runtime: boolean
 }
 
-// BrowserControlCacheRowKind names fixed rows in the control cache.
+// BrowserControlCacheRowKind classifies fixed rows in the control cache.
 export type BrowserControlCacheRowKind =
   | 'root-document'
   | 'browser-index'
@@ -860,13 +861,13 @@ async function matchPromotedCurrentGenerationResponse(
 interface StaticPluginAsset {
   pluginId: string
   rootHash: string
-  // pinned is set when the path names the manifest root. Pinned files are
+  // pinned is set when the path specifies the manifest root. Pinned files are
   // immutable, so they stay current when the announced root changes.
   pinned: boolean
   generationId?: string
 }
 
-// staticPluginAssetPinnedRoot returns the manifest root named by a
+// staticPluginAssetPinnedRoot returns the manifest root specified by a
 // /<prefix>/<plugin>/manifest/<root>/<file> path, or null when unpinned.
 function staticPluginAssetPinnedRoot(
   source: BrowserFetchSource,
@@ -933,9 +934,9 @@ async function resolveStaticPluginAsset(
       generationId: state.promotedCurrent?.generationId,
     }
   }
-  // Only the currently active announced root may be served or cached. A root
-  // that is not yet active waits for its activation update; it never falls
-  // back to persisted roots, and old roots never satisfy new requests.
+  // Only the active announced root may be served or cached. A root that is
+  // not yet active waits for its activation update and never falls back to
+  // persisted roots, and old roots never satisfy new requests.
   let rootHash = activePluginRoots.get(pluginId)
   if (!rootHash) {
     await pluginRootUpdates.get(pluginId)
@@ -1082,7 +1083,7 @@ async function waitForPluginRootAnnouncement(
 }
 
 // activatePluginManifestRoot activates an announced root when it is still the
-// desired root. Activation is in-memory only; a restarted service worker waits
+// desired root. Activation is in-memory only. A restarted service worker waits
 // for the next announcement instead of reactivating persisted state.
 async function activatePluginManifestRoot(
   pluginId: string,
@@ -1131,7 +1132,8 @@ export async function handleBrowserReleaseRequest(
   return buildJsonResponse(request.method, latestRelease)
 }
 
-// onWebDocumentsExhausted notifies all web documents we need a new connection.
+// onWebDocumentsExhausted notifies all web documents that the service worker
+// needs a new connection.
 const onWebDocumentsExhausted = async () => {
   await self.clients.claim()
   const currClients = await self.clients.matchAll({ type: 'window' })
@@ -1155,7 +1157,7 @@ const webDocumentTracker = new WebDocumentTracker(
   serviceWorkerId,
   WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
   onWebDocumentsExhausted,
-  // We don't support calling the ServiceWorker from WebDocument.
+  // Calling the ServiceWorker from WebDocument is not supported.
   null,
   null,
   serviceWorkerLogicalId,
@@ -1164,15 +1166,16 @@ const webDocumentTracker = new WebDocumentTracker(
 // webRuntimeClient manages the connection to the WebRuntime.
 const webRuntimeClient = webDocumentTracker.webRuntimeClient
 
-// swHostClient attempts to contact the WebRuntime over any of the WebDocument relays.
+// swHostClient tries to contact the WebRuntime over any of the WebDocument
+// relays.
 const swHostClient = webRuntimeClient.rpcClient
 
 // swHost is the RPC client for the ServiceWorkerHost.
 const swHost = new ServiceWorkerHostClient(swHostClient)
 
-// install is the beginning of service worker registration.
-// setup resources such as offline caches.
-// note: does not activate until some time after this returns.
+// swInstall begins service worker registration and sets up resources such as
+// offline caches. The service worker does not activate until some time after
+// swInstall returns.
 async function swInstall() {
   markStartupBoundary('service-worker.install-start', {
     source: 'service-worker',
@@ -1790,8 +1793,8 @@ async function normalizeRuntimeFetchResponse(
   response: Response,
   abortSignal?: AbortSignal,
 ): Promise<Response> {
-  // A redirect to a manifest-pinned path answers the request; the browser
-  // follows it, so it is not a runtime failure.
+  // A redirect to a manifest-pinned path answers the request. The browser
+  // follows the redirect, so the redirect is not a runtime failure.
   if (response.ok || isRedirectStatus(response.status)) {
     return addPluginAssetFetchResultHeader(response, source, 'live')
   }
@@ -1913,7 +1916,8 @@ async function fetchDevFrontendModule(
   session: string,
   fetchRuntime: (request: Request) => Promise<Response>,
 ): Promise<Response> {
-  // Serve an immutable cached module without a request; a reload skips it.
+  // Serve an immutable cached module without a request. A reload skips the
+  // cache.
   const cache = await openDevFrontendCache(session)
   const cached =
     request.cache === 'reload' || request.cache === 'no-store'
@@ -1946,7 +1950,7 @@ async function fetchDevFrontendModule(
   return response
 }
 
-// swFetch is called when the page attempts to fetch a resource.
+// swFetch is called when the page tries to fetch a resource.
 export async function swFetch(
   ev: FetchEvent,
   matchPrefixes = BLDR_URI_PREFIXES,
@@ -1994,12 +1998,13 @@ export async function swFetch(
   }
 
   // TODO: Browsers do not cancel request.signal when the request is canceled.
-  // This is a long-standing browser bug and is not yet fixed.
+  // The failure to cancel request.signal is a long-standing, unfixed browser
+  // bug.
   // See: https://github.com/w3c/ServiceWorker/issues/1544
   // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
   // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1568422
   //
-  // To view the effect of this:
+  // To view the effect of the cancellation bug:
   // 1. Browse to a bldr site in one tab.
   // 2. Browse to /p/does-not-exist/a/ in a new tab
   // 3. The request will wait forever
@@ -2022,7 +2027,8 @@ export async function swFetch(
       }
     }
     // Check the cache (for e.x. index.html)
-    // NOTE: We do not want this, we want the latest index.html if possible.
+    // NOTE: The fetch should return the latest index.html if possible,
+    // rather than the cached response.
 
     // Use the built-in browser fetch.
     if (BLDR_DEBUG) {
@@ -2048,7 +2054,7 @@ export async function swFetch(
       response = null
     }
 
-    // request failed, attempt to fall back to cache.
+    // If the request failed, try to fall back to the cache.
     if (!response || response.status < 200 || response.status >= 300) {
       if (source.kind === 'root-document') {
         const cachedRoot = await matchRootNavigationCache(request)
@@ -2070,7 +2076,7 @@ export async function swFetch(
       }
     }
 
-    // finally throw err if any
+    // Finally, throw err if present.
     if (responseErr) {
       throw responseErr
     }
@@ -2190,7 +2196,7 @@ async function fetchFromRuntime(
     return response
   }
 
-  // Resolve the manifest-pinned plugin asset this request names, if any.
+  // Resolve the manifest-pinned plugin asset this request selects, if any.
   const staticPluginAssetSource =
     source.path.startsWith(pluginDistPathPrefix) ||
     source.path.startsWith(pluginAssetsPathPrefix)
@@ -2417,7 +2423,8 @@ async function fetchFromRuntime(
     }
     return response
   }
-  // The loop returns or throws within two attempts; this satisfies control flow.
+  // The loop returns or throws within two attempts. This bound satisfies
+  // control flow.
   return buildNoReadyDocumentResponse(source, request.method)
 
   // Note: caching responses here does not work with the custom app:// scheme
@@ -2474,7 +2481,7 @@ function initServiceWorker() {
 }
 
 // IS_SERVICE_WORKER indicates if initServiceWorker was called.
-// If we are not a service worker, don't register callbacks.
+// If the context is not a service worker, don't register callbacks.
 const IS_SERVICE_WORKER = !!self && !!self.clients
 if (IS_SERVICE_WORKER) {
   initServiceWorker()

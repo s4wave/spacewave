@@ -12,7 +12,7 @@ import (
 )
 
 // AccountAdapter implements account enrollment through the responsible provider.
-// Preparation may reserve local receiving keys; it cannot grant account access.
+// Preparation may reserve local receiving keys but cannot grant account access.
 type AccountAdapter interface {
 	OfferPairingAccount(context.Context, crypto.PrivKey) (*AccountOffer, error)
 	PreparePairingReceiver(context.Context, *AccountOffer, peer.ID, peer.ID) (*Receiver, error)
@@ -53,7 +53,7 @@ func SessionProviderID(offer *AccountOffer) string {
 	return "local"
 }
 
-// receivingSessionRef names the Session attached by a successful receiver.
+// receivingSessionRef returns the Session attached by a successful receiver.
 func receivingSessionRef(receiver *Receiver) *session.SessionRef {
 	if receiver == nil {
 		return nil

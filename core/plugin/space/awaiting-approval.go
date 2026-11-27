@@ -8,11 +8,11 @@ import (
 )
 
 // WatchAwaitingApproval calls cb with the sorted plugins among pluginIDs whose
-// load from this Space waits for the device's approval of a manifest root,
-// then again after each change, until ctx ends or the scheduler lookup fails.
-// The host scheduler that runs the Space's loads owns that state, as
-// PluginSwapAwaitingApproval on each execution; this only reads it, waking on
-// each change of the scheduler's status container.
+// load from this Space waits for the device's approval of a manifest root, then
+// again after each change, until ctx ends or the scheduler lookup fails. The
+// host scheduler that runs the Space's loads owns that state, as
+// PluginSwapAwaitingApproval on each execution. WatchAwaitingApproval only
+// reads that state, waking on each change of the scheduler's status container.
 func (c *Controller) WatchAwaitingApproval(ctx context.Context, pluginIDs []string, cb func([]string)) error {
 	instanceKey := c.GetConfig().GetSpaceId()
 	var shown []string

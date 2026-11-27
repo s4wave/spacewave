@@ -43,7 +43,7 @@ export interface Config {
   readOnly?: boolean
   /**
    * MaxReadahead limits kernel readahead for sequential reads in bytes.
-   * Zero keeps the kernel default.
+   * Zero keeps the kernel default readahead limit.
    */
   maxReadahead?: number
 }

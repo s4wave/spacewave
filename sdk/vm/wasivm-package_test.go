@@ -26,7 +26,7 @@ func TestResolveWasiVmPackages(t *testing.T) {
 	ws := world.NewEngineWorldState(tb.Engine, true)
 
 	// Create the packages and their dependency edges. htop needs ncurses and
-	// musl-extra; ncurses and readline depend on each other.
+	// musl-extra. ncurses and readline depend on each other.
 	key := func(name string) string { return WasiVmPackageKey("test/"+name, "1") }
 	deps := map[string][]string{
 		"htop":       {"ncurses", "musl-extra"},

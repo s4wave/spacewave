@@ -31,7 +31,7 @@ func (a *ProviderAccount) SpaceBus() bus.Bus {
 }
 
 // ImportMigrationObject preserves the resource ID, signed history, and accepted
-// state. Cloud resources retain their existing store; local resources are copied
+// state. Cloud resources retain their existing store. Local resources are copied
 // and flushed to the provider before account authority may move.
 func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source provider_migration.Account, object sobject.SharedObject, entry *sobject.SharedObjectListEntry, state *sobject.SOState) error {
 	// Within one cloud, the resource only changes accounts.
@@ -70,7 +70,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		}
 	}
 
-	// Name the World and payloads a Space's state reads, which keeps its
+	// List the World and payloads a Space's state reads to preserve that
 	// state.
 	var roots []*block.BlockRef
 	space := entry.GetMeta().GetBodyType() == "space"
@@ -151,12 +151,12 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 }
 
 // copyMigrationSpace copies the blocks under roots from src into the cloud
-// store of resource id, flushes it, then posts checkpoint again, which the
-// cloud takes as a repeat once the copy is durable. The create-with-state
-// post before it already made checkpoint the cloud's state, since a push needs
-// the store the create makes. A flush that holds a corrupt block back fails
-// the import, and until a repeat import finishes the copy the cloud serves
-// that checkpoint over blocks it lacks.
+// store of resource id, flushes the store, then posts checkpoint again. The
+// cloud takes the checkpoint as a repeat once the copy is durable. The
+// create-with-state post before the copy already made checkpoint the cloud's
+// state, since a push needs the store the create makes. A flush that holds a
+// corrupt block back fails the import, and until a repeat import finishes the
+// copy the cloud serves that checkpoint over blocks it lacks.
 func (a *ProviderAccount) copyMigrationSpace(ctx context.Context, client *SessionClient, id string, src block.StoreOps, roots []*block.BlockRef, checkpoint *sobject.SOCheckpoint) error {
 	// Mount the destination store.
 	store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
@@ -166,8 +166,8 @@ func (a *ProviderAccount) copyMigrationSpace(ctx context.Context, client *Sessio
 	defer release()
 
 	// Copy under a stage in the local cache bucket, which holds the copy until
-	// the flush has uploaded it; the cloud's packs hold it from then on. The
-	// stage is nil on a cache that holds no roots, which frees nothing.
+	// the flush has uploaded it. The cloud's packs hold it from then on. The
+	// stage is nil on a cache that holds no roots and frees nothing.
 	stage, err := provider_migration.CopyRoots(ctx, src, roots, store, nil)
 	if err != nil {
 		return err

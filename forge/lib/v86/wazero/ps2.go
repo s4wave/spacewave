@@ -3,6 +3,7 @@ package v86_wazero
 import "context"
 
 // ps2Device models the i8042 keyboard/mouse controller: its command and data
+// registers.
 type ps2Device struct {
 	host                 *HostRuntime
 	commandRegister      uint8
@@ -21,6 +22,7 @@ type ps2QueuedByte struct {
 }
 
 // registerPS2 wires the controller's data (0x60) and status/command (0x64)
+// ports.
 func (h *HostRuntime) registerPS2() {
 	// Register the PS/2 controller data and command ports for the guest.
 	ps2 := &ps2Device{host: h, commandRegister: 1 | 4}
@@ -38,7 +40,8 @@ func (h *HostRuntime) registerPS2() {
 	})
 }
 
-// readData pops the oldest queued byte and re-raises the interrupt line for
+// readData pops the oldest queued byte, lowers its interrupt line, and raises
+// the line for the next queued byte when that device's interrupt is enabled.
 func (p *ps2Device) readData(ctx context.Context) uint8 {
 	// Preserve the last PS/2 data byte when the output queue is empty.
 	if len(p.queue) == 0 {
@@ -62,7 +65,7 @@ func (p *ps2Device) readData(ctx context.Context) uint8 {
 	return entry.value
 }
 
-// readStatus renders the status register: output-buffer full plus the aux
+// readStatus renders the status register: output-buffer full plus the aux bit.
 func (p *ps2Device) readStatus() uint8 {
 	status := uint8(0x10)
 	if len(p.queue) != 0 {
@@ -107,6 +110,7 @@ func (p *ps2Device) writeData(ctx context.Context, value uint8) {
 }
 
 // writeCommand handles a controller command, possibly consuming the next
+// data byte.
 func (p *ps2Device) writeCommand(ctx context.Context, value uint8) {
 	switch value {
 	case 0x20:

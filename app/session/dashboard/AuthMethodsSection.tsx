@@ -57,10 +57,10 @@ export interface AuthMethodsSectionProps {
 // AuthMethodType identifies which auth method the user wants to add.
 type AuthMethodType = 'pem' | 'passkey' | 'google' | 'github'
 
-// AuthMethodsSection displays auth method list and management controls.
+// AuthMethodsSection displays the auth method list and management controls.
 // When auth_threshold > 0, add/remove operations use the step-through
-// AuthMutationWizard for multi-sig unlock. Otherwise, falls back to the
-// simple AuthConfirmDialog.
+// AuthMutationWizard for multi-sig unlock. Otherwise, AuthMethodsSection falls
+// back to the simple AuthConfirmDialog.
 export function AuthMethodsSection({
   account,
   retainStepUp = false,

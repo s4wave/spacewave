@@ -79,7 +79,7 @@ func newTestSharedObject(t *testing.T, seed *sobject.SOCheckpoint) *CdnSharedObj
 
 // setTestPointer publishes a root pointer on the shared object's CDN block
 // store. The tests build the shared object over a CdnBlockStore, which owns
-// the pointer; SuppliedBlockStore mounts read the pointer from the CDN.
+// the pointer. SuppliedBlockStore mounts read the pointer from the CDN.
 func setTestPointer(t *testing.T, so *CdnSharedObject, ptr *alpha_cdn.CdnRootPointer) {
 	t.Helper()
 	bs, ok := so.bs.(*cdn_bstore.CdnBlockStore)
@@ -297,8 +297,8 @@ func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 	ctx := context.Background()
 
 	// Stub CDN server serves a minimal CdnRootPointer on every fetch. The
-	// contents don't matter; we only need Refresh() to reach the
-	// s.watch.SetValue() call inside RefreshSnapshot.
+	// contents don't matter because the test only needs Refresh() to reach
+	// the s.watch.SetValue() call inside RefreshSnapshot.
 	ptr := &alpha_cdn.CdnRootPointer{SpaceId: testSpaceID}
 	ptrBytes, err := ptr.MarshalVT()
 	if err != nil {

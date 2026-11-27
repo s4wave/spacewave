@@ -116,7 +116,7 @@ export interface ReplicaSpec {
   /**
    * DesiredOwnerPeerId is the peer ID of the Device that should own the
    * SharedObject. The node type resolves it from the graph-local node ID the
-   * Flowgraph names.
+   * Flowgraph selects.
    */
   desiredOwnerPeerId?: string
 }
@@ -131,7 +131,7 @@ export const ReplicaSpec: MessageType<ReplicaSpec> =
   )
 
 /**
- * Config runs one replica node on the Device it is placed on.
+ * Config configures one replica node on the Device the node is placed on.
  *
  * @generated from message space.world.replica.Config
  */
@@ -213,7 +213,8 @@ export const SOReplicaProof: MessageType<SOReplicaProof> =
   )
 
 /**
- * SignedSOReplicaProof is an SOReplicaProof signed by the Device it names.
+ * SignedSOReplicaProof is an SOReplicaProof signed by the Device the proof
+ * identifies.
  *
  * @generated from message space.world.replica.SignedSOReplicaProof
  */

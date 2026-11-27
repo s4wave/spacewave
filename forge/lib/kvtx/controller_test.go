@@ -68,7 +68,7 @@ exec:
 
 // todo: feed a non-zero size store in
 
-// TestKvtx tests the kvtx execution controller
+// TestKvtx tests the kvtx execution controller.
 func TestKvtx(t *testing.T) {
 	// Start the Forge testbed and register the key-value execution controller.
 	tb, err := testbed.Default(context.Background())
@@ -112,8 +112,9 @@ func TestKvtx(t *testing.T) {
 	valueSet := &forge_target.ValueSet{}
 
 	// Resolve the world-object input for the target execution.
-	// TODO: ordinarily resolved by Task controller, set it manually
-	// remove this when the Task controller can resolve world objects.
+	// TODO: ordinarily resolved by Task controller. Set the world-object
+	// input manually and remove the manual resolution when the Task
+	// controller can resolve world objects.
 	inpSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, testObj, ws)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -74,8 +74,8 @@ func execPeer(ctx context.Context, t *testing.T, tb *testbed.Testbed, conf *inpr
 // TestHoldOpenWithMountedLink tests that the hold-open controller correctly
 // handles MountedLink values from EstablishLinkWithPeer.
 //
-// This verifies the fix for issue #276 where the type assertion for link.Link
-// failed because EstablishLinkWithPeerValue was changed to MountedLink.
+// EstablishLinkWithPeerValue is MountedLink, so the type assertion must accept
+// MountedLink rather than link.Link (issue #276).
 func TestHoldOpenWithMountedLink(t *testing.T) {
 	// Start two network testbeds for the mounted-link hold-open test.
 	ctx := t.Context()
@@ -121,7 +121,8 @@ func TestHoldOpenWithMountedLink(t *testing.T) {
 	}
 	defer holdOpenRef.Release()
 
-	// Establish a link - the hold-open controller should handle the MountedLink
+	// Establish a link. The hold-open controller should handle the
+	// MountedLink.
 	lnk, lnkRel, err := link.EstablishLinkWithPeerEx(ctx, tb2.Bus, "", peerId1, false)
 	if err != nil {
 		t.Fatal(err.Error())

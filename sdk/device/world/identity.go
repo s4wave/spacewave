@@ -16,7 +16,7 @@ import (
 
 // EnsureDevice retains the canonical Device in the caller's World transaction.
 // The caller must verify key possession and permission to pair this peer before
-// calling; an unverified request parameter is not an authenticated identity.
+// calling. An unverified request parameter is not an authenticated identity.
 // Existing metadata is returned unchanged. A new Device has no setup readiness,
 // liveness or capabilities until the corresponding native owner reports them.
 // The caller owns commit or discard and may bind application relationships in

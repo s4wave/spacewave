@@ -17,7 +17,7 @@ type readProgressKey struct{}
 // pending on it. A session writes its answers in order, so the bytes of
 // answers queued ahead of the read's own count too. A read that a peer
 // answered with a failure counts nothing more, since its retries draw the
-// same answer again; a closed session does not end the count, so the read's
+// same answer again. A closed session does not end the count, so the read's
 // retry on the session that replaces it counts.
 type readProgress struct {
 	// mtx guards the fields below.

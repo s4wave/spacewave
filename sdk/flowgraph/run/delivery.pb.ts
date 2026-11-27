@@ -25,7 +25,7 @@ export enum DeliverEventsResult {
 
   /**
    * DELIVER_EVENTS_RESULT_STALE_CURSOR changed nothing: the run's cursor for
-   * the node is not the one the request named, so another reader delivered
+   * the node is not the one the request supplied, so another reader delivered
    * first. The source resumes from the stored cursor.
    */
   STALE_CURSOR = 2,

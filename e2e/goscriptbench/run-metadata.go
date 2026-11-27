@@ -17,33 +17,34 @@ var optionalSampleFields = []string{
 
 // RunMetadata identifies one engine run and its measured state boundary.
 type RunMetadata struct {
-	// runID groups independent engine results from one matrix invocation
+	// RunID groups independent engine results from one matrix invocation.
 	RunID string
-	// engine names the selected browser engine
+	// Engine identifies the selected browser engine.
 	Engine string
-	// engineVersion identifies the launched browser binary
+	// EngineVersion identifies the launched browser binary.
 	EngineVersion string
-	// compiler names the Go-to-browser compiler
+	// Compiler identifies the Go-to-browser compiler.
 	Compiler string
-	// spacewaveRevision identifies the Spacewave source tree
+	// SpacewaveRevision identifies the Spacewave source tree.
 	SpacewaveRevision string
-	// goScriptRevision identifies the GoScript source tree
+	// GoScriptRevision identifies the GoScript source tree.
 	GoScriptRevision string
-	// buildMode names the measured build shape
+	// BuildMode identifies the measured build shape.
 	BuildMode string
-	// workerMode names the GoScript runtime worker shape
+	// WorkerMode identifies the GoScript runtime worker shape.
 	WorkerMode string
-	// storageBackend names the measured persistent storage backend
+	// StorageBackend identifies the measured persistent storage backend.
 	StorageBackend string
-	// runtimeState names the retained and recreated cache cell
+	// RuntimeState identifies the retained and recreated cache cell.
 	RuntimeState string
-	// projectedURLTemplate identifies the measured request family
+	// ProjectedURLTemplate identifies the measured request family.
 	ProjectedURLTemplate string
-	// fixture identifies the measured bytes
+	// Fixture identifies the measured bytes.
 	Fixture Fixture
-	// state declares the boundary between samples
+	// State declares the boundary between samples.
 	State StateBoundary
-	// unavailableFields names optional browser timing fields omitted by this engine
+	// UnavailableFields lists optional browser timing fields omitted by
+	// this engine.
 	UnavailableFields []string
 }
 

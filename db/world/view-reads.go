@@ -67,7 +67,7 @@ func RerunOn(ctx context.Context, rerun context.Context) {
 // SendViews evaluation without making them, so the view reruns when a change
 // touches a quad one of filters matches, as if it had looked them up. Use it
 // when a value kept in memory, such as an index of the keys with an edge of
-// some predicate, answered what the lookup would have read; the caller then
+// some predicate, answered what the lookup would have read. The caller then
 // owns that the value held at the evaluation's revision or later. It does
 // nothing outside an evaluation. Call it before the evaluation returns.
 func AddViewPatterns(ctx context.Context, filters ...GraphQuad) {
@@ -104,9 +104,9 @@ func AddViewReads(ctx context.Context, set *ReadSet, rerunAt time.Time) {
 // computed once and shared by many views. Transactions opened through a
 // ReadTrackingEngine with the returned context, and AddViewReads and RerunAt
 // calls made with it, record into set and the child's deadline instead of the
-// running evaluation; nothing reaches the parent until the caller passes the
+// running evaluation. Nothing reaches the parent until the caller passes the
 // finished set to AddViewReads. finish joins the sets the child added to set
-// by reference and returns its earliest rerun time, or zero; call it once,
+// by reference and returns its earliest rerun time, or zero. Call it once,
 // after every read made with the context. It works outside a view too.
 func WithViewReads(ctx context.Context, set *ReadSet) (child context.Context, finish func() time.Time) {
 	reads := &viewReads{reads: set}
@@ -142,7 +142,8 @@ func (r *viewReads) wait(ctx context.Context, source WorldWaitSeqno, seqno uint6
 		defer cancel()
 	}
 
-	// Distinguish our rerun deadline from caller cancellation and watch errors.
+	// Distinguish the rerun deadline from caller cancellation and watch
+	// errors.
 	_, err := r.reads.waitChange(wait, source, seqno, r.getShared())
 	if ctx.Err() != nil {
 		return ctx.Err()

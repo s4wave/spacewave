@@ -28,8 +28,9 @@ var graphLogPrefix = []byte("l/")
 // roots. It compares the object and graph trees block by block and skips every
 // subtree the roots share, so its cost follows the size of the change rather
 // than the size of the World. Each tree comparison lists at most maxKeys tree
-// keys; a larger change yields an unknown ChangeSet. A changed quad does not
-// change the records of the objects it names, so only the quads report it.
+// keys. A larger change yields an unknown ChangeSet. A changed quad does not
+// change the records of the objects it references, so only the quads report
+// the quad change.
 func WorldChanges(ctx context.Context, before, after *block.Cursor, maxKeys int) (*world.ChangeSet, error) {
 	// List the changed objects.
 	keys, complete, err := ChangedObjectKeys(ctx, before, after, maxKeys)
@@ -65,7 +66,7 @@ func readObjectRecord(ctx context.Context, tree kvtx.BlockTx, key string) (*Obje
 // roots. It compares the object trees block by block and skips every subtree
 // the roots share, so its cost follows the size of the change rather than the
 // size of the World. complete is false when the change exceeds maxKeys or the
-// comparison bound; the caller must then treat every object as changed.
+// comparison bound. The caller must then treat every object as changed.
 func ChangedObjectKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) ([]string, bool, error) {
 	// Decode both World roots so their object tree sub-blocks resolve. A
 	// missing root must fail rather than compare as an empty World.
@@ -95,9 +96,9 @@ func ChangedObjectKeys(ctx context.Context, before, after *block.Cursor, maxKeys
 	return objKeys, true, nil
 }
 
-// ChangedObjectKeysIn lists which of keys name objects whose records differ
-// between two World roots. It compares only the parts of the object trees that
-// can hold those keys, so it lists a change of any size.
+// ChangedObjectKeysIn lists which of keys reference objects whose records
+// differ between two World roots. It compares only the parts of the object
+// trees that can hold those keys, so it lists a change of any size.
 func ChangedObjectKeysIn(ctx context.Context, before, after *block.Cursor, keys []string) ([]string, error) {
 	// Decode both World roots so their object tree sub-blocks resolve.
 	for _, bcs := range []*block.Cursor{before, after} {
@@ -147,8 +148,8 @@ func changedGraphQuads(ctx context.Context, before, after *block.Cursor, maxKeys
 	}
 
 	// Resolve each changed link record in the graph that holds it. A record
-	// present in only one graph names a quad set or deleted; one rewritten in
-	// place names the quads of both versions.
+	// present in only one graph references a quad set or deleted. One
+	// rewritten in place references the quads of both versions.
 	keys = slices.DeleteFunc(keys, func(key []byte) bool {
 		return !bytes.HasPrefix(key, graphLogPrefix)
 	})
@@ -181,7 +182,7 @@ func sharedFormat(ctx context.Context, before, after *block.Cursor) (WorldFormat
 }
 
 // changedNodeGraphQuads resolves the changed keys of two node graph trees to
-// the quads they name, at most maxKeys of them.
+// the quads they reference, at most maxKeys of them.
 func changedNodeGraphQuads(ctx context.Context, before, after *block.Cursor, keys [][]byte, maxKeys int) ([]world.GraphQuad, bool, error) {
 	// Open both graph trees for reading.
 	var txs [2]kvtx.BlockTx

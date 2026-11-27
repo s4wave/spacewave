@@ -25,15 +25,15 @@ func (c *Controller) KeepStagedReleases() {
 // Invariants:
 //
 //  1. It keeps the version just staged, the versions the app and daemon
-//     update states name, which covers a daemon handoff already accepted
-//     from an older release, and the folder holding the running daemon.
+//     update states reference (including a daemon handoff already accepted
+//     from an older release), and the folder holding the running daemon.
 //  2. When it cannot tell where the running daemon lives it removes nothing,
 //     since a daemon that runs from a staged copy would lose its own files.
 //  3. It removes only directories, not links, whose names are valid release
 //     versions, at the top of stagingDir. The removal goes through os.Root,
 //     which cannot leave stagingDir, so neither a link inside a folder nor a
-//     crafted name reaches a file outside it.
-//  4. A failure keeps the folder for the next staging; the staged update
+//     crafted name reaches a file outside stagingDir.
+//  4. A failure keeps the folder for the next staging. The staged update
 //     stands either way.
 func (c *Controller) pruneStagedReleases(stagingDir, staged string) error {
 	// Collect the versions that stay.

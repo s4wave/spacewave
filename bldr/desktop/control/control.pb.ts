@@ -18,7 +18,8 @@ export interface OpenOrFocusDesktopRequest {
   route?: string
   /**
    * InstalledApp is the application bundle that requested the desktop.
-   * Desktop app updates replace this bundle; empty when not launched from one.
+   * Desktop app updates replace this bundle. InstalledApp is empty when the
+   * desktop is not launched from an application bundle.
    */
   installedApp?: string
 }
@@ -87,7 +88,7 @@ export const QuitDesktopRequest: MessageType<QuitDesktopRequest> =
  */
 export interface QuitDesktopResponse {
   /**
-   * OtherWork names the Resource clients and persistent services apart from
+   * OtherWork lists the Resource clients and persistent services apart from
    * the requester and this desktop shell, sorted, with a count suffix on a
    * repeated name.
    */
@@ -120,12 +121,14 @@ export const WatchDesktopStatusRequest: MessageType<WatchDesktopStatusRequest> =
  */
 export interface WatchDesktopStatusResponse {
   /**
-   * Generation identifies the shell in the selected web plugin; zero means none has opened.
+   * Generation identifies the shell in the selected web plugin. Zero means no
+   * shell has opened.
    */
   generation?: bigint
   /**
    * Presence is the Electron owner's last observation, absent until confirmed.
-   * ACTIVE confirms open readiness; ENDED confirms exit, with Error distinguishing failure.
+   * ACTIVE confirms open readiness. ENDED confirms exit, with Error
+   * distinguishing failure.
    */
   presence?: WatchDesktopPresenceResponse
   /**

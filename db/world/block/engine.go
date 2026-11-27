@@ -69,8 +69,8 @@ type Engine struct {
 	// head wakes each of them without a lock or a read. Swapped under bcast.
 	headSignal atomic.Pointer[headSignal]
 	// published counts the heads published, so object waiters can tell
-	// whether a head came after the one they read; a head's seqno can repeat
-	// or move back. Guarded by bcast.
+	// whether a head came after the one they read. A head's seqno can
+	// repeat or move back. Guarded by bcast.
 	published uint64
 	// writeTx is the current write transaction, canceled if its head changes.
 	writeTx *EngineTx
@@ -114,9 +114,10 @@ type Engine struct {
 	// buckets.
 	writeBlockStore block.StoreOps
 	// releaseStage releases the stage that holds the commits of an engine
-	// without an Authority, which no root names, until Close: in deferred
-	// mode the stage writeBlockStore writes through, and otherwise
-	// callerStage once a commit opened it. Nil until opened. Guarded by bcast.
+	// without an Authority, which no root references, until Close: in
+	// deferred mode the stage writeBlockStore writes through, and otherwise
+	// callerStage once a commit opened it. Nil until opened. Guarded by
+	// bcast.
 	releaseStage func()
 	// callerStage is the stage a callerTurn stores a durable commit through,
 	// opened by the first such commit, so an engine that only reads opens
@@ -200,7 +201,7 @@ func WithDeferredDurability() EngineOption {
 // operations they apply, so a commit proposes them to the Authority as the
 // Candidate's Operation: the encoded world_block_tx batch, with the engine's
 // own bucket ID cleared from its object roots. An Authority that replays
-// operations, such as a Space's, needs it; the local Authority does not.
+// operations, such as a Space's, needs it. The local Authority does not.
 func WithRecordedOperations() EngineOption {
 	return func(e *Engine) {
 		e.recordOps = true
@@ -260,8 +261,8 @@ func NewEngine(
 
 	// Without an Authority, deferred durability keeps commits in one
 	// long-lived BufferedStore until Sync, under a stage and over a pinned
-	// base head that hold them until Close, since no root names them. A
-	// self-buffered store owns its own intake and Sync fence.
+	// base head that hold them until Close, since no root references them.
+	// A self-buffered store owns its own intake and Sync fence.
 	rawWriteStore := e.head.root.GetBucket()
 	e.writeBlockStore = rawWriteStore
 	if e.deferredDurability() {
@@ -345,7 +346,7 @@ func (e *Engine) GetRootRef() *bucket.ObjectRef {
 
 // Sync fences durable storage.
 //
-// A commit through an Authority is durable when it returns, so this runs the
+// A commit through an Authority is durable when it returns, so Sync runs the
 // store's fence only. In deferred-durability mode it makes every commit so
 // far durable and advances the durable seqno to the published head.
 func (e *Engine) Sync(ctx context.Context) (bool, error) {
@@ -435,8 +436,9 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 		return err
 	}
 
-	// In deferred mode pin the new base, which the caller holds now, for the
-	// commits to build on; installed, it replaces the old base's pin.
+	// In deferred mode pin the new base, which the caller holds now, for
+	// the commits to build on. Once installed, the new pin replaces the old
+	// base's pin.
 	unpin := func() {}
 	if e.deferredDurability() {
 		if unpin, err = block.PinRoot(ctx, e.baseRoot.GetBucket(), ref.GetRootRef()); err != nil {
@@ -540,8 +542,8 @@ func (e *Engine) followHead(head world.Head) {
 	}
 }
 
-// decodeRoot decodes the World root ref names without the Engine lock, so an
-// install under the lock decodes nothing. Close joins it as a read open.
+// decodeRoot decodes the World root ref references without the Engine lock,
+// so an install under the lock decodes nothing. Close joins it as a read open.
 func (e *Engine) decodeRoot(ctx context.Context, ref *bucket.ObjectRef) (*World, error) {
 	// Count the decode so Close joins it, unless the Engine has closed.
 	e.snapMu.Lock()
@@ -621,7 +623,7 @@ func (e *Engine) installRootRefLocked(
 	}
 
 	// The Authority's root holds the head while it is current, so publishing
-	// it takes no pin; a replaced head held by a reader pins later.
+	// it takes no pin. A replaced head held by a reader pins later.
 	if changes == nil {
 		changes = e.takePendingChangeLocked(e.head.root.GetRef().GetRootRef(), ref.GetRootRef())
 	}
@@ -653,7 +655,7 @@ func (e *Engine) installRootRefLocked(
 // returns the replaced published head, whose Engine reference the caller
 // retires after unlocking. The caller must hold bcast.
 func (e *Engine) publishHeadLocked(ctx context.Context, seqno uint64) *publishedHead {
-	// Seed readers with the decoded root when the head has one; a reader
+	// Seed readers with the decoded root when the head has one. A reader
 	// without it decodes the root itself.
 	rootBlock, err := e.headRootBlockLocked(ctx)
 	if err != nil {
@@ -700,7 +702,8 @@ func (e *Engine) acquireHead() *publishedHead {
 
 // headSignal is one published head as revision waiters see it.
 type headSignal struct {
-	// changed closes when a newer head or the Engine's close replaces this.
+	// changed closes when a newer head or the Engine's close replaces this
+	// headSignal.
 	changed chan struct{}
 	// seqno is the seqno of the published head.
 	seqno uint64
@@ -751,7 +754,7 @@ func (e *Engine) drainRetirement(ctx context.Context, retirement engineRetiremen
 
 	// Release the root authority only after every coupled transaction drains.
 	// Readers still holding a replaced published head keep its root, and pin
-	// it if they hold it long; a closing engine pins nothing.
+	// it if they hold it long. A closing engine pins nothing.
 	if retirement.pub != nil {
 		if retirement.closing {
 			retirement.pub.release()
@@ -834,7 +837,7 @@ func (e *Engine) finishCommit() {
 
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
+// The caller must always call Discard() after finishing with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 // An engine that records operations wraps a write transaction in a recorder
 // whose commit proposes the operations it applied.
@@ -1117,7 +1120,7 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
-// The cursor rejects writes; build through StageWorldState instead.
+// The cursor rejects writes. Build through StageWorldState instead.
 // Be sure to call Release on the cursor when done.
 func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	cursor, err := e.buildStorageCursor(ctx)
@@ -1156,7 +1159,8 @@ func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) 
 	}
 
 	// Pin the head the stage builds over, so a long session whose base main
-	// moves off keeps the base pages its puts name, until the stage releases.
+	// moves off keeps the base pages its puts reference, until the stage
+	// releases.
 	unpin, err := block.PinRoot(ctx, e.writeBlockStore, e.GetRootRef().GetRootRef())
 	if err != nil {
 		return nil, err
@@ -1201,10 +1205,10 @@ func (s *deferredStage) Release() {
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor rejects writes and is released after cb returns; build
+// The lookup cursor rejects writes and is released after cb returns. Build
 // through StageWorldState instead.
 //
-// NOTE: this is the implementation of AccessWorldState for the world/block engine.
+// NOTE: AccessWorldState is implemented here for the world/block engine.
 func (e *Engine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
@@ -1561,8 +1565,8 @@ func (e *Engine) buildReadWorldState(ctx context.Context) (*WorldState, error) {
 }
 
 // headRootBlockLocked returns the published head's decoded World root, or nil
-// when the head has no read transaction at its root. The block is immutable;
-// callers clone it before use. The caller must hold bcast.
+// when the head has no read transaction at its root. The block is immutable.
+// Callers clone it before use. The caller must hold bcast.
 func (e *Engine) headRootBlockLocked(ctx context.Context) (*World, error) {
 	if e.head == nil || e.head.readTx == nil ||
 		!e.head.readTx.state.GetRootRef().EqualsRef(e.head.root.GetRef().GetRootRef()) {
@@ -1583,7 +1587,7 @@ func (e *Engine) buildWorldStateForRoot(
 	// Select the store under the existing transaction authority. Both read and
 	// write transactions read and write through writeBlockStore so that, in
 	// deferred mode, reads see blocks that are committed in memory but not yet
-	// drained to durable storage (read your writes before Sync).
+	// drained to durable storage (read the writes before Sync).
 	store := transactionStore
 	if store == nil {
 		store = e.writeBlockStore
@@ -1667,5 +1671,5 @@ func (e *Engine) newWorldState(
 	return newWorldStateHolding(ctx, e.le, !readOnly, btx, bcs, store, e, e.lookupOp, e.verbose, holds)
 }
 
-// Verify the World engine contract.
+// _ verifies the World engine contract.
 var _ world.Engine = (*Engine)(nil)

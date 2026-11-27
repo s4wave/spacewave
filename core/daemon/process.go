@@ -41,7 +41,7 @@ func (p *process) stop() error {
 		}
 	}
 
-	// A failed exit status is expected during failed-start cleanup; retain
+	// A failed exit status is expected during failed-start cleanup. Retain
 	// actual wait errors and release platform tracking only after joining.
 	err := p.cmd.Wait()
 	if _, ok := stderrors.AsType[*exec.ExitError](err); ok {

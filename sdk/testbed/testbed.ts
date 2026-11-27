@@ -9,7 +9,7 @@ import { StateAtom } from '@aptre/bldr-sdk/state/state.js'
 
 // TestbedRoot is the root resource for creating test world engines.
 export class TestbedRoot extends Resource {
-  // service is the testbed root resource service
+  // service is the testbed root resource service.
   private service: TestbedResourceService
 
   constructor(resourceRef: ClientResourceRef) {
@@ -29,7 +29,7 @@ export class TestbedRoot extends Resource {
   }
 
   // markTestResult marks the test result (success or failure).
-  // Used by test wrapper to signal test completion.
+  // The test wrapper uses markTestResult to signal test completion.
   public async markTestResult(
     success: boolean,
     errorMessage?: string,
@@ -42,8 +42,9 @@ export class TestbedRoot extends Resource {
   }
 
   // accessStateAtom accesses a persisted state atom resource.
-  // Returns a StateAtom for Get/Set/Watch operations on persisted state.
-  // If storeId is empty, uses the default "ui-state" store.
+  // accessStateAtom returns a StateAtom for Get/Set/Watch operations on
+  // persisted state. If storeId is empty, accessStateAtom uses the default
+  // "ui-state" store.
   public async accessStateAtom(
     storeId?: string,
     abortSignal?: AbortSignal,

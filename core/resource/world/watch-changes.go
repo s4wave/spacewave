@@ -18,10 +18,11 @@ import (
 var ErrInterestVersion = errors.New("interest delta out of order")
 
 // WatchChanges streams each later World revision with the changes since the
-// previous message. A stream opened without an interest sends every change
-// and reads no more requests. A stream opened with one sends the changes it
-// names, applies each later delta at the last seqno it sent, and acknowledges
-// it there. The end of the request side ends only the deltas.
+// previous message. A stream opened without an interest sends every change and
+// reads no more requests. A stream opened with an interest sends the changes
+// the interest selects, applies each later delta at the last seqno the stream
+// sent, and acknowledges the delta there. The end of the request side ends only
+// the deltas.
 func (r *EngineResource) WatchChanges(stream s4wave_world.SRPCEngineResourceService_WatchChangesStream) error {
 	first, err := stream.Recv()
 	if err != nil {
@@ -70,13 +71,13 @@ func (r *EngineResource) watchAllChanges(
 }
 
 // watchNamedChanges serves a stream opened with an interest. One goroutine
-// reads deltas into the interest and never sends; this one sends, and runs
-// the change watch under the interest it last took. A delta ends that watch,
-// which returns after its last Send, at the seqno L it sent or covered
-// through; the next watch starts after
-// L under the new interest, behind an ack carrying L, and catches up from L
-// through the same subscriber, kept in a WatchSlot, so no change after L is
-// lost and none at or before L is sent again.
+// reads deltas into the interest and never sends. The sending goroutine sends
+// and runs the change watch under the interest it last took. A delta ends that
+// watch, which returns after its last Send, at the seqno L it sent or covered
+// through. The next watch starts after L under the new interest, behind an ack
+// carrying L, and catches up from L through the same subscriber, kept in a
+// WatchSlot, so no change after L is lost and none at or before L is sent
+// again.
 func (r *EngineResource) watchNamedChanges(
 	ctx context.Context,
 	stream s4wave_world.SRPCEngineResourceService_WatchChangesStream,
@@ -106,7 +107,7 @@ func (r *EngineResource) watchNamedChanges(
 		return nil
 	}
 	for {
-		// Take the interest; a delta read from here on ends the watch.
+		// Take the interest. A delta read from here on ends the watch.
 		watchCtx, interest, version, err := in.take(ctx)
 		if err != nil {
 			return err
@@ -158,9 +159,9 @@ func newInterestInbox() *interestInbox {
 	return &interestInbox{names: newInterestNames()}
 }
 
-// read applies each delta on stream until the request side ends. The end of
-// the request side ends only the deltas; a failed read or a bad delta ends
-// the stream.
+// read applies each delta on stream until the request side ends. The end of the
+// request side ends only the deltas. A failed read or a bad delta ends the
+// stream.
 func (in *interestInbox) read(stream s4wave_world.SRPCEngineResourceService_WatchChangesStream) {
 	for {
 		req, err := stream.Recv()
@@ -246,10 +247,10 @@ func newInterestNames() interestNames {
 	return interestNames{keys: make(map[string]struct{}), patterns: make(map[patternKey]struct{})}
 }
 
-// apply adds and removes the names in delta. A pattern naming no field fails
-// it before any change.
+// apply adds and removes the names in delta. A pattern specifying no field
+// fails the delta before any change.
 func (n interestNames) apply(delta *s4wave_world.ChangeInterestDelta) error {
-	// Reject a pattern naming no field before changing anything.
+	// Reject a pattern specifying no field before changing anything.
 	for _, q := range delta.GetAddPatterns() {
 		if q.GetSubject() == "" && q.GetPredicate() == "" && q.GetObj() == "" && q.GetLabel() == "" {
 			return world.ErrGraphPatternNamesNoField

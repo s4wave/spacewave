@@ -86,7 +86,8 @@ describe('SessionLockSection', () => {
   it('shows auto-unlock as selected when mode is AUTO_UNLOCK', () => {
     renderWithContext({ mode: SessionLockMode.AUTO_UNLOCK })
     // When auto-unlock is selected, the "Auto-unlock" option button has the
-    // brand border styling. We verify by checking the lock mode note text.
+    // brand border styling. The test verifies selection by checking the lock
+    // mode note text.
     expect(
       screen.getByText(
         'Changing lock mode only requires your current session. No account re-auth needed.',

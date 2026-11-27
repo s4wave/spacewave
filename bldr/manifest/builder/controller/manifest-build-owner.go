@@ -23,7 +23,7 @@ import (
 //     restarted the attempt. Its promise stays unresolved and the loop begins
 //     a new attempt on the newest input, whose promise replaces it.
 //   - built or failed: the promise resolves with the result or the build
-//     error. A watching controller then waits for the next change; a failed
+//     error. A watching controller then waits for the next change. A failed
 //     build keeps the previous result's inputs watched.
 //
 // A promise therefore resolves only with a finished build, never with the
@@ -94,8 +94,9 @@ func (o *manifestBuildOwner) nextResultPromise() *promise.Promise[*bldr_manifest
 // buildArgs builds the manifest build arguments from the previous result
 // and any changed files, clearing the changed-file set.
 func (o *manifestBuildOwner) buildArgs() *bldr_manifest_builder.BuildManifestArgs {
-	// Each watch result is a newer selectable revision; the shared configuration
-	// stays unchanged for concurrent child builders and startup validation.
+	// Each watch result is a newer selectable revision. The shared
+	// configuration stays unchanged for concurrent child builders and
+	// startup validation.
 	config := o.builderConfig.CloneVT()
 	if previous := o.prevResult.GetManifest().GetMeta(); previous != nil && previous.GetRev() >= config.GetManifestMeta().GetRev() {
 		config.ManifestMeta.Rev = previous.GetRev() + 1
@@ -204,7 +205,7 @@ func (o *manifestBuildOwner) publishResult(
 }
 
 // restart cancels the attempt so its loop begins a new pass, recording
-// reason. The first restart takes effect; later ones are ignored.
+// reason. The first restart takes effect. Subsequent restarts are ignored.
 func (a *manifestBuildAttempt) restart(reason string) {
 	// Record the reason and claim the first restart under the owner mutex.
 	var cancel context.CancelFunc

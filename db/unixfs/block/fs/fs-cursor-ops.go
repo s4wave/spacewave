@@ -17,17 +17,17 @@ import (
 
 // FSCursorOps implements the filesystem ops against a fsTree instance.
 type FSCursorOps struct {
-	// isReleased indicates if this is released.
+	// isReleased indicates if the ops object is released.
 	isReleased atomic.Bool
-	// cursor is the fs cursor
+	// cursor is the fs cursor.
 	cursor *FSCursor
-	// fsTree is the filesystem tree
+	// fsTree is the filesystem tree.
 	fsTree *unixfs_block.FSTree
-	// btx is the block transaction
+	// btx is the block transaction.
 	btx *block.Transaction
-	// fileHandleMtx guards fileHandle
+	// fileHandleMtx guards fileHandle.
 	fileHandleMtx sync.Mutex
-	// fileHandle is the file handle if this is a file node
+	// fileHandle is the file handle if the cursor points to a file node.
 	fileHandle *file.Handle
 }
 
@@ -441,7 +441,7 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool
 		ftree = nftree
 	}
 
-	// verify that it is a symlink
+	// verify that ftree is a symlink
 	if ftree.GetFSNode().GetNodeType() != unixfs_block.NodeType_NodeType_SYMLINK {
 		return nil, false, unixfs_errors.ErrNotSymlink
 	}
@@ -451,8 +451,8 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool
 	return tgtPath.GetNodes(), tgtPath.GetAbsolute(), nil
 }
 
-// CopyTo performs an optimized copy of an dirent inode to another inode.
-// If the src is a directory, this should be a recursive copy.
+// CopyTo copies a dirent inode to another inode with an optimized operation.
+// If the src is a directory, the operation should be a recursive copy.
 // Callers should still check CopyFrom even if CopyTo is not implemented.
 // Returns false, nil if optimized copy to the target is not implemented.
 func (f *FSCursorOps) CopyTo(
@@ -464,8 +464,8 @@ func (f *FSCursorOps) CopyTo(
 	return f.moveOrCopyTo(ctx, tgtCursorOps, tgtName, false, ts)
 }
 
-// CopyFrom performs an optimized copy from another inode.
-// If the src is a directory, this should be a recursive copy.
+// CopyFrom copies from another inode with an optimized operation.
+// If the src is a directory, the operation should be a recursive copy.
 // Callers should still check CopyTo even if CopyFrom is not implemented.
 // Returns false, nil if optimized copy from the target is not implemented.
 func (f *FSCursorOps) CopyFrom(ctx context.Context, name string, srcCursorOps unixfs.FSCursorOps, ts time.Time) (done bool, err error) {
@@ -473,8 +473,8 @@ func (f *FSCursorOps) CopyFrom(ctx context.Context, name string, srcCursorOps un
 	return false, nil
 }
 
-// MoveTo performs an atomic and optimized move to another inode.
-// If the src is a directory, this should be a recursive copy.
+// MoveTo moves to another inode atomically with an optimized operation.
+// If the src is a directory, the operation should be a recursive copy.
 // Callers should still check MoveFrom even if MoveTo is not implemented.
 //
 // In a single operation: overwrite the target fully with the source data,
@@ -490,8 +490,8 @@ func (f *FSCursorOps) MoveTo(
 	return f.moveOrCopyTo(ctx, tgtCursorOps, tgtName, true, ts)
 }
 
-// MoveFrom performs an atomic and optimized move from another inode.
-// If the src is a directory, this should be a recursive copy.
+// MoveFrom moves from another inode atomically with an optimized operation.
+// If the src is a directory, the operation should be a recursive copy.
 // Callers should still check MoveTo even if MoveFrom is not implemented.
 //
 // In a single operation: overwrite the inode fully with the target data,
@@ -556,14 +556,14 @@ func (f *FSCursorOps) moveOrCopyTo(
 	tgtPath[len(tgtPath)-1] = tgtName
 
 	// call the writer to persist the change
-	// note: this one uses unixfs_block.CopyOrRename internally.
+	// note: the writer uses unixfs_block.CopyOrRename internally.
 	if isMove {
 		err = writer.Rename(ctx, srcPath, tgtPath, ts)
 	} else {
 		err = writer.Copy(ctx, srcPath, tgtPath, ts)
 	}
 	if err != nil {
-		// we didn't change anything yet.
+		// The copy or move has not changed anything yet.
 		return false, err
 	}
 
@@ -613,8 +613,8 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 
 // buildChildPaths builds a list of paths rooted at f.
 // pass empty (nil) to return a copy of the path to f.
-// names must not be empty
-// mtx must not be locked
+// names must not be empty.
+// mtx must not be locked.
 func (f *FSCursorOps) buildChildPaths(ctx context.Context, names []string) ([][]string, error) {
 	// Resolve the directory path and build each child path beneath it.
 	rootPath, err := f.cursor.GetPath(ctx)

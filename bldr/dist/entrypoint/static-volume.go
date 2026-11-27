@@ -18,19 +18,19 @@ import (
 
 // StaticBlockStore manages the static kvfile block store.
 type StaticBlockStore struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// blockStoreID is the block store id to use
+	// blockStoreID is the block store id to use.
 	blockStoreID string
-	// kvkey controls the keys in the kvfile
+	// kvkey controls the keys in the kvfile.
 	kvkey *store_kvkey.KVKey
-	// bucketIDs is the set of bucket ids to handle w/ the block store
+	// bucketIDs is the set of bucket ids to handle w/ the block store.
 	bucketIDs []string
-	// buildReader builds the reader
+	// buildReader builds the reader.
 	buildReader refcount.RefCountResolver[*kvfile.Reader]
-	// close is the close callback
+	// close is the close callback.
 	close func()
 }
 

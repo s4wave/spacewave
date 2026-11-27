@@ -35,15 +35,15 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // WebHost implements browser plugin execution with WebWorker processes.
 type WebHost struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// controllerID is the controller id for this platform instance
+	// controllerID is the controller id for this platform instance.
 	controllerID string
-	// pluginPlatformID is the plugin platform to use
+	// pluginPlatformID is the plugin platform to use.
 	pluginPlatformID string
-	// webRuntimeID is the identifier of the web runtime
+	// webRuntimeID is the identifier of the web runtime.
 	webRuntimeID string
 	// forceDedicatedWorkers forces dedicated Workers instead of SharedWorkers.
 	forceDedicatedWorkers bool
@@ -103,7 +103,7 @@ func (h *WebHost) GetPlatformId() string {
 // ListPlugins lists the set of initialized plugins.
 func (h *WebHost) ListPlugins(ctx context.Context) ([]string, error) {
 	// TODO list stored plugins or temporary storage
-	// the plugin host will call Delete for any unrecognized
+	// Nothing calls ListPlugins or DeletePlugin yet.
 	return nil, nil
 }
 
@@ -254,7 +254,8 @@ func (h *WebHost) ExecutePlugin(
 	//    - Create a SharedWorker on each web document
 	//    - If unable to create a shared worker (created Worker instead):
 	// 2. Worker is supported but SharedWorker is not:
-	//    - Mark that we do not support SharedWorker and at least 1 instance is running.
+	//    - Mark that SharedWorker is unsupported and at least 1 instance is
+	//      running.
 	//    - Skip creating the other worker instances if at least 1 is running
 	//    - When that 1 instance exits, mark not running, then restart all web doc trackers.
 	// If any web documents cannot create shared workers, assume all cannot.
@@ -372,7 +373,7 @@ func (h *WebHost) ExecutePlugin(
 		return nil
 	}
 
-	// Track web document is called for each of the running web documents.
+	// trackWebDocument is called for each of the running web documents.
 	trackWebDocument := func(ctx context.Context, webDocumentID string) error {
 		// Get the web document.
 		doc, err := webRuntime.GetWebDocument(ctx, webDocumentID, true)
@@ -385,8 +386,8 @@ func (h *WebHost) ExecutePlugin(
 		defer cleanupCtxCancel()
 
 		// Remove stale worker instances until the bounded cleanup window
-		// expires, waiting for the document's next status after each removal,
-		// which reports the workers that remain.
+		// expires, waiting after each removal for the document's next
+		// status, which reports the workers that remain.
 		statusCtr := doc.GetWebDocumentStatusCtr()
 		for cleanupCtx.Err() == nil {
 			status := statusCtr.GetValue()
@@ -406,7 +407,8 @@ func (h *WebHost) ExecutePlugin(
 			return context.Canceled
 		}
 
-		// Watch the list of web workers to ensure ours is running.
+		// Watch the list of web workers to ensure the plugin worker is
+		// running.
 		docStatusCtr := doc.GetWebDocumentStatusCtr()
 		var docStatus *web_document.WebDocumentStatus
 		var workerInstance *web_document.WebWorkerStatus
@@ -450,7 +452,8 @@ func (h *WebHost) ExecutePlugin(
 			}
 			unlock()
 
-			// Find our worker instance, including workers in background documents.
+			// Find the plugin worker instance, including workers in
+			// background documents.
 			prevInstance := workerInstance
 			workerInstance = nil
 			for _, worker := range docStatus.GetWebWorkers() {
@@ -462,9 +465,10 @@ func (h *WebHost) ExecutePlugin(
 					break
 				}
 			}
-			// Fail the calls of a worker that failed, or of a dedicated worker
-			// that left this document; a shared worker may still serve other
-			// documents. The next calls reach the worker created in its place.
+			// Fail the calls of a worker that failed, or of a dedicated
+			// worker that left this document. A shared worker may still
+			// serve other documents. The next calls reach the worker
+			// created in its place.
 			gone := workerInstance == nil && prevInstance != nil && !prevInstance.GetShared()
 			if gone || workerInstance.GetFailed() {
 				workerStreams.endStreams(plugin.ErrWorkerGone)
@@ -580,7 +584,8 @@ func (h *WebHost) ExecutePlugin(
 
 		_, removed := webDocumentsKeyed.SyncKeys(docIDs, true)
 
-		// Track removed web documents to make sure we have at least one worker.
+		// Track removed web documents to make sure the plugin has at
+		// least one worker.
 		if len(removed) != 0 {
 			unlock, err := cmtx.Lock(ctx)
 			if err != nil {

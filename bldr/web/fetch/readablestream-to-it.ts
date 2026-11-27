@@ -38,7 +38,7 @@
  * By default a readable stream will have [.cancel](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/cancel) called on it once it has ended or
  * reading has stopped prematurely.
  *
- * To prevent this behaviour, pass `preventCancel: true` as an option:
+ * To prevent cancellation, pass `preventCancel: true` as an option:
  *
  * ```javascript
  * const arr = await all(toIt(stream, { preventCancel: true }))
@@ -52,11 +52,11 @@ export interface BrowserReadableStreamToItOptions {
 }
 
 /**
- * Turns a browser readable stream into an async iterable. Async iteration over
- * returned iterable will lock give stream, preventing any other consumer from
- * acquiring a reader. The lock will be released if iteration loop is broken. To
- * prevent stream cancelling optional `{ preventCancel: true }` could be passed
- * as a second argument.
+ * browserReadableStreamToIt turns a browser readable stream into an async
+ * iterable. Async iteration over the returned iterable will lock the given
+ * stream, preventing any other consumer from acquiring a reader. The lock will
+ * be released if the iteration loop is broken. To prevent stream cancelling,
+ * the optional `{ preventCancel: true }` could be passed as a second argument.
  */
 export default async function* browserReadableStreamToIt<T>(
   stream: ReadableStream<T>,

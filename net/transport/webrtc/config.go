@@ -57,8 +57,9 @@ func (c *Config) SetTransportPeerId(peerID string) {
 }
 
 // GetDebugVals returns the directive arguments as key/value pairs.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The pairs should be something like param1="test", param2="test".
+// The returned values are not necessarily unique and are primarily intended
+// for display.
 func (c *Config) GetDebugVals() config.DebugValues {
 	vals := make(config.DebugValues)
 	if tp := c.GetTransportPeerId(); tp != "" {

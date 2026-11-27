@@ -30,7 +30,7 @@ export interface PromPanelProps {
   live: boolean
   panel: Panel
   range: TimeRange
-  // targets is the latest target set; each new set reruns the query, since a
+  // targets is the latest target set. Each new set reruns the query, since a
   // target changes on each scrape commit.
   targets: PromTargets | null
   // nowMs is the wall clock, for naming targets that stopped scraping.

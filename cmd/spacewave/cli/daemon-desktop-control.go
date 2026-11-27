@@ -181,7 +181,7 @@ func (d *daemonDesktopControl) QuitDesktop(
 	ctx context.Context,
 	_ *desktop_control.QuitDesktopRequest,
 ) (*desktop_control.QuitDesktopResponse, error) {
-	// Bind this Quit to its admitted socket and the currently active shell.
+	// Bind this Quit to its admitted socket and the active shell.
 	requester, ok := ctx.Value(daemonConnCtxKey{}).(*trackedConn)
 	if !ok {
 		return nil, errors.New("desktop Quit requires an admitted daemon connection")
@@ -210,7 +210,8 @@ func (d *daemonDesktopControl) QuitDesktop(
 }
 
 // retainDesktop retains the acknowledged shell before observing its lifetime.
-// Only an owner-confirmed ENDED result releases demand; observation failure does not.
+// Only an owner-confirmed ENDED result releases demand. Observation failure
+// does not release demand.
 func (d *daemonDesktopControl) retainDesktop(
 	ctx context.Context,
 	client bldr_web_plugin.SRPCWebPluginClient,
@@ -271,7 +272,8 @@ func (d *daemonDesktopControl) retainDesktop(
 		previousCancel = d.watchCancel
 		var cancel context.CancelFunc
 
-		// #nosec G118 -- watchCancel owns cancellation until replacement, ENDED, observation failure, or close.
+		// #nosec G118: watchCancel owns cancellation until replacement,
+		// ENDED, observation failure, or close.
 		watchCtx, cancel = context.WithCancel(d.ctx)
 		d.watchCancel = cancel
 
@@ -375,7 +377,8 @@ func (d *daemonDesktopControl) watchDesktop(
 		}
 	}
 
-	// A broken stream cannot prove Electron exited; retain its service demand.
+	// A broken stream cannot prove Electron exited, so retain Electron's
+	// service demand.
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if sequence != d.watchSequence || d.demandRelease == nil {
 			return
@@ -448,7 +451,8 @@ func (d *daemonDesktopControl) reportFailure(err error) {
 }
 
 // WatchDesktopStatus replays current status, then watches daemon-owned observations.
-// Canceling this RPC only unsubscribes the caller; it cannot release desktop demand.
+// Canceling this RPC only unsubscribes the caller and cannot release desktop
+// demand.
 func (d *daemonDesktopControl) WatchDesktopStatus(
 	_ *desktop_control.WatchDesktopStatusRequest,
 	stream desktop_control.SRPCDesktopControlService_WatchDesktopStatusStream,

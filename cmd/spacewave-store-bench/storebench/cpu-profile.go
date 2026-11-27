@@ -11,10 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// cpuPath names a code path by substrings of its function names. A sample
+// cpuPath defines a code path by substrings of its function names. A sample
 // counts toward the path when any frame of its stack holds one of them.
 type cpuPath struct {
-	// name names the path in the report.
+	// name is the path's name in the report.
 	name string
 	// funcs are the function name substrings.
 	funcs []string

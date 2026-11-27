@@ -93,11 +93,12 @@ export interface Application {
    */
   operatorAccountId?: string
   /**
-   * BillingAccountId is the authorized payer; empty means funding is not configured.
+   * BillingAccountId is the authorized payer. An empty BillingAccountId means
+   * funding is not configured.
    */
   billingAccountId?: string
   /**
-   * State controls current access; new registrations start paused.
+   * State controls current access. New registrations start paused.
    */
   state?: ApplicationState
   /**
@@ -135,8 +136,9 @@ export const Application: MessageType<Application> =
   )
 
 /**
- * RegisterApplicationRequest asks a platform administrator to approve a product.
- * Registration creates no paid resources; the operator separately accepts funding.
+ * RegisterApplicationRequest asks a platform administrator to approve a
+ * product. Registration creates no paid resources. The operator separately
+ * accepts funding.
  *
  * @generated from message provider.spacewave.api.RegisterApplicationRequest
  */
@@ -239,7 +241,8 @@ export interface SetApplicationFundingRequest {
    */
   funding?: ApplicationFunding
   /**
-   * ExpectedRevision fences concurrent changes; an identical retry returns its assignment.
+   * ExpectedRevision fences concurrent changes. An identical retry returns its
+   * assignment.
    */
   expectedRevision?: bigint
 }
@@ -374,9 +377,10 @@ export const ListApplicationFundingResponse: MessageType<ListApplicationFundingR
   )
 
 /**
- * ManagedAccountEnrollment binds a new credential to a verified application identity.
- * The credential signs the domain-separated binary message; the application integration
- * separately authenticates the issuer and subject before submitting it to the provider.
+ * ManagedAccountEnrollment binds a new credential to a verified application
+ * identity. The credential signs the domain-separated binary message. The
+ * application integration separately authenticates the issuer and subject
+ * before submitting the message to the provider.
  *
  * @generated from message provider.spacewave.api.ManagedAccountEnrollment
  */
@@ -416,8 +420,9 @@ export const ManagedAccountEnrollment: MessageType<ManagedAccountEnrollment> =
   )
 
 /**
- * EnrollManagedAccountRequest asks the authenticated application operator to enroll a credential.
- * Only the approved integration submits verified external subjects; this is not a browser assertion.
+ * EnrollManagedAccountRequest asks the authenticated application operator to
+ * enroll a credential. Only the approved integration submits verified external
+ * subjects. The request is not a browser assertion.
  *
  * @generated from message provider.spacewave.api.EnrollManagedAccountRequest
  */
@@ -464,7 +469,8 @@ export interface EnrollManagedAccountResponse {
    */
   entityId?: string
   /**
-   * KeypairPeerId confirms the newly authorized credential; existing credentials remain valid.
+   * KeypairPeerId confirms the newly authorized credential. Existing
+   * credentials remain valid.
    */
   keypairPeerId?: string
 }
@@ -492,7 +498,8 @@ export interface SetApplicationStateRequest {
    */
   applicationId?: string
   /**
-   * State selects Active, Paused, or Disabled; Active requires accepted funding.
+   * State selects Active, Paused, or Disabled. Active requires accepted
+   * funding.
    */
   state?: ApplicationState
   /**
@@ -518,7 +525,8 @@ export const SetApplicationStateRequest: MessageType<SetApplicationStateRequest>
  */
 export interface SetApplicationStateResponse {
   /**
-   * Application contains the new configuration; disabled credentials are never restored.
+   * Application contains the new configuration. Disabled credentials are never
+   * restored.
    */
   application?: Application
 }

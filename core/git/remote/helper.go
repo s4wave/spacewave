@@ -23,7 +23,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// localRemoteName names the in-process remote for the local repository.
+// localRemoteName identifies the in-process remote for the local repository.
 const localRemoteName = "local"
 
 // Helper serves the Git remote helper protocol for one Space Repo object.
@@ -39,7 +39,7 @@ type Helper struct {
 	// pushed records whether a push changed the Repo.
 	pushed bool
 	// leases maps a Repo ref to the hash Git expects it to hold, from
-	// "option cas" lines; a zero hash expects the ref to be absent.
+	// "option cas" lines. A zero hash expects the ref to be absent.
 	leases map[string]plumbing.Hash
 }
 
@@ -60,9 +60,9 @@ type pushCommand struct {
 	// force permits a non-fast-forward update.
 	force bool
 	// lease is the hash dst must hold for a forced update, or nil without a
-	// lease; a zero hash requires dst to be absent.
+	// lease. A zero hash requires dst to be absent.
 	lease *plumbing.Hash
-	// src is the local ref or object; empty deletes dst.
+	// src is the local ref or object. An empty src deletes dst.
 	src string
 	// dst is the Repo ref to update.
 	dst string
@@ -155,7 +155,7 @@ func readBatch(r *bufio.Reader, first string) ([]string, error) {
 // list writes every Repo ref and HEAD in the helper list format. A missing
 // Repo lists no refs, so the first push can create it.
 func (h *Helper) list(ctx context.Context, w *bufio.Writer) error {
-	// Resolve the Repo's root; a missing Repo lists no refs.
+	// Resolve the Repo's root. A missing Repo lists no refs.
 	_, _, found, err := h.repoRoot(ctx)
 	if err != nil {
 		return err
@@ -287,11 +287,11 @@ func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer
 
 // push applies cmds to the Repo, creating it when missing, and returns a
 // failure reason per command, empty on success. Git transfer runs outside the
-// World writer; the new Repo root is adopted only if no other writer moved it
+// World writer. The new Repo root is adopted only if no other writer moved it
 // meanwhile, otherwise the push repeats against the current root. A git gc or
 // maintenance run that repacks the local repository during the transfer
-// deletes objects the open repository listed; the push then repeats with the
-// local repository reopened, up to localRepackRetries times.
+// deletes objects the open repository listed, so the push then repeats with
+// the local repository reopened, up to localRepackRetries times.
 func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error) {
 	repacks := 0
 	for {
@@ -387,7 +387,8 @@ func (h *Helper) pushOne(ctx context.Context, local, repo *git.Repository, remot
 	}
 
 	// Resolve the source as Git typed it, such as HEAD, a branch or an
-	// abbreviated hash, to the object it names in the local repository.
+	// abbreviated hash, to the object the source selects in the local
+	// repository.
 	src, err := local.ResolveRevision(plumbing.Revision(cmd.src))
 	if err != nil {
 		return "src refspec " + cmd.src + " does not match any", nil
@@ -413,7 +414,7 @@ func (h *Helper) pushOne(ctx context.Context, local, repo *git.Repository, remot
 		return "", ctx.Err()
 	case errors.Is(err, plumbing.ErrObjectNotFound):
 		// A repack of the local repository removed an object the open
-		// repository listed; push retries with a fresh open.
+		// repository listed, so push retries with a fresh open.
 		return "", errors.Wrap(err, "read the local repository")
 	default:
 		return strings.ReplaceAll(err.Error(), "\n", " "), nil
@@ -431,7 +432,7 @@ func openLocal(gitDir string) (*git.Repository, error) {
 // repository can fail.
 const localRepackRetries = 3
 
-// localRemote returns a remote on repo that names the local repository at
+// localRemote returns a remote on repo that points to the local repository at
 // gitDir.
 func localRemote(repo *git.Repository, gitDir string) *git.Remote {
 	return git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{gitDir}})

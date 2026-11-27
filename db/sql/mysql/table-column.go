@@ -144,7 +144,7 @@ func (t *TableColumn) readsThroughCursor() bool {
 }
 
 // fetchBlobData returns the bytes of the column's blob. An inline blob reads
-// from the decoded row without a cursor; a chunked blob reads through bcs,
+// from the decoded row without a cursor. A chunked blob reads through bcs,
 // located at the column.
 func (t *TableColumn) fetchBlobData(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 	b, id := t.blobValue()
@@ -206,7 +206,7 @@ func (t *TableColumn) FetchSqlColumn(ctx context.Context, bcs *block.Cursor) (an
 	}
 }
 
-// Validate performs cursory validation of the table column.
+// Validate cursorily validates the table column.
 func (t *TableColumn) Validate() error {
 	switch t.GetValue().(type) {
 	case nil:

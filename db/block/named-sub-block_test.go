@@ -80,7 +80,7 @@ func TestCompareNamedSubBlocks(t *testing.T) {
 	copy(setB, setA)
 
 	// modify setB a bit
-	// note: we ignore nil values
+	// note: the comparison ignores nil values
 	setB = setB[2:]
 	setB[20] = &testNamedSubBlock{name: "bar"}
 	setB[0] = &testNamedSubBlock{name: "foo-2"} // Equals() == false

@@ -35,7 +35,7 @@ type layerSurface struct {
 type layerState struct {
 	// layer is the layer the surface shows in.
 	layer uint32
-	// size is the requested size; a zero side spans the area between its
+	// size is the requested size. A zero side spans the area between its
 	// anchors.
 	size image.Point
 	// anchor is the mask of the area's edges the surface holds to.

@@ -13,16 +13,17 @@ import (
 )
 
 // ColdPackPlacementConfig opts one placed block store into reading cold packs
-// in its existing S3 backend's bucket. It is host-local, not account state.
-// A storage move copies blocks from the old mount's cold reader before switching.
-// The manifest configuration stays with its original backend; do not delete the
+// in its existing S3 backend's bucket. It is host-local, not account state. A
+// storage move copies blocks from the old mount's cold reader before switching.
+// The manifest configuration stays with its original backend. Do not delete the
 // cold objects while a mount may still depend on them.
 type ColdPackPlacementConfig struct {
 	// BlockStoreLocalID identifies the provider, account and block store.
 	BlockStoreLocalID string
 	// BackendID pins the configuration to the intended placement's S3 backend.
 	BackendID string
-	// ColdPackOptions names the separate cold prefix and local files and budgets.
+	// ColdPackOptions specifies the separate cold prefix and local files
+	// and budgets.
 	block_store_s3.ColdPackOptions
 }
 
@@ -112,8 +113,8 @@ func (t *bstoreTracker) openColdPacks(
 		return nil, err
 	}
 
-	// Reuse the hot signer after it opens; manifest loading and the mount do
-	// not have to wait for the backend's credential to become available.
+	// Reuse the hot signer after it opens. Manifest loading and the mount
+	// do not have to wait for the backend's credential to become available.
 	if serve {
 		opts.PromotedLog = ""
 	}

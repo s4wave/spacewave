@@ -88,7 +88,8 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 		return uint64(count), nil //nolint:gosec // A tree length is nonnegative.
 	}
 
-	// Replacements already belong to the tree; count only newly inserted keys.
+	// Replacements already belong to the tree, so count only newly
+	// inserted keys.
 	count -= t.deleted.Len()
 	t.added.Ascend(nil, func(item *valType) bool {
 		if _, exists := t.tree.Get(item); !exists {
@@ -100,7 +101,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	// Require a live writer and a nonempty key before staging a value.
 	if len(key) == 0 {
@@ -122,7 +123,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	// Require a live writer and a nonempty key before staging a deletion.
@@ -136,7 +137,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 		return kvtx.ErrDiscarded
 	}
 
-	// Delete only committed keys; a tentative insertion can simply disappear.
+	// Delete only committed keys. A tentative insertion can disappear.
 	item := &valType{key: key}
 	if _, valExists := t.tree.Get(item); valExists {
 		t.deleted.Set(item)

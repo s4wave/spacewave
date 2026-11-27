@@ -135,7 +135,8 @@ func TestUploadJournalRecoversInterruptedStage(t *testing.T) {
 	}
 	defer root.Close()
 
-	// A journal hint cannot make an unmarked host file ours.
+	// A journal hint cannot make an unmarked host file belong to the
+	// publisher.
 	lookalike := uploadStagePrefix + strings.Repeat("A", 26)
 	if err := root.WriteFile("nested/"+lookalike, []byte("keep"), 0o600); err != nil {
 		t.Fatal(err)

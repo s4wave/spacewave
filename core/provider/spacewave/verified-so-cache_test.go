@@ -44,7 +44,7 @@ func TestVerifiedSOStateCacheRoundTrip(t *testing.T) {
 		t.Fatalf("write verified SO state cache: %v", err)
 	}
 
-	// It loads back unchanged.
+	// The cache loads back unchanged.
 	loaded, err := acc.loadVerifiedSOStateCache(context.Background(), "so-1")
 	if err != nil {
 		t.Fatalf("load verified SO state cache: %v", err)
@@ -249,7 +249,7 @@ func TestVerifiedSOStateCacheKeyIsolation(t *testing.T) {
 		t.Fatalf("write so-b: %v", err)
 	}
 
-	// Invalidate the first one.
+	// Invalidate the first record.
 	if err := acc.InvalidateVerifiedChain(context.Background(), "so-a"); err != nil {
 		t.Fatalf("invalidate so-a: %v", err)
 	}

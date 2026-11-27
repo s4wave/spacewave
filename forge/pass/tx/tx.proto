@@ -9,9 +9,9 @@ import "github.com/aperturerobotics/common/typeid/typeid.proto";
 message Tx {
   option (typeid.id) = "forge/pass/tx";
 
-  // TxType is the kind of transaction this is.
+  // TxType is the kind of transaction.
   TxType tx_type = 1;
-  // PassObjectKey is the Pass object ID this is associated with.
+  // PassObjectKey is the Pass object ID the transaction is associated with.
   // The Pass object must already exist.
   string pass_object_key = 2;
 
@@ -49,7 +49,7 @@ enum TxType {
   // If all assigned Executions fail, the Pass also fails.
   TxType_UPDATE_EXEC_STATES = 3;
   // TxType_COMPLETE sets the terminal result after every linked Execution is
-  // terminal. Canceled completion requires CANCELING; other completion
+  // terminal. Canceled completion requires CANCELING. Other completion
   // requires CHECKING.
   TxType_COMPLETE = 4;
   // TxType_CANCEL requests cancellation and custody drain.

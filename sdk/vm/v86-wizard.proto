@@ -7,11 +7,11 @@ option go_package = "github.com/s4wave/spacewave/sdk/vm;s4wave_vm";
 message V86WizardConfig {
   // Source identifies how the wizard resolves the V86Image input.
   enum Source {
-    // Source_SOURCE_UNSPECIFIED leaves the image source unset.
+    // SOURCE_UNSPECIFIED leaves the image source unset.
     SOURCE_UNSPECIFIED = 0;
-    // Source_EXISTING_IN_SPACE uses an existing V86Image from the Space.
+    // EXISTING_IN_SPACE uses an existing V86Image from the Space.
     EXISTING_IN_SPACE = 1;
-    // Source_LINK_FROM_CDN links a V86Image that reads its assets from a CDN
+    // LINK_FROM_CDN links a V86Image that reads its assets from a CDN
     // source object.
     LINK_FROM_CDN = 2;
   }

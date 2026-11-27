@@ -16,7 +16,8 @@ func (b *Blob) DefinedFieldsOnly() bool {
 	return len(b.unknownFields) == 0 && b.GetChunkIndex().definedFieldsOnly()
 }
 
-// definedFieldsOnly reports DefinedFieldsOnly for an index; nil has none.
+// definedFieldsOnly reports DefinedFieldsOnly for an index.
+// A nil index has no fields.
 func (r *ChunkIndex) definedFieldsOnly() bool {
 	// Check the index itself and its chunker args.
 	if r == nil {
@@ -35,7 +36,8 @@ func (r *ChunkIndex) definedFieldsOnly() bool {
 	return true
 }
 
-// definedFieldsOnly reports DefinedFieldsOnly for chunker args; nil has none.
+// definedFieldsOnly reports DefinedFieldsOnly for chunker args.
+// Nil chunker args have no fields.
 func (c *ChunkerArgs) definedFieldsOnly() bool {
 	if c == nil {
 		return true

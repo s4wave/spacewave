@@ -59,7 +59,8 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig[*Config](c, other)
 }
 
-// GetMaxConcurrentStreamsOrDefault returns the max concurrent streams or default.
+// GetMaxConcurrentStreamsOrDefault returns the max concurrent stream count
+// or the default count.
 func (c *Config) GetMaxConcurrentStreamsOrDefault() uint32 {
 	if v := c.GetMaxConcurrentStreams(); v != 0 {
 		return v
@@ -67,7 +68,8 @@ func (c *Config) GetMaxConcurrentStreamsOrDefault() uint32 {
 	return defaultMaxConcurrentStreams
 }
 
-// GetPublishDebounceMsOrDefault returns the publish debounce ms or default.
+// GetPublishDebounceMsOrDefault returns the publish debounce ms or the
+// default debounce ms.
 func (c *Config) GetPublishDebounceMsOrDefault() uint32 {
 	if v := c.GetPublishDebounceMs(); v != 0 {
 		return v
@@ -75,7 +77,7 @@ func (c *Config) GetPublishDebounceMsOrDefault() uint32 {
 	return defaultPublishDebounceMs
 }
 
-// GetMaxBlockSizeOrDefault returns the max block size or default.
+// GetMaxBlockSizeOrDefault returns the max block size or the default size.
 func (c *Config) GetMaxBlockSizeOrDefault() uint64 {
 	if v := c.GetMaxBlockSize(); v != 0 {
 		return v
@@ -83,7 +85,7 @@ func (c *Config) GetMaxBlockSizeOrDefault() uint64 {
 	return defaultMaxBlockSize
 }
 
-// GetChunkSizeOrDefault returns the chunk size or default.
+// GetChunkSizeOrDefault returns the chunk size or the default size.
 func (c *Config) GetChunkSizeOrDefault() uint32 {
 	if v := c.GetChunkSize(); v != 0 {
 		return v

@@ -110,7 +110,7 @@ func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(
 		return tx.ErrNotWrite
 	}
 
-	// Direct graph mutations currently bypass the World changelog.
+	// Direct graph mutations bypass the World changelog.
 	graphHd, err := t.graph(ctx)
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func lookupGraphQuadsBatch(
 		cfilters[i] = cq
 	}
 
-	// The store's collector reads the native transaction; otherwise the
+	// The store's collector reads the native transaction. Otherwise the
 	// handle's cached iterators and names serve the filters.
 	collect := func() ([][]quad.Quad, error) {
 		if collector != nil {
@@ -303,8 +303,9 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 		return err
 	}
 
-	// Remove the relationship; missing is a no-op. The records of the objects
-	// it names keep their revisions.
+	// Remove the relationship. A missing relationship is a no-op. The
+	// records of the objects the relationship references keep their
+	// revisions.
 	graphHd, err := t.graph(ctx)
 	if err != nil {
 		return err
@@ -400,9 +401,9 @@ func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter
 
 // ListGraphEdgeBuckets pages a single predicate's edges through the graph
 // store when it is a world.EdgePager, reading only each page, and otherwise
-// collects and orders every matching edge. This is the one place that picks
-// the path, so a store always serves a query, and the After cursors it
-// issues, through the same one.
+// collects and orders every matching edge. This method is the one place that
+// picks the path, so a store always serves a query, and the After cursors it
+// issues, through the same path.
 func (t *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
 	// Collect through the batch lookup, which holds its own read operation,
 	// unless the store pages the query's predicate.

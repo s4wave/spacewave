@@ -123,7 +123,7 @@ func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string
 }
 
 // Verify authenticates the grant's signature and returns its signer. It does
-// not check that the signer may issue the grant; ValidateSignature does.
+// not check that the signer may issue the grant. ValidateSignature does.
 func (g *SOGrant) Verify(sharedObjectID string) (string, error) {
 	// Identify the signer.
 	if len(g.GetInnerData()) == 0 {

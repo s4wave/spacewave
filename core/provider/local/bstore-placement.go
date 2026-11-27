@@ -78,8 +78,8 @@ func (w *settingsWatch) next(ctx context.Context) (*account_settings.AccountSett
 
 // nextBackend waits for the next settings change and returns the store's
 // placement, the storage backend holding it and the SQL backend its reads fall
-// back to, or nil for all three when the store is on the account's own
-// storage. The fallback is nil when the placement names none.
+// back to, or nil for all three when the store is on the account's own storage.
+// The fallback is nil when the placement selects no fallback.
 func (t *bstoreTracker) nextBackend(
 	ctx context.Context,
 	watch *settingsWatch,
@@ -387,9 +387,9 @@ func (t *bstoreTracker) swapRemote(next *openBackend) {
 	}
 }
 
-// SetSQLPrimary makes the account's block stores placed on an SQL backend,
-// as mounted after the call, write to that backend and read the local bucket,
-// read only, before it. It also stops the account's GC cleanup
+// SetSQLPrimary makes the account's block stores placed on an SQL backend, as
+// mounted after the call, write to that backend and read the local bucket, read
+// only, before the backend. SetSQLPrimary also stops the account's GC cleanup
 // and backend reclaim, since the backend's blocks reference local blocks
 // without graph edges.
 func (a *ProviderAccount) SetSQLPrimary(primary bool) {
@@ -397,11 +397,11 @@ func (a *ProviderAccount) SetSQLPrimary(primary bool) {
 }
 
 // sqlMaxConns is the pool size of the SQL backend stores opened after it is
-// set, zero for the store's default.
+// set, zero for the store's default pool size.
 var sqlMaxConns atomic.Int32
 
 // SetSQLMaxConns bounds the open connections of each SQL backend store opened
-// after the call; zero or less uses the store's default.
+// after the call. Zero or less uses the store's default pool size.
 func SetSQLMaxConns(n int) {
 	sqlMaxConns.Store(int32(max(n, 0))) // #nosec G115 -- pool sizes fit in int32.
 }

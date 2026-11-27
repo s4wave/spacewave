@@ -14,15 +14,15 @@ import (
 
 // Controller wraps a handle constructor to resolve AccessUnixFS.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// fsIds is the list of filesystem identifiers
+	// fsIds is the list of filesystem identifiers.
 	fsIds []string
-	// cb is the callback
+	// cb is the callback.
 	cb AccessUnixFSValue
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
 }
 

@@ -62,7 +62,7 @@ export class SharedObject extends Resource {
     this.service = new SharedObjectResourceServiceClient(resourceRef.client)
   }
 
-  // Mounts the body of a shared object
+  // mountSharedObjectBody mounts the body of a shared object.
   public async mountSharedObjectBody(
     req?: MountSharedObjectBodyRequest,
     abortSignal?: AbortSignal,

@@ -33,7 +33,7 @@ func remoteFlag() cli.Flag {
 
 // connectRemoteFromContext returns local itself without --remote-daemon.
 // Otherwise it opens the remote daemon's Resource service through local's
-// Session transport over UDP; the Session key never leaves the local daemon.
+// Session transport over UDP. The Session key never leaves the local daemon.
 // The returned client owns local.
 func connectRemoteFromContext(ctx context.Context, c *cli.Context, local *sdkClient) (*sdkClient, error) {
 	// Keep the local client when no remote daemon is selected.

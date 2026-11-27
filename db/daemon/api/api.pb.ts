@@ -148,14 +148,14 @@ export interface ApplyBucketConfigRequest {
   /**
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
-   * If empty, will update volumes that already have the config only.
+   * If empty, the server updates only volumes that already have the config.
    * If VolumeIDList is set, it will override this field.
-   * Cannot be specified if VolumeIDList is set.
+   * VolumeIdRe cannot be specified if VolumeIDList is set.
    */
   volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
-   * Cannot be specified if VolumeIDRe is set.
+   * VolumeIdList cannot be specified if VolumeIDRe is set.
    */
   volumeIdList?: string[]
 }
@@ -202,19 +202,19 @@ export interface BucketOpRequest {
   bucketOpArgs?: BucketOpArgs
   /**
    * BlockRef is the block ref to lookup.
-   * Used when op == BLOCK_GET || op == BLOCK_RM
+   * BlockRef is used when op == BLOCK_GET || op == BLOCK_RM.
    */
   blockRef?: BlockRef
   /**
    * PutOpts are overriding put options.
    * Defaults are specified by the bucket.
-   * Used when op == BLOCK_PUT
+   * PutOpts are used when op == BLOCK_PUT.
    */
   putOpts?: PutOpts
   /**
    * Data is the data to put in the block.
-   * May be constrained by the bucket block size limit.
-   * Used when op == BLOCK_PUT
+   * Data may be constrained by the bucket block size limit.
+   * Data is used when op == BLOCK_PUT.
    */
   data?: Uint8Array
 }
@@ -239,17 +239,17 @@ export const BucketOpRequest: MessageType<BucketOpRequest> =
 export interface BucketOpResponse {
   /**
    * Event is the bucket event, if any.
-   * Used when op == BLOCK_PUT
+   * Event is used when op == BLOCK_PUT.
    */
   event?: Event
   /**
    * Data is the returned data, if any.
-   * Used when op == BLOCK_GET
+   * Data is used when op == BLOCK_GET.
    */
   data?: Uint8Array
   /**
    * Found indicates if the data field is filled.
-   * Used when op == BLOCK_GET
+   * Found is used when op == BLOCK_GET.
    */
   found?: boolean
 }
@@ -284,13 +284,13 @@ export interface ObjectStoreOpRequest {
   storeName?: string
   /**
    * Key is the key to get, put, or delete.
-   * Field is the prefix if a list request.
+   * The field is the prefix for a list request.
    */
   key?: string
   /**
    * Data is the data to put.
-   * May be constrained by a size limit.
-   * Used when op == PUT_KEY
+   * Data may be constrained by a size limit.
+   * Data is used when op == PUT_KEY.
    */
   data?: Uint8Array
 }
@@ -315,12 +315,12 @@ export const ObjectStoreOpRequest: MessageType<ObjectStoreOpRequest> =
 export interface ObjectStoreOpResponse {
   /**
    * Data is the returned data, if any.
-   * Used when op == BLOCK_GET
+   * Data is used when op == BLOCK_GET.
    */
   data?: Uint8Array
   /**
    * Found indicates if the data field is filled.
-   * Used when op == BLOCK_GET
+   * Found is used when op == BLOCK_GET.
    */
   found?: boolean
   /**

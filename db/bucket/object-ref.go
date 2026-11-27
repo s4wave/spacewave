@@ -8,7 +8,7 @@ import (
 	transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
-// NewObjectRefSubBlock constructs a new object ref sub-block constructor.
+// NewObjectRefSubBlockCtor constructs a new object ref sub-block constructor.
 func NewObjectRefSubBlockCtor(r **ObjectRef) block.SubBlockCtor {
 	if r == nil {
 		return nil
@@ -36,7 +36,7 @@ func ParseObjectRef(ref string) (*ObjectRef, error) {
 	return UnmarshalObjectRef(dat)
 }
 
-// UnmarshalObjectRef attempts to unmarshal an ObjectRef from bytes.
+// UnmarshalObjectRef tries to unmarshal an ObjectRef from bytes.
 func UnmarshalObjectRef(dat []byte) (*ObjectRef, error) {
 	o := &ObjectRef{}
 	if err := o.UnmarshalVT(dat); err != nil {
@@ -45,7 +45,7 @@ func UnmarshalObjectRef(dat []byte) (*ObjectRef, error) {
 	return o, nil
 }
 
-// UnmarshalObjectRefJSON attempts to unmarshal an ObjectRef from JSON.
+// UnmarshalObjectRefJSON tries to unmarshal an ObjectRef from JSON.
 func UnmarshalObjectRefJSON(data []byte) (*ObjectRef, error) {
 	ref := &ObjectRef{}
 	if err := ref.UnmarshalJSON(data); err != nil {
@@ -75,7 +75,7 @@ func (o *ObjectRef) ParseFromB58(ref string) error {
 	return o.UnmarshalVT(dat)
 }
 
-// Validate performs cursory validation of the object ref.
+// Validate cursorily validates the object ref.
 func (o *ObjectRef) Validate() error {
 	if !o.GetRootRef().GetEmpty() {
 		if err := o.GetRootRef().Validate(false); err != nil {
@@ -212,7 +212,8 @@ func (o *ObjectRef) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Note: the returned references do not include pending references
+// (in a cursor).
 func (o *ObjectRef) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef, 2)
 	// ignore root-ref if bucket id is not empty

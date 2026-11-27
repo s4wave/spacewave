@@ -24,15 +24,15 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller manages running the web plugin browser host.
 // Serves the WebPluginBrowserHost RPC service.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 	// mux is the rpc mux for the WebPluginBrowserHost RPC service.
 	mux srpc.Mux
-	// pluginSrv handles incoming rpcs for the web plugin
+	// pluginSrv handles incoming rpcs for the web plugin.
 	pluginSrv *bldr_plugin.PluginServer
 }
 
@@ -100,7 +100,7 @@ func (c *Controller) HandleDirective(
 		serviceID := d.LookupRpcServiceID()
 		if serviceID == c.GetServiceID() || serviceID == web_view.SRPCAccessWebViewsServiceID {
 			// A worker's own plugin mux serves AccessWebViews under its
-			// worker ID; a refusal here would fail that lookup too.
+			// worker ID. A refusal here would fail that lookup too.
 			res := bifrost_rpc.NewLookupRpcServiceResolver(c)
 			serverID := d.LookupRpcServerID()
 			if serviceID == web_view.SRPCAccessWebViewsServiceID && bldr_plugin.IsWebWorkerServerID(serverID) {

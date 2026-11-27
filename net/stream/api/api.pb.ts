@@ -85,7 +85,7 @@ export const ListenStreamsResponse: MessageType<ListenStreamsResponse> =
  */
 export interface AcceptStreamRequest {
   /**
-   * Config is the configuration for the accept.
+   * Config is the configuration for the accept operation.
    * The first packet will contain this value.
    */
   config?: Config$2
@@ -129,7 +129,7 @@ export const AcceptStreamResponse: MessageType<AcceptStreamResponse> =
  */
 export interface DialStreamRequest {
   /**
-   * Config is the configuration for the dial.
+   * Config is the configuration for the dial operation.
    * The first packet will contain this value.
    */
   config?: Config$3

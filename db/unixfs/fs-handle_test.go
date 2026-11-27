@@ -13,7 +13,7 @@ import (
 )
 
 // fakeOps is a stub ops object whose released state is controlled by the
-// test. Only the members Rename touches are implemented; everything else
+// test. Only the members Rename touches are implemented. Everything else
 // stays nil and is never reached before the cross-location error.
 type fakeOps struct {
 	FSCursorOps

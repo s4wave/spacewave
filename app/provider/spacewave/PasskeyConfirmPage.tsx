@@ -50,8 +50,9 @@ type PasskeyConfirmState =
 
 const HIGHLIGHTS = ['End-to-end encrypted', 'Passkey-protected', 'Local-first']
 
-// PasskeyConfirmPage completes new-account desktop passkey signup after browser registration.
-// Route: /auth/passkey/confirm
+// PasskeyConfirmPage completes new-account desktop passkey signup after browser
+// registration.
+// Route: /auth/passkey/confirm.
 export function PasskeyConfirmPage() {
   const navigate = useNavigate()
   const rootResource = useRootResource()

@@ -16,11 +16,11 @@ type declareFunc func(ctx context.Context, bodies [][]byte) ([]*s4wave_world.Obj
 
 // typeTraits is what a World type's bodies declare about their objects.
 type typeTraits struct {
-	// traits are the type's declared traits; nil when nobody declares any.
+	// traits are the type's declared traits (nil when nobody declares any).
 	traits *s4wave_objecttype_registry.ObjectTypeTraits
 	// internal reports a type of bookkeeping objects browsers hide.
 	internal bool
-	// declare reads bodies' declarations; nil when traits declare nothing.
+	// declare reads bodies' declarations (nil when traits declare nothing).
 	declare declareFunc
 }
 
@@ -30,7 +30,7 @@ func (t typeTraits) declares() bool {
 }
 
 // lookupTypeTraits resolves typeID's traits. A host block type declares them
-// through the World trait interfaces and the host decodes its bodies; a type a
+// through the World trait interfaces and the host decodes its bodies. A type a
 // plugin registered declares them in its registration metadata and the plugin
 // decodes its bodies. A type nobody knows declares nothing, so its objects
 // list by key and it is not internal.
@@ -79,7 +79,7 @@ func newTypeTraits(md *s4wave_objecttype_registry.ObjectTypeMetadata, declare de
 // declare. A plugin that is gone or fails declares nothing, so one failing
 // plugin leaves only its own objects listed by key.
 func declarePluginBodies(ctx context.Context, b bus.Bus, typeID string, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error) {
-	// Find the registered type; a plugin that is gone is not registered.
+	// Find the registered type. A plugin that is gone is not registered.
 	ot, otRef, err := objecttype.ExLookupObjectType(ctx, b, typeID)
 	if err != nil {
 		return nil, err

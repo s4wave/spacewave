@@ -85,7 +85,7 @@ func (q *OpQueue) AddPendingOp(op *PendingOp) int {
 }
 
 // addOpRecurse applies an operation with optional parent values.
-// applies nested operations recursively
+// addOpRecurse applies nested operations recursively.
 func (q *OpQueue) addOpRecurse(
 	op *Op,
 	prevOpType OpType,
@@ -94,7 +94,7 @@ func (q *OpQueue) addOpRecurse(
 	prevInputValueBlob bool,
 	prevOutput string,
 ) error {
-	// determine operation key
+	// determine the operation key
 	opKey, err := q.resolveKeyInput(op)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (q *OpQueue) addOpRecurse(
 		opKey = prevKey
 	}
 
-	// determine input value if set
+	// determine the input value if set
 	inputValue, inputValueBlob, err := q.resolveValueInput(op)
 	if err != nil {
 		return err
@@ -113,13 +113,13 @@ func (q *OpQueue) addOpRecurse(
 		inputValueBlob = prevInputValueBlob
 	}
 
-	// determine output name
+	// determine the output name
 	outputName := op.GetOutput()
 	if len(outputName) == 0 {
 		outputName = prevOutput
 	}
 
-	// queue operation
+	// queue the operation
 	opType := op.GetOpType()
 	if opType == OpType_OpType_NONE {
 		opType = prevOpType

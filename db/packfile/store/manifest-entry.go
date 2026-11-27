@@ -12,7 +12,7 @@ import (
 type manifestEntry struct {
 	// entry describes the accepted pack.
 	entry *packfile.PackfileEntry
-	// filter rejects absent keys; nil requires consulting the index.
+	// filter rejects absent keys. Nil requires consulting the index.
 	filter *bloom.Filter
 }
 

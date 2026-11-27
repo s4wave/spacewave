@@ -45,7 +45,7 @@ func NewFsTruncateOp(
 	}
 }
 
-// Validate performs cursory checks on the op.
+// Validate checks the op cursorily.
 func (o *FsTruncateOp) Validate() error {
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err

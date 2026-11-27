@@ -28,7 +28,7 @@ func TestTraceMinDurFilterPreservesLogs(t *testing.T) {
 }
 
 func TestTraceCommandWritesTasks(t *testing.T) {
-	// Record a trace holding one task with a child.
+	// Record a trace containing one task with a child.
 	var data bytes.Buffer
 	if err := stdtrace.Start(&data); err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestTraceCommandWritesTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The table and the tree both name the tasks.
+	// The table and the tree both list the tasks.
 	var out bytes.Buffer
 	args := &traceArgs{table: true, tree: true, top: 30}
 	if err := args.run(&out, path); err != nil {

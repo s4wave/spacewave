@@ -36,8 +36,8 @@ func TestReadSnapshotAccessWithoutEngineLock(t *testing.T) {
 	}
 	defer eng.Close()
 
-	// Open a read snapshot; it holds the published head for its object
-	// reads and for its state.
+	// Open a read snapshot. The snapshot holds the published head for its
+	// object reads and for its state.
 	head := eng.pub.Load()
 	before := head.refs.Load()
 	rtx, err := eng.NewBlockEngineTransaction(ctx, false)
@@ -66,7 +66,8 @@ func TestReadSnapshotAccessWithoutEngineLock(t *testing.T) {
 	}
 	locked.Unlock()
 
-	// Discard releases the held head, and reads after it fall back to the Engine.
+	// Discard releases the held head, and reads after Discard fall back to
+	// the Engine.
 	rtx.Discard()
 	if got := head.refs.Load(); got != before {
 		t.Fatalf("discarded snapshot left %d head references, want %d", got, before)

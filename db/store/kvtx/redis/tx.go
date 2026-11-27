@@ -13,19 +13,21 @@ import (
 var ErrNotWrite = kvtx.ErrNotWrite
 
 // Tx is a redis transaction.
-// NOTE: undefined behavior when a key contains a star * character
-// NOTE: ScanPrefix with binary keys currently behaves incorrectly
+// NOTE: undefined behavior when a key contains a star * character.
+// NOTE: ScanPrefix with binary keys behaves incorrectly.
 type Tx struct {
 	s          *Store
 	commitOnce atomic.Bool
 	write      bool
 	ops        txOps
 
-	// cache uses a txcache to overlay over the read conn + cache pending writes
+	// cache uses a txcache to overlay over the read conn + cache pending
+	// writes.
 	// this is so that ex: Set(key), Get(key) is consistent
-	// note: we don't call commit on the cache
-	// note: we also issue the write directly to the writeConn immediately
-	// note: not used if !write
+	// note: the transaction does not call commit on the cache.
+	// note: the transaction also issues the write directly to writeConn
+	// immediately.
+	// note: not used if !write.
 	cache *kvtx_txcache.TXCache
 }
 
@@ -50,7 +52,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return (&t.ops).Get(ctx, key)
 }
 
-// Size returns number of keys in the store
+// Size returns number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	if t.write && t.cache != nil {
 		return t.cache.Size(ctx)
@@ -60,7 +62,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 }
 
 // Set sets the value of a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	// Require a nonempty key for the Redis write.
 	if len(key) == 0 {
@@ -116,7 +118,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 }
 
 // Delete deletes a key.
-// This will not be committed until Commit is called.
+// The change will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	// Require a nonempty key for the Redis deletion.
@@ -141,7 +143,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
-// Will return error if called after Discard()
+// Will return error if called after Discard().
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
 	if t.commitOnce.CompareAndSwap(false, true) {
@@ -211,9 +213,10 @@ func (t *Tx) getWriteConn(ctx context.Context) (redis.Conn, error) {
 			return nil, err
 		}
 
-		// if we just re-built the conn:
+		// If the transaction rebuilt the conn:
 		// re-play any transactions so far in the cache.
-		// this recovers from a timeout mid-transaction
+		// Replaying the cached transactions recovers from a timeout
+		// mid-transaction.
 		if t.cache != nil {
 			ops, err := t.cache.BuildOps(ctx, false)
 			if err != nil {

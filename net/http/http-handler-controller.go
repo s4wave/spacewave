@@ -14,13 +14,13 @@ import (
 
 // HTTPHandlerController resolves LookupHTTPHandler with a http.Handler.
 type HTTPHandlerController struct {
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// handleCtr contains the http handler
+	// handleCtr contains the http handler.
 	handleCtr *ccontainer.CContainer[http.Handler]
-	// errCtr contains any error building the handler
+	// errCtr contains any error building the handler.
 	errCtr *ccontainer.CContainer[*error]
-	// rc is the refcount container
+	// rc is the refcount container.
 	rc *refcount.RefCount[http.Handler]
 	// pathPrefixes is the list of URL path prefixes to match.
 	// ignores if empty

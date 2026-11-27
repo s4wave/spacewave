@@ -11,13 +11,13 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
-// admissionGate admits the World manifests a Space names in its loads. A
-// Space lists plugins any member can name, so the Space sends a World root
+// admissionGate admits the World manifests a Space specifies in its loads. A
+// Space lists plugins any member can specify, so the Space sends a World root
 // only while an AdmitPluginRoot for the session peer has a value: the release,
 // the development build or the device's person admitted it.
 //
 // The host scheduler also refuses an unadmitted root, and that is the
-// enforcement; this gate decides what to request. It falls back to the
+// enforcement. This gate decides what to request. The gate falls back to the
 // release's plain load when no World root is admitted, withdraws a pinned
 // plugin, and releases a load whose root lost admission, none of which a host
 // given only unadmitted manifests can do: it can only wait.
@@ -25,9 +25,8 @@ import (
 // A root with no value is refused: no resolver, no record and no peer all
 // refuse. A root is pending until its directive first goes idle or admits it,
 // so a pass neither falls back, withdraws nor releases on a watch that has not
-// answered yet. The watch
-// loop goroutine owns the gate; a watch's callback only flips its flags and
-// wakes the loop.
+// answered yet. The watch loop goroutine owns the gate. A watch's callback only
+// flips its flags and wakes the loop.
 type admissionGate struct {
 	// b is the bus the admission directives are added on.
 	b bus.Bus
@@ -58,10 +57,10 @@ func newAdmissionGate(b bus.Bus, peerID string, wake func()) *admissionGate {
 	return &admissionGate{b: b, peerID: peerID, wake: wake, watches: make(map[sourceRoot]*admissionWatch)}
 }
 
-// admitted returns, keeping their order, the refs whose roots are admitted
-// for pluginID and the refs not refused: those admitted and those whose
-// admission has not answered yet. A root is pending when open holds more refs
-// than admitted. It starts watching each root not yet watched.
+// admitted returns, keeping their order, the refs whose roots are admitted for
+// pluginID and the refs not refused: those admitted and those whose admission
+// has not answered yet. A root is pending when open holds more refs than
+// admitted. The function starts watching each root not yet watched.
 func (g *admissionGate) admitted(ctx context.Context, pluginID string, refs []*manifest.ManifestRef) (admitted, open []*manifest.ManifestRef) {
 	for _, ref := range refs {
 		w := g.watch(ctx, sourceRoot{pluginID: pluginID, root: manifestRoot(ref)})

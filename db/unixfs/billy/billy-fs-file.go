@@ -17,15 +17,15 @@ import (
 
 // BillyFSFile implements the Billy filesystem File interface with a FSHandle.
 type BillyFSFile struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// name is the filename as passed to open
+	// name is the filename as passed to open.
 	name string
-	// h is the filesystem handle
+	// h is the filesystem handle.
 	h *unixfs.FSHandle
-	// flag contains file open flags
+	// flag contains file open flags.
 	flag int
-	// t is a constant write timestamp
+	// t is a constant write timestamp.
 	t atomic.Pointer[time.Time]
 	// idx is the current file index
 	// note: concurrent read() and write() calls have undefined behavior.
@@ -101,8 +101,8 @@ func CopyToBillyFSFile(
 
 // SyncToBillyFSFile synchronizes data from a FSHandle to a BillyFSFile.
 // Makes the two files identical by content and reports whether it changed
-// the destination. inBuffer and outBuffer must be different buffers; either
-// is allocated when too small.
+// the destination. inBuffer and outBuffer must be different buffers.
+// Either buffer is allocated when too small.
 func SyncToBillyFSFile(
 	ctx context.Context,
 	destFile billy.File,
@@ -119,7 +119,8 @@ func SyncToBillyFSFile(
 		outBuffer = outBuffer[:len(inBuffer)]
 	}
 
-	// Resize only when needed; truncating unchanged content emits file watches.
+	// Resize only when needed because truncating unchanged content emits
+	// file watches.
 	srcSize, err := srcHandle.GetSize(ctx)
 	if err != nil {
 		return false, err
@@ -155,7 +156,7 @@ func SyncToBillyFSFile(
 		outBuffer = outBuffer[:nreadIn]
 		nreadOut, err := destFile.ReadAt(outBuffer, offset)
 		if err != nil {
-			// we don't expect EOF due to the Truncate above.
+			// ReadAt should not return EOF after Truncate above.
 			return false, err
 		}
 		if nreadOut == 0 {
@@ -168,7 +169,7 @@ func SyncToBillyFSFile(
 			compareSize = out
 		}
 
-		// if they are equal, continue without writing.
+		// If the file ranges are equal, continue without writing.
 		if bytes.Equal(inBuffer[:compareSize], outBuffer[:compareSize]) {
 			offset += compareSize
 			continue
@@ -297,13 +298,13 @@ func (f *BillyFSFile) Read(p []byte) (n int, err error) {
 	return int(rn), err
 }
 
-// ReadAt attempts to read data at a location in the file.
+// ReadAt tries to read data at a location in the file.
 func (f *BillyFSFile) ReadAt(p []byte, off int64) (n int, err error) {
 	rn, err := f.h.ReadAt(f.ctx, off, p)
 	return int(rn), err
 }
 
-// Seek attempts to move the file handle to a location in a file.
+// Seek tries to move the file handle to a location in a file.
 func (f *BillyFSFile) Seek(offset int64, whence int) (int64, error) {
 	var out int64
 	switch whence {
@@ -326,7 +327,7 @@ func (f *BillyFSFile) Seek(offset int64, whence int) (int64, error) {
 	return out, nil
 }
 
-// Truncate the file.
+// Truncate truncates the file.
 func (f *BillyFSFile) Truncate(size int64) error {
 	if f.GetReadOnly() {
 		return billy.ErrReadOnly
@@ -352,13 +353,13 @@ func (f *BillyFSFile) Stat() (fs.FileInfo, error) {
 // Lock locks the file like e.g. flock. It protects against access from
 // other processes.
 func (f *BillyFSFile) Lock() error {
-	// XXX: we do not yet implement flock.
+	// XXX: flock is not implemented.
 	return nil
 }
 
 // Unlock unlocks the file.
 func (f *BillyFSFile) Unlock() error {
-	// XXX: we do not yet implement flock.
+	// XXX: flock is not implemented.
 	return nil
 }
 

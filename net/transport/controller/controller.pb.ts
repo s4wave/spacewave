@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface StreamEstablish {
   /**
-   * ProtocolID is the protocol identifier string for the stream.
+   * ProtocolId is the protocol identifier string for the stream.
    */
   protocolId?: string
   /**

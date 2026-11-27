@@ -39,7 +39,7 @@ export const SO_CONFIG_CHANGE_SIGNATURE_CONTEXT = 'sobject config change'
 
 // SOConfigChangeErrorKind classifies a rejected control record.
 // invalid: the record is malformed or bound to another object.
-// stale: the record does not extend the held head; a fresher base may succeed.
+// stale: the record does not extend the held head. A fresher base may succeed.
 // unauthorized: the held configuration does not authorize the record.
 export type SOConfigChangeErrorKind = 'invalid' | 'stale' | 'unauthorized'
 
@@ -103,7 +103,7 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
     }
   }
 
-  // An appointed sequencer names a key and a real start.
+  // An appointed sequencer specifies a key and a real start.
   try {
     validateSOSequencer(cfg.sequencer)
   } catch (err) {
@@ -117,7 +117,8 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
     throw new SOConfigChangeError('invalid', (err as Error).message)
   }
 
-  // A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
+  // A signed history head can retain the final departure, but an empty
+  // bootstrap cannot grant authority.
   const participants = cfg.participants ?? []
   if (participants.length === 0) {
     if ((cfg.configChainHash?.length ?? 0) !== 32) {
@@ -166,8 +167,9 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
 }
 
 // validateSOAuthorHeads checks that each author appears once, in peer ID
-// order, at a real operation, matching Go validateAuthorHeads. field names the
-// list in errors. Base58 peer IDs are ASCII, so string order is byte order.
+// order, at a real operation, matching Go validateAuthorHeads. field
+// identifies the list in errors. Base58 peer IDs are ASCII, so string order
+// is byte order.
 export function validateSOAuthorHeads(
   field: string,
   authors: readonly SOOperationPosition[],
@@ -218,12 +220,12 @@ export function validateSOSkippedOperations(
   }
 }
 
-// skipHash returns the op hash a skip names.
+// skipHash returns the op hash a skip holds.
 function skipHash(skip: SOSkippedOperation): Uint8Array {
   return skip.position?.opHash ?? new Uint8Array()
 }
 
-// validateSOPosition checks that pos names a real operation, matching Go
+// validateSOPosition checks that pos identifies a real operation, matching Go
 // validatePosition. It throws on violation.
 export function validateSOPosition(pos: SOOperationPosition | undefined): void {
   if (!extractPublicKeyFromPeerID(pos?.peerId ?? '')) {
@@ -235,8 +237,8 @@ export function validateSOPosition(pos: SOOperationPosition | undefined): void {
 }
 
 // validateSOSequenceHead checks that head is unset, height 0 with no hash, or
-// a real position, matching Go validateSequenceHead. field names the head in
-// errors.
+// a real position, matching Go validateSequenceHead. field identifies the
+// head in errors.
 export function validateSOSequenceHead(
   field: string,
   head: SOSequenceHead | undefined,
@@ -263,7 +265,7 @@ export function validateSOSequencer(sequencer: SOSequencer | undefined): void {
 
 // verifySOConfigChain verifies a control chain from genesis and returns the
 // resulting configuration with its chain head. Genesis is signed by an owner
-// of its own configuration, which starts under owner control; each later
+// of its own configuration, which starts under owner control. Each later
 // record is authorized by its parent.
 // It throws SOConfigChangeError when the chain is invalid.
 export async function verifySOConfigChain(
@@ -321,8 +323,8 @@ export async function verifySOConfigChain(
 // configuration and returns a fresh configuration carrying the new head.
 // Checks run in this order: object binding, then the link to the held head
 // (stale), then authorization, then a MERGE record's branch, then the shape of
-// the result. A SELF_ENROLL_PEER record checks only the configuration shape;
-// the caller must authenticate the peer-to-entity binding.
+// the result. A SELF_ENROLL_PEER record checks only the configuration shape.
+// The caller must authenticate the peer-to-entity binding.
 // It throws SOConfigChangeError when the record is rejected.
 export async function verifySOConfigChange(
   sharedObjectID: string,
@@ -520,7 +522,7 @@ function validateSelfEnrollPeerChange(
     throw deny('self-enroll participant requires entity_id')
   }
 
-  // A device joins without a vote; the group grants votes.
+  // A device joins without a vote. The group grants votes.
   if ((participant.votingWeight ?? 0) !== 0) {
     throw deny('self-enroll may not grant a vote')
   }
@@ -733,7 +735,7 @@ function applyConfigDelta(
 
 // mergeByKey applies the change from parent to next onto target, matching
 // items by key: an item next added or changed replaces or joins target's, and
-// an item next removed leaves target. Target keeps its order; new items follow.
+// an item next removed leaves target. Target keeps its order. New items follow.
 function mergeByKey<T>(
   target: readonly T[],
   parent: readonly T[],

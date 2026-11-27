@@ -108,7 +108,7 @@ const vendorMatchesByRoot = new Map<string, boolean>()
 
 // vendorMatchesGoMod reports whether root's vendor directory holds the module
 // versions its go.mod selects, as the go command requires before it reads
-// vendor. A module both files list must agree; a root without a go.mod or
+// vendor. A module both files list must agree. A root without a go.mod or
 // without vendor/modules.txt has nothing to disagree with. The answer is
 // cached for the life of the process, like the go.mod pins.
 export function vendorMatchesGoMod(root: string): boolean {

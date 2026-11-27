@@ -27,10 +27,10 @@ import (
 
 // TestEngineAuthorityRunThrough walks the World engine's commit through its
 // Authority on a Volume that frees at once: a commit is one Volume
-// transaction that moves the World root; a writer that loses a race or its
-// lease is superseded and rebases; another engine follows the head; an
+// transaction that moves the World root. A writer that loses a race or its
+// lease is superseded and rebases. Another engine follows the head. An
 // authority that answers later holds the candidate under a pending root
-// across a restart; collection keeps what the head reaches and frees what it
+// across a restart. Collection keeps what the head reaches and frees what it
 // does not.
 func TestEngineAuthorityRunThrough(t *testing.T) {
 	f := newVolumeFixture(t)
@@ -183,8 +183,9 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 			t.Fatal("the follower's head differs from the writer's")
 		}
 
-		// A settings change moves the root and adds no change log entry, so
-		// the head keeps its seqno; the follower installs it anyway.
+		// A settings change moves the root and adds no change log
+		// entry, so the head keeps its seqno. The follower installs the
+		// head anyway.
 		if err := f.engine.SetChangelogDisabled(ctx, true); err != nil {
 			t.Fatal(err)
 		}
@@ -214,7 +215,8 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		engine := f.openEngine(t, pending)
 		before := engine.GetRootRef()
 
-		// Commit; the candidate is admitted and waits under its pending root.
+		// Commit. The candidate is admitted and waits under its pending
+		// root.
 		w := fixtureWriter(t, engine)
 		payload := fixtureObject(t, w, "pending", "pending-1")
 		done := make(chan error, 1)
@@ -677,7 +679,8 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 	})
 
 	// A reader that holds a replaced head past the pin delay has it pinned,
-	// and reads it after a collection; one that lets go first leaves no pin.
+	// and reads it after a collection. One that lets go first leaves no
+	// pin.
 	t.Run("reader pin", func(t *testing.T) {
 		// pinned reports whether the Volume holds a pin of root.
 		delay := 20 * time.Millisecond
@@ -868,7 +871,7 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 
 	// A commit too large for the write buffer drains early under its stage,
 	// and keeps every drained block across collections that run past the
-	// grace period until its swap; an abandoned one frees them.
+	// grace period until its swap. An abandoned one frees them.
 	t.Run("long commit", func(t *testing.T) {
 		// write fills a writer past the buffer's 4096 entries.
 		write := func(prefix string) (*EngineTx, []*bucket.ObjectRef) {

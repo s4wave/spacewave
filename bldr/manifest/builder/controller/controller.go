@@ -527,7 +527,7 @@ func (c *Controller) HandleDirective(
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// Error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

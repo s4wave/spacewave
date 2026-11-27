@@ -32,7 +32,7 @@ export interface PromTargetViewProps {
   info: TargetInfo | undefined
   state: TargetState
   action: TargetAction
-  // deviceName names the Device of a peer ID.
+  // deviceName returns the name of the Device for a peer ID.
   deviceName: (peerId: string) => string
   nowMs: number
   saving: boolean

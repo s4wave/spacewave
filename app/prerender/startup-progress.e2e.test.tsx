@@ -151,7 +151,7 @@ describe('startup surfaces', () => {
   })
 })
 
-// App readiness can advance while a transfer is still active; percentages
+// App readiness can advance while a transfer is still active. Percentages
 // describe the transfer's byte counters, independently of that phase.
 it('reports only measured current-download bytes', async () => {
   globalThis.__swBootStatus = {

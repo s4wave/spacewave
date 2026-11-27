@@ -9,10 +9,11 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// Buffer only transactions advertising page-coalesced writes. In particular,
-// native Bolt and remote scalar transactions keep their existing direct path.
-// These bounds cover retained keys, values and a conservative per-entry charge;
-// they are not a whole-process memory limit or a delayed durability policy.
+// writeBatchMaxEntries limits buffered entries. Buffer only transactions
+// advertising page-coalesced writes. Native Bolt and remote scalar transactions
+// keep their existing direct path. These bounds cover retained keys, values
+// and a conservative per-entry charge. The bounds are not a whole-process
+// memory limit or a delayed durability policy.
 const (
 	writeBatchMaxEntries = 128
 	writeBatchMaxBytes   = 256 << 10
@@ -140,8 +141,8 @@ func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) erro
 		}
 	}
 
-	// An oversized value is borrowed only for this synchronous operation;
-	// it never expands the bounded retained batch.
+	// An oversized value is borrowed only for this synchronous operation.
+	// The value never expands the bounded retained batch.
 	if charge > writeBatchMaxBytes {
 		t.err = t.batch.ApplyWriteBatch(ctx, []kvtx.WriteBatchEntry{entry})
 		return t.err
@@ -183,7 +184,7 @@ func (t *bufferedTx) flush(ctx context.Context) error {
 	}
 
 	// Stable ordering makes diagnostics and alternative implementations
-	// deterministic; the tree's API independently handles arbitrary order.
+	// deterministic. The tree's API independently handles arbitrary order.
 	slices.SortFunc(entries, func(a, b kvtx.WriteBatchEntry) int { return bytes.Compare(a.Key, b.Key) })
 
 	// Apply the backend batch and release the pending overlay.
@@ -206,7 +207,7 @@ func (t *bufferedTx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Ite
 		return &batchErrorIterator{err: err}
 	}
 	// Scan is lazy and Reset starts a new snapshot. A caller may mutate after
-	// Scan but before Next, or before Reset; fence those writes as well.
+	// Scan but before Next, or before Reset, so fence those writes as well.
 	return t.scan(ctx, t.flush, opts...)
 }
 

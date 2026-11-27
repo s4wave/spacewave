@@ -19,9 +19,9 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller looks up blocks via an RPC service.
 type Controller struct {
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// blockStoreCtrl is an internal block store controller
+	// blockStoreCtrl is an internal block store controller.
 	blockStoreCtrl *block_store_rpc.Controller
 }
 
@@ -56,7 +56,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns resolver(s). If not, returns nil.
+// If the handler can resolve the directive, the handler returns resolver(s).
+// Otherwise, the handler returns nil.
 // It is safe to add a reference to the directive during this call.
 // The context passed is canceled when the directive instance expires.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {

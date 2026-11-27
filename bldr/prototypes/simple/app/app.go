@@ -14,7 +14,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "app"
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -24,7 +24,7 @@ var controllerDescrip = "app controller"
 type App struct {
 	*bus.BusController[*Config]
 
-	// mux is the rpc mux the web view will call
+	// mux is the rpc mux the web view will call.
 	mux srpc.Mux
 }
 

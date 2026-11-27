@@ -98,7 +98,7 @@ export interface PutResponse {
   exists?: boolean
   /**
    * Err contains any error putting the ref.
-   * If empty, the ref must not be nil, op succeeded.
+   * If empty, the ref must not be nil and the operation succeeded.
    */
   err?: string
 }
@@ -134,7 +134,7 @@ export interface GetResponse {
   err?: string
   /**
    * Refs are the block's outgoing refs when the request asked for refs and
-   * refs_known is set. Empty with refs_known set means a leaf.
+   * refs_known is set. Empty Refs with refs_known set means a leaf.
    */
   refs?: BlockRef[]
   /**

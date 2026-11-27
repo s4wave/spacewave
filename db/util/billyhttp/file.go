@@ -10,11 +10,11 @@ import (
 
 // File implements the HTTP file.
 type File struct {
-	// File is the billy file
+	// File is the billy file.
 	billy.File
-	// path is the path to File
+	// path is the path to File.
 	path string
-	// fs is the filesystem
+	// fs is the filesystem.
 	fs BillyFs
 }
 

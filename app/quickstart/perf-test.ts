@@ -192,8 +192,8 @@ export async function runPostLoadSOPerfTest(
   }
 }
 
-// runSOPerfTest creates a local session, space, and times SO operations.
-// Designed to be called from page.evaluate via __s4wave_debug.
+// runSOPerfTest creates a local session and a space, and times SO operations.
+// The function is designed to be called from page.evaluate via __s4wave_debug.
 export async function runSOPerfTest(
   root: Root,
   opCount: number,
@@ -208,12 +208,12 @@ export async function runSOPerfTest(
   }
 
   try {
-    // Create local session.
+    // Create a local session.
     const t0 = performance.now()
     const { session } = await createLocalSession(root, signal, cleanup)
     const createSessionMs = performance.now() - t0
 
-    // Create space.
+    // Create a space.
     const t1 = performance.now()
     const spaceResp = await session.createSpace(
       { spaceName: 'perf-test' },
@@ -221,7 +221,7 @@ export async function runSOPerfTest(
     )
     const createSpaceMs = performance.now() - t1
 
-    // Mount space.
+    // Mount the space.
     const t2 = performance.now()
     const space = await mountSpace({
       session,
@@ -231,7 +231,7 @@ export async function runSOPerfTest(
     })
     const mountSpaceMs = performance.now() - t2
 
-    // Access world state.
+    // Access the world state.
     const t3 = performance.now()
     const spaceWorld = await space.accessWorldState(true, signal)
     const accessWorldMs = performance.now() - t3

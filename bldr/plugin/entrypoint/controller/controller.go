@@ -25,17 +25,17 @@ var Version = controller.MustParseVersion("0.0.1")
 // LoadPlugin, LookupPluginScheduler, AccessUnixFS and the plugin bus's
 // "plugin-host/" and "plugin/<id>/" service lookups through the plugin host.
 type Controller struct {
-	// b is the bus
+	// b is the bus.
 	b bus.Bus
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// meta is the plugin meta
+	// meta is the plugin meta.
 	meta *bldr_plugin.PluginMeta
-	// srv is the service client
+	// srv is the service client.
 	srv bldr_plugin.SRPCPluginHostClient
-	// hostClient is a client for the plugin host
+	// hostClient is a client for the plugin host.
 	hostClient srpc.Client
-	// loopbackClient is a client for the local plugin
+	// loopbackClient is a client for the local plugin.
 	loopbackClient srpc.Client
 }
 
@@ -102,9 +102,10 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // Invariant: this plugin never relays a call that arrived from another plugin
 // onto its host client or onto another plugin. Such a call arrives under
 // "plugin/<caller>" or "plugin/<caller>/<id>" (PluginServer, which the host
-// names from the caller's identity), and none of those is listed. The root
-// mux, which only the host reaches, names the rest "plugin-host/<id>". The
-// listed IDs are chosen by this plugin's own code or by its host:
+// derives from the caller's identity), and none of those is listed. The root
+// mux, which only the host reaches, assigns the rest IDs of the form
+// "plugin-host/<id>". The listed IDs are chosen by this plugin's own code or by
+// its host:
 //
 //   - "": this plugin's code looking a service up with no server.
 //   - "plugin-host/default": the root mux fallback, which serves only calls
@@ -134,7 +135,7 @@ func (c *Controller) BuildRemotePluginClient(pluginID, instanceKey string, waitA
 // Released is a function to call if the client becomes invalid.
 // Returns nil, nil, err if any error.
 // Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
+// Otherwise returns client, releaseFunc, nil.
 func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) (srpc.Client, func(), error) {
 	return c.hostClient, nil, nil
 }
@@ -146,7 +147,7 @@ func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) 
 // Released is a function to call if the client becomes invalid.
 // Returns nil, nil, err if any error.
 // Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
+// Otherwise returns client, releaseFunc, nil.
 func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
 	// Serve the controller's own plugin ID from the loopback client.
 	if pluginID == c.meta.GetPluginId() {

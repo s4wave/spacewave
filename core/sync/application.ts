@@ -222,7 +222,8 @@ export class Application<S extends Schema, P extends Principal> {
     }
   }
 
-  // Opening a capability grants no operation; every call checks its own policy.
+  // openCollection grants no operation by opening a capability.
+  // Every call checks its own policy.
   async openCollection(principal: P, collection: string): Promise<void> {
     try {
       await this.authorize(principal, collection, 'read')
@@ -305,7 +306,8 @@ export class Application<S extends Schema, P extends Principal> {
     return this.closing
   }
 
-  // Identical queries share a bounded producer; authority remains per delivery.
+  // watch shares a bounded producer for identical queries.
+  // Authority remains per delivery.
   async *watch(
     principal: P,
     collection: string,
@@ -498,7 +500,7 @@ export class Application<S extends Schema, P extends Principal> {
       unit = this.transaction(tx, write, signal, admin)
       const result = await unit.execute(principal, operation, requestId)
 
-      // Commit fresh work exactly once; duplicate acceptance still needs its fence.
+      // Commit fresh work exactly once. Duplicate acceptance still needs its fence.
       this.checkPrincipal(principal)
       signal.throwIfAborted()
       if (write && !result.duplicate) {

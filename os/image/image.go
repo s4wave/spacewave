@@ -1,13 +1,13 @@
 // Package os_image authorizes a Spacewave OS image for boot.
 //
-// An image is a UnixFS tree stored under its Space's block transform. The
-// Space owner signs a bucket.ObjectRef naming the tree's root block and that
-// transform: the root hashes the encrypted bytes, and the transform reads
-// them, so the signature fixes both the content and the key that opens it. A
-// Device copies the encrypted blocks unchanged into its image store and reads
-// them through the signed transform, so the authorization it boots from also
-// carries the key. Never print or log a signed image reference whole; print
-// its root block alone.
+// An image is a UnixFS tree stored under its Space's block transform. The Space
+// owner signs a bucket.ObjectRef referencing the tree's root block and that
+// transform: the root hashes the encrypted bytes, and the transform reads them,
+// so the signature fixes both the content and the key that opens it. A Device
+// copies the encrypted blocks unchanged into its image store and reads them
+// through the signed transform, so the authorization it boots from also carries
+// the key. Never print or log a signed image reference whole. Print its root
+// block alone.
 package os_image
 
 import (
@@ -30,7 +30,7 @@ import (
 // Space owner's key makes.
 const ImageContext = "spacewave/os 2026-11-24 image authorization"
 
-// SignImage authorizes booting the image ref names: its exact root, read
+// SignImage authorizes booting the image ref identifies: its exact root, read
 // through its transform.
 func SignImage(key crypto.PrivKey, ref *bucket.ObjectRef) (*peer.SignedMsg, error) {
 	data, err := MarshalImage(ref)
@@ -41,7 +41,7 @@ func SignImage(key crypto.PrivKey, ref *bucket.ObjectRef) (*peer.SignedMsg, erro
 }
 
 // MarshalImage returns the bytes an image authorization signs in ImageContext,
-// after checking that ref names an image, so a signer that holds its key
+// after checking that ref identifies an image, so a signer that holds its key
 // elsewhere signs exactly what SignImage would.
 func MarshalImage(ref *bucket.ObjectRef) ([]byte, error) {
 	if err := ValidateImage(ref); err != nil {
@@ -50,10 +50,10 @@ func MarshalImage(ref *bucket.ObjectRef) ([]byte, error) {
 	return ref.MarshalVT()
 }
 
-// ValidateImage checks that ref names an image: a complete root block and an
-// inline transform, with no bucket change and no transform reference, since
-// the image store holds one bucket and the boot reads no other block to find
-// the key.
+// ValidateImage checks that ref identifies an image: a complete root block
+// and an inline transform, with no bucket change and no transform reference,
+// since the image store holds one bucket and the boot reads no other block
+// to find the key.
 func ValidateImage(ref *bucket.ObjectRef) error {
 	// Require a complete root.
 	root := ref.GetRootRef()

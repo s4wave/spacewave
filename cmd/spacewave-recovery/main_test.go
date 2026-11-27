@@ -278,7 +278,7 @@ func TestRecoveryResume(t *testing.T) {
 			if !errors.Is(err, injected) || result.GetPhase() != recovery.Phase_PHASE_PAUSED {
 				t.Fatalf("fault published nonprovisional result: %v %v", result, err)
 			}
-			// A scratch failure inside a batch rolls the whole batch back; the
+			// A scratch failure inside a batch rolls the whole batch back. The
 			// other faults strike after committed inventory.
 			if locations := result.GetCounts().GetPhysicalLocations(); (fault == "scratch-full") != (locations < 5) || locations != committed {
 				t.Fatalf("%s fault kept %d locations, last commit had %d", fault, locations, committed)

@@ -48,7 +48,7 @@ func TestFlowgraphNodeTargetAndBound(t *testing.T) {
 }
 
 // TestFlowgraphNodeObjectBinding binds a node to a Space object from its flag
-// and names each binding state and declared port for the show output.
+// and describes each binding state and declared port for the show output.
 func TestFlowgraphNodeObjectBinding(t *testing.T) {
 	// Bind a node by flag, and leave a node without the flag unbound.
 	args := &flowgraphNodeSetArgs{typeID: "object", object: "chat/room"}
@@ -63,7 +63,7 @@ func TestFlowgraphNodeObjectBinding(t *testing.T) {
 		t.Fatalf("node without --object = %v, %v", node, err)
 	}
 
-	// Name each state and the declared ports.
+	// Describe each state and the declared ports.
 	bound := &flowgraph.FlowgraphBinding{
 		ObjectKey: "chat/room",
 		State:     flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND,
@@ -111,7 +111,8 @@ func TestFlowgraphNodeKeyed(t *testing.T) {
 
 // TestFlowgraphNodeTemplate selects a template placement without replacing the Step.
 func TestFlowgraphNodeTemplate(t *testing.T) {
-	// Resolve the template and name it in the same format as graph readback.
+	// Resolve the template and describe it in the same format as graph
+	// readback.
 	args := &flowgraphNodeSetArgs{template: "template/fixer"}
 	placement, err := args.buildPlacement()
 	if err != nil {

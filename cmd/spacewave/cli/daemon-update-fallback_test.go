@@ -34,7 +34,7 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
-	// The selected fixture reports initialization failure; valid fallback uses
+	// The selected fixture reports initialization failure. Valid fallback uses
 	// the deployed startup budget instead of sharing a forced failure timer.
 	t.Setenv(daemon.StartupTimeoutEnvVar, "")
 	ctx, cancel := newDaemonUpdateContext(t)

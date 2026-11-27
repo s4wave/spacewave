@@ -32,7 +32,8 @@ import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 
 // BlogViewer is the viewer for Notes Blog objects.
-// Supports reading mode (blog reading view) and editing mode (NoteList + NoteContentView).
+// BlogViewer supports reading mode (blog reading view) and editing mode
+// (NoteList + NoteContentView).
 function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   // The Blog object and its namespace for this viewer's persisted state.
   const objectKey = getObjectKey(objectInfo)
@@ -58,17 +59,17 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   const sourceObjectKey = parsed?.objectKey ?? ''
   const sourceSubpath = parsed?.path ?? ''
 
-  // Access UnixFS root for reading blog posts.
+  // Access the UnixFS root for reading blog posts.
   const rootHandle = useUnixFSRootHandle(worldState, sourceObjectKey)
   const pathHandle = useUnixFSHandle(rootHandle, sourceSubpath)
   const entriesResource = useUnixFSHandleEntries(pathHandle, {
     enabled: !!sourceObjectKey,
   })
 
-  // Bumped on each save so the post list rereads.
+  // Bump contentVersion on each save so the post list rereads.
   const [contentVersion, setContentVersion] = useState(0)
 
-  // Parse all md files into blog post data for reading view.
+  // Parse all md files into blog post data for the reading view.
   const blogPostsResource = useBlogPosts(
     pathHandle,
     entriesResource,
@@ -79,7 +80,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     [blogPostsResource.value],
   )
 
-  // Load author registry from the source's authors.yaml file.
+  // Load the author registry from the source's authors.yaml file.
   const authorRegistryPath = state.value?.authorRegistryPath ?? ''
   const authorRegistryResource = useAuthorRegistry(
     pathHandle,
@@ -103,7 +104,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   )
   const [editing, setEditing] = useStateAtom<boolean>(ns, 'editing', false)
 
-  // Find selected post data for reading view.
+  // Find the selected post data for the reading view.
   const selectedPost = useMemo(
     () => blogPosts.find((p) => p.name === selectedPostName) ?? null,
     [blogPosts, selectedPostName],
@@ -163,13 +164,13 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     [draftNames],
   )
 
-  // Create a new blog post with frontmatter template.
+  // Create a new blog post with a frontmatter template.
   const handleCreateBlogPost = useCallback(async () => {
     // A post needs the source folder open.
     const handle = pathHandle.value
     if (!handle) return
 
-    // Pick the first new-post name no Markdown file holds.
+    // Pick the first new-post name not used by a Markdown file.
     const existing = new Set(
       (entriesResource.value ?? []).flatMap((e) =>
         !e.isDir && e.name.endsWith('.md') ? [e.name] : [],
@@ -209,13 +210,13 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     void handleCreateBlogPost()
   }, [handleCreateBlogPost])
 
-  // A save rereads the posts.
+  // Reread the posts after a save.
   const handleContentSaved = useCallback(() => {
     setContentVersion((prev) => prev + 1)
   }, [])
 
   // Show the read's status, or the empty blog, under the bar before its
-  // posts. The mode press names the other mode, since switching to the
+  // posts. The mode button labels the other mode, since switching to the
   // current one does nothing.
   const status: ViewerStatusProps | null =
     resourceStatus('the blog', state) ??

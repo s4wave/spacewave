@@ -44,7 +44,7 @@ func (a *ProviderAccount) GetPendingMailboxEntriesSnapshot(
 
 // GetPendingMailboxEntriesCached returns the cached pending mailbox entries,
 // seeding once via HTTP if the cache is not yet valid. Concurrent callers
-// share a single in-flight seed request via seedflight.Seed; subsequent calls
+// share a single in-flight seed request via seedflight.Seed. Subsequent calls
 // return the cached snapshot and updates arrive via ApplyMailboxEntryEvent.
 func (a *ProviderAccount) GetPendingMailboxEntriesCached(
 	ctx context.Context,

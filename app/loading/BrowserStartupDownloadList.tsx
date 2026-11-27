@@ -11,7 +11,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 // app bundle, and any plugin modules) with streamed bytes and percent. It
 // renders nothing until a producer registers a download, so screens that never
 // stream bytes stay unchanged. Completed downloads retire from the list so a
-// finished byte counter never lingers under later boot phases; failed rows
+// finished byte counter never lingers under later boot phases. Failed rows
 // stay visible as evidence.
 export function BrowserStartupDownloadList({
   downloads,
@@ -80,7 +80,7 @@ function BrowserStartupDownloadRow({ download }: { download: BootDownload }) {
 }
 
 // downloadDetailText renders the streamed byte counter, or the error message
-// when the download failed. A known total shows "loaded / total"; an unknown
+// when the download failed. A known total shows "loaded / total". An unknown
 // total shows the bytes seen so far without a faked denominator.
 function downloadDetailText(download: BootDownload): string {
   if (download.state === 'error') return download.error ?? 'Failed'

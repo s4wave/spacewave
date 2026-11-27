@@ -73,7 +73,7 @@ export const ManifestPackMetadata: MessageType<ManifestPackMetadata> =
   )
 
 /**
- * ManifestTuple names one bldr manifest tuple in a manifest-pack handoff.
+ * ManifestTuple describes one bldr manifest tuple in a manifest-pack handoff.
  *
  * @generated from message bldr.manifest.pack.ManifestTuple
  */

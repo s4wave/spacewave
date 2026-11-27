@@ -215,7 +215,7 @@ func relocateModuleReplaces(modFile *modfile.File, sourceDir, moduleDir string) 
 		return err
 	}
 
-	// Versioned replacements name a module, not a directory.
+	// Versioned replacements select a module, not a directory.
 	for _, replace := range modFile.Replace {
 		if replace.New.Version != "" {
 			continue
@@ -363,7 +363,8 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.
-// If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
+// If buildDevWrapper is set, the wrapper assumes paths: .bldr/build/myplugin/
+// and .bldr/dist/myplugin/
 // NOTE: This wrapper is intended to be run on the build machine in native mode.
 func (m *ModuleCompiler) CompilePluginDevWrapper(
 	ctx context.Context,

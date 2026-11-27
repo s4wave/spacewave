@@ -27,10 +27,9 @@ import (
 //     leaseMargin of it is left, renewing first otherwise, so a root it
 //     writes outlives the moment its pin or stage records the root in memory,
 //     where the next renewal finds it.
-//  3. A root the collector released while this process stalled past the
-//     lease is held again while its block is stored with holders; otherwise
-//     its stage is lost, since a block at zero may have released its
-//     children already.
+//  3. A root the collector released while this process stalled past the lease
+//     is held again while its block is stored with holders. Otherwise its stage
+//     is lost, since a block at zero may have released its children already.
 //  4. One renewRoots runs at a time, from its snapshot of the held roots
 //     through its commit to publishing the lease. Each reads the published
 //     lease in its transaction and renews it while it is live, so the
@@ -51,9 +50,10 @@ const rootLease = 5 * time.Minute
 const rootRenewInterval = rootLease / 5
 
 // rootRenewForeground is the age of the last renewal past which the next
-// renewal runs as a foreground write, half the lease, so writer admission
-// stops deferring it while the expiry approaches. This sets admission policy;
-// caller bodies, storage and scheduling still have no finite time bound.
+// renewal runs as a foreground write, half the lease, so writer admission stops
+// deferring it while the expiry approaches. This threshold sets admission
+// policy. Caller bodies, storage and scheduling still have no finite time
+// bound.
 const rootRenewForeground = rootLease / 2
 
 // leaseMargin is the part of the process lease that must be left for a
@@ -333,10 +333,10 @@ func rehold(
 	return out, lost, nil
 }
 
-// stillHeld returns the roots among roots this process still holds, read
-// under the pin lock inside the renewal's transaction: a pin with a reader
-// on the same block, or a root an open stage's record holds on the same
-// block. stageOf names the stage of each stage root.
+// stillHeld returns the roots among roots this process still holds, read under
+// the pin lock inside the renewal's transaction: a pin with a reader on the
+// same block, or a root an open stage's record holds on the same block. stageOf
+// records the stage of each stage root.
 func (v *Volume) stillHeld(ctx context.Context, roots []block.NamedRoot, stageOf map[string]string) ([]block.NamedRoot, error) {
 	// Read the pins and find the open stages under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)

@@ -51,8 +51,8 @@ export const PasskeyPrfWrapAlgorithm_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * CreateCheckoutSessionRequest creates a Stripe Checkout Session for subscription.
  * BillingStatus is the billing account status.
+ * CreateCheckoutSessionRequest creates a Stripe Checkout Session for subscription.
  *
  * @generated from enum s4wave.provider.spacewave.BillingStatus
  */
@@ -135,8 +135,8 @@ export enum AccountLifecycleState {
   AccountLifecycleState_ACTIVE = 1,
 
   /**
-   * AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END keeps full access
-   * until the current billing period ends.
+   * AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END is a state with
+   * full access until the current billing period ends.
    */
   AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END = 2,
 
@@ -253,30 +253,31 @@ export const CheckoutStatus_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum SelfEnrollmentGateState {
   /**
-   * SelfEnrollmentGateState_UNKNOWN indicates no gate state was provided.
+   * SELF_ENROLLMENT_GATE_STATE_UNKNOWN indicates no gate state was provided.
    */
   UNKNOWN = 0,
 
   /**
-   * SelfEnrollmentGateState_CHECKING indicates the backend is evaluating
+   * SELF_ENROLLMENT_GATE_STATE_CHECKING indicates the backend is evaluating
    * connected spaces.
    */
   CHECKING = 1,
 
   /**
-   * SelfEnrollmentGateState_AUTO_CONNECTING indicates the backend is
+   * SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING indicates the backend is
    * automatically connecting this session to readable spaces.
    */
   AUTO_CONNECTING = 2,
 
   /**
-   * SelfEnrollmentGateState_ACTION_REQUIRED indicates the user must unlock or
-   * skip session connection for one or more spaces.
+   * SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED indicates the user must unlock
+   * or skip session connection for one or more spaces.
    */
   ACTION_REQUIRED = 3,
 
   /**
-   * SelfEnrollmentGateState_READY indicates no self-enrollment gate is needed.
+   * SELF_ENROLLMENT_GATE_STATE_READY indicates no self-enrollment gate is
+   * needed.
    */
   READY = 4,
 }
@@ -331,7 +332,7 @@ export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum PublicOriginState {
   /**
-   * PublicOriginState_NONE is no linked origin; packs stay on Spacewave's CDN.
+   * PublicOriginState_NONE is no linked origin. Packs stay on Spacewave's CDN.
    */
   PublicOriginState_NONE = 0,
 
@@ -1980,7 +1981,7 @@ export const StartDesktopSSOResponse: MessageType<StartDesktopSSOResponse> =
 
 /**
  * StartDesktopSSOLinkRequest starts the native desktop SessionDetails
- * SSO-link flow for the currently authenticated account.
+ * SSO-link flow for the authenticated account.
  *
  * @generated from message s4wave.provider.spacewave.StartDesktopSSOLinkRequest
  */
@@ -2332,7 +2333,8 @@ export interface RecoverExecuteRequest {
   newPassword?: string
   /**
    * RemovePeerId is the base58 peer ID of the old keypair to remove.
-   * If empty, only adds the new keypair without removing any.
+   * If RemovePeerId is empty, recovery only adds the new keypair without
+   * removing any keypairs.
    */
   removePeerId?: string
   /**
@@ -2854,8 +2856,8 @@ export interface CreateCheckoutSessionRequest {
    */
   billingInterval?: BillingInterval
   /**
-   * BillingAccountId selects a specific billing account to check out. Empty
-   * falls back to the caller's single managed BA (legacy default).
+   * BillingAccountId selects a specific billing account to check out. An empty
+   * ID falls back to the caller's single managed BA (legacy default).
    */
   billingAccountId?: string
   /**
@@ -5109,7 +5111,7 @@ export const TransferResourceResponse: MessageType<TransferResourceResponse> =
 /**
  * AssignBillingAccountRequest is the request for AssignBillingAccount.
  * Binds a billing account to a principal (account or organization). The caller
- * must be the BA's created_by_account_id; for org targets the caller must also
+ * must be the BA's created_by_account_id. For org targets the caller must also
  * hold org:owner on the target org.
  *
  * @generated from message s4wave.provider.spacewave.AssignBillingAccountRequest
@@ -5267,7 +5269,7 @@ export interface PrincipalAssignment {
   ownerId?: string
   /**
    * DisplayName is the principal's display name. For accounts this may be
-   * empty; the caller typically renders their own account as "Personal".
+   * empty. The caller typically renders their own account as "Personal".
    */
   displayName?: string
 }
@@ -5290,8 +5292,8 @@ export const PrincipalAssignment: MessageType<PrincipalAssignment> =
  */
 export interface CreateBillingAccountRequest {
   /**
-   * DisplayName is the initial label for the billing account. Optional; the
-   * server falls back to a generic default when empty.
+   * DisplayName is the optional initial label for the billing account. The
+   * server falls back to a generic default label when DisplayName is empty.
    */
   displayName?: string
 }
@@ -5801,7 +5803,7 @@ export interface ConfirmDeleteNowCodeResponse {
    */
   invoiceStatus?: string
   /**
-   * ChargeAttempted reports whether Stripe attempted an immediate charge.
+   * ChargeAttempted reports whether Stripe tried to charge immediately.
    */
   chargeAttempted?: boolean
   /**
@@ -6742,8 +6744,8 @@ export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
 
 /**
  * SpaceLinkCallback is the generic approval result payload. Browser callback
- * mode can encode it into the verified callback URL; CLI mode can transport the
- * same binary payload directly for import.
+ * mode can encode it into the verified callback URL. CLI mode can transport
+ * the same binary payload directly for import.
  *
  * @generated from message s4wave.provider.spacewave.SpaceLinkCallback
  */

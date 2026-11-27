@@ -11,7 +11,7 @@ package workload
 // Category is the runtime/trace log category of every workload record.
 const Category = "hydra/volume-workload"
 
-// Op names one logical storage operation.
+// Op identifies one logical storage operation.
 type Op string
 
 // Key-value transaction operations. ID is the transaction, except for
@@ -21,15 +21,16 @@ const (
 	OpTxRead Op = "tx-read"
 	// OpTxWrite opens a read-write transaction.
 	OpTxWrite Op = "tx-write"
-	// OpGet reads Key; Size is the value length, or -1 when absent.
+	// OpGet reads Key. Size is the value length, or -1 when absent.
 	OpGet Op = "get"
-	// OpExists checks Key; Size is 1 when present and 0 when absent.
+	// OpExists checks Key. Size is 1 when present and 0 when absent.
 	OpExists Op = "exists"
 	// OpSet writes a value of Size bytes to Key.
 	OpSet Op = "set"
 	// OpDelete deletes Key.
 	OpDelete Op = "delete"
-	// OpIterate opens an iterator over the Key prefix; Size is 1 when reverse.
+	// OpIterate opens an iterator over the Key prefix.
+	// Size is 1 when reverse.
 	OpIterate Op = "iterate"
 	// OpSeek positions an iterator at Key.
 	OpSeek Op = "seek"
@@ -48,17 +49,18 @@ const (
 	OpPut Op = "put"
 	// OpTombstone writes a deletion marker within a batch.
 	OpTombstone Op = "tombstone"
-	// OpPutBatch opens batch ID of Size entries; its entries follow.
+	// OpPutBatch opens batch ID of Size entries. Its entries follow.
 	OpPutBatch Op = "put-batch"
 	// OpRm removes a block.
 	OpRm Op = "rm"
-	// OpGetBlock reads a block; Size is its length, or -1 when absent.
+	// OpGetBlock reads a block. Size is its length, or -1 when absent.
 	OpGetBlock Op = "get-block"
-	// OpStatBlock stats a block; Size is its length, or -1 when absent.
+	// OpStatBlock stats a block. Size is its length, or -1 when absent.
 	OpStatBlock Op = "stat-block"
-	// OpBlockExists checks a block; Size is 1 when present and 0 when absent.
+	// OpBlockExists checks a block.
+	// Size is 1 when present and 0 when absent.
 	OpBlockExists Op = "block-exists"
-	// OpExistsBatch checks Size blocks in read scope ID; its checks follow.
+	// OpExistsBatch checks Size blocks in read scope ID. Its checks follow.
 	OpExistsBatch Op = "exists-batch"
 	// OpReadBegin opens read scope ID over one consistent block view.
 	OpReadBegin Op = "read-begin"

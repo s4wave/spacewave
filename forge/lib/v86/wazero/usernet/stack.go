@@ -14,31 +14,31 @@ import (
 
 // Stack is the usermode network stack bridging guest L2 frames to host sockets.
 type Stack struct {
-	// cfg is the normalized stack configuration
+	// cfg is the normalized stack configuration.
 	cfg Config
-	// inbound delivers synthesized Ethernet frames to the guest
+	// inbound delivers synthesized Ethernet frames to the guest.
 	inbound func(frame []byte)
-	// le receives optional diagnostic logs
+	// le receives optional diagnostic logs.
 	le *logrus.Entry
 
-	// ctx owns all host socket read loops
+	// ctx owns all host socket read loops.
 	ctx context.Context
-	// cancel tears down host socket read loops
+	// cancel tears down host socket read loops.
 	cancel context.CancelFunc
 
-	// mtx guards below fields
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// closed indicates Close has been called
+	// closed indicates Close has been called.
 	closed bool
-	// udp maps guest UDP tuples to host sockets
+	// udp maps guest UDP tuples to host sockets.
 	udp map[string]*udpConn
-	// tcp maps guest TCP tuples to host sockets
+	// tcp maps guest TCP tuples to host sockets.
 	tcp map[string]*tcpConn
 }
 
 // New constructs a Stack. A nil le is replaced with a usable entry so the
 // host-socket error paths can log without a nil dereference (this logrus fork
-// does not nil-guard Entry methods); Debug records stay silent at the default
+// does not nil-guard Entry methods). Debug records stay silent at the default
 // level.
 func New(cfg Config, inbound func(frame []byte), le *logrus.Entry) *Stack {
 	// Supply the Stack logger used by host socket error paths.
@@ -138,6 +138,7 @@ func (s *Stack) Close() error {
 }
 
 // handleARP answers requests for the gateway or DNS address with the
+// router MAC.
 func (s *Stack) handleARP(packet *ethPacket) {
 	if packet.arp.oper != 1 || packet.arp.ptype != ethTypeIPv4 {
 		return
@@ -173,6 +174,7 @@ func (s *Stack) handleUDP(packet *ethPacket) {
 }
 
 // handleDHCP performs the offer/ack exchange that leases the configured
+// guest IP address.
 func (s *Stack) handleDHCP(packet *ethPacket) {
 	// Decode the guest DHCP request before choosing a lease reply.
 	req, err := parseDHCP(packet.ipv4.udp.data)
@@ -227,7 +229,7 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))
 }
 
-// handleDNS resolves each A/AAAA question through the configured resolver
+// handleDNS resolves each A/AAAA question through the configured resolver.
 func (s *Stack) handleDNS(packet *ethPacket) {
 	// Decode the guest DNS query before resolving its questions.
 	req, err := parseDNS(packet.ipv4.udp.data)
@@ -275,6 +277,7 @@ func (s *Stack) handleDNS(packet *ethPacket) {
 }
 
 // handleUDPHost relays guest UDP datagrams to the host over an existing or
+// new host socket.
 func (s *Stack) handleUDPHost(packet *ethPacket) {
 	// Reuse a live UDP relay while checking whether the Stack is closed.
 	key := tupleKey(packet.ipv4.src, packet.ipv4.udp.sport, packet.ipv4.dest, packet.ipv4.udp.dport)
@@ -326,7 +329,9 @@ func (s *Stack) handleUDPHost(packet *ethPacket) {
 	conn.write(packet.ipv4.udp.data)
 }
 
-// handleTCP dispatches one TCP segment: SYNs open connections, unknown
+// handleTCP dispatches one TCP segment: a SYN without ACK opens a connection, a
+// segment of an unknown flow gets a reset, and a registered flow processes the
+// rest.
 func (s *Stack) handleTCP(packet *ethPacket) {
 	// Open a TCP relay for a guest connection request.
 	key := tupleKey(packet.ipv4.src, packet.ipv4.tcp.sport, packet.ipv4.dest, packet.ipv4.tcp.dport)
@@ -348,7 +353,7 @@ func (s *Stack) handleTCP(packet *ethPacket) {
 	conn.process(packet)
 }
 
-// openTCP dials the host target for a new connection and registers it
+// openTCP dials the host target for a new connection and registers it.
 func (s *Stack) openTCP(key string, packet *ethPacket) {
 	// Dial the TCP destination or reset the failed guest connection request.
 	addr := net.JoinHostPort(packet.ipv4.dest.String(), strconv.Itoa(int(packet.ipv4.tcp.dport)))

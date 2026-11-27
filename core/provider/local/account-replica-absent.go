@@ -15,15 +15,15 @@ import (
 // Invariant: a ref is in the set only if a read through every tier, peers
 // included, found it absent after the last peer session start and under the
 // current authority config. Only a new peer session or a config change can make
-// such a block servable, and each one resets the set, which advances its
-// generation; a walk or probe adds refs only under the generation it started
-// in, so a ref read before a reset never survives it. A local write of the
-// same block is not watched: the next reset reads the block again.
+// such a block servable, and each one resets the set, advancing its
+// generation. A walk or probe adds refs only under the generation it started
+// in, so a ref read before a reset never survives the reset. A local write of
+// the same block is not watched: the next reset reads the block again.
 //
 // The set is an optimization for reads only. It never causes a write, a
 // delete, or a decision that a block is gone for good: a ref in the set is
 // still reported as a hole on every walk, and is read again after the next
-// reset; it is retried, never abandoned.
+// reset. The ref is retried, never abandoned.
 type knownAbsent struct {
 	// bcast guards the fields below and wakes waitReset.
 	bcast broadcast.Broadcast

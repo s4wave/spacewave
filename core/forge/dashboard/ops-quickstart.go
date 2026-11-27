@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Validate performs cursory checks on the op.
+// Validate cursorily checks the op.
 func (o *InitForgeQuickstartOp) Validate() error {
 	// Reject empty layout, dashboard, cluster, or session peer identifiers.
 	if len(o.GetLayoutKey()) == 0 {
@@ -104,7 +104,7 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Link cluster and job to dashboard.
+	// Link the cluster and job to the dashboard.
 	linkClusterOp := NewLinkForgeDashboardOp(dashKey, clusterKey)
 	if _, _, err := ws.ApplyWorldOp(ctx, linkClusterOp, sessionPeerID); err != nil {
 		return false, err
@@ -128,13 +128,13 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 			return false, err
 		}
 
-		// Assign worker to the cluster.
+		// Assign the worker to the cluster.
 		assignWorkerOp := forge_cluster.NewClusterAssignWorkerOp(clusterKey, workerKey)
 		if _, _, err := ws.ApplyWorldOp(ctx, assignWorkerOp, sessionPeerID); err != nil {
 			return false, err
 		}
 
-		// Link worker to dashboard.
+		// Link the worker to the dashboard.
 		linkWorkerOp := NewLinkForgeDashboardOp(dashKey, workerKey)
 		if _, _, err := ws.ApplyWorldOp(ctx, linkWorkerOp, sessionPeerID); err != nil {
 			return false, err

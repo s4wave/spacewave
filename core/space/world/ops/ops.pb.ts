@@ -17,7 +17,7 @@ import { CanvasEdge, CanvasNode } from '../../../../sdk/canvas/canvas.pb.js'
 export interface Config {
   /**
    * EngineId restricts the LookupWorldOp resolver to a specific engine id.
-   * If unset, resolves the ops for all engines.
+   * If unset, the resolver resolves the ops for all engines.
    */
   engineId?: string
 }
@@ -29,14 +29,14 @@ export const Config: MessageType<Config> =
 
 /**
  * SetSpaceSettingsOp is an operation to set the space settings.
- * Can be applied as either an object op or a world op.
+ * SetSpaceSettingsOp can be applied as either an object op or a world op.
  *
  * @generated from message space.world.ops.SetSpaceSettingsOp
  */
 export interface SetSpaceSettingsOp {
   /**
    * ObjectKey is the object key for the settings.
-   * If empty, defaults to "settings".
+   * If empty, ObjectKey defaults to "settings".
    */
   objectKey?: string
   /**
@@ -135,7 +135,7 @@ export const AddSpacePluginsOp: MessageType<AddSpacePluginsOp> =
 export interface InitUnixFSOp {
   /**
    * ObjectKey is the object key for the UnixFS filesystem.
-   * Must be set.
+   * ObjectKey must be set.
    */
   objectKey?: string
   /**
@@ -154,8 +154,9 @@ export const InitUnixFSOp: MessageType<InitUnixFSOp> =
   )
 
 /**
- * InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
- * This creates an ObjectLayout with a simple tabset containing one tab.
+ * InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter
+ * content. The operation creates an ObjectLayout with a simple tabset
+ * containing one tab.
  *
  * @generated from message space.world.ops.InitObjectLayoutOp
  */
@@ -181,14 +182,14 @@ export const InitObjectLayoutOp: MessageType<InitObjectLayoutOp> =
 
 /**
  * InitCanvasDemoOp is an operation to initialize a Canvas with demo content.
- * This creates a canvas object and populates it with a git repo node.
+ * The operation creates a canvas object and populates it with a git repo node.
  *
  * @generated from message space.world.ops.InitCanvasDemoOp
  */
 export interface InitCanvasDemoOp {
   /**
    * ObjectKey is the object key for the Canvas.
-   * Must be set.
+   * ObjectKey must be set.
    */
   objectKey?: string
   /**
@@ -208,7 +209,8 @@ export const InitCanvasDemoOp: MessageType<InitCanvasDemoOp> =
 
 /**
  * CanvasInitOp is an operation to initialize a blank canvas.
- * Creates an empty CanvasState and sets the object type to "canvas".
+ * CanvasInitOp creates an empty CanvasState and sets the object type to
+ * "canvas".
  *
  * @generated from message space.world.ops.CanvasInitOp
  */
@@ -284,7 +286,7 @@ export const CanvasRemoveNodeOp: MessageType<CanvasRemoveNodeOp> =
 
 /**
  * CanvasSetNodeOp is an operation to replace a node in a canvas.
- * The full node is provided; it replaces the existing node with the same ID.
+ * The full node is provided and replaces the existing node with the same ID.
  *
  * @generated from message space.world.ops.CanvasSetNodeOp
  */

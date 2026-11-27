@@ -14,7 +14,7 @@ type ObjectState struct {
 	// ObjectState is the underlying ObjectState object.
 	world.ObjectState
 
-	// le is the base logger
+	// ble is the base logger.
 	ble *logrus.Entry
 }
 
@@ -31,7 +31,7 @@ func (o *ObjectState) Release() {
 	world.ReleaseObjectState(o.ObjectState)
 }
 
-// le returns a logger with object fields
+// le returns a logger with object fields.
 func (o *ObjectState) le() *logrus.Entry {
 	return o.ble.WithField("object-key", objectKeyForLogging(o.GetKey()))
 }
@@ -111,7 +111,7 @@ func (o *ObjectState) IncrementRev(ctx context.Context) (rev uint64, err error) 
 	return o.ObjectState.IncrementRev(ctx)
 }
 
-// WaitRev waits until the object rev is >= the specified.
+// WaitRev waits until the object rev is >= the specified revision.
 // Returns ErrObjectNotFound if the object is deleted.
 // If ignoreNotFound is set, waits for the object to exist.
 // Returns the new rev.

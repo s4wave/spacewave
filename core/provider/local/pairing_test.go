@@ -309,7 +309,7 @@ func TestPairingCreatesTransport(t *testing.T) {
 		t.Fatalf("transport peer %s != session peer %s", st.GetPeerID().String(), sess.GetPeerId().String())
 	}
 
-	// Calling again should reuse existing transport.
+	// Calling GenerateCode again should reuse the existing transport.
 	code2, err := pairingEngineForTest(t, sess).GenerateCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""})
 	if err != nil {
 		t.Fatal(err)

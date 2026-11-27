@@ -93,8 +93,8 @@ func driveRegen(ctx context.Context, le *logrus.Entry, a *world_block.LocalAutho
 
 // regenTo takes r from stage to target.
 func regenTo(ctx context.Context, le *logrus.Entry, r *world_block.Regenerator, target RegenTarget, stage world_block.RegenStage) error {
-	// Switch back or release in one call; neither has work on a World with no
-	// regeneration.
+	// Switch back or release in one call. Neither has work on a World
+	// with no regeneration.
 	idle := stage == world_block.RegenIdle || stage == world_block.RegenDone
 	switch target {
 	case RegenTarget_REGEN_TARGET_NONE:

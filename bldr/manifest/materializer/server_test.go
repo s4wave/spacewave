@@ -28,7 +28,7 @@ import (
 
 // serveTestDestination serves the raw store of tb's materializer-rpc-dest
 // bucket as a BlockStore RPC service on tb's bus, as the plugin host serves
-// its staged destination, and returns the service ID a request names.
+// its staged destination, and returns the service ID a request selects.
 func serveTestDestination(t *testing.T, ctx context.Context, le *logrus.Entry, tb *testbed.Testbed) string {
 	t.Helper()
 

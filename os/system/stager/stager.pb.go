@@ -17,7 +17,8 @@ import (
 
 // Revision is the Device's update state as its image store shows it: the
 // revision it runs and falls back to, and the last update, if one is under
-// way or failed. No update means none was tried or the last was accepted.
+// way or failed. No update means none was tried or the last update was
+// accepted.
 type Revision struct {
 	unknownFields []byte
 	// Accepted is the image root of the revision the Device falls back to.

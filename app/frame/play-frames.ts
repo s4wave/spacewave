@@ -33,9 +33,10 @@ export type FramePlayEvent =
 // stall.
 const stallMs = 1000
 
-// watchPixelRatio calls onChange with the device pixels per CSS pixel now
-// and each time it changes, as when the window moves to another screen or
-// zooms, until the returned function stops it.
+// watchPixelRatio calls onChange with the device pixels per CSS pixel on the
+// initial call and each time the ratio changes, as when the window moves to
+// another screen or zooms, until the returned function stops watching the
+// ratio.
 function watchPixelRatio(onChange: (ratio: number) => void): () => void {
   let query: MediaQueryList | null = null
   const check = () => {
@@ -51,8 +52,8 @@ function watchPixelRatio(onChange: (ratio: number) => void): () => void {
 
 // playFrames opens the track and draws its pictures on canvas, fitted to pane
 // at the picture's aspect and the screen's pixel ratio, until the returned
-// function stops it; emit hears nothing after that. JPEG keeps the newest
-// waiting picture. AVC feeds a bounded prefix to WebCodecs and recovers
+// function stops playback. emit receives no events after that. JPEG keeps the
+// newest waiting picture. AVC feeds a bounded prefix to WebCodecs and recovers
 // at the next keyframe after a drop. The last picture stays drawn until a
 // newer one replaces it.
 export function playFrames(

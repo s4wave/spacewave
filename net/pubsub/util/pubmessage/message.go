@@ -11,7 +11,7 @@ type Message struct {
 	peerID   peer.ID
 }
 
-// NewMessage constructs a new Message object
+// NewMessage constructs a new Message object.
 func NewMessage(peerID peer.ID, pktInner *PubMessageInner) *Message {
 	return &Message{
 		peerID:   peerID,

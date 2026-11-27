@@ -10,8 +10,8 @@ import (
 )
 
 // CreateFromDisk creates a unixfs_block FSNode from a disk path.
-// Unlike CreateFromFS, this captures extended attributes (xattrs) from the
-// source filesystem when supported by the platform (macOS, Linux).
+// Unlike CreateFromFS, CreateFromDisk captures extended attributes (xattrs)
+// from the source filesystem when supported by the platform (macOS, Linux).
 func CreateFromDisk(
 	ctx context.Context,
 	bcs *block.Cursor,

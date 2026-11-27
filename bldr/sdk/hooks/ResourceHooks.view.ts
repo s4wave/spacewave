@@ -1,4 +1,4 @@
-// What a resource hook reports for one child of one parent.
+// Hook is what a resource hook reports for one child of one parent.
 
 type Hook = {
   key: number

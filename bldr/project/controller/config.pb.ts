@@ -26,7 +26,7 @@ export interface Config {
   /**
    * WorkingPath is the path to use for codegen and working state.
    * Usually source_path/.bldr
-   * We expect the bldr dist sources to be under working_path/bldr
+   * The controller expects the bldr dist sources under working_path/bldr.
    */
   workingPath?: string
   /**
@@ -48,8 +48,9 @@ export interface Config {
   start?: boolean
   /**
    * FetchManifestRemote is the remote to use for the FetchManifest request.
-   * When FetchManifest is applied, we will compile the plugin manifest to the remote.
-   * If unset, we don't service FetchManifest directives.
+   * When FetchManifest is applied, the controller compiles the plugin manifest
+   * to the remote. If unset, the controller does not service FetchManifest
+   * directives.
    */
   fetchManifestRemote?: string
   /**
@@ -58,9 +59,9 @@ export interface Config {
    */
   frontendDevelopment?: boolean
   /**
-   * FrontendRoutePrefix overrides the browser namespace for an attached compiler.
-   * An attached compiler does not watch its source root; the attaching owner
-   * reports each edit through FrontendService.Change.
+   * FrontendRoutePrefix overrides the browser namespace for an attached
+   * compiler. An attached compiler does not watch its source root. The
+   * attaching owner reports each edit through FrontendService.Change.
    */
   frontendRoutePrefix?: string
 }
@@ -104,20 +105,20 @@ export interface ManifestBuilderConfig {
    */
   remoteId?: string
   /**
-   * TargetPlatformIds is the full list of platform IDs belonging to the
-   * build target that spawned this slot. Informational only; the dist
-   * compiler no longer uses this field to pick which manifests to embed.
-   * Embed selection is driven by the per-slot BuilderConfigOverride sourced
-   * from BuildConfig.manifest_overrides, which carries explicit
-   * (manifest_id, platform_id) tuples.
+   * TargetPlatformIds is the full list of platform IDs belonging to the build
+   * target that spawned this slot. The field is informational only. The dist
+   * compiler no longer uses this field to pick which manifests to embed. Embed
+   * selection is driven by the per-slot BuilderConfigOverride sourced from
+   * BuildConfig.manifest_overrides. The override carries explicit (manifest_id,
+   * platform_id) tuples.
    */
   targetPlatformIds?: string[]
   /**
    * BuilderConfigOverride optionally replaces the builder config of the
-   * manifest for this build slot. The override's controller id is ignored;
-   * the manifest's declared builder id always wins. This is REPLACE
-   * semantics: the static manifest builder config is not merged with the
-   * override. Sourced from BuildConfig.manifest_overrides.
+   * manifest for this build slot. The override's controller id is ignored
+   * because the manifest's declared builder id always wins. The override uses
+   * REPLACE semantics: the static manifest builder config is not merged with
+   * the override. Sourced from BuildConfig.manifest_overrides.
    */
   builderConfigOverride?: ControllerConfig
   /**

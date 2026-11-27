@@ -261,7 +261,7 @@ type isFSCursorClientResponse_Body interface {
 }
 
 type FSCursorClientResponse_Init struct {
-	// FSClientInit contains the initialization message for FSCursorClient.
+	// Init contains the initialization message for FSCursorClient.
 	Init *FSClientInit `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
 }
 
@@ -272,7 +272,7 @@ type FSCursorClientResponse_CursorChange struct {
 
 type FSCursorClientResponse_UnixfsError struct {
 	// UnixfsError contains the error returned by the call, if any.
-	// If sent, this will be the last message in the rpc stream.
+	// If sent, the error will be the last message in the rpc stream.
 	UnixfsError *errors.UnixFSError `protobuf:"bytes,3,opt,name=unixfs_error,json=unixfsError,proto3,oneof"`
 }
 
@@ -313,7 +313,8 @@ func (x *FSClientInit) GetCursorHandleId() uint64 {
 	return 0
 }
 
-// GetCursorOpsRequest requests that we resolve the FSCursorOps for an FSCursor.
+// GetCursorOpsRequest requests that the server resolve the FSCursorOps for an
+// FSCursor.
 type GetCursorOpsRequest struct {
 	unknownFields []byte
 	// CursorHandleId is the handle identifier for the cursor.
@@ -685,7 +686,7 @@ type OpsReadAtRequest struct {
 	// Offset is the location in the file from which to read.
 	Offset int64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	// Size is the size of data to read (buffer max size).
-	// This will automatically be capped by the hardcoded limit of 256e7 (256MB).
+	// Size will automatically be capped by the hardcoded limit of 256e7 (256MB).
 	Size int64 `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	// WantVersion requests the opaque version of the file opened for this read.
 	WantVersion bool `protobuf:"varint,4,opt,name=want_version,json=wantVersion,proto3" json:"wantVersion,omitempty"`
@@ -884,7 +885,7 @@ type OpsTruncateRequest struct {
 	unknownFields []byte
 	// OpsHandleId uniquely identifies the open ops handle.
 	OpsHandleId uint64 `protobuf:"varint,1,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
-	// NewSize is the desired new size for the file.
+	// Nsize is the desired new size for the file.
 	Nsize uint64 `protobuf:"varint,2,opt,name=nsize,proto3" json:"nsize,omitempty"`
 	// Timestamp is the desired timestamp for the operation.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -1198,7 +1199,7 @@ func (x *OpsMknodResponse) GetUnixfsError() *errors.UnixFSError {
 	return nil
 }
 
-// OpsMknodWithContentStart names the file and its complete size.
+// OpsMknodWithContentStart declares the file and its complete size.
 type OpsMknodWithContentStart struct {
 	unknownFields []byte
 	// CursorHandleId identifies the target directory cursor.
@@ -1209,7 +1210,7 @@ type OpsMknodWithContentStart struct {
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// TotalSize is the number of bytes the stream must deliver.
 	TotalSize int64 `protobuf:"varint,4,opt,name=total_size,json=totalSize,proto3" json:"totalSize,omitempty"`
-	// Permissions is the new file's mode. Zero selects the default.
+	// Permissions is the new file's mode. Zero selects the default mode.
 	Permissions uint32 `protobuf:"varint,5,opt,name=permissions,proto3" json:"permissions,omitempty"`
 	// Timestamp sets the new file's modification time.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -1349,7 +1350,7 @@ type isOpsMknodWithContentRequest_Body interface {
 }
 
 type OpsMknodWithContentRequest_Start struct {
-	// Start names the destination and appears once, in the first message.
+	// Start declares the destination and appears once, in the first message.
 	Start *OpsMknodWithContentStart `protobuf:"bytes,1,opt,name=start,proto3,oneof"`
 }
 
@@ -1579,7 +1580,7 @@ type OpsCopyToRequest struct {
 	OpsHandleId uint64 `protobuf:"varint,1,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
 	// TargetDirOpsHandleId is the target directory FSCursorOps handle ID for the copy operation.
 	TargetDirOpsHandleId uint64 `protobuf:"varint,2,opt,name=target_dir_ops_handle_id,json=targetDirOpsHandleId,proto3" json:"targetDirOpsHandleId,omitempty"`
-	// Target name of the inode for the copy operation.
+	// TargetName is the target name of the inode for the copy operation.
 	TargetName string `protobuf:"bytes,3,opt,name=target_name,json=targetName,proto3" json:"targetName,omitempty"`
 	// Timestamp is the desired timestamp for the operation.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -1653,7 +1654,7 @@ type OpsCopyFromRequest struct {
 	unknownFields []byte
 	// OpsHandleId uniquely identifies the open ops handle.
 	OpsHandleId uint64 `protobuf:"varint,1,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
-	// Name of the inode for the copy operation.
+	// Name is the name of the inode for the copy operation.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// SrcCursorOpsHandleId is the handle identifier for the source cursor ops object for the copy operation.
 	SrcCursorOpsHandleId uint64 `protobuf:"varint,3,opt,name=src_cursor_ops_handle_id,json=srcCursorOpsHandleId,proto3" json:"srcCursorOpsHandleId,omitempty"`
@@ -1731,7 +1732,7 @@ type OpsMoveToRequest struct {
 	OpsHandleId uint64 `protobuf:"varint,1,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
 	// TargetDirOpsHandleId is the handle id for the FSCursorOps for the directory for the move operation.
 	TargetDirOpsHandleId uint64 `protobuf:"varint,2,opt,name=target_dir_ops_handle_id,json=targetDirOpsHandleId,proto3" json:"targetDirOpsHandleId,omitempty"`
-	// Target name of the inode for the move operation.
+	// TargetName is the target name of the inode for the move operation.
 	TargetName string `protobuf:"bytes,3,opt,name=target_name,json=targetName,proto3" json:"targetName,omitempty"`
 	// Timestamp is the desired timestamp for the operation.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -1805,7 +1806,7 @@ type OpsMoveFromRequest struct {
 	unknownFields []byte
 	// OpsHandleId uniquely identifies the open ops handle.
 	OpsHandleId uint64 `protobuf:"varint,1,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
-	// Name of the inode for the move operation.
+	// Name is the name of the inode for the move operation.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// SrcOpsHandleId is the handle id for the FSCursorOps for the source of the move operation.
 	SrcOpsHandleId uint64 `protobuf:"varint,3,opt,name=src_ops_handle_id,json=srcOpsHandleId,proto3" json:"srcOpsHandleId,omitempty"`

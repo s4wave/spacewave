@@ -17,9 +17,9 @@ type LookupIdentityDomain interface {
 // LookupIdentityDomainValue is the result of the LookupIdentityDomain directive.
 type LookupIdentityDomainValue = *DomainInfo
 
-// lookupIdentityDomain implements LookupIdentityDomain
+// lookupIdentityDomain implements LookupIdentityDomain.
 type lookupIdentityDomain struct {
-	// domainID filters the domain id
+	// domainID filters the domain id.
 	domainID string
 }
 
@@ -39,7 +39,7 @@ func (s *lookupIdentityDomain) LookupIdentityDomainId() string {
 // Validate checks the directive.
 func (s *lookupIdentityDomain) Validate() error { return nil }
 
-// GetValueLookupLoggerOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (s *lookupIdentityDomain) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -68,7 +68,7 @@ func (s *lookupIdentityDomain) GetName() string {
 	return "LookupIdentityDomain"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (s *lookupIdentityDomain) GetDebugVals() directive.DebugValues {

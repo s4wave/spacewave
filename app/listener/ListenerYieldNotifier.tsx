@@ -33,8 +33,8 @@ import { RuntimeHandoffProvider } from '@s4wave/app/listener/RuntimeHandoffConte
 
 // ListenerYieldNotifier watches for daemon-control takeover prompts
 // emitted by the native resource listener's yield broker. When a
-// prompt arrives it surfaces a modal so the user can allow or deny
-// the remote runtime takeover. It wraps descendants with the
+// prompt arrives, the notifier surfaces a modal so the user can allow or deny
+// the remote runtime takeover. The notifier wraps descendants with the
 // RuntimeHandoffProvider so runtime-dependent components can disable
 // actions while the runtime is handed off to a remote peer.
 export function ListenerYieldNotifier({

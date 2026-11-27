@@ -35,7 +35,8 @@ type candidateActivation struct {
 	answer chan error
 }
 
-// Check declares support for staged replacement, after answer when set.
+// Check declares support for staged replacement, after receiving from answer
+// when set.
 func (a *candidateActivation) Check(ctx context.Context, _ *plugin.CheckActivationRequest) (*plugin.CheckActivationResponse, error) {
 	if a.answer != nil {
 		select {
@@ -220,8 +221,9 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		t.Fatal("canceling candidate removed the admitted worker")
 	}
 
-	// A ready candidate is activated once; the retired worker's teardown cannot
-	// clear the new RPC alias. Releasing the binding ends the remaining worker.
+	// A ready candidate is activated once. The retired worker's teardown
+	// cannot clear the new RPC alias. Releasing the binding ends the
+	// remaining worker.
 	next, stopNext, doneNext := start(4)
 	next.start <- true
 	wait(next.activation.activated)
@@ -303,8 +305,9 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	stopLast()
 	<-doneLast
 
-	// A worker that never answers keeps the swap waiting until a restart ends
-	// it; the execute routine then starts the candidate in its place.
+	// A worker that never answers keeps the swap waiting until a restart
+	// ends the worker. The execute routine then starts the candidate in its
+	// place.
 	if _, err := instance.runningPluginCtr.WaitValue(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -502,7 +505,8 @@ func TestSelectedPluginAwaitsAdmission(t *testing.T) {
 		trusted.Add(bldr_manifest_trust.Root{PluginID: "colors", ManifestRoot: roots[rev]})
 	}
 
-	// An unadmitted root runs nothing; admitting it starts the worker.
+	// An unadmitted root runs nothing. Admitting the root starts the
+	// worker.
 	stopFirst, doneFirst := selectRev(1)
 	noStart("first root")
 	admit(1)
@@ -608,7 +612,8 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
 		return c, instance
 	}
-	// candidate selects rev, named by a load for peerID when load is set.
+	// candidate selects rev, specified by a load for peerID when load is
+	// set.
 	candidate := func(rev uint64, load bool, peerID string) (*executePluginArgs, string) {
 		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte{0xa0, byte(rev)})
 		if err != nil {
@@ -693,14 +698,15 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		awaits(c, instance, args, "peer")
 	})
 	t.Run("unapproved root refused on space host", func(t *testing.T) {
-		// The Space host asks for its own peer, whatever the load names.
+		// The Space host asks for its own peer, whatever peer the load
+		// specifies.
 		c, instance := newInstance(&Config{RequireAdmission: true, PeerId: "space-peer"})
 		args, _ := candidate(5, true, "other")
 		awaits(c, instance, args, "space-peer")
 	})
 	t.Run("unapproved root refused on host with no owner", func(t *testing.T) {
 		// Nothing can admit the root later, so the load fails at once,
-		// naming why, instead of waiting or checking.
+		// reporting why, instead of waiting or checking.
 		c, instance := newInstance(&Config{PeerId: "root"})
 		args, _ := candidate(10, true, "peer")
 		if n := admitted(instance, args); n != 0 {
@@ -780,7 +786,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 			t.Fatalf("admitted %d candidates, err %v, want only the admitted fallback", len(got), err)
 		}
 
-		// Alone, the failed read fails the load and names its error.
+		// Alone, the failed read fails the load and reports its error.
 		got, err = instance.admittedCandidates(ctx, []*executePluginArgs{broken})
 		if err == nil || len(got) != 0 {
 			t.Fatalf("failed read returned %d candidates, err %v", len(got), err)
@@ -829,7 +835,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		<-done
 	})
 	t.Run("failed wait fails the load", func(t *testing.T) {
-		// The first ask finds no answer; every later one fails to read.
+		// The first ask finds no answer. Every later ask fails to read.
 		var asks atomic.Int32
 		failing := callback.NewCallbackController(
 			controller.NewInfo("test/failing-approvals", controller.MustParseVersion("0.0.1"), ""),
@@ -916,8 +922,8 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 			t.Fatalf("old pass never checked its first root: %v", err)
 		}
 
-		// The routine cancels the old pass before the next starts; the newer
-		// pass settles, then the old one finishes behind it.
+		// The routine cancels the old pass before the next starts. The
+		// newer pass settles, then the old one finishes behind it.
 		stopOld()
 		settled := settledSwap(c, instance)
 		<-done
@@ -1021,8 +1027,9 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		}
 	})
 	t.Run("cleared worker keeps the selected pass's swap", func(t *testing.T) {
-		// The worker exits while the routine still selects a candidate, so
-		// the pass still owns the swap state and it stays.
+		// The worker exits while the routine still selects a candidate,
+		// so the pass still owns the swap state and the swap state
+		// stays.
 		c, instance := newInstance(&Config{PeerId: "root", AdmissionPluginId: "owner"})
 		args, _ := candidate(24, false, "")
 		worker := &pluginInstance{pluginLoadStateCtr: ccontainer.NewCContainer(

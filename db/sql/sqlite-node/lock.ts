@@ -2,9 +2,9 @@ import { mkdirSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
-// Lock database file inside a locked directory. The file is persistent
-// ownership metadata: it carries the OS lock only while a writer holds its
-// connection open, so it is created once and never deleted.
+// lockFileName identifies the lock database file inside a locked directory.
+// The file is persistent ownership metadata: it carries the OS lock only while
+// a writer holds its connection open, so it is created once and never deleted.
 const lockFileName = '.spacewave-writer.db'
 
 // DirectoryWriterLock is one directory's writer slot, held for the lifetime of
@@ -13,8 +13,9 @@ export interface DirectoryWriterLock {
   // directory is the canonical physical directory this lock admits one writer to.
   directory: string
 
-  // close releases the lock by closing the held connection; SQLite rolls back
-  // the open transaction and releases OS locks on close. Idempotent.
+  // close releases the lock by closing the held connection. SQLite rolls back
+  // the open transaction and releases OS locks on close. The method is
+  // idempotent.
   close(): void
 }
 

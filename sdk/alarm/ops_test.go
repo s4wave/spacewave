@@ -78,7 +78,7 @@ func TestSetReads(t *testing.T) {
 		return nil
 	})
 
-	// Each call leaves exactly the edges it names.
+	// Each call leaves exactly the edges it selects.
 	for _, want := range [][]string{{"a", "b"}, {"b", "c"}, nil} {
 		execOp(t, ctx, tb, func(ctx context.Context, tx world.WorldState) error {
 			return SetReads(ctx, tx, key, want)

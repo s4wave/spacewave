@@ -17,17 +17,17 @@ import (
 // Writes a little-endian 4 byte length prefix before each packet.
 // All messages sent to/from the wrong addresses are dropped.
 type PacketConn struct {
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// ctxCancel is the context canceler
+	// ctxCancel is the context canceler.
 	ctxCancel context.CancelFunc
-	// rwc is the read-write-closer
+	// rwc is the read-write-closer.
 	rwc io.ReadWriteCloser
-	// laddr is the local addr
+	// laddr is the local addr.
 	laddr net.Addr
-	// raddr is the remote addr
+	// raddr is the remote addr.
 	raddr net.Addr
-	// maxPacketSize is the maximum allowed packet size
+	// maxPacketSize is the maximum allowed packet size.
 	maxPacketSize uint32
 
 	ar       sync.Pool    // packet arena
@@ -84,7 +84,7 @@ func (p *PacketConn) RemoteAddr() net.Addr {
 // and any error encountered. Callers should always process
 // the n > 0 bytes returned before considering the error err.
 // ReadFrom can be made to time out and return an error after a
-// fixed time limit; see SetDeadline and SetReadDeadline.
+// fixed time limit. See SetDeadline and SetReadDeadline.
 func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
 	// Wait for a payload, observing deadline changes while blocked.
 	pkt, ok, err := p.rd.read(p.ctx, p.packetCh)
@@ -110,7 +110,7 @@ func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
 }
 
 // WriteTo writes a packet with payload p to addr.
-// Write deadlines are not supported; see SetWriteDeadline.
+// Write deadlines are not supported. See SetWriteDeadline.
 func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
 	// Reject empty packets before checking the destination address.
 	if len(pkt) == 0 {
@@ -155,7 +155,7 @@ func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
 // SetDeadline sets the read deadline associated with the connection.
 // It is equivalent to calling SetReadDeadline.
 //
-// Write deadlines are not supported; see SetWriteDeadline.
+// Write deadlines are not supported. See SetWriteDeadline.
 //
 // A zero value for t means ReadFrom will not time out.
 func (p *PacketConn) SetDeadline(t time.Time) error {

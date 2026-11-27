@@ -8,7 +8,7 @@ import (
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
-// dialTptAddrResolver resolves DialTptAddr directives
+// dialTptAddrResolver resolves DialTptAddr directives.
 type dialTptAddrResolver struct {
 	c   *Controller
 	dir tptaddr.DialTptAddr
@@ -95,8 +95,9 @@ func (c *Controller) resolveDialTptAddr(
 		return nil, nil
 	}
 
-	// Try to skip this if it doesn't match this transport and we can lock.
-	// Otherwise return a resolver and check later.
+	// Try to skip resolution if the directive does not match the transport
+	// and the controller can lock. Otherwise return a resolver and check
+	// later.
 	var skip bool
 	_ = c.bcast.TryHoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if c.tpt != nil {
@@ -108,7 +109,7 @@ func (c *Controller) resolveDialTptAddr(
 		return nil, nil
 	}
 
-	// Return resolver.
+	// Return a resolver.
 	return directive.Resolvers(&dialTptAddrResolver{
 		c:   c,
 		dir: dir,

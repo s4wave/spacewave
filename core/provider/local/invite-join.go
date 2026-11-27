@@ -25,7 +25,7 @@ var ErrDirectInviteOwnerMustBeOnline = errors.New("space owner must be online to
 // JoinViaInvite executes the full invite join flow.
 //
 //  1. Ensures a session transport is running (starts one if needed), and
-//     dials the owner over UDP when ownerUDPAddr names its address
+//     dials the owner over UDP when ownerUDPAddr specifies its address
 //  2. Holds a link to the owner until the join returns
 //  3. Opens an SRPC stream to the owner and sends AcceptInviteRequest
 //  4. Receives the SOGrant from the owner, or returns early when the owner
@@ -56,7 +56,7 @@ func (a *ProviderAccount) JoinViaInvite(
 		}
 	}
 
-	// Reach the owner the invite names.
+	// Reach the owner the invite references.
 	st, ownerPeerID, err := a.reachInviteOwner(ctx, sessionKey, inviteMsg)
 	if err != nil {
 		return nil, err
@@ -141,15 +141,15 @@ func (a *ProviderAccount) JoinViaInvite(
 	return result, nil
 }
 
-// WithdrawJoinRequest asks the owner the invite names to drop this session's
-// pending request to join the invite's shared object. The owner must be
-// reachable on the live transport.
+// WithdrawJoinRequest asks the owner the invite references to drop this
+// session's pending request to join the invite's shared object. The owner
+// must be reachable on the live transport.
 func (a *ProviderAccount) WithdrawJoinRequest(
 	ctx context.Context,
 	sessionKey crypto.PrivKey,
 	inviteMsg *sobject.SOInviteMessage,
 ) error {
-	// Reach the owner the invite names.
+	// Reach the owner the invite references.
 	st, ownerPeerID, err := a.reachInviteOwner(ctx, sessionKey, inviteMsg)
 	if err != nil {
 		return err
@@ -177,14 +177,14 @@ func (a *ProviderAccount) WithdrawJoinRequest(
 	)
 }
 
-// reachInviteOwner verifies the owner peer inviteMsg names and starts the
+// reachInviteOwner verifies the owner peer inviteMsg references and starts the
 // session transport that reaches it.
 func (a *ProviderAccount) reachInviteOwner(
 	ctx context.Context,
 	sessionKey crypto.PrivKey,
 	inviteMsg *sobject.SOInviteMessage,
 ) (*transport.SessionTransport, peer.ID, error) {
-	// Verify the owner peer the invite names.
+	// Verify the owner peer the invite references.
 	if inviteMsg == nil {
 		return nil, "", errors.New("invite message is nil")
 	}
@@ -229,7 +229,7 @@ func (a *ProviderAccount) holdDirectInviteOwnerLink(
 	localPeerID peer.ID,
 	ownerPeerIDStr string,
 ) (func(), error) {
-	// Parse the owner the invite names.
+	// Parse the owner the invite references.
 	if ownerPeerIDStr == "" {
 		return nil, errors.New("invite owner peer id is required")
 	}
@@ -286,7 +286,7 @@ func (a *ProviderAccount) mountInvitedSO(
 //
 // generation is the catalog entry's generation for an install from the
 // account catalog, or nil for a join. A join into a listed object merges into
-// it and keeps its generation; otherwise the list write mints one. An install
+// it and keeps its generation. Otherwise the list write mints one. An install
 // merges only into the same generation: a listed object of another
 // generation is kept untouched and logged, and nothing is installed.
 //
@@ -299,11 +299,12 @@ func (a *ProviderAccount) mountInvitedSO(
 // and a retry reuses the placeholder. The placeholder write finishes, under
 // the lock, any release a delete of an earlier lifetime left pending, so the
 // mount never adopts that lifetime's roots. The enrollment is registered from
-// that decision until it returns, and a create of the id fails while it is,
-// so no create clears the placeholder or the installed state. Once it
-// returns unlisted, the placeholder is abandoned: a create clears it, and a
-// retry of the enrollment writes a new one. A delete of the still unlisted
-// id returns ErrSharedObjectNotFound and leaves it.
+// that decision until it returns, and a create of the id fails while the
+// enrollment is registered, so no create clears the placeholder or the
+// installed state. Once the enrollment returns unlisted, the placeholder is
+// abandoned: a create clears it, and a retry of the enrollment writes a new
+// one. A delete of the still unlisted id returns ErrSharedObjectNotFound and
+// leaves the placeholder.
 func (a *ProviderAccount) mountEnrolledSO(
 	ctx context.Context,
 	soID string,
@@ -314,7 +315,7 @@ func (a *ProviderAccount) mountEnrolledSO(
 	lineage []*sobject.SOConfigChange,
 	hold func(context.Context) error,
 ) (string, error) {
-	// Name the object in this account.
+	// Build the object's reference in this account.
 	providerID := a.t.accountInfo.GetProviderId()
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(soID)

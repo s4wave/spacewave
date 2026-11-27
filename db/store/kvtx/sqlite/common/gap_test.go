@@ -26,9 +26,10 @@ const restartBound = 256 << 10
 // database file stays near 16 MiB however long they write.
 const restartKeys = 4096
 
-// The gap tests' writers fail once the log passes restartWALCap, which only
-// a runaway log reaches, once they have written restartByteCap, or after
-// restartTimeCap, so a step that never comes cannot fill the disk.
+// restartWALCap is the log size past which the gap tests' writers fail. Only
+// a runaway log reaches restartWALCap. The writers also fail once they have
+// written restartByteCap or after restartTimeCap, so a step that never comes
+// cannot fill the disk.
 const (
 	restartWALCap  = 256 << 20
 	restartByteCap = 1 << 30
@@ -278,13 +279,13 @@ func TestWALGapHold(t *testing.T) {
 // TestWALGapLargeCommits commits 8 MiB at a time, 2048 frames each, back to
 // back past a 256 KiB log bound, beside a writer of 16-frame commits. No hold
 // of the turn can copy such a commit within its slice, so without the writer
-// waiting for its own frames the log grows without bound. With it, on a disk
-// that copies what the writers add during a pass within walFlowWaitMax, the
-// log stays within 8 times its bound plus one large commit in flight and what
-// the small writer commits while the holds run, and a reader that pins the
-// log ends the wait. The real disk may be slower than that, so this run
-// asserts the log's bound only when measuring; TestWALGapCopyRegimes asserts
-// both regimes at a known copy speed.
+// waiting for its own frames the log grows without bound. With that wait, on a
+// disk that copies what the writers add during a pass within walFlowWaitMax,
+// the log stays within 8 times its bound plus one large commit in flight and
+// what the small writer commits while the holds run, and a reader that pins the
+// log ends the wait. The real disk may be slower than that, so this run asserts
+// the log's bound only when measuring. TestWALGapCopyRegimes asserts both
+// regimes at a known copy speed.
 func TestWALGapLargeCommits(t *testing.T) {
 	for _, pin := range []bool{false, true} {
 		t.Run("pin "+strconv.FormatBool(pin), func(t *testing.T) {
@@ -358,8 +359,8 @@ type largeRun struct {
 	// commit under ctx, returning how long it took from the wait for the
 	// writer turn to Commit's return.
 	commit func(ctx context.Context, first, rows int) time.Duration
-	// n large commits took took, the longest longest, beside a small
-	// writer whose longest commit took small.
+	// n counts large commits that took took, the longest taking longest,
+	// beside a small writer whose longest commit took small.
 	n                    int
 	took, longest, small time.Duration
 	// peak is the largest log a commit left.
@@ -558,8 +559,8 @@ func walRestartChild(t *testing.T, path, step string) {
 // TestWALGapEmptyLogRests checks that the checkpointer waits for a commit
 // after a pass finds the log empty with its file far past the bound. A
 // transaction that spills into a copied log restarts it at once and, rolled
-// back, leaves it empty; only the next commit trims the file. A checkpointer
-// that took the empty pass as a copy to follow up passed again at once,
+// back, leaves it empty. Only the next commit trims the file. A checkpointer
+// that treats the empty pass as a copy to follow up passes again at once,
 // thousands of times a second, with no writer.
 func TestWALGapEmptyLogRests(t *testing.T) {
 	// Count the passes.
@@ -605,7 +606,7 @@ func TestWALGapEmptyLogRests(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Spill 4 MiB into the copied log, roll it back, and wake the
-	// checkpointer once; it should then wait.
+	// checkpointer once. The checkpointer should then wait.
 	write(4096, 1024, false)
 	common.WakeCheckpoint(db)
 	time.Sleep(200 * time.Millisecond)
@@ -620,7 +621,7 @@ func TestWALGapEmptyLogRests(t *testing.T) {
 // flow is bounded while small writers commit beside it. Passes held from
 // their start let each small writer commit once per walTurnHold, so with
 // enough of them every pass finds more than walGapFrames new frames, the gap
-// never closes, and the checkpointer never goes idle; the large commit's wait
+// never closes, and the checkpointer never goes idle. The large commit's wait
 // then ends once its frames are copied and walFlowWaitMax has passed.
 func TestWALGapSmallWritersBoundWait(t *testing.T) {
 	ctx := context.Background()

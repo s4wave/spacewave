@@ -31,7 +31,8 @@ func NewFSCursorGetterWithHandle(handle *FSHandle) *FSCursorGetter {
 	return NewFSCursorGetter(func(ctx context.Context) (FSCursor, error) {
 		if handle.CheckReleased() {
 			// return a different error from ErrReleased to avoid an infinite loop.
-			// we do not expect the handle to be released here, there is no way to get a new one.
+			// The handle is not expected to be released here, and no new handle
+			// can be obtained.
 			return nil, errors.Wrap(unixfs_errors.ErrReleased, "fs cursor getter handle")
 		}
 

@@ -21,7 +21,7 @@ type LookupWebPkg interface {
 // LookupWebPkgValue is the result of LookupWebPkg.
 type LookupWebPkgValue = WebPkg
 
-// lookupWebPkg implements LookupWebPkg
+// lookupWebPkg implements LookupWebPkg.
 type lookupWebPkg struct {
 	webPkgID string
 }
@@ -56,12 +56,12 @@ func (d *lookupWebPkg) Validate() error {
 	return nil
 }
 
-// GetValueLookupWebPkgOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupWebPkg) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
 
-// LookupWebPkg is the web pkg ID to lookup.
+// LookupWebPkgID is the web pkg ID to lookup.
 func (d *lookupWebPkg) LookupWebPkgID() string {
 	return d.webPkgID
 }
@@ -94,7 +94,7 @@ func (d *lookupWebPkg) GetName() string {
 	return "LookupWebPkg"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupWebPkg) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["web-pkg-id"] = []string{d.LookupWebPkgID()}

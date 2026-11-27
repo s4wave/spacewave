@@ -2,9 +2,9 @@ package world
 
 import "slices"
 
-// ChangeInterest is a ChangeFilter that also names the changes it may accept,
+// ChangeInterest is a ChangeFilter that also records the changes it may accept,
 // so a change feed can index its watcher by those names and test it only on a
-// change that names one of them. An interest without names, or one marked as
+// change that selects one of them. An interest without names, or one marked as
 // needing every change, is tested on every change. A change feed reads the
 // names once, when the watch starts, so a filter that may later accept other
 // changes must start a new watch.
@@ -16,16 +16,17 @@ type ChangeInterest struct {
 	keys []string
 	// terms are the changed quad fields the filter may accept.
 	terms []quadTerm
-	// all is set when the filter may accept a change naming none of them.
+	// all is set when the filter may accept a change referencing none of
+	// the keys or terms.
 	all bool
 	// shared are finished read sets whose changes the filter may accept, and
 	// does accept for every change touching an object key a set read. A
-	// change feed names each set once for all the watchers sharing it, so a
-	// watcher costs one entry per set, not one per key the set read.
+	// change feed indexes each set once for all the watchers sharing it, so
+	// a watcher costs one entry per set, not one per key the set read.
 	shared []*ReadSet
 }
 
-// quadField names one field of a graph quad.
+// quadField selects one field of a graph quad.
 type quadField uint8
 
 const (
@@ -48,15 +49,15 @@ type quadTerm struct {
 }
 
 // NewChangeInterest returns an interest that filters changes with filter and
-// names none of them, so a change feed tests it on every change.
+// records none of them, so a change feed tests it on every change.
 func NewChangeInterest(filter ChangeFilter) *ChangeInterest {
 	return &ChangeInterest{filter: filter, all: true}
 }
 
 // NewReadSetsInterest returns an interest in the changes that touch any of
 // sets, finished read sets. A ChangeIndex holds each set once for all the
-// watchers naming it, so watchers built from shared sets cost one entry per
-// set.
+// watchers referencing it, so watchers built from shared sets cost one entry
+// per set.
 func NewReadSetsInterest(sets ...*ReadSet) *ChangeInterest {
 	return &ChangeInterest{
 		filter: func(changes *ChangeSet) bool {

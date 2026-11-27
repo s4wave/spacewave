@@ -45,8 +45,8 @@ func NewFile(ctx context.Context, handle *unixfs.FSHandle, flag wazero_sys.Oflag
 	}
 }
 
-// Dev returns the device ID (Stat_t.Dev) of this file, zero if unknown or
-// an error retrieving it.
+// Dev returns the device ID (Stat_t.Dev) of this file, or zero if the ID is
+// unknown or an error occurs while retrieving the ID.
 //
 // # Errors
 //
@@ -56,13 +56,13 @@ func NewFile(ctx context.Context, handle *unixfs.FSHandle, flag wazero_sys.Oflag
 // # Notes
 //
 //   - Implementations should cache this result.
-//   - This combined with Ino can implement os.SameFile.
+//   - Dev combined with Ino can implement os.SameFile.
 func (f *File) Dev() (uint64, wazero_sys.Errno) {
 	return 0, 0
 }
 
-// Ino returns the serial number (Stat_t.Ino) of this file, zero if unknown
-// or an error retrieving it.
+// Ino returns the serial number (Stat_t.Ino) of this file, or zero if the
+// number is unknown or an error occurs while retrieving the number.
 //
 // # Errors
 //
@@ -72,13 +72,13 @@ func (f *File) Dev() (uint64, wazero_sys.Errno) {
 // # Notes
 //
 //   - Implementations should cache this result.
-//   - This combined with Dev can implement os.SameFile.
+//   - Ino combined with Dev can implement os.SameFile.
 func (f *File) Ino() (sys.Inode, wazero_sys.Errno) {
 	return 0, 0
 }
 
-// IsDir returns true if this file is a directory or an error there was an
-// error retrieving this information.
+// IsDir returns true if this file is a directory or an error if the
+// directory status could not be retrieved.
 //
 // # Errors
 //
@@ -123,7 +123,7 @@ func (f *File) IsAppend() bool {
 // # Notes
 //
 //   - There is no `O_APPEND` for `fcntl` in POSIX, so implementations may
-//     have to re-open the underlying file to apply this. See
+//     have to re-open the underlying file to apply append mode. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/open.html
 func (f *File) SetAppend(enable bool) wazero_sys.Errno {
 	// Enable append mode only for a regular UnixFS file.
@@ -175,7 +175,7 @@ func (f *File) SetAppend(enable bool) wazero_sys.Errno {
 //     See https://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html
 //   - A fs.FileInfo backed implementation sets atim, mtim and ctim to the
 //     same value.
-//   - Windows allows you to stat a closed directory.
+//   - Windows allows the caller to stat a closed directory.
 func (f *File) Stat() (sys.Stat_t, wazero_sys.Errno) {
 	if f.handle == nil {
 		return sys.Stat_t{}, wazero_sys.EBADF
@@ -306,14 +306,14 @@ func (f *File) Pread(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 //   - io.SeekStart: relative to the start of the file, e.g. offset=0 sets
 //     the next Read or Write to the beginning of the file.
 //   - io.SeekCurrent: relative to the current offset, e.g. offset=16 sets
-//     the next Read or Write 16 bytes past the prior.
+//     the next Read or Write 16 bytes past the prior offset.
 //   - io.SeekEnd: relative to the end of the file, e.g. offset=-1 sets the
 //     next Read or Write to the last byte in the file.
 //
 // # Behavior when a directory
 //
 // The only supported use case for a directory is seeking to `offset` zero
-// (`whence` = io.SeekStart). This should have the same behavior as
+// (`whence` = io.SeekStart). Seeking should have the same behavior as
 // os.File, which resets any internal state used by Readdir.
 //
 // # Errors
@@ -423,7 +423,8 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 	var entries []wazero_sys.Dirent
 	var currentIndex uint64 = 0
 
-	// Determine limit: if n <= 0, read all remaining entries; otherwise limit to n
+	// Determine the limit: if n <= 0, read all remaining entries.
+	// Otherwise, limit the entries to n.
 	var limit uint64
 	if n <= 0 {
 		limit = 0 // 0 means no limit in ReaddirAll
@@ -433,7 +434,7 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 
 	// Read child records from the current directory position.
 	err = f.handle.ReaddirAll(f.ctx, f.dirOffset, func(ent unixfs.FSCursorDirent) error {
-		// If we have a limit and reached it, stop
+		// If a limit is set and the entry count has reached the limit, stop
 		if limit > 0 && uint64(len(entries)) >= limit {
 			return context.Canceled // Stop iteration
 		}
@@ -642,7 +643,7 @@ func (f *File) Truncate(size int64) wazero_sys.Errno {
 //   - This is like syscall.Fsync and `fsync` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/fsync.html
 //   - This returns with no error instead of ENOSYS when
-//     unimplemented. This prevents fake filesystems from erring.
+//     unimplemented. Returning no error prevents fake filesystems from erring.
 func (f *File) Sync() wazero_sys.Errno {
 	if f.handle == nil {
 		return wazero_sys.EBADF
@@ -665,8 +666,8 @@ func (f *File) Sync() wazero_sys.Errno {
 //   - This is like syscall.Fdatasync and `fdatasync` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/fdatasync.html
 //   - This returns with no error instead of ENOSYS when
-//     unimplemented. This prevents fake filesystems from erring.
-//   - As this is commonly missing, some implementations dispatch to Sync.
+//     unimplemented. Returning no error prevents fake filesystems from erring.
+//   - As Datasync is commonly missing, some implementations dispatch to Sync.
 func (f *File) Datasync() wazero_sys.Errno {
 	return f.Sync()
 }
@@ -677,8 +678,8 @@ func (f *File) Datasync() wazero_sys.Errno {
 // # Parameters
 //
 // The `atim` and `mtim` parameters refer to access and modification time
-// stamps as defined in sys.Stat_t. To retain one or the other, substitute
-// it with the pseudo-timestamp UTIME_OMIT.
+// stamps as defined in sys.Stat_t. To retain either timestamp, substitute
+// that timestamp with the pseudo-timestamp UTIME_OMIT.
 //
 // # Errors
 //

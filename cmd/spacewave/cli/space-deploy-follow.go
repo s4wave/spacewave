@@ -14,9 +14,9 @@ import (
 )
 
 // swapWaitingNextStep says how a swap of pluginID waiting on the running
-// worker ends. The listing cannot name the host kind: js plugins run both in
-// browser workers and in the desktop quickjs host. A worker that never answers
-// nor exits stays until the plugin is restarted.
+// worker ends. The listing cannot identify the host kind: js plugins run both
+// in browser workers and in the desktop quickjs host. A worker that never
+// answers nor exits stays until the plugin is restarted.
 func swapWaitingNextStep(pluginID string) string {
 	return "it swaps when the worker answers or exits (a browser worker exits when its page reloads);" +
 		" if it does neither, run spacewave plugin restart " + pluginID
@@ -55,13 +55,13 @@ type deployState struct {
 // listing's manifest refs by root block, since the Space stores the deployed
 // blocks under the same refs.
 type deployedSet struct {
-	// manifestID is the plugin the set deploys.
+	// manifestID is the ID of the plugin the set deploys.
 	manifestID string
 	// refs are the deployed manifests, one per platform.
 	refs []*bldr_manifest.ManifestRef
 }
 
-// holds reports whether the listing ref names one of the deployed manifests.
+// holds reports whether the listing ref selects one of the deployed manifests.
 func (d *deployedSet) holds(ref string) bool {
 	objRef, err := bucket.ParseObjectRef(ref)
 	if err != nil || objRef == nil {
@@ -113,7 +113,7 @@ func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *ti
 		return deployState{outcome: deployLive, line: rev(p.GetRunningManifestRev()) + " live"}
 	}
 
-	// A swap toward a deployed manifest names what it waits on.
+	// A swap toward a deployed manifest reports what it waits on.
 	swap := p.GetSwap()
 	if st := swap.GetFailed(); st != nil && set.holds(st.GetCandidateManifestRef()) {
 		failed := rev(st.GetCandidateManifestRev()) + " failed at " + clock(st.GetFailedAt()) + ": " + st.GetErrorMessage()
@@ -168,7 +168,7 @@ func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *ti
 	}
 }
 
-// warnDeployOverlap names what the listing held before the deploy that makes
+// warnDeployOverlap reports what the listing held before the deploy that makes
 // the deploy change nothing: the deployed manifest already running, or another
 // build of a deployed rev already selected, which an equal rev may not replace.
 func warnDeployOverlap(w io.Writer, p *s4wave_space.SpacePluginStatus, set *deployedSet) {
@@ -190,7 +190,8 @@ func warnDeployOverlap(w io.Writer, p *s4wave_space.SpacePluginStatus, set *depl
 // manifest runs, or with the add step when the space does not list the
 // plugin, since the selection is written. When the swap fails with no retry,
 // or recv stops because ctx ended (errDeployWaitPassed as its cause for the
-// deadline) or the stream broke, it prints the last state and its next step and returns an error.
+// deadline) or the stream broke, followDeploy prints the last state and its
+// next step and returns an error.
 func followDeploy(
 	ctx context.Context,
 	w io.Writer,

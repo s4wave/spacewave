@@ -13,7 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// KeySide names the end of an edge a KeyIndex keys by.
+// KeySide selects the end of an edge a KeyIndex keys by.
 type KeySide uint8
 
 const (
@@ -60,7 +60,7 @@ type KeyIndex struct {
 	// set is the latest published set, nil until the first build ends.
 	set atomic.Pointer[keySet]
 	// first ends when the first set is published, for a caller that waits
-	// for the first build; Absent does not.
+	// for the first build. Absent does not wait for the first build.
 	first chan struct{}
 	// running is set while the index's one worker builds or patches it.
 	running atomic.Bool
@@ -108,7 +108,7 @@ func (c *Cache) KeyIndex(predicate string, side KeySide) *KeyIndex {
 	return index
 }
 
-// keyIndexID names one KeyIndex of a cache.
+// keyIndexID identifies one KeyIndex of a cache.
 type keyIndexID struct {
 	predicate string
 	side      KeySide
@@ -187,7 +187,7 @@ func (k *KeyIndex) edges(key string) world.GraphQuad {
 	return world.NewGraphQuadWithKeys(key, k.filter.GetPredicate(), "", "")
 }
 
-// edgeKey returns the key an edge names on the index's side.
+// edgeKey returns the key an edge holds on the index's side.
 func (k *KeyIndex) edgeKey(q world.GraphQuad) (string, error) {
 	if k.side == KeyObject {
 		return iriKey(q.GetObj())
@@ -208,7 +208,7 @@ func (k *KeyIndex) kick() {
 // out of time, as one waiting on a throttled store does, runs again after a
 // backoff that doubles from keyIndexRetryFirst to keyIndexRetryMax. Any other
 // failure ends the run without retrying, so a lasting error, such as a
-// closing engine, never loops hot; the next catch-up starts it again.
+// closing engine, never loops hot. The next catch-up starts it again.
 func (k *KeyIndex) run() {
 	wait := keyIndexRetryFirst
 	for {
@@ -230,15 +230,16 @@ func (k *KeyIndex) run() {
 			// Wait out the slow store, then pass again.
 			le.WithField("wait", wait.String()).Debug("key index pass ran out of time, retrying")
 			k.pending.Store(true)
-			// The wait backs off a slow store; it polls no state.
+			// The wait backs off a slow store. It polls no state.
 			//gostyle:timer deadline
 			time.Sleep(wait)
 			wait = min(2*wait, keyIndexRetryMax)
 		}
 		k.running.Store(false)
 
-		// A kick between the last check and the store above found the worker
-		// still marked and started none; take it up here.
+		// A kick between the last check and the store above found the
+		// worker still marked and started none. Take up the pending
+		// kick here.
 		if !k.pending.Load() || !k.running.CompareAndSwap(false, true) {
 			return
 		}
@@ -247,9 +248,9 @@ func (k *KeyIndex) run() {
 
 // pass patches the published set from the changes the cache passed since its
 // label, or builds it from one lookup of the predicate when there is no set or
-// the cache's history no longer names those changes.
+// the cache's history no longer records those changes.
 func (k *KeyIndex) pass(ctx context.Context) error {
-	// Build without a set or with changes the history no longer names.
+	// Build without a set or with changes the history no longer records.
 	set := k.set.Load()
 	if set == nil {
 		return k.build(ctx)
@@ -324,7 +325,7 @@ func (k *KeyIndex) build(ctx context.Context) error {
 		return err
 	}
 
-	// List the keys every edge of the predicate names on the index's side.
+	// List the keys every edge of the predicate holds on the index's side.
 	edges, err := tx.LookupGraphQuads(ctx, k.filter, 0)
 	if err != nil {
 		return err

@@ -28,7 +28,7 @@ type BuildChannelSubscription interface {
 // The value is removed and replaced when necessary.
 type BuildChannelSubscriptionValue = Subscription
 
-// buildChannelSubscription implements BuildChannelSubscription
+// buildChannelSubscription implements BuildChannelSubscription.
 type buildChannelSubscription struct {
 	channelID string
 	privKey   crypto.PrivKey
@@ -62,7 +62,7 @@ func ExBuildChannelSubscription(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// This validation is cursory and checks if the values "look correct."
 func (d *buildChannelSubscription) Validate() error {
 	if d.channelID == "" {
 		return errors.New("channel id cannot be empty")
@@ -74,7 +74,7 @@ func (d *buildChannelSubscription) Validate() error {
 	return nil
 }
 
-// GetValueBuildChannelSubscriptionOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *buildChannelSubscription) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -98,7 +98,8 @@ func (d *buildChannelSubscription) BuildChannelSubscriptionPrivKey() crypto.Priv
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *buildChannelSubscription) IsEquivalent(other directive.Directive) bool {
-	// Note: for ChannelSubscription, we want a unique handle for each directive.
+	// Note: ChannelSubscription requires a unique handle for each
+	// directive.
 	return false
 
 	/* If we wanted to de-duplicate (can't due to Release()):
@@ -119,14 +120,15 @@ func (d *buildChannelSubscription) Superceeds(other directive.Directive) bool {
 }
 
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
+// The name is not necessarily unique, and is primarily intended for display.
 func (d *buildChannelSubscription) GetName() string {
 	return "BuildChannelSubscription"
 }
 
 // GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// The arguments are not necessarily unique, and are primarily intended for
+// display.
 func (d *buildChannelSubscription) GetDebugVals() directive.DebugValues {
 	// Describe the subscription channel and signing peer for diagnostics.
 	vals := directive.DebugValues{}

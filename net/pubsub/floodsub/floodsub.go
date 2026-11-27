@@ -20,7 +20,7 @@ import (
 )
 
 // maxMessageSize constrains the message buffer allocation size.
-// currently set to 2MB
+// Set to 2MB.
 const maxMessageSize = 2000000
 
 const (
@@ -31,15 +31,15 @@ const (
 //
 // TODO bind to a specific peer
 type FloodSub struct {
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// handler is the pubsub handler
+	// handler is the pubsub handler.
 	handler pubsub.PubSubHandler
-	// wakeCh wakes the execute loop
+	// wakeCh wakes the execute loop.
 	wakeCh chan struct{}
-	// publishCh is for publishing messages
+	// publishCh is for publishing messages.
 	publishCh chan *publishChMsg
 	// seenMessages tracks recently seen message IDs until their expiry.
 	// guarded by mtx
@@ -48,13 +48,14 @@ type FloodSub struct {
 	// peerChanges wakes subscription-readiness consumers under mtx.
 	peerChanges broadcast.Broadcast
 	mtx         sync.Mutex
-	// peers are the complete set of executing remote peer streams that we can
-	// use to contact next-hop peers. this is the "working set" of peers.
+	// peers are the complete set of executing remote peer streams that
+	// FloodSub can use to contact next-hop peers. The set is the
+	// "working set" of peers.
 	peers map[pubsub.PeerLinkTuple]*streamHandler
 	// channels are active local channel subscriptions.
 	// key: channel ID
 	channels map[string]map[*subscription]struct{}
-	// peerChannels tracks which topics each peer is subscribed to
+	// peerChannels tracks which topics each peer is subscribed to.
 	peerChannels map[string]map[pubsub.PeerLinkTuple]struct{}
 
 	// incSessions are sessions that were just added and haven't been executed yet.
@@ -62,7 +63,7 @@ type FloodSub struct {
 	incSessions []*streamHandler
 }
 
-// publishChMsg is a message queued for publishing
+// publishChMsg is a message queued for publishing.
 type publishChMsg struct {
 	msg         *peer.SignedMsg
 	prevHopPeer peer.ID
@@ -184,7 +185,8 @@ func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{},
 	}
 	m.incSessions = nil
 
-	// Retain only the final desired state for each peer; no peer queue is awaited.
+	// Retain only the final desired state for each peer.
+	// No peer queue is awaited.
 	var changes []*SubscriptionOpts
 	for id, refs := range m.channels {
 		_, announced := published[id]
@@ -231,7 +233,7 @@ func (m *FloodSub) expireSeen(now time.Time) time.Time {
 	return next
 }
 
-// execPublish executes publishing a message
+// execPublish publishes a message.
 func (m *FloodSub) execPublish(prevHopPeerID peer.ID, pubMsg *publishChMsg) {
 	// Prepare the publication packet and identify its channel and origin.
 	pkt := &Packet{
@@ -462,7 +464,7 @@ func (m *FloodSub) handleValidMessage(
 	}
 }
 
-// wake wakes the controller
+// wake wakes the controller.
 func (m *FloodSub) wake() {
 	select {
 	case m.wakeCh <- struct{}{}:

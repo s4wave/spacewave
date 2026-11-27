@@ -153,7 +153,7 @@ describe('useCanvasSelection', () => {
     expect(result.current.dragRect?.endX).toBe(200)
     expect(result.current.dragRect?.endY).toBe(200)
 
-    // End drag rect - should select "inside" but not "outside".
+    // End drag rect: the selection should include "inside" but not "outside".
     act(() => {
       result.current.endDragRect(nodes, 0, 0, 1)
     })

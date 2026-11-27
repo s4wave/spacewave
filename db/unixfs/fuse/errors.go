@@ -10,8 +10,8 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
-// UnixfsErrorToSyscall converts a unixfs error to a syscall error
-// returns EIO if the error is not recognized
+// UnixfsErrorToSyscall converts a unixfs error to a syscall error.
+// Returns EIO if the error is not recognized.
 func UnixfsErrorToSyscall(err error) error {
 	switch err {
 	case context.Canceled:

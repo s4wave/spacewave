@@ -12,7 +12,8 @@ type Provider interface {
 	GetProviderInfo() *ProviderInfo
 
 	// AccessProviderAccount accesses a provider account.
-	// If accountID is empty, it will use the default or prompt the user.
+	// If accountID is empty, it will use the default account or prompt the
+	// user.
 	// Released may be nil.
 	AccessProviderAccount(
 		ctx context.Context,

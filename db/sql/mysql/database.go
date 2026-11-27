@@ -19,7 +19,7 @@ type Database struct {
 	root     *DatabaseRoot
 	nsbs     *namedsbset.NamedSubBlockSet
 
-	// tbls contains table instances in memory
+	// tbls contains table instances in memory.
 	tbls map[string]*Table
 }
 
@@ -102,7 +102,7 @@ func (d *Database) GetTableInsensitive(ctx *sql.Context, tblName string) (sql.Ta
 	return ttbl, true, nil
 }
 
-// GetTableNames returns the table names of every table in the database
+// GetTableNames returns the table names of every table in the database.
 func (d *Database) GetTableNames(ctx *sql.Context) ([]string, error) {
 	tables := d.root.GetTables()
 	names := make([]string, len(tables))

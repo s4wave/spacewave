@@ -12,7 +12,7 @@ import (
 const ReadsPredicate = "<alarm/reads>"
 
 // SetReads makes the Alarm key's reads edges point at exactly keys. Each key
-// must exist; an edge to a deleted object leaves with the object.
+// must exist. An edge to a deleted object leaves with the object.
 func SetReads(ctx context.Context, ws world.WorldState, key string, keys []string) error {
 	// Read the current edges.
 	found, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, ReadsPredicate, "", ""), 0)

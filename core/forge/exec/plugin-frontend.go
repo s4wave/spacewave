@@ -29,7 +29,7 @@ import (
 )
 
 // PluginFrontend retains the compiler while its authoring Watch is open.
-// Fetch and Send borrow that lifetime; ending Watch ends the execution grant.
+// Fetch and Send borrow that lifetime. Ending Watch ends the execution grant.
 type PluginFrontend struct {
 	// service owns compiler state and the Vite transport.
 	service frontend.SRPCFrontendServer

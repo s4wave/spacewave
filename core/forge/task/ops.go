@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Validate performs cursory validation of the operation.
+// Validate cursorily validates the operation.
 func (o *ForgeTaskCreateOp) Validate() error {
 	if o.GetTaskKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "task_key")
@@ -37,7 +37,8 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 	jobKey := o.GetJobKey()
 	var placement *forge_worker.Placement
 
-	// If a job key is provided, verify it exists and can be decoded as a Job.
+	// If a job key is provided, verify the job exists and can be decoded
+	// as a Job.
 	if jobKey != "" {
 		job, err := forge_job.LookupJobBody(ctx, ws, jobKey)
 		if err != nil {
@@ -58,7 +59,7 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Link to job if provided.
+	// Link the task to the job if provided.
 	if jobKey != "" {
 		if err := world_parent.SetObjectParent(ctx, ws, taskKey, jobKey, false); err != nil {
 			return false, err

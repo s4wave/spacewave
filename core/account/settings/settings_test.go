@@ -429,7 +429,8 @@ func TestEntityKeypairCRUD(t *testing.T) {
 		return len(s.GetEntityKeypairs()) == 2
 	})
 
-	// Add duplicate (same peer_id) - should deduplicate.
+	// Add a duplicate keypair (same peer_id). Expect the operation to
+	// deduplicate the keypair.
 	addOp3 := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
 			AddEntityKeypair: &session.EntityKeypair{

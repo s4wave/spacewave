@@ -41,7 +41,7 @@ export const SqlTransactionRequest: MessageType<SqlTransactionRequest> =
  */
 export interface SqlTransactionInit {
   /**
-   * Write indicates if this should be a write transaction.
+   * Write indicates if the transaction should be a write transaction.
    */
   write?: boolean
   /**

@@ -37,7 +37,7 @@ type scaleCost struct {
 	reads, steps, writes, allocs float64
 }
 
-// scaleObject, scaleHub and the predicates name the seeded values.
+// scaleObject identifies a seeded value, as do scaleHub and the predicates.
 func scaleObject(i int) quad.Value { return quad.IRI("object/" + strconv.Itoa(i)) }
 func scaleHub(i int) quad.Value    { return quad.IRI("type/" + strconv.Itoa(i%scaleHubs)) }
 
@@ -139,8 +139,8 @@ func (g *scaleGraph) page(ctx context.Context, origin, pred quad.Value, dir quad
 
 // TestScaling runs each graph entry point of the World's cost table on a graph
 // of n objects and one of 10n and checks that a call's key reads, steps and
-// writes are the same on both, and its allocations near equal: each follows
-// the call's own quads and results, never the graph.
+// writes are the same on both, and its allocations are near equal: each
+// follows the call's own quads and results, never the graph.
 func TestScaling(t *testing.T) {
 	ctx := t.Context()
 	graphs := [2]*scaleGraph{newScaleGraph(t, scaleObjects), newScaleGraph(t, 10*scaleObjects)}

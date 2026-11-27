@@ -33,7 +33,7 @@ type FriendDmOpenResult struct {
 }
 
 // OpenFriendDM authorizes, creates, or opens the canonical friend DM Space.
-// Only the Cloud-selected account owner mutates participant grants; every
+// Only the Cloud-selected account owner mutates participant grants. Every
 // authenticated writer or owner ensures the deterministic channel.
 func (a *ProviderAccount) OpenFriendDM(
 	ctx context.Context,

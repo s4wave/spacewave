@@ -58,9 +58,9 @@ func (h *Handle) Read(
 }
 
 // Write writes req.Data at req.Offset. A small write may return before it
-// commits; Flush and Fsync commit it.
+// commits. Flush and Fsync commit the write.
 //
-// TODO O_APPEND: ensure data always is appended to file
+// TODO O_APPEND: ensure data always is appended to file.
 func (h *Handle) Write(
 	ctx context.Context,
 	req *fuse.WriteRequest,

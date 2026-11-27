@@ -25,8 +25,8 @@ func (w *writer) backLog(first, span uint64) error {
 	return backLog(w.db.s, first, span)
 }
 
-// reclaims reports whether r may spend the standby without replacing it
-// first. Free batches are bounded; a quiet mark or deletion can establish the
+// reclaims reports whether r may spend the standby without replacing it first.
+// Free batches are bounded. A quiet mark or deletion can establish the
 // durability and unreachability needed to reclaim more chunks on a full disk.
 func (r *record) reclaims() bool {
 	if r.kind == kindFree || r.kind == kindSealed || r.kind == kindTruncate {
@@ -43,11 +43,11 @@ func (r *record) reclaims() bool {
 	return true
 }
 
-// placeLog places r and an optional link in next, derived from base, and
-// fills r's header with this writer's identity and durable mark. Ordinary
-// records retain a fully backed standby. A bounded reclaim record may consume
-// that standby without allocating; the first subsequent ordinary record
-// replaces it from the newly reusable space before publishing any work.
+// placeLog places r and an optional link in next, derived from base, and fills
+// r's header with this writer's identity and durable mark. Ordinary records
+// retain a fully backed standby. A bounded reclaim record may consume that
+// standby without allocating. The first subsequent ordinary record replaces it
+// from the newly reusable space before publishing any work.
 func (w *writer) placeLog(base, next *state, r *record, durable uint64) (uint64, []byte, error) {
 	// Select the next extent, consuming the standby only for a single chunk.
 	pos, prev, spare := base.pos, base.crc, base.spare

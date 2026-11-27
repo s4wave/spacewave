@@ -26,7 +26,7 @@ export interface Config {
   folder?: string
   /**
    * Path is the path in the Drive the folder links to, with its parts
-   * separated by slashes; empty links the folder at the Drive's root.
+   * separated by slashes. An empty Path links the folder at the Drive's root.
    */
   path?: string
   /**

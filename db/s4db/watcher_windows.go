@@ -42,8 +42,8 @@ func newFileWatcher(f *os.File, _ string, slot int, _ bool) (*fileWatcher, error
 	}
 
 	// Create this slot's event and the stop event. A slot's event may
-	// outlive an earlier holder through other processes' handles; it is
-	// auto-reset, so a stale signal costs one empty tail.
+	// outlive an earlier holder through other processes' handles. The event
+	// is auto-reset, so a stale signal costs one empty tail.
 	name, err := windows.UTF16PtrFromString(w.name(slot))
 	if err != nil {
 		return nil, err

@@ -36,7 +36,7 @@ import (
 // TestReplicaMovesOwnershipOverAndBack places a replica pair in a Flowgraph
 // on two accounts of one provider, each run by its Device's reconciler.
 // Ownership moves to the desired owner after it proves its copy of the World,
-// and moves back once the Flowgraph names the first node again.
+// and moves back once the Flowgraph selects the first node again.
 func TestReplicaMovesOwnershipOverAndBack(t *testing.T) {
 	// Bound the run.
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
@@ -49,7 +49,8 @@ func TestReplicaMovesOwnershipOverAndBack(t *testing.T) {
 	b, bSession := setupAccount(ctx, t, tb)
 	aPeer, bPeer := aSession.GetPeerId().String(), bSession.GetPeerId().String()
 
-	// A owns a Space holding one object, which B must copy before it owns.
+	// A owns a Space holding one object, which B must copy before B owns
+	// the Space.
 	ref, err := a.CreateSharedObject(ctx, "replica-space", mustSpaceMeta(t), "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +140,8 @@ func setupAccount(ctx context.Context, t *testing.T, tb *testbed.Testbed) (*prov
 	return acc, session
 }
 
-// The keys of the Flowgraph World's objects.
+// flowgraphKey, deviceAKey and deviceBKey are the Flowgraph World's object
+// keys.
 const (
 	// flowgraphKey is the Flowgraph placing the replica pair.
 	flowgraphKey = "flowgraph/replica"
@@ -253,8 +255,8 @@ func commit(ctx context.Context, t *testing.T, engine world.Engine, fn func(tx w
 	}
 }
 
-// waitOwner waits until acc lists id and its config names owner as an owner
-// and no longer names departed.
+// waitOwner waits until acc lists id and its config lists owner as an owner
+// and no longer lists departed.
 func waitOwner(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, id, owner, departed string) {
 	// Mount the listed SharedObject.
 	t.Helper()

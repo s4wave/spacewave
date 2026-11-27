@@ -14,8 +14,9 @@ import {
 import { channelPacketStream } from './channel-packet-stream.js'
 
 // CrossTabChannelStreamOpts configures ChannelStreams for cross-tab channels.
-// Cross-tab peers already have explicit broker lifecycle messages; leave idle
-// watchdogs disabled so background throttling does not tear down quiet streams.
+// Cross-tab peers already have explicit broker lifecycle messages, so leave
+// idle watchdogs disabled so background throttling does not tear down quiet
+// streams.
 const CrossTabChannelStreamOpts: ChannelStreamOpts = {}
 
 type CreateCrossTabStream = (localId: string, port: MessagePort) => PacketStream

@@ -16,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Graph predicates linking a WasiVmPackage to its layers and dependencies, and
+// Graph predicates link a WasiVmPackage to its layers and dependencies, and
 // a WasiVmImage to the packages it asks for.
 var (
 	// PredWasiVmPackageRuntime links a package to its runtime layer.
@@ -30,8 +30,8 @@ var (
 )
 
 // WasiVmPackageKey returns the object key of a package version, such as
-// wasivm-pkg/app-editors/nano/9.2-r1. Its layers live under it at runtime and
-// dev.
+// wasivm-pkg/app-editors/nano/9.2-r1. The package's layers live under the
+// package key at runtime and dev.
 func WasiVmPackageKey(name, version string) string {
 	return "wasivm-pkg/" + name + "/" + version
 }
@@ -151,8 +151,8 @@ func ResolveWasiVmPackages(ctx context.Context, ws world.WorldStateGraph, keys [
 	return plan, nil
 }
 
-// lookupEdgeTargets returns the object keys every edge from subject with the
-// predicate targets, sorted.
+// lookupEdgeTargets returns the sorted object keys targeted by every edge
+// from subject with the predicate.
 func lookupEdgeTargets(ctx context.Context, ws world.WorldStateGraph, subject, pred string) ([]string, error) {
 	// Read the edges and parse their targets.
 	gqs, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(subject, pred, "", ""), 0)

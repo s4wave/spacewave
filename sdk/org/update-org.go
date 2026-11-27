@@ -101,7 +101,7 @@ func generateInvite(op *CreateOrgInviteOp) (*OrgInvite, error) {
 		token = hex.EncodeToString(b)
 	}
 
-	// Generate invite ID from timestamp
+	// Generate the invite ID from the timestamp.
 	id := strconv.FormatInt(time.Now().UnixNano(), 36)
 
 	return &OrgInvite{
@@ -126,7 +126,7 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 		return world.NewOpRefusedError(errors.New("account_id is required"))
 	}
 
-	// Check if already a member.
+	// Check if the account is already a member.
 	for _, m := range state.Members {
 		if m.GetAccountId() == accountID {
 			return world.NewOpRefusedError(errors.New("already a member"))
@@ -161,7 +161,7 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 	// Increment uses.
 	invite.Uses++
 
-	// Add as member.
+	// Add the account as a member.
 	joinedAt := join.GetTimestamp()
 	if joinedAt == nil {
 		joinedAt = timestamppb.Now()

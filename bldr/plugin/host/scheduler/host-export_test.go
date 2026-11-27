@@ -199,11 +199,11 @@ func TestExecPluginOnExportedHost(t *testing.T) {
 // host's worker does, then serves Echo until its execution stops.
 type exportTestPluginHost struct {
 	testPluginHost
-	// b is the distribution bus where plugin files are published
+	// b is the distribution bus where plugin files are published.
 	b bus.Bus
-	// started closes once entrypoint or err is set
+	// started closes once entrypoint or err is set.
 	started chan struct{}
-	// stopped closes when the execution returns
+	// stopped closes when the execution returns.
 	stopped chan struct{}
 
 	entrypoint []byte

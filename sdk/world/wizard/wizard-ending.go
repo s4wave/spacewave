@@ -15,8 +15,8 @@ import (
 // every wizard ending as an outgoing quad.
 const WizardEndingsObjectKey = "wizard-endings"
 
-// WizardEndingPredicatePrefix prefixes the predicate of a wizard ending quad;
-// the wizard's key follows it.
+// WizardEndingPredicatePrefix prefixes the predicate of a wizard ending quad.
+// The wizard's key follows the prefix.
 const WizardEndingPredicatePrefix = "wizard/ended/"
 
 // WizardEndingPredicate returns the predicate IRI of the ending quad for the
@@ -81,7 +81,7 @@ func (o *RecordWizardEndingOp) Validate() error {
 //
 // The ending lives exactly as long as both of these hold:
 //   - its target exists: deleting the target, on any path, deletes every quad
-//     naming it, this one included;
+//     referencing it, this one included;
 //   - no wizard was created at KEY since: CreateWizardObjectOp clears the
 //     ending, so a reused key, such as wizard/git-repo-1, never reads as
 //     finished by an earlier wizard.
@@ -90,7 +90,7 @@ func (o *RecordWizardEndingOp) Validate() error {
 // unique (timestamped quickstart and VM keys), so endings are quads on one
 // object per Space rather than an object per Finish, which nothing would
 // delete. A target that does not exist records no ending, rather than failing
-// the Finish over its bookkeeping; such a wizard reads as deleted.
+// the Finish over its bookkeeping. Such a wizard reads as deleted.
 func (o *RecordWizardEndingOp) ApplyWorldOp(
 	ctx context.Context,
 	le *logrus.Entry,

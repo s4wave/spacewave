@@ -17,7 +17,7 @@ type LookupRpcServiceResolver struct {
 // NewLookupRpcServiceResolver constructs the directive resolver.
 //
 // if waitAck is set, waits for ack from the remote before starting the proxied rpc.
-// note: usually you do not need waitAck set to true.
+// note: usually the caller does not need waitAck set to true.
 func NewLookupRpcServiceResolver(
 	dir bifrost_rpc.LookupRpcService,
 	svc AccessClientFunc,
@@ -29,8 +29,9 @@ func NewLookupRpcServiceResolver(
 // Resolve resolves the values, emitting them to the handler.
 //
 // Each client gets its own lookup context. The client released callback
-// cancels that context, which ends the lookup stream and acquires the next
-// client. A late callback from an earlier client cancels only its own context.
+// cancels that context, ending the lookup stream so the resolver acquires
+// the next client. A late callback from an earlier client cancels only its own
+// context.
 func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Build the service lookup request and clear published invokers on exit.
 	req := RequestFromDirective(r.dir)
@@ -70,7 +71,8 @@ func (r *LookupRpcServiceResolver) resolveClient(
 		defer relClient()
 	}
 
-	// Open the lookup stream. A released client acquires the next one.
+	// Open the lookup stream. After release, the resolver acquires the next
+	// client.
 	strm, err := client.LookupRpcService(ctx, req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -111,11 +113,11 @@ func (r *LookupRpcServiceResolver) resolveClient(
 // relay it, or disposed it.
 //
 // The remote then offers no service, so the resolver publishes none and is
-// idle until the client is released, when it acquires the next one. Neither a
-// failure nor an immediate reopen fits: the bus holds a lookup open until
-// every resolver is idle and fails it on any resolver error, so either one
-// would let a remote that serves nothing hold or fail a lookup that another
-// resolver answers.
+// idle until the client is released, when the resolver acquires the next
+// client. Neither a failure nor an immediate reopen fits: the bus holds a
+// lookup open until every resolver is idle and fails it on any resolver error,
+// so either one would let a remote that serves nothing hold or fail a lookup
+// that another resolver answers.
 func (r *LookupRpcServiceResolver) remoteLookupEnded(ctx context.Context, handler directive.ResolverHandler) error {
 	handler.ClearValues()
 	handler.MarkIdle(true)

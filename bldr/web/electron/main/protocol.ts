@@ -92,7 +92,7 @@ export async function appRequestHandler(
       await electron.net.fetch(url.pathToFileURL(filePath).toString()),
     )
   } catch (err) {
-    // TODO: We know that .map files are not being fetched properly.
+    // TODO: .map files are not being fetched properly.
     // https://issues.chromium.org/issues/40765087
     // supersedes: https://issues.chromium.org/issues/41486524#comment4
     if (filePath.endsWith('.map')) {
@@ -108,8 +108,8 @@ export async function appRequestHandler(
     }
 
     // SPA fallback: if the file doesn't exist and it's not a source map,
-    // redirect to the correct base URL. This catches accidental navigations
-    // to paths like app://index.html/feed.xml in a hash-routed SPA.
+    // redirect to the correct base URL. This redirect catches accidental
+    // navigations to paths like app://index.html/feed.xml in a hash-routed SPA.
     const docId = reqUrl.searchParams.get('webDocumentId')
     let baseUrl = `${APP_SCHEME}://index.html`
     if (docId) {

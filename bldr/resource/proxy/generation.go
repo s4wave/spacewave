@@ -75,7 +75,7 @@ func (b *binding) place(ch *child, up uint32) {
 
 // replay is a call the proxy sends again on each new upstream.
 type replay struct {
-	// service and method name the call.
+	// service and method identify the call.
 	service, method string
 	// packets are the srpc packets the client sent.
 	packets [][]byte
@@ -123,11 +123,11 @@ func (g *generation) serveControls() error {
 }
 
 // control applies one Adopt or Release. On a binding it goes upstream with the
-// upstream's IDs; without one there is no upstream resource to change, so the
-// proxy acknowledges it at once and the next binding adopts what the client
-// holds.
+// upstream's IDs. Without a binding there is no upstream resource to change,
+// so the proxy acknowledges the control at once and the next binding adopts
+// what the client holds.
 func (g *generation) control(req *resource.ResourceClientRequest) error {
-	// Read the resource the control names.
+	// Read the resource the control identifies.
 	var id uint32
 	var adopt bool
 	switch body := req.GetBody().(type) {
@@ -143,7 +143,7 @@ func (g *generation) control(req *resource.ResourceClientRequest) error {
 	locked := g.bcast.Lock()
 	defer locked.Unlock()
 
-	// Map the resource to the binding's.
+	// Map the resource to the binding's resource ID.
 	b := g.bound
 	var up uint32
 	switch ch := g.childLocked(id); {
@@ -169,8 +169,8 @@ func (g *generation) control(req *resource.ResourceClientRequest) error {
 		return err
 	}
 
-	// Send it upstream. A failed send is the upstream's loss, which
-	// acknowledges the control.
+	// Send the control upstream. A failed send loses the upstream, so the
+	// control is acknowledged.
 	g.sendLocked(b, req.GetControlId(), up, adopt)
 	return nil
 }
@@ -196,7 +196,7 @@ func (g *generation) sendLocked(b *binding, id, up uint32, adopt bool) {
 // keepBound binds the generation to each upstream in turn.
 func (g *generation) keepBound() error {
 	for {
-		// Bind to the live upstream; a failed bind loses it.
+		// Bind to the live upstream. A failed bind loses the upstream.
 		up, err := g.p.waitUpstream(g.ctx)
 		if err != nil {
 			return err
@@ -286,7 +286,7 @@ func (g *generation) bind(up *upstream) (*binding, error) {
 // rebind opens each child again on b, parents first, and publishes b once
 // every live child is on it. A child whose call the upstream refuses is
 // released, and so are its children. It returns the upstream's transport
-// failure; the children already moved open again on the next binding.
+// failure. The children already moved open again on the next binding.
 func (g *generation) rebind(ctx context.Context, b *binding) error {
 	// Take the live children in the order they were opened. No child opens
 	// while the generation is unbound, so the list is complete.
@@ -312,7 +312,7 @@ func (g *generation) rebind(ctx context.Context, b *binding) error {
 
 // rebindChild opens ch again on b beneath its parent, which is already on b.
 // A child whose parent is gone is released, and so is one the upstream
-// refuses. It returns the upstream's transport failure.
+// refuses. rebindChild returns the upstream's transport failure.
 func (g *generation) rebindChild(ctx context.Context, b *binding, ch *child) error {
 	// Find the parent's ID on b, or release a child whose parent is gone.
 	var parent uint32
@@ -389,7 +389,8 @@ func (g *generation) forward(b *binding) error {
 				return err
 			}
 		case *resource.ResourceClientResponse_ResourceReleased:
-			// A released root ends the binding; a released child is gone.
+			// A released root ends the binding.
+			// A released child is gone.
 			id := body.ResourceReleased.GetResourceId()
 			if id == b.root {
 				return errors.New("upstream released the root")
@@ -433,7 +434,7 @@ func (g *generation) ackLocked(id uint32) error {
 
 // open opens a route to the root, or to child ch, on the generation's binding,
 // waiting while the generation binds. A refused root means the upstream ended
-// the binding; a refused child is released, and its release follows.
+// the binding. A refused child is released, and its release follows.
 func (g *generation) open(ctx context.Context, ch *child) (resource.SRPCResourceService_ResourceRpcClient, *binding, error) {
 	var stale *binding
 	for {
@@ -506,7 +507,7 @@ func (g *generation) record(r replay) {
 
 // replayCall sends r to target on service, waits for its result and returns
 // its last message. A refusal returns errReplayFailed, and a refused route
-// its ResourceFailure; a transport failure returns its own error, so the
+// its ResourceFailure. A transport failure returns its own error, so the
 // caller tries the next upstream.
 func replayCall(ctx context.Context, service resource.SRPCResourceServiceClient, target uint32, r replay) ([]byte, error) {
 	// Open the route and send the call as the client sent it.

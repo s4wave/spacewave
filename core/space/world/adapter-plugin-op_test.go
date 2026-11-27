@@ -207,7 +207,7 @@ func runPluginOpThrough(t *testing.T) {
 // before it fails.
 const crashObject = "crash-object"
 
-// lacksObject returns nil only when eng's World reports key not found; a
+// lacksObject returns nil only when eng's World reports key not found. A
 // failed lookup is an error, not an absence.
 func lacksObject(ctx context.Context, eng world.Engine, key string) error {
 	tx, err := eng.NewTransaction(ctx, false)
@@ -227,8 +227,8 @@ func lacksObject(ctx context.Context, eng world.Engine, key string) error {
 }
 
 // runPluginOpApproval holds the plugin replay asks for awaiting the device's
-// approval: the Space's health shows the wait for approval naming the plugin,
-// and once the plugin is approved its handler registers and the waiting
+// approval: the Space's health shows the wait for approval identifying the
+// plugin, and once the plugin is approved its handler registers and the waiting
 // position applies on the same mount, with the wait cleared from the health.
 func runPluginOpApproval(t *testing.T) {
 	// Remount with replay waiting at the operation for approval.
@@ -416,7 +416,7 @@ func runPluginOpWaitingWrite(t *testing.T) {
 // for the plugin's handler. The wait is a state of replay, not of one mount:
 // the remounted engine opens, waits again at the same operation, shows the
 // handler wait in the health, and refuses a write with the typed wait. Once
-// the handler registers, replay catches up and the health shows it.
+// the handler registers, replay catches up and the health shows caught up.
 func runPluginOpRestartWait(t *testing.T) {
 	// Remount with replay waiting, then remount again.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -460,12 +460,11 @@ func runPluginOpRestartWait(t *testing.T) {
 
 // runPluginOpLateWait tries to make a write admitted after replay caught up
 // replace the root of a later operation it has not applied. Another device
-// orders an operation only the stopped plugin resolves after this device
-// caught up: replay leaves caught up for the handler wait, the health shows
-// it, and a root set on plugin-object, whose World lacks that operation, is
-// refused with the typed wait. Once the handler registers, replay applies the
-// operation and its root survives: the refused root set never reached the
-// order.
+// orders an operation only the stopped plugin resolves after this device caught
+// up: replay leaves caught up for the handler wait, the health shows that wait,
+// and a root set on plugin-object, whose World lacks that operation, is refused
+// with the typed wait. Once the handler registers, replay applies the operation
+// and its root survives: the refused root set never reached the order.
 func runPluginOpLateWait(t *testing.T) {
 	// Start caught up, with the plugin stopped.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -480,7 +479,7 @@ func runPluginOpLateWait(t *testing.T) {
 	written := objectRoot(ctx, t, s.eng, "plugin-object")
 
 	// Another device orders an operation on plugin-object only the plugin
-	// resolves; replay waits for its handler.
+	// resolves, so replay waits for its handler.
 	tx, err := world_block_tx.NewTxApplyWorldOp(world_mock.NewMockWorldOp("plugin-object", "later"), "")
 	if err != nil {
 		t.Fatal(err)

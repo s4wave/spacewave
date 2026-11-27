@@ -25,7 +25,7 @@ type AccessUnixFS interface {
 // Returns a release function.
 type AccessUnixFSValue = AccessUnixFSFunc
 
-// accessUnixFS implements AccessUnixFS
+// accessUnixFS implements AccessUnixFS.
 type accessUnixFS struct {
 	unixFsID string
 }
@@ -68,7 +68,7 @@ func ExAccessUnixFS(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks cursorily whether the values "look correct".
 func (d *accessUnixFS) Validate() error {
 	if d.unixFsID == "" {
 		return unixfs_errors.ErrEmptyUnixFsId
@@ -77,7 +77,7 @@ func (d *accessUnixFS) Validate() error {
 	return nil
 }
 
-// GetValueAccessUnixFSOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *accessUnixFS) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -115,7 +115,7 @@ func (d *accessUnixFS) GetName() string {
 	return "AccessUnixFS"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *accessUnixFS) GetDebugVals() directive.DebugValues {

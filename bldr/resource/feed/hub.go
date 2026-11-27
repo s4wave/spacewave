@@ -25,7 +25,7 @@ type Hub[S any] struct {
 	runs map[feedID]any
 }
 
-// feedID names one running feed.
+// feedID identifies one running feed.
 type feedID struct {
 	// feed is the *Feed[S, T].
 	feed any
@@ -43,7 +43,7 @@ func NewHub[S any](linger time.Duration, history int, options Options[S]) *Hub[S
 type feedRun[S, T any] struct {
 	// hub is the hub the run belongs to.
 	hub *Hub[S]
-	// id names the run in the hub.
+	// id identifies the run in the hub.
 	id feedID
 	// cancel stops the watch.
 	cancel context.CancelFunc
@@ -68,7 +68,7 @@ type feedRun[S, T any] struct {
 
 // joinFeed adds a watcher to the running watch of feed's key, starting one
 // over s, at the priority ctx carries, when none runs. The returned function
-// removes the watcher; the watch ends a linger after the last one leaves.
+// removes the watcher. The watch ends a linger after the last one leaves.
 func joinFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T], key string) (*feedRun[S, T], func()) {
 	// Find or start the one source for this descriptor and key.
 	id := feedID{feed: feed, key: key}
@@ -150,7 +150,7 @@ func (r *feedRun[S, T]) remove() {
 
 // watch publishes key's view of each revision that changes it, paced by the
 // view interval, until ctx ends or the view cannot be read. It ends the
-// watchers with the error then; a watcher that joins next starts a new run.
+// watchers with the error then. A watcher that joins next starts a new run.
 func (r *feedRun[S, T]) watch(ctx context.Context, store S, feed *Feed[S, T], key string) {
 	// Publish each changed read under the source's watch lifetime.
 	var last T
@@ -170,7 +170,7 @@ func (r *feedRun[S, T]) watch(ctx context.Context, store S, feed *Feed[S, T], ke
 			return nil
 		}
 
-		// Name its records and publish it.
+		// Build the view's record set and publish the view.
 		pub, err := buildPublication(feed, key, value, revision, &builder, r.history)
 		if err != nil {
 			return err
@@ -180,8 +180,8 @@ func (r *feedRun[S, T]) watch(ctx context.Context, store S, feed *Feed[S, T], ke
 		return nil
 	})
 
-	// A run the hub stopped ends quietly; one whose view failed ends its
-	// watchers with the error.
+	// A run the hub stopped ends without notifying its watchers. A run
+	// whose view failed ends its watchers with the error.
 	stopped := ctx.Err() != nil
 	r.cancel()
 	if stopped {
@@ -221,12 +221,12 @@ func (r *feedRun[S, T]) poke() { r.pokes.Poke() }
 // WatchFeed calls deliver with the latest publication of feed's key, once the
 // feed has one, and again with each newer one, until ctx ends, deliver fails
 // or the feed cannot read its view. Every stream of a World watching one key
-// shares one watch and its publications, which deliver must not modify; a
+// shares one watch and its publications, which deliver must not modify. A
 // stream behind receives the latest publication, skipping the ones between.
 // A source bound to an actor has the feed rerun at once after the actor's own
 // write, instead of waiting out the interval. Its access is checked once as
-// the stream joins a feed that acts for no actor, whose view is public;
-// session renewal ends the connection of an actor whose access ends later.
+// the stream joins a feed that acts for no actor, whose view is public.
+// Session renewal ends the connection of an actor whose access ends later.
 func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T], key string, deliver func(*Publication[T]) error) error {
 	// Join through the same admission boundary as manually combined subscriptions.
 	sub, err := Subscribe(ctx, hub, s, feed, key)
@@ -235,7 +235,7 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 	}
 	defer sub.Close()
 
-	// A bound feed's own watch passes its actor's writes; an unbound one
+	// A bound feed's own watch passes its actor's writes. An unbound feed
 	// needs a poke from the watcher whose actor wrote.
 	var ownSince func(uint64) (bool, <-chan struct{})
 	if !feed.Bound {
@@ -256,8 +256,8 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 			}
 		}
 
-		// Rerun the feed at once after the actor's write past what they
-		// hold.
+		// Rerun the feed at once after the actor's write past the
+		// watcher's held revision.
 		var own <-chan struct{}
 		if ownSince != nil && seen != nil {
 			var wrote bool

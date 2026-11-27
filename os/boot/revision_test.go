@@ -32,7 +32,7 @@ import (
 
 // graphSource is a block store that serves revisions to a staging: an image
 // store of its own, or a Space's. After limit reads it fails, as a source cut
-// off mid-copy does; a negative limit never fails. Its revisions share one
+// off mid-copy does. A negative limit never fails. Its revisions share one
 // transform, as a Space's do.
 type graphSource struct {
 	block.StoreOps
@@ -105,8 +105,8 @@ func signImage(t *testing.T, key crypto.PrivKey, image *bucket.ObjectRef) *peer.
 	return signed
 }
 
-// seedRevision copies image from src into vol and names it the built image,
-// as a seed leaves it.
+// seedRevision copies image from src into vol and selects it as the built
+// image, as a seed leaves it.
 func seedRevision(t *testing.T, vol *volume_s4db.Volume, src *graphSource, image *bucket.ObjectRef) {
 	if _, err := copyRevision(t.Context(), vol, src, image.GetRootRef()); err != nil {
 		t.Fatal(err)
@@ -158,7 +158,8 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Install A with the owner's authorization; a second install is refused.
+	// Install A with the owner's authorization. A second install is
+	// refused.
 	key, owner := newSigner(t)
 	pinned := []peer.ID{owner}
 	if err := AuthorizeImage(ctx, le, dir, signImage(t, key, imageA), imageA); err != nil {
@@ -181,14 +182,15 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatal("ordinary boot wrote the store")
 	}
 
-	// Stage C, a revision that never reaches health; only its own blocks copy.
+	// Stage C, a revision that never reaches health. Only C's own blocks
+	// copy.
 	imageC, ownC := revisionGraph(t, src, "C", 3)
 	copied, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageC), imageC)
 	if err != nil || copied != ownC {
 		t.Fatalf("staging copied %d blocks, want %d: %v", copied, ownC, err)
 	}
 
-	// The first boot tries C; one that never accepts it boots back to A.
+	// The first boot tries C. A boot that never accepts C boots back to A.
 	sel, err = SelectRevision(ctx, le, dir, pinned)
 	if err != nil {
 		t.Fatal(err)
@@ -242,7 +244,7 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatalf("staging over a pending trial copied %d blocks: %v", again, err)
 	}
 
-	// B is tried and accepted through the console's child arguments; a
+	// B is tried and accepted through the console's child arguments. A
 	// selection read before the accept is stale.
 	sel, err = SelectRevision(ctx, le, dir, pinned)
 	if err != nil || !sel.OnTrial() || !sel.Image.EqualVT(imageB) {
@@ -497,8 +499,8 @@ func TestStageReleaseFromNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The node still serves B, now accepted, so the child skips it and keeps
-	// watching; publishing C stages C.
+	// The node still serves B, now accepted, so the child skips it and
+	// keeps watching. Publishing C stages C.
 	staged := make(chan *bucket.ObjectRef, 1)
 	go func() { staged <- stage() }()
 	select {

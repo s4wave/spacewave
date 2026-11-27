@@ -113,8 +113,9 @@ func (o *KvSetRootOp) ApplyWorldObjectOp(
 		return false, world.NewOpRefusedError(errors.Errorf("kv/store: op target %s does not match object %s", o.GetObjectKey(), os.GetKey()))
 	}
 
-	// Divergent commits replay this transaction's writes on the current root;
-	// conflicts resolve in world-op order per key, never by whole-root replace.
+	// Divergent commits replay this transaction's writes on the current
+	// root. Conflicts resolve in world-op order per key, never by whole-root
+	// replace.
 	expected := o.GetBaseRef().Clone()
 	nextRoot := o.GetRootRef().Clone()
 	for range kvSetRootMaxCASAttempts {

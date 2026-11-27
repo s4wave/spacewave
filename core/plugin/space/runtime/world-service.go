@@ -57,8 +57,8 @@ func (s *worldService) Execute(context.Context) error {
 }
 
 // HandleDirective serves the World to a plugin's lookup of the service. The
-// plugin host names the looking-up plugin in the lookup's server ID; a lookup
-// that names no plugin gets no World.
+// plugin host records the looking-up plugin in the lookup's server ID. A lookup
+// that specifies no plugin gets no World.
 func (s *worldService) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	// Match a lookup of the Space World service.
 	d, ok := di.GetDirective().(bifrost_rpc.LookupRpcService)
@@ -66,7 +66,7 @@ func (s *worldService) HandleDirective(_ context.Context, di directive.Instance)
 		return nil, nil
 	}
 
-	// Serve the World to the plugin the lookup names.
+	// Serve the World to the plugin the lookup specifies.
 	pluginID, ok := strings.CutPrefix(d.LookupRpcServerID(), bldr_plugin.PluginServerIDPrefix)
 	if !ok || pluginID == "" {
 		return nil, nil
@@ -106,8 +106,8 @@ func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHa
 		return err
 	}
 
-	// Publish it until the lookup ends. Marking idle lets the plugin host's
-	// lookup, which waits for idle, take the value.
+	// Publish the service until the lookup ends. Marking idle lets the
+	// plugin host's lookup, which waits for idle, take the value.
 	handler.AddValue(bifrost_rpc.LookupRpcServiceValue(mux))
 	handler.MarkIdle(true)
 	<-ctx.Done()
@@ -119,5 +119,5 @@ func (s *worldService) Close() error {
 	return nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ controller.Controller = (*worldService)(nil)

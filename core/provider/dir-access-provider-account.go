@@ -54,7 +54,7 @@ func ExAccessProviderAccount(
 	return av.GetValue(), avRef, nil
 }
 
-// accessProviderAccount implements AccessProviderAccount
+// accessProviderAccount implements AccessProviderAccount.
 type accessProviderAccount struct {
 	providerID string
 	accountID  string
@@ -74,7 +74,7 @@ func (d *accessProviderAccount) Validate() error {
 	return nil
 }
 
-// GetValueAccessProviderAccountOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *accessProviderAccount) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -129,7 +129,7 @@ func (d *accessProviderAccount) GetName() string {
 	return "AccessProviderAccount"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *accessProviderAccount) GetDebugVals() directive.DebugValues {

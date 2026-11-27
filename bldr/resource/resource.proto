@@ -14,7 +14,8 @@ service ResourceService {
 
   // ResourceRpc is a rpc request for an open resource handle.
   // Exposes service(s) depending on the resource type.
-  // The first request selects a resource; one typed acknowledgement precedes data.
+  // The first request selects a resource. One typed acknowledgement precedes
+  // data.
   rpc ResourceRpc(stream ResourceRpcPacket) returns (stream ResourceRpcPacket);
 
   // ResourceAttach allows a client to provide resources that server-side
@@ -77,7 +78,7 @@ message ResourceClientRequest {
   reserved "supports_resource_adoption_ack";
 
   // ControlId orders every lifecycle control within one immutable generation.
-  // Init uses zero; every later control increments the identifier by one.
+  // Init uses zero. Every later control increments the identifier by one.
   uint32 control_id = 5;
 
   oneof body {

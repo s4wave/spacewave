@@ -11,7 +11,7 @@ export interface ViewModeSelectorProps {
   availableModes?: ViewMode[]
 }
 
-// defaultTabs defines the label for each view mode.
+// modeLabels defines the label for each view mode.
 const modeLabels: Record<ViewMode, string> = {
   files: 'Files',
   readme: 'README',

@@ -17,7 +17,7 @@ import (
 // Server implements the V86fsService SRPC server.
 // It relays v86fs operations from a browser VM to FSHandle storage.
 type Server struct {
-	// le logs relay dispatch and mount failures; nil-safe when unset.
+	// le logs relay dispatch and mount failures. Nil-safe when unset.
 	le       *logrus.Entry
 	resolver MountResolver
 
@@ -39,7 +39,7 @@ func NewServer(le *logrus.Entry, resolver MountResolver) *Server {
 // mountNotifyMsg builds the MOUNT_NOTIFY frame instructing the guest to
 // auto-mount a runtime mount, or nil for the root mount. The root mount
 // (guest path "/") is mounted by the kernel via root=v86fs during boot, not by
-// a host push; pushing MOUNT_NOTIFY for "/" during early boot races
+// a host push. Pushing MOUNT_NOTIFY for "/" during early boot races
 // prepare_namespace and wedges the root mount, so the root is never notified.
 func mountNotifyMsg(entry *MountEntry) *V86FsMessage {
 	if entry == nil || entry.Path == "/" {
@@ -152,8 +152,8 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 		handles: make(map[uint64]*handleEntry),
 	}
 
-	// Register the session and snapshot the current mount table so we can
-	// seed the session with MOUNT_NOTIFY frames for pre-registered mounts.
+	// Register the session and snapshot the current mount table to seed
+	// the session with MOUNT_NOTIFY frames for pre-registered mounts.
 	s.mtx.Lock()
 	s.sessions[sess] = struct{}{}
 	seed := make([]*V86FsMessage, 0, len(s.mounts))
@@ -910,5 +910,5 @@ func (ss *session) handleStatfs(_ context.Context, tag uint32, _ *V86FsStatfsReq
 	}, nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ SRPCV86FsServiceServer = (*Server)(nil)

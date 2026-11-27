@@ -63,7 +63,7 @@ describe('FileList', () => {
       />,
     )
 
-    // The header names every column.
+    // The header lists every column.
     expect(screen.getByRole('rowgroup')).toBeTruthy()
     expect(screen.getByText('Name')).toBeTruthy()
     expect(screen.getByText('Date Modified')).toBeTruthy()
@@ -82,7 +82,7 @@ describe('FileList', () => {
     await user.click(screen.getByText('Date Modified'))
     rerender(<TestFileList entries={longFilenameEntries} />)
 
-    // The header names no column it cannot fill, nor the date sort.
+    // The header lists no column it cannot fill, nor the date sort.
     expect(screen.queryByText('Date Modified')).toBeNull()
     expect(screen.queryByText('Size')).toBeNull()
     expect(screen.queryByText(/by date/)).toBeNull()
@@ -514,7 +514,7 @@ describe('FileList', () => {
   })
 
   it('sorts by the details the cells draw, and re-sorts as they arrive', async () => {
-    // Three files; c.txt has no size yet.
+    // List three files. c.txt has no size yet.
     const user = userEvent.setup()
     const entries = ['a.txt', 'b.txt', 'c.txt'].map((name) => ({
       id: name,
@@ -635,7 +635,7 @@ describe('FileList', () => {
       const nameContainer = row.querySelector('span')
       expect(nameContainer).toBeTruthy()
 
-      // The span should have truncate class for text-overflow: ellipsis
+      // The span should have the truncate class for text-overflow: ellipsis.
       const classes = new Set(nameContainer?.className.split(/\s+/) ?? [])
       const hasOverflowHidden =
         classes.has('truncate') || classes.has('overflow-hidden')
@@ -715,7 +715,7 @@ describe('FileList', () => {
       expect(fileEntry?.className).toContain('bg-brand/10')
     })
 
-    // Ctrl+click README.md to add to selection
+    // Ctrl+click README.md to add the file to the selection.
     const readmeEntry = screen
       .getAllByText('README.md')[0]
       .closest('[role="row"]')
@@ -736,7 +736,7 @@ describe('FileList', () => {
         expect(onOpen).toHaveBeenCalledOnce()
         const entries = onOpen.mock.calls[0][0]
         expect(entries).toHaveLength(2)
-        // Should include both selected files
+        // The entries should include both selected files.
         const names = entries.map((e: FileEntry) => e.name).sort()
         expect(names).toEqual(['README.md', 'file.txt'])
       },
@@ -753,7 +753,7 @@ describe('FileList', () => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
     })
 
-    // Click on Documents directory to select it
+    // Click on the Documents directory to select it.
     const documentsEntry = screen
       .getAllByText('Documents')[0]
       .closest('[role="row"]')
@@ -763,7 +763,7 @@ describe('FileList', () => {
       expect(documentsEntry?.className).toContain('bg-brand/10')
     })
 
-    // Ctrl+click file.txt to add to selection
+    // Ctrl+click file.txt to add the file to the selection.
     const fileEntry = screen.getAllByText('file.txt')[0].closest('[role="row"]')
     fireEvent.click(fileEntry!, { ctrlKey: true })
 
@@ -782,7 +782,7 @@ describe('FileList', () => {
         expect(onOpen).toHaveBeenCalledOnce()
         const entries = onOpen.mock.calls[0][0]
         expect(entries).toHaveLength(2)
-        // Should include the directory and file
+        // The entries should include the directory and file.
         const dirEntry = entries.find((e: FileEntry) => e.isDir)
         const fileEntryResult = entries.find((e: FileEntry) => !e.isDir)
         expect(dirEntry?.name).toBe('Documents')

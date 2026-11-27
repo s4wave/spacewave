@@ -41,7 +41,8 @@ type coldPack struct {
 // unusable reports whether observed bucket evidence rules out this pack.
 func (p *coldPack) unusable() bool { return p.gone.Load() || p.wrongObject.Load() }
 
-// coldInterval names a pack and the greatest last key at or before its position.
+// coldInterval records a pack and the greatest last key at or before its
+// position.
 type coldInterval struct {
 	// pack indexes the manifest, independent of interval ordering.
 	pack uint16
@@ -160,7 +161,7 @@ func coldPackKey(key []byte) bool {
 }
 
 // coldEntryBloom parses a validated v1 pack bloom filter. The S3 pack writer
-// uses writer.DefaultPolicy().NewBloomFilter (pack.go); the default 0.008
+// uses writer.DefaultPolicy().NewBloomFilter (pack.go). The default 0.008
 // target in writer/policy.go gives 10.05 bits/key and 7 probes at 26,316 keys
 // (about 0.80% per-pack false positives, or about 0.024 candidate tails for
 // an absent key covered by three independent intervals).

@@ -15,18 +15,19 @@ export interface Config {
   /**
    * ServePath is the path prefix to serve the FS.
    * This path is stripped from the UnixFS path lookups.
-   * If empty, defaults to /.
+   * If empty, ServePath defaults to /.
    */
   servePath?: string
   /**
    * FsPath is the subdirectory of the FS to serve at serve_path.
-   * Chroots the filesystem to this path.
-   * If empty, defaults to the root directory.
+   * The filesystem is chrooted to this path.
+   * If empty, FsPath defaults to the root directory.
    */
   fsPath?: string
   /**
    * PluginId is the plugin assets unixfs to look up.
-   * If unset, uses the current plugin, assuming we are running in a plugin.
+   * If unset, PluginId uses the current plugin, assuming the controller runs
+   * in a plugin.
    */
   pluginId?: string
 }

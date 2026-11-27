@@ -33,7 +33,7 @@ func TestMsgpackBlock(t *testing.T) {
 	sampleObj := &testObject{TestField: "testing 123", TestInt: 1337}
 
 	// Encode the sample object into a single MessagePack block.
-	// stores the entire object in 1 block always.
+	// Always store the entire object in 1 block.
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewMsgpackBlock(sampleObj), true)
 	_, bcs, err = btx.Write(ctx, true)
@@ -96,7 +96,7 @@ func TestBlockToObject(t *testing.T) {
 	sampleObj := &testObject{TestField: "testing 123", TestInt: 1337}
 
 	// Encode the sample object into a single MessagePack block.
-	// stores the entire object in 1 block always.
+	// Always store the entire object in 1 block.
 	btx, bcs := oc.BuildTransaction(nil)
 	err = ObjectToBlock(bcs, sampleObj)
 	if err != nil {
@@ -116,7 +116,7 @@ func TestBlockToObject(t *testing.T) {
 
 	// Decode the saved block through the BlockToObject interface.
 	_, bcs = oc.BuildTransactionAtRef(nil, blockRef)
-	var outObj *testObject // alloc location to store address of output
+	var outObj *testObject // Allocate space to store the output address.
 	_, err = BlockToObject(ctx, bcs, &outObj)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -9,10 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// replayCheckEnv names the environment variable that turns on the replay
+// replayCheckEnv identifies the environment variable that turns on the replay
 // check when set to 1. Apply then also runs each of this device's operations
 // whose candidate World it adopts on the replay engine, as another device
-// replays it, and logs an outcome that differs from the adopted World; and
+// replays it, and logs an outcome that differs from the adopted World.
 // Install logs both Worlds when the replay misses the checkpoint's. It is a
 // diagnostic for replicas that reach different Worlds and never changes the
 // position Apply takes or what Install keeps. Its log lines carry the full
@@ -26,7 +26,7 @@ var replayCheck = os.Getenv(replayCheckEnv) == "1"
 // differs from adopt, the World this device's writer built with op. A World
 // before index whose pages left memory unstored is skipped: running on it
 // would need the recompute that only the replay's own path may start. The
-// replay's writes stay in its stage like any replay's; the next operation
+// replay's writes stay in its stage like any replay's. The next operation
 // moves the engine on, as after any adopted candidate.
 func (r *spaceReplay) checkAdopted(ctx context.Context, index int, op *sobject.OrderedOperation, adopt *spacePosition) {
 	// Run op as another device replays it, on a World whose pages are here.
@@ -36,7 +36,7 @@ func (r *spaceReplay) checkAdopted(ctx context.Context, index int, op *sobject.O
 	prev, seqno := r.stateBefore(index)
 	pos, err := r.apply(ctx, spacePosition{op: op, state: prev, seqno: seqno}, op)
 
-	// Name the operation and the adopted World.
+	// Record the operation and the adopted World.
 	wop := &WorldOp{}
 	opType := "undecodable"
 	if wop.UnmarshalVT(op.Data) == nil {

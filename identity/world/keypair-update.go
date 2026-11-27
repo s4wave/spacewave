@@ -133,7 +133,7 @@ func EnsureKeypairsExist(
 	return kpObjectKeys, nil
 }
 
-// Validate performs cursory validation of the operation.
+// Validate checks the operation cursorily.
 // Should not block.
 func (o *KeypairUpdateOp) Validate() error {
 	if err := o.GetKeypairRef().Validate(); err != nil {

@@ -26,7 +26,7 @@ import (
 // node keeps one FolderVersion per file in the SegmentIndex: the base, the
 // Drive version it last published from the folder or applied to it, with the
 // stat and the SHA-256 digest of the file on disk holding it. A Drive file
-// whose node differs from its base is a remote change; a folder file whose
+// whose node differs from its base is a remote change. A folder file whose
 // stat differs from its base is a local change.
 //
 // The stat picks each branch, but it does not prove a file's bytes: an edit
@@ -37,8 +37,9 @@ import (
 // kept until the folder publishes it again.
 //
 // A remote write fetches the member's bytes to a fetch file beside the path,
-// renames the complete fetch to its staged name, then checks the disk. A path holding the base is atomically exchanged with
-// the staged file, and the displaced file is checked again: the base is
+// renames the complete fetch to its staged name, then checks the disk. A path
+// holding the base is atomically exchanged with the staged file, and the
+// displaced file is checked again: the base is
 // removed, anything else, an edit landing between the check and the exchange,
 // keeps a conflict name. An empty path takes the staged file by a rename that
 // never replaces, or the conflict name when a file appeared. A path holding
@@ -60,14 +61,14 @@ import (
 // The invariants, as the spec names them:
 //
 //   - NoLostVersion: every file version that reached the disk stays on the disk
-//     or in the trash; an apply never unlinks a file, it only renames, and it
+//     or in the trash. An apply never unlinks a file, it only renames, and it
 //     removes only a file whose stat and digest prove it the base or the
 //     member's fetched version.
 //   - MemberWriteKept: a member's version, once fetched, ends at the path or
 //     under its conflict name, so a member's write is never dropped.
 //   - RemoteReplacesOnlyBase: a member's write or delete replaces only a file
-//     whose stat is its base; the check after the exchange or the move restores
-//     any other.
+//     whose stat is its base. The check after the exchange or the move restores
+//     any other file.
 //   - TrashOnlyDeleted: the trash holds only base versions a member deleted,
 //     proven by stat and digest.
 //
@@ -104,12 +105,12 @@ const conflictTagLen = 16
 // maxNameLen is the longest file name, in bytes, the platforms allow.
 const maxNameLen = 255
 
-// errRemoteMoved marks a remote file that changed after the pass listed it;
-// the next pass applies its new version.
+// errRemoteMoved marks a remote file that changed after the pass listed it.
+// The next pass applies its new version.
 var errRemoteMoved = errors.New("remote file changed during the apply")
 
-// ApplyStep names a step of applying a member's change to a file, after the
-// phases of the LinkedFolderApply spec.
+// ApplyStep identifies a step of applying a member's change to a file, after
+// the phases of the LinkedFolderApply spec.
 type ApplyStep int
 
 const (
@@ -132,7 +133,7 @@ const (
 
 // SetApplyHook sets fn to run at each step of applying a member's change, with
 // the step and the file's path. It runs on the sync's goroutine, so the step
-// waits for it; tests use it to act between the steps. Set it before a sync.
+// waits for fn. Tests use fn to act between the steps. Set fn before a sync.
 func (l *FolderLink) SetApplyHook(fn func(step ApplyStep, path string)) {
 	l.applyHook = fn
 }
@@ -393,7 +394,7 @@ func (s *folderSync) deleteTree(rel []string) (bool, error) {
 		return false, err
 	}
 
-	// Remove the emptied directories, deepest first; os.Remove refuses one
+	// Remove the emptied directories, deepest first. os.Remove refuses one
 	// that holds anything.
 	root := filepath.Join(append([]string{s.folder}, rel...)...)
 	var dirs []string
@@ -460,8 +461,9 @@ func (s *folderSync) applyWrite(rel []string, f remoteFile, base *block_store_fi
 		}
 	case err != nil:
 	case versionMatches(v, info):
-		// The disk may hold it already; a file whose bytes differ keeps the
-		// path, and the member's version takes the conflict name.
+		// The disk may hold the member's version already. A file whose
+		// bytes differ keeps the path, and the member's version takes
+		// the conflict name.
 		var digest []byte
 		if digest, err = fileDigest(path, info); err == nil {
 			if bytes.Equal(digest, v.GetDigest()) {
@@ -481,8 +483,8 @@ func (s *folderSync) applyWrite(rel []string, f remoteFile, base *block_store_fi
 			s.recovered = false
 		}
 	default:
-		// Another version keeps the path; the member's takes the conflict
-		// name.
+		// Another version keeps the path. The member's version takes
+		// the conflict name.
 		err = toConflict(stage, path, refTag(f.ref))
 	}
 	if err != nil {
@@ -637,8 +639,8 @@ func (s *folderSync) applyDelete(rel []string, base *block_store_filesegment.Fol
 		return nil
 	}
 
-	// Move it to the trash, then check what moved; the base, proven by its
-	// stat and digest, stays there.
+	// Move the file to the trash, then check what moved. The base, proven
+	// by its stat and digest, stays there.
 	s.step(ApplyChecked, path)
 	trashed, forget, err := moveToTrash(path)
 	if err != nil {
@@ -784,7 +786,7 @@ func createFetch(dir, name string) (*os.File, string, error) {
 	}
 }
 
-// isApplyFile reports whether name is a fetch or staged file's.
+// isApplyFile reports whether name is a fetch or staged file's name.
 func isApplyFile(name string) bool {
 	return strings.HasPrefix(name, fetchPrefix) || strings.HasPrefix(name, stagePrefix)
 }
@@ -833,13 +835,13 @@ func (s *folderSync) recoverStage(dirPath string, parent []string, stageName str
 		return os.Remove(stage)
 	}
 
-	// Keep any other under its conflict name.
+	// Keep any other file under its conflict name.
 	return toConflict(stage, filepath.Join(dirPath, name), digestTag(digest))
 }
 
 // inDrive reports whether the file at stage, with stat info, equals by content
-// the file the Drive directory parent holds at name now. A Drive file it
-// cannot read counts as unequal, so the file is kept.
+// the file the Drive directory parent holds at name now. A Drive file inDrive
+// cannot read counts as unequal, so the staged file is kept.
 func (s *folderSync) inDrive(stage string, info fs.FileInfo, parent []string, name string) (bool, error) {
 	var held bool
 	err := s.view(func(root *unixfs_block.FSTree) error {
@@ -860,7 +862,7 @@ func (s *folderSync) inDrive(stage string, info fs.FileInfo, parent []string, na
 
 // driveDigest returns the digest of the file at path, with stat info, if it
 // equals by content the Drive's version ref, and nil otherwise. A Drive version
-// it cannot read counts as unequal.
+// driveDigest cannot read counts as unequal.
 func (s *folderSync) driveDigest(ref *block.BlockRef, path string, info fs.FileInfo) ([]byte, error) {
 	var digest []byte
 	err := s.view(func(root *unixfs_block.FSTree) error {

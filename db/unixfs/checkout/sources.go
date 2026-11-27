@@ -28,7 +28,8 @@ type sources struct {
 	list []block.StoreOps
 	// remote is the index in list of the first remote.
 	remote int
-	// yield, when set, runs before a read reaches the remotes and may hold it.
+	// yield runs before a read reaches the remotes when set and may hold
+	// the read.
 	yield func(context.Context) error
 	// served counts the blocks and bytes each kind of source served.
 	served [sourceKinds]struct{ blocks, bytes atomic.Uint64 }

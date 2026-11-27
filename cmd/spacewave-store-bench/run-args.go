@@ -16,7 +16,7 @@ type RunArgs struct {
 	StoreArgs
 	// Load shapes the load.
 	Load storebench.LoadConfig
-	// ReportPath is where the JSON report is written; empty prints it.
+	// ReportPath is where the JSON report is written. An empty path prints it.
 	ReportPath string
 }
 

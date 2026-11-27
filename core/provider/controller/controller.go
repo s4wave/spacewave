@@ -28,20 +28,20 @@ type Constructor func(
 // ProviderController is the common implementation of the provider controller.
 type ProviderController struct {
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// ctor is the constructor
+	// ctor is the constructor.
 	ctor Constructor
-	// info is the controller info
+	// info is the controller info.
 	info *controller.Info
-	// providerInfo is the provider info
+	// providerInfo is the provider info.
 	providerInfo *provider.ProviderInfo
-	// lookupPeerID is the peer id to lookup on the bus
-	// may be empty
+	// lookupPeerID is the peer id to lookup on the bus.
+	// may be empty.
 	lookupPeerID peer.ID
 	// requirePeer gates providers that need a bus peer before they can publish.
 	requirePeer bool
-	// providerCtr contains the provider initialized by Execute
+	// providerCtr contains the provider initialized by Execute.
 	providerCtr *ccontainer.CContainer[provider.Provider]
 }
 
@@ -107,7 +107,7 @@ func (c *ProviderController) GetProvider(ctx context.Context) (provider.Provider
 	return c.providerCtr.WaitValue(ctx, nil)
 }
 
-// GetProviderInfo returns the provider information
+// GetProviderInfo returns the provider information.
 func (c *ProviderController) GetProviderInfo() *provider.ProviderInfo {
 	return c.providerInfo.CloneVT()
 }

@@ -20,8 +20,8 @@ import (
 // object sink bound to an os/release object moves every Device whose
 // os/system node binds that object to the image. The image's blocks are
 // already the Space's, written by the build Step, so the release holds only
-// the signed reference to them. The Step checks that the authorization names
-// a complete image reference; only a Device's pins can judge the signature.
+// the signed reference to them. The Step checks that the authorization holds
+// a complete image reference. Only a Device's pins can judge the signature.
 //
 // Inputs:
 //   - authorization: the sign Step's tree holding the authorization file.

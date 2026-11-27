@@ -25,7 +25,8 @@ export interface TableView {
    */
   whereExpression?: string
   /**
-   * ProjectedColumns limits returned columns. Empty selects all columns.
+   * ProjectedColumns limits returned columns. An empty list selects all
+   * columns.
    */
   projectedColumns?: string[]
   /**
@@ -33,7 +34,7 @@ export interface TableView {
    */
   sortOrder?: SortOrder[]
   /**
-   * RowLimit limits returned rows. Zero uses the default limit.
+   * RowLimit limits returned rows. A zero value uses the default limit.
    */
   rowLimit?: number
   /**
@@ -160,7 +161,7 @@ export const GetDriverCapabilityResponse: MessageType<GetDriverCapabilityRespons
  */
 export interface DriverCapability {
   /**
-   * UpdateRow is true when typed row updates can be attempted.
+   * UpdateRow is true when typed row updates can be tried.
    */
   updateRow?: boolean
   /**
@@ -233,7 +234,7 @@ export const FetchRowsResponse: MessageType<FetchRowsResponse> =
  */
 export interface UpdateRowRequest {
   /**
-   * MatchColumns names columns used in the WHERE clause.
+   * MatchColumns lists columns used in the WHERE clause.
    */
   matchColumns?: string[]
   /**
@@ -241,7 +242,7 @@ export interface UpdateRowRequest {
    */
   matchValues?: SqlValue[]
   /**
-   * SetColumns names columns updated by the SET clause.
+   * SetColumns lists columns updated by the SET clause.
    */
   setColumns?: string[]
   /**

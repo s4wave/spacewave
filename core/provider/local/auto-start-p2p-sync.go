@@ -132,11 +132,11 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 		}
 	}
 
-	// Snapshot pending enrollments after the invitation scan. Approval marks a
-	// Device pending before storing its invite, so every scanned SpaceLink
-	// invite has its mark here. The Device dials the owner through that invite;
-	// the owner must not dial a Device that has not connected once in this
-	// process.
+	// Snapshot pending enrollments after the invitation scan. Approval
+	// marks a Device pending before storing its invite, so every scanned
+	// SpaceLink invite has its mark here. The Device dials the owner
+	// through that invite. The owner must not dial a Device that has not
+	// connected once in this process.
 	var pendingEnroll map[string]struct{}
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if len(a.p2pPendingEnrollPeers) != 0 {

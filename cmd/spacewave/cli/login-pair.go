@@ -43,7 +43,7 @@ func newLoginPairCommand() *cli.Command {
 }
 
 // runLoginPair adds the account offered by another device. Without --code it
-// prompts for the code and the emoji comparison; with --code the person on the
+// prompts for the code and the emoji comparison. With --code the person on the
 // other device compares the emoji and approves there.
 func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) error {
 	// Read the code from the flag or an interactive prompt.
@@ -128,7 +128,7 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 }
 
 // verifyLoginPairing drives the pairing status until both devices confirm.
-// Interactive use compares the emoji here; otherwise this side confirms and
+// Interactive use compares the emoji here. Otherwise this side confirms and
 // prints the emoji for the person approving on the other device.
 func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remotePeerID string, interactive bool, outputFormat string) error {
 	// Watch pairing status until both devices confirm.

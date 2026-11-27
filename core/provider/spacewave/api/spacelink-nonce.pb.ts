@@ -14,7 +14,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 export interface SpaceLinkNonceRequest {
   /**
    * Payload is the exact signed SpaceLinkAuthRequest, not a re-encoding.
-   * Consent must expire within 24 hours; the HTTP body is limited to 16 KiB.
+   * Consent must expire within 24 hours. The HTTP body is limited to 16 KiB.
    */
   payload?: Uint8Array
   /**

@@ -28,7 +28,7 @@ type store struct {
 	// ops are the block store operations.
 	ops block.StoreOps
 
-	// id is the block store id
+	// id is the block store id.
 	id string
 }
 

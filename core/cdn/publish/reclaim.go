@@ -42,12 +42,12 @@ type reclaimPack struct {
 
 // Reclaim rewrites the destination's packs that are at least half dead. live
 // lists every block the destination still serves, in the order to write them
-// again; a block missing from live reads as dead, so live must be the
+// again. A block missing from live reads as dead, so live must be the
 // complete closure of every served root. Each group of mostly dead packs is
 // superseded by one pack of their live blocks, which read returns, so the
 // pass downloads only pack indexes. The service deletes superseded packs
 // after a grace period that lets readers of an older root pointer finish.
-// check, when set, runs before each replacement and stops the pass with its
+// check runs before each replacement when set and stops the pass with its
 // error. Returns the dead value bytes dropped.
 //
 // The destination must have one publisher at a time: a block judged dead is

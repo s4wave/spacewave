@@ -23,9 +23,9 @@ import (
 // runAccountReplicaCopy hydrates the published graph of every accepted state
 // through the Session's existing DEX read-through store: the checkpoint's World
 // and the payloads of the operations above it, which together hold every block
-// the World after those operations reads. Nothing is replayed; the Worlds the
+// the World after those operations reads. Nothing is replayed. The Worlds the
 // operations derive are rebuilt from these blocks by whoever replays them.
-// Cached blocks survive cancellation and restart; a persisted completion record
+// Cached blocks survive cancellation and restart. A persisted completion record
 // is valid only for its exact immutable head.
 //
 // The copier finishes each head before it takes the newest, so a writer that
@@ -163,31 +163,36 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	}
 }
 
-// ReplicaRewalkEnv names the environment variable that restores, when set to
-// "on", the earlier wait of a copy blocked on missing blocks: each newer head
-// ends the wait and is walked at once, and without a peer exchange only a newer
-// head ends it. Every other value, including an unset variable, keeps the
-// default, under which a blocked copy waits for a peer session start or a
-// config change and then copies the newest head.
+// ReplicaRewalkEnv identifies the environment variable that restores, when set
+// to "on", the earlier wait of a copy blocked on missing blocks: each newer
+// head ends the wait and is walked at once, and without a peer exchange only
+// a newer head ends it. Every other value, including an unset variable, keeps
+// the default behavior, under which a blocked copy waits for a peer session
+// start or a config change and then copies the newest head.
 //
-// What the per-head walk did besides growing the Volume, and who read it:
+// What the per-head walk does besides growing the Volume, and who reads the
+// walk's output:
 //
-//   - It rewrote the progress record (account-replica-copy/progress) and the
-//     published progress for each head. The record is read back only to skip a
-//     completed head (copyAndPersistAccountWorld); the published progress
-//     feeds GetAccountCopyProgress and the Session's sync status, which shows
-//     its blocks, bytes, completion and error. While blocked those now stay at
-//     the blocked head's walk, with the same incomplete state and hole error,
-//     where they showed the newest head's walk.
-//   - It logged "waiting for a peer that holds a World block with its refs"
-//     once per head; now it logs once per walk that blocks, so once per wake.
-//   - It stored each newer head's span block on arrival
-//     (copyAccountWorldHeads); now the span is stored when the copy takes its
-//     head after a wait.
+//   - The per-head walk rewrites the progress record
+//     (account-replica-copy/progress) and the published progress for each head.
+//     The record is read back only to skip a completed head
+//     (copyAndPersistAccountWorld). The published progress feeds
+//     GetAccountCopyProgress and the Session's sync status, which shows
+//     its blocks, bytes, completion and error. With the default behavior, while
+//     blocked, the record and published progress stay at the blocked head's
+//     walk, with the same incomplete state and hole error. With the per-head
+//     walk, the record and published progress show the newest head's walk.
+//   - The per-head walk logs
+//     "waiting for a peer that holds a World block with its refs" once per
+//     head. The default behavior logs once per walk that blocks, so once per
+//     wake.
+//   - The per-head walk stores each newer head's span block on arrival
+//     (copyAccountWorldHeads). With the default behavior, the span is stored
+//     when the copy takes its head after a wait.
 const ReplicaRewalkEnv = "SPACEWAVE_REPLICA_COPY_REWALK"
 
-// replicaRewalk selects ReplicaRewalkEnv's earlier behavior. It is read once,
-// here, at startup.
+// replicaRewalk selects ReplicaRewalkEnv's earlier behavior. The environment
+// variable is read once, here, at startup.
 var replicaRewalk = os.Getenv(ReplicaRewalkEnv) == "on"
 
 // replicaHead is a published graph for the account replica copy.
@@ -254,9 +259,9 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 // A newer head does not end the wait (unless ReplicaRewalkEnv is on): a walk
 // of it would stop at the same blocks, and every such walk puts each block on
 // the paths from the root to them again, under a stage that releases them when
-// the walk ends, so the Volume grew by those writes for each head. Waiting
-// writes nothing. It gives up only the case of a newer head that no longer
-// reaches the missing blocks, which now completes at the next session start or
+// the walk ends, so those writes grow the Volume for each head. Waiting
+// writes nothing. Waiting gives up only the case of a newer head that no longer
+// reaches the missing blocks. That head completes at the next session start or
 // config change instead of at once. With no exchange, as when the bucket's DEX
 // controller failed to start, no session start comes, and the wait ends only on
 // a config change or when the copy restarts.
@@ -270,7 +275,7 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 //     with holes does not move the root (copyWorldGraph), and the wait writes
 //     and releases nothing.
 //  3. Completion proofs cover only subtrees with no hole under them
-//     (block.StageCopy, invariant 4); the wait adds none.
+//     (block.StageCopy, invariant 4). The wait adds none.
 func (a *ProviderAccount) copyAccountWorldHead(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -338,10 +343,10 @@ func (a *ProviderAccount) copyAccountWorldHead(
 }
 
 // waitWorldHoles waits for absent to reset after gen, on a peer session start
-// or a config change. When holes names the blocks a finished walk missed, it
-// reads each once and waits on until one of them arrives, keeping the rest in
-// absent so the next walk does not read them again; a walk stopped by a block
-// without its refs walks again on the next reset.
+// or a config change. When holes lists the blocks a finished walk missed, the
+// function reads each once and waits on until one of them arrives, keeping
+// the rest in absent so the next walk does not read them again. A walk stopped
+// by a block without its refs walks again on the next reset.
 func waitWorldHoles(
 	ctx context.Context,
 	store block.StoreOps,
@@ -509,7 +514,7 @@ func writeCopyProgress(ctx context.Context, local kvtx.Store, progress *AccountR
 // under the account World root, publishing progress while blocks copy. A
 // missing block does not stop the walk: the walk completes, keeps the proofs
 // of every complete subtree, and returns a worldHolesError without moving the
-// root. A block in absent is recorded as a hole without a read; the holes
+// root. A block in absent is recorded as a hole without a read. The holes
 // this walk finds become absent's set. mode sets how the walk treats the
 // chunks a linked file serves (copyWorldGraph).
 func (a *ProviderAccount) copyAccountWorld(

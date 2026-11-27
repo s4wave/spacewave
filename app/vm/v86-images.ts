@@ -13,7 +13,7 @@ import {
 } from './v86-wizard-config.js'
 
 // V86ImageEntry is a V86Image object and its decoded metadata. metadataError
-// is set when the metadata could not be decoded; the image then carries a
+// is set when the metadata could not be decoded, so the image then carries a
 // placeholder.
 export interface V86ImageEntry {
   objectKey: string
@@ -58,7 +58,7 @@ export const v86ImageDecoder: EntityDecoder<V86Metadata> = {
   decode: decodeV86Metadata,
 }
 
-// v86ImageEntry is the entry of metadata read at objectKey; metadata that
+// v86ImageEntry is the entry of metadata read at objectKey. Metadata that
 // could not be decoded gets a placeholder image.
 function v86ImageEntry(objectKey: string, meta: V86Metadata): V86ImageEntry {
   if ('image' in meta) return { objectKey, image: meta.image }
@@ -127,7 +127,7 @@ export async function loadCdnV86Image(
   return await readV86Image(world, objectKey, signal)
 }
 
-// formatV86ImageLabel names an image for display, with its version.
+// formatV86ImageLabel labels an image for display, with its version.
 export function formatV86ImageLabel(image: V86Image): string {
   const name = image.name || image.distro || 'VM image'
   return image.version ? `${name} (${image.version})` : name

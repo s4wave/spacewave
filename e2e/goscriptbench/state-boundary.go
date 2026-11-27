@@ -10,9 +10,9 @@ import (
 
 // StateBoundary declares state retained and recreated between samples.
 type StateBoundary struct {
-	// retained names state preserved between samples
+	// Retained declares state preserved between samples.
 	Retained []string
-	// recreated names state replaced between samples
+	// Recreated declares state replaced between samples.
 	Recreated []string
 }
 

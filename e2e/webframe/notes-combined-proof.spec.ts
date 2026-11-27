@@ -19,10 +19,10 @@ const WELCOME_ROW = "[data-testid='notes-note-row']"
 const CONTENT_VIEW = "[data-testid='notes-content-view']"
 const SOURCE_TOGGLE = "[data-testid='notes-source-toggle']"
 
-// The first launch downloads the app bundle and seeds the notebook, which
-// takes minutes — longer on webkit, where the download alone ran past five
-// minutes at roughly eighty percent when timed out. One shared context per
-// engine pays this once.
+// The first launch downloads the app bundle and seeds the notebook. This launch
+// takes minutes (longer on webkit, where the download alone ran past five
+// minutes and was at roughly eighty percent when it timed out). One shared
+// context per engine pays this launch cost once.
 const COLD_START_TIMEOUT = 900_000
 
 async function waitNotebookReady(page: Page) {
@@ -40,9 +40,9 @@ async function waitNotebookReady(page: Page) {
     })
 }
 
-// Navigates to the quickstart route; every visit creates a new seeded space,
-// so tests that must return to an existing notebook call waitNotebookReady
-// on the URL they already hold instead of routing here again.
+// openNotebook navigates to the quickstart route. Every visit creates a new
+// seeded space, so tests that must return to an existing notebook call
+// waitNotebookReady on the URL they already hold instead of routing here again.
 async function openNotebook(page: Page) {
   await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
   await waitNotebookReady(page)
@@ -54,7 +54,10 @@ async function openWelcome(page: Page) {
   await page.locator(CONTENT_VIEW).waitFor({ state: 'visible' })
 }
 
-/** Switches the note editor between source text and WYSIWYG rendering. */
+/**
+ * toggleSourceMode switches the note editor between source text and WYSIWYG
+ * rendering.
+ */
 async function toggleSourceMode(page: Page) {
   const toggle = page.locator(SOURCE_TOGGLE).first()
   await toggle.focus()
@@ -62,7 +65,8 @@ async function toggleSourceMode(page: Page) {
 }
 
 /**
- * Fills the note with a unique nonce and waits for the app to persist it.
+ * saveNonce fills the note with a unique nonce and waits for the app to
+ * persist it.
  * Returns the nonce so a later test can prove the bytes survived a reload.
  */
 async function saveNonce(page: Page, engine: string): Promise<string> {
@@ -154,7 +158,8 @@ test.describe('Notes combined proof', () => {
     const nonce = await saveNonce(page, testInfo.project.name)
 
     // Reload holds this space's own URL. Routing to the quickstart route
-    // here would create a second seeded space instead of proving bytes.
+    // here would create a second seeded space instead of proving the bytes
+    // survived a reload.
     const spaceUrl = page.url()
     await page.reload({ waitUntil: 'domcontentloaded' })
     expect(page.url()).toBe(spaceUrl)

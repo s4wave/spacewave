@@ -7,9 +7,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config configures a controller to forward HandleWebView to a plugin.
- * Loads webPluginId with LoadPlugin and uses the RPC client.
+ * The controller loads webPluginId with LoadPlugin and uses the RPC client.
  * webPluginId should correspond to a bldr/web/plugin plugin.
- * Resolves the HandleWebView directive on the web plugin bus.
+ * The controller resolves the HandleWebView directive on the web plugin bus.
  *
  * @generated from message bldr.web.plugin.handle_web_view_rpc.Config
  */
@@ -23,8 +23,8 @@ export interface Config {
    */
   handlePluginId?: string
   /**
-   * WebViewidRe is the regex of web view IDs to handle with handlePluginId.
-   * If empty, will forward any.
+   * WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
+   * If WebViewIdRe is empty, the controller forwards any web view.
    */
   webViewIdRe?: string
 }

@@ -26,7 +26,7 @@ func TestSuccessorPeerID(t *testing.T) {
 		},
 	}
 
-	// Names pick the strongest, earliest peer; a peer ID is taken as given.
+	// Names pick the strongest, earliest peer. A peer ID is taken as given.
 	for name, want := range map[string]string{
 		"acct-m":     "m-writer-1",
 		"m":          "m-writer-1",

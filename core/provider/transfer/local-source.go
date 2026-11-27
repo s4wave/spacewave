@@ -70,7 +70,7 @@ func (s *LocalTransferSource) ReadLinkedCloudAccountID(ctx context.Context, acco
 	return string(data), nil
 }
 
-// GetOrigin returns the origin naming the source account.
+// GetOrigin returns the origin identifying the source account.
 func (s *LocalTransferSource) GetOrigin() *TransferOrigin {
 	return &TransferOrigin{SourceProviderId: s.account.GetProviderID(), SourceAccountId: s.account.GetAccountID()}
 }

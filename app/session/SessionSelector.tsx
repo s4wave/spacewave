@@ -51,7 +51,8 @@ export function SessionSelector() {
   const navigate = useNavigate()
   const sessions = resource.value?.sessions ?? []
   const rootRecords = rootAliases.value?.records ?? []
-  // undefined means the user has not chosen; null means every root is closed.
+  // undefined means the user has not chosen a root. null means every root
+  // is closed.
   const [chosenRootAliasId, setChosenRootAliasId] = useState<
     string | null | undefined
   >(undefined)
@@ -465,7 +466,7 @@ function SessionCard(props: {
   const sessionRef = props.session.sessionRef
   const sessionIndex = props.session.sessionIndex ?? 0
 
-  // Mount the session only for the write, and release it after.
+  // Mount the session only for the write, and release it after the write.
   const setName = useCallback(
     async (displayName: string) => {
       if (!root || !sessionRef) throw new Error('The account is not ready')

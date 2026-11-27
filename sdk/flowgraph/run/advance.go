@@ -88,7 +88,7 @@ func readRun(ctx context.Context, ws world.WorldState, runKey string) (
 	var run *s4wave_flowgraph.FlowgraphRun
 	var graph *s4wave_flowgraph.Flowgraph
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(cursor *block.Cursor) error {
-		// Decode the run; an empty object holds no run.
+		// Decode the run. An empty object holds no run.
 		var err error
 		run, err = s4wave_flowgraph.UnmarshalFlowgraphRun(ctx, cursor)
 		if err != nil {
@@ -133,7 +133,8 @@ func (r *runner) route(ctx context.Context) error {
 			continue
 		}
 
-		// Read the outcome; a Step failure leaves the inputs for a resume.
+		// Read the outcome. A Step failure leaves the inputs for a
+		// resume.
 		port, spend, failure, err := r.outcome(ctx, activation.GetNodeId(), task)
 		if err != nil {
 			return err
@@ -184,7 +185,7 @@ func (r *runner) outcome(ctx context.Context, nodeID string, task *forge_task.Ta
 		return "", 0, "step failed: " + result.GetFailError(), nil
 	}
 
-	// Collect the set outputs that name output ports, and read the spend.
+	// Collect the set outputs that select output ports, and read the spend.
 	node := r.graph.GetNodes()[nodeID]
 	var ports []string
 	for _, output := range task.GetValueSet().GetOutputs() {
@@ -248,9 +249,9 @@ func (r *runner) deliver(nodeID, port, taskKey, key string) {
 // state of each object sink the port feeds. It runs in the transaction that
 // routes the activation, so a sink's object changes exactly when the
 // activation routes, and once. A sink whose object exists without the sink's
-// type belongs to another writer: failure names it and no sink is written,
-// so the run pauses at the Step with its inputs kept. A missing object is
-// created with the sink's type. ObjectSink.tla models the rule.
+// type belongs to another writer: failure identifies the object and no sink
+// is written, so the run pauses at the Step with its inputs kept. A missing
+// object is created with the sink's type. ObjectSink.tla models the rule.
 func (r *runner) commitSinks(ctx context.Context, nodeID, port string, task *forge_task.Task) (string, error) {
 	// Find the sinks the port feeds.
 	sinks := feedsSinks(r.graph, nodeID, port)
@@ -348,7 +349,7 @@ func outgoing(graph *s4wave_flowgraph.Flowgraph, nodeID string) []*s4wave_flowgr
 
 // start activates each ready Step while the run is running. A Step is ready
 // when every connected input port has an arrival, so a Step joins its inbound
-// branches; a Step with no connected input is ready on a start arrival. A
+// branches. A Step with no connected input is ready on a start arrival. A
 // keyed Step is ready per key: its ports are met by arrivals that carry one
 // key, and an arrival for a key with a running activation goes to that
 // activation's inbox, in any run state.
@@ -460,7 +461,8 @@ func (r *runner) consume(taken []int) []*s4wave_flowgraph.FlowgraphArrival {
 	return inputs
 }
 
-// blocked returns why a Step may not activate again, or empty when it may.
+// blocked returns why a Step may not activate again, or an empty string when
+// the Step may activate again.
 func (r *runner) blocked(nodeID string, step *s4wave_flowgraph.FlowgraphStep) string {
 	// Require an executable Target.
 	if step.GetTarget() == nil {
@@ -582,9 +584,9 @@ func (r *runner) newTaskName(ctx context.Context, jobKey string) (string, string
 
 // arrivalInput returns the Forge input that reads an arrival at its port: the
 // Task output for a Task-output arrival, and the World object for an event
-// arrival, which the Task reads as it reads any WORLD_OBJECT input. The event
+// arrival. The Task reads that object as any WORLD_OBJECT input. The event
 // ID stays in the run's record of the activation's inputs. A start arrival has
-// no port and no input, so it returns nil.
+// no port and no input, so arrivalInput returns nil.
 func arrivalInput(arrival *s4wave_flowgraph.FlowgraphArrival) *forge_target.Input {
 	port := arrival.GetPort()
 	if port == "" {
@@ -663,7 +665,7 @@ func (r *runner) stranded(nodeID string, filled map[string]bool) bool {
 
 // notTaken reports whether every connection into a Step's input port comes
 // from a node whose activations all routed an output, none of them the
-// connection's. A failed activation routed nothing.
+// connection's output. A failed activation routed nothing.
 func (r *runner) notTaken(nodeID, port string) bool {
 	for _, connection := range r.graph.GetConnections() {
 		if connection.GetInputNode() != nodeID || connection.GetInputPort() != port {
@@ -755,7 +757,8 @@ func (r *runner) readOutput(ctx context.Context, output *forge_value.Value) ([]b
 
 // routingKey reads the reserved key output, or inherits the activation's key.
 func (r *runner) routingKey(ctx context.Context, task *forge_task.Task, inherited string) (string, string, error) {
-	// An absent output inherits; an explicitly empty blob clears the key.
+	// An absent output inherits the activation's key. An explicitly empty
+	// blob clears the key.
 	output, _ := task.GetValueSet().LookupOutput(s4wave_flowgraph.KeyOutputName)
 	if output == nil || output.IsEmpty() {
 		return inherited, "", nil

@@ -21,7 +21,7 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller implements the static tptaddr address list controller.
 // Resolves LookupTptAddr directives with a static list of addresses.
 type Controller struct {
-	// peers is the map between peer ids and addresses
+	// peers is the map between peer ids and addresses.
 	peers map[string][]tptaddr.LookupTptAddrValue
 }
 
@@ -79,7 +79,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// Execute runs the controller; the static address map needs no execution loop.
+// Execute runs the controller. The static address map needs no execution loop.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }

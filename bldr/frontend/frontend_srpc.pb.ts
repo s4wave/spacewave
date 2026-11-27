@@ -51,7 +51,7 @@ export const FrontendDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * Fetch serves modules from the session named by the request URL.
+     * Fetch serves modules from the session selected by the request URL.
      *
      * @generated from rpc bldr.frontend.Frontend.Fetch
      */
@@ -87,7 +87,7 @@ export interface Frontend {
   Send(request: SendRequest, abortSignal?: AbortSignal): Promise<SendResponse>
 
   /**
-   * Fetch serves modules from the session named by the request URL.
+   * Fetch serves modules from the session selected by the request URL.
    *
    * @generated from rpc bldr.frontend.Frontend.Fetch
    */
@@ -128,7 +128,7 @@ export interface FrontendHandler {
   ): Promise<SendResponse>
 
   /**
-   * Fetch serves modules from the session named by the request URL.
+   * Fetch serves modules from the session selected by the request URL.
    *
    * @generated from rpc bldr.frontend.Frontend.Fetch
    */
@@ -191,7 +191,7 @@ export class FrontendClient implements Frontend {
   }
 
   /**
-   * Fetch serves modules from the session named by the request URL.
+   * Fetch serves modules from the session selected by the request URL.
    *
    * @generated from rpc bldr.frontend.Frontend.Fetch
    */

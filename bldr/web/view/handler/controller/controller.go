@@ -18,9 +18,9 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller is the web view handler controller.
 type Controller struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// handlers is the handlers set
+	// handlers is the handlers set.
 	handlers *web_view_handler.WebViewHandlersWithFilters
 }
 
@@ -95,7 +95,7 @@ func (c *Controller) resolveHandleWebView(
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// The returned error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	return nil
 }

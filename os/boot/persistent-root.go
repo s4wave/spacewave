@@ -17,7 +17,7 @@ import (
 // OpenRoot opens the image store in dir read-only and serves image, which the
 // caller selected and the store must hold. It never creates a fixture.
 //
-// This reader runs no collector; the store's named roots hold every block of
+// This reader runs no collector. The store's named roots hold every block of
 // each revision, and a writer beside it never releases what they reach. The
 // workload exits and the FUSE server joins before Close releases the store.
 func OpenRoot(ctx context.Context, le *logrus.Entry, dir string, image *bucket.ObjectRef) (*Root, error) {

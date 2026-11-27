@@ -40,7 +40,7 @@ function getPerformance(): Performance | undefined {
 }
 
 // startupMarkBufferLimit bounds the document-global mark store. The inline
-// shell seeds the first mark and shares this bound; appends past the limit
+// shell seeds the first mark and shares this bound. Appends past the limit
 // increment __swStartupMarkOverflows instead of pushing, and the BootReport
 // collector turns that count into a persisted validation failure.
 export const startupMarkBufferLimit = 4096

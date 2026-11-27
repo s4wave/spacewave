@@ -20,7 +20,7 @@ export interface Head {
   /**
    * Digest is the SHA-256 of the previous head's digest and the write's
    * changed keys and values. Two heads are equal only when they hold the same
-   * state, so a writer compares it to learn whether storage still holds the
+   * state, so a writer compares heads to learn whether storage still holds the
    * state it read, or holds the write it attempted.
    */
   digest?: Uint8Array

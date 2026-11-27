@@ -28,7 +28,8 @@ type evictHoldStore struct {
 	probeCtx context.Context
 	// writerQueue observes the native foreground queue while the slice holds it.
 	writerQueue kvtx.WriterQueueStore
-	// probes records joined requests; pure hold measurements leave probeCtx nil.
+	// probes records joined requests. Pure hold measurements leave probeCtx
+	// nil.
 	probes []evictWriterProbe
 }
 
@@ -109,7 +110,7 @@ func (t *evictHoldTx) Set(ctx context.Context, key, value []byte) error {
 	return t.Tx.Set(ctx, key, value)
 }
 
-// Commit measures through writer release; ordered eviction commits avoid fsync.
+// Commit measures through writer release. Ordered eviction commits avoid fsync.
 func (t *evictHoldTx) Commit(ctx context.Context) error {
 	// Record only successful queue transactions, excluding the epoch advance.
 	err := t.Tx.Commit(ctx)
@@ -295,9 +296,10 @@ func TestEvictIndexWriterHold(t *testing.T) {
 		t.Fatalf("rebuild deleted %d entries, want %d", measured.entries, evictBatchStartBlocks)
 	}
 
-	// Recreate legacy rows outside measurement, then start one real foreground
-	// request under each admitted writer. The controlled arm includes rendezvous
-	// overhead; its admission observations are separate from pure slice holds.
+	// Recreate legacy rows outside measurement, then start one real
+	// foreground request under each admitted writer. The controlled arm
+	// includes rendezvous overhead. Its admission observations are separate
+	// from pure slice holds.
 	SetEvictQueueIndex(false)
 	if _, err := s.Evict(ctx, newInmemBlockStore(), 0, nil, nil); err != nil {
 		t.Fatal(err)
@@ -322,9 +324,10 @@ func TestEvictIndexWriterHold(t *testing.T) {
 	}
 	t.Logf("index-rebuild-controlled probes=%d native-queued=%d foreground-admission-max=%s; includes per-slice rendezvous", len(measured.probes), len(measured.probes), wait)
 
-	// Compare new-marker transactions for equally sized disjoint hash batches.
-	// Both arms use full foreground durability; shared disk scheduling and fsync
-	// variation mean the difference is an observation, not a causal estimate.
+	// Compare new-marker transactions for equally sized disjoint hash
+	// batches. Both arms use full foreground durability. Shared disk
+	// scheduling and fsync variation mean the difference is an observation,
+	// not a causal estimate.
 	SetEvictQueueIndex(false)
 	measured.holds, measured.entries = nil, 0
 	if err := s.queue(ctx, marks[:evictRetryCommitBlocks]); err != nil {

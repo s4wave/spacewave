@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestWireCompatibility verifies that our protobuf encoding is byte-compatible
+// TestWireCompatibility verifies that the protobuf encoding is byte-compatible
 // with go-libp2p's crypto protobuf format. The wire format uses:
 // - Field 1 (varint): KeyType enum (0=RSA, 1=Ed25519)
 // - Field 2 (bytes): raw key data
@@ -39,7 +39,7 @@ func TestWireCompatibility(t *testing.T) {
 		t.Fatalf("expected field 2 tag+len (0x12 0x20), got 0x%02x 0x%02x", pubBytes[2], pubBytes[3])
 	}
 
-	// Verify round-trip.
+	// Verify the public key round trip.
 	pub2, err := UnmarshalPublicKey(pubBytes)
 	if err != nil {
 		t.Fatal(err)

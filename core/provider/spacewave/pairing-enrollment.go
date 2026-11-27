@@ -54,7 +54,8 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 }
 
 // PreparePairingReceiver reserves a locally encrypted key before approval.
-// The offered endpoint must match the configured provider; it is never dialed.
+// The offered endpoint must match the configured provider.
+// The offered endpoint is never dialed.
 func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pairing.AccountOffer, sourcePeer, receivingPeer peer.ID) (*pairing.Receiver, error) {
 	if offer.GetAccountId() != a.accountID || offer.GetProviderEndpoint() != a.p.endpoint {
 		return nil, errors.New("the offered cloud account uses a different configured provider")

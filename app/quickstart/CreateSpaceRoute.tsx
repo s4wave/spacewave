@@ -129,7 +129,8 @@ function useCreateSpacePipeline({
           try {
             r?.[Symbol.dispose]()
           } catch {
-            // Dispose errors are non-fatal; swallow to keep cleanup ordered.
+            // Dispose errors are non-fatal, so swallow them to keep cleanup
+            // ordered.
           }
         }
       }
@@ -244,7 +245,10 @@ interface CreateSpaceProgressProps {
   onCancel: () => void
 }
 
-/** CreateSpaceProgress renders the phase checklist with the retry and cancel actions. */
+/**
+ * CreateSpaceProgress renders the phase checklist with the retry and cancel
+ * actions.
+ */
 function CreateSpaceProgress({
   state,
   spaceName,

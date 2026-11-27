@@ -47,7 +47,7 @@ type stream struct {
 	remoteClosed bool
 }
 
-// NewConn wraps a WebSocket. Writes use ctx; ReadPump must run for streams
+// NewConn wraps a WebSocket. Writes use ctx. ReadPump must run for streams
 // to receive packets.
 func NewConn(ctx context.Context, ws *websocket.Conn) *Conn {
 	ws.SetReadLimit(ReadLimit)
@@ -74,7 +74,7 @@ func (c *Conn) OpenStream(
 
 // ReadPump dispatches frames to their streams until the socket fails, then
 // closes every stream with the error and returns it. accept attaches streams
-// the remote opens; with a nil accept, frames for unknown streams are dropped.
+// the remote opens. With a nil accept, frames for unknown streams are dropped.
 func (c *Conn) ReadPump(accept AcceptFunc) error {
 	// Dispatch WebSocket frames until the connection fails.
 	err := c.readPump(accept)

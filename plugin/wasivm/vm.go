@@ -13,7 +13,7 @@ import (
 )
 
 // vmResource runs one WasiVM object. The Space calls Execute on one resource
-// per VM, which boots the kernel and publishes its console in consoles.
+// per VM. The resource boots the kernel and publishes its console in consoles.
 type vmResource struct {
 	le *logrus.Entry
 	// b mounts the CDN Space of a published image.
@@ -45,7 +45,7 @@ func (r *run) stop() {
 // Starting a run boots the kernel on the linked root filesystem and publishes
 // its console, then commits RUNNING. A run that cannot start commits ERROR.
 // When init exits or the system halts, the run commits STOPPED as both the
-// desired and observed state; when it fails, it commits ERROR. When the
+// desired and observed state. When the run fails, it commits ERROR. When the
 // system restarts, the run begins the next generation, which this loop then
 // starts. Every commit is fenced by the run generation, so a late report from
 // an earlier run changes nothing.
@@ -73,7 +73,7 @@ func (r *vmResource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_p
 		return nil
 	}
 
-	// Open the VM object; a missing object is stopped.
+	// Open the VM object. A missing object is stopped.
 	ctx := stream.Context()
 	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
 	defer world.ReleaseObjectState(objState)
@@ -180,7 +180,7 @@ func (r *vmResource) startRun(ctx context.Context, generation uint64, config *s4
 		return nil, errors.Wrap(err, "find the root filesystem")
 	}
 
-	// Boot the kernel; a run that ends on its own commits how it ended.
+	// Boot the kernel. A run that ends on its own commits how it ended.
 	console, err := startKernel(runCtx, r.le, rootfs, config, func(reboot bool, runErr error) {
 		if runCtx.Err() == nil {
 			r.finishRun(runCtx, generation, reboot, runErr)
@@ -280,5 +280,5 @@ func (r *vmResource) updateRun(
 	return changed, accepted, err
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ s4wave_process.SRPCPersistentExecutionServiceServer = (*vmResource)(nil)

@@ -16,7 +16,7 @@ var PredMessageSender = quad.IRI("spacewave-chat/message-sender")
 var PredChannelState = quad.IRI("spacewave-chat/channel-state")
 
 // PredPendingRedaction links a channel to a redaction whose target has not
-// arrived. The label names the target's envelope message key.
+// arrived. The label holds the target's envelope message key.
 var PredPendingRedaction = quad.IRI("spacewave-chat/pending-redaction")
 
 // PredThreadParticipant marks a thread summary with an attributed person label.

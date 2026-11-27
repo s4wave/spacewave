@@ -25,8 +25,9 @@ export class CameraHandle extends Resource {
   }
 
   // watchFrames plays the Camera's frame track on its Device: Opened, then the
-  // available pictures in group order. It ends when the Device
-  // closes the track and throws when the track fails; abortSignal ends it.
+  // available pictures in group order. The stream ends when the Device
+  // closes the track and throws when the track fails. abortSignal ends the
+  // stream.
   public watchFrames(abortSignal?: AbortSignal): AsyncIterable<FrameEvent> {
     return this.service.WatchFrames({}, abortSignal)
   }

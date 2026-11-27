@@ -243,6 +243,7 @@ func (h *HostRuntime) LastException() uint32 {
 }
 
 // instantiateGoEnv registers Go implementations for every function the v86
+// module imports from env.
 func (h *HostRuntime) instantiateGoEnv(ctx context.Context, compiled wazero.CompiledModule) error {
 	builder := h.Runtime.NewHostModuleBuilder(goenvModuleName)
 	for _, fn := range compiled.ImportedFunctions() {
@@ -260,7 +261,7 @@ func (h *HostRuntime) instantiateGoEnv(ctx context.Context, compiled wazero.Comp
 	return nil
 }
 
-// callback dispatches one env-module import to its host-side behavior:
+// callback dispatches one env-module import to its host-side behavior.
 func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModuleFunction {
 	return api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
 		switch name {
@@ -348,7 +349,8 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 	})
 }
 
-// apicTimer advances the guest APIC timer and returns the next tick
+// apicTimer advances the guest APIC timer and returns the milliseconds until
+// its next tick, or 100 when the export is missing, fails or returns nothing.
 func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 	// Locate the optional guest APIC timer export.
 	fn := h.Module.ExportedFunction("apic_timer")
@@ -453,7 +455,8 @@ func (h *HostRuntime) writeMmap(addr, value uint32, width int) {
 	}
 }
 
-// codegenFinalize notifies the guest that asynchronous code generation
+// codegenFinalize notifies the guest that asynchronous code generation has
+// finished.
 func (h *HostRuntime) codegenFinalize(ctx context.Context, stack []uint64) {
 	if h.Module == nil || len(stack) < 3 {
 		return
@@ -522,7 +525,8 @@ func newIOPorts() []ioPort {
 	return ports
 }
 
-// emptyIOPort returns open-bus handlers: reads return all ones and writes
+// emptyIOPort returns open-bus handlers: reads return all ones and writes do
+// nothing.
 func emptyIOPort() ioPort {
 	return ioPort{
 		read8:   func(context.Context, uint16) uint32 { return 0xff },
@@ -534,7 +538,7 @@ func emptyIOPort() ioPort {
 	}
 }
 
-// moveIOPorts relocates size ports from one base to another after a BAR
+// moveIOPorts relocates size ports from one base to another after a BAR write.
 func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
 	if from == to || size == 0 {
 		return

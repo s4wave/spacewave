@@ -26,10 +26,11 @@ type SOHostSyncFuncs struct {
 	// Lock imports accepted peer state without publishing a local root to a server.
 	// When nil, the host uses its ordinary local persistence lock.
 	Lock SOStateLockFunc
-	// CheckpointLock atomically installs an externally authenticated invitation
-	// checkpoint. The changes written with it are the verified lineage of the
-	// state's config, oldest first; the first produced the new history base.
-	// It is never used for peer synchronization or an unauthenticated recovery candidate.
+	// CheckpointLock atomically installs an externally authenticated
+	// invitation checkpoint. The changes written with it are the verified
+	// lineage of the state's config, oldest first. The first change
+	// produced the new history base. CheckpointLock is never used for peer
+	// synchronization or an unauthenticated recovery candidate.
 	CheckpointLock SOStateLockFunc
 	// History returns a bounded oldest-first suffix between two exact head hashes.
 	// It returns ErrConfigHistoryUnavailable for missing or divergent history.
@@ -45,9 +46,9 @@ type SOHostSyncFuncs struct {
 
 // ReadConfigSuffix follows retained hash-addressed entries from target to base.
 // When a merge on the way absorbs base, the suffix continues to that merge's
-// fork instead, which ConfigSuffixBase recovers from the suffix.
-// The caller provides one consistent read scope. Missing history fails closed;
-// returned entries remain untrusted until VerifyConfigChainSuffix accepts them.
+// fork instead, which ConfigSuffixBase recovers from the suffix. The caller
+// provides one consistent read scope. Missing history fails closed. Returned
+// entries remain untrusted until VerifyConfigChainSuffix accepts them.
 func ReadConfigSuffix(ctx context.Context, base, target []byte, read func(context.Context, []byte) (*SOConfigChange, error)) ([]*SOConfigChange, error) {
 	// An empty receiver head cannot supply a trust anchor.
 	if len(base) == 0 || len(target) == 0 {
@@ -102,8 +103,8 @@ func ReadConfigSuffix(ctx context.Context, base, target []byte, read func(contex
 
 // ReadConfigBranch follows retained hash-addressed entries back from target
 // while their sequence number exceeds floor. It returns the hash before the
-// oldest one, which names the record at floor, and the entries oldest first.
-// Missing history or a branch past the suffix bounds fails closed.
+// oldest one, which identifies the record at floor, and the entries oldest
+// first. Missing history or a branch past the suffix bounds fails closed.
 func ReadConfigBranch(ctx context.Context, target []byte, floor uint64, read func(context.Context, []byte) (*SOConfigChange, error)) ([]byte, []*SOConfigChange, error) {
 	// Walk back from target to the entry after floor.
 	var entries []*SOConfigChange
@@ -137,8 +138,9 @@ func ReadConfigBranch(ctx context.Context, target []byte, floor uint64, read fun
 
 // ReadConfigLineage follows retained hash-addressed entries back from target,
 // through genesis or the oldest entry read holds, and returns them oldest
-// first. A replica sends it so the receiver can resolve the config of every
-// operation it holds. Past the suffix bounds it keeps the newest entries.
+// first. A replica sends the lineage so the receiver can resolve the config of
+// every operation it holds. Past the suffix bounds ReadConfigLineage
+// keeps the newest entries.
 func ReadConfigLineage(ctx context.Context, target []byte, read func(context.Context, []byte) (*SOConfigChange, error)) ([]*SOConfigChange, error) {
 	// Walk back from target while the entries fit the suffix bounds.
 	var entries []*SOConfigChange

@@ -389,7 +389,7 @@ func (c *Controller) openWritable(
 
 // coordinatorSupported reports whether the coordinator orders the World's
 // writers with durable generations. A coordinator that reports the scope
-// unsupported answers false; a failed lookup fails the open, which the loader
+// unsupported answers false. A failed lookup fails the open, which the loader
 // retries, rather than opening a shared World without a lease or a watch.
 func (c *Controller) coordinatorSupported(
 	ctx context.Context,
@@ -514,7 +514,7 @@ func (c *Controller) retainEngine(
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
+// The returned error indicates any issue encountered releasing resources.
 func (c *Controller) Close() error {
 	// Detach resources once and join any cleanup already in progress.
 	c.mtx.Lock()

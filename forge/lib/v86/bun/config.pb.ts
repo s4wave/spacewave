@@ -54,7 +54,7 @@ export interface Config {
   bunVersion?: string
   /**
    * StateDir is the directory for autobun state (downloaded bun binary).
-   * If empty, uses a default under the working directory.
+   * If empty, uses a default directory under the working directory.
    */
   stateDir?: string
   /**

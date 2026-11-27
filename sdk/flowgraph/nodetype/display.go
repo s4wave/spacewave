@@ -12,7 +12,7 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
-// displayCodecParameter names the test pattern codec on a display node.
+// displayCodecParameter selects the test pattern codec on a display node.
 const displayCodecParameter = "codec"
 
 // displaySourceParameter selects the capture source on a display node.
@@ -48,7 +48,8 @@ func (display) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraph
 		return nil, errors.New("display codec must be h264 or jpeg")
 	}
 
-	// Leave the existing patterns as the default and make GPU capture explicit.
+	// Leave the existing patterns as the default source and make
+	// GPU capture explicit.
 	var source display_service.Source
 	switch node.Node.GetParameters()[displaySourceParameter] {
 	case "":

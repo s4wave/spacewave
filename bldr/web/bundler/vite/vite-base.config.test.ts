@@ -28,8 +28,8 @@ async function startIsolatedHarness(layout: HarnessLayout): Promise<{
   const appRoot = join(baseDir, 'app')
   const distRoot = join(baseDir, 'dist')
   if (layout !== 'none') {
-    // Flat harness dist layout is <dist>/sdk; the monorepo dist tree nests it
-    // under <dist>/bldr/sdk. Both must resolve.
+    // The flat harness dist layout is <dist>/sdk. The monorepo dist tree nests
+    // the SDK under <dist>/bldr/sdk. Both must resolve.
     const sdkRoot =
       layout === 'flat' ? join(distRoot, 'sdk') : join(distRoot, 'bldr', 'sdk')
     await mkdir(join(sdkRoot, 'hooks'), { recursive: true })
@@ -37,7 +37,7 @@ async function startIsolatedHarness(layout: HarnessLayout): Promise<{
       join(sdkRoot, 'plugin.ts'),
       'export const bldrSdkPlugin = true\n',
     )
-    // Packaged SDK modules ship as either .ts or .tsx; the alias must not
+    // Packaged SDK modules ship as either .ts or .tsx, so the alias must not
     // assume one extension.
     await writeFile(
       join(sdkRoot, 'hooks', 'useStreamingResource.ts'),
@@ -49,8 +49,8 @@ async function startIsolatedHarness(layout: HarnessLayout): Promise<{
     )
   }
   await mkdir(appRoot, { recursive: true })
-  // vite-base.config reads these at import time; reset the module registry so
-  // each harness picks up its own roots.
+  // vite-base.config reads these environment variables at import time. Reset
+  // the module registry so each harness picks up its own roots.
   process.env['BLDR_PROJECT_ROOT'] = appRoot
   process.env['BLDR_DIST_ROOT'] = distRoot
   vi.resetModules()

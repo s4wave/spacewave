@@ -11,44 +11,44 @@ enum RbacScope {
 
 // RbacRule defines a permission rule granting verbs on a resource type.
 message RbacRule {
-  // resource_type is the type of resource this rule applies to.
+  // ResourceType is the type of resource this rule applies to.
   string resource_type = 1;
-  // verbs is the list of allowed verbs (or "*" for all).
+  // Verbs is the list of allowed verbs (or "*" for all).
   repeated string verbs = 2;
 }
 
 // RbacRole defines a named collection of permission rules.
 message RbacRole {
-  // id is the unique identifier for this role.
+  // Id is the unique identifier for this role.
   string id = 1;
-  // display_name is the human-readable name.
+  // DisplayName is the human-readable name.
   string display_name = 2;
-  // rules is the list of permission rules in this role.
+  // Rules is the list of permission rules in this role.
   repeated RbacRule rules = 3;
-  // builtin indicates this role is system-defined.
+  // Builtin indicates this role is system-defined.
   bool builtin = 4;
 }
 
 // RbacRoleBinding binds a role to a subject within a scope.
 message RbacRoleBinding {
-  // id is the unique identifier for this binding.
+  // Id is the unique identifier for this binding.
   string id = 1;
-  // role_id is the role being bound.
+  // RoleId is the role being bound.
   string role_id = 2;
-  // subject_id is the account receiving the role.
+  // SubjectId is the account receiving the role.
   string subject_id = 3;
-  // scope is the scope level of this binding.
+  // Scope is the scope level of this binding.
   RbacScope scope = 4;
-  // scope_id is the target ID for org/resource scope (empty for platform).
+  // ScopeId is the target ID for org/resource scope (empty for platform).
   string scope_id = 5;
-  // created_at is the creation timestamp in milliseconds.
+  // CreatedAt is the creation timestamp in milliseconds.
   int64 created_at = 6;
 }
 
 // RbacConfig contains a set of roles and bindings.
 message RbacConfig {
-  // roles is the list of roles.
+  // Roles is the list of roles.
   repeated RbacRole roles = 1;
-  // bindings is the list of role bindings.
+  // Bindings is the list of role bindings.
   repeated RbacRoleBinding bindings = 2;
 }

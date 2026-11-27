@@ -8,7 +8,8 @@ export interface ShellTabContentProps {
 }
 
 // ShellTabContent renders the content for a single tab panel in the FlexLayout.
-// Each tab reuses the shared shell app panel; grid mode disables only URL syncing.
+// Each tab reuses the shared shell app panel. Grid mode disables only URL
+// syncing.
 //
 // Grid mode comes from the shell context, not from a prop. The layout keeps this
 // element mounted across the mode transition, so a value sampled when the

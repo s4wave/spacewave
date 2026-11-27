@@ -21,7 +21,8 @@ func (tb *Testbed) RunExecutionWithTarget(
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 
 	// create the Execution object in the world
-	// this can be done in any order (the controller waits for object to be present).
+	// Object creation and controller attachment can occur in any order
+	// (the controller waits for the object to be present).
 	executionObjectKey := "execution/1"
 	peerID := tb.Volume.GetPeerID()
 	sender := peerID

@@ -11,7 +11,7 @@ type runMeta struct {
 	// id identifies the run: the sequence of the record that added it, plus
 	// its index among that record's runs.
 	id uint64
-	// level is the run's level; level 0 runs may overlap.
+	// level is the run's level. Level 0 runs may overlap.
 	level uint8
 	// chunks are the run's chunks in order.
 	chunks []uint64

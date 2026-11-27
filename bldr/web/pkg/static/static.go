@@ -10,7 +10,7 @@ import (
 
 // StaticWebPkg implements WebPkg with static information.
 type StaticWebPkg struct {
-	// info is the web pkg info
+	// info is the web pkg info.
 	info *web_pkg.WebPkgInfo
 	// getFsHandle returns the root fs handle.
 	getFsHandle func(ctx context.Context) (*unixfs.FSHandle, error)

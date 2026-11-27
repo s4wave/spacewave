@@ -229,7 +229,7 @@ func TestClientPool(t *testing.T) {
 		}
 	}
 	// Each read takes two delayed server reads, 0.4s. Without spares: 4 dials
-	// and 4 reads, 3.2s. With: one dial, 4 reads, 2s.
+	// and 4 reads, 3.2s. With spares: one dial, 4 reads, 2s.
 	if took := time.Since(start); took > 2600*time.Millisecond {
 		t.Fatalf("4 spending reads took %s; want the spare to hide the dials", took)
 	}

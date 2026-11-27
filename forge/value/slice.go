@@ -116,8 +116,8 @@ func (v ValueSlice) IsSorted() bool {
 	return block.IsNamedSubBlocksSorted(v)
 }
 
-// Merge applies a second set of values while overwriting existing.
-// Note: we do not expect large value pointer sets.
+// Merge applies a second set of values while overwriting existing values.
+// Large value pointer sets are not expected.
 // Any large data-set should be held under a block DAG structure.
 func (v ValueSlice) Merge(vals ValueSlice) ValueSlice {
 	// Index the existing values by name.

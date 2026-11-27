@@ -54,7 +54,8 @@ func FromContext(ctx context.Context, pluginID string) (*Generation, error) {
 }
 
 // Activate publishes the whole generation in one critical section. Retrying the
-// active generation succeeds; a retired or closed generation cannot supersede it.
+// active generation succeeds, but a retired or closed generation cannot
+// supersede the active generation.
 func (g *Generation) Activate(ctx context.Context, req *sdk_registration.ActivateRequest) (*sdk_registration.ActivateResponse, error) {
 	var err error
 	g.registry.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -86,7 +87,7 @@ func (g *Generation) Activate(ctx context.Context, req *sdk_registration.Activat
 }
 
 // Close hides this generation. During handover, a failed candidate restores the
-// still-retained previous worker; once that worker retires it cannot reappear.
+// still-retained previous worker. Once that worker retires it cannot reappear.
 func (g *Generation) Close() {
 	g.registry.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Release the generation once and detach retired groups from the handover chain.

@@ -4,7 +4,7 @@ import "sync"
 
 // AllocFn allocates a buffer for use.
 // The cap of the slice must be at least n.
-// This can be backed by an in-memory arena.
+// The allocator can be backed by an in-memory arena.
 type AllocFn func(n int) []byte
 
 // DefaultAllocFn constructs the default allocate func.

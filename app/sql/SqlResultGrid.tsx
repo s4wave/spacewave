@@ -22,13 +22,15 @@ interface SqlResultGridProps {
   emptyTitle?: string
   // emptyDescription describes the empty grid state.
   emptyDescription?: string
-  // csvFileName names the downloaded CSV; omit to hide the export action.
+  // csvFileName is the downloaded CSV's filename. Omit the filename to hide the
+  // export action.
   csvFileName?: string
 }
 
 // SqlResultGrid renders a typed SQL result as a paged table, styling NULL cells
 // distinctly and offering a client-side CSV export of the visible result. Rows
-// are buffered by the caller; paging is local navigation, not server fetch.
+// are buffered by the caller, so paging is local navigation, not a server
+// fetch.
 export function SqlResultGrid({
   data,
   emptyTitle = 'No rows',

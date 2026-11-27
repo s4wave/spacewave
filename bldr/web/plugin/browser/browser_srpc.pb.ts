@@ -14,7 +14,7 @@ import {
 
 /**
  * WebPluginBrowserHost proxies requests to the web plugin to the plugin host.
- * accessed by web/plugin/browser/web-plugin-browser.ts
+ * The service is accessed by web/plugin/browser/web-plugin-browser.ts.
  *
  * @generated from service bldr.web.plugin.browser.WebPluginBrowserHost
  */
@@ -38,7 +38,7 @@ export const WebPluginBrowserHostDefinition = {
 
 /**
  * WebPluginBrowserHost proxies requests to the web plugin to the plugin host.
- * accessed by web/plugin/browser/web-plugin-browser.ts
+ * The service is accessed by web/plugin/browser/web-plugin-browser.ts.
  *
  * @generated from service bldr.web.plugin.browser.WebPluginBrowserHost
  */
@@ -57,7 +57,7 @@ export interface WebPluginBrowserHost {
 
 /**
  * WebPluginBrowserHost proxies requests to the web plugin to the plugin host.
- * accessed by web/plugin/browser/web-plugin-browser.ts
+ * The service is accessed by web/plugin/browser/web-plugin-browser.ts.
  *
  * @generated from service bldr.web.plugin.browser.WebPluginBrowserHost
  */

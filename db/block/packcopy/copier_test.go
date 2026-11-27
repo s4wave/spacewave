@@ -233,7 +233,7 @@ func TestCopyRunThrough(t *testing.T) {
 	}
 
 	// Fail every pack after the first, past the client's retries. Packs may
-	// land around the failure; no proof may lead them.
+	// land around the failure, but no proof may lead them.
 	var mtx sync.Mutex
 	packs := 0
 	bucket.FailPut(func(key string) bool {
@@ -304,7 +304,7 @@ func TestCopyRunThrough(t *testing.T) {
 		t.Fatalf("%d of %d blocks proven", len(got), len(blocks))
 	}
 
-	// The graph stream names every block with its true refs.
+	// The graph stream records every block with its true refs.
 	seen := make(map[string]int)
 	err = graph.Scan(ctx, func(r *GraphRecord) error {
 		seen[r.GetRef().MarshalString()] = len(r.GetRefs())

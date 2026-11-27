@@ -66,7 +66,7 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 	}
 	defer accessRel()
 
-	// access it!
+	// Look up the filesystem access function.
 	accessUfs, ufsRef, err := unixfs_access.ExAccessUnixFS(ctx, tb.Bus, unixFsID, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -133,7 +133,7 @@ func TestUnixFSWorldAccessController_AccessFunc(t *testing.T) {
 	unixFsID := "test-fs"
 	accessFn := NewAccessUnixFSFunc(tb.Bus, &Config{FsId: unixFsID, FsRef: &unixfs_world.UnixfsRef{ObjectKey: objKey}})
 
-	// access it!
+	// access the filesystem!
 	fsh, fshRel, err := accessFn(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())

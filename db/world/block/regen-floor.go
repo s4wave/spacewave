@@ -6,7 +6,7 @@ import (
 )
 
 // ErrRegenFloor is returned by a build that stopped because free disk fell
-// below its floor. The old tree stays live; the stage's blocks and the sort's
+// below its floor. The old tree stays live. The stage's blocks and the sort's
 // runs are released as the build returns.
 var ErrRegenFloor = errors.New("free disk below the regeneration's floor")
 

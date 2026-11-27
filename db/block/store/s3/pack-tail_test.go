@@ -151,8 +151,9 @@ func TestPackStoreMergesTail(t *testing.T) {
 		t.Fatalf("%d merges ran after the listing; want 1", got)
 	}
 
-	// A reader crosses more merges than any fixed bound: each entry it reads
-	// names a packfile a merge deletes before the reader reads the block.
+	// A reader crosses more merges than any fixed bound: each entry it
+	// reads identifies a packfile a merge deletes before the reader
+	// reads the block.
 	mergeAfter(func(r *http.Request) bool {
 		return strings.HasPrefix(r.URL.Path, "/bucket/"+entryDir)
 	}, 8)

@@ -25,7 +25,7 @@ type SRPCFSCursorServiceClient interface {
 	// GetCursorOps resolves the FSCursorOps handle.
 	GetCursorOps(ctx context.Context, in *GetCursorOpsRequest) (*GetCursorOpsResponse, error)
 	// ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-	// This is a Fire and Forget RPC which will return instantly.
+	// ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
 	ReleaseFSCursor(ctx context.Context, in *ReleaseFSCursorRequest) (*ReleaseFSCursorResponse, error)
 	// OpsGetPermissions returns the permissions bits of the file mode.
 	// The file mode portion of the value is ignored.
@@ -58,13 +58,14 @@ type SRPCFSCursorServiceClient interface {
 	OpsSymlink(ctx context.Context, in *OpsSymlinkRequest) (*OpsSymlinkResponse, error)
 	// OpsReadlink reads a symbolic link contents.
 	OpsReadlink(ctx context.Context, in *OpsReadlinkRequest) (*OpsReadlinkResponse, error)
-	// OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+	// OpsCopyTo copies a dirent inode to another inode with an optimized
+	// operation.
 	OpsCopyTo(ctx context.Context, in *OpsCopyToRequest) (*OpsCopyToResponse, error)
-	// OpsCopyFrom performs an optimized copy from another inode.
+	// OpsCopyFrom copies from another inode with an optimized operation.
 	OpsCopyFrom(ctx context.Context, in *OpsCopyFromRequest) (*OpsCopyFromResponse, error)
-	// OpsMoveTo performs an atomic and optimized move to another inode.
+	// OpsMoveTo moves to another inode with an atomic, optimized operation.
 	OpsMoveTo(ctx context.Context, in *OpsMoveToRequest) (*OpsMoveToResponse, error)
-	// OpsMoveFrom performs an atomic and optimized move from another inode.
+	// OpsMoveFrom moves from another inode with an atomic, optimized operation.
 	OpsMoveFrom(ctx context.Context, in *OpsMoveFromRequest) (*OpsMoveFromResponse, error)
 	// OpsRemove deletes entries from a directory.
 	OpsRemove(ctx context.Context, in *OpsRemoveRequest) (*OpsRemoveResponse, error)
@@ -397,7 +398,7 @@ type SRPCFSCursorServiceServer interface {
 	// GetCursorOps resolves the FSCursorOps handle.
 	GetCursorOps(context.Context, *GetCursorOpsRequest) (*GetCursorOpsResponse, error)
 	// ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
-	// This is a Fire and Forget RPC which will return instantly.
+	// ReleaseFSCursor is a Fire and Forget RPC that returns instantly.
 	ReleaseFSCursor(context.Context, *ReleaseFSCursorRequest) (*ReleaseFSCursorResponse, error)
 	// OpsGetPermissions returns the permissions bits of the file mode.
 	// The file mode portion of the value is ignored.
@@ -430,13 +431,14 @@ type SRPCFSCursorServiceServer interface {
 	OpsSymlink(context.Context, *OpsSymlinkRequest) (*OpsSymlinkResponse, error)
 	// OpsReadlink reads a symbolic link contents.
 	OpsReadlink(context.Context, *OpsReadlinkRequest) (*OpsReadlinkResponse, error)
-	// OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+	// OpsCopyTo copies a dirent inode to another inode with an optimized
+	// operation.
 	OpsCopyTo(context.Context, *OpsCopyToRequest) (*OpsCopyToResponse, error)
-	// OpsCopyFrom performs an optimized copy from another inode.
+	// OpsCopyFrom copies from another inode with an optimized operation.
 	OpsCopyFrom(context.Context, *OpsCopyFromRequest) (*OpsCopyFromResponse, error)
-	// OpsMoveTo performs an atomic and optimized move to another inode.
+	// OpsMoveTo moves to another inode with an atomic, optimized operation.
 	OpsMoveTo(context.Context, *OpsMoveToRequest) (*OpsMoveToResponse, error)
-	// OpsMoveFrom performs an atomic and optimized move from another inode.
+	// OpsMoveFrom moves from another inode with an atomic, optimized operation.
 	OpsMoveFrom(context.Context, *OpsMoveFromRequest) (*OpsMoveFromResponse, error)
 	// OpsRemove deletes entries from a directory.
 	OpsRemove(context.Context, *OpsRemoveRequest) (*OpsRemoveResponse, error)

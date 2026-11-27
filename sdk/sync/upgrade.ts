@@ -39,7 +39,7 @@ const originalValue: Validator = {
 /**
  * executeAppUpgrade stages data conversion, binding replacement, and the receipt
  * in World's supplied writer. A failed migration leaves acceptance to fail with
- * it; it never commits the World or opens another writer.
+ * it. executeAppUpgrade never commits the World or opens another writer.
  */
 export async function executeAppUpgrade<S extends Schema>(
   app: AppDefinition<S>,
@@ -101,7 +101,8 @@ export async function executeAppUpgrade<S extends Schema>(
           )
         }
 
-        // Incompatible schemas require a declared conversion; compatible updates only validate.
+        // Incompatible schemas require a declared conversion. Compatible updates
+        // only validate.
         const migration = app.migrations[current.version]
         if (current.version !== app.schema.version) {
           if (!migration)

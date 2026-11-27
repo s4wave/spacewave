@@ -576,7 +576,7 @@ function ConfirmUsernameDialog({
 
 // SSOConfirmPage handles new-account username entry after SSO.
 // Route: /auth/sso/:provider/confirm
-// Shared by both desktop and web SSO flows.
+// The page is shared by both desktop and web SSO flows.
 export function SSOConfirmPage() {
   const navigate = useNavigate()
   const params = useParams()
@@ -611,7 +611,7 @@ export function SSOConfirmPage() {
     )
   }
 
-  // No pending state = expired.
+  // The SSO session has expired if no pending state remains.
   if (!pendingState) return <SSOExpiredView {...recovery} />
 
   if (state.step === 'error') {

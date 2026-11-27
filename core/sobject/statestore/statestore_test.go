@@ -195,9 +195,9 @@ func TestStoreWriteRefusesUnsortedLists(t *testing.T) {
 	}
 }
 
-// TestStoreWriteCostIsFlat holds a write's allocations and store calls flat
-// between n and 10n entries above the checkpoint, for an appended operation,
-// a placed position, and a checkpoint that covers one operation.
+// TestStoreWriteCostIsFlat checks that a write's allocations and store calls
+// stay flat between n and 10n entries above the checkpoint, for an appended
+// operation, a placed position, and a checkpoint that covers one operation.
 func TestStoreWriteCostIsFlat(t *testing.T) {
 	// cost returns the allocations and store calls of writing next over prev.
 	cost := func(prev, next *sobject.SOState) (float64, int) {
