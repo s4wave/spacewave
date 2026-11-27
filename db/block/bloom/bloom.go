@@ -1,7 +1,6 @@
 package bloom
 
 import (
-	"hash/fnv"
 	"math"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -122,9 +121,6 @@ func (b *BloomFilter) ParseFilter() (*Filter, error) {
 	return From(b.GetBitSet().GetSet(), m, k)
 }
 
-// _ is a type assertion
-var _ block.Block = (*BloomFilter)(nil)
-
 // K returns the number of hash functions.
 func (f *Filter) K() uint {
 	return f.k
@@ -138,25 +134,6 @@ func (f *Filter) Cap() uint {
 // Words returns the underlying bitset words.
 func (f *Filter) Words() []uint64 {
 	return f.words
-}
-
-// Key is a hashed key. Hash a key once to test it against many filters.
-type Key struct {
-	h1, h2 uint64
-}
-
-// NewKey hashes a key for Filter.AddKey and Filter.TestKey.
-func NewKey(key []byte) Key {
-	// Hash the key into the two values used for bloom bit positions.
-	h := fnv.New128a()
-	_, _ = h.Write(key)
-	sum := h.Sum(nil)
-	h1 := uint64(sum[0])<<56 | uint64(sum[1])<<48 | uint64(sum[2])<<40 | uint64(sum[3])<<32 | uint64(sum[4])<<24 | uint64(sum[5])<<16 | uint64(sum[6])<<8 | uint64(sum[7])
-	h2 := uint64(sum[8])<<56 | uint64(sum[9])<<48 | uint64(sum[10])<<40 | uint64(sum[11])<<32 | uint64(sum[12])<<24 | uint64(sum[13])<<16 | uint64(sum[14])<<8 | uint64(sum[15])
-	if h2 == 0 {
-		h2 = 1
-	}
-	return Key{h1: h1, h2: h2}
 }
 
 // Add inserts a key.
@@ -228,3 +205,5 @@ func (f *Filter) setBit(idx uint64) {
 func (f *Filter) hasBit(idx uint64) bool {
 	return f.words[idx/64]&(uint64(1)<<(idx%64)) != 0
 }
+
+var _ block.Block = (*BloomFilter)(nil)
