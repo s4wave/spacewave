@@ -14,6 +14,10 @@ const (
 	kindWorld block.BlockKind = iota + 1
 	kindObject
 	kindChangeLogLL
+	// kindObjectTransform is an Object whose root carries a transform
+	// config. ObjectRef lists that ref after the root, so it ends the
+	// Object's child list.
+	kindObjectTransform
 )
 
 // PageTree identifies the part of a World a page belongs to.
@@ -146,13 +150,18 @@ func (n pageNode) pushChildren(
 		return n.pushWorld(ctx, pages, xfrm, stack)
 	}
 
-	// The blocks below an Object are its record. Other pages pass their
-	// tree down.
+	// The blocks below an Object's root are its record, and its transform
+	// config is not one of its pages. Other pages pass their tree down.
 	child := pageNode{page: Page{Tree: n.page.Tree, Level: n.page.Level + 1}, parent: b.Kind}
-	if b.Kind == kindObject {
+	refs := b.Refs
+	switch b.Kind {
+	case kindObjectTransform:
+		refs = refs[:max(len(refs)-1, 0)]
+		fallthrough
+	case kindObject:
 		child.page.Tree = PageTreeRecord
 	}
-	for _, ref := range b.Refs {
+	for _, ref := range refs {
 		child.page.Ref = ref
 		stack = append(stack, child)
 	}

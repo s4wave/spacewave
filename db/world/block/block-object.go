@@ -35,9 +35,14 @@ func (o *Object) DecodedBlockCacheTypeKey() string {
 	return "db/world/block.Object"
 }
 
-// BlockKind tags each stored Object block for the page walk.
+// BlockKind tags each stored Object block for the page walk, with
+// kindObjectTransform when its root carries a transform config, which its
+// child list then ends with.
 func (o *Object) BlockKind() block.BlockKind {
-	return kindObject
+	if o.GetRootRef().GetTransformConfRef().GetEmpty() {
+		return kindObject
+	}
+	return kindObjectTransform
 }
 
 // UnmarshalObject unmarshals a Object block from a cursor.

@@ -1,15 +1,16 @@
 package block
 
-// BlockKind is an opaque tag a block type declares for its encoded blocks. The
+// BlockKind is an opaque tag a block declares for its encoded form. The
 // block package carries it with each write and attaches no meaning to it, so
 // a reader of kept blocks, such as a page count, can tell their types apart
 // without decoding them. Zero is no kind.
 type BlockKind uint8
 
-// BlockWithKind is a block type that declares its kind. A Transaction tags
-// each block it writes with it.
+// BlockWithKind is a block that declares its kind. A Transaction tags each
+// block it writes with it. The kind may depend on the block's content, but
+// blocks with equal bytes have equal kinds.
 type BlockWithKind interface {
-	// BlockKind returns the kind of every block of this type.
+	// BlockKind returns the block's kind.
 	BlockKind() BlockKind
 }
 

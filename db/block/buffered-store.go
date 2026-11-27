@@ -234,20 +234,12 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 			return nil, false, err
 		}
 
-		// Persist the oversized block through the inner store, as the
-		// entry a drain would write, so it keeps its kind.
-		found, err := s.inner.PutBlockBatch(WithPutOpts(ctx, opts), []*PutBatchEntry{{
-			Ref:       ref,
-			Data:      data,
-			Refs:      opts.GetRefs(),
-			RefsKnown: opts.GetRefsKnown(),
-			CacheFill: opts.GetCacheFill(),
-			Kind:      kind,
-		}})
+		// Persist the oversized block through the inner store. Its kind is
+		// dropped: no kinded block type writes a block this large.
+		ref, existed, err := s.inner.PutBlock(ctx, data, opts)
 		if err != nil {
-			return nil, false, err
+			return nil, existed, err
 		}
-		existed := len(found) != 0 && found[0]
 
 		// Record the direct write in the buffered store history.
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
