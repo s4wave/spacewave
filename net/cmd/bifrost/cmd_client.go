@@ -5,24 +5,20 @@ import (
 	bcli "github.com/s4wave/spacewave/net/cli"
 )
 
-// cliArgs are the client arguments.
-var cliArgs bcli.ClientArgs
-
-func init() {
+// buildClientCommand constructs the client commands and their shared connection flags.
+func buildClientCommand() *cli.Command {
 	// Assemble client commands and connect the controller bus client.
+	var cliArgs bcli.ClientArgs
 	clientCommands := (&cliArgs).BuildCommands()
 	clientFlags := (&cliArgs).BuildFlags()
 	cbusCmd := cliArgs.BuildControllerBusCommand()
 
 	// Register the client command tree with its shared connection flags.
 	clientCommands = append(clientCommands, cbusCmd)
-	commands = append(
-		commands,
-		&cli.Command{
-			Name:        "client",
-			Usage:       "client sub-commands",
-			Subcommands: clientCommands,
-			Flags:       clientFlags,
-		},
-	)
+	return &cli.Command{
+		Name:        "client",
+		Usage:       "client sub-commands",
+		Subcommands: clientCommands,
+		Flags:       clientFlags,
+	}
 }

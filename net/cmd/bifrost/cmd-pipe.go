@@ -7,14 +7,13 @@ import (
 	bcli "github.com/s4wave/spacewave/net/cli"
 )
 
-// pipeArgs are the pipe command arguments.
-var pipeArgs bcli.PipeArgs
-
-func init() {
-	commands = append(commands, &cli.Command{
+// buildPipeCommand constructs the pipe command with its own arguments.
+func buildPipeCommand() *cli.Command {
+	var pipeArgs bcli.PipeArgs
+	return &cli.Command{
 		Name:   "pipe",
 		Usage:  "pipe stdin/stdout over bifrost (netcat-like)",
 		Action: pipeArgs.Run,
 		Flags:  pipeArgs.BuildFlags(),
-	})
+	}
 }

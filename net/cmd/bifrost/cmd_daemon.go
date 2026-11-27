@@ -40,51 +40,49 @@ var daemonFlags struct {
 	ProfListen string
 }
 
-func init() {
-	commands = append(
-		commands,
-		&cli.Command{
-			Name:   "daemon",
-			Usage:  "run a bifrost daemon",
-			Action: runDaemon,
-			Flags: append(
-				(&daemonFlags.DaemonArgs).BuildFlags(),
-				&cli.StringFlag{
-					Name:        "config",
-					Aliases:     []string{"c"},
-					Usage:       "path to configuration yaml file",
-					EnvVars:     []string{"BIFROST_CONFIG"},
-					Value:       "bifrost_daemon.yaml",
-					Destination: &daemonFlags.ConfigPath,
-				},
-				&cli.BoolFlag{
-					Name:        "write-config",
-					Usage:       "write the daemon config file on startup",
-					EnvVars:     []string{"BIFROST_WRITE_CONFIG"},
-					Destination: &daemonFlags.WriteConfig,
-				},
-				&cli.StringFlag{
-					Name:        "node-priv",
-					Usage:       "path to node private key, will be generated if doesn't exist",
-					EnvVars:     []string{"BIFROST_NODE_PRIV"},
-					Value:       "bifrost_daemon.pem",
-					Destination: &daemonFlags.PeerPrivPath,
-				},
-				&cli.StringFlag{
-					Name:        "api-listen",
-					Usage:       "if set, will listen on address for API srpc connections, ex :5110",
-					EnvVars:     []string{"BIFROST_API_LISTEN"},
-					Destination: &daemonFlags.APIListen,
-				},
-				&cli.StringFlag{
-					Name:        "prof-listen",
-					Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
-					EnvVars:     []string{"BIFROST_PROF_LISTEN"},
-					Destination: &daemonFlags.ProfListen,
-				},
-			),
-		},
-	)
+// buildDaemonCommand constructs the daemon command and its configuration flags.
+func buildDaemonCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "daemon",
+		Usage:  "run a bifrost daemon",
+		Action: runDaemon,
+		Flags: append(
+			(&daemonFlags.DaemonArgs).BuildFlags(),
+			&cli.StringFlag{
+				Name:        "config",
+				Aliases:     []string{"c"},
+				Usage:       "path to configuration yaml file",
+				EnvVars:     []string{"BIFROST_CONFIG"},
+				Value:       "bifrost_daemon.yaml",
+				Destination: &daemonFlags.ConfigPath,
+			},
+			&cli.BoolFlag{
+				Name:        "write-config",
+				Usage:       "write the daemon config file on startup",
+				EnvVars:     []string{"BIFROST_WRITE_CONFIG"},
+				Destination: &daemonFlags.WriteConfig,
+			},
+			&cli.StringFlag{
+				Name:        "node-priv",
+				Usage:       "path to node private key, will be generated if doesn't exist",
+				EnvVars:     []string{"BIFROST_NODE_PRIV"},
+				Value:       "bifrost_daemon.pem",
+				Destination: &daemonFlags.PeerPrivPath,
+			},
+			&cli.StringFlag{
+				Name:        "api-listen",
+				Usage:       "if set, will listen on address for API srpc connections, ex :5110",
+				EnvVars:     []string{"BIFROST_API_LISTEN"},
+				Destination: &daemonFlags.APIListen,
+			},
+			&cli.StringFlag{
+				Name:        "prof-listen",
+				Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
+				EnvVars:     []string{"BIFROST_PROF_LISTEN"},
+				Destination: &daemonFlags.ProfListen,
+			},
+		),
+	}
 }
 
 // runDaemon runs the daemon.

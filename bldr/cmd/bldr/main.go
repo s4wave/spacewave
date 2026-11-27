@@ -10,17 +10,9 @@ import (
 	_ "github.com/s4wave/spacewave/bldr/values"
 )
 
-// commands are the CLI commands.
-var commands []*cli.Command
-
-// flags are the CLI flags.
-var flags []cli.Flag
-
-// afterFuncs are cleanup functions called after the app exits.
-var afterFuncs []func()
-
 func main() {
 	// Configure the Bldr command tree and its post-run cleanup.
+	commands, flags, afterFuncs := buildCommands()
 	app := cli.NewApp()
 	app.Name = "bldr"
 	app.HideVersion = true

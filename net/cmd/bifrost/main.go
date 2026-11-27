@@ -7,9 +7,6 @@ import (
 	"github.com/aperturerobotics/cli"
 )
 
-// commands are the CLI commands.
-var commands []*cli.Command
-
 var version string
 
 func main() {
@@ -18,7 +15,7 @@ func main() {
 	app.Name = "bifrost"
 	app.HideVersion = true
 	app.Usage = "command-line node and tools for bifrost"
-	app.Commands = commands
+	app.Commands = buildCommands()
 
 	// Metadata
 	app.Description = "Check out the docs and examples:\n\nhttps://github.com/s4wave/spacewave/net"

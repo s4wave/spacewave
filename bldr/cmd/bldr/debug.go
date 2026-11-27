@@ -17,10 +17,7 @@ import (
 
 const maxWalkDepth = 10
 
-func init() {
-	commands = append(commands, buildDebugCommand())
-}
-
+// buildDebugCommand constructs the Saucer debug command tree.
 func buildDebugCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "debug",
