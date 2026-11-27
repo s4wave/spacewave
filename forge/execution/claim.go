@@ -15,8 +15,8 @@ const DefaultClaimLease = 5 * time.Minute
 // plus the target's cancellation drain time stays within this allowance.
 const ClaimClockSkew = 5 * time.Second
 
-// validate checks that the claim identifies a claim id, fencing epoch, and lease.
-func (c *Claim) validate() error {
+// Validate checks that the claim identifies a claim id, fencing epoch, and lease.
+func (c *Claim) Validate() error {
 	if c.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")
 	}
