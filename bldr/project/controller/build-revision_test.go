@@ -91,7 +91,7 @@ func TestBuildTargetsManifestRevisionFloor(t *testing.T) {
 			}
 			source := t.TempDir()
 			ctrl := NewController(tb.GetLogger(), tb.GetBus(), NewConfig(source, source, project, false, false))
-			release, err := tb.GetBus().AddController(ctx, ctrl, nil)
+			release, err := tb.AddController(ctx, ctrl, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

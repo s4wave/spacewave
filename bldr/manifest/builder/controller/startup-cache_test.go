@@ -1317,7 +1317,7 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 	defer tb.Release()
 
 	// Install a controller that blocks every network bucket lookup.
-	ctrlRel, err := tb.GetBus().AddController(ctx, startupCacheBlockingLookupController{}, nil)
+	ctrlRel, err := tb.AddController(ctx, startupCacheBlockingLookupController{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

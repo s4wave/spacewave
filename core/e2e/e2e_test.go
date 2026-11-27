@@ -105,7 +105,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
 	// create the testbed resource server
-	volumeID := tb.GetVolume().GetID()
+	volumeID := tb.GetVolumeID()
 	bucketID := "e2e-testbed-bucket"
 	testbedResourceServer := resource_testbed.NewTestbedResourceServer(
 		ctx,
@@ -131,7 +131,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	peerCtrl := peer_controller.NewController(le, volPeer)
-	relPeerCtrl, err := tb.GetBus().AddController(ctx, peerCtrl, nil)
+	relPeerCtrl, err := tb.AddController(ctx, peerCtrl, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -140,7 +140,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	// start the objecttype controller to resolve
 	// LookupObjectType directives
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
-	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
+	relObjectTypeCtrl, err := tb.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

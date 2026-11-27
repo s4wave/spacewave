@@ -74,7 +74,7 @@ func TestPluginCompilerJs(t *testing.T) {
 	// create the directive to load the plugin
 	// the plugin scheduler will watch the world and wait for the manifest
 	pluginID := "test-plugin"
-	platformID := quickjsHost.GetPluginHost().GetPlatformId()
+	platformID := quickjsHost.GetPlatformId()
 
 	// Load the plugin through the plugin scheduler directive.
 	_, pluginRef, err := b.AddDirective(ctx, bldr_plugin.NewLoadPlugin(pluginID), nil)

@@ -136,7 +136,7 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	// it will create a FetchManifest directive to look up the manifest.
 	pluginID := "test-plugin"
 	manifestID := pluginID
-	platformID := quickjsHost.GetPluginHost().GetPlatformId()
+	platformID := quickjsHost.GetPlatformId()
 	scriptPath := "test-plugin.js"
 	_, pluginRef, err := b.AddDirective(ctx, bldr_plugin.NewLoadPlugin(pluginID), nil)
 	if err != nil {

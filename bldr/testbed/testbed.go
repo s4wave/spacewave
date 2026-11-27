@@ -327,6 +327,16 @@ func (d *Testbed) GetBus() bus.Bus {
 	return d.b
 }
 
+// AddController attaches a controller to the testbed bus and returns its release.
+func (d *Testbed) AddController(ctx context.Context, ctrl controller.Controller, cb func(error)) (func(), error) {
+	return d.b.AddController(ctx, ctrl, cb)
+}
+
+// GetVolumeID returns the identity of the testbed's storage volume.
+func (d *Testbed) GetVolumeID() string {
+	return d.vol.GetID()
+}
+
 // GetLogger returns the root logger.
 func (d *Testbed) GetLogger() *logrus.Entry {
 	return d.le

@@ -7,9 +7,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_logs "github.com/s4wave/spacewave/bldr/plugin/host/logs"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,6 +64,22 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // GetPluginHost returns the plugin host.
 func (c *Controller) GetPluginHost() bldr_plugin_host.PluginHost {
 	return c.host
+}
+
+// GetPlatformId returns the platform supported by this controller's host.
+func (c *Controller) GetPlatformId() string {
+	return c.platformID
+}
+
+// ExecutePlugin runs a plugin on this controller's host until execution ends.
+func (c *Controller) ExecutePlugin(
+	ctx context.Context,
+	pluginID, instanceKey, executionKey, manifestRoot, entrypoint string,
+	pluginDist, pluginAssets *unixfs.FSHandle,
+	hostRpcMux srpc.Mux,
+	rpcInit bldr_plugin_host.PluginRpcInitCb,
+) error {
+	return c.host.ExecutePlugin(ctx, pluginID, instanceKey, executionKey, manifestRoot, entrypoint, pluginDist, pluginAssets, hostRpcMux, rpcInit)
 }
 
 // GetHostRoot returns the process-lifetime host resource root.

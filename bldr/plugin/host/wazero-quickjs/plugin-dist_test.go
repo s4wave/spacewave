@@ -89,7 +89,7 @@ func TestPluginDist(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pluginRef.Release()
-	platformID := quickjsHost.GetPluginHost().GetPlatformId()
+	platformID := quickjsHost.GetPlatformId()
 	meta := bldr_manifest.NewManifestMeta(pluginID, bldr_manifest.BuildType_DEV, platformID, 1)
 	_, _, err = tb.CreateManifestWithBilly(ctx, meta, pluginID+".mjs", distFS, memfs.New(), timestamppb.Now())
 	if err != nil {

@@ -212,7 +212,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		controller.NewInfo("test/release-core-host", controller.MustParseVersion("0.0.1"), "release fixture host"),
 		host,
 	)
-	releaseHost, err := tb.GetBus().AddController(ctx, hostCtrl, nil)
+	releaseHost, err := tb.AddController(ctx, hostCtrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +319,7 @@ func buildRemoteManifest(
 		le,
 		transform_all.BuildFactorySet(),
 		bucketID,
-		tb.GetVolume().GetID(),
+		tb.GetVolumeID(),
 		nil,
 		nil,
 	)

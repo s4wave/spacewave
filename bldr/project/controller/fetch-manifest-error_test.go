@@ -157,7 +157,7 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 	ctrlConf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	ctrlConf.FetchManifestRemote = "devtool"
 	projectCtrl := NewController(tb.GetLogger(), tb.GetBus(), ctrlConf)
-	relProjectCtrl, err := tb.GetBus().AddController(ctx, projectCtrl, nil)
+	relProjectCtrl, err := tb.AddController(ctx, projectCtrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 	ctrlConf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	ctrlConf.FetchManifestRemote = "devtool"
 	projectCtrl := NewController(tb.GetLogger(), tb.GetBus(), ctrlConf)
-	relProjectCtrl, err := tb.GetBus().AddController(ctx, projectCtrl, nil)
+	relProjectCtrl, err := tb.AddController(ctx, projectCtrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

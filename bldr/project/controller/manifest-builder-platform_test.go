@@ -49,7 +49,7 @@ func TestManifestBuilderDesktopAliasAdvancesCanonicalRevision(t *testing.T) {
 	// Run the project controller and request a manifest build.
 	source := t.TempDir()
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), NewConfig(source, source, project, true, false))
-	release, err := tb.GetBus().AddController(ctx, ctrl, nil)
+	release, err := tb.AddController(ctx, ctrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

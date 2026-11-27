@@ -55,7 +55,7 @@ func newFetchBuildConfigTestController(t *testing.T) (context.Context, *Controll
 	conf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
 	conf.FetchManifestRemote = "devtool"
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), conf)
-	release, err := tb.GetBus().AddController(ctx, ctrl, nil)
+	release, err := tb.AddController(ctx, ctrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

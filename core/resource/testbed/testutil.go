@@ -165,8 +165,8 @@ type TestbedWithQuickJS struct {
 	Testbed *testbed.Testbed
 	// Bus is the controller bus.
 	Bus bus.Bus
-	// ResourceServer is the testbed resource server.
-	ResourceServer *TestbedResourceServer
+	// resourceServer is the testbed resource server.
+	resourceServer *TestbedResourceServer
 	// VolumeID is the volume ID used for world engines.
 	VolumeID string
 	// BucketID is the bucket ID used for world engines.
@@ -220,7 +220,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
 	// Create the testbed resource server
-	volumeID := tb.GetVolume().GetID()
+	volumeID := tb.GetVolumeID()
 	bucketID := "testbed-bucket"
 	testbedResourceServer := NewTestbedResourceServer(
 		ctx,
@@ -269,7 +269,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		return objectTypes[typeID], nil
 	}
 	objectTypeCtrl := objecttype_controller.NewController(lookupFunc)
-	objectTypeCtrlRelease, err := b.AddController(ctx, objectTypeCtrl, nil)
+	objectTypeCtrlRelease, err := tb.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
 		quickjsHostRef.Release()
 		tb.Release()
@@ -279,7 +279,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 	return &TestbedWithQuickJS{
 		Testbed:               tb,
 		Bus:                   b,
-		ResourceServer:        testbedResourceServer,
+		resourceServer:        testbedResourceServer,
 		VolumeID:              volumeID,
 		BucketID:              bucketID,
 		Logger:                le,
@@ -287,6 +287,11 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		QuickJSHostRef:        quickjsHostRef,
 		ObjectTypeCtrlRelease: objectTypeCtrlRelease,
 	}, nil
+}
+
+// WaitForTestResult waits for the running QuickJS test to report its outcome.
+func (t *TestbedWithQuickJS) WaitForTestResult(ctx context.Context) (bool, string, error) {
+	return t.resourceServer.WaitForTestResult(ctx)
 }
 
 // LoadQuickJSPlugin loads a QuickJS plugin with the given script contents.
@@ -299,7 +304,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	scriptContents string,
 ) (directive.Reference, error) {
 	// Choose the QuickJS platform and script path for the plugin.
-	platformID := t.QuickJSHost.GetPluginHost().GetPlatformId()
+	platformID := t.QuickJSHost.GetPlatformId()
 	scriptPath := pluginID + ".js"
 
 	// Create a plugin manifest
@@ -325,7 +330,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 
 	// Register the testbed's resource server on the plugin's host mux.
 	rootResourceMux := srpc.NewMux()
-	if err := t.ResourceServer.Register(rootResourceMux); err != nil {
+	if err := t.resourceServer.Register(rootResourceMux); err != nil {
 		return nil, err
 	}
 	resourceSrv := resource_server.NewResourceServer(rootResourceMux, "")
@@ -360,7 +365,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	pluginCtx, pluginCancel := context.WithCancel(ctx)
 	doneCh := make(chan error, 1)
 	go func() {
-		doneCh <- t.QuickJSHost.GetPluginHost().ExecutePlugin(
+		doneCh <- t.QuickJSHost.ExecutePlugin(
 			pluginCtx,
 			pluginID,
 			"",
@@ -577,7 +582,7 @@ func RunTypeScriptTest(
 	le.Info("plugin started, waiting for test to complete...")
 
 	// Wait for the test to complete and get the result
-	success, errorMsg, err = tb.ResourceServer.WaitForTestResult(ctx)
+	success, errorMsg, err = tb.WaitForTestResult(ctx)
 	if err != nil {
 		return false, "", fmt.Errorf("error waiting for test result: %w", err)
 	}

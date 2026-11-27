@@ -170,7 +170,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		if err := billy_util.WriteFile(dist, "app.mjs", script, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		meta := manifest.NewManifestMeta("test-colors", manifest.BuildType_DEV, host.GetPluginHost().GetPlatformId(), uint64(version+1))
+		meta := manifest.NewManifestMeta("test-colors", manifest.BuildType_DEV, host.GetPlatformId(), uint64(version+1))
 		assets := memfs.New()
 		if version != 2 {
 			if err := assets.MkdirAll("v/b/fe/.vite", 0o755); err != nil {

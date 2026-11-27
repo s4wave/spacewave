@@ -133,7 +133,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	peerCtrl := peer_controller.NewController(le, volPeer)
-	relPeerCtrl, err := tb.GetBus().AddController(ctx, peerCtrl, nil)
+	relPeerCtrl, err := tb.AddController(ctx, peerCtrl, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -141,7 +141,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 
 	// Start the object-type controller for LookupObjectType directives.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
-	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
+	relObjectTypeCtrl, err := tb.AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
