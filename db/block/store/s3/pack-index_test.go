@@ -720,7 +720,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 		return keys
 	}
 	store := &stopAfterWrites{Store: hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()), writes: 2}
-	x := newPackIndex(store)
+	x := newPackIndex(store, false)
 	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "a"}, keysOf("a", 10), nil); err != nil {
 		t.Fatal(err)
 	}
@@ -731,7 +731,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 
 	// Reload: b keeps its number unindexed, and its first slice names it.
 	store.writes = -1
-	got := newPackIndex(store)
+	got := newPackIndex(store, false)
 	if _, _, err := got.load(ctx); err != nil {
 		t.Fatal(err)
 	}

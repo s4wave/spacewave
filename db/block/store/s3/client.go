@@ -424,7 +424,9 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 	for faults := 0; ; {
 		// Send one attempt, returning only the context's error once it
 		// ends.
-		resp, probe, err := c.attempt(ctx, method, bucket, key, query, data, header)
+		resp, probe, err := c.gate.attempt(ctx, func() (*http.Response, error) {
+			return c.send(ctx, method, bucket, key, query, data, header)
+		})
 		if ctx.Err() != nil {
 			if resp != nil {
 				httpclient.DrainAndCloseResponseBody(resp)
@@ -451,12 +453,10 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 
 		// Return a transient fault past its retries.
 		if faults == len(retryDelays) {
-			le := c.gate.le.WithField("method", method).WithField("retries", faults)
+			c.gate.failed(method, faults, resp, err)
 			if err != nil {
-				le.WithError(err).Warn("s3 request failed, giving up")
 				return nil, err
 			}
-			le.WithField("status", resp.StatusCode).Warn("s3 request failed, giving up")
 			return resp, nil
 		}
 
@@ -478,20 +478,6 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 		case <-timer.C:
 		}
 	}
-}
-
-// attempt sends one attempt of a request on a lane of the gate, which it
-// holds until the response headers arrive, and reports whether the lane was
-// a probe of a paused gate.
-func (c *Client) attempt(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, bool, error) {
-	// Hold a lane for the attempt, returning it however the send ends.
-	lease, err := c.gate.pool.Take(ctx, nil)
-	if err != nil {
-		return nil, false, err
-	}
-	defer c.gate.pool.Put(lease)
-	resp, err := c.send(ctx, method, bucket, key, query, data, header)
-	return resp, lease.Probe, err
 }
 
 // jitter returns a wait drawn uniformly from [0, bound).

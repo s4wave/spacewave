@@ -165,6 +165,18 @@ func (g *fetchGroup[V]) claim(ctx context.Context, keys []string) (*fetchClaim[V
 	return c, block.WithDemand(ctx, demand)
 }
 
+// partition visits each claimed position in order through owned or joined,
+// according to which fetches this batch must settle and which it must wait for.
+func (c *fetchClaim[V]) partition(owned, joined func(int)) {
+	for i, owns := range c.owned {
+		if owns {
+			owned(i)
+		} else {
+			joined(i)
+		}
+	}
+}
+
 // settle publishes the result of owned fetch i to its joiners.
 func (c *fetchClaim[V]) settle(i int, val V, err error) {
 	// Retire the key so a later caller starts afresh, then wake the joiners.

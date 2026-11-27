@@ -243,8 +243,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	var tails packfile_store.IndexCache
 	conf := &packfile_store.Config{ReadCacheBudget: block.SharedReadCacheBudget()}
 	if opts.Index != nil {
-		s.index = newPackIndex(opts.Index)
-		s.index.readOnly = opts.ReadOnlyIndex
+		s.index = newPackIndex(opts.Index, opts.ReadOnlyIndex)
 		tails = s.index
 		conf.Locator = s.index
 	}

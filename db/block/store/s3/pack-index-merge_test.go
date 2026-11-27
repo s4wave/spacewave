@@ -15,7 +15,7 @@ import (
 func TestMergePackIndex(t *testing.T) {
 	ctx := t.Context()
 	newIndex := func() *packIndex {
-		return newPackIndex(hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()))
+		return newPackIndex(hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()), false)
 	}
 	keysOf := func(id string) [][]byte {
 		var keys [][]byte
@@ -66,7 +66,7 @@ func TestMergePackIndex(t *testing.T) {
 	if p.Packs != 3 || p.Keys != 9000 {
 		t.Fatalf("merged %d packs and %d keys, want 3 and 9000", p.Packs, p.Keys)
 	}
-	got := newPackIndex(dst.store)
+	got := newPackIndex(dst.store, false)
 	if _, _, err := got.load(ctx); err != nil {
 		t.Fatal(err)
 	}

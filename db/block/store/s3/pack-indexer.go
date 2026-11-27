@@ -45,10 +45,8 @@ func (s *PackStore) runIndexer(ctx context.Context) error {
 		if err := s.indexPending(ctx, 1, indexPackPause, indexBatchPause, &progress); err != nil {
 			return err
 		}
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-s.index.work:
+		if err := s.index.waitWork(ctx); err != nil {
+			return err
 		}
 	}
 }

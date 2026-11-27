@@ -47,10 +47,17 @@ type MergeProgress struct {
 // the pack filters. src is read in short snapshots, and dst must not have
 // another writer.
 func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress func(MergeProgress)) (MergeProgress, error) {
+	return newPackIndex(dst, false).merge(ctx, src, progress)
+}
+
+// merge adds the source's indexed packs to this private destination index.
+// It preserves pack numbering and marks completion only after hash rows commit.
+// No other goroutine may use the index or write its store during the merge.
+func (x *packIndex) merge(ctx context.Context, src ReadFunc, progress func(MergeProgress)) (MergeProgress, error) {
 	// Read the destination's table and the source's.
 	var p MergeProgress
-	into := newPackIndex(dst)
-	if _, _, err := into.load(ctx); err != nil {
+	dst := x.store
+	if _, _, err := x.load(ctx); err != nil {
 		return p, errors.Wrap(err, "load the destination index")
 	}
 	var from map[string]packRow
@@ -73,7 +80,7 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 	var added []string
 	numbers := make(map[uint32]packRow)
 	for id, row := range from {
-		have, ok := into.rows[id]
+		have, ok := x.rows[id]
 		switch {
 		case !ok:
 			added = append(added, id)
@@ -109,7 +116,7 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 			return p, err
 		}
 		for _, entry := range entries {
-			row := into.nextRow(entry.GetId(), false)
+			row := x.nextRow(entry.GetId(), false)
 			if err := putPackRows(ctx, tx, entry, row); err != nil {
 				tx.Discard()
 				return p, err
@@ -144,7 +151,7 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 		}
 		for _, row := range batch {
 			row.indexed = true
-			if err := tx.Set(ctx, []byte(indexPackPrefix+into.ids[row.num]), row.marshal()); err != nil {
+			if err := tx.Set(ctx, []byte(indexPackPrefix+x.ids[row.num]), row.marshal()); err != nil {
 				tx.Discard()
 				return p, err
 			}

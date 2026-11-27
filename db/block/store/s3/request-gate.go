@@ -4,8 +4,10 @@ package block_store_s3
 
 import (
 	"cmp"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"net/http"
 	"slices"
 	"sync"
 	"time"
@@ -319,4 +321,27 @@ func (g *RequestGate) retried() {
 	g.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		g.retries++
 	})
+}
+
+// attempt holds a lane until send returns its response headers and reports
+// whether the lane was a probe of a paused gate.
+func (g *RequestGate) attempt(ctx context.Context, send func() (*http.Response, error)) (*http.Response, bool, error) {
+	// Hold a lane for the attempt, returning it however the send ends.
+	lease, err := g.pool.Take(ctx, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	defer g.pool.Put(lease)
+	resp, err := send()
+	return resp, lease.Probe, err
+}
+
+// failed logs a request that exhausted its transient-fault retries.
+func (g *RequestGate) failed(method string, retries int, resp *http.Response, err error) {
+	le := g.le.WithField("method", method).WithField("retries", retries)
+	if err != nil {
+		le.WithError(err).Warn("s3 request failed, giving up")
+		return
+	}
+	le.WithField("status", resp.StatusCode).Warn("s3 request failed, giving up")
 }

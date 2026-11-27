@@ -197,13 +197,11 @@ func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads
 	c, rctx := s.extentReads.claim(ctx, keys)
 	defer c.release()
 	var owned, joined []batchExtent
-	for _, e := range pending {
-		if c.owned[e.claim] {
-			owned = append(owned, e)
-		} else {
-			joined = append(joined, e)
-		}
-	}
+	c.partition(func(i int) {
+		owned = append(owned, pending[i])
+	}, func(i int) {
+		joined = append(joined, pending[i])
+	})
 
 	// Read the claimed extents, settling each for the readers that joined
 	// it. An answer of the batch's own end settles nothing, and release

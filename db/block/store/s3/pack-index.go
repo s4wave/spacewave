@@ -135,12 +135,24 @@ type packIndex struct {
 	tails tailQueue
 }
 
-func newPackIndex(store kvtx.Store) *packIndex {
+// newPackIndex constructs an index with the requested persistence policy.
+func newPackIndex(store kvtx.Store, readOnly bool) *packIndex {
 	return &packIndex{
-		store:   store,
-		rows:    make(map[string]packRow),
-		pending: make(map[string]*packfile.PackfileEntry),
-		work:    make(chan struct{}, 1),
+		store:    store,
+		readOnly: readOnly,
+		rows:     make(map[string]packRow),
+		pending:  make(map[string]*packfile.PackfileEntry),
+		work:     make(chan struct{}, 1),
+	}
+}
+
+// waitWork waits for pending work or cancellation without holding mtx.
+func (x *packIndex) waitWork(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case <-x.work:
+		return nil
 	}
 }
 
