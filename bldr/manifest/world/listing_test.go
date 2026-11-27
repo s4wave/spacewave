@@ -5,13 +5,23 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // TestManifestListingWaitChange checks that manifest listings wait past unrelated
@@ -204,4 +214,294 @@ func TestManifestListingTraversal(t *testing.T) {
 			t.Fatalf("listing = %v, want path results %v", got, want)
 		}
 	}
+}
+func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *testing.T) {
+
+	// Set up the test context and logger.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
+
+	// Build the mock World state from the empty cursor.
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the plugin-host manifest store in the World.
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a readable good manifest ref and link its graph edge.
+	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const goodRefKey = "plugin-host/ref/good"
+	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a bad manifest ref pointing at a missing bucket.
+	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	badRef.GetManifestRef().BucketId = "missing-bucket"
+	const badRefKey = "plugin-host/ref/missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a legacy manifest ref with an empty graph label.
+	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 11)
+	legacyRef.GetManifestRef().BucketId = "legacy-missing-bucket"
+	const legacyRefKey = "plugin-host/ref/legacy-missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, legacyRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Dump the startup manifest graph for the manifest ID.
+	dump, err := DumpStartupManifestGraphForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Assert the dump contains the expected graph diagnostics.
+	for _, want := range []string{
+		"startup manifest graph manifest_id=spacewave-web platform_ids=js",
+		"root plugin-host type=bldr/manifest-store",
+		"edge plugin-host -> plugin-host/ref/good label=<spacewave-web>",
+		"edge plugin-host -> plugin-host/ref/missing-bucket label=<spacewave-web>",
+		"edge plugin-host -> plugin-host/ref/legacy-missing-bucket label=<empty>",
+		"candidate plugin-host/ref/good type=<unknown>",
+		"ref_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
+		"manifest_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
+		"candidate plugin-host/ref/missing-bucket type=<unknown>",
+		"manifest_bucket=missing-bucket",
+		"manifest_bucket=legacy-missing-bucket",
+		"skip=bucket not found",
+	} {
+		if !strings.Contains(dump, want) {
+			t.Fatalf("dump missing %q:\n%s", want, dump)
+		}
+	}
+	if !strings.Contains(dump, "manifest_root="+badRef.GetManifestRef().GetRootRef().MarshalString()) {
+		t.Fatalf("dump missing bad manifest root ref:\n%s", dump)
+	}
+	if !strings.Contains(dump, "object_root=") {
+		t.Fatalf("dump missing object root refs:\n%s", dump)
+	}
+}
+
+func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
+
+	// Set up the test context and logger.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	// Start a testbed holding the mock World.
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	// Add a lookup observer controller that records network lookups.
+	lookupObserver := &startupManifestGraphLookupObserver{called: make(chan struct{}, 1)}
+	observerRel, err := tb.Bus.AddController(ctx, lookupObserver, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer observerRel()
+
+	// Build an empty cursor for the mock World state.
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	// Build the mock World state from the empty cursor.
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Configure a lookup-directive bucket for the diagnostic dump.
+	const lookupBucketID = "startup-graph-diagnostic-bucket"
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, bucketConf); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the plugin-host manifest store in the World.
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	directRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 13)
+	directRef.GetManifestRef().BucketId = lookupBucketID
+	const directKey = "plugin-host/direct/external"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), directKey, directRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, directKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Dump the startup manifest graph under a short context deadline.
+	dumpCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	defer cancel()
+	dump, err := DumpStartupManifestGraphForManifestID(
+		dumpCtx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !strings.Contains(dump, "candidate "+directKey) {
+		t.Fatalf("dump missing direct candidate:\n%s", dump)
+	}
+	select {
+	case <-lookupObserver.called:
+		t.Fatalf("diagnostic graph dump invoked LookupBlockFromNetwork:\n%s", dump)
+	default:
+	}
+}
+
+func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T) {
+
+	// Set up the test context and logger.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
+
+	// Build the mock World state from the empty cursor.
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the plugin-host manifest store in the World.
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a global release manifest candidate.
+	releaseRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 10)
+	const releaseKey = "release/manifests/spacewave-web/js"
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), releaseKey, []string{storeKey}, releaseRef); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a project build manifest candidate with a build-result marker.
+	buildRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	const buildKey = "project/build/spacewave-web/js"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), buildKey, buildRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := createStartupGraphBuildResultMarker(ctx, ws, buildKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, buildKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store a space-local manifest candidate.
+	spaceLocalRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
+	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, spaceLocalKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Store an unknown-provenance manifest candidate.
+	unknownRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const unknownKey = "plugin-host/ref/unknown"
+	storeTestManifestRefObject(t, ctx, ws, unknownKey, unknownRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, unknownKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Dump the startup manifest graph for the manifest ID.
+	dump, err := DumpStartupManifestGraphForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Assert each candidate carries its expected provenance classification.
+	assertStartupGraphDumpLine(t, dump, "candidate "+releaseKey, "provenance=global-release", "derived=true", "protected=false")
+	assertStartupGraphDumpLine(t, dump, "candidate "+buildKey, "provenance=project-build", "derived=true", "protected=false")
+	assertStartupGraphDumpLine(t, dump, "candidate "+spaceLocalKey, "provenance=space-local-or-ephemeral", "derived=false", "protected=true")
+	assertStartupGraphDumpLine(t, dump, "candidate "+unknownKey, "provenance=unknown", "derived=false", "protected=true")
+}
+
+func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldState, manifestKey string) error {
+
+	// Write the build-result marker manifest as a World object.
+	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		bcs.SetBlock(manifest.NewManifest(manifest.NewManifestMeta("build-result-marker", manifest.BuildType_DEV, "js", 1), "entrypoint"), true)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	objKey := manifestKey + "/build-result"
+	{
+		createdObject, err := ws.CreateObject(ctx, objKey, ref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return err
+		}
+	}
+	return world_types.SetObjectType(ctx, ws, objKey, "bldr/manifest-build-result")
+}
+
+func assertStartupGraphDumpLine(t *testing.T, dump string, prefix string, parts ...string) {
+	t.Helper()
+	for line := range strings.SplitSeq(dump, "\n") {
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		for _, part := range parts {
+			if !strings.Contains(line, part) {
+				t.Fatalf("dump line %q missing %q", line, part)
+			}
+		}
+		return
+	}
+	t.Fatalf("dump missing line prefix %q:\n%s", prefix, dump)
 }

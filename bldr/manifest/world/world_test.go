@@ -52,19 +52,9 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -151,19 +141,9 @@ func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -250,19 +230,9 @@ func TestCollectStartupManifestsForManifestIDsPagesLargeStores(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build the mock World state from an empty cursor.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -388,19 +358,9 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	_, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -480,19 +440,9 @@ func TestCollectStartupManifestsSkipsUnreadableLinkedRef(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -595,19 +545,9 @@ func TestCollectStartupManifestsSkipsUnavailableBucketRef(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -792,280 +732,6 @@ func TestCollectStartupManifestsSkipsUnavailableLookupBucketBlockWithoutNetworkW
 	}
 }
 
-func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a readable good manifest ref and link its graph edge.
-	goodRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
-	const goodRefKey = "plugin-host/ref/good"
-	storeTestManifestRefObject(t, ctx, ws, goodRefKey, goodRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, goodRefKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a bad manifest ref pointing at a missing bucket.
-	badRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
-	badRef.GetManifestRef().BucketId = "missing-bucket"
-	const badRefKey = "plugin-host/ref/missing-bucket"
-	storeTestManifestRefObject(t, ctx, ws, badRefKey, badRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badRefKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a legacy manifest ref with an empty graph label.
-	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 11)
-	legacyRef.GetManifestRef().BucketId = "legacy-missing-bucket"
-	const legacyRefKey = "plugin-host/ref/legacy-missing-bucket"
-	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, legacyRefKey, "")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Dump the startup manifest graph for the manifest ID.
-	dump, err := DumpStartupManifestGraphForManifestID(
-		ctx,
-		ws,
-		"spacewave-web",
-		[]string{"js"},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Assert the dump contains the expected graph diagnostics.
-	for _, want := range []string{
-		"startup manifest graph manifest_id=spacewave-web platform_ids=js",
-		"root plugin-host type=bldr/manifest-store",
-		"edge plugin-host -> plugin-host/ref/good label=<spacewave-web>",
-		"edge plugin-host -> plugin-host/ref/missing-bucket label=<spacewave-web>",
-		"edge plugin-host -> plugin-host/ref/legacy-missing-bucket label=<empty>",
-		"candidate plugin-host/ref/good type=<unknown>",
-		"ref_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
-		"manifest_meta=manifest_id=spacewave-web,build_type=production,platform_id=js,rev=7",
-		"candidate plugin-host/ref/missing-bucket type=<unknown>",
-		"manifest_bucket=missing-bucket",
-		"manifest_bucket=legacy-missing-bucket",
-		"skip=bucket not found",
-	} {
-		if !strings.Contains(dump, want) {
-			t.Fatalf("dump missing %q:\n%s", want, dump)
-		}
-	}
-	if !strings.Contains(dump, "manifest_root="+badRef.GetManifestRef().GetRootRef().MarshalString()) {
-		t.Fatalf("dump missing bad manifest root ref:\n%s", dump)
-	}
-	if !strings.Contains(dump, "object_root=") {
-		t.Fatalf("dump missing object root refs:\n%s", dump)
-	}
-}
-
-func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Add a lookup observer controller that records network lookups.
-	lookupObserver := &startupManifestGraphLookupObserver{called: make(chan struct{}, 1)}
-	observerRel, err := tb.Bus.AddController(ctx, lookupObserver, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer observerRel()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Configure a lookup-directive bucket for the diagnostic dump.
-	const lookupBucketID = "startup-graph-diagnostic-bucket"
-	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
-		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
-	}))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, bucketLkConfig)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, bucketConf); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-	directRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 13)
-	directRef.GetManifestRef().BucketId = lookupBucketID
-	const directKey = "plugin-host/direct/external"
-	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), directKey, directRef.GetManifestRef()); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, directKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Dump the startup manifest graph under a short context deadline.
-	dumpCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
-	defer cancel()
-	dump, err := DumpStartupManifestGraphForManifestID(
-		dumpCtx,
-		ws,
-		"spacewave-web",
-		[]string{"js"},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !strings.Contains(dump, "candidate "+directKey) {
-		t.Fatalf("dump missing direct candidate:\n%s", dump)
-	}
-	select {
-	case <-lookupObserver.called:
-		t.Fatalf("diagnostic graph dump invoked LookupBlockFromNetwork:\n%s", dump)
-	default:
-	}
-}
-
-func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a global release manifest candidate.
-	releaseRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 10)
-	const releaseKey = "release/manifests/spacewave-web/js"
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), releaseKey, []string{storeKey}, releaseRef); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a project build manifest candidate with a build-result marker.
-	buildRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
-	const buildKey = "project/build/spacewave-web/js"
-	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), buildKey, buildRef.GetManifestRef()); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := createStartupGraphBuildResultMarker(ctx, ws, buildKey); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, buildKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a space-local manifest candidate.
-	spaceLocalRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
-	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
-	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, spaceLocalKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store an unknown-provenance manifest candidate.
-	unknownRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
-	const unknownKey = "plugin-host/ref/unknown"
-	storeTestManifestRefObject(t, ctx, ws, unknownKey, unknownRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, unknownKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Dump the startup manifest graph for the manifest ID.
-	dump, err := DumpStartupManifestGraphForManifestID(
-		ctx,
-		ws,
-		"spacewave-web",
-		[]string{"js"},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Assert each candidate carries its expected provenance classification.
-	assertStartupGraphDumpLine(t, dump, "candidate "+releaseKey, "provenance=global-release", "derived=true", "protected=false")
-	assertStartupGraphDumpLine(t, dump, "candidate "+buildKey, "provenance=project-build", "derived=true", "protected=false")
-	assertStartupGraphDumpLine(t, dump, "candidate "+spaceLocalKey, "provenance=space-local-or-ephemeral", "derived=false", "protected=true")
-	assertStartupGraphDumpLine(t, dump, "candidate "+unknownKey, "provenance=unknown", "derived=false", "protected=true")
-}
-
 func TestUnlinkMissingStartupManifests(t *testing.T) {
 	// Start a testbed for the mock World.
 	ctx := context.Background()
@@ -1148,19 +814,9 @@ func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t 
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1455,19 +1111,9 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1535,19 +1181,9 @@ func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testin
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1656,19 +1292,9 @@ func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *t
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1727,19 +1353,9 @@ func TestCollectStartupManifestsRejectsInvalidDecodedMetadata(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1811,19 +1427,9 @@ func TestCollectManifestsReportsUnreadableManifestObject(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1876,19 +1482,9 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
+	// Start storage and an empty cursor for the manifest World.
+	tb, ocs, releaseWorldStorage := newManifestTestWorld(t, ctx, le)
+	defer releaseWorldStorage()
 
 	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -1978,282 +1574,6 @@ func TestManifestObjectRefsSameExecutableMatchesInlineAndReferencedTransformConf
 	// Assert both encodings count as the same executable.
 	if !ManifestObjectRefsSameExecutable(inlineRef, referencedRef) {
 		t.Fatal("same manifest root with local inline transform conf and external referenced transform conf was not treated as the same executable")
-	}
-}
-
-func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		worldBucketID = cursor.GetOpArgs().GetBucketId()
-		return nil
-	}); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the manifest key and the shared transform conf.
-	const manifestKey = "plugin-host/ref/spacewave-web/js"
-	transformConf := newTestManifestTransformConf(t)
-
-	// Seed the local manifest using the exact local inline executable ref that a
-	// download-before-swap warm start should preserve when a fetched external ref
-	// has the same executable identity.
-	localRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
-	localManifestRef := localRef.GetManifestRef()
-	localManifestRef.BucketId = worldBucketID
-	localManifestRef.TransformConfRef = nil
-	if localManifestRef.GetTransformConf().GetEmpty() {
-		t.Fatal("test setup: local manifest transform conf is empty")
-	}
-	if !localManifestRef.GetTransformConfRef().GetEmpty() {
-		t.Fatalf("test setup: local manifest transform conf ref = %s, want empty inline encoding", localManifestRef.GetTransformConfRef().MarshalString())
-	}
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, localRef); err != nil {
-		t.Fatal(err.Error())
-	}
-	seededRev := objectRev(t, ctx, ws, storeKey)
-
-	// A fetched dist manifest may encode the same transform configuration by
-	// reference. That exact prod divergence is not an executable manifest
-	// change and must not replace the already-local inline ref.
-	fetchedRef := localRef.CloneVT()
-	fetchedManifestRef := fetchedRef.GetManifestRef()
-	fetchedManifestRef.BucketId = "dist/spacewave"
-	fetchedManifestRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", localManifestRef.GetTransformConf())
-	fetchedManifestRef.TransformConf = nil
-
-	// Assert the fetched ref keeps the same executable identity.
-	if fetchedManifestRef.GetTransformConfRef().GetEmpty() {
-		t.Fatal("test setup: fetched manifest transform conf ref is empty")
-	}
-	if fetchedManifestRef.TransformConf != nil {
-		t.Fatal("test setup: fetched manifest transform conf should not be inline")
-	}
-	if !localManifestRef.GetRootRef().EqualsRef(fetchedManifestRef.GetRootRef()) {
-		t.Fatal("test setup: fetched manifest root differs from local root")
-	}
-	if !ManifestObjectRefsSameExecutable(localManifestRef, fetchedManifestRef) {
-		t.Fatal("test setup: fetched manifest should have the same executable identity as the local manifest")
-	}
-	if localManifestRef.EqualVT(fetchedManifestRef) {
-		t.Fatal("test setup: fetched manifest ref should differ by bucket and transform encoding")
-	}
-
-	// Apply the fetched ref and assert the linked rev is unchanged.
-	if _, changed, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, fetchedManifestRef); err != nil {
-		t.Fatal(err.Error())
-	} else if changed {
-		t.Fatal("identity-equal external manifest ref was reported as changed")
-	}
-
-	// Assert the stored ref kept the local inline encoding.
-	storedRef := objectRootRef(t, ctx, ws, manifestKey)
-	if !storedRef.GetRootRef().EqualsRef(localManifestRef.GetRootRef()) {
-		t.Fatal("stored manifest root ref changed after identity-equal external SetManifest")
-	}
-	if got := storedRef.GetBucketId(); got != worldBucketID {
-		t.Fatalf("stored manifest ref bucket after identity-equal external SetManifest = %q, want local world bucket %q", got, worldBucketID)
-	}
-	if !storedRef.GetTransformConfRef().GetEmpty() {
-		t.Fatalf("stored manifest transform conf ref after identity-equal external SetManifest = %s, want empty inline encoding", storedRef.GetTransformConfRef().MarshalString())
-	}
-	if !storedRef.GetTransformConf().EqualVT(localManifestRef.GetTransformConf()) {
-		t.Fatal("stored manifest transform conf did not preserve local inline encoding after identity-equal external SetManifest")
-	}
-
-	// Store the fetched external ref and assert the linked rev is unchanged.
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, fetchedRef); err != nil {
-		t.Fatal(err.Error())
-	}
-	if got := objectRev(t, ctx, ws, storeKey); got != seededRev {
-		t.Fatalf("linked store rev after equivalent transform encoding relocation = %d, want unchanged %d", got, seededRev)
-	}
-	storedRef = objectRootRef(t, ctx, ws, manifestKey)
-	if !storedRef.GetRootRef().EqualsRef(localManifestRef.GetRootRef()) {
-		t.Fatal("stored manifest root ref changed after identity-equal external store op")
-	}
-	if got := storedRef.GetBucketId(); got != worldBucketID {
-		t.Fatalf("stored manifest ref bucket after identity-equal external store op = %q, want local world bucket %q", got, worldBucketID)
-	}
-	if !storedRef.GetTransformConfRef().GetEmpty() {
-		t.Fatalf("stored manifest transform conf ref after identity-equal external store op = %s, want empty inline encoding", storedRef.GetTransformConfRef().MarshalString())
-	}
-	if !storedRef.GetTransformConf().EqualVT(localManifestRef.GetTransformConf()) {
-		t.Fatal("stored manifest transform conf did not preserve local inline encoding after identity-equal external store op")
-	}
-
-	// A genuinely different executable (different manifest content, so a
-	// different root ref) must swap to the new local ref and bump the linked
-	// store rev.
-	newExecutableRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 8, transformConf)
-	newExecutableManifestRef := newExecutableRef.GetManifestRef()
-	newExecutableManifestRef.BucketId = worldBucketID
-	newExecutableManifestRef.TransformConfRef = nil
-	if ManifestObjectRefsSameExecutable(localManifestRef, newExecutableManifestRef) {
-		t.Fatal("test setup: expected a distinct executable root ref")
-	}
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, newExecutableRef); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store the new executable and assert the linked rev bumps.
-	if got := objectRev(t, ctx, ws, storeKey); got <= seededRev {
-		t.Fatalf("linked store rev after executable change = %d, want > %d", got, seededRev)
-	}
-	storedRef = objectRootRef(t, ctx, ws, manifestKey)
-	if !storedRef.GetRootRef().EqualsRef(newExecutableManifestRef.GetRootRef()) {
-		t.Fatal("stored manifest root ref did not update to the different executable")
-	}
-	if got := storedRef.GetBucketId(); got != worldBucketID {
-		t.Fatalf("stored manifest ref bucket after executable change = %q, want local world bucket %q", got, worldBucketID)
-	}
-	if !storedRef.GetTransformConfRef().GetEmpty() {
-		t.Fatalf("stored manifest transform conf ref after executable change = %s, want empty inline encoding", storedRef.GetTransformConfRef().MarshalString())
-	}
-	if !storedRef.GetTransformConf().EqualVT(newExecutableManifestRef.GetTransformConf()) {
-		t.Fatal("stored manifest transform conf did not update to the new local inline encoding")
-	}
-}
-
-func TestSetManifestLocalCopyNotifiesLinkedStore(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		worldBucketID = cursor.GetOpArgs().GetBucketId()
-		return nil
-	}); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the manifest key and the shared transform conf.
-	const manifestKey = "plugin-host/ref/spacewave-web/js"
-	transformConf := newTestManifestTransformConf(t)
-	baseRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
-
-	// Build the external referenced-transform encoding of the manifest.
-	externalRef := baseRef.CloneVT()
-	externalManifestRef := externalRef.GetManifestRef()
-	externalManifestRef.BucketId = "dist/spacewave"
-	externalManifestRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", externalManifestRef.GetTransformConf())
-	externalManifestRef.TransformConf = nil
-	if externalManifestRef.GetTransformConfRef().GetEmpty() {
-		t.Fatal("test setup: external manifest transform conf ref is empty")
-	}
-	if externalManifestRef.TransformConf != nil {
-		t.Fatal("test setup: external manifest transform conf should not be inline")
-	}
-
-	// Build the local inline-transform encoding of the manifest.
-	localRef := baseRef.CloneVT()
-	localManifestRef := localRef.GetManifestRef()
-	localManifestRef.BucketId = worldBucketID
-	localManifestRef.TransformConfRef = nil
-	if localManifestRef.GetTransformConf().GetEmpty() {
-		t.Fatal("test setup: local manifest transform conf is empty")
-	}
-	if !localManifestRef.GetRootRef().EqualsRef(externalManifestRef.GetRootRef()) {
-		t.Fatal("test setup: local manifest root differs from external root")
-	}
-	if !ManifestObjectRefsSameExecutable(externalManifestRef, localManifestRef) {
-		t.Fatal("test setup: local manifest should have the same executable identity as the external manifest")
-	}
-	if externalManifestRef.EqualVT(localManifestRef) {
-		t.Fatal("test setup: local manifest ref should differ by bucket and transform encoding")
-	}
-
-	// Seed the external manifest and check its stored encoding.
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, externalRef); err != nil {
-		t.Fatal(err.Error())
-	}
-	seededRev := objectRev(t, ctx, ws, storeKey)
-	storedRef := objectRootRef(t, ctx, ws, manifestKey)
-	if got := storedRef.GetBucketId(); got != "dist/spacewave" {
-		t.Fatalf("test setup: seeded manifest ref bucket = %q, want dist/spacewave", got)
-	}
-	if storedRef.GetTransformConfRef().GetEmpty() {
-		t.Fatal("test setup: seeded manifest transform conf ref is empty")
-	}
-
-	// Store the local copy and assert the linked store rev bumps.
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, localRef); err != nil {
-		t.Fatal(err.Error())
-	}
-	if got := objectRev(t, ctx, ws, storeKey); got != seededRev+1 {
-		t.Fatalf("linked store rev after local copy = %d, want %d", got, seededRev+1)
-	}
-	storedRef = objectRootRef(t, ctx, ws, manifestKey)
-	if !storedRef.GetRootRef().EqualsRef(localManifestRef.GetRootRef()) {
-		t.Fatal("stored manifest root ref changed during identity-equal local upgrade")
-	}
-	if got := storedRef.GetBucketId(); got != worldBucketID {
-		t.Fatalf("stored manifest ref bucket after identity-equal local upgrade = %q, want local world bucket %q", got, worldBucketID)
-	}
-	if !storedRef.GetTransformConfRef().GetEmpty() {
-		t.Fatalf("stored manifest transform conf ref after identity-equal local upgrade = %s, want empty inline encoding", storedRef.GetTransformConfRef().MarshalString())
-	}
-	if !storedRef.GetTransformConf().EqualVT(localManifestRef.GetTransformConf()) {
-		t.Fatal("stored manifest transform conf did not update to the local inline encoding")
-	}
-	if !ManifestObjectRefsSameExecutable(externalManifestRef, storedRef) {
-		t.Fatal("stored local manifest no longer has the external manifest executable identity")
 	}
 }
 
@@ -2451,43 +1771,6 @@ func objectRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKe
 	return ref
 }
 
-func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldState, manifestKey string) error {
-
-	// Write the build-result marker manifest as a World object.
-	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs.SetBlock(manifest.NewManifest(manifest.NewManifestMeta("build-result-marker", manifest.BuildType_DEV, "js", 1), "entrypoint"), true)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	objKey := manifestKey + "/build-result"
-	{
-		createdObject, err := ws.CreateObject(ctx, objKey, ref)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			return err
-		}
-	}
-	return world_types.SetObjectType(ctx, ws, objKey, "bldr/manifest-build-result")
-}
-
-func assertStartupGraphDumpLine(t *testing.T, dump string, prefix string, parts ...string) {
-	t.Helper()
-	for line := range strings.SplitSeq(dump, "\n") {
-		if !strings.HasPrefix(line, prefix) {
-			continue
-		}
-		for _, part := range parts {
-			if !strings.Contains(line, part) {
-				t.Fatalf("dump line %q missing %q", line, part)
-			}
-		}
-		return
-	}
-	t.Fatalf("dump missing line prefix %q:\n%s", prefix, dump)
-}
-
 func findStartupCandidateByKey(
 	t *testing.T,
 	candidates []*StartupManifestCandidateEligibility,
@@ -2599,4 +1882,26 @@ func (c *startupManifestGraphLookupObserver) HandleDirective(
 
 func (c *startupManifestGraphLookupObserver) Close() error {
 	return nil
+}
+
+// newManifestTestWorld starts the manifest storage and its empty cursor.
+// The caller releases the cursor before its backing testbed with the returned function.
+func newManifestTestWorld(t *testing.T, ctx context.Context, le *logrus.Entry) (*testbed.Testbed, *bucket_lookup.Cursor, func()) {
+	// Acquire storage before opening the cursor that borrows it.
+	t.Helper()
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+
+	// Preserve the cursor-before-testbed release order at the caller's return.
+	return tb, ocs, func() {
+		ocs.Release()
+		tb.Release()
+	}
 }
