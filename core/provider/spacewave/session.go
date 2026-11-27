@@ -36,7 +36,7 @@ type Session struct {
 	// stateAtomStoreIndex tracks known session state atom store ids.
 	stateAtomStoreIndex *session.StateAtomStoreIndex
 	// sessionPriv signs as this Session and is nil while the Session is locked.
-	sessionPriv crypto.PrivKey
+	sessionPriv *SessionCredential
 	// sessionPid identifies sessionPriv on transports and cloud APIs.
 	sessionPid peer.ID
 	// storageKey encrypts auto-unlock material in objStore.
@@ -55,8 +55,8 @@ type Session struct {
 	pairingCancel context.CancelFunc
 	// transitionWatcher follows account authority only while this Session is unlocked.
 	transitionWatcher *routine.RoutineContainer
-	// transportAuthWatcher repairs a rejected registration while this Session is unlocked.
-	transportAuthWatcher *routine.RoutineContainer
+	// transportWatcher follows credential generations and owns direct setup and repair.
+	transportWatcher *routine.RoutineContainer
 
 	// lockTransition serializes startup and changes to the unlocked lifetime.
 	lockTransition csync.Mutex
@@ -93,7 +93,9 @@ func (s *Session) GetPeerId() peer.ID {
 func (s *Session) GetPrivKey() crypto.PrivKey {
 	var priv crypto.PrivKey
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		priv = s.sessionPriv
+		if s.sessionPriv != nil {
+			priv = s.sessionPriv
+		}
 	})
 	return priv
 }
@@ -199,7 +201,10 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	}
 	defer release()
 
-	// Require a locked Session configured for PIN encryption.
+	// Require a mounted, locked Session configured for PIN encryption.
+	if err := s.lifecycleCtx.Err(); err != nil {
+		return err
+	}
 	if s.sessionPriv != nil {
 		return nil
 	}
@@ -229,33 +234,19 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.Wrap(err, "parse unlocked key")
 	}
 
-	// Install the key and reconcile authenticated transport state.
+	// Install a new credential generation before publishing the unlocked Session.
+	credential := newSessionCredential(s.lifecycleCtx, privKey)
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.sessionPriv = privKey
+		s.sessionPriv = credential
 	})
-	s.tkr.a.maybeSetSessionClient(s.tkr.id, privKey, s.sessionPid)
-	if err := s.tkr.a.ConfigureSessionTransport(
-		s.lifecycleCtx,
-		s.tkr.id,
-		privKey,
-		s.tkr.a.p.endpoint,
-		s.GetDirectP2PEnabled(),
-	); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return context.Canceled
-		}
-		s.tkr.a.le.WithError(err).Warn("failed to reconcile session transport after unlock")
-	}
+	s.tkr.a.maybeSetSessionClient(s.tkr.id, credential, s.sessionPid)
 
 	// Republish the retained Session and its unlocked transition lifetime.
 	selfRef, _, _ := s.tkr.a.sessions.AddKeyRef(s.tkr.id)
 	s.tkr.setPinnedRef(selfRef.Release)
 	s.tkr.sessionProm.SetResult(s, nil)
 	if s.transitionWatcher != nil {
-		s.transitionWatcher.SetContext(s.lifecycleCtx, true)
-	}
-	if s.transportAuthWatcher != nil {
-		s.transportAuthWatcher.SetContext(s.lifecycleCtx, true)
+		s.transitionWatcher.SetContext(credential.Context(), true)
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
@@ -282,33 +273,17 @@ func (s *Session) LockSession(ctx context.Context) error {
 		return nil
 	}
 
-	// Stop authenticated workers before scrubbing the Session key.
+	// Revoke the generation before clearing the key, without joining network work.
+	s.revokeCredential()
 	s.clearPairingEngine()
-	for _, watcher := range []*routine.RoutineContainer{s.transitionWatcher, s.transportAuthWatcher} {
-		if watcher == nil {
-			continue
-		}
-		watcher.ClearContext()
-		if err := watcher.WaitExited(ctx, true, nil); err != nil && !errors.Is(err, context.Canceled) {
-			return err
-		}
+	if s.transitionWatcher != nil {
+		s.transitionWatcher.ClearContext()
 	}
 
-	// Scrub the private key from memory.
-	raw, err := s.sessionPriv.Raw()
-	if err == nil {
-		scrub.Scrub(raw)
-	}
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.sessionPriv = nil
-	})
-
-	// Invalidate the published session and stop its transport.
+	// Invalidate future mounts and release the unlocked lifetime pin.
 	s.tkr.sessionProm.SetPromise(nil)
 	s.tkr.unlockProm = promise.NewPromiseContainer[[]byte]()
 	s.tkr.releasePinnedRef()
-	s.tkr.a.dropSessionClientForSession(s.tkr.id)
-	s.tkr.a.StopSessionTransportComposition(s.tkr.id)
 
 	// Publish the locked session state.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -316,6 +291,39 @@ func (s *Session) LockSession(ctx context.Context) error {
 	})
 
 	return nil
+}
+
+// closeCredential serializes logout with local lock and unlock transitions.
+func (s *Session) closeCredential() {
+	// Wait only for the local transition before revoking the mounted lifetime.
+	release, _ := s.lockTransition.Lock(context.Background())
+	defer release()
+	s.revokeCredential()
+}
+
+// installSessionClient retains the current key under the same lock as revocation.
+func (s *Session) installSessionClient() *SessionClient {
+	// Exclude revocation until the account slot has retained the current handle.
+	var client *SessionClient
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.sessionPriv != nil {
+			client = s.tkr.a.installSessionClient(s.tkr.id, s.sessionPriv, s.sessionPid)
+		}
+	})
+	return client
+}
+
+// revokeCredential fences retained key handles before clearing the Session key.
+func (s *Session) revokeCredential() {
+	// Retire the key under the state lock before account repair can read it again.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if s.sessionPriv != nil {
+			s.sessionPriv.revoke()
+			s.sessionPriv = nil
+			broadcast()
+		}
+	})
+	s.tkr.a.dropSessionClientForSession(s.tkr.id)
 }
 
 // SetLockMode changes the session lock mode. Hot switch: session stays running.

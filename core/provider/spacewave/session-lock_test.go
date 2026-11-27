@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/net/crypto"
 )
 
 // TestLockSessionInvalidatesFutureMountsAndDropsOwnedSigner verifies lock revokes retained clients and releases the Session.
@@ -33,7 +34,7 @@ func TestLockSessionInvalidatesFutureMountsAndDropsOwnedSigner(t *testing.T) {
 	}
 	sess := &Session{
 		tkr:         tkr,
-		sessionPriv: priv,
+		sessionPriv: newSessionCredential(context.Background(), priv),
 		sessionPid:  pid,
 		lockMode:    session_lock.SessionLockMode_PIN_ENCRYPTED,
 	}
@@ -93,7 +94,7 @@ func TestGetReadySessionClientInstallsAfterOwnerLocks(t *testing.T) {
 	lockedProm := promise.NewPromiseContainer[*Session]()
 	lockedProm.SetResult(&Session{sessionPid: stalePID}, nil)
 	freshProm := promise.NewPromiseContainer[*Session]()
-	freshProm.SetResult(&Session{sessionPriv: freshPriv, sessionPid: freshPID}, nil)
+	freshProm.SetResult(&Session{tkr: &sessionTracker{a: acc, id: "fresh"}, sessionPriv: newSessionCredential(context.Background(), freshPriv), sessionPid: freshPID}, nil)
 
 	// Expose both mounted Sessions to the account repair path.
 	trackers := map[string]*sessionTracker{
@@ -124,7 +125,7 @@ func TestGetReadySessionClientInstallsAfterOwnerLocks(t *testing.T) {
 	if cli == nil {
 		t.Fatal("expected a repaired session client")
 	}
-	if priv != freshPriv {
+	if !priv.Equals(freshPriv) {
 		t.Fatal("expected helper to return the unlocked session private key")
 	}
 	if pid != freshPID {
@@ -236,7 +237,7 @@ func TestLockSessionDropsPinnedTrackerSoNextMountGetsFreshTracker(t *testing.T) 
 
 	sess := &Session{
 		tkr:         tkr,
-		sessionPriv: priv,
+		sessionPriv: newSessionCredential(context.Background(), priv),
 		sessionPid:  pid,
 		lockMode:    session_lock.SessionLockMode_PIN_ENCRYPTED,
 	}
@@ -258,5 +259,43 @@ func TestLockSessionDropsPinnedTrackerSoNextMountGetsFreshTracker(t *testing.T) 
 	}
 	if nextTkr == tkr {
 		t.Fatal("expected next mount to receive a different tracker instance")
+	}
+}
+
+// BenchmarkSessionCredentialSign measures the complete synchronous key fence.
+func BenchmarkSessionCredentialSign(b *testing.B) {
+	// Compare the same Ed25519 key and payload with and without revocation fencing.
+	priv, _, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, -1)
+	if err != nil {
+		b.Fatal(err)
+	}
+	credential := newSessionCredential(b.Context(), priv)
+	defer credential.revoke()
+	payload := []byte("session credential signing cost")
+	signer := newSessionSigner("benchmark", "", 1, credential, nil)
+	b.Run("request-lifetime", func(b *testing.B) {
+		// Measure a signed request's context binding and completed-body cleanup.
+		b.ReportAllocs()
+		for b.Loop() {
+			_, release := signer.bindRequestContext(context.Background())
+			release()
+		}
+	})
+
+	for _, item := range []struct {
+		// name identifies the measured key path.
+		name string
+		// key signs the fixed payload on that path.
+		key crypto.PrivKey
+	}{{"raw", priv}, {"fenced", credential}} {
+		b.Run(item.name, func(b *testing.B) {
+			// Measure only synchronous signing, excluding setup and cleanup.
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := item.key.Sign(payload); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

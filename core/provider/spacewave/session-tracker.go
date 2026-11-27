@@ -193,16 +193,20 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Register identities that have not yet been accepted for this key.
 	var registeredObserved *api.ObservedSessionMetadata
 	if !registered {
-		observed, err := t.registerSession(ctx, objStore, sessionPriv, sessionPeerID)
+		observed, err := t.registerSession(ctx, objStore, sessionPeerID)
 		if err != nil {
 			return err
 		}
 		registeredObserved = observed
 	}
 
+	// Bind every retained transport and account key to this unlocked generation.
+	credential := newSessionCredential(ctx, sessionPriv)
+	defer credential.revoke()
+
 	// Keep the account signer pinned to the first mounted session unless this
 	// tracker already owns the signer slot.
-	t.a.maybeSetSessionClient(t.id, sessionPriv, sessionPeerID)
+	t.a.maybeSetSessionClient(t.id, credential, sessionPeerID)
 	if !registered {
 		t.a.bumpSelfRejoinSweepGeneration()
 	}
@@ -226,7 +230,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		stateAtomStoreIndex: session.NewStateAtomStoreIndex(objStore),
 		lifecycleCtx:        ctx,
 		directP2PEnabled:    directP2PEnabled,
-		sessionPriv:         sessionPriv,
+		sessionPriv:         credential,
 		sessionPid:          sessionPeerID,
 		storageKey:          storageKey,
 		lockMode:            lockMode,
@@ -235,8 +239,8 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Prepare the account transition and transport authorization watchers.
 	so.transitionWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "account-transition"), routine.WithRetry(providerBackoff))
 	so.transitionWatcher.SetRoutine(so.watchAccountTransition)
-	so.transportAuthWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "transport-authorization"), routine.WithRetry(providerBackoff))
-	so.transportAuthWatcher.SetRoutine(so.watchTransportAuthorization)
+	so.transportWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "session-transport"), routine.WithRetry(providerBackoff))
+	so.transportWatcher.SetRoutine(so.watchSessionTransport)
 
 	// Retain account storage before publishing the Session to callers.
 	accountRef, _, _ := t.a.p.accountRc.AddKeyRef(t.a.accountID)
@@ -264,34 +268,22 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Watch account transitions until the Session stops.
 	defer t.a.StopSessionTransportComposition(t.id)
 	transitionWatcher := so.transitionWatcher
-	transitionWatcher.SetContext(ctx, false)
+	transitionWatcher.SetContext(credential.Context(), false)
 	defer func() {
 		if exited, _ := transitionWatcher.SetRoutine(nil); exited != nil {
 			<-exited
 		}
 	}()
 
-	// Start direct transport. The authorization watcher repairs a rejected
-	// registration whenever the cloud refuses the Session credential.
-	if err := t.a.ConfigureSessionTransport(
-		ctx,
-		t.id,
-		sessionPriv,
-		t.a.p.endpoint,
-		directP2PEnabled,
-	); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return context.Canceled
-		}
-		le.WithError(err).Warn("failed to reconcile session transport")
-	}
-	transportAuthWatcher := so.transportAuthWatcher
-	transportAuthWatcher.SetContext(ctx, false)
+	// Let the composition follow credential changes outside the lock transition.
+	transportWatcher := so.transportWatcher
+	transportWatcher.SetContext(ctx, false)
 	defer func() {
-		if exited, _ := transportAuthWatcher.SetRoutine(nil); exited != nil {
+		if exited, _ := transportWatcher.SetRoutine(nil); exited != nil {
 			<-exited
 		}
 	}()
+	defer so.closeCredential()
 
 	// Let callers waiting on startup proceed.
 	releaseStartup()
@@ -310,7 +302,12 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 }
 
 // loadSessionPrivateKey unlocks the persisted Session key or stores a fresh auto-unlock key.
-func (t *sessionTracker) loadSessionPrivateKey(ctx context.Context, objStore object.ObjectStore, mode session_lock.SessionLockMode, storageKey [32]byte) (crypto.PrivKey, error) {
+func (t *sessionTracker) loadSessionPrivateKey(
+	ctx context.Context,
+	objStore object.ObjectStore,
+	mode session_lock.SessionLockMode,
+	storageKey [32]byte,
+) (crypto.PrivKey, error) {
 	// Wait for the PIN unlock operation to supply its decrypted key.
 	if mode == session_lock.SessionLockMode_PIN_ENCRYPTED {
 		privPEM, err := t.unlockProm.Await(ctx)

@@ -173,7 +173,20 @@ const (
 // specifies, up to rateLimitRetries times while that delay is within
 // rateLimitMaxWait. Otherwise, or when the request context ends during the
 // delay, the 429 response is returned to the caller.
-func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
+func (c *SignedHTTPClient) Do(req *http.Request) (response *http.Response, resultErr error) {
+	// Cancel signed requests on revocation, retaining the binding through body reads.
+	ctx, release := c.signer.bindRequestContext(req.Context())
+	if release != nil {
+		req = req.WithContext(ctx)
+		defer func() {
+			if response == nil || response.Body == nil {
+				release()
+				return
+			}
+			response.Body = &credentialResponseBody{ReadCloser: response.Body, release: release}
+		}()
+	}
+
 	// Read the body once so each attempt can sign and send it.
 	var body []byte
 	if req.Body != nil {
@@ -184,6 +197,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		}
 	}
 
+	// Retry only the short rate-limit responses accepted by the client policy.
 	for attempt := 0; ; attempt++ {
 		// Sign and send this attempt. GetBody lets the transport resend an
 		// idempotent request when the server closes a reused connection.

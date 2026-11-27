@@ -101,13 +101,9 @@ func (a *ProviderAccount) repairSessionClientFromSession(
 		if err != nil || sess == nil {
 			continue
 		}
-		priv := sess.GetPrivKey()
-		if priv == nil {
-			continue
-		}
 
-		// Install its signer and return whichever signer the slot then holds.
-		cli := a.installSessionClient(sessionID, priv, sess.sessionPid)
+		// Retain the key in the slot while excluding Session revocation.
+		cli := sess.installSessionClient()
 		signer := cli.GetSessionSigner()
 		if p := signer.PrivKey(); p != nil {
 			return cli, p, signer.GetPeerID(), true

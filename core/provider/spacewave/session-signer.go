@@ -29,6 +29,10 @@ var errSessionSignerRevoked = errors.New("session signer revoked")
 // migration client, has generation zero and is never revoked. A nil
 // *SessionSigner behaves as a signer with no key.
 type SessionSigner struct {
+	// mtx fences registered signing and request cancellation against revocation.
+	mtx sync.Mutex
+	// requests holds signed requests until their response bodies close, guarded by mtx.
+	requests map[*context.CancelFunc]struct{}
 	// sessionID is the registered Session the key belongs to, or empty for a
 	// client outside the slot.
 	sessionID string
@@ -73,6 +77,12 @@ func newSessionSigner(sessionID string, peerID peer.ID, gen uint64, priv crypto.
 // Sign signs payload with the signer's key. It returns ErrSigningUnavailable
 // when the signer has no key or was revoked.
 func (s *SessionSigner) Sign(ctx context.Context, payload []byte) ([]byte, error) {
+	// Fence registered key use against lock, logout and signer replacement.
+	if s != nil && s.gen != 0 {
+		s.mtx.Lock()
+		defer s.mtx.Unlock()
+	}
+
 	// Refuse without a live key.
 	k := s.liveKey()
 	if k == nil {
@@ -147,9 +157,49 @@ func (s *SessionSigner) liveKey() *sessionSignerKey {
 // revoke drops the key and closes Done. Only the account's slot revokes, while
 // holding the account broadcast lock. Revoking twice is a no-op.
 func (s *SessionSigner) revoke() {
+	// Treat an empty signer slot as already revoked.
 	if s == nil {
 		return
 	}
+
+	// Fence signing and cancel queued sends before lock or logout can return.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	s.key.Store(nil)
 	s.revokeOnce.Do(func() { close(s.done) })
+	for cancel := range s.requests {
+		(*cancel)()
+	}
+	s.requests = nil
+}
+
+// bindRequestContext binds a registered Session's HTTP request to revocation.
+// Revocation cancels synchronously but never joins network work. A response
+// body releases the binding when closed. Standalone clients keep caller context.
+func (s *SessionSigner) bindRequestContext(ctx context.Context) (context.Context, func()) {
+	// Keep entity and external signers outside the registered Session lifecycle.
+	if s == nil || s.gen == 0 {
+		return ctx, nil
+	}
+
+	// Register request cancellation under the same fence that revokes the signer.
+	requestCtx, cancel := context.WithCancel(ctx)
+	s.mtx.Lock()
+	if s.liveKey() == nil {
+		cancel()
+	} else {
+		if s.requests == nil {
+			s.requests = make(map[*context.CancelFunc]struct{})
+		}
+		s.requests[&cancel] = struct{}{}
+	}
+	s.mtx.Unlock()
+
+	// Detach completed requests so revocation visits only outstanding work.
+	return requestCtx, func() {
+		s.mtx.Lock()
+		delete(s.requests, &cancel)
+		s.mtx.Unlock()
+		cancel()
+	}
 }
