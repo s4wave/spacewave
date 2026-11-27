@@ -17,7 +17,7 @@ func NewSqlDriver(ctx context.Context, tx *Tx, driverOpts *gdriver.Options) *gdr
 	if driverOpts != nil {
 		opts = *driverOpts
 	}
-	opts.Engine = tx.t.engine
+	opts.Engine = tx.engine
 
 	// The context selects this transaction in the store engine's catalog.
 	provider := NewDriverProvider(ctx, tx)

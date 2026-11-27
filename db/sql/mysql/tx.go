@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	sqle "github.com/dolthub/go-mysql-server"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
@@ -15,8 +16,11 @@ type Tx struct {
 	// unlock releases the root gate after the transaction's final operation.
 	unlock     func()
 	commitOnce atomic.Bool
-	t          *Mysql
-	write      bool
+	// store is the committed root this transaction commits to.
+	store *storeRoot
+	// engine is the store's SQL engine, shared by its transactions.
+	engine *sqle.Engine
+	write  bool
 
 	root    *Root
 	tx      *block.Transaction
@@ -44,22 +48,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		if err != nil {
 			cerr = err
 		} else {
-			nextRef := t.t.rootCursor.GetRef() // clones
-			// if the root is empty: return empty ref.
-			if t.root.SizeVT() != 0 {
-				nextRef.RootRef = res.Clone()
-			} else {
-				nextRef.RootRef = nil
-			}
-			if commitFn := t.t.commitFn; commitFn != nil {
-				if err := commitFn(nextRef); err != nil {
-					cerr = err
-				}
-			}
-			if cerr == nil {
-				// update existing rootCursor
-				t.t.rootCursor.SetRootRef(res.Clone())
-			}
+			cerr = t.store.commit(res, t.root.SizeVT() == 0)
 		}
 	}
 	return

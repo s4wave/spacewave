@@ -26,8 +26,8 @@ func NewSqlTx(ctx context.Context, tx *Tx, dsn string) (*SqlTx, error) {
 // storage handles. Its caller consumes the node before ending the transaction.
 func (r *SqlTx) PrepareQuery(ctx context.Context, session sql.Session, query string) (sql.Node, error) {
 	// Bind storage in the command context instead of changing the shared catalog.
-	sqlCtx := r.t.engine.NewContext(context.WithValue(ctx, transactionContextKey{}, r.Tx), sql.WithSession(session))
-	return r.t.engine.PrepareQuery(sqlCtx, query)
+	sqlCtx := r.engine.NewContext(context.WithValue(ctx, transactionContextKey{}, r.Tx), sql.WithSession(session))
+	return r.engine.PrepareQuery(sqlCtx, query)
 }
 
 // GetReadOnly returns if the transaction is read-only.
