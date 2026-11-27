@@ -11,9 +11,11 @@ import (
 	slices "slices"
 
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	policy "github.com/s4wave/spacewave/core/device/policy"
+	device "github.com/s4wave/spacewave/sdk/device"
 	flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
@@ -300,6 +302,66 @@ func (x *ExecControllerRequest) GetConfig() *proto.ControllerConfig {
 	return nil
 }
 
+// ExecControllerResponse reports a change of a plugin controller's status.
+type ExecControllerResponse struct {
+	unknownFields []byte
+	// Status is the controller's run status.
+	Status exec.ControllerStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// NodeStatus is the state the running controller shows for its node, unset
+	// when it shows none.
+	NodeStatus *NodeStatus `protobuf:"bytes,2,opt,name=node_status,json=nodeStatus,proto3" json:"nodeStatus,omitempty"`
+}
+
+func (x *ExecControllerResponse) Reset() {
+	*x = ExecControllerResponse{}
+}
+
+func (*ExecControllerResponse) ProtoMessage() {}
+
+func (x *ExecControllerResponse) GetStatus() exec.ControllerStatus {
+	if x != nil {
+		return x.Status
+	}
+	return exec.ControllerStatus(0)
+}
+
+func (x *ExecControllerResponse) GetNodeStatus() *NodeStatus {
+	if x != nil {
+		return x.NodeStatus
+	}
+	return nil
+}
+
+// NodeStatus is a state a running node controller shows on its node's Device
+// capability in place of the active state.
+type NodeStatus struct {
+	unknownFields []byte
+	// State is the capability state.
+	State device.DeviceCapabilityState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// Detail explains the state to a person.
+	Detail string `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
+}
+
+func (x *NodeStatus) Reset() {
+	*x = NodeStatus{}
+}
+
+func (*NodeStatus) ProtoMessage() {}
+
+func (x *NodeStatus) GetState() device.DeviceCapabilityState {
+	if x != nil {
+		return x.State
+	}
+	return device.DeviceCapabilityState(0)
+}
+
+func (x *NodeStatus) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
 type CompileResponse_EntriesEntry struct {
 	unknownFields []byte
 	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -450,6 +512,40 @@ func (m *ExecControllerRequest) CloneVT() *ExecControllerRequest {
 }
 
 func (m *ExecControllerRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ExecControllerResponse) CloneVT() *ExecControllerResponse {
+	if m == nil {
+		return (*ExecControllerResponse)(nil)
+	}
+	r := new(ExecControllerResponse)
+	r.Status = m.Status
+	r.NodeStatus = protobuf_go_lite.CloneVTValue(m.NodeStatus)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ExecControllerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NodeStatus) CloneVT() *NodeStatus {
+	if m == nil {
+		return (*NodeStatus)(nil)
+	}
+	r := new(NodeStatus)
+	r.State = m.State
+	r.Detail = m.Detail
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NodeStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -632,6 +728,52 @@ func (this *ExecControllerRequest) EqualVT(that *ExecControllerRequest) bool {
 
 func (this *ExecControllerRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ExecControllerRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ExecControllerResponse) EqualVT(that *ExecControllerResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.NodeStatus, that.NodeStatus) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ExecControllerResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ExecControllerResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NodeStatus) EqualVT(that *NodeStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NodeStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NodeStatus)
 	if !ok {
 		return false
 	}
@@ -1197,6 +1339,110 @@ func (x *ExecControllerRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ExecControllerResponse message to JSON.
+func (x *ExecControllerResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.NodeStatus != nil || s.HasField("nodeStatus") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nodeStatus")
+		x.NodeStatus.MarshalProtoJSON(s.WithField("nodeStatus"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ExecControllerResponse to JSON.
+func (x *ExecControllerResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ExecControllerResponse message from JSON.
+func (x *ExecControllerResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "node_status", "nodeStatus":
+			if s.ReadNil() {
+				x.NodeStatus = nil
+				return
+			}
+			x.NodeStatus = &NodeStatus{}
+			x.NodeStatus.UnmarshalProtoJSON(s.WithField("node_status", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ExecControllerResponse from JSON.
+func (x *ExecControllerResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NodeStatus message to JSON.
+func (x *NodeStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NodeStatus to JSON.
+func (x *NodeStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NodeStatus message from JSON.
+func (x *NodeStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NodeStatus from JSON.
+func (x *NodeStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *NodeType) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1591,6 +1837,95 @@ func (m *ExecControllerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *ExecControllerResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ExecControllerResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ExecControllerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NodeStatus != nil {
+		size, err := m.NodeStatus.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NodeStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NodeStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NodeStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Detail) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Detail)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NodeType) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1709,6 +2044,33 @@ func (m *ExecControllerRequest) SizeVT() (n int) {
 		l = m.Config.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ExecControllerResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Status)
+	if m.NodeStatus != nil {
+		l = m.NodeStatus.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NodeStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1925,6 +2287,42 @@ func (x *ExecControllerRequest) MarshalProtoText() string {
 }
 
 func (x *ExecControllerRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ExecControllerResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ExecControllerResponse")
+	if x.Status != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
+		protobuf_go_lite.TextWriteStringer(&sb, exec.ControllerStatus(x.Status))
+	}
+	if x.NodeStatus != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "node_status")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.NodeStatus)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ExecControllerResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NodeStatus) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NodeStatus")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, device.DeviceCapabilityState(x.State))
+	}
+	if x.Detail != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "detail")
+		protobuf_go_lite.TextWriteString(&sb, x.Detail)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NodeStatus) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2492,6 +2890,139 @@ func (m *ExecControllerRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ExecControllerResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ExecControllerResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ExecControllerResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = exec.ControllerStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeStatus", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.NodeStatus == nil {
+				m.NodeStatus = &NodeStatus{}
+			}
+			if err := m.NodeStatus.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NodeStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NodeStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = device.DeviceCapabilityState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Detail = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

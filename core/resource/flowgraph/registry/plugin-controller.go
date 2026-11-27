@@ -9,7 +9,10 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_registry "github.com/s4wave/spacewave/sdk/flowgraph/registry"
 )
 
@@ -141,7 +144,7 @@ func (f *pluginFactory) Construct(ctx context.Context, conf config.Config, _ con
 			return nil, errors.Wrap(err, "run in plugin")
 		}
 		if resp.GetStatus() == controller_exec.ControllerStatus_ControllerStatus_RUNNING {
-			return &pluginController{configID: pc.configID, strm: strm, cancel: cancel}, nil
+			return &pluginController{configID: pc.configID, strm: strm, cancel: cancel, nodeStatus: resp.GetNodeStatus()}, nil
 		}
 	}
 }
@@ -154,11 +157,32 @@ type pluginController struct {
 	strm flowgraph_registry.SRPCNodeTypeResourceService_ExecControllerClient
 	// cancel ends the stream, which stops the plugin controller.
 	cancel context.CancelFunc
+	// bcast guards nodeStatus and is broadcast when it changes.
+	bcast broadcast.Broadcast
+	// nodeStatus is the node status the plugin controller shows, nil for none.
+	nodeStatus *flowgraph_registry.NodeStatus
 }
 
 // GetControllerInfo describes the proxy.
 func (c *pluginController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo("resource/flowgraph-plugin/"+c.configID, pluginControllerVersion, "controller running in a plugin")
+}
+
+// GetNodeStatus returns the node status the plugin controller shows, or the
+// active state when it shows none.
+func (c *pluginController) GetNodeStatus() (s4wave_device.DeviceCapabilityState, string, <-chan struct{}) {
+	// Read the last reported status with the channel its next change closes.
+	var status *flowgraph_registry.NodeStatus
+	var changed <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		status, changed = c.nodeStatus, getWaitCh()
+	})
+
+	// A controller that reports no status shows the plain active state.
+	if status == nil {
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, "", changed
+	}
+	return status.GetState(), status.GetDetail(), changed
 }
 
 // Execute follows the plugin controller until it stops running or ctx ends.
@@ -182,6 +206,14 @@ func (c *pluginController) Execute(ctx context.Context) error {
 		default:
 			return errors.New("plugin controller stopped running")
 		}
+
+		// Show the node status the running controller reports.
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if !resp.GetNodeStatus().EqualVT(c.nodeStatus) {
+				c.nodeStatus = resp.GetNodeStatus()
+				broadcast()
+			}
+		})
 	}
 }
 
@@ -198,6 +230,7 @@ func (c *pluginController) Close() error {
 
 // _ is a type assertion.
 var (
-	_ config.Config      = (*pluginConfig)(nil)
-	_ controller.Factory = (*pluginFactory)(nil)
+	_ config.Config                        = (*pluginConfig)(nil)
+	_ controller.Factory                   = (*pluginFactory)(nil)
+	_ s4wave_flowgraph.FlowgraphNodeStatus = (*pluginController)(nil)
 )

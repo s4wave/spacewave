@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -286,10 +287,12 @@ func TestPluginNodeFixture(t *testing.T) {
 	}
 	defer echoRelease()
 
-	// The Device runs the controller in the plugin and shows it active.
+	// The Device runs the controller in the plugin and shows the status the
+	// controller shows across the plugin boundary.
 	expectRuns(t, ctx, runs, "start one")
 	waitCapabilities(t, ctx, tb.Engine, func(caps map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(caps, "run") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+		run := caps[capabilityID("run")]
+		return run.GetState() == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE && run.GetDetail() == "serving one"
 	})
 
 	// An admitted second peer reaches the plugin service over the node's port.
@@ -614,12 +617,30 @@ func (f *pluginRunFactory) Construct(_ context.Context, conf config.Config, _ co
 	return &pluginRunController{runs: f.runs, value: string(value)}, nil
 }
 
-// pluginRunController reports its start and stop.
+// pluginRunController reports its start and stop, and shows whether it serves
+// as its node status.
 type pluginRunController struct {
 	// runs receives the start and stop.
 	runs chan<- string
 	// value is the config's value.
 	value string
+	// bcast guards serving and is broadcast when it changes.
+	bcast broadcast.Broadcast
+	// serving is set while Execute runs.
+	serving bool
+}
+
+// GetNodeStatus shows the controller starting until Execute runs.
+func (c *pluginRunController) GetNodeStatus() (s4wave_device.DeviceCapabilityState, string, <-chan struct{}) {
+	var serving bool
+	var changed <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		serving, changed = c.serving, getWaitCh()
+	})
+	if !serving {
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED, "starting " + c.value, changed
+	}
+	return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, "serving " + c.value, changed
 }
 
 // GetControllerInfo describes the fixture controller.
@@ -629,6 +650,10 @@ func (c *pluginRunController) GetControllerInfo() *controller.Info {
 
 // Execute reports the start, runs until removed, then reports the stop.
 func (c *pluginRunController) Execute(ctx context.Context) error {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.serving = true
+		broadcast()
+	})
 	c.runs <- "start " + c.value
 	<-ctx.Done()
 	c.runs <- "stop " + c.value

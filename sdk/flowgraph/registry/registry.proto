@@ -2,6 +2,7 @@ syntax = "proto3";
 package s4wave.flowgraph.registry;
 
 import "github.com/s4wave/spacewave/core/device/policy/policy.proto";
+import "github.com/s4wave/spacewave/sdk/device/device.proto";
 import "github.com/s4wave/spacewave/sdk/flowgraph/flowgraph.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
@@ -57,8 +58,8 @@ service NodeTypeResourceService {
   // Compile returns entries whose keys and revisions the Device assigns.
   rpc Compile(CompileRequest) returns (CompileResponse);
   // ExecController runs one of the plugin_config_ids on the plugin's bus and
-  // streams its status until the call ends.
-  rpc ExecController(ExecControllerRequest) returns (stream .controller.exec.ExecControllerResponse);
+  // streams its status, and the node status it shows, until the call ends.
+  rpc ExecController(ExecControllerRequest) returns (stream ExecControllerResponse);
   // ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
   // names the port protocol used as LookupRpcService's server ID.
   rpc ServeRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
@@ -105,4 +106,22 @@ message CompileResponse {
 message ExecControllerRequest {
   // Config is the controller config, encoded by ControllerBus's config codec.
   .configset.proto.ControllerConfig config = 1;
+}
+
+// ExecControllerResponse reports a change of a plugin controller's status.
+message ExecControllerResponse {
+  // Status is the controller's run status.
+  .controller.exec.ControllerStatus status = 1;
+  // NodeStatus is the state the running controller shows for its node, unset
+  // when it shows none.
+  NodeStatus node_status = 2;
+}
+
+// NodeStatus is a state a running node controller shows on its node's Device
+// capability in place of the active state.
+message NodeStatus {
+  // State is the capability state.
+  .s4wave.device.DeviceCapabilityState state = 1;
+  // Detail explains the state to a person.
+  string detail = 2;
 }

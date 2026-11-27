@@ -5,11 +5,15 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -55,7 +59,8 @@ func (r *NodeTypeResource) Compile(ctx context.Context, req *CompileRequest) (*C
 }
 
 // ExecController runs one declared plugin config on the plugin's bus and
-// streams its status until the host ends the call or the controller fails.
+// streams each change of its run status, and of the node status the running
+// controller shows, until the host ends the call or the controller fails.
 func (r *NodeTypeResource) ExecController(req *ExecControllerRequest, strm SRPCNodeTypeResourceService_ExecControllerStream) error {
 	// Run only the configs this registration declares for the plugin.
 	encoded := req.GetConfig()
@@ -69,12 +74,92 @@ func (r *NodeTypeResource) ExecController(req *ExecControllerRequest, strm SRPCN
 		return err
 	}
 
-	// Report each status change; a host that stops reading stops the controller.
-	return controller_exec.ExecuteController(ctx, r.b, resolved.GetConfig(), func(status controller_exec.ControllerStatus) {
-		if err := strm.Send(&controller_exec.ExecControllerResponse{Id: encoded.GetId(), Status: status}); err != nil {
-			cancel()
+	// Follow the controller the loader runs for the config. The directive is
+	// disposed when the loader gives up on it.
+	var bcast broadcast.Broadcast
+	var running controller.Controller
+	var runErr error
+	_, ref, err := r.b.AddDirective(ctx, resolver.NewLoadControllerWithConfig(resolved.GetConfig()), bus.NewCallbackHandler(
+		func(val directive.AttachedValue) {
+			value, ok := val.GetValue().(resolver.LoadControllerWithConfigValue)
+			if !ok || value == nil {
+				return
+			}
+			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				running, runErr = value.GetController(), value.GetError()
+				broadcast()
+			})
+		},
+		func(val directive.AttachedValue) {
+			value, ok := val.GetValue().(resolver.LoadControllerWithConfigValue)
+			if !ok || value == nil {
+				return
+			}
+			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				if running == value.GetController() {
+					running = nil
+					broadcast()
+				}
+			})
+		},
+		cancel,
+	))
+	if err != nil {
+		return err
+	}
+	defer ref.Release()
+
+	// Send each change; a host that stops reading stops the controller.
+	var sent *ExecControllerResponse
+	for {
+		var ctrl controller.Controller
+		var ctrlErr error
+		var changed <-chan struct{}
+		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			ctrl, ctrlErr, changed = running, runErr, getWaitCh()
+		})
+		resp, nodeChanged := execStatus(ctrl, ctrlErr)
+		if !resp.EqualVT(sent) {
+			if err := strm.Send(resp); err != nil {
+				return err
+			}
+			sent = resp
 		}
-	})
+		if ctrlErr != nil {
+			return ctrlErr
+		}
+		select {
+		case <-ctx.Done():
+			if strm.Context().Err() == nil {
+				return errors.New("plugin dropped the controller")
+			}
+			return nil
+		case <-changed:
+		case <-nodeChanged:
+		}
+	}
+}
+
+// execStatus returns the status a controller's state reports, and a channel
+// closed at the next change of the node status it shows, nil when it shows none.
+func execStatus(ctrl controller.Controller, err error) (*ExecControllerResponse, <-chan struct{}) {
+	// A failed or not yet running controller shows no node status.
+	switch {
+	case err != nil:
+		return &ExecControllerResponse{Status: controller_exec.ControllerStatus_ControllerStatus_ERROR}, nil
+	case ctrl == nil:
+		return &ExecControllerResponse{Status: controller_exec.ControllerStatus_ControllerStatus_CONFIGURING}, nil
+	}
+
+	// A running controller shows the node status it implements, if any.
+	resp := &ExecControllerResponse{Status: controller_exec.ControllerStatus_ControllerStatus_RUNNING}
+	status, ok := ctrl.(s4wave_flowgraph.FlowgraphNodeStatus)
+	if !ok {
+		return resp, nil
+	}
+	state, detail, changed := status.GetNodeStatus()
+	resp.NodeStatus = &NodeStatus{State: state, Detail: detail}
+	return resp, changed
 }
 
 // NewCompileRequest copies a placement into its RPC representation.

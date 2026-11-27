@@ -6,6 +6,7 @@ import {
   CompileRequest,
   CompileResponse,
   ExecControllerRequest,
+  ExecControllerResponse,
   RegisterNodeTypeRequest,
   RegisterNodeTypeResponse,
 } from './registry.pb.js'
@@ -17,7 +18,6 @@ import {
   ProtoRpc,
   ServerContext,
 } from 'starpc'
-import { ExecControllerResponse } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 
 /**
@@ -128,7 +128,7 @@ export const NodeTypeResourceServiceDefinition = {
     },
     /**
      * ExecController runs one of the plugin_config_ids on the plugin's bus and
-     * streams its status until the call ends.
+     * streams its status, and the node status it shows, until the call ends.
      *
      * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ExecController
      */
@@ -171,7 +171,7 @@ export interface NodeTypeResourceService {
 
   /**
    * ExecController runs one of the plugin_config_ids on the plugin's bus and
-   * streams its status until the call ends.
+   * streams its status, and the node status it shows, until the call ends.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ExecController
    */
@@ -211,7 +211,7 @@ export interface NodeTypeResourceServiceHandler {
 
   /**
    * ExecController runs one of the plugin_config_ids on the plugin's bus and
-   * streams its status until the call ends.
+   * streams its status, and the node status it shows, until the call ends.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ExecController
    */
@@ -268,7 +268,7 @@ export class NodeTypeResourceServiceClient implements NodeTypeResourceService {
 
   /**
    * ExecController runs one of the plugin_config_ids on the plugin's bus and
-   * streams its status until the call ends.
+   * streams its status, and the node status it shows, until the call ends.
    *
    * @generated from rpc s4wave.flowgraph.registry.NodeTypeResourceService.ExecController
    */

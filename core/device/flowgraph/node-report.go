@@ -50,8 +50,9 @@ func (n *nodeReport) capability(applier *configApplier, waits *[]<-chan struct{}
 
 // state folds the node's entries into one state. Any failed entry rejects the
 // node; the node is active once every entry's controller runs, or shows the
-// status its running controllers show, a rejection first. It appends to waits
-// the change channel of each status read.
+// status its running controllers show, a rejection first. A plain active
+// status, as a plugin controller shows when it reports none, overrides no
+// other. It appends to waits the change channel of each status read.
 func (n *nodeReport) state(applier *configApplier, waits *[]<-chan struct{}) (s4wave_device.DeviceCapabilityState, string) {
 	// Report a node the daemon rejected, or one still waiting for its type.
 	if n.err != nil {
@@ -79,7 +80,8 @@ func (n *nodeReport) state(applier *configApplier, waits *[]<-chan struct{}) (s4
 			}
 			st, d, changed := status.GetNodeStatus()
 			*waits = append(*waits, changed)
-			if shown != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED {
+			plain := st == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE && d == ""
+			if shown != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED && !plain {
 				shown, detail = st, d
 			}
 		}

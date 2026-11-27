@@ -11,6 +11,10 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { LaunchApproval } from '../../../core/device/policy/policy.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { ControllerStatus } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import { ControllerStatus_Enum } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import type { DeviceCapabilityState } from '../../device/device.pb.js'
+import { DeviceCapabilityState_Enum } from '../../device/device.pb.js'
 
 /**
  * NodeType describes a plugin's standing Device node type.
@@ -227,4 +231,56 @@ export const ExecControllerRequest: MessageType<ExecControllerRequest> =
   /* @__PURE__ */ createMessageType<ExecControllerRequest>(
     's4wave.flowgraph.registry.ExecControllerRequest',
     () => [[1, 'config', 11, 0, ControllerConfig.codec]],
+  )
+
+/**
+ * ExecControllerResponse reports a change of a plugin controller's status.
+ *
+ * @generated from message s4wave.flowgraph.registry.ExecControllerResponse
+ */
+export interface ExecControllerResponse {
+  /**
+   * Status is the controller's run status.
+   */
+  status?: ControllerStatus
+  /**
+   * NodeStatus is the state the running controller shows for its node, unset
+   * when it shows none.
+   */
+  nodeStatus?: NodeStatus
+}
+
+export const ExecControllerResponse: MessageType<ExecControllerResponse> =
+  /* @__PURE__ */ createMessageType<ExecControllerResponse>(
+    's4wave.flowgraph.registry.ExecControllerResponse',
+    () => [
+      [1, 'status', 14, 0, ControllerStatus_Enum],
+      [2, 'node_status', 11, 0, NodeStatus.codec],
+    ],
+  )
+
+/**
+ * NodeStatus is a state a running node controller shows on its node's Device
+ * capability in place of the active state.
+ *
+ * @generated from message s4wave.flowgraph.registry.NodeStatus
+ */
+export interface NodeStatus {
+  /**
+   * State is the capability state.
+   */
+  state?: DeviceCapabilityState
+  /**
+   * Detail explains the state to a person.
+   */
+  detail?: string
+}
+
+export const NodeStatus: MessageType<NodeStatus> =
+  /* @__PURE__ */ createMessageType<NodeStatus>(
+    's4wave.flowgraph.registry.NodeStatus',
+    () => [
+      [1, 'state', 14, 0, DeviceCapabilityState_Enum],
+      [2, 'detail', 9],
+    ],
   )

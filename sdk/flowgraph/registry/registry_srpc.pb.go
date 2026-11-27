@@ -7,7 +7,6 @@ package flowgraph_registry
 import (
 	context "context"
 
-	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	rpcstream "github.com/aperturerobotics/starpc/rpcstream"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
@@ -125,7 +124,7 @@ type SRPCNodeTypeResourceServiceClient interface {
 	// Compile returns entries whose keys and revisions the Device assigns.
 	Compile(ctx context.Context, in *CompileRequest) (*CompileResponse, error)
 	// ExecController runs one of the plugin_config_ids on the plugin's bus and
-	// streams its status until the call ends.
+	// streams its status, and the node status it shows, until the call ends.
 	ExecController(ctx context.Context, in *ExecControllerRequest) (SRPCNodeTypeResourceService_ExecControllerClient, error)
 	// ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
 	// names the port protocol used as LookupRpcService's server ID.
@@ -172,23 +171,23 @@ func (c *srpcNodeTypeResourceServiceClient) ExecController(ctx context.Context, 
 
 type SRPCNodeTypeResourceService_ExecControllerClient interface {
 	srpc.Stream
-	Recv() (*controller_exec.ExecControllerResponse, error)
-	RecvTo(*controller_exec.ExecControllerResponse) error
+	Recv() (*ExecControllerResponse, error)
+	RecvTo(*ExecControllerResponse) error
 }
 
 type srpcNodeTypeResourceService_ExecControllerClient struct {
 	srpc.Stream
 }
 
-func (x *srpcNodeTypeResourceService_ExecControllerClient) Recv() (*controller_exec.ExecControllerResponse, error) {
-	m := new(controller_exec.ExecControllerResponse)
+func (x *srpcNodeTypeResourceService_ExecControllerClient) Recv() (*ExecControllerResponse, error) {
+	m := new(ExecControllerResponse)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcNodeTypeResourceService_ExecControllerClient) RecvTo(m *controller_exec.ExecControllerResponse) error {
+func (x *srpcNodeTypeResourceService_ExecControllerClient) RecvTo(m *ExecControllerResponse) error {
 	return x.MsgRecv(m)
 }
 
@@ -235,7 +234,7 @@ type SRPCNodeTypeResourceServiceServer interface {
 	// Compile returns entries whose keys and revisions the Device assigns.
 	Compile(context.Context, *CompileRequest) (*CompileResponse, error)
 	// ExecController runs one of the plugin_config_ids on the plugin's bus and
-	// streams its status until the call ends.
+	// streams its status, and the node status it shows, until the call ends.
 	ExecController(*ExecControllerRequest, SRPCNodeTypeResourceService_ExecControllerStream) error
 	// ServeRpc forwards port calls to the plugin bus. RpcStreamInit.component_id
 	// names the port protocol used as LookupRpcService's server ID.
@@ -330,19 +329,19 @@ type srpcNodeTypeResourceService_CompileStream struct {
 
 type SRPCNodeTypeResourceService_ExecControllerStream interface {
 	srpc.Stream
-	Send(*controller_exec.ExecControllerResponse) error
-	SendAndClose(*controller_exec.ExecControllerResponse) error
+	Send(*ExecControllerResponse) error
+	SendAndClose(*ExecControllerResponse) error
 }
 
 type srpcNodeTypeResourceService_ExecControllerStream struct {
 	srpc.Stream
 }
 
-func (x *srpcNodeTypeResourceService_ExecControllerStream) Send(m *controller_exec.ExecControllerResponse) error {
+func (x *srpcNodeTypeResourceService_ExecControllerStream) Send(m *ExecControllerResponse) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcNodeTypeResourceService_ExecControllerStream) SendAndClose(m *controller_exec.ExecControllerResponse) error {
+func (x *srpcNodeTypeResourceService_ExecControllerStream) SendAndClose(m *ExecControllerResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err
