@@ -255,14 +255,14 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// delivered reports whether changes carry a change through seqno
-	// referencing key or a quad from key.
+	// delivered reports whether a change through seqno invalidates key,
+	// either explicitly or through an unknown change.
 	delivered := func(changes []*s4wave_world.WorldChange, seqno uint64, key string) bool {
 		for _, change := range changes {
 			if change.GetSeqno() < seqno {
 				continue
 			}
-			if slices.Contains(change.GetKeys(), key) {
+			if change.GetUnknown() || slices.Contains(change.GetKeys(), key) {
 				return true
 			}
 			for _, q := range change.GetQuads() {
@@ -270,7 +270,6 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 					return true
 				}
 			}
-			return false
 		}
 		return false
 	}
@@ -427,11 +426,11 @@ func TestWatchChanges_OldSeqno(t *testing.T) {
 	}
 }
 
-// TestWatchChanges_QuietDelta checks a delta after more commits than the World
-// records, none of which the interest selects: the ack's seqno reaches the head
-// the watch last compared, not the last change sent, so the next watch starts
-// from a recorded head and no unknown change follows.
+// TestWatchChanges_QuietDelta checks that an ack covers the feed's head after
+// many commits outside its named interest. Admission invalidations may arrive
+// before the ack. The new interest then receives the next member revision.
 func TestWatchChanges_QuietDelta(t *testing.T) {
+	// Open the quiet interest at the current head.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	engine, cleanup := setupSDKEngine(ctx, t)
@@ -447,7 +446,7 @@ func TestWatchChanges_QuietDelta(t *testing.T) {
 
 	// Establish the quiet subscription before its starting head can be evicted.
 	ready := commitObject(ctx, t, engine, "quiet/old")
-	if change := s.nextChange(); change.GetUnknown() || change.GetSeqno() != ready {
+	if change := s.nextChange(); change.GetSeqno() != ready {
 		t.Fatalf("initial change = %v, want quiet/old at %d", change, ready)
 	}
 	all := openChangeStream(ctx, t, engine, &s4wave_world.WatchChangesRequest{AfterSeqno: ready})
@@ -457,7 +456,7 @@ func TestWatchChanges_QuietDelta(t *testing.T) {
 	var prev, last uint64
 	for i := range 130 {
 		prev, last = last, commitObject(ctx, t, engine, "quiet/skip-"+strconv.Itoa(i))
-		if change := all.nextChange(); change.GetUnknown() || change.GetSeqno() != last {
+		if change := all.nextChange(); change.GetSeqno() != last {
 			t.Fatalf("feed change = %v, want skipped commit at %d", change, last)
 		}
 	}
@@ -469,14 +468,29 @@ func TestWatchChanges_QuietDelta(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	ack := s.next().GetInterestAck()
-	if ack.GetVersion() != 2 || ack.GetAfterSeqno() < prev || ack.GetAfterSeqno() > last {
-		t.Fatalf("ack = %v, want version 2 at %d or %d", ack, prev, last)
+
+	// Account for admission invalidations sent under the earlier interest.
+	lastSent := ready
+	msg := s.next()
+	for msg.GetInterestAck() == nil {
+		// Require conservative invalidations in increasing revision order.
+		change := msg.GetChange()
+		if !change.GetUnknown() || change.GetSeqno() <= lastSent || change.GetSeqno() > last {
+			t.Fatalf("change before ack = %v, want an invalidation after %d through %d", change, lastSent, last)
+		}
+
+		// Keep the covered revision before reading the next response.
+		lastSent = change.GetSeqno()
+		msg = s.next()
+	}
+	ack := msg.GetInterestAck()
+	if ack.GetVersion() != 2 || ack.GetAfterSeqno() < max(prev, lastSent) || ack.GetAfterSeqno() > last {
+		t.Fatalf("ack = %v, want version 2 covering %d through %d", ack, max(prev, lastSent), last)
 	}
 
-	// The member's commit arrives next, known.
+	// Receive the member's revision next, including a conservative invalidation.
 	member := commitObject(ctx, t, engine, "quiet/member")
-	if change := s.nextChange(); change.GetUnknown() || change.GetSeqno() != member {
+	if change := s.nextChange(); change.GetSeqno() != member {
 		t.Fatalf("change = %v, want the member at %d", change, member)
 	}
 }
