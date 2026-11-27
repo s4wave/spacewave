@@ -22,8 +22,9 @@ type PragmaConnector struct {
 }
 
 // NewPragmaConnector returns a connector that opens dsn through drv and runs
-// pragmas on each new connection.
-func NewPragmaConnector(drv driver.Driver, dsn string, pragmas []string) (*PragmaConnector, error) {
+// pragmas on each new connection. Each connection retains file for its lifetime,
+// or holds no file when file is nil.
+func NewPragmaConnector(drv driver.Driver, dsn string, pragmas []string, file *fileHold) (*PragmaConnector, error) {
 	// Use the driver's own connector when it has one, so its open options apply.
 	var connector driver.Connector = dsnConnector{driver: drv, dsn: dsn}
 	if dc, ok := drv.(driver.DriverContext); ok {
@@ -33,7 +34,7 @@ func NewPragmaConnector(drv driver.Driver, dsn string, pragmas []string) (*Pragm
 		}
 		connector = c
 	}
-	return &PragmaConnector{connector: connector, pragmas: pragmas}, nil
+	return &PragmaConnector{connector: connector, pragmas: pragmas, file: file}, nil
 }
 
 // Connect opens a connection holding the database file, runs the pragmas on

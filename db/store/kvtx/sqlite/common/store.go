@@ -472,11 +472,10 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas, hold
 	}
 
 	// Open the pool through the configuring connector.
-	connector, err := NewPragmaConnector(drv, dsn, connPragmas)
+	connector, err := NewPragmaConnector(drv, dsn, connPragmas, hold)
 	if err != nil {
 		return nil, err
 	}
-	connector.file = hold
 
 	// Keep enough idle connections for the concurrent read transactions,
 	// each of which holds one for its life, so a burst of reads reuses
@@ -686,17 +685,9 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	// Begin on the kept write connection, taking SQLite's write lock at once
 	// so the transaction never waits to upgrade from a read.
 	tx := newWriteTx(s.db, s.writeConn, s.queries, s.flusher, s.flow, release)
-	conn, err := tx.takeConn(ctx)
-	if err != nil {
-		release()
+	if err := tx.beginWrite(ctx); err != nil {
 		return nil, err
 	}
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		tx.dropConn(conn)
-		release()
-		return nil, err
-	}
-	tx.conn = conn
 	return tx, nil
 }
 

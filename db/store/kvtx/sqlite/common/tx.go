@@ -64,7 +64,7 @@ type Tx struct {
 }
 
 // newWriteTx returns a write transaction during the writer turn that release
-// ends, whose connection, from keep or db, NewTransaction begins and sets.
+// ends. beginWrite opens and begins its connection from keep or db.
 func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
 	return &Tx{
 		queries: queries,
@@ -82,6 +82,27 @@ func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, flusher *kvtx.Orde
 // connection from keep when it is set, and from db otherwise.
 func newReadTx(db *sql.DB, queries *queries, snapshot bool, turns readTurns, keep *connKeep) *Tx {
 	return &Tx{queries: queries, db: db, snapshot: snapshot, turns: turns, keep: keep}
+}
+
+// beginWrite takes the write transaction's connection and begins its SQLite
+// transaction. On failure it drops a connection whose BEGIN failed and ends
+// the writer turn.
+func (t *Tx) beginWrite(ctx context.Context) error {
+	// Take the kept or pooled connection, ending the writer turn on failure.
+	conn, err := t.takeConn(ctx)
+	if err != nil {
+		t.release()
+		return err
+	}
+
+	// Take SQLite's write lock before returning the transaction to its caller.
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		t.dropConn(conn)
+		t.release()
+		return err
+	}
+	t.conn = conn
+	return nil
 }
 
 // errIfClosed returns kvtx.ErrDiscarded after Commit or Discard.
@@ -277,9 +298,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	if err != nil {
 		return kvtx.NewErrIterator(err)
 	}
-	it := NewIterator(ctx, q, t.errIfClosed, t.queries.table, prefix, sort, reverse)
-	it.turns = t.turns
-	return it
+	return NewIterator(ctx, q, t.errIfClosed, t.turns, t.queries.table, prefix, sort, reverse)
 }
 
 // Delete deletes a key.

@@ -58,13 +58,15 @@ type Iterator struct {
 	seekAbsoluteEndQuery                string
 }
 
-// NewIterator constructs a new SQLite iterator.
-func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error, table string, prefix []byte, sort, reverse bool) *Iterator {
+// NewIterator constructs a SQLite iterator whose statements use turns, or run
+// without a turn when turns is nil.
+func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error, turns readTurns, table string, prefix []byte, sort, reverse bool) *Iterator {
 	// Bind the SQLite iterator to its queryer, prefix, and traversal direction.
 	i := &Iterator{
 		ctx:     ctx,
 		queryer: queryer,
 		active:  active,
+		turns:   turns,
 		table:   table,
 		prefix:  prefix,
 		reverse: reverse,
