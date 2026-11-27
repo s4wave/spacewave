@@ -45,9 +45,7 @@ func AccessManifest(
 	// Build the distribution filesystem over the manifest distribution root.
 	distBls.SetRootRef(manifest.GetDistFsRef())
 	le.Debug("building manifest dist filesystem handle")
-	distWriter := unixfs_block_fs.NewFSWriter()
-	distFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, distBls, distWriter)
-	distWriter.SetFS(distFS)
+	distFS := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, distBls)
 	defer distFS.Release()
 
 	// Expose the distribution filesystem through a retained UnixFS handle.
@@ -64,9 +62,7 @@ func AccessManifest(
 	// Build the assets filesystem over the manifest assets root.
 	assetsBls.SetRootRef(manifest.GetAssetsFsRef())
 	le.Debug("building manifest assets filesystem handle")
-	assetsWriter := unixfs_block_fs.NewFSWriter()
-	assetsFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, assetsBls, assetsWriter)
-	assetsWriter.SetFS(assetsFS)
+	assetsFS := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, assetsBls)
 	defer assetsFS.Release()
 
 	// Expose the assets filesystem through a retained UnixFS handle.

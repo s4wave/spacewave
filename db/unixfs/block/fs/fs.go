@@ -60,6 +60,14 @@ func NewFS(
 	return fs
 }
 
+// NewWritableFS creates an FS whose writer applies changes to its own root.
+// The root cursor will be released when the FS is released.
+func NewWritableFS(ctx context.Context, rootType unixfs_block.NodeType, bls *bucket_lookup.Cursor) *FS {
+	fs := NewFS(ctx, rootType, bls, nil)
+	fs.writer = NewFSWriter(fs)
+	return fs
+}
+
 // GetContext returns the context that is canceled when the fs is closed.
 func (f *FS) GetContext() context.Context {
 	return f.ctx

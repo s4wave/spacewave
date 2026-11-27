@@ -55,12 +55,7 @@ func TestFS(t *testing.T) {
 		oc.SetRootRef(rootRef)
 
 		// construct the fscursor
-		wr := NewFSWriter()
-		fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, wr)
-
-		// Connect the filesystem writer to the constructed filesystem.
-		// defer fs.Release()
-		wr.SetFS(fs)
+		fs := NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc)
 
 		// Open the filesystem root handle.
 		fsHandle, err := unixfs.NewFSHandle(fs)

@@ -19,15 +19,9 @@ type FSWriter struct {
 	ts *timestamp.Timestamp
 }
 
-// NewFSWriter creates a writer which applies changes to a cursor.
-// Note: call SetFS before writer is used.
-func NewFSWriter() *FSWriter {
-	return &FSWriter{}
-}
-
-// SetFS sets the filesystem.
-func (f *FSWriter) SetFS(fs *FS) {
-	f.fs = fs
+// NewFSWriter creates a writer which applies changes to fs.
+func NewFSWriter(fs *FS) *FSWriter {
+	return &FSWriter{fs: fs}
 }
 
 // SetTimestamp sets the timestamp to use for ops.

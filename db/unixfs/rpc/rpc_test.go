@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -52,10 +51,7 @@ func TestUnixFsRPC(t *testing.T) {
 	oc.SetRootRef(resRef)
 
 	// construct the root fs
-	writer := unixfs_block_fs.NewFSWriter()
-	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
-	writer.SetFS(fs)
-	writer.SetTimestamp(timestamp.Now())
+	fs := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc)
 
 	// construct the root fs cursor
 	var rootFSCursor unixfs.FSCursor = fs

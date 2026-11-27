@@ -323,9 +323,7 @@ func TestFSHandle(t *testing.T) {
 	oc.SetRootRef(res)
 
 	// Connect a filesystem writer to the block filesystem.
-	writer := NewFSWriter()
-	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
-	writer.SetFS(fs)
+	fs := NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc)
 
 	// Open a filesystem handle and release it after the suite.
 	handle, err := unixfs.NewFSHandle(fs)
@@ -375,9 +373,7 @@ func TestFS_MknodWithContent(t *testing.T) {
 	oc.SetRootRef(res)
 
 	// Connect a filesystem writer to the block filesystem.
-	writer := NewFSWriter()
-	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
-	writer.SetFS(fs)
+	fs := NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc)
 
 	// Open a writable filesystem handle for file creation.
 	handle, err := unixfs.NewFSHandle(fs)

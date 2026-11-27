@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -617,10 +616,7 @@ func TestRelayPushInvalidation(t *testing.T) {
 	oc.SetRootRef(resRef)
 
 	// Build a block FS writer over the cursor and open the root handle.
-	writer := unixfs_block_fs.NewFSWriter()
-	blockFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
-	writer.SetFS(blockFS)
-	writer.SetTimestamp(timestamp.Now())
+	blockFS := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc)
 
 	// Open the root handle for the block FS.
 	rootHandle, err := unixfs.NewFSHandle(blockFS)

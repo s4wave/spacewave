@@ -82,9 +82,7 @@ func WriteImage(ctx context.Context, cs *bucket_lookup.Cursor, executable, busyb
 	// Open a writable view, which moves its cursor's root with each write.
 	tree := cs.Clone()
 	tree.SetRootRef(root)
-	wr := unixfs_block_fs.NewFSWriter()
-	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, tree, wr)
-	wr.SetFS(fs)
+	fs := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, tree)
 	defer fs.Release()
 
 	// Write the layout through the writable view and return the moved root.

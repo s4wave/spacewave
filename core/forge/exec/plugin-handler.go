@@ -261,9 +261,7 @@ func initPluginOutputMount(ctx context.Context, cs *bucket_lookup.Cursor) (*unix
 	cs.SetRootRef(rootRef)
 
 	// Bind a writable UnixFS view to the retained root.
-	wr := unixfs_block_fs.NewFSWriter()
-	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, wr)
-	wr.SetFS(fs)
+	fs := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs)
 
 	// Transfer the filesystem view to the returned handle.
 	handle, err := unixfs.NewFSHandle(fs)

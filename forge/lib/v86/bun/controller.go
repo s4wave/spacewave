@@ -316,9 +316,7 @@ func initOutputMount(ctx context.Context, cs *bucket_lookup.Cursor) (*unixfs.FSH
 	cs.SetRootRef(rootRef)
 
 	// Create FS with FSWriter for writable access.
-	wr := unixfs_block_fs.NewFSWriter()
-	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, wr)
-	wr.SetFS(fs)
+	fs := unixfs_block_fs.NewWritableFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs)
 
 	// Wrap the writable output filesystem in a mount handle.
 	handle, err := unixfs.NewFSHandle(fs)
