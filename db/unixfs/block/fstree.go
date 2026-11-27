@@ -129,6 +129,23 @@ func (f *FSTree) GetXattrValue(name string) []byte {
 	return f.node.GetXattrValue(name)
 }
 
+// SetXattr sets or replaces the named extended attribute and marks the inode
+// dirty.
+func (f *FSTree) SetXattr(name string, value []byte) {
+	f.node.SetXattr(name, value)
+	f.bcs.MarkDirty()
+}
+
+// RemoveXattr removes the named extended attribute, marking the inode dirty
+// when it was present. It reports whether the attribute was present.
+func (f *FSTree) RemoveXattr(name string) bool {
+	if !f.node.RemoveXattr(name) {
+		return false
+	}
+	f.bcs.MarkDirty()
+	return true
+}
+
 // ImportXattrs adds attributes to a newly created inode already marked dirty.
 func (f *FSTree) ImportXattrs(xattrs []*FSXattr) {
 	for _, xa := range xattrs {
