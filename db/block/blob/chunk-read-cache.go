@@ -1,6 +1,12 @@
 package blob
 
-import "slices"
+import (
+	"context"
+	"slices"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/sbset"
+)
 
 // chunkReadCache retains recently read chunk data for one Reader, least
 // recently used first. Retained data stays within limit bytes, except that the
@@ -21,6 +27,63 @@ type chunkReadCache struct {
 type chunkReadCacheEntry struct {
 	idx  int
 	data []byte
+}
+
+// setLimit changes the retained-byte budget. Existing entries remain until a
+// cache miss needs room, and the latest chunk is always retained.
+func (c *chunkReadCache) setLimit(limit int) {
+	c.limit = limit
+}
+
+// read reads a chunk range, enabling bounded read-ahead for streaming requests.
+func (c *chunkReadCache) read(ctx context.Context, chunks *sbset.SubBlockSet, buf []byte, start, hint int) (int, int, error) {
+	// Enable read-ahead before locating the requested chunk.
+	if c.ahead == nil && len(buf) >= chunkReadAheadMinRead && chunks.Len() > 1 {
+		c.ahead = newChunkReadAhead(ctx, chunks)
+	}
+
+	// Resolve the requested range through the retained chunks and window.
+	return readFromChunks(ctx, chunks, buf, start, hint, c)
+}
+
+// fetch returns cached data or fetches and retains the requested chunk.
+// The caller has checked that the chunk size fits in an int.
+func (c *chunkReadCache) fetch(ctx context.Context, chunk *Chunk, cursor *block.Cursor, idx int) ([]byte, error) {
+	// Reuse retained bytes, or make room before fetching a missing chunk.
+	if data, ok := c.get(idx); ok {
+		return data, nil
+	}
+	c.evict(int(chunk.GetSize())) //nolint:gosec // the caller validated the chunk bounds.
+
+	// Fetch through the streaming window or the uncached cursor path.
+	var data []byte
+	var err error
+	if c.ahead != nil {
+		data, err = c.ahead.read(idx)
+	} else {
+		data, err = fetchChunkDataNoCursorCache(ctx, chunk, cursor, idx, nil)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Retain the fetched bytes as the most recently used chunk.
+	c.add(idx, data)
+	return data, nil
+}
+
+// stopReadAhead cancels and joins the streaming window, keeping retained chunks.
+func (c *chunkReadCache) stopReadAhead() {
+	if c.ahead != nil {
+		c.ahead.close()
+		c.ahead = nil
+	}
+}
+
+// close joins outstanding reads before releasing retained buffers and the budget.
+func (c *chunkReadCache) close() {
+	c.stopReadAhead()
+	*c = chunkReadCache{}
 }
 
 // get returns the retained data for idx and marks it most recently used.

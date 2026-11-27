@@ -61,13 +61,24 @@ type pendingChunk struct {
 	done chan struct{}
 }
 
-// newChunkAppender constructs a chunkAppender for the chunk set.
-func newChunkAppender(ctx context.Context, ci *ChunkIndex, chkSet *sbset.SubBlockSet) *chunkAppender {
-	a := &chunkAppender{ctx: ctx, ci: ci, chkSet: chkSet, window: 1}
-	if chkSet == nil || chkSet.GetCursor() == nil {
+// newChunkAppender constructs an appender at the chunk index cursor. With
+// holdLast it retains the final chunk instead of storing it.
+func newChunkAppender(
+	ctx context.Context,
+	ci *ChunkIndex,
+	bcs *block.Cursor,
+	chkSet *sbset.SubBlockSet,
+	holdLast bool,
+) *chunkAppender {
+	// Keep cursorless appends on the existing missing-cursor error path.
+	a := &chunkAppender{ctx: ctx, ci: ci, window: 1, holdLast: holdLast}
+	if bcs == nil {
 		return a
 	}
-	if tx := chkSet.GetCursor().GetTransaction(); tx != nil && tx.GetStoreOps() != nil {
+
+	// Bind chunk references and bounded encoding to the index transaction.
+	a.chkSet = chkSet
+	if tx := bcs.GetTransaction(); tx != nil && tx.GetStoreOps() != nil {
 		a.tx = tx
 		a.window = min(runtime.GOMAXPROCS(0), maxChunkEncodeWindow)
 	}
@@ -89,7 +100,7 @@ func (a *chunkAppender) append(idx int, size, start uint64, data []byte) error {
 
 	// Store the chunk through the cursor graph without a staging transaction.
 	if a.tx == nil && a.sink == nil {
-		if a.chkSet.GetCursor() == nil {
+		if a.chkSet == nil {
 			return ErrNoChunkCursor
 		}
 		dataCopy := append([]byte(nil), data...)

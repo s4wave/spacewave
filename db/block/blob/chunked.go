@@ -54,8 +54,7 @@ func buildChunkIndex(
 	ci.ChunkerArgs.ApplyArgs(chunkerArgs)
 
 	// Cut and store the chunks with the configured chunker.
-	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
-	chunks.holdLast = holdTail
+	chunks := newChunkAppender(ctx, ci, bcs, ci.GetChunkSet(bcs), holdTail)
 	chunkerType := ci.ChunkerArgs.GetChunkerType()
 	var totalSize uint64
 	switch chunkerType {
@@ -199,20 +198,15 @@ func fetchChunkDataNoCursorCache(
 	chunkIdx int,
 	cache *chunkReadCache,
 ) ([]byte, error) {
-	// Reuse cached chunk bytes and reserve capacity for a cache miss.
+	// Let the cache own retained bytes and its streaming window.
 	if cache != nil {
-		if data, ok := cache.get(chunkIdx); ok {
-			return data, nil
-		}
-		cache.evict(int(chunk.GetSize())) //nolint:gosec
+		return cache.fetch(ctx, chunk, chunkCursor, chunkIdx)
 	}
 
-	// Fetch chunk bytes through read-ahead or the chunk cursor.
+	// Fetch uncached bytes with the existing chunk-fetch trace span.
 	var data []byte
 	var err error
-	if cache != nil && cache.ahead != nil {
-		data, err = cache.ahead.read(chunkIdx)
-	} else if trace.IsEnabled() {
+	if trace.IsEnabled() {
 		_, task := trace.NewTask(ctx, "db/block/blob/chunk-fetch")
 		data, err = chunk.FetchDataNoCache(ctx, chunkCursor, false)
 		task.End()
@@ -221,11 +215,6 @@ func fetchChunkDataNoCursorCache(
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	// Retain fetched chunk bytes for subsequent cached reads.
-	if cache != nil {
-		cache.add(chunkIdx, data)
 	}
 	return data, nil
 }

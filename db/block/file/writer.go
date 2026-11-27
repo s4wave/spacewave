@@ -229,7 +229,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		w.buildBlobOpts,
 	)
 	if err != nil {
-		w.rangeSet.GetCursor().ClearRef(uint32(rlen)) //nolint:gosec
+		w.rangeSet.DetachRange(rlen, rlen+1)
 		w.root.Ranges = w.root.Ranges[:len(w.root.Ranges)-1]
 		w.root.RangeNonce -= 1
 		return err
@@ -551,7 +551,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 	// Replace the range references with the embedded root blob.
 	w.root.RangeNonce = 0
 	w.root.Ranges = nil
-	w.rangeSet.GetCursor().ClearAllRefs()
+	w.rangeSet.DetachAll()
 	if nrootBlob != nil {
 		if err := rangeBlobBcs.SetAsSubBlock(2, w.bcs); err != nil {
 			return err
@@ -600,7 +600,7 @@ func (w *Writer) deleteRange(idx int) {
 	w.root.Ranges = w.root.Ranges[:lastIdx]
 
 	// Clear the deleted range reference and mark the file block dirty.
-	w.rangeSet.GetCursor().ClearRef(uint32(lastIdx)) //nolint:gosec
+	w.rangeSet.DetachRange(lastIdx, lastIdx+1)
 	w.bcs.MarkDirty()
 }
 

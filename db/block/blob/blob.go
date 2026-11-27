@@ -427,7 +427,7 @@ func (b *Blob) appendChunked(
 		}
 
 		// Store bounded zero growth before the new bytes at their logical position.
-		pieces := newChunkAppender(ctx, ci, ci.GetChunkSet(ciBcs))
+		pieces := newChunkAppender(ctx, ci, ciBcs, ci.GetChunkSet(ciBcs), false)
 		if storedEnd < end {
 			zeros := make([]byte, end-storedEnd)
 			if err := pieces.append(pieces.next(), end-storedEnd, storedEnd, zeros); err != nil {
@@ -469,9 +469,7 @@ func (b *Blob) appendChunked(
 	rdrs = append(rdrs, io.LimitReader(rdr, dataLen))
 
 	// Remove the tail only after its existing payloads have been acquired.
-	for i := len(chunks) - 1; i >= tailIdx; i-- {
-		chunkSet.GetCursor().ClearRef(uint32(i)) //nolint:gosec
-	}
+	chunkSet.DetachRange(tailIdx, len(chunks))
 	ci.Chunks = chunks[:tailIdx]
 
 	// Chunk the tail and the appended bytes, holding back the bytes after the
@@ -483,7 +481,7 @@ func (b *Blob) appendChunked(
 
 	// Keep the held bytes as the new tail.
 	if held != nil {
-		pieces := newChunkAppender(ctx, nci, nci.GetChunkSet(ciBcs))
+		pieces := newChunkAppender(ctx, nci, ciBcs, nci.GetChunkSet(ciBcs), false)
 		if err := pieces.appendTail(tail, held); err != nil {
 			return err
 		}
@@ -573,9 +571,7 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	})
 
 	// Remove the chunks past the new end.
-	for i := len(chunks) - 1; i >= keep; i-- {
-		chunkSet.GetCursor().ClearRef(uint32(i)) //nolint:gosec
-	}
+	chunkSet.DetachRange(keep, len(chunks))
 	ci.Chunks = chunks[:keep]
 	ciBcs.MarkDirty()
 	if keep == 0 {
@@ -598,12 +594,12 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	if err != nil {
 		return err
 	}
-	chunkSet.GetCursor().ClearRef(uint32(keep - 1)) //nolint:gosec
+	chunkSet.DetachRange(keep-1, keep)
 	ci.Chunks = chunks[:keep-1]
 
 	// Store its prefix in its place.
 	nlen := size - lastStart
-	pieces := newChunkAppender(ctx, ci, chunkSet)
+	pieces := newChunkAppender(ctx, ci, ciBcs, chunkSet, false)
 	if err := pieces.append(keep-1, nlen, lastStart, data[:nlen]); err != nil {
 		return err
 	}

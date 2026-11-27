@@ -79,7 +79,7 @@ func NewRawReader(ctx context.Context, blob *Blob) *Reader {
 // random access that revisits chunks does not fetch them again. The latest
 // chunk is always retained. The default limit of zero suits streaming reads.
 func (r *Reader) SetChunkCacheLimit(limit int) {
-	r.chunkCache.limit = limit
+	r.chunkCache.setLimit(limit)
 }
 
 // Read implements the reader interface.
@@ -106,14 +106,9 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 			n = copy(p, r.root.RawData[r.idx:])
 		}
 	case BlobType_BlobType_CHUNKED:
-		// Enable bounded read-ahead only for streaming reads over several chunks.
-		if r.chunkCache.ahead == nil && len(p) >= chunkReadAheadMinRead && r.chunkSet.Len() > 1 {
-			r.chunkCache.ahead = newChunkReadAhead(r.ctx, r.chunkSet)
-		}
-
 		// Reads past the stored chunks fill the remaining logical range with zeros.
 		var chunkIdx int
-		n, chunkIdx, err = readFromChunks(r.ctx, r.chunkSet, p, r.idx, r.chunkIdx, &r.chunkCache)
+		n, chunkIdx, err = r.chunkCache.read(r.ctx, r.chunkSet, p, r.idx, r.chunkIdx)
 		switch err {
 		case io.EOF:
 			clear(p)
@@ -165,9 +160,8 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	// Stop speculative reads before publishing a different cursor position.
-	if nextPos != int64(r.idx) && r.chunkCache.ahead != nil {
-		r.chunkCache.ahead.close()
-		r.chunkCache.ahead = nil
+	if nextPos != int64(r.idx) {
+		r.chunkCache.stopReadAhead()
 	}
 	r.idx = int(nextPos)
 	return nextPos, nil
@@ -177,10 +171,7 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 func (r *Reader) Close() error {
 	// Cancel and join chunk reads before releasing the retained buffers.
 	r.ctxCancel()
-	if r.chunkCache.ahead != nil {
-		r.chunkCache.ahead.close()
-	}
-	r.chunkCache = chunkReadCache{}
+	r.chunkCache.close()
 	return nil
 }
 

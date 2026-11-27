@@ -36,9 +36,17 @@ func NewSubBlockSet(sl SubBlockContainer, bcs *block.Cursor) *SubBlockSet {
 	return &SubBlockSet{sl: sl, bcs: bcs}
 }
 
-// GetCursor returns the sub-block cursor located at r, if set.
-func (r *SubBlockSet) GetCursor() *block.Cursor {
-	return r.bcs
+// DetachRange detaches traversed references for indices in [first, end),
+// from last to first. It leaves the container entries unchanged.
+func (r *SubBlockSet) DetachRange(first, end int) {
+	for i := end - 1; i >= first; i-- {
+		r.bcs.ClearRef(uint32(i)) //nolint:gosec // sub-block indices are cursor reference IDs.
+	}
+}
+
+// DetachAll detaches every traversed reference, leaving container entries unchanged.
+func (r *SubBlockSet) DetachAll() {
+	r.bcs.ClearAllRefs()
 }
 
 // IsNil returns if the object is nil.
