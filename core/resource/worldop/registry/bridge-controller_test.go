@@ -46,11 +46,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	// Start a World testbed for plugin operations on supplied transactions.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 
 	// Capture the authenticated sender for the typed object factory.
 	sender := tb.Volume.GetPeerID()
@@ -210,11 +206,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 	// Start a World testbed for plugin validation failure.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 
 	// Expose a plugin handler that rejects operation validation.
 	pluginRoot := srpc.NewMux()
@@ -290,11 +282,7 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	// Start a World testbed whose plugin never answers ApplyWorldOp.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	handler := &stallWorldOpHandler{entered: make(chan struct{}, 1), stall: make(chan struct{})}
 	t.Cleanup(func() { close(handler.stall) })
 
@@ -349,11 +337,7 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 	// that sleeps for most of the write's budget.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	const budgetLength = time.Second
 	handler := &nestedSleepWorldOpHandler{sleep: 800 * time.Millisecond, attached: make(chan attachedWorldState, 4)}
 
@@ -468,18 +452,14 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 func TestWriteBudgetGoWriteReplaysPastBudget(t *testing.T) {
 	// Start a World testbed and a write whose budget every attempt outlasts.
 	ctx := context.Background()
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	const budgetLength = 20 * time.Millisecond
 	budgetCtx := world.WithWriteBudget(ctx, world.NewWriteBudget(budgetLength))
 
 	// No plugin call claims the budget, so the write replays past it and
 	// commits on its third attempt.
 	var attempts int
-	err = world.ExecTransaction(budgetCtx, tb.Engine, true, func(ctx context.Context, wtx world.WorldState) error {
+	err := world.ExecTransaction(budgetCtx, tb.Engine, true, func(ctx context.Context, wtx world.WorldState) error {
 		attempts++
 		time.Sleep(2 * budgetLength)
 		obj, err := wtx.CreateObject(ctx, "go-write", nil)
@@ -504,11 +484,7 @@ func TestWriteBudgetGoWriteReplaysPastBudget(t *testing.T) {
 func TestWriteBudgetPerformOpInstallsBudget(t *testing.T) {
 	// Start a World testbed and the engine's operation-scoped World state.
 	ctx := context.Background()
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	probe := &budgetProbeOp{Operation: world_mock.NewMockWorldOp("probe", "probe")}
 
@@ -538,11 +514,7 @@ func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 	// Start a World testbed whose plugin never finishes loading.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	loading := make(chan struct{}, 1)
 	rel, err := tb.Bus.AddController(ctx, &hangPluginLoadController{loading: loading}, nil)
 	if err != nil {
@@ -599,11 +571,7 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	// a manifest edge through the Space's own handle, which carries no guard.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	sender := tb.Volume.GetPeerID()
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	if world.GuardWorldState(ws, nil) != ws {
@@ -1875,11 +1843,7 @@ func TestBridgedOpWritesFilesThroughStackedGuard(t *testing.T) {
 	// Serve the seed handler as the test plugin, with the UnixFS object type.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	tb := newBridgeTestWorld(t, ctx)
 	sender := tb.Volume.GetPeerID()
 	pluginRoot := srpc.NewMux()
 	handler := &seedFilesHandler{testWorldOpHandler: &testWorldOpHandler{sender: sender}}
@@ -2015,4 +1979,16 @@ func (h *seedFilesHandler) ApplyWorldOp(
 		return nil, errors.Join(errors.New("sync"), err)
 	}
 	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+// newBridgeTestWorld starts a World testbed and releases it after the test's defers.
+func newBridgeTestWorld(t *testing.T, ctx context.Context) *world_testbed.Testbed {
+	// Register teardown only after the World testbed starts successfully.
+	t.Helper()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	return tb
 }
