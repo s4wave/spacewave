@@ -334,7 +334,7 @@ func BlockKey(ref *block.BlockRef) []byte {
 	if ref.GetEmpty() {
 		return nil
 	}
-	return appendBlockKey(make([]byte, 0, blockKeyLen(ref)), ref)
+	return AppendBlockKey(make([]byte, 0, blockKeyLen(ref)), ref)
 }
 
 // blockKeyLen returns the length of the BlockKey of a non-empty ref.
@@ -342,9 +342,9 @@ func blockKeyLen(ref *block.BlockRef) int {
 	return 1 + len(ref.GetHash().GetHash())
 }
 
-// appendBlockKey appends the BlockKey of a non-empty ref to dst, so a caller
+// AppendBlockKey appends the BlockKey of a non-empty ref to dst, so a caller
 // building many keys can share one allocation.
-func appendBlockKey(dst []byte, ref *block.BlockRef) []byte {
+func AppendBlockKey(dst []byte, ref *block.BlockRef) []byte {
 	h := ref.GetHash()
 	dst = append(dst, byte(h.GetHashType())) //nolint:gosec // hash types fit in a byte.
 	return append(dst, h.GetHash()...)
@@ -602,7 +602,7 @@ func packChildren(head []byte, children []*block.BlockRef) []byte {
 	}
 	value := append(make([]byte, 0, size), head...)
 	for _, child := range children {
-		value = appendBlockKey(value, child)
+		value = AppendBlockKey(value, child)
 	}
 	return value
 }

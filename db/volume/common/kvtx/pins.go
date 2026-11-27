@@ -2,20 +2,23 @@ package kvtx
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
 // pinRootPrefix prefixes the reader pins of the Volume's bucket with the empty
 // ID. A pin's name is the prefix, this process's ID, a slash and the pinned
-// block, so each process holds its own pin of a block under its own lease.
+// block's key, so each process holds its own pin of a block under its own
+// lease.
 const pinRootPrefix = "pin:"
 
 // stageRootPrefix prefixes the stages of the Volume's bucket with the empty
 // ID. A stage holds each block it holds under the stage's name, a slash and
-// the block.
+// the block's key.
 const stageRootPrefix = "stage:"
 
 // rootPin counts the in-process readers of one pinned root. A root whose last
@@ -34,7 +37,24 @@ type rootPin struct {
 
 // pinRootName returns the name of this process's pin of ref.
 func (v *Volume) pinRootName(ref *block.BlockRef) string {
-	return pinRootPrefix + v.procID + "/" + ref.MarshalString()
+	return refRootName(pinRootPrefix+v.procID, ref)
+}
+
+// refRootName returns the name owner, a slash and ref's block key: its hash
+// type byte and digest, as the liveness records encode it. Every name it
+// builds carries a process ID that no later process reuses, and no reader
+// decodes the ref back out of one, so the name skips the base58 encoding of
+// MarshalString, whose cost grows with the square of the digest's length, and
+// costs one allocation.
+func refRootName(owner string, ref *block.BlockRef) string {
+	// Write the owner, the slash and the key into one allocation.
+	var key [1 + 64]byte
+	var name strings.Builder
+	name.Grow(len(owner) + 1 + 1 + len(ref.GetHash().GetHash()))
+	name.WriteString(owner)
+	name.WriteByte('/')
+	name.Write(block_gc.AppendBlockKey(key[:0], ref))
+	return name.String()
 }
 
 // PinBucketRoot holds ref under a leased root of this process until the

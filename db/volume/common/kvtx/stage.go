@@ -53,9 +53,9 @@ func newStageNames(stage string, entries []*block.PutBatchEntry) stageNames {
 		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
 			continue
 		}
-		n.put[stageRootName(stage, entry.Ref)] = entry.Ref
+		n.put[refRootName(stage, entry.Ref)] = entry.Ref
 		for _, child := range entry.Refs {
-			n.named[stageRootName(stage, child)] = struct{}{}
+			n.named[refRootName(stage, child)] = struct{}{}
 		}
 	}
 	return n
@@ -194,11 +194,6 @@ func (v *Volume) useStage(ctx context.Context, stage string) (*openStage, error)
 		return nil, errStageLost
 	}
 	return st, nil
-}
-
-// stageRootName returns the name of the root through which stage holds ref.
-func stageRootName(stage string, ref *block.BlockRef) string {
-	return stage + "/" + ref.MarshalString()
 }
 
 // listStageRoots returns a release of every root stage holds in p.
@@ -373,15 +368,16 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 // that ends at such a cut holds each of its blocks' children itself, or finds
 // them in an earlier slice. The last entry is always a cut.
 func stageCuts(entries []*block.PutBatchEntry) []bool {
-	// Index the first entry that stores each block.
+	// Index the first entry that stores each block by its block key.
+	var key [1 + 64]byte
 	at := make(map[string]int, len(entries))
 	for i, entry := range entries {
 		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
 			continue
 		}
-		key := entry.Ref.MarshalString()
-		if _, ok := at[key]; !ok {
-			at[key] = i
+		k := block_gc.AppendBlockKey(key[:0], entry.Ref)
+		if _, ok := at[string(k)]; !ok {
+			at[string(k)] = i
 		}
 	}
 
@@ -392,7 +388,7 @@ func stageCuts(entries []*block.PutBatchEntry) []bool {
 	for i, entry := range entries {
 		if entry != nil && !entry.Tombstone {
 			for _, child := range entry.Refs {
-				if j, ok := at[child.MarshalString()]; ok {
+				if j, ok := at[string(block_gc.AppendBlockKey(key[:0], child))]; ok {
 					reach = max(reach, j)
 				}
 			}
@@ -507,7 +503,7 @@ func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*bl
 			if ref.GetEmpty() {
 				continue
 			}
-			name := stageRootName(stage, ref)
+			name := refRootName(stage, ref)
 			entry, err := p.rec.GetRoot(ctx, "", name)
 			if err != nil {
 				return err
@@ -559,7 +555,7 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 				continue
 			}
 			complete[i] = true
-			name := stageRootName(stage, ref)
+			name := refRootName(stage, ref)
 			entry, err := p.rec.GetRoot(ctx, "", name)
 			if err != nil {
 				return err

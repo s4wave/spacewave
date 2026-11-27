@@ -258,7 +258,7 @@ func (v *Volume) heldByStage(ctx context.Context, p *physicalTx, ref *block.Bloc
 		if st.released || st.lost {
 			continue
 		}
-		name := stageRootName(stage, ref)
+		name := refRootName(stage, ref)
 		st.mu.Lock()
 		held := st.roots[name]
 		st.mu.Unlock()

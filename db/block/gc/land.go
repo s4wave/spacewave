@@ -1049,7 +1049,7 @@ func (l *lander) holdChildren(ctx context.Context) error {
 	for _, b := range l.order {
 		for _, child := range b.children {
 			start := len(buf)
-			buf = appendBlockKey(buf, child)
+			buf = AppendBlockKey(buf, child)
 			key := buf[start:len(buf):len(buf)]
 			if c, ok := l.born[string(key)]; ok {
 				c.holders++
@@ -1284,9 +1284,9 @@ func (l *lander) holdRoot(ctx context.Context, root block.NamedRoot) error {
 	}
 	switch {
 	case !found:
-		return errors.Wrapf(block.NotFoundError(root.Ref), "named root %s", root.Name)
+		return errors.Wrapf(block.NotFoundError(root.Ref), "named root %q", root.Name)
 	case l.logs:
-		return errors.Wrapf(block.ErrRefsUnknown, "named root %s on %s", root.Name, root.Ref.MarshalString())
+		return errors.Wrapf(block.ErrRefsUnknown, "named root %q on %s", root.Name, root.Ref.MarshalString())
 	}
 	return nil
 }
