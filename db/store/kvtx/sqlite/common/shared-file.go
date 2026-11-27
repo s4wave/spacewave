@@ -47,8 +47,10 @@ var sharedFiles = newFileTable()
 // its own flush of the file could succeed without them. A failed mark stays
 // until the process exits: while it runs, the kernel's page cache may hold
 // WAL frames the drive never received, and the failed Store's pool, left
-// open, keeps the WAL index that maps them. The open pool also keeps the
-// file's inode from being reused by a new file.
+// open, keeps the WAL index that maps them. Each mark keeps a descriptor of
+// its file, which a failed mark never closes, so the file's inode cannot be
+// reused by a new file that would then match the mark, even when the failure
+// came from the flush at open and no pool kept the file open.
 type fileTable struct {
 	mtx   sync.Mutex
 	open  map[string]*sharedFile
@@ -63,7 +65,12 @@ func newFileTable() *fileTable {
 // fileMark is the fail-stop mark of one database file, shared by the Stores
 // in the process that hold it.
 type fileMark struct {
-	// info identifies the file for os.SameFile.
+	// fd is a descriptor of the file, held so its inode stays allocated while
+	// the mark exists. A failed mark never closes it; a released healthy mark
+	// retires it to the releasing hold's file, since closing it would drop the
+	// locks the process holds on the file.
+	fd *os.File
+	// info identifies the file for os.SameFile, read through fd.
 	info os.FileInfo
 	// refs counts the holds marked with it, guarded by the table's mtx.
 	refs int
@@ -195,16 +202,19 @@ func (h *fileHold) writeBack(file string) {
 // for h to keep until its release. The marks are few, one per file the
 // process holds, so it scans them.
 func (h *fileHold) markFile() error {
-	// Identify the file the path names now. On Windows os.SameFile reads the
-	// file's identity through its path on first use, so compare it with
-	// itself while the path still names it.
-	info, err := os.Stat(h.file.path)
+	// Open the file the path names now and identify it through the
+	// descriptor, which reads its identity on every platform.
+	fd, err := os.Open(h.file.path)
 	if err != nil {
 		return err
 	}
-	os.SameFile(info, info)
+	info, err := fd.Stat()
+	if err != nil {
+		return errors.Join(err, fd.Close())
+	}
 
-	// Find or add its mark and count the hold.
+	// Find or add its mark and count the hold. A found mark already holds
+	// the file, so fd is retired, not closed, as release retires one.
 	h.table.mtx.Lock()
 	defer h.table.mtx.Unlock()
 	var m *fileMark
@@ -215,8 +225,10 @@ func (h *fileHold) markFile() error {
 		}
 	}
 	if m == nil {
-		m = &fileMark{info: info, stop: kvtx.NewFailStop()}
+		m = &fileMark{fd: fd, info: info, stop: kvtx.NewFailStop()}
 		h.table.marks = append(h.table.marks, m)
+	} else {
+		h.file.retired = append(h.file.retired, fd)
 	}
 	m.refs++
 	h.mark = m
@@ -247,12 +259,13 @@ func (h *fileHold) release() error {
 		return nil
 	}
 	h.released = true
+	f := h.file
 	if m := h.mark; m != nil {
 		if m.refs--; m.refs == 0 && m.stop.Failed() == nil {
 			h.table.marks = slices.DeleteFunc(h.table.marks, func(mark *fileMark) bool { return mark == m })
+			f.retired = append(f.retired, m.fd)
 		}
 	}
-	f := h.file
 	if f.holds--; f.holds > 0 {
 		return nil
 	}

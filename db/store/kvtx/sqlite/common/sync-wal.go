@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/sirupsen/logrus"
 )
 
 // LocalWAL flushes the WAL of one Store's database file on the local file
@@ -115,7 +116,8 @@ func (w *LocalWAL) closeLocked() error {
 // and the reads after it see what the drive holds.
 //
 // The flush runs under stop, the file's fail-stop state, as one of the file's
-// flushes, and its failure fails the file.
+// flushes, and its failure fails the file. A failed drop is logged, since the
+// flush alone decides what the drive holds.
 func syncWALAtOpen(dbPath string, readOnly bool, stop *kvtx.FailStop) error {
 	// Open the WAL, which may not exist, read-only for a reader.
 	flag := os.O_RDWR
@@ -133,12 +135,17 @@ func syncWALAtOpen(dbPath string, readOnly bool, stop *kvtx.FailStop) error {
 		return err
 	}
 
-	// Flush it, then drop its cached pages, as one of the file's flushes.
+	// Flush it, then drop its cached pages, as one of the file's flushes. A
+	// failed drop, such as EINVAL from a file system without fadvise, leaves
+	// the drive's frames intact and fails neither the open nor the file.
 	err = stop.Flushing(func() error {
 		if err := syncFileData(f); err != nil {
 			return err
 		}
-		return dropCachedPages(f)
+		if err := dropCachedPages(f); err != nil {
+			logrus.WithError(err).WithField("file", dbPath).Warn("sqlite: dropping the WAL's cached pages at open failed")
+		}
+		return nil
 	}, nil)
 	return errors.Join(err, f.Close())
 }
