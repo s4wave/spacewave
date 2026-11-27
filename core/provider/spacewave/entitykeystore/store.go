@@ -164,17 +164,6 @@ func (s *EntityKeyStore) GetUnlockedKeys() []bifrost_crypto.PrivKey {
 	return keys
 }
 
-// GetUnlockedPeerIDs returns a snapshot of all unlocked peer IDs.
-func (s *EntityKeyStore) GetUnlockedPeerIDs() map[peer.ID]bool {
-	result := make(map[peer.ID]bool)
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for id := range s.keys {
-			result[id] = true
-		}
-	})
-	return result
-}
-
 // SignRaw signs payload with one unlocked entity key.
 func (s *EntityKeyStore) SignRaw(peerID peer.ID, payload []byte) ([]byte, error) {
 	var privKey bifrost_crypto.PrivKey
@@ -250,18 +239,26 @@ func (s *EntityKeyStore) GetUnlockedKeysAndPeerIDs() ([]bifrost_crypto.PrivKey, 
 	return keys, peerIDs
 }
 
-// WatchUnlockedPeers returns the unlocked peers and a channel for the next change.
-// The channel is captured before reading peers so a concurrent change wakes the
-// consumer even when that change is included in the returned snapshot.
-func (s *EntityKeyStore) WatchUnlockedPeers() (map[peer.ID]bool, <-chan struct{}) {
-	// Capture the wakeup before reading the current peers.
+// SnapshotUnlockedPeers returns the unlocked peers and optionally watches changes.
+// With watch enabled, it captures the wake channel before reading peers so a
+// concurrent change wakes the consumer even when included in the snapshot.
+func (s *EntityKeyStore) SnapshotUnlockedPeers(watch bool) (map[peer.ID]bool, <-chan struct{}) {
+	// Capture the wakeup before reading peers when the consumer watches changes.
 	var waitCh <-chan struct{}
-	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
-	})
+	if watch {
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+		})
+	}
 
-	// Read peers after releasing the broadcast lock, preserving the watch order.
-	return s.GetUnlockedPeerIDs(), waitCh
+	// Copy peers after releasing the wakeup lock, preserving the watch order.
+	result := make(map[peer.ID]bool)
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for id := range s.keys {
+			result[id] = true
+		}
+	})
+	return result, waitCh
 }
 
 // WatchUnlockedCount returns the unlocked key count and wait channel.

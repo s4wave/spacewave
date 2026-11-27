@@ -41,7 +41,8 @@ func (r *AccountResource) WatchEntityKeypairs(
 	}
 	ctx := strm.Context()
 	store := acc.GetEntityKeyStore()
-	state := &entityKeypairsWatchState{unlockedPeers: store.GetUnlockedPeerIDs()}
+	unlockedPeers, _ := store.SnapshotUnlockedPeers(false)
+	state := &entityKeypairsWatchState{unlockedPeers: unlockedPeers}
 	state.initializeAccount(acc)
 
 	// Forward account and key-store changes into the combined watch state.
@@ -123,7 +124,7 @@ func (s *entityKeypairsWatchState) bridgeStore(
 ) {
 	for {
 		// Capture the store wakeup before reading its unlocked peers.
-		unlockedPeers, waitCh := store.WatchUnlockedPeers()
+		unlockedPeers, waitCh := store.SnapshotUnlockedPeers(true)
 
 		// Publish the unlocked peers when they differ from the watch state.
 		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -368,10 +369,11 @@ func (r *AccountResource) watchLocalEntityKeypairs(
 	if err != nil {
 		return err
 	}
+	unlockedPeers, _ := store.SnapshotUnlockedPeers(false)
 	state := &entityKeypairsWatchState{
 		keypairs:      settings.GetEntityKeypairs(),
 		valid:         true,
-		unlockedPeers: store.GetUnlockedPeerIDs(),
+		unlockedPeers: unlockedPeers,
 	}
 
 	// Bridge settings and key store changes into the watch loop.

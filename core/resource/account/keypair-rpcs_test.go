@@ -274,7 +274,8 @@ func TestBridgeStoreReadsUnlockBeforeStart(t *testing.T) {
 	// Seed the watch state from an empty key store, then unlock a key.
 	ctx := t.Context()
 	store := provider_spacewave.NewEntityKeyStore()
-	state := &entityKeypairsWatchState{unlockedPeers: store.GetUnlockedPeerIDs()}
+	unlockedPeers, _ := store.SnapshotUnlockedPeers(false)
+	state := &entityKeypairsWatchState{unlockedPeers: unlockedPeers}
 	priv, pid, _ := generateEntityKey(t)
 	store.Unlock(pid, priv)
 	go state.bridgeStore(ctx, store)
