@@ -3,6 +3,7 @@
 package plugin_host_process
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -45,37 +46,6 @@ func TestProcessHostImmutableDist(t *testing.T) {
 		assertFileContents(t, filepath.Join(path, "entrypoint"), version)
 		assertFileContents(t, filepath.Join(path, "shared.dat"), version+" data")
 	}
-}
-
-// TestProcessHostPrunesUnusedManifestDists removes only checkouts no
-// executing instance uses.
-func TestProcessHostPrunesUnusedManifestDists(t *testing.T) {
-	// Acquire and sync three manifest dists.
-	host := newTestProcessHost(t)
-	paths := make(map[string]string)
-	releases := make(map[string]func())
-	for _, version := range []string{"running", "stale", "new"} {
-		root, err := hash.Sum(hash.RecommendedHashType, []byte(version))
-		if err != nil {
-			t.Fatal(err)
-		}
-		dist := newTestDistHandle(t, map[string][]byte{"entrypoint": []byte(version)})
-		defer dist.Release()
-		releases[version] = host.acquirePluginDist("colors", root.MarshalString())
-		paths[version], err = host.syncPluginDist(t.Context(), "colors", root.MarshalString(), "entrypoint", dist)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// Pruning must remove only the released checkout.
-	releases["stale"]()
-	host.pruneUnusedPluginDists("colors")
-	assertPathMissing(t, paths["stale"])
-	assertFileContents(t, filepath.Join(paths["running"], "entrypoint"), "running")
-	assertFileContents(t, filepath.Join(paths["new"], "entrypoint"), "new")
-	releases["running"]()
-	releases["new"]()
 }
 
 func TestProcessHostSyncExecutableInode(t *testing.T) {
@@ -264,14 +234,20 @@ func newTestProcessHost(t *testing.T) *ProcessHost {
 }
 
 func newTestDistHandle(t *testing.T, files map[string][]byte) *unixfs.FSHandle {
-	// Mark the helper and build the handle.
 	t.Helper()
-
-	// Build the in-memory filesystem handle.
-	ctx := t.Context()
-	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
+	handle, err := newDistHandle(t.Context(), files)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	return handle
+}
+
+// newDistHandle builds an in-memory dist handle holding files.
+func newDistHandle(ctx context.Context, files map[string][]byte) (*unixfs.FSHandle, error) {
+	// Build the in-memory filesystem handle.
+	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
+	if err != nil {
+		return nil, err
 	}
 	bfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 
@@ -279,10 +255,10 @@ func newTestDistHandle(t *testing.T, files map[string][]byte) *unixfs.FSHandle {
 	for path, body := range files {
 		if err := billy_util.WriteFile(bfs, path, body, 0o644); err != nil {
 			rootRef.Release()
-			t.Fatal(err.Error())
+			return nil, err
 		}
 	}
-	return rootRef
+	return rootRef, nil
 }
 
 func writeDiskFile(t *testing.T, path string, body []byte) {

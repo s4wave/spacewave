@@ -1,0 +1,39 @@
+[
+  {
+    "name": "the reclaimer claims a root without checking its reference",
+    "replace": [
+      [
+        "IF refs[a] = 0 /\\ disk[a] = \"present\"",
+        "IF disk[a] = \"present\""
+      ]
+    ],
+    "expect": "RunningHasFiles",
+    "config": "DistReclaim.cfg"
+  },
+  {
+    "name": "the reclaimer checks references only when it lists",
+    "replace": [
+      [
+        "listed' = {a \\in Artifacts : disk[a] = \"present\"}",
+        "listed' = {a \\in Artifacts : disk[a] = \"present\" /\\ refs[a] = 0}"
+      ],
+      [
+        "IF refs[a] = 0 /\\ disk[a] = \"present\"",
+        "IF disk[a] = \"present\""
+      ]
+    ],
+    "expect": "RunningHasFiles",
+    "config": "DistReclaim.cfg"
+  },
+  {
+    "name": "an acquisition ignores a claim on its root",
+    "replace": [
+      [
+        "              /\\ a \\notin claimed\n",
+        ""
+      ]
+    ],
+    "expect": "RunningHasFiles",
+    "config": "DistReclaim.cfg"
+  }
+]

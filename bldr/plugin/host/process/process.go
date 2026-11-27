@@ -51,10 +51,8 @@ type ProcessHost struct {
 	packageStatus map[string]PluginPackageStatus
 	// packageStatusCtr publishes packageStatus snapshots.
 	packageStatusCtr *ccontainer.CContainer[*PluginPackageStatusSnapshot]
-	// distRefsMtx guards distRefs and pruning of unused dist checkouts.
-	distRefsMtx sync.Mutex
-	// distRefs counts executing instances by plugin artifact ID.
-	distRefs map[string]int
+	// dists tracks the dist checkouts executions use and reclaims the rest.
+	dists *distCheckouts
 }
 
 // PluginPackageStatus describes native dist materialization state for one
@@ -76,7 +74,9 @@ type PluginPackageStatusSnapshot struct {
 }
 
 // NewProcessHost constructs a new ProcessHost.
+// DistReclaimEnv selects where unused dist checkouts are reclaimed.
 func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, error) {
+	// Require the state and dist directories to exist.
 	if _, err := os.Stat(stateDir); err != nil {
 		return nil, errors.Wrap(err, "state dir")
 	}
@@ -84,7 +84,13 @@ func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, e
 		return nil, errors.Wrap(err, "dist dir")
 	}
 
-	// determine the platform id for the host
+	// Select where unused dist checkouts are reclaimed.
+	reclaimMode, err := parseDistReclaimMode(os.Getenv(DistReclaimEnv))
+	if err != nil {
+		le.WithError(err).Warn("disabling plugin dist checkout reclaim")
+	}
+
+	// Determine the platform ID for the host and build it.
 	platformID := (&bldr_platform.NativePlatform{}).GetPlatformID()
 	return &ProcessHost{
 		le:               le,
@@ -93,6 +99,7 @@ func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, e
 		pluginPlatformID: platformID,
 		packageStatus:    make(map[string]PluginPackageStatus),
 		packageStatusCtr: ccontainer.NewCContainerWithEqual(nil, pluginPackageStatusSnapshotEqual),
+		dists:            newDistCheckouts(le, distDir, reclaimMode),
 	}, nil
 }
 
@@ -129,8 +136,9 @@ func (h *ProcessHost) GetPlatformId() string {
 	return h.pluginPlatformID
 }
 
-// Execute is a stub as the process host does not need a global management goroutine.
+// Execute runs the background reclaimer of unused dist checkouts until ctx ends.
 func (h *ProcessHost) Execute(ctx context.Context) error {
+	h.dists.setContext(ctx)
 	return nil
 }
 
@@ -214,16 +222,20 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	// Mark the checkout in use before syncing so pruning cannot remove it.
-	releaseDist := h.acquirePluginDist(pluginID, manifestRoot)
-	defer releaseDist()
+	// Mark the checkout in use before syncing so reclaim cannot remove it, and
+	// keep it in use until the process has exited.
+	artifactID := bldr_plugin.PluginArtifactID(pluginID, manifestRoot)
+	if err := h.dists.acquire(ctx, artifactID); err != nil {
+		return err
+	}
+	defer h.dists.release(artifactID)
 
-	// Sync the plugin dist checkout to disk and prune unused checkouts.
+	// Sync the plugin dist checkout to disk, then reclaim unused checkouts.
 	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, manifestRoot, entrypoint, pluginDist)
+	h.dists.synced(ctx, pluginID, err == nil)
 	if err != nil {
 		return err
 	}
-	h.pruneUnusedPluginDists(pluginID)
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
 
 	// Configure the entrypoint process to run from the plugin bin dir.
@@ -427,65 +439,6 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 		return "", err
 	}
 	return pluginStateDir, nil
-}
-
-// acquirePluginDist marks the dist checkout for a manifest root as in use by
-// an executing instance. The returned func releases the reference.
-func (h *ProcessHost) acquirePluginDist(pluginID, manifestRoot string) func() {
-	// Count a reference on the plugin artifact under the lock.
-	artifactID := bldr_plugin.PluginArtifactID(pluginID, manifestRoot)
-	h.distRefsMtx.Lock()
-	if h.distRefs == nil {
-		h.distRefs = make(map[string]int)
-	}
-	h.distRefs[artifactID]++
-	h.distRefsMtx.Unlock()
-
-	// Return a release function that drops the reference once.
-	var once sync.Once
-	return func() {
-		once.Do(func() {
-			h.distRefsMtx.Lock()
-			if h.distRefs[artifactID]--; h.distRefs[artifactID] <= 0 {
-				delete(h.distRefs, artifactID)
-			}
-			h.distRefsMtx.Unlock()
-		})
-	}
-}
-
-// pruneUnusedPluginDists removes per-manifest-root dist checkouts for a
-// plugin that no executing instance of this host is using.
-func (h *ProcessHost) pruneUnusedPluginDists(pluginID string) {
-	// List the plugin's per-manifest-root dist checkouts under the lock.
-	manifestsDir := filepath.Join(h.pluginDistDir(pluginID), "manifest")
-	h.distRefsMtx.Lock()
-	defer h.distRefsMtx.Unlock()
-	dirents, err := os.ReadDir(manifestsDir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			h.le.WithError(err).WithField("plugin-id", pluginID).Warn("unable to list plugin dist checkouts")
-		}
-		return
-	}
-
-	// Remove each unreferenced checkout directory.
-	for _, ent := range dirents {
-		if !ent.IsDir() {
-			continue
-		}
-		artifactID := bldr_plugin.PluginArtifactID(pluginID, ent.Name())
-		if _, _, err := bldr_plugin.ParsePluginArtifactID(artifactID, false); err != nil {
-			continue
-		}
-		if h.distRefs[artifactID] > 0 {
-			continue
-		}
-		dir := filepath.Join(manifestsDir, ent.Name())
-		if err := os.RemoveAll(dir); err != nil {
-			h.le.WithError(err).WithField("dist-dir", dir).Warn("unable to remove unused plugin dist checkout")
-		}
-	}
 }
 
 // syncPluginDist materializes or updates the plugin's dist checkout from
