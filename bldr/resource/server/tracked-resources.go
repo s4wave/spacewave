@@ -40,13 +40,5 @@ func (s *ResourceServer) WaitTrackedResourceCount(ctx context.Context, want int)
 // countTrackedResourcesLocked counts live client handles.
 // The caller holds bcast.
 func (s *ResourceServer) countTrackedResourcesLocked() int {
-	var count int
-	for _, client := range s.clients {
-		if client.released {
-			continue
-		}
-		count += len(client.resources)
-		count += len(client.attachedResources)
-	}
-	return count
+	return s.trackedCount
 }

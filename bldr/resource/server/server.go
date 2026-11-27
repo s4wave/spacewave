@@ -2,7 +2,6 @@ package resource_server
 
 import (
 	"context"
-	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -10,6 +9,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
+	"github.com/tidwall/btree"
 )
 
 // ResourceServer serves one root resource and its client-owned descendants.
@@ -21,7 +21,7 @@ type ResourceServer struct {
 	// originID is the origin controller of directives added from resource calls.
 	originID string
 
-	// bcast guards the client and resource lifecycle state below.
+	// bcast guards generation admission, ID allocation, routing and the handle count.
 	bcast broadcast.Broadcast
 	// clientHandleIDCtr allocates immutable generation IDs under bcast.
 	clientHandleIDCtr uint32
@@ -29,6 +29,10 @@ type ResourceServer struct {
 	resourceIDCtr uint32
 	// clients retains live generations under bcast.
 	clients map[uint32]*RemoteResourceClient
+	// routes indexes a resource ID to its generation; lookup rechecks that generation.
+	routes map[uint32]*RemoteResourceClient
+	// trackedCount counts handles admitted by live generations.
+	trackedCount int
 }
 
 // InvokerFilter wraps the invoker of a served resource. It sees every call a
@@ -55,6 +59,7 @@ func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilte
 		filter:          filter,
 		originID:        originID,
 		clients:         make(map[uint32]*RemoteResourceClient),
+		routes:          make(map[uint32]*RemoteResourceClient),
 	}
 }
 
@@ -88,41 +93,33 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 	// Register the immutable generation and its outbound wait channel.
 	clientCtx, clientCancel := context.WithCancel(s.withOrigin(ctx))
 	var client *RemoteResourceClient
-	var clientHandleID uint32
 	var waitCh <-chan struct{}
-	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		// Allocate the next client generation under the server lock.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Publish a fully initialized generation with its retained root.
 		s.clientHandleIDCtr++
-		clientHandleID = s.clientHandleIDCtr
+		s.resourceIDCtr++
 		client = &RemoteResourceClient{
-			server:            s,
-			clientID:          clientHandleID,
-			ctx:               clientCtx,
+			server: s, clientID: s.clientHandleIDCtr, ctx: clientCtx,
+			rootResourceID:    s.resourceIDCtr,
 			resources:         make(map[uint32]*trackedResource),
-			children:          make(map[uint32]map[uint32]struct{}),
+			children:          make(map[uint32]*btree.Map[uint32, struct{}]),
+			pendingChildren:   make(map[uint32]*btree.Map[uint32, struct{}]),
 			attachedResources: make(map[uint32]*attachedResource),
 		}
-		s.clients[clientHandleID] = client
-		waitCh = getWaitCh()
+		client.resources[client.rootResourceID] = &trackedResource{mux: s.rootResourceMux, ownerClientID: client.clientID}
+		s.clients[client.clientID] = client
+		s.routes[client.rootResourceID] = client
+		s.trackedCount++
+		broadcast()
 	})
 	defer func() {
 		clientCancel()
 		s.releaseClientGeneration(client)
 	}()
 
-	// Retain the root for the generation and publish its identity.
-	var rootID uint32
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Allocate the root resource ID and retain the root resource.
-		s.resourceIDCtr++
-		rootID = s.resourceIDCtr
-		client.rootResourceID = rootID
-		client.resources[rootID] = &trackedResource{
-			mux:           s.rootResourceMux,
-			ownerClientID: clientHandleID,
-		}
-		broadcast()
-	})
+	// Observe outbound notifications on this generation alone.
+	client.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) { waitCh = getWaitCh() })
+	clientHandleID, rootID := client.clientID, client.rootResourceID
 	if err := strm.Send(&resource.ResourceClientResponse{Body: &resource.ResourceClientResponse_Init{
 		Init: &resource.ResourceClientInit{
 			ClientHandleId: clientHandleID,
@@ -173,7 +170,7 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 
 		// Snapshot outbound notifications with the next matching wait channel.
 		var txQueue []*resource.ResourceClientResponse
-		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		client.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			txQueue, client.txQueue = client.txQueue, nil
 			waitCh = getWaitCh()
 		})
@@ -187,45 +184,6 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 	}
 }
 
-// releaseClientGeneration removes all generation resources and runs their cleanup.
-func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
-	// Stop attached resource transports before clearing generation state.
-	client.releaseAllAttachedResources()
-
-	// Remove the retained root tree and any detached resources child-first.
-	var releaseFns []func()
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Mark the generation released and collect child-first release callbacks.
-		client.released = true
-		delete(s.clients, client.clientID)
-		if client.rootResourceID != 0 {
-			client.releaseAllChildrenLocked(client.rootResourceID, &releaseFns)
-		}
-
-		// Release every remaining resource child-first in ID order.
-		remaining := make([]uint32, 0, len(client.resources))
-		for id := range client.resources {
-			remaining = append(remaining, id)
-		}
-		slices.Sort(remaining)
-		for _, id := range remaining {
-			client.releaseAllChildrenLocked(id, &releaseFns)
-		}
-
-		// Clear the generation lifecycle maps and wake the waiters.
-		clear(client.resources)
-		clear(client.children)
-		broadcast()
-	})
-
-	// Run resource callbacks after lifecycle state is no longer visible.
-	for _, releaseFn := range releaseFns {
-		if releaseFn != nil {
-			releaseFn()
-		}
-	}
-}
-
 // ResourceRpc routes one ResourceRpc stream to its generation-owned resource.
 func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceRpcStream) error {
 	return resource.HandleResourceRpc(strm, func(ctx context.Context, resourceID uint32) (srpc.Invoker, error) {
@@ -234,24 +192,25 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 			return nil, resource.ErrInvalidResourceID
 		}
 
-		// Resolve the owning generation and invoker under the server lock.
+		// Look up the generation before checking its retirement fence.
 		var mux srpc.Invoker
 		var client *RemoteResourceClient
-		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			for _, candidate := range s.clients {
-				if candidate.released {
-					continue
+		var owner *RemoteResourceClient
+		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { owner = s.routes[resourceID] })
+		if owner != nil {
+			owner.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				if owner.released {
+					return
 				}
-				if res := candidate.resources[resourceID]; res != nil {
-					mux, client = res.mux, candidate
-					break
+				if res := owner.resources[resourceID]; res != nil {
+					mux, client = res.mux, owner
+					return
 				}
-				if ar := candidate.attachedResources[resourceID]; ar != nil {
+				if ar := owner.attachedResources[resourceID]; ar != nil {
 					mux = srpc.NewClientInvoker(ar.srpcClient)
-					break
 				}
-			}
-		})
+			})
+		}
 
 		// Fail when no live generation owns the resource.
 		if mux == nil {
@@ -390,6 +349,7 @@ func (s *ResourceServer) ResourceAttach(
 				})
 			})
 			if addErr != nil {
+				resCancel()
 				_ = send(&resource.ResourceAttachResponse{
 					Body: &resource.ResourceAttachResponse_AddAck{
 						AddAck: &resource.ResourceAttachAddAck{

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
+	"github.com/tidwall/btree"
 )
 
 // mockSRPCClient implements srpc.Client for testing.
@@ -37,13 +38,15 @@ func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
 		rootResourceID: 1,
 		ctx:            ctx,
 		resources:      make(map[uint32]*trackedResource),
-		children:       make(map[uint32]map[uint32]struct{}),
+		children:       make(map[uint32]*btree.Map[uint32, struct{}]),
 	}
 	client.resources[1] = &trackedResource{
 		mux:           srpc.NewMux(),
 		ownerClientID: 1,
 	}
 	s.resourceIDCtr = 1
+	s.routes[1] = client
+	s.trackedCount = 1
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.clients[1] = client
 	})
@@ -116,7 +119,7 @@ func TestAddAttachedResource_ReleasedClient(t *testing.T) {
 	defer cancel()
 
 	// Mark the client as released.
-	client.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	client.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		client.released = true
 	})
 
@@ -395,8 +398,8 @@ func TestGetResourceValueNotFound(t *testing.T) {
 	}
 }
 
-// TestReleaseAllAttachedResources_CancelsAll checks disconnect retires every attachment.
-func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
+// TestGenerationCleanupCancelsAttachments checks disconnect retires every attachment.
+func TestGenerationCleanupCancelsAttachments(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
@@ -413,7 +416,7 @@ func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
 	}
 
 	// Release all attached resources.
-	client.releaseAllAttachedResources()
+	client.server.releaseClientGeneration(client)
 
 	// Assert every cancel callback ran.
 	for i := uint32(1); i <= 3; i++ {

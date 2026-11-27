@@ -2,10 +2,12 @@ package resource_server
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
+	"github.com/tidwall/btree"
 )
 
 // ownershipTestClient seeds a live resource generation for tree-lifetime checks.
@@ -19,10 +21,12 @@ func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) 
 		rootResourceID: 1,
 		ctx:            t.Context(),
 		resources:      make(map[uint32]*trackedResource),
-		children:       make(map[uint32]map[uint32]struct{}),
+		children:       make(map[uint32]*btree.Map[uint32, struct{}]),
 	}
 	server.clients[1] = client
 	server.resourceIDCtr = 1
+	server.routes[1] = client
+	server.trackedCount = 1
 	client.resources[1] = &trackedResource{
 		mux:           srpc.NewMux(),
 		ownerClientID: 1,
@@ -69,7 +73,7 @@ func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
 // TestGenerationCleanupReleasesAdoptedTreeChildFirst checks disconnect cleanup.
 func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	// Add and adopt a pending child invocation resource.
-	_, client := ownershipTestClient(t)
+	server, client := ownershipTestClient(t)
 	var order []uint32
 	releaseChild := func() { order = append(order, 2) }
 	child, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), releaseChild)
@@ -91,11 +95,7 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	}
 
 	// Run generation cleanup and verify the child releases before the root.
-	var releaseFns []func()
-	client.releaseAllChildrenLocked(1, &releaseFns)
-	for _, releaseFn := range releaseFns {
-		releaseFn()
-	}
+	server.releaseClientGeneration(client)
 	if len(order) != 2 || order[0] != 3 || order[1] != 2 {
 		t.Fatalf("cleanup order = %v", order)
 	}
@@ -244,5 +244,81 @@ func TestAbandonPreservesAdoptedResource(t *testing.T) {
 	client.ReleaseResource(adoptedID)
 	if releases != 2 {
 		t.Fatalf("release callbacks = %d, want 2", releases)
+	}
+}
+
+// TestRegistrationRacesGenerationDetach checks both sides of the ownership handoff.
+func TestRegistrationRacesGenerationDetach(t *testing.T) {
+	// Seed a large generation and retain one release counter per racing registration.
+	server, client := ownershipTestClient(t)
+	for range 20000 {
+		if _, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	counts := make([]atomic.Int32, 8000)
+	start := make(chan struct{})
+	ready := make(chan error, 8)
+	done := make(chan error, 8)
+	for worker := range 8 {
+		go func() {
+			// Guarantee an accepted resource before racing its release against detach.
+			first := worker * 1000
+			id, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), func() { counts[first].Add(1) })
+			ready <- err
+			<-start
+			client.ReleaseResource(id)
+
+			// Rejecting a late child leaves exactly one cleanup obligation with this caller.
+			var unexpected error
+			for i := worker*1000 + 1; i < (worker+1)*1000; i++ {
+				release := func() { counts[i].Add(1) }
+				id, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), release)
+				if err != nil {
+					if err != resource.ErrClientReleased {
+						unexpected = err
+					}
+					release()
+					continue
+				}
+				client.ReleaseResource(id)
+			}
+			done <- unexpected
+		}()
+	}
+
+	// Wait until every worker owns a handle, then release admission and teardown together.
+	for range 8 {
+		if err := <-ready; err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(start)
+	server.releaseClientGeneration(client)
+	for range 8 {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+	server.releaseClientGeneration(client)
+	for i := range counts {
+		if got := counts[i].Load(); got != 1 {
+			t.Fatalf("resource %d released %d times", i, got)
+		}
+	}
+	if got := server.CountTrackedResources(); got != 0 {
+		t.Fatalf("tracked resources = %d", got)
+	}
+	if len(server.routes) != 0 {
+		t.Fatalf("routing entries = %d", len(server.routes))
+	}
+
+	// A registration after detach is refused and leaves cleanup with its caller.
+	releases := 0
+	if _, err := client.AddResource(nil, func() { releases++ }); err != resource.ErrClientReleased {
+		t.Fatalf("late registration = %v", err)
+	}
+	if releases != 0 {
+		t.Fatalf("rejected registration released %d times", releases)
 	}
 }

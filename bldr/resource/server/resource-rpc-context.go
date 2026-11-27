@@ -12,7 +12,7 @@ import (
 // Handler completion releases unpublished children. Abandonment also releases
 // published children that remain pending adoption.
 type resourceRPCContext struct {
-	// client owns the resource generation and guards this state with server.bcast.
+	// client owns the resource generation and guards this state with bcast.
 	client *RemoteResourceClient
 	// parentResourceID is the resource receiving the invocation.
 	parentResourceID uint32
@@ -54,7 +54,7 @@ func (c *resourceRPCContext) AddResourceValue(mux srpc.Invoker, value any, relea
 func (c *resourceRPCContext) send(strm srpc.Stream, msg srpc.Message) error {
 	// Snapshot the registrations covered by this response before transport I/O.
 	var ids []uint32
-	c.client.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	c.client.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ids = slices.Collect(maps.Keys(c.unpublished))
 	})
 
@@ -64,7 +64,7 @@ func (c *resourceRPCContext) send(strm srpc.Stream, msg srpc.Message) error {
 	}
 
 	// Retain published IDs for abandonment after the handler has returned.
-	c.client.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	c.client.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if c.abandoned {
 			return
 		}
@@ -94,7 +94,7 @@ func (c *resourceRPCContext) releasePending(abandon bool) {
 	// Select unpublished children, or all children when the route is abandoned.
 	var releaseFns []func()
 	var releasedIDs []uint32
-	c.client.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.client.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Release invocation children in ID order using the generation's tree cleanup.
 		c.ended = true
 		if abandon {

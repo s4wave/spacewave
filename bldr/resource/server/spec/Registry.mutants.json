@@ -1,0 +1,32 @@
+[
+  {
+    "name": "tree drain retains the registry lock",
+    "replace": [
+      [
+        "registry' = IF HoldDuringDrain THEN \"drain\" ELSE \"free\"",
+        "registry' = \"drain\""
+      ]
+    ],
+    "expect": "BoundedRegistry"
+  },
+  {
+    "name": "registration ignores the retirement fence",
+    "replace": [
+      [
+        "owned' = IF live THEN owned \\cup {i} ELSE owned",
+        "owned' = owned \\cup {i}"
+      ]
+    ],
+    "expect": "DetachedAdmission"
+  },
+  {
+    "name": "detach retains a second tree owner",
+    "replace": [
+      [
+        "owned' = {} /\\ retire'",
+        "owned' = owned /\\ retire'"
+      ]
+    ],
+    "expect": "ExclusiveOwner"
+  }
+]

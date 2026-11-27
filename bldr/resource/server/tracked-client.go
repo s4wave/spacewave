@@ -2,17 +2,20 @@ package resource_server
 
 import (
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
+	"github.com/tidwall/btree"
 )
 
 // RemoteResourceClient tracks one immutable ResourceClient generation.
 type RemoteResourceClient struct {
-	// server guards the generation's lifecycle state with bcast.
+	// server owns the admission and routing indexes.
 	server *ResourceServer
+	// bcast guards this generation; no server lock is held while acquiring it.
+	bcast broadcast.Broadcast
 	// clientID identifies this immutable generation.
 	clientID uint32
 	// rootResourceID identifies the root retained until disconnect.
@@ -20,17 +23,19 @@ type RemoteResourceClient struct {
 	// ctx ends when the generation retires.
 	ctx context.Context
 
-	// txQueue holds outbound notifications and acknowledgements under server.bcast.
+	// txQueue holds outbound notifications and acknowledgements under bcast.
 	txQueue []*resource.ResourceClientResponse
 	// lastControlID tracks applied FIFO controls on the control receiver.
 	lastControlID uint32
-	// released rejects further registrations under server.bcast.
+	// released rejects further registrations under bcast.
 	released bool
-	// resources retains owned handles under server.bcast.
+	// resources retains owned handles under bcast.
 	resources map[uint32]*trackedResource
-	// children links parent resource IDs to descendants under server.bcast.
-	children map[uint32]map[uint32]struct{}
-	// attachedResources retains client-published handles under server.bcast.
+	// children links parent resource IDs to descendants under bcast.
+	children map[uint32]*btree.Map[uint32, struct{}]
+	// pendingChildren indexes only unadopted children in callback order.
+	pendingChildren map[uint32]*btree.Map[uint32, struct{}]
+	// attachedResources retains client-published handles under bcast.
 	attachedResources map[uint32]*attachedResource
 }
 
@@ -81,10 +86,10 @@ func (c *RemoteResourceClient) addResource(
 	releaseFn func(),
 	invocation *resourceRPCContext,
 ) (uint32, error) {
-	// Allocate the resource ID and register it under the server lock.
+	// Allocate the resource ID and register it under the generation lock.
 	var id uint32
 	var err error
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject registration once the client generation is released.
 		if c.released {
 			err = resource.ErrClientReleased
@@ -105,9 +110,17 @@ func (c *RemoteResourceClient) addResource(
 			return
 		}
 
-		// Link the resource to its publishing invocation and parent.
-		c.server.resourceIDCtr++
-		id = c.server.resourceIDCtr
+		// Allocate and index one handle under the bounded server lock.
+		c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// Publish the allocated ID and live-handle count together.
+			c.server.resourceIDCtr++
+			id = c.server.resourceIDCtr
+			c.server.routes[id] = c
+			c.server.trackedCount++
+			broadcast()
+		})
+
+		// Retain the handle and its publication scope under the generation lock.
 		c.resources[id] = &trackedResource{
 			mux:              mux,
 			value:            value,
@@ -122,11 +135,22 @@ func (c *RemoteResourceClient) addResource(
 			}
 			invocation.unpublished[id] = struct{}{}
 		}
+
+		// Index children by ID and pending state without sorting at release time.
 		if parentID != 0 {
 			if c.children[parentID] == nil {
-				c.children[parentID] = make(map[uint32]struct{})
+				c.children[parentID] = btree.NewMap[uint32, struct{}](0)
 			}
-			c.children[parentID][id] = struct{}{}
+			c.children[parentID].Set(id, struct{}{})
+			if invocation != nil {
+				if c.pendingChildren == nil {
+					c.pendingChildren = make(map[uint32]*btree.Map[uint32, struct{}])
+				}
+				if c.pendingChildren[parentID] == nil {
+					c.pendingChildren[parentID] = btree.NewMap[uint32, struct{}](0)
+				}
+				c.pendingChildren[parentID].Set(id, struct{}{})
+			}
 		}
 		broadcast()
 	})
@@ -139,12 +163,16 @@ func (c *RemoteResourceClient) addResource(
 // adoptResource retains a pending resource or acknowledges its release.
 func (c *RemoteResourceClient) adoptResource(resourceID uint32) bool {
 	var ok bool
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if c.released {
 			return
 		}
 		if _, exists := c.resources[resourceID]; exists {
-			c.resources[resourceID].pending = false
+			res := c.resources[resourceID]
+			res.pending = false
+			if kids := c.pendingChildren[res.parentResourceID]; kids != nil {
+				kids.Delete(resourceID)
+			}
 			broadcast()
 			ok = true
 			return
@@ -170,11 +198,12 @@ func (c *RemoteResourceClient) adoptResource(resourceID uint32) bool {
 // reads as released too.
 // Treating that ID as released reveals and grants nothing.
 func (c *RemoteResourceClient) releasedLocked(id uint32) bool {
-	return id >= c.rootResourceID && id <= c.server.resourceIDCtr &&
-		c.resources[id] == nil && c.attachedResources[id] == nil
+	var allocated bool
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { allocated = id <= c.server.resourceIDCtr })
+	return id >= c.rootResourceID && allocated && c.resources[id] == nil && c.attachedResources[id] == nil
 }
 
-// queueReleasedLocked queues a release notification while holding server.bcast.
+// queueReleasedLocked queues a release notification while holding bcast.
 func (c *RemoteResourceClient) queueReleasedLocked(id uint32, broadcast func()) {
 	c.txQueue = append(c.txQueue, &resource.ResourceClientResponse{Body: &resource.ResourceClientResponse_ResourceReleased{
 		ResourceReleased: &resource.ResourceReleasedResponse{ResourceId: id},
@@ -184,7 +213,7 @@ func (c *RemoteResourceClient) queueReleasedLocked(id uint32, broadcast func()) 
 
 // queueControlAck acknowledges one applied control to the generation.
 func (c *RemoteResourceClient) queueControlAck(controlID uint32) {
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.txQueue = append(c.txQueue, &resource.ResourceClientResponse{Body: &resource.ResourceClientResponse_ControlAck{
 			ControlAck: &resource.ResourceClientControlAck{ControlId: controlID},
 		}})
@@ -193,8 +222,8 @@ func (c *RemoteResourceClient) queueControlAck(controlID uint32) {
 }
 
 // releaseLocked removes one resource after recursively removing pending
-// descendants. It appends callbacks and notifications while under the server
-// lock. Callbacks are always invoked by the caller after unlocking.
+// descendants. It appends callbacks and notifications under the generation
+// lock, or while exclusively draining detached maps. Callbacks are always invoked by the caller after unlocking.
 func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bool, releaseFns *[]func(), releasedIDs *[]uint32) bool {
 	// Look up the resource and reject unknown IDs.
 	res := c.resources[id]
@@ -211,13 +240,27 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 	// Release pending descendants and unlink the resource from its parent.
 	c.releasePendingChildrenLocked(id, releaseFns, releasedIDs)
 	delete(c.resources, id)
+	count := 1
+	if c.released {
+		count = 0
+	}
+	c.server.removeRoute(id, count)
+
+	// Unlink the handle from the ordered child indexes.
 	if kids := c.children[res.parentResourceID]; kids != nil {
-		delete(kids, id)
-		if len(kids) == 0 {
+		kids.Delete(id)
+		if kids.Len() == 0 {
 			delete(c.children, res.parentResourceID)
 		}
 	}
 	delete(c.children, id)
+	if kids := c.pendingChildren[res.parentResourceID]; kids != nil {
+		kids.Delete(id)
+		if kids.Len() == 0 {
+			delete(c.pendingChildren, res.parentResourceID)
+		}
+	}
+	delete(c.pendingChildren, id)
 
 	// Queue the release callback and the released notification.
 	if res.releaseFn != nil {
@@ -229,45 +272,34 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 	return true
 }
 
-// releasePendingChildrenLocked removes unadopted descendants under server.bcast.
+// releasePendingChildrenLocked removes unadopted descendants under bcast.
 func (c *RemoteResourceClient) releasePendingChildrenLocked(parentID uint32, releaseFns *[]func(), releasedIDs *[]uint32) {
-	// Release each pending child of the parent in ID order.
-	kids := c.children[parentID]
-	if len(kids) == 0 {
+	// Consume only pending children in ID order; adopted siblings are not scanned.
+	kids := c.pendingChildren[parentID]
+	if kids == nil {
 		return
 	}
-	ids := make([]uint32, 0, len(kids))
-	for id := range kids {
-		ids = append(ids, id)
-	}
-	slices.Sort(ids)
-	for _, id := range ids {
-		child := c.resources[id]
-		if child == nil || !child.pending {
-			continue
-		}
+	for kids.Len() != 0 {
+		id, _, _ := kids.Min()
 		c.releaseLocked(id, true, false, releaseFns, releasedIDs)
 	}
 }
 
-// releaseAllChildrenLocked is used only when a client generation ends. Unlike
-// parent-controlled Release, disconnect cleanup releases adopted descendants
-// too, in deterministic child-first order.
+// releaseAllChildrenLocked releases an exclusively owned tree child-first.
+// Generation teardown calls it on detached maps without holding any lifecycle lock.
 func (c *RemoteResourceClient) releaseAllChildrenLocked(id uint32, releaseFns *[]func()) {
-	// Release each descendant child-first, then the resource itself.
+	// Consume each child in ID order before releasing its parent.
 	kids := c.children[id]
-	ids := make([]uint32, 0, len(kids))
-	for childID := range kids {
-		ids = append(ids, childID)
-	}
-	slices.Sort(ids)
-	for _, childID := range ids {
-		c.releaseAllChildrenLocked(childID, releaseFns)
+	if kids != nil {
+		for kids.Len() != 0 {
+			childID, _, _ := kids.Min()
+			c.releaseAllChildrenLocked(childID, releaseFns)
+		}
 	}
 	c.releaseLocked(id, false, false, releaseFns, nil)
 }
 
-// finishRelease queues resource-tree notifications while holding server.bcast.
+// finishRelease queues resource-tree notifications while holding bcast.
 func (c *RemoteResourceClient) finishRelease(releasedIDs []uint32, broadcast func()) {
 	for _, id := range releasedIDs {
 		c.queueReleasedLocked(id, broadcast)
@@ -287,7 +319,10 @@ func (c *RemoteResourceClient) AddResourceValue(mux srpc.Invoker, value any, rel
 // GetResourceValue returns an in-process resource value.
 func (c *RemoteResourceClient) GetResourceValue(resourceID uint32) (any, error) {
 	var value any
-	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if c.released {
+			return
+		}
 		if res := c.resources[resourceID]; res != nil {
 			value = res.value
 		}
@@ -305,7 +340,10 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	var releaseFns []func()
 	var releasedIDs []uint32
 	var found bool
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if c.released {
+			return
+		}
 		found = c.releaseLocked(resourceID, true, true, &releaseFns, &releasedIDs)
 		if found {
 			c.finishRelease(releasedIDs, broadcast)
@@ -315,12 +353,12 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	// Handle client-published resources through their attachment lifetime.
 	if !found {
 		var attached bool
-		c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			attached = c.attachedResources[resourceID] != nil
 		})
 		if attached {
 			c.removeAttachedResource(resourceID, true)
-			c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				c.queueReleasedLocked(resourceID, broadcast)
 			})
 			return true
@@ -345,7 +383,7 @@ func (c *RemoteResourceClient) releaseClientControl(resourceID uint32) (bool, er
 	var found bool
 	var attached bool
 	var err error
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if c.released {
 			err = resource.ErrClientReleased
 			return
@@ -392,7 +430,8 @@ func (c *RemoteResourceClient) AddAttachedResource(
 	releaseFn func(),
 ) error {
 	var released bool
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Refuse publication after ownership has transferred to the drain.
 		if c.released {
 			released = true
 			return
@@ -400,6 +439,15 @@ func (c *RemoteResourceClient) AddAttachedResource(
 		if c.attachedResources == nil {
 			c.attachedResources = make(map[uint32]*attachedResource)
 		}
+
+		// Publish one attachment route and count before admitting lookups.
+		c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if c.attachedResources[id] == nil {
+				c.server.trackedCount++
+			}
+			c.server.routes[id] = c
+			broadcast()
+		})
 		c.attachedResources[id] = &attachedResource{
 			label:      label,
 			cancel:     cancel,
@@ -421,16 +469,17 @@ func (c *RemoteResourceClient) RemoveAttachedResource(id uint32) {
 
 // removeAttachedResource removes a published handle and ends its transport context.
 func (c *RemoteResourceClient) removeAttachedResource(id uint32, notify bool) {
-	// Remove the attached resource from the generation under the server lock.
+	// Remove the attached resource from the generation under the generation lock.
 	var cancel context.CancelFunc
 	var releaseFn func()
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Skip resources that are not attached.
 		ar := c.attachedResources[id]
 		if ar == nil {
 			return
 		}
 		delete(c.attachedResources, id)
+		c.server.removeRoute(id, 1)
 		cancel = ar.cancel
 		if notify {
 			releaseFn = ar.releaseFn
@@ -448,7 +497,7 @@ func (c *RemoteResourceClient) removeAttachedResource(id uint32, notify bool) {
 // GetAttachedResource returns a client-published ResourceRpc client.
 func (c *RemoteResourceClient) GetAttachedResource(id uint32) (srpc.Client, error) {
 	var client srpc.Client
-	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if ar := c.attachedResources[id]; ar != nil {
 			client = ar.srpcClient
 		}
@@ -457,19 +506,4 @@ func (c *RemoteResourceClient) GetAttachedResource(id uint32) (srpc.Client, erro
 		return nil, resource.ErrResourceNotFound
 	}
 	return client, nil
-}
-
-// releaseAllAttachedResources retires every attached transport for disconnect cleanup.
-func (c *RemoteResourceClient) releaseAllAttachedResources() {
-	var cancels []context.CancelFunc
-	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		for _, ar := range c.attachedResources {
-			cancels = append(cancels, ar.cancel)
-		}
-		clear(c.attachedResources)
-		broadcast()
-	})
-	for _, cancel := range cancels {
-		cancel()
-	}
 }
