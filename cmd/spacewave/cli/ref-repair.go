@@ -86,6 +86,10 @@ type refRepairResult struct {
 	blocks uint64
 	// absent is the number of referenced blocks no read resolves.
 	absent uint64
+	// lacksListing reports that the run requested a lacks listing.
+	lacksListing bool
+	// lacksListed counts distinct refs written to the lacks listing.
+	lacksListed uint64
 	// peerRead is the number of walked blocks the volume lacks that the
 	// peer read resolved, whose lists the rebuild writes without bytes.
 	peerRead uint64
@@ -142,6 +146,10 @@ type refRepairResult struct {
 	scan refRepairScan
 }
 
+// listingField replaces the tabs and line breaks in one field of a listing
+// row, which separate the row's fields and the rows.
+var listingField = strings.NewReplacer("\t", " ", "\n", " ", "\r", " ")
+
 // refRepair walks the World graphs the Spaces of a stopped volume retain with
 // a refwalk.Walker, and hands each decoded block's refs to a list rebuild,
 // which writes the list when it is missing or short and marks it verified. A
@@ -172,6 +180,8 @@ type refRepair struct {
 	// unread records why the walk verified nothing for a block it reached,
 	// by the ref's string: frontAbsent, frontNotBlob or frontUndecodable.
 	unread map[string]string
+	// lacks receives absent refs as they are reached, nil to omit the listing.
+	lacks *bufio.Writer
 	// histogram counts the walked blocks by type and size, nil when the run
 	// asked for none.
 	histogram *refwalk.Histogram
@@ -220,7 +230,6 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listin
 		rest = frontRestDry
 	}
 	r.res.front = make(map[string]refRepairFront)
-	fields := strings.NewReplacer("\t", " ", "\n", " ", "\r", " ")
 	count := func(ref *block.BlockRef, root *block_gc.FrontRoot) error {
 		// Select the cause the walk recorded for the block, and for the rest
 		// the root that reaches it.
@@ -253,7 +262,7 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listin
 		if listing == nil {
 			return nil
 		}
-		_, err := listing.WriteString(key + "\t" + fields.Replace(cause) + "\t" + fields.Replace(fate) + "\n")
+		_, err := listing.WriteString(key + "\t" + listingField.Replace(cause) + "\t" + listingField.Replace(fate) + "\n")
 		return err
 	}
 
@@ -532,8 +541,26 @@ func (r *refRepair) readRootBlock(ctx context.Context, ref *block.BlockRef) ([]b
 
 	// Count it absent and keep that as its front cause.
 	r.res.absent++
+	err = r.listAbsent(ref, "root")
 	r.unread[ref.MarshalString()] = frontAbsent
-	return nil, false, nil
+	return nil, false, err
+}
+
+// listAbsent streams the first absence of a ref across roots and both walks.
+// The caller records frontAbsent in its existing map after this returns.
+func (r *refRepair) listAbsent(ref *block.BlockRef, reached string) error {
+	// Use the walk's cause maps to avoid a second set of listed refs.
+	key := ref.MarshalString()
+	if r.lacks == nil || r.unread[key] == frontAbsent || r.res.scan.failed[key] == frontAbsent {
+		return nil
+	}
+
+	// Write the row.
+	if _, err := r.lacks.WriteString(key + "\t" + listingField.Replace(reached) + "\n"); err != nil {
+		return err
+	}
+	r.res.lacksListed++
+	return nil
 }
 
 // undecodableRoot counts a root block that does not decode as typ, its
@@ -658,6 +685,9 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 		// Count a block no read resolves, a leaf, and an undecodable block.
 		if !rd.Found {
 			r.res.absent++
+			if err := r.listAbsent(rd.Node.Ref, nodeType(rd.Node)); err != nil {
+				return err
+			}
 			r.unread[rd.Node.Ref.MarshalString()] = frontAbsent
 			continue
 		}

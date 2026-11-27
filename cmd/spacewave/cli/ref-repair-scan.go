@@ -277,6 +277,9 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 	ref := rd.Node.Ref
 	if !rd.Found {
 		s.absent++
+		if err := r.listAbsent(ref, rd.Node.Untyped); err != nil {
+			return err
+		}
 		s.failed[ref.MarshalString()] = frontAbsent
 		return nil
 	}

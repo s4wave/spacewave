@@ -22,6 +22,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -645,9 +646,9 @@ func TestDebugRefRepair(t *testing.T) {
 	if err := os.Link(path, alias); err != nil {
 		t.Fatal(err)
 	}
-	file, err := openFrontOut(path, alias)
+	file, err := openRefRepairListing(path, alias)
 	if err == nil {
-		file.Close()
+		file.discard()
 		t.Fatal("opened a Volume alias for the front listing")
 	}
 	if sum() != scanBefore {
@@ -799,13 +800,100 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 	checkAuthenticatedOpaqueScan(t, le, restored, opaqueData, copied)
 
+	// Give a typed blob the same missing child that the scanned parent names.
+	// Both walks must report it only once, alongside the scan's evicted child.
+	blobData, err := (&blob.Blob{
+		BlobType:   blob.BlobType_BlobType_CHUNKED,
+		TotalSize:  1,
+		ChunkIndex: &blob.ChunkIndex{Chunks: []*blob.Chunk{{Size: 1, DataRef: stranger}}},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	typedParent, _, err := restored.PutBlock(ctx, blobData, &block.PutOpts{RefsKnown: true, Refs: []*block.BlockRef{stranger}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lacksCursor, err := (&space_world.ReplayCursor{Base: state, Head: state, Outcomes: []*space_world.ReplayCursorOutcome{
+		{World: worldRoot, Payloads: []*block.BlockRef{typedParent, parent, typedParent}},
+	}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := putKey(ctx, restored, key, lacksCursor); err != nil {
+		t.Fatal(err)
+	}
+	if err := restored.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Exercise both modes with and without the scan using the same --refs reader.
+	for _, dryRun := range []bool{true, false} {
+		for _, scan := range []bool{false, true} {
+			// Each run publishes a private, complete listing with no duplicate refs.
+			opts := scanOpts
+			opts.frontOut = ""
+			opts.scanUntyped, opts.scanVerify = scan, false
+			opts.lacksOut = filepath.Join(t.TempDir(), "lacks.tsv")
+			res, err := repairVolumeRefs(ctx, le, path, "", dryRun, space_world_optypes.LookupBlockType, opts, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			checkRefRepairLacks(t, opts.lacksOut, scan, res, stranger, evicted)
+		}
+	}
+
+	// Refuse the Volume itself and its hard link before the walk writes anything.
+	lacksBefore := sum()
+	for _, output := range []string{path, alias} {
+		_, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{lacksOut: output}, nil)
+		if err == nil || !strings.Contains(err.Error(), "names the volume file") {
+			t.Fatalf("lacks output naming Volume %q: %v", output, err)
+		}
+	}
+	if sum() != lacksBefore {
+		t.Fatal("refused lacks listing changed the Volume")
+	}
+
+	// A failure after opening both listings removes every temporary file.
+	failedDir := t.TempDir()
+	failedOpts := refRepairOpts{frontOut: filepath.Join(failedDir, "front.tsv"), lacksOut: filepath.Join(failedDir, "lacks.tsv")}
+	if _, err := repairVolumeRefs(ctx, le, path, "missing-space", true, space_world_optypes.LookupBlockType, failedOpts, nil); err == nil {
+		t.Fatal("repair of an absent Space succeeded")
+	}
+	entries, err := os.ReadDir(failedDir)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("failed run left files: %v, %v", entries, err)
+	}
+
 	// Restore the original replay cursor for the adoption and audit.
+	restored, err = openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeRecords(t, restored, func(rec *block_gc.Records) error {
+		return rec.DeleteChildren(ctx, typedParent)
+	})
+	if err := restored.RmBlock(ctx, typedParent); err != nil {
+		t.Fatal(err)
+	}
 	if err := putKey(ctx, restored, key, data); err != nil {
 		t.Fatal(err)
 	}
 	if err := restored.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// An empty result replaces an earlier listing with an empty private file.
+	emptyOpts := refRepairOpts{lacksOut: filepath.Join(t.TempDir(), "lacks.tsv")}
+	if err := os.WriteFile(emptyOpts.lacksOut, []byte("old listing"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	empty, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, emptyOpts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkRefRepairLacks(t, emptyOpts.lacksOut, false, empty, nil, nil)
 
 	// Adoption refuses while a stored child list references a block stored
 	// without a child list: the raw block only a parent's list references.
@@ -1139,6 +1227,72 @@ func unmarkLists(t *testing.T, vol *volume_s4db.Volume) {
 	}
 	if err := tx.Commit(t.Context()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// checkRefRepairLacks checks the private TSV and the shared --refs contract.
+func checkRefRepairLacks(t *testing.T, path string, scan bool, res refRepairResult, typed, scanned *block.BlockRef) {
+	// Require private output even when the result is empty or replaces a file.
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("lacks listing mode %o, want 600", info.Mode().Perm())
+	}
+
+	// Compare every row's identity and how it was reached without relying on order.
+	want := make(map[string]string)
+	if typed != nil {
+		want[typed.MarshalString()] = "*byteslice.ByteSlice"
+	}
+	if scan && scanned != nil {
+		want[scanned.MarshalString()] = "payload root that is not certainly a blob"
+	}
+	listing, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make(map[string]string)
+	for line := range strings.Lines(string(listing)) {
+		fields := strings.Split(strings.TrimSuffix(line, "\n"), "\t")
+		if len(fields) != 2 || fields[1] == "" || strings.ContainsAny(fields[1], "\r\n") {
+			t.Fatalf("invalid lacks row %q", line)
+		}
+		if _, duplicate := got[fields[0]]; duplicate {
+			t.Fatalf("duplicate lacks ref %s", fields[0])
+		}
+		got[fields[0]] = fields[1]
+	}
+	if !maps.Equal(got, want) || !res.lacksListing || res.lacksListed != uint64(len(want)) {
+		t.Fatalf("lacks listing %v, count %d, enabled %v, want %v", got, res.lacksListed, res.lacksListing, want)
+	}
+
+	// The report places the listing count directly after Blocks absent.
+	fields := refRepairFields(path, true, res)
+	at := slices.IndexFunc(fields, func(row [2]string) bool { return row[0] == "Blocks absent" })
+	if fields[at+1] != [2]string{"Lacks listed", strconv.Itoa(len(want))} {
+		t.Fatalf("lacks report row %v", fields[at+1])
+	}
+
+	// Parse the same rows with the refill and export input reader.
+	parsed := make(map[string]bool)
+	if err := streamVolumeBlockRefs(t.Context(), bytes.NewReader(listing), 1, func(refs []*block.BlockRef) error {
+		for _, ref := range refs {
+			parsed[ref.MarshalString()] = true
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed) != len(want) {
+		t.Fatalf("--refs parsed %v, want %v", parsed, want)
+	}
+	for ref := range want {
+		if !parsed[ref] {
+			t.Fatalf("--refs missed %s", ref)
+		}
 	}
 }
 

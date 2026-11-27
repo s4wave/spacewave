@@ -3,13 +3,9 @@
 package spacewave_cli
 
 import (
-	"bufio"
 	"context"
-	stderrors "errors"
-	"io/fs"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -47,6 +43,8 @@ type debugRefRepairArgs struct {
 	frontRoots bool
 	// frontOut names the file for the front listing, empty to omit it.
 	frontOut string
+	// lacksOut names the file for reached refs no read resolves.
+	lacksOut string
 	// scanUntyped also reads the blocks below each untyped ref by scanning.
 	scanUntyped bool
 	// scanVerify verifies the child lists of the blocks read by scanning.
@@ -94,6 +92,12 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Usage: "write the front to a file with tab-separated ref, cause and scan fate, in front order. " +
 				"Tabs and line breaks in names and reasons become spaces",
 			Destination: &a.frontOut,
+		},
+		&cli.StringFlag{
+			Name: "lacks-out",
+			Usage: "write each reached block no read resolves to a file with tab-separated ref and how the walk reached it; " +
+				"use the file as --refs for debug volume-refill or debug volume-export",
+			Destination: &a.lacksOut,
 		},
 		&cli.BoolFlag{
 			Name: "scan-untyped",
@@ -146,7 +150,7 @@ func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 	}
 
 	// Read the peer store and the synthetic list the flags select.
-	opts := refRepairOpts{frontRoots: a.frontRoots, frontOut: a.frontOut, scanUntyped: a.scanUntyped, scanVerify: a.scanVerify}
+	opts := refRepairOpts{frontRoots: a.frontRoots, frontOut: a.frontOut, lacksOut: a.lacksOut, scanUntyped: a.scanUntyped, scanVerify: a.scanVerify}
 	if a.peerBlocks != "" {
 		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
 	}
@@ -178,6 +182,8 @@ type refRepairOpts struct {
 	frontRoots bool
 	// frontOut names the file for the front listing, empty to omit it.
 	frontOut string
+	// lacksOut names the file for reached refs no read resolves.
+	lacksOut string
 	// scanUntyped makes the walk scan, as refRepair.scanUntyped describes.
 	scanUntyped bool
 	// scanVerify verifies scanned lists, as refRepair.visitScanned describes.
@@ -209,6 +215,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Spaces", strconv.Itoa(res.spaces)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
+	}
+	if res.lacksListing {
+		fields = append(fields, [2]string{"Lacks listed", strconv.FormatUint(res.lacksListed, 10)})
+	}
+	fields = append(fields, [][2]string{
 		{"Blocks read from the peer", strconv.FormatUint(res.peerRead, 10)},
 		{"Blocks listed synthetically empty", strconv.FormatUint(res.synthetic, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
@@ -224,7 +235,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
-	}
+	}...)
 
 	// A run that scanned says how the scan compares with the types and lists.
 	if res.scan.on {
@@ -331,16 +342,16 @@ func repairVolumeRefs(
 	// Open the optional listing before the walk, so a path that cannot be
 	// written fails at once and not after a large Volume's walk. A run that
 	// fails removes its partial listing and leaves the path as it was.
-	var file *os.File
-	var listing *bufio.Writer
-	if opts.frontOut != "" {
-		if file, err = openFrontOut(path, opts.frontOut); err != nil {
-			return refRepairResult{}, err
-		}
-		defer os.Remove(file.Name())
-		defer file.Close()
-		listing = bufio.NewWriter(file)
+	front, err := openRefRepairListing(path, opts.frontOut)
+	if err != nil {
+		return refRepairResult{}, err
 	}
+	defer front.discard()
+	lacks, err := openRefRepairListing(path, opts.lacksOut)
+	if err != nil {
+		return refRepairResult{}, err
+	}
+	defer lacks.discard()
 
 	// Read the replay cursors of the selected Spaces.
 	cursors, err := readReplayCursors(ctx, volume_s4db.GetDB(vol), spaceID)
@@ -353,6 +364,7 @@ func repairVolumeRefs(
 
 	// Make the repair with what the run measures.
 	rr := newRefRepair(le, vol, opts.peer, lookup)
+	rr.lacks = lacks.writer
 	rr.synthetic = opts.synthetic
 	rr.scanVerify = opts.scanVerify
 	if opts.scanUntyped {
@@ -407,48 +419,22 @@ func repairVolumeRefs(
 
 	// Measure and stream the front in the same walk. A Volume past Open
 	// has an empty front.
-	var frontErr error
 	if rr.rebuild != nil {
-		frontErr = rr.measureFront(ctx, dryRun, opts.frontRoots, listing)
-	}
-
-	// Move the complete listing into place before returning any report.
-	if listing != nil {
-		frontErr = stderrors.Join(frontErr, listing.Flush(), file.Sync(), file.Close())
-		if frontErr == nil {
-			frontErr = os.Rename(file.Name(), opts.frontOut)
+		if err := rr.measureFront(ctx, dryRun, opts.frontRoots, front.writer); err != nil {
+			return refRepairResult{}, errors.Wrap(err, "measure the front")
 		}
 	}
-	if frontErr != nil {
-		return refRepairResult{}, errors.Wrap(frontErr, "measure the front")
+
+	// Publish only complete listings after all walk and measurement work succeeds.
+	if err := front.finish(); err != nil {
+		return refRepairResult{}, err
 	}
-	rr.res.frontListed = listing != nil
+	if err := lacks.finish(); err != nil {
+		return refRepairResult{}, err
+	}
+	rr.res.frontListed = front.writer != nil
+	rr.res.lacksListing = lacks.writer != nil
 	return rr.res, nil
-}
-
-// openFrontOut creates the file a run writes its front listing to, beside
-// outputPath and private to the user. The caller renames it over outputPath
-// once the listing is complete, so a file at outputPath is always a whole
-// listing. It refuses an outputPath that is the Volume, including an alias
-// of the same file, which that rename would replace.
-func openFrontOut(volumePath, outputPath string) (*os.File, error) {
-	// Compare file identities before creating anything.
-	output, err := os.Stat(outputPath)
-	switch {
-	case err == nil:
-		vol, err := os.Stat(volumePath)
-		if err != nil {
-			return nil, err
-		}
-		if os.SameFile(vol, output) {
-			return nil, errors.Errorf("front listing %q names the volume file", outputPath)
-		}
-	case !errors.Is(err, fs.ErrNotExist):
-		return nil, err
-	}
-
-	// Create the private file in the directory the rename stays within.
-	return os.CreateTemp(filepath.Dir(outputPath), filepath.Base(outputPath)+".*.tmp")
 }
 
 // histogramFields formats a histogram in the command's field table: the total
@@ -511,6 +497,8 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 			"and reports the blocks, bytes and leaves by block type and by power-of-two size class. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
 			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +
+			"Use --lacks-out to list reached blocks no read resolves, with how the walk reached each ref. " +
+			"Pass that file as --refs to debug volume-refill or debug volume-export. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
