@@ -158,6 +158,9 @@ func (i *SOCheckpointInner) Validate() error {
 	if err := validateAuthorHeads("outcomes prev_authors", i.GetOutcomes().GetPrevAuthors().GetAuthors()); err != nil {
 		return err
 	}
+	if err := validateCarried(i.GetOutcomes().GetCarried()); err != nil {
+		return err
+	}
 	return validateAuthorHeads("authors", i.GetAuthors())
 }
 

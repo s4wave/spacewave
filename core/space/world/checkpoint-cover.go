@@ -41,18 +41,23 @@ const (
 // refusal names its operation by hash, so it decides that operation at any
 // install. Applied needs the previous checkpoint's head, which says where
 // "newly covers" starts: the checkpoint records it as PrevAuthors, and one
-// signed before that field leaves it to the checkpoint installed before.
+// signed before that field leaves it to the checkpoint installed before. A
+// checkpoint also carries, for an author that has not acknowledged earlier
+// checkpoints, where its owed span starts and every refusal in it, so a
+// device that missed those checkpoints decides that span the same way.
+// Without an entry the operations below PrevAuthors stay unknown.
 type checkpointCover struct {
 	// height is the installed checkpoint's height.
 	height uint64
-	// from is the nonce of this device's last operation that the checkpoint
-	// before this one covered, or zero. It is known only when chain is set.
+	// from is the nonce of this device's last operation below the ones the
+	// checkpoint decides: the previous checkpoint's head, or the From of the
+	// outcomes it carries for this device. It is known only when chain is set.
 	from uint64
 	// head is this device's last covered operation, or nil when the
 	// checkpoint covers none.
 	head *sobject.SOOperationPosition
 	// refused are the hashes of the refused operations the checkpoint newly
-	// covers, nil when it does not know them.
+	// covers or carries for this device, nil when it does not know them.
 	refused map[string]struct{}
 	// chain holds the hashes of the operations this device holds on the
 	// covered chain ending at head, above from. It is nil when from is
@@ -98,11 +103,37 @@ func nextCover(
 	if !known {
 		return c
 	}
+
+	// Reach back over the spans of earlier checkpoints this device may have
+	// missed, whose outcomes the checkpoint carries for it.
+	if entry := carriedFor(outcomes, peerID); entry != nil && entry.GetFrom().GetNonce() < from {
+		from = entry.GetFrom().GetNonce()
+		for _, refused := range entry.GetRefused() {
+			c.refused[string(refused.GetOpHash())] = struct{}{}
+		}
+	}
 	c.from = from
 	if c.head != nil {
 		c.chain = heldChain(held, peerID, c.head.GetOpHash(), c.from)
 	}
 	return c
+}
+
+// carriedFor returns the outcomes the checkpoint carries for peerID from
+// checkpoints before the previous one, or nil when it carries none or
+// sobject.CarriedOutcomesEnv is off. An entry lists every refusal of peerID
+// above its From, so every other operation of peerID there on the covered
+// chain applied.
+func carriedFor(outcomes *sobject.SOCheckpointOutcomes, peerID string) *sobject.SOCheckpointCarried {
+	if sobject.CarriedOutcomesOff() {
+		return nil
+	}
+	for _, entry := range outcomes.GetCarried() {
+		if entry.GetPeerId() == peerID {
+			return entry
+		}
+	}
+	return nil
 }
 
 // prevHead returns the nonce of peerID's last operation the previous

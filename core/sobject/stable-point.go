@@ -331,7 +331,7 @@ func (s *SOOperationSet) outcomes(refused [][]byte) (*SOCheckpointOutcomes, erro
 // that covers prefix, a prefix of set, the verified operations s holds, with
 // the state data stateDataEnc. A group decides it unsigned. outcomes, nil when
 // the signer records none, gains the held checkpoint's Authors as its
-// PrevAuthors.
+// PrevAuthors, and the outcomes carryOutcomes carries past it.
 func (s *SOState) stableCheckpointInner(
 	sharedObjectID string,
 	set *SOOperationSet,
@@ -363,6 +363,9 @@ func (s *SOState) stableCheckpointInner(
 			prevAuthors[i] = author.CloneVT()
 		}
 		outcomes.PrevAuthors = &SOCheckpointAuthors{Authors: prevAuthors}
+		if !CarriedOutcomesOff() {
+			outcomes.Carried = carryOutcomes(prevInner, set.Get, prefix)
+		}
 	}
 	return &SOCheckpointInner{
 		SharedObjectId:     sharedObjectID,
