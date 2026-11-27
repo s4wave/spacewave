@@ -16,6 +16,12 @@ type spaceTurn struct {
 	a *Adapter
 	// base is the writer head the turn builds on.
 	base world.Head
+	// after is the pending admission whose candidate base is, or nil when
+	// base is the installed head.
+	after *spaceAdmission
+	// afterHead is this device's LastWrite in the installed head when the
+	// turn began, the write base was built after when after is nil.
+	afterHead []byte
 	// release unlocks the adapter's turn mutex once.
 	release func()
 }
@@ -60,6 +66,7 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	// Admit it before keeping its blocks, so a sweep on the driver goroutine
 	// finds its root among the pending candidates once the blocks are kept.
 	adm := a.newAdmission(candidate, op, payloads, handlers)
+	adm.after, adm.afterHead = t.after, t.afterHead
 	if err := a.admitWrite(ctx, adm); err != nil {
 		return nil, err
 	}

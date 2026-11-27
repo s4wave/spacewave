@@ -94,5 +94,9 @@ func (q *opQueue) queueOperation(ctx context.Context, adm *spaceAdmission) (stri
 	if !ok {
 		return "", nil, errors.New("shared object does not publish signed operation receipts")
 	}
-	return so.QueueOperationWithReceipt(ctx, adm.op, &adm.receipt)
+	op, err := adm.a.expectWrite(adm)
+	if err != nil {
+		return "", nil, err
+	}
+	return so.QueueOperationWithReceipt(ctx, op, &adm.receipt)
 }

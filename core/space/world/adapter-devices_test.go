@@ -446,7 +446,10 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 // TestAdapterSupersedes checks that a local write whose operation replay
 // places after another device's conflicting operation, which the writer did
 // not build on, is superseded and runs again on the head that holds the other
-// operation.
+// operation. A second local write pipelined on the first one's candidate
+// expects the first as its author's last write, so replay refuses it after the
+// first is refused, and it too runs again on the head instead of applying a
+// change its writer chose on a World that never existed.
 func TestAdapterSupersedes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -468,9 +471,9 @@ func TestAdapterSupersedes(t *testing.T) {
 	// other device's operation, then add that operation, so the local one
 	// queues after it.
 	host := so.(sobject.InviteHost).GetSOHost()
-	var attempts int
-	built := make(chan struct{})
-	done := make(chan error, 1)
+	var attempts, nextAttempts int
+	built, nextBuilt := make(chan struct{}), make(chan struct{})
+	done, nextDone := make(chan error, 1), make(chan error, 1)
 	err := host.UpdateSOState(ctx, func(state *sobject.SOState) error {
 		// Build the local write.
 		go func() {
@@ -490,6 +493,24 @@ func TestAdapterSupersedes(t *testing.T) {
 			return ctx.Err()
 		}
 
+		// Build a second local write on the first one's candidate.
+		go func() {
+			nextDone <- world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+				nextAttempts++
+				if nextAttempts == 1 {
+					defer close(nextBuilt)
+				}
+				obj, err := ws.CreateObject(ctx, "after-contested", nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+		select {
+		case <-nextBuilt:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
 		// Add the other device's conflicting operation.
 		return remote.add(t, so, state, createOp(t, "contested"), false)
 	})
@@ -503,7 +524,13 @@ func TestAdapterSupersedes(t *testing.T) {
 	if attempts != 2 || err == nil || errors.Is(err, sobject.ErrRejectedOp) {
 		t.Fatalf("write after %d attempts returned %v; want a second attempt that finds the object", attempts, err)
 	}
-	waitObjects(ctx, t, busEngine, "base", "contested")
+
+	// The pipelined write is superseded with the first, and its second
+	// attempt applies on the head.
+	if err := <-nextDone; err != nil || nextAttempts != 2 {
+		t.Fatalf("pipelined write after %d attempts returned %v; want a second attempt that applies", nextAttempts, err)
+	}
+	waitObjects(ctx, t, busEngine, "base", "contested", "after-contested")
 }
 
 // TestAdapterRefusesSecondHold races a local edit that takes a hold on an

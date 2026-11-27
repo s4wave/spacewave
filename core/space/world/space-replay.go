@@ -242,6 +242,11 @@ func (r *spaceReplay) recompute(ctx context.Context) error {
 //     owner's skip, a config entry every replica reads, refuses it.
 //   - Data that does not decode, a WorldOp with no body and no unknown field,
 //     and a removed body read alike on every build, so apply refuses them.
+//   - An operation with an ExpectedWrite applies only on a World whose
+//     LastWrite of its author is the write it expects, and once applied it is
+//     that LastWrite. Another author's operation never moves it, so a Merge
+//     order that sorts a concurrent write ahead refuses nothing it applied.
+//     ReplayExpectedWrite.tla checks this contract.
 func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.OrderedOperation) (spacePosition, error) {
 	// Refuse an acknowledgment's absence of data or a refusal outright.
 	pos.op, pos.reason = op, op.Refused
@@ -269,6 +274,16 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	peerID, err := op.Inner.ParsePeerID()
 	if err != nil {
 		return pos, err
+	}
+
+	// Refuse a write built after a write of its author that did not apply,
+	// before any handler reads it, so the refusal is a verdict on the World.
+	author := op.Inner.GetPeerId()
+	expected := wop.GetExpectedWrite()
+	if !pos.state.expects(author, expected) {
+		pos.reason = reasonExpectedWrite
+		r.a.le.WithField("reason", reasonCode(pos.reason)).Debug("replay refuses an operation")
+		return pos, nil
 	}
 	ctx = withReplay(withOperationAuthor(ctx, op.Author))
 
@@ -309,6 +324,9 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		r.a.le.WithField("op-type", opTypeOf(wop)).WithField("reason", reasonCode(reason)).Debug("replay refuses an operation")
 		return pos, nil
 	}
+	if expected != nil {
+		next = next.withLastWrite(&LastWrite{PeerId: author, OpHash: op.Hash})
+	}
 	pos.state = next
 	if !next.GetHeadRef().EqualVT(prev.GetHeadRef()) {
 		if pos.seqno, err = r.seqno(ctx, next); err != nil {
@@ -336,6 +354,7 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 		return nil, "", err
 	}
 	next.HeadRef.RootRef = rootRef
+	next.LastWrites = prev.GetLastWrites()
 	return next, "", nil
 }
 

@@ -51,6 +51,12 @@ type spaceAdmission struct {
 	done chan struct{}
 	// receipt is the operation's signed identity before it can enter replay.
 	receipt sobject.SignedOperationReceipt
+	// after is the pending admission whose candidate this candidate was built
+	// on, or nil when it was built on the installed head.
+	after *spaceAdmission
+	// afterHead is this device's LastWrite in the installed head the turn
+	// began on, the write the candidate was built after when after is nil.
+	afterHead []byte
 
 	// state is the lifecycle state.
 	state spaceAdmissionState
@@ -61,6 +67,8 @@ type spaceAdmission struct {
 	pos *sobject.SOOperationPosition
 	// hash identifies the replay position the driver matched to this admission.
 	hash []byte
+	// expected is the ExpectedWrite the queue wrote into the operation, or nil.
+	expected *ExpectedWrite
 	// decision is the decision once decided.
 	decision world.Decision
 	// reason is why replay refused the operation, when it did.

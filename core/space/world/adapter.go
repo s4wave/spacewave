@@ -176,6 +176,9 @@ type Adapter struct {
 	fences map[string]*spaceFence
 	// legacyReplayMatcher selects the pre-receipt replay and queue paths.
 	legacyReplayMatcher bool
+	// expectWrites is whether this device's writes carry an ExpectedWrite. A
+	// legacy matcher queues without a receipt, so it has no hash to expect.
+	expectWrites bool
 	// unmatched holds early refusals only in legacy mode. Guarded by bcast.
 	unmatched map[string]spacePosition
 	// cover is what the installed checkpoint says about this device's
@@ -276,6 +279,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		queue:               &opQueue{so: so},
 		missing:             make(map[string]struct{}),
 		legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
+		expectWrites:        os.Getenv(ReplayIdentityEnv) != "off" && os.Getenv(ExpectWriteEnv) != "off",
 		fences:              make(map[string]*spaceFence),
 		held:                make(map[string]*block.BlockRef),
 
@@ -691,12 +695,13 @@ func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
 	if err != nil {
 		return nil, err
 	}
-	var base world.Head
+	t := &spaceTurn{a: a, release: release}
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		base = a.writer
-		base.Durable = base.Root.EqualsRef(a.head.Root) && base.Seqno == a.head.Seqno
+		t.base = a.writer
+		t.base.Durable = t.base.Root.EqualsRef(a.head.Root) && t.base.Seqno == a.head.Seqno
+		t.after, t.afterHead = a.writerAdmissionLocked(), a.headState.lastWrite(a.so.GetPeerID().String())
 	})
-	return &spaceTurn{a: a, base: base, release: release}, nil
+	return t, nil
 }
 
 // checkWrites returns tx.ErrNotWrite when this participant cannot write
@@ -846,10 +851,14 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	adm := a.match(op)
 	prev, _ := r.stateBefore(index)
 	var adopt *spacePosition
-	if c := adm.getCandidate(); c != nil && op.Refused == "" && refEqual(c.Base, prev.GetHeadRef().GetRootRef()) {
+	expected := adm.getExpected()
+	if c := adm.getCandidate(); c != nil && op.Refused == "" && refEqual(c.Base, prev.GetHeadRef().GetRootRef()) && prev.expects(op.Inner.GetPeerId(), expected) {
 		state := prev.CloneVT()
 		state.HeadRef.RootRef = c.Root.Clone()
 		state.HeadRef.BucketId = ""
+		if expected != nil {
+			state = state.withLastWrite(&LastWrite{PeerId: op.Inner.GetPeerId(), OpHash: op.Hash})
+		}
 		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads, handlers: adm.handlers}
 		if replayCheck {
 			r.checkAdopted(ctx, index, op, adopt)
@@ -1600,6 +1609,9 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 	// in flight at unmount: the next open replays it if the SharedObject
 	// holds it, and the writer does not rebase and send it again.
 	switch {
+	case errors.Is(err, errBaseUnsigned):
+		a.decide([]*spaceAdmission{adm}, world.Superseded, reasonExpectedWrite, nil)
+		return
 	case errors.Is(err, sobject.ErrStateWriteUnknown):
 		a.fail(adm, errors.Wrap(world.ErrDurabilityUnknown, err.Error()))
 		return
@@ -1690,12 +1702,22 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 // candidate's World, or the installed head when none is pending. The caller
 // holds bcast.
 func (a *Adapter) writerHeadLocked() world.Head {
-	for _, adm := range slices.Backward(a.pending) {
-		if c := adm.getCandidate(); c != nil {
-			return world.Head{Root: c.Root, Seqno: c.Seqno}
-		}
+	if c := a.writerAdmissionLocked().getCandidate(); c != nil {
+		return world.Head{Root: c.Root, Seqno: c.Seqno}
 	}
 	return a.head
+}
+
+// writerAdmissionLocked returns the last pending admission with a candidate,
+// whose World the writer head is, or nil when the writer head is the
+// installed head. The caller holds bcast.
+func (a *Adapter) writerAdmissionLocked() *spaceAdmission {
+	for _, adm := range slices.Backward(a.pending) {
+		if adm.getCandidate() != nil {
+			return adm
+		}
+	}
+	return nil
 }
 
 // installHead installs the World after the last position as the head, moves

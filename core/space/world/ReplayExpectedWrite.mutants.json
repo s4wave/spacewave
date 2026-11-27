@@ -1,0 +1,32 @@
+[
+  {
+    "name": "replay applies a write whatever its author's last write",
+    "replace": [["Check(s, o) == s.rec[\"A\"] = Exp(o)", "Check(s, o) == TRUE"]],
+    "expect": "RowsMatch",
+    "config": "ReplayExpectedWrite.cfg"
+  },
+  {
+    "name": "replay skips a device's record when its write applies",
+    "replace": [["Record(r, d, o) == [r EXCEPT ![d] = o]", "Record(r, d, o) == IF d = \"A\" THEN r ELSE [r EXCEPT ![d] = o]"]],
+    "expect": "RowsMatch",
+    "config": "ReplayExpectedWrite.cfg"
+  },
+  {
+    "name": "one record for the whole Space instead of one per device",
+    "replace": [["Record(r, d, o) == [r EXCEPT ![d] = o]", "Record(r, d, o) == [x \\in Dev |-> o]"]],
+    "expect": "NothingAcceptedLost",
+    "config": "ReplayExpectedWrite.cfg"
+  },
+  {
+    "name": "the precondition is the whole World root",
+    "replace": [["Check(s, o) == s.rec[\"A\"] = Exp(o)", "Check(s, o) == s.w = Chain(o)"]],
+    "expect": "NothingAcceptedLost",
+    "config": "ReplayExpectedWrite.cfg"
+  },
+  {
+    "name": "a checkpoint keeps the World but drops the records",
+    "replace": [["Restore(s) == s", "Restore(s) == [w |-> s.w, rec |-> [d \\in Dev |-> 0]]"]],
+    "expect": "CheckpointAgrees",
+    "config": "ReplayExpectedWrite.cfg"
+  }
+]

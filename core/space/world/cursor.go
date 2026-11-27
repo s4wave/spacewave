@@ -144,6 +144,7 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 			Payloads:        pos.payloads,
 			Seqno:           pos.seqno,
 			PayloadHandlers: pos.handlers,
+			LastWrite:       recordedWrite(prev, pos.state),
 		}
 		if !sameRetained(prev, pos.state) {
 			outcome.RetainedRoots = &RetainedRootSet{Roots: pos.state.GetRetainedRoots()}
@@ -259,7 +260,7 @@ func (c *ReplayCursor) states() ([]*InnerState, bool) {
 
 // restoredState returns the World after the saved outcome of the operation
 // that followed prev. A World after the base differs from head only in its
-// root and retained roots, which the outcome records.
+// root, retained roots and LastWrites, whose changes the outcome records.
 func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerState {
 	// Record a changed root as head records its own.
 	ref := prev.GetHeadRef()
@@ -269,14 +270,19 @@ func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerS
 		ref.RootRef = outcome.GetWorld()
 	}
 
-	// Keep an unchanged World.
+	// Keep an unchanged World, and record the write the operation recorded.
 	roots := prev.GetRetainedRoots()
+	write := outcome.GetLastWrite()
 	if set := outcome.GetRetainedRoots(); set != nil {
 		roots = set.GetRoots()
-	} else if ref == prev.GetHeadRef() {
+	} else if ref == prev.GetHeadRef() && write == nil {
 		return prev
 	}
-	return &InnerState{HeadRef: ref, RetainedRoots: roots}
+	state := &InnerState{HeadRef: ref, RetainedRoots: roots, LastWrites: prev.GetLastWrites()}
+	if write != nil {
+		state = state.withLastWrite(write)
+	}
+	return state
 }
 
 // sameRetained reports whether a and b retain the same roots.
