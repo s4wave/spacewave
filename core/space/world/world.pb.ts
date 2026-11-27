@@ -327,6 +327,11 @@ export interface InnerState {
    * name.
    */
   retainedRoots?: RetainedRoot[]
+  /**
+   * LastWrites are each author's last applied operation that carried an
+   * ExpectedWrite, one per author, sorted by peer ID.
+   */
+  lastWrites?: LastWrite[]
 }
 
 export const InnerState: MessageType<InnerState> =
@@ -335,7 +340,54 @@ export const InnerState: MessageType<InnerState> =
     () => [
       [1, 'head_ref', 11, 0, ObjectRef.codec],
       [3, 'retained_roots', 11, 1, RetainedRoot.codec],
+      [4, 'last_writes', 11, 1, LastWrite.codec],
     ],
+  )
+
+/**
+ * LastWrite is an author's last applied operation that carried an
+ * ExpectedWrite.
+ *
+ * @generated from message space.world.LastWrite
+ */
+export interface LastWrite {
+  /**
+   * PeerId is the author's peer ID.
+   */
+  peerId?: string
+  /**
+   * OpHash is the hash of the operation.
+   */
+  opHash?: Uint8Array
+}
+
+export const LastWrite: MessageType<LastWrite> =
+  /* @__PURE__ */ createMessageType<LastWrite>('space.world.LastWrite', () => [
+    [1, 'peer_id', 9],
+    [2, 'op_hash', 12],
+  ])
+
+/**
+ * ExpectedWrite is the author's last applied write an operation was built
+ * after. Replay refuses the operation when its author's LastWrite in the World
+ * before it differs, so a write built on its author's refused, lost or unseen
+ * write never applies, while a concurrent write of another author ahead of it
+ * leaves it applying.
+ *
+ * @generated from message space.world.ExpectedWrite
+ */
+export interface ExpectedWrite {
+  /**
+   * OpHash is the hash of the author's last applied operation that carried
+   * an ExpectedWrite, or empty when the author has none.
+   */
+  opHash?: Uint8Array
+}
+
+export const ExpectedWrite: MessageType<ExpectedWrite> =
+  /* @__PURE__ */ createMessageType<ExpectedWrite>(
+    'space.world.ExpectedWrite',
+    () => [[1, 'op_hash', 12]],
   )
 
 /**
@@ -344,6 +396,13 @@ export const InnerState: MessageType<InnerState> =
  * @generated from message space.world.WorldOp
  */
 export interface WorldOp {
+  /**
+   * ExpectedWrite, when set, is the author's write the operation was built
+   * after, and the operation becomes its author's LastWrite once it applies.
+   * Unset, the operation applies whatever its author wrote before and leaves
+   * its author's LastWrite.
+   */
+  expectedWrite?: ExpectedWrite
   /**
    * Body is the operation.
    *
@@ -369,6 +428,7 @@ export const WorldOp: MessageType<WorldOp> =
     [6, 'graph_settings_step', 11, 0, GraphSettingsStepOp.codec, 'body'],
     [7, 'fence', 11, 0, FenceOp.codec, 'body'],
     [8, 'root_set', 11, 0, RootSetOp.codec, 'body'],
+    [9, 'expected_write', 11, 0, ExpectedWrite.codec],
   ])
 
 /**
@@ -726,6 +786,11 @@ export interface ReplayCursorOutcome {
    * resolves the operation again when PayloadHandlers is unset.
    */
   payloadHandlers?: PayloadHandlers
+  /**
+   * LastWrite is the author's LastWrite the operation recorded, and unset when
+   * it recorded none.
+   */
+  lastWrite?: LastWrite
 }
 
 export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
@@ -739,6 +804,7 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
       [7, 'retained_roots', 11, 0, RetainedRootSet.codec],
       [8, 'seqno', 4],
       [9, 'payload_handlers', 11, 0, PayloadHandlers.codec],
+      [10, 'last_write', 11, 0, LastWrite.codec],
     ],
   )
 

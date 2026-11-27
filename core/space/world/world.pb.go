@@ -392,6 +392,9 @@ type InnerState struct {
 	// RetainedRoots are past World roots the Space keeps restorable, sorted by
 	// name.
 	RetainedRoots []*RetainedRoot `protobuf:"bytes,3,rep,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
+	// LastWrites are each author's last applied operation that carried an
+	// ExpectedWrite, one per author, sorted by peer ID.
+	LastWrites []*LastWrite `protobuf:"bytes,4,rep,name=last_writes,json=lastWrites,proto3" json:"lastWrites,omitempty"`
 }
 
 func (x *InnerState) Reset() {
@@ -414,6 +417,68 @@ func (x *InnerState) GetRetainedRoots() []*RetainedRoot {
 	return nil
 }
 
+func (x *InnerState) GetLastWrites() []*LastWrite {
+	if x != nil {
+		return x.LastWrites
+	}
+	return nil
+}
+
+// LastWrite is an author's last applied operation that carried an
+// ExpectedWrite.
+type LastWrite struct {
+	unknownFields []byte
+	// PeerId is the author's peer ID.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// OpHash is the hash of the operation.
+	OpHash []byte `protobuf:"bytes,2,opt,name=op_hash,json=opHash,proto3" json:"opHash,omitempty"`
+}
+
+func (x *LastWrite) Reset() {
+	*x = LastWrite{}
+}
+
+func (*LastWrite) ProtoMessage() {}
+
+func (x *LastWrite) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *LastWrite) GetOpHash() []byte {
+	if x != nil {
+		return x.OpHash
+	}
+	return nil
+}
+
+// ExpectedWrite is the author's last applied write an operation was built
+// after. Replay refuses the operation when its author's LastWrite in the World
+// before it differs, so a write built on its author's refused, lost or unseen
+// write never applies, while a concurrent write of another author ahead of it
+// leaves it applying.
+type ExpectedWrite struct {
+	unknownFields []byte
+	// OpHash is the hash of the author's last applied operation that carried
+	// an ExpectedWrite, or empty when the author has none.
+	OpHash []byte `protobuf:"bytes,1,opt,name=op_hash,json=opHash,proto3" json:"opHash,omitempty"`
+}
+
+func (x *ExpectedWrite) Reset() {
+	*x = ExpectedWrite{}
+}
+
+func (*ExpectedWrite) ProtoMessage() {}
+
+func (x *ExpectedWrite) GetOpHash() []byte {
+	if x != nil {
+		return x.OpHash
+	}
+	return nil
+}
+
 // WorldOp is one operation of a Space's agreed order against its World.
 type WorldOp struct {
 	unknownFields []byte
@@ -428,6 +493,11 @@ type WorldOp struct {
 	//	*WorldOp_Fence
 	//	*WorldOp_RootSet
 	Body isWorldOp_Body `protobuf_oneof:"body"`
+	// ExpectedWrite, when set, is the author's write the operation was built
+	// after, and the operation becomes its author's LastWrite once it applies.
+	// Unset, the operation applies whatever its author wrote before and leaves
+	// its author's LastWrite.
+	ExpectedWrite *ExpectedWrite `protobuf:"bytes,9,opt,name=expected_write,json=expectedWrite,proto3" json:"expectedWrite,omitempty"`
 }
 
 func (x *WorldOp) Reset() {
@@ -488,6 +558,13 @@ func (x *WorldOp) GetFence() *FenceOp {
 func (x *WorldOp) GetRootSet() *RootSetOp {
 	if x, ok := x.GetBody().(*WorldOp_RootSet); ok {
 		return x.RootSet
+	}
+	return nil
+}
+
+func (x *WorldOp) GetExpectedWrite() *ExpectedWrite {
+	if x != nil {
+		return x.ExpectedWrite
 	}
 	return nil
 }
@@ -958,6 +1035,9 @@ type ReplayCursorOutcome struct {
 	// reuses Payloads only when every handler still reports the same roots, and
 	// resolves the operation again when PayloadHandlers is unset.
 	PayloadHandlers *PayloadHandlers `protobuf:"bytes,9,opt,name=payload_handlers,json=payloadHandlers,proto3" json:"payloadHandlers,omitempty"`
+	// LastWrite is the author's LastWrite the operation recorded, and unset when
+	// it recorded none.
+	LastWrite *LastWrite `protobuf:"bytes,10,opt,name=last_write,json=lastWrite,proto3" json:"lastWrite,omitempty"`
 }
 
 func (x *ReplayCursorOutcome) Reset() {
@@ -1011,6 +1091,13 @@ func (x *ReplayCursorOutcome) GetSeqno() uint64 {
 func (x *ReplayCursorOutcome) GetPayloadHandlers() *PayloadHandlers {
 	if x != nil {
 		return x.PayloadHandlers
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetLastWrite() *LastWrite {
+	if x != nil {
+		return x.LastWrite
 	}
 	return nil
 }
@@ -1691,6 +1778,7 @@ func (m *InnerState) CloneVT() *InnerState {
 	r := new(InnerState)
 	r.HeadRef = protobuf_go_lite.CloneVTValue(m.HeadRef)
 	r.RetainedRoots = protobuf_go_lite.CloneVTSlice(m.RetainedRoots)
+	r.LastWrites = protobuf_go_lite.CloneVTSlice(m.LastWrites)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1698,6 +1786,39 @@ func (m *InnerState) CloneVT() *InnerState {
 }
 
 func (m *InnerState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LastWrite) CloneVT() *LastWrite {
+	if m == nil {
+		return (*LastWrite)(nil)
+	}
+	r := new(LastWrite)
+	r.PeerId = m.PeerId
+	r.OpHash = protobuf_go_lite.CloneBytes(m.OpHash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LastWrite) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ExpectedWrite) CloneVT() *ExpectedWrite {
+	if m == nil {
+		return (*ExpectedWrite)(nil)
+	}
+	r := new(ExpectedWrite)
+	r.OpHash = protobuf_go_lite.CloneBytes(m.OpHash)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ExpectedWrite) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1709,6 +1830,7 @@ func (m *WorldOp) CloneVT() *WorldOp {
 	if m.Body != nil {
 		r.Body = m.Body.(interface{ CloneOneofVT() isWorldOp_Body }).CloneOneofVT()
 	}
+	r.ExpectedWrite = protobuf_go_lite.CloneVTValue(m.ExpectedWrite)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2028,6 +2150,7 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
 	r.RetainedRoots = protobuf_go_lite.CloneVTValue(m.RetainedRoots)
 	r.PayloadHandlers = protobuf_go_lite.CloneVTValue(m.PayloadHandlers)
+	r.LastWrite = protobuf_go_lite.CloneVTValue(m.LastWrite)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2515,11 +2638,57 @@ func (this *InnerState) EqualVT(that *InnerState) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.RetainedRoots, that.RetainedRoots, func() *RetainedRoot { return &RetainedRoot{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.LastWrites, that.LastWrites, func() *LastWrite { return &LastWrite{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *InnerState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InnerState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LastWrite) EqualVT(that *LastWrite) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.OpHash, that.OpHash) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LastWrite) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LastWrite)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ExpectedWrite) EqualVT(that *ExpectedWrite) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.OpHash, that.OpHash) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ExpectedWrite) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ExpectedWrite)
 	if !ok {
 		return false
 	}
@@ -2541,6 +2710,9 @@ func (this *WorldOp) EqualVT(that *WorldOp) bool {
 		if !this.Body.(interface{ EqualVT(isWorldOp_Body) bool }).EqualVT(that.Body) {
 			return false
 		}
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpectedWrite, that.ExpectedWrite) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -2979,6 +3151,9 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.PayloadHandlers, that.PayloadHandlers) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LastWrite, that.LastWrite) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4010,6 +4185,17 @@ func (x *InnerState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.LastWrites) > 0 || s.HasField("lastWrites") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastWrites")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.LastWrites {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("lastWrites"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4052,12 +4238,122 @@ func (x *InnerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RetainedRoots = append(x.RetainedRoots, v)
 			})
+		case "last_writes", "lastWrites":
+			s.AddField("last_writes")
+			if s.ReadNil() {
+				x.LastWrites = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.LastWrites = append(x.LastWrites, nil)
+					return
+				}
+				v := &LastWrite{}
+				v.UnmarshalProtoJSON(s.WithField("last_writes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.LastWrites = append(x.LastWrites, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the InnerState from JSON.
 func (x *InnerState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LastWrite message to JSON.
+func (x *LastWrite) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if len(x.OpHash) > 0 || s.HasField("opHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opHash")
+		s.WriteBytes(x.OpHash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LastWrite to JSON.
+func (x *LastWrite) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LastWrite message from JSON.
+func (x *LastWrite) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "op_hash", "opHash":
+			s.AddField("op_hash")
+			x.OpHash = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LastWrite from JSON.
+func (x *LastWrite) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ExpectedWrite message to JSON.
+func (x *ExpectedWrite) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.OpHash) > 0 || s.HasField("opHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opHash")
+		s.WriteBytes(x.OpHash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ExpectedWrite to JSON.
+func (x *ExpectedWrite) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ExpectedWrite message from JSON.
+func (x *ExpectedWrite) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "op_hash", "opHash":
+			s.AddField("op_hash")
+			x.OpHash = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ExpectedWrite from JSON.
+func (x *ExpectedWrite) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4100,6 +4396,11 @@ func (x *WorldOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteObjectField("rootSet")
 			ov.RootSet.MarshalProtoJSON(s.WithField("rootSet"))
 		}
+	}
+	if x.ExpectedWrite != nil || s.HasField("expectedWrite") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedWrite")
+		x.ExpectedWrite.MarshalProtoJSON(s.WithField("expectedWrite"))
 	}
 	s.WriteObjectEnd()
 }
@@ -4181,6 +4482,13 @@ func (x *WorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.RootSet = &RootSetOp{}
 			ov.RootSet.UnmarshalProtoJSON(s.WithField("root_set", true))
+		case "expected_write", "expectedWrite":
+			if s.ReadNil() {
+				x.ExpectedWrite = nil
+				return
+			}
+			x.ExpectedWrite = &ExpectedWrite{}
+			x.ExpectedWrite.UnmarshalProtoJSON(s.WithField("expected_write", true))
 		}
 	})
 }
@@ -5025,6 +5333,11 @@ func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("payloadHandlers")
 		x.PayloadHandlers.MarshalProtoJSON(s.WithField("payloadHandlers"))
 	}
+	if x.LastWrite != nil || s.HasField("lastWrite") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastWrite")
+		x.LastWrite.MarshalProtoJSON(s.WithField("lastWrite"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5090,6 +5403,13 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.PayloadHandlers = &PayloadHandlers{}
 			x.PayloadHandlers.UnmarshalProtoJSON(s.WithField("payload_handlers", true))
+		case "last_write", "lastWrite":
+			if s.ReadNil() {
+				x.LastWrite = nil
+				return
+			}
+			x.LastWrite = &LastWrite{}
+			x.LastWrite.UnmarshalProtoJSON(s.WithField("last_write", true))
 		}
 	})
 }
@@ -6273,6 +6593,18 @@ func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.LastWrites) > 0 {
+		for iNdEx := len(m.LastWrites) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.LastWrites[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.RetainedRoots) > 0 {
 		for iNdEx := len(m.RetainedRoots) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.RetainedRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -6292,6 +6624,85 @@ func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LastWrite) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LastWrite) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LastWrite) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.OpHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpHash)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ExpectedWrite) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ExpectedWrite) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ExpectedWrite) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.OpHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpHash)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -6335,6 +6746,16 @@ func (m *WorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
+	}
+	if m.ExpectedWrite != nil {
+		size, err := m.ExpectedWrite.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
 	}
 	return len(dAtA) - i, nil
 }
@@ -7146,6 +7567,16 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LastWrite != nil {
+		size, err := m.LastWrite.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.PayloadHandlers != nil {
 		size, err := m.PayloadHandlers.MarshalToSizedBufferVT(dAtA[:i])
@@ -8067,6 +8498,33 @@ func (m *InnerState) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.LastWrites {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LastWrite) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpHash)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ExpectedWrite) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpHash)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8079,6 +8537,10 @@ func (m *WorldOp) SizeVT() (n int) {
 	_ = l
 	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
 		n += vtmsg.SizeVT()
+	}
+	if m.ExpectedWrite != nil {
+		l = m.ExpectedWrite.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
 	return n
@@ -8409,6 +8871,10 @@ func (m *ReplayCursorOutcome) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
 	if m.PayloadHandlers != nil {
 		l = m.PayloadHandlers.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.LastWrite != nil {
+		l = m.LastWrite.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -8896,10 +9362,54 @@ func (x *InnerState) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.LastWrites) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "last_writes")
+		for i, v := range x.LastWrites {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &LastWrite{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *InnerState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LastWrite) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LastWrite")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if len(x.OpHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OpHash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LastWrite) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ExpectedWrite) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ExpectedWrite")
+	if len(x.OpHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OpHash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ExpectedWrite) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8956,6 +9466,10 @@ func (x *WorldOp) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RootSet)
 		}
+	}
+	if x.ExpectedWrite != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_write")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpectedWrite)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -9274,6 +9788,10 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 	if x.PayloadHandlers != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload_handlers")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PayloadHandlers)
+	}
+	if x.LastWrite != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_write")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LastWrite)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10149,6 +10667,131 @@ func (m *InnerState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastWrites", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LastWrites = append(m.LastWrites, &LastWrite{})
+			if err := m.LastWrites[len(m.LastWrites)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LastWrite) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LastWrite: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LastWrite: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpHash", wireType)
+			}
+			m.OpHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ExpectedWrite) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ExpectedWrite: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ExpectedWrite: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpHash", wireType)
+			}
+			m.OpHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10330,6 +10973,21 @@ func (m *WorldOp) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Body = &WorldOp_RootSet{RootSet: v}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedWrite", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpectedWrite == nil {
+				m.ExpectedWrite = &ExpectedWrite{}
+			}
+			if err := m.ExpectedWrite.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:
@@ -11304,6 +11962,21 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 				m.PayloadHandlers = &PayloadHandlers{}
 			}
 			if err := m.PayloadHandlers.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastWrite", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LastWrite == nil {
+				m.LastWrite = &LastWrite{}
+			}
+			if err := m.LastWrite.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

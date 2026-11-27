@@ -101,6 +101,29 @@ message InnerState {
   // RetainedRoots are past World roots the Space keeps restorable, sorted by
   // name.
   repeated RetainedRoot retained_roots = 3;
+  // LastWrites are each author's last applied operation that carried an
+  // ExpectedWrite, one per author, sorted by peer ID.
+  repeated LastWrite last_writes = 4;
+}
+
+// LastWrite is an author's last applied operation that carried an
+// ExpectedWrite.
+message LastWrite {
+  // PeerId is the author's peer ID.
+  string peer_id = 1;
+  // OpHash is the hash of the operation.
+  bytes op_hash = 2;
+}
+
+// ExpectedWrite is the author's last applied write an operation was built
+// after. Replay refuses the operation when its author's LastWrite in the World
+// before it differs, so a write built on its author's refused, lost or unseen
+// write never applies, while a concurrent write of another author ahead of it
+// leaves it applying.
+message ExpectedWrite {
+  // OpHash is the hash of the author's last applied operation that carried
+  // an ExpectedWrite, or empty when the author has none.
+  bytes op_hash = 1;
 }
 
 // WorldOp is one operation of a Space's agreed order against its World.
@@ -130,6 +153,11 @@ message WorldOp {
     // RootSet answers a fence with the roots its author holds.
     RootSetOp root_set = 8;
   }
+  // ExpectedWrite, when set, is the author's write the operation was built
+  // after, and the operation becomes its author's LastWrite once it applies.
+  // Unset, the operation applies whatever its author wrote before and leaves
+  // its author's LastWrite.
+  ExpectedWrite expected_write = 9;
 }
 
 // FenceOp asks every writer device of the Space for the roots it holds. It
@@ -299,6 +327,9 @@ message ReplayCursorOutcome {
   // reuses Payloads only when every handler still reports the same roots, and
   // resolves the operation again when PayloadHandlers is unset.
   PayloadHandlers payload_handlers = 9;
+  // LastWrite is the author's LastWrite the operation recorded, and unset when
+  // it recorded none.
+  LastWrite last_write = 10;
 }
 
 // PayloadHandlers identifies the handlers that reported an operation's payload
