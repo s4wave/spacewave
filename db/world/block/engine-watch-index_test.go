@@ -139,7 +139,7 @@ func TestWatchViewKeepsSubscription(t *testing.T) {
 	if err := <-viewDone; !errors.Is(err, context.Canceled) {
 		t.Fatalf("view ended with %v", err)
 	}
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	var subs int
 	if w := e.changeWatch; w != nil {
 		subs = len(w.subs)
@@ -171,7 +171,7 @@ func TestWatchIndexWriteNotBlocked(t *testing.T) {
 
 	// Hold the index as a subscriber declaring a large interest would, and
 	// subscribe a second view, which waits for the index.
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	w := e.changeWatch
 	locked.Unlock()
 	w.indexMtx.Lock()
@@ -222,7 +222,7 @@ func TestWatchChangesKeepsIntermediateDeletion(t *testing.T) {
 
 	// Stall change delivery after the marker head has been compared. The
 	// watch cannot compare another head while the index is held.
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	w, markerWake, err := e.watchObjectKeyLocked(marker)
 	locked.Unlock()
 	if err != nil {
@@ -328,7 +328,7 @@ func waitIndexedName(t *testing.T, ctx context.Context, e *Engine, key string) {
 // indexedSubscribers returns the subscribers the change watch has indexed.
 func (e *Engine) indexedSubscribers() []*changeSubscriber {
 	// Find the running change watch.
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	w := e.changeWatch
 	locked.Unlock()
 	if w == nil {
@@ -345,7 +345,7 @@ func (e *Engine) indexedSubscribers() []*changeSubscriber {
 // changes to or test them on.
 func (e *Engine) indexCandidates(changes *world.ChangeSet) []*changeSubscriber {
 	// Find the running change watch.
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	w := e.changeWatch
 	locked.Unlock()
 	if w == nil {

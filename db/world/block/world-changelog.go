@@ -2,8 +2,6 @@ package world_block
 
 import (
 	"context"
-	"maps"
-	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -113,28 +111,13 @@ func (t *WorldState) noteChange(w *WorldChange) {
 	}
 }
 
-// takeChanges returns the ChangeSet accumulated since the last take, Commit,
+// takeChanges detaches the summary accumulated since the last take, Commit,
 // Discard, or SetBlockTransaction and clears the accumulator.
-func (t *WorldState) takeChanges() *world.ChangeSet {
-	// Reset the accumulator on exit and return unknown if it overflowed.
-	defer t.resetChanges()
-	if t.changeUnknown {
-		return world.NewUnknownChangeSet()
-	}
-
-	// Materialize the sorted keys and distinct quads.
-	var keys []string
-	if len(t.changeKeys) != 0 {
-		keys = slices.Sorted(maps.Keys(t.changeKeys))
-	}
-	var quads []world.GraphQuad
-	if len(t.changeQuads) != 0 {
-		quads = make([]world.GraphQuad, 0, len(t.changeQuads))
-		for q := range t.changeQuads {
-			quads = append(quads, world.NewGraphQuad(q.subj, q.pred, q.obj, q.label))
-		}
-	}
-	return &world.ChangeSet{Keys: keys, Quads: quads}
+func (t *WorldState) takeChanges() *changeSummary {
+	// Transfer the accumulator without walking its names under the writer.
+	changes := &changeSummary{keys: t.changeKeys, quads: t.changeQuads, unknown: t.changeUnknown}
+	t.resetChanges()
+	return changes
 }
 
 // resetChanges clears the transaction's accumulated ChangeSet state.

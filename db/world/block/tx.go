@@ -144,7 +144,7 @@ func (t *Tx) PrepareCommit(ctx context.Context) error {
 
 // commitChanges captures the ChangeSet before committing rebuilds the state
 // onto its written root. The engine owns the write transaction exclusively.
-func (t *Tx) commitChanges(ctx context.Context) (*block.BlockRef, *world.ChangeSet, error) {
+func (t *Tx) commitChanges(ctx context.Context) (*block.BlockRef, *changeSummary, error) {
 	// Capture changes before entering the commit's trace scope.
 	changes := t.state.takeChanges()
 

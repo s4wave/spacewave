@@ -49,7 +49,7 @@ type volumeFixture struct {
 }
 
 // newVolumeFixture opens the fixture.
-func newVolumeFixture(t *testing.T) *volumeFixture {
+func newVolumeFixture(t testing.TB, opts ...EngineOption) *volumeFixture {
 	// Open a quiet testbed on an s4db Volume that frees at once.
 	t.Helper()
 	ctx := t.Context()
@@ -79,7 +79,7 @@ func newVolumeFixture(t *testing.T) *volumeFixture {
 	t.Cleanup(f.base.Release)
 	f.store = f.base.GetBucket()
 	f.coordinator = &losingCoordinator{Coordinator: tb.Volume}
-	f.engine = f.openEngine(t, f.authority())
+	f.engine = f.openEngine(t, f.authority(), opts...)
 	return f
 }
 
@@ -94,7 +94,7 @@ func (f *volumeFixture) authority() *LocalAuthority {
 // test ends. It pins a replaced head a reader holds before the commit returns,
 // since the Volume's grace is shorter than any reader, unless opts set the
 // delay.
-func (f *volumeFixture) openEngine(t *testing.T, authority world.Authority, opts ...EngineOption) *Engine {
+func (f *volumeFixture) openEngine(t testing.TB, authority world.Authority, opts ...EngineOption) *Engine {
 	// Read the head and open the engine at it.
 	t.Helper()
 	ctx := t.Context()

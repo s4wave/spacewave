@@ -128,10 +128,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	locked.Unlock()
 
 	// Seal the transaction's blocks under its new root and propose them.
-	nextRootRef, adm, rootBlock, changes, releasePending, err := e.admit(ctx, turn)
-	if releasePending != nil {
-		defer releasePending()
-	}
+	nextRootRef, adm, rootBlock, changes, pending, err := e.admit(ctx, turn)
 	if e.engine.authority == nil {
 		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, changes, err)
 	}
@@ -170,6 +167,8 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if !published.EqualsRef(nextRootRef) {
 		rootBlock = nil
 		changes = nil
+	} else {
+		pending.confirm()
 	}
 
 	// Publish the head, unless a head was published since the admission: the
@@ -206,7 +205,7 @@ func (e *EngineTx) publishCallerHead(
 	turn world.Turn,
 	next *bucket.ObjectRef,
 	rootBlock *World,
-	changes *world.ChangeSet,
+	changes *changeSummary,
 	err error,
 ) (*bucket.ObjectRef, error) {
 	// Publish the head unless the caller replaced it.
@@ -251,9 +250,8 @@ const ProvisionalNoopGuardEnv = "SPACEWAVE_WORLD_PROVISIONAL_NOOP_GUARD"
 // admit seals the transaction's blocks under its new root and proposes them
 // to the Authority as the head after the base. It returns the root, the
 // Admission, the decoded World root for the head's readers, the transaction's
-// ChangeSet, and a cleanup func for the pending ChangeSet registration when an
-// Authority is present. A transaction that changed nothing needs no Admission.
-func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *world.ChangeSet, func(), error) {
+// detached summary. A transaction that changed nothing needs no Admission.
+func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *changeSummary, *pendingChange, error) {
 	// Capture changes and seal the transaction's blocks under its new root.
 	nroot, changes, err := e.writeTx.commitChanges(ctx)
 	if isCoordinatedWriteSnapshotError(err) {
@@ -293,9 +291,9 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 
 	// Register the ChangeSet before Admit so followHead sees it if the
 	// Authority publishes the candidate before Admit returns.
-	var releasePending func()
+	var pending *pendingChange
 	if e.engine.authority != nil {
-		releasePending = e.engine.registerPendingChange(base, nroot, changes)
+		pending = e.engine.registerPendingChange(base, nroot, changes)
 	}
 
 	// Propose the candidate. Admit takes the entries: once it returns, the
@@ -310,12 +308,9 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	})
 	batch.Complete(err)
 	if err != nil {
-		if releasePending != nil {
-			releasePending()
-		}
 		return nil, nil, nil, nil, nil, err
 	}
-	return next, adm, rootBlock, changes, releasePending, nil
+	return next, adm, rootBlock, changes, pending, nil
 }
 
 // DurabilityTimeoutEnv names the server-side budget for waiting on an

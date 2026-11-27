@@ -38,8 +38,9 @@ func TestChangedObjectKeys(t *testing.T) {
 		return e.AccessWorldState(ctx, after, func(afterCs *bucket_lookup.Cursor) error {
 			// List the objects that differ between the roots.
 			var err error
-			keys, _, err = e.compareChangeWatchHeads(ctx, nil, beforeCs, afterCs, false)
-			complete = keys != nil
+			_, beforeBcs := beforeCs.BuildTransaction(nil)
+			_, afterBcs := afterCs.BuildTransaction(nil)
+			keys, complete, err = ChangedObjectKeys(ctx, beforeBcs, afterBcs, changeDiffLimit)
 			return err
 		})
 	})
@@ -77,8 +78,9 @@ func TestChangedObjectKeys(t *testing.T) {
 
 		// Compare the root with itself.
 		var err error
-		keys, _, err = e.compareChangeWatchHeads(ctx, nil, cs, same, false)
-		complete = keys != nil
+		_, beforeBcs := cs.BuildTransaction(nil)
+		_, afterBcs := same.BuildTransaction(nil)
+		keys, complete, err = ChangedObjectKeys(ctx, beforeBcs, afterBcs, changeDiffLimit)
 		return err
 	})
 	if err != nil || !complete || len(keys) != 0 {

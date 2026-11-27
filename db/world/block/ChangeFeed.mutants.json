@@ -1,0 +1,36 @@
+[
+  {
+    "name": "missing summary becomes empty",
+    "replace": [
+      [
+        "THEN pending[s] \\cup Payload(base,published) ELSE pending[s]",
+        "THEN IF Covered(base,published) THEN pending[s] \\cup Payload(base,published) ELSE pending[s] ELSE pending[s]"
+      ],
+      [
+        "THEN unknown[s] \\/ ~Covered(base,published) ELSE unknown[s]",
+        "THEN unknown[s] ELSE unknown[s]"
+      ]
+    ],
+    "expect": "NoMissedChange"
+  },
+  {
+    "name": "start skips lagging worker coverage",
+    "replace": [
+      [
+        "![s] = Max(cursor,base)]",
+        "![s] = published]"
+      ]
+    ],
+    "expect": "NoMissedChange"
+  },
+  {
+    "name": "unconfirmed evidence is certified",
+    "replace": [
+      [
+        "Range(a,b) \\cap missing = {}",
+        "TRUE"
+      ]
+    ],
+    "expect": "NoMissedChange"
+  }
+]

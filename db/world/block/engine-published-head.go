@@ -35,6 +35,8 @@ type publishedHead struct {
 	ref *bucket.ObjectRef
 	// rootBlock is the decoded World root, or nil. Callers clone it before use.
 	rootBlock *World
+	// publication is the immutable local notice identity assigned before publication.
+	publication uint64
 	// seqno is the revision of the head.
 	seqno uint64
 	// pinMtx guards unpin and pinTimer.
@@ -52,13 +54,14 @@ type publishedHead struct {
 
 // newPublishedHead returns a head at root holding one reference for the
 // Engine, which calls gone, when set, after the last holder releases it.
-func newPublishedHead(root *bucket_lookup.Cursor, rootBlock *World, seqno uint64, gone func(*publishedHead)) *publishedHead {
+func newPublishedHead(root *bucket_lookup.Cursor, rootBlock *World, seqno, publication uint64, gone func(*publishedHead)) *publishedHead {
 	p := &publishedHead{
-		root:      root.Clone(),
-		ref:       root.GetRef().Clone(),
-		rootBlock: rootBlock,
-		seqno:     seqno,
-		gone:      gone,
+		root:        root.Clone(),
+		ref:         root.GetRef().Clone(),
+		rootBlock:   rootBlock,
+		seqno:       seqno,
+		publication: publication,
+		gone:        gone,
 	}
 	p.refs.Store(1)
 	return p

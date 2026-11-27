@@ -35,7 +35,7 @@ func testChangeWatchWakesOnlyChangedKeys(t *testing.T, bulk int) {
 	createWatchTestObject(t, ctx, ws, "watch/busy")
 
 	// Register a waiter on the quiet object.
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	quietWatch, quietWake, err := e.watchObjectKeyLocked("watch/quiet")
 	if err != nil {
 		locked.Unlock()
@@ -195,7 +195,7 @@ func TestEngineWaitersShareTheHead(t *testing.T) {
 	}
 	var wake *objectKeyWake
 	for refs := 0; refs != waiters; {
-		locked := e.bcast.Lock()
+		locked := e.changeBcast.Lock()
 		if w := e.changeWatch; w != nil {
 			wake = w.waiters["watch/shared"]
 		}
@@ -243,7 +243,7 @@ func TestEngineWaitObjectRevIgnoresAnOlderHead(t *testing.T) {
 	}()
 	var wake *objectKeyWake
 	for wake == nil {
-		locked := e.bcast.Lock()
+		locked := e.changeBcast.Lock()
 		if w := e.changeWatch; w != nil {
 			wake = w.waiters["watch/older"]
 		}
@@ -253,8 +253,8 @@ func TestEngineWaitObjectRevIgnoresAnOlderHead(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// A wake from before the waiter's head does not satisfy it.
-	locked := e.bcast.Lock()
-	wake.publish(&objectKeyState{known: true, head: e.published - 1, rev: rev + 1, found: true})
+	locked := e.changeBcast.Lock()
+	wake.publish(&objectKeyState{known: true, head: e.latestNotice.Load().publication - 1, rev: rev + 1, found: true})
 	locked.Unlock()
 	select {
 	case err := <-done:

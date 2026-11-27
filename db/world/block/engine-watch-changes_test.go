@@ -105,9 +105,8 @@ func TestWatchChangesCatchUpKeepsIntermediateDeletion(t *testing.T) {
 }
 
 // TestWatchChangesImportedRoot checks that a head installed from outside the
-// Engine, as a SharedObject replay or a snapshot import installs it, yields a
-// precise ChangeSet when it shares the head's format, and an unknown one when
-// it does not, since every graph key differs between formats.
+// Engine, as a SharedObject replay or a snapshot import installs it, yields
+// Unknown when it carries no summary, without depending on either tree format.
 func TestWatchChangesImportedRoot(t *testing.T) {
 	for _, format := range []WorldFormat{WorldFormat_WORLD_FORMAT_CAYLEY_KV, WorldFormat_WORLD_FORMAT_NODE_GRAPH} {
 		t.Run(format.String(), func(t *testing.T) {
@@ -141,23 +140,11 @@ func TestWatchChangesImportedRoot(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// An import in another format than the head is unknown.
+			// An imported head carries no process-local transition evidence.
 			_, changes := readChangeWindow(t, ctx, e, after)
-			if format != importFormat {
-				if !changes.Unknown {
-					t.Fatalf("changes from a %v head to a %v import are known", format, importFormat)
-				}
-				return
+			if !changes.Unknown {
+				t.Fatal("import without a summary was certified")
 			}
-
-			// Otherwise expect the objects of both Worlds and the imported quads.
-			if changes.Unknown {
-				t.Fatal("changes to an imported root are unknown")
-			}
-			if got := slices.Sorted(slices.Values(changes.Keys)); !slices.Equal(got, keys) {
-				t.Fatalf("changed keys %q, want %q", got, keys)
-			}
-			checkQuads(t, changes.Quads, quads...)
 		})
 	}
 }
@@ -261,9 +248,8 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	// Commit past the first head through a second engine on the same Authority
-	// so f.engine receives the head without a recorded ChangeSet and must
-	// compare trees on catch-up. Count comparisons from the first head by its
-	// pins, after the external commit finishes.
+	// so f.engine receives no exact summary. Count any attempt to pin the old
+	// head: reconnecting subscribers must receive Unknown without storage I/O.
 	f := newVolumeFixture(t)
 	e := f.engine
 	ws := world.NewEngineWorldState(e, true)
@@ -295,14 +281,11 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 		})
 	}()
 
-	// Expect a wave of subscribers from the first head to see the commit.
-	check := func(changes *world.ChangeSet, want ...string) {
+	// Every reconnect must refresh when the imported transition lacks evidence.
+	check := func(changes *world.ChangeSet) {
 		t.Helper()
-		if changes.Unknown {
-			t.Fatal("changes since the first head are unknown")
-		}
-		if got := slices.Sorted(slices.Values(changes.Keys)); !slices.Equal(got, want) {
-			t.Fatalf("changed keys %q, want %q", got, want)
+		if !changes.Unknown {
+			t.Fatal("missing transition evidence was certified")
 		}
 	}
 	const wave = 8
@@ -316,7 +299,7 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 		}()
 	}
 	for range wave {
-		check(<-windows, "share/a")
+		check(<-windows)
 	}
 
 	// Commit again and wait for the watch to record it.
@@ -330,12 +313,11 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 		}
 	}
 
-	// Expect a late subscriber to see both commits, and the first head to
-	// have been compared once.
+	// Later reconnects also refresh without pinning the obsolete head.
 	_, changes := readChangeWindow(t, ctx, e, after)
-	check(changes, "share/a", "share/b")
-	if n := pins.Load(); n != 1 {
-		t.Fatalf("compared the first head %d times, want 1", n)
+	check(changes)
+	if n := pins.Load(); n != 0 {
+		t.Fatalf("pinned the first head %d times, want 0", n)
 	}
 }
 
@@ -464,7 +446,7 @@ func TestWatchChangesCollectedBase(t *testing.T) {
 // TestWatchChangesCatchUpAcrossCollectedHeads checks that a subscriber resuming
 // after every past head has been collected still receives an exact ChangeSet
 // from local commits, including changes that cancel out and spans longer than
-// maxWatchComparisons.
+// ten publications.
 func TestWatchChangesCatchUpAcrossCollectedHeads(t *testing.T) {
 	// Commit a starting head to resume from.
 	f := newVolumeFixture(t)
@@ -483,7 +465,7 @@ func TestWatchChangesCatchUpAcrossCollectedHeads(t *testing.T) {
 	after := headSeqno(t, ctx, f.engine)
 	pastRoots := []*block.BlockRef{f.engine.GetRootRef().GetRootRef().Clone()}
 
-	// Commit more than maxWatchComparisons local writes, including an object
+	// Commit ten local writes, including an object
 	// created and deleted across commits and a quad set and deleted in one
 	// commit.
 	commitLocal(func(w *EngineTx) {
@@ -511,13 +493,13 @@ func TestWatchChangesCatchUpAcrossCollectedHeads(t *testing.T) {
 	})
 	pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
 	wantKeys := []string{"trim/kept", "trim/transient"}
-	for i := range maxWatchComparisons + 2 {
+	for i := range 10 {
 		key := "trim/step-" + strconv.Itoa(i)
 		wantKeys = append(wantKeys, key)
 		commitLocal(func(w *EngineTx) {
 			fixtureObject(t, w, key, key)
 		})
-		if i < maxWatchComparisons+1 {
+		if i < 9 {
 			pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
 		}
 	}
@@ -981,7 +963,7 @@ func TestWatchIndexedChangesCovered(t *testing.T) {
 		createWatchTestObject(t, ctx, ws, "covered/skip-"+strconv.Itoa(i))
 	}
 	head := headSeqno(t, ctx, e)
-	locked := e.bcast.Lock()
+	locked := e.changeBcast.Lock()
 	w := e.changeWatch
 	locked.Unlock()
 	for deadline := time.Now().Add(10 * time.Second); w.handedSeqno() != head; time.Sleep(time.Millisecond) {
@@ -1007,4 +989,167 @@ func TestWatchIndexedChangesCovered(t *testing.T) {
 	if covered := stop(); covered != headSeqno(t, ctx, e) {
 		t.Fatalf("covered %d after the last report, want %d", covered, headSeqno(t, ctx, e))
 	}
+}
+
+// BenchmarkChangeFeedCommit measures complete World commits with 3,000 live
+// subscriptions and 256 object names per transition on a real s4db Volume.
+func BenchmarkChangeFeedCommit(b *testing.B) {
+	// Keep subscribers alive for the timed commit stream.
+	ctx, cancel := context.WithCancel(context.Background())
+	e := newVolumeFixture(b, WithReaderPinDelay(defaultReaderPinDelay)).engine
+	var watchers sync.WaitGroup
+	for range 3000 {
+		watchers.Add(1)
+		go func() {
+			defer watchers.Done()
+			_ = e.WatchChanges(ctx, 0, nil, func(uint64, *world.ChangeSet) error { return nil })
+		}()
+	}
+	defer func() { cancel(); watchers.Wait() }()
+
+	// Wait until the workload has all 3,000 indexed subscribers.
+	for len(e.indexedSubscribers()) != 3000 {
+		time.Sleep(time.Millisecond)
+	}
+
+	// Commit 256 creates per transaction, including the real block-store path.
+	var commitTime time.Duration
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tx, err := e.NewTransaction(ctx, true)
+		if err != nil {
+			b.Fatal(err)
+		}
+		for j := range 256 {
+			key := "feed/" + strconv.Itoa(i) + "/" + strconv.Itoa(j)
+			obj, _, err := world.CreateWorldObject(ctx, tx, key, func(c *block.Cursor) error {
+				c.SetBlock(block_mock.NewExample(key), true)
+				return nil
+			})
+			if err != nil {
+				b.Fatal(err)
+			}
+			world.ReleaseObjectState(obj)
+		}
+		start := time.Now()
+		if err := tx.Commit(ctx); err != nil {
+			b.Fatal(err)
+		}
+		commitTime += time.Since(start)
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(commitTime.Nanoseconds())/float64(b.N), "commit-ns/op")
+}
+
+// TestWatchChangesRacingStartsAndLag checks coverage and order while writes
+// overrun the notice ring, watch starts race them, and one callback stays behind.
+func TestWatchChangesRacingStartsAndLag(t *testing.T) {
+	// Start a subscriber whose first callback can be held across ring eviction.
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx, nil)
+	const commits = changeWatchHeads + 12
+	first := make(chan struct{})
+	resume := make(chan struct{})
+	done := make(chan error, 9)
+	watch := func(after uint64, lag bool) {
+		done <- e.WatchChanges(ctx, after, nil, func(seqno uint64, changes *world.ChangeSet) error {
+			// Require each report to cover its full interval and no future write.
+			if seqno <= after || seqno > commits {
+				return errors.New("unordered or invented revision")
+			}
+			if !changes.Unknown {
+				want := make([]string, 0, seqno-after)
+				for i := after + 1; i <= seqno; i++ {
+					want = append(want, "race/"+strconv.FormatUint(i, 10))
+				}
+				slices.Sort(want)
+				if !slices.Equal(changes.Keys, want) || len(changes.Quads) != 0 {
+					return errors.New("missed or invented change in a certified interval")
+				}
+			}
+			after = seqno
+
+			// Hold only the subscriber, leaving the worker and every writer free.
+			if lag {
+				lag = false
+				close(first)
+				select {
+				case <-resume:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+			if seqno == commits {
+				return errWindowRead
+			}
+			return nil
+		})
+	}
+	go watch(0, true)
+	ws := world.NewEngineWorldState(e, true)
+	createWatchTestObject(t, ctx, ws, "race/1")
+	select {
+	case <-first:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	// Stall feed bookkeeping itself while new watches and real writes race.
+	locked := e.changeBcast.Lock()
+	for range 8 {
+		go watch(1, false)
+	}
+	written := make(chan struct{})
+	go func() {
+		defer close(written)
+		for i := 2; i <= commits; i++ {
+			createWatchTestObject(t, ctx, ws, "race/"+strconv.Itoa(i))
+		}
+	}()
+	select {
+	case <-written:
+	case <-ctx.Done():
+		locked.Unlock()
+		t.Fatal("World writes waited behind feed bookkeeping")
+	}
+	locked.Unlock()
+	close(resume)
+
+	// Every subscriber must reach the final revision, with exact or Unknown coverage.
+	for range 9 {
+		select {
+		case err := <-done:
+			if !errors.Is(err, errWindowRead) {
+				t.Fatal(err)
+			}
+		case <-ctx.Done():
+			t.Fatal("subscriber missed the final change")
+		}
+	}
+}
+
+// TestWatchChangesUnconfirmedSummary rejects touched names from an unaccepted
+// candidate even when its proposed predecessor and result match a publication.
+func TestWatchChangesUnconfirmedSummary(t *testing.T) {
+	// Publish a real write, then model an external notice without its summary.
+	ctx := t.Context()
+	e := newRetirementTestEngine(t, ctx, nil)
+	before := e.GetRootRef()
+	afterSeqno := headSeqno(t, ctx, e)
+	ws := world.NewEngineWorldState(e, true)
+	createWatchTestObject(t, ctx, ws, "proof/actual")
+	notice := *e.latestNotice.Load()
+	notice.changes = nil
+	e.watchedHeads[notice.publication%changeWatchHeads].Store(&notice)
+
+	// A failed candidate's matching roots do not authorize invented names.
+	e.registerPendingChange(before.GetRootRef(), notice.ref.GetRootRef(), &changeSummary{
+		keys: map[string]struct{}{"proof/invented": {}},
+	})
+	_, changes := readChangeWindow(t, ctx, e, afterSeqno)
+	if !changes.Unknown || len(changes.Keys) != 0 {
+		t.Fatalf("unconfirmed summary was used: %+v", changes)
+	}
+
 }

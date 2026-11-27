@@ -131,22 +131,29 @@ type Engine struct {
 	engineOptions
 	// headWatchRelease stops the Authority's head watch, or is nil.
 	headWatchRelease func()
-	// changeWatch compares each new head once for every watcher. It is nil
-	// while no watcher is registered. Guarded by bcast.
+	// changeWatch resolves transitions once for every watcher. It is nil
+	// while nobody watches. Guarded by changeBcast.
 	changeWatch *engineChangeWatch
-	// changeWatches counts change watch goroutines that Close must join.
+	// changeWatches counts feed workers Close joins under changeBcast.
 	changeWatches int
-	// unknownChanges counts unknown spans from the shared change watch, under bcast.
+	// unknownChanges counts unknown feed spans under changeBcast.
 	unknownChanges uint64
-	// watchedHeads records the recent published heads, oldest first, for
-	// change watchers. Guarded by bcast.
-	watchedHeads []*watchedHead
-	// watchedFloor is the lowest seqno whose recorded heads identify what a
-	// watcher saw. Guarded by bcast.
-	watchedFloor uint64
-	// pendingChanges holds ChangeSets of local commits in flight between
-	// sealing and installation. Guarded by bcast.
-	pendingChanges []*pendingChange
+	// watchedHeads hands off immutable notices through bounded atomic slots.
+	// Only publication writes them; no subscriber holds publication authority.
+	watchedHeads [changeWatchHeads]atomic.Pointer[watchedHead]
+	// latestNotice identifies the newest immutable publication notice.
+	latestNotice atomic.Pointer[watchedHead]
+	// watchedFloor excludes revisions whose ambiguous earlier head was evicted.
+	watchedFloor atomic.Uint64
+	// pendingChanges retains bounded exact-root evidence handed off by writers.
+	// Only feed consumers scan it; overwrites fall back to Unknown.
+	pendingChanges [changeWatchHeads]atomic.Pointer[pendingChange]
+	// pendingNext allocates a bounded pending-summary slot without the feed lock.
+	pendingNext atomic.Uint64
+	// changeBcast guards feed membership and history, independently of publication.
+	changeBcast broadcast.Broadcast
+	// feedClosed rejects subscriptions once Close has begun stopping the feed.
+	feedClosed bool
 	// closed rejects new operations while Close drains resources.
 	closed bool
 	// retired reports that Retire closed the engine for a successor, so the
@@ -259,7 +266,6 @@ func NewEngine(
 		snapshotTxs:   make(map[*EngineTx]struct{}),
 		snapChanged:   make(chan struct{}),
 		live:          make(map[*publishedHead]struct{}),
-		watchedHeads:  make([]*watchedHead, 0, changeWatchHeads),
 		engineOptions: options,
 	}
 	e.headSignal.Store(&headSignal{changed: make(chan struct{})})
@@ -586,7 +592,7 @@ func (e *Engine) installRootRefLocked(
 	ref *bucket.ObjectRef,
 	invalidateWriter bool,
 	rootBlock *World,
-	changes *world.ChangeSet,
+	changes *changeSummary,
 ) (engineRetirement, error) {
 	// Start the root-ref trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref")
@@ -631,9 +637,6 @@ func (e *Engine) installRootRefLocked(
 
 	// The Authority's root holds the head while it is current, so publishing
 	// it takes no pin. A replaced head held by a reader pins later.
-	if changes == nil {
-		changes = e.takePendingChangeLocked(e.head.root.GetRef().GetRootRef(), ref.GetRootRef())
-	}
 	e.recordWatchedHeadLocked(nextRoot.GetRef(), seqno, changes)
 
 	// Publish one complete head and detach its predecessor for post-unlock cleanup.
@@ -668,7 +671,7 @@ func (e *Engine) publishHeadLocked(ctx context.Context, seqno uint64) *published
 	if err != nil {
 		rootBlock = nil
 	}
-	p := newPublishedHead(e.head.root, rootBlock, seqno, e.forgetLive)
+	p := newPublishedHead(e.head.root, rootBlock, seqno, e.published+1, e.forgetLive)
 	e.liveMu.Lock()
 	e.live[p] = struct{}{}
 	e.liveMu.Unlock()
@@ -1230,20 +1233,6 @@ func (e *Engine) AccessWorldState(
 	})
 }
 
-// holdHeadLocked clones the published head and holds it until release, so a
-// hold that outlives the head pins it. Holding takes no block I/O. Cursor.Clone
-// copies the bucket handle without taking a release func, so the hold does not
-// establish a cross-bucket lifetime across Engine.Close. The caller must hold
-// bcast.
-func (e *Engine) holdHeadLocked() (*bucket_lookup.Cursor, func()) {
-	held := e.head.root.Clone()
-	release := e.pub.Load().hold()
-	return held, func() {
-		held.Release()
-		release()
-	}
-}
-
 // accessStorage builds a writable bucket lookup cursor with an optional ref,
 // holding the published root for the callback without the Engine lock.
 // Cursor.Clone copies the bucket handle without taking a release func, so the
@@ -1411,19 +1400,12 @@ func (e *Engine) Close() error {
 	e.stopClosing(world.ErrDurabilityUnknown)
 	e.signalHeadLocked()
 
-	// Cancel the change watch comparison in flight and wake its watchers.
-	if w := e.changeWatch; w != nil {
-		e.stopChangeWatchLocked(w)
-	}
-
 	// Detach every Engine-owned resource while publication is closed.
 	retirements := make([]engineRetirement, 0, 1)
 	retirement := engineRetirement{head: e.head, pub: e.pub.Swap(nil), closing: true}
 	headWatchRelease := e.headWatchRelease
 	e.headWatchRelease = nil
 	e.head = nil
-	e.watchedHeads = nil
-	e.pendingChanges = nil
 
 	// Detach the write transaction with the head, unless its commit is under
 	// way: the commit ends it after its swap, releasing its stage then, and
@@ -1453,6 +1435,20 @@ func (e *Engine) Close() error {
 	locked.Broadcast()
 	locked.Unlock()
 
+	// Stop and join feed work without holding publication authority.
+	feed := e.changeBcast.Lock()
+	e.feedClosed = true
+	if w := e.changeWatch; w != nil {
+		e.stopChangeWatchLocked(w)
+	}
+	for e.changeWatches != 0 {
+		wait := feed.WaitCh()
+		feed.Unlock()
+		<-wait
+		feed = e.changeBcast.Lock()
+	}
+	feed.Unlock()
+
 	// Stop the Authority's head watch, which may be installing a head under
 	// bcast, then drain transactions after unlocking the Engine.
 	if headWatchRelease != nil {
@@ -1468,7 +1464,7 @@ func (e *Engine) Close() error {
 	// Join detached work, in-flight commit publication, read opens and change
 	// watches before baseRoot release.
 	locked = e.bcast.Lock()
-	for e.retiring != 0 || e.committing != 0 || e.changeWatches != 0 {
+	for e.retiring != 0 || e.committing != 0 {
 		wait := locked.WaitCh()
 		locked.Unlock()
 		<-wait
