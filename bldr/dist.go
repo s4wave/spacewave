@@ -29,7 +29,7 @@ import (
 //go:embed web/bldr/message-port-bridge.ts web/bldr/opfs-worker.ts
 //go:embed web/bldr/path.ts web/bldr/plugin-entrypoint.ts
 //go:embed web/bldr/plugin-transport.ts web/bldr/random-id.ts
-//go:embed web/bldr/react-dev.ts web/bldr/retry.ts
+//go:embed web/bldr/react-dev.ts web/bldr/retry.ts web/bldr/runtime-life-lock.ts
 //go:embed web/bldr/sab-pair-broker.ts web/bldr/sab-ring-stream.ts
 //go:embed web/bldr/service-worker-fetch-tracker.ts web/bldr/service-worker.ts
 //go:embed web/bldr/shared-worker.ts web/bldr/shutdown.ts

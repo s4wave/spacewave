@@ -12,6 +12,7 @@ import {
 } from '../../bldr/web-runtime.js'
 import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
+import { holdRuntimeLifeLock } from '../../bldr/runtime-life-lock.js'
 import {
   injectRuntimeFault,
   onGoScriptFatal,
@@ -258,6 +259,13 @@ export default function runGoScriptRuntime(
     if (port) {
       port.onmessage = handlePortMessage
       port.start()
+    }
+    // The creating document names the life lock in its init message; holding
+    // it from here on lets the document watch for this Worker's death.
+    const lifeLockName = (msgEvent.data as WebDocumentToWebRuntime | undefined)
+      ?.initWebRuntime?.lifeLockName
+    if (lifeLockName) {
+      holdRuntimeLifeLock(self, lifeLockName)
     }
     if (
       msgEvent.data &&

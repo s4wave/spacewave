@@ -6,6 +6,7 @@ import {
   DedicatedWorkerHostOwner,
   buildDedicatedWorkerHostLockName,
 } from './dedicated-worker-host-owner.js'
+import { buildRuntimeLifeLockName } from './runtime-life-lock.js'
 import { resetStartupMarksForTest } from './startup-marks.js'
 
 type TestLockOptions = {
@@ -56,15 +57,14 @@ class TestLockManager {
 
   public readonly query = vi.fn(() =>
     Promise.resolve({
-      held: this.held
-        ? [
-            {
-              name: this.held.name,
-              mode: 'exclusive',
-              clientId: 'test-holder',
-            } satisfies LockInfo,
-          ]
-        : [],
+      held: [...this.held.values()].map(
+        (entry) =>
+          ({
+            name: entry.name,
+            mode: 'exclusive',
+            clientId: 'test-holder',
+          }) satisfies LockInfo,
+      ),
       pending: this.pending.map(
         (entry) =>
           ({
@@ -76,35 +76,43 @@ class TestLockManager {
     } satisfies LockManagerSnapshot),
   )
 
-  private held?: TestLockRequest
+  private readonly held = new Map<string, TestLockRequest>()
   private pending: TestLockRequest[] = []
 
+  // hold takes the named lock the way a runtime Worker takes its life lock and
+  // returns the Worker's death, which releases it.
+  public hold(name: string): () => void {
+    const { promise, resolve } = Promise.withResolvers<void>()
+    void this.request(name, {}, () => promise)
+    return resolve
+  }
+
   private drain(): void {
-    if (this.held || this.pending.length === 0) {
-      return
-    }
-    const entry = this.pending.shift()
+    const entry = this.pending.find((item) => !this.held.has(item.name))
     if (!entry) {
       return
     }
+    this.pending = this.pending.filter((item) => item !== entry)
     entry.releaseAbort?.()
-    this.held = entry
+    this.held.set(entry.name, entry)
+    const release = () => {
+      if (this.held.get(entry.name) === entry) {
+        this.held.delete(entry.name)
+      }
+    }
     Promise.resolve(entry.callback({} as Lock)).then(
       () => {
-        if (this.held === entry) {
-          this.held = undefined
-        }
+        release()
         entry.resolve()
         this.drain()
       },
       (err: unknown) => {
-        if (this.held === entry) {
-          this.held = undefined
-        }
+        release()
         entry.reject(err)
         this.drain()
       },
     )
+    this.drain()
   }
 }
 
@@ -114,6 +122,8 @@ function buildCallbacks() {
     startAttached: vi.fn(),
     startUnavailable: vi.fn(),
     promoteToHost: vi.fn(),
+    hostWorkerLost: vi.fn(),
+    attachedHostGone: vi.fn(),
   }
 }
 
@@ -155,6 +165,76 @@ describe('DedicatedWorkerHostOwner', () => {
       'dedicated-host.lease-acquired',
     )
 
+    owner.close()
+  })
+
+  it('a host fails its term only when its own Worker dies', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    const callbacks = buildCallbacks()
+    owner.start(callbacks)
+    await flushPromises()
+    const lifeLockName = owner.lifeLockName
+    expect(lifeLockName).toBe(
+      buildRuntimeLifeLockName('runtime-1', owner.generation ?? ''),
+    )
+
+    const workerDies = locks.hold(lifeLockName ?? '')
+    await flushPromises()
+    owner.workerReportsLifeLock(lifeLockName ?? '', true)
+    await owner.waitWorkerHoldsLifeLock()
+    await flushPromises()
+    expect(callbacks.hostWorkerLost).not.toHaveBeenCalled()
+
+    workerDies()
+    await flushPromises()
+    await flushPromises()
+    expect(callbacks.hostWorkerLost).toHaveBeenCalledExactlyOnceWith(
+      'runtime worker exited',
+    )
+
+    // A term that ended first ignores its Worker's end: the host terminates
+    // the Worker itself after a reported failure.
+    const failed = new DedicatedWorkerHostOwner('runtime-2', 'document-2')
+    const failedCallbacks = buildCallbacks()
+    failed.start(failedCallbacks)
+    await flushPromises()
+    const failedLockName = failed.lifeLockName ?? ''
+    const failedWorkerDies = locks.hold(failedLockName)
+    await flushPromises()
+    failed.workerReportsLifeLock(failedLockName, true)
+    failed.fail('panic: boom')
+    failedWorkerDies()
+    await flushPromises()
+    await flushPromises()
+    expect(failedCallbacks.hostWorkerLost).not.toHaveBeenCalled()
+
+    failed.close()
+    owner.close()
+  })
+
+  it('host whose Worker holds no life lock fails its term', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    const callbacks = buildCallbacks()
+    owner.start(callbacks)
+    await flushPromises()
+    const lifeLockName = owner.lifeLockName ?? ''
+    const acked = vi.fn()
+    void owner.waitWorkerHoldsLifeLock().then(acked, () => {})
+
+    owner.workerReportsLifeLock(lifeLockName, false)
+    await flushPromises()
+    // No attach is acked and no watch is requested on a lock nobody holds.
+    expect(acked).not.toHaveBeenCalled()
+    expect(locks.request.mock.calls.map(([name]) => name)).not.toContain(
+      lifeLockName,
+    )
+    expect(callbacks.hostWorkerLost).toHaveBeenCalledExactlyOnceWith(
+      'runtime worker holds no life lock',
+    )
     owner.close()
   })
 
@@ -368,7 +448,13 @@ describe('DedicatedWorkerHostOwner', () => {
       },
     })
     const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
-    owner.start(buildCallbacks())
+    const callbacks = buildCallbacks()
+    owner.start(callbacks)
+    await flushPromises()
+    // The host acks only once its Worker holds the term's life lock.
+    const hostWorkerDies = locks.hold(
+      buildRuntimeLifeLockName('runtime-1', 'document-1-generation-1'),
+    )
     await flushPromises()
 
     const openedPort = await owner.openClientChannel({
@@ -392,6 +478,20 @@ describe('DedicatedWorkerHostOwner', () => {
         'dedicated-host.attach-open-ready',
       ]),
     )
+    expect(callbacks.attachedHostGone).not.toHaveBeenCalled()
+
+    // The host's Worker dies with the host page alive: the attached document
+    // learns it from the life lock and reroutes once, whichever signal
+    // reports the loss first.
+    hostWorkerDies()
+    await flushPromises()
+    await flushPromises()
+    expect(callbacks.attachedHostGone).toHaveBeenCalledExactlyOnceWith(
+      'document-1',
+      'document-1-generation-1',
+    )
+    expect(owner.hostLost('document-1', 'document-1-generation-1')).toBe(true)
+    expect(owner.hostLost('document-1', 'document-1-generation-1')).toBe(false)
 
     openedPort.close()
     runtimeChannel.port2.close()

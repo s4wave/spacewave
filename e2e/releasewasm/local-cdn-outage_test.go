@@ -4,6 +4,7 @@ package releasewasm
 
 import (
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -200,18 +201,94 @@ func openRuntimeFailure(t *testing.T, ctx playwright.BrowserContext, timeoutMS f
 	if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
 		t.Fatal(err)
 	}
+	waitForRuntimeFailure(t, page, timeoutMS)
+	return page
+}
+
+// waitForRuntimeFailure waits up to timeoutMS for page to show the runtime
+// failure screen with Retry, not the web view deadline's.
+func waitForRuntimeFailure(t *testing.T, page playwright.Page, timeoutMS float64) {
+	t.Helper()
 	if err := button(page, "Retry").WaitFor(playwright.LocatorWaitForOptions{Timeout: new(timeoutMS)}); err != nil {
-		t.Fatalf("runtime panic did not offer Retry: %v", err)
+		text, _ := page.Locator("body").InnerText()
+		t.Fatalf("runtime failure did not offer Retry: %v; page shows %q", err, text)
 	}
 	text, err := page.Locator("body").InnerText()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(text, "Unable to open Spacewave") || strings.Contains(text, "web view did not become ready") {
-		t.Fatalf("runtime panic shows %q", text)
+		t.Fatalf("runtime failure shows %q", text)
 	}
-	t.Logf("runtime panic shows %q", text)
-	return page
+	t.Logf("runtime failure shows %q", text)
+}
+
+// TestLocalCDNRuntimeWorkerDeathOffersRetry verifies that a runtime Worker
+// that dies alone, with its host page open and the app running, shows that
+// page the runtime failure, that the attached document re-elects, hosts a new
+// runtime and shows the app again, and that the host's Retry joins it.
+func TestLocalCDNRuntimeWorkerDeathOffersRetry(t *testing.T) {
+	// Require the local CDN fixture, which serves the release.
+	if os.Getenv(localCDNEnv) != "1" {
+		t.Skip("set " + localCDNEnv + "=1 to build and serve the local startup CDN")
+	}
+	ctx := testHarness.newBrowserContext(t)
+	pages := make(map[string]playwright.Page, 2)
+	for _, role := range []string{"host", "attached"} {
+		page, err := ctx.NewPage()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
+			t.Fatal(err)
+		}
+		waitForSession(t, role, page)
+		pages[role] = page
+	}
+	host, attached := pages["host"], pages["attached"]
+	if runtimeWorker(attached) != nil {
+		t.Fatal("attached document runs its own runtime Worker")
+	}
+
+	// The Worker closes itself, as a crash or an out-of-memory kill would end
+	// it, while both pages stay open.
+	worker := runtimeWorker(host)
+	if worker == nil {
+		t.Fatal("host document runs no runtime Worker")
+	}
+	_, _ = worker.Evaluate(`() => self.close()`)
+
+	waitForRuntimeFailure(t, host, 30_000)
+
+	// The attached document wins the election, starts the next runtime and
+	// reveals the app on it.
+	if _, err := attached.WaitForFunction(`() => {
+		const labels = (globalThis.__swStartupMarks ?? []).map((mark) => mark.label)
+		const promoted = labels.lastIndexOf('dedicated-host.promoted')
+		return promoted >= 0 && labels.lastIndexOf('webview.revealed') > promoted
+	}`, nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(180_000)}); err != nil {
+		text, _ := attached.Locator("body").InnerText()
+		t.Fatalf("attached document did not show the app on the new runtime: %v; page shows %q", err, text)
+	}
+	waitForLiveApp(t, attached)
+	if runtimeWorker(attached) == nil {
+		t.Fatal("promoted document runs no runtime Worker")
+	}
+
+	retryIntoSession(t, "host", host)
+}
+
+// runtimeWorkerURL matches the runtime Worker's entrypoint script.
+var runtimeWorkerURL = regexp.MustCompile(`/runtime-(goscript|wasm)\.mjs`)
+
+// runtimeWorker returns the page's runtime Worker, or nil.
+func runtimeWorker(page playwright.Page) playwright.Worker {
+	for _, w := range page.Workers() {
+		if runtimeWorkerURL.MatchString(w.URL()) {
+			return w
+		}
+	}
+	return nil
 }
 
 // TestLocalCDNSecondTabQuickstart verifies that a second document, attached to

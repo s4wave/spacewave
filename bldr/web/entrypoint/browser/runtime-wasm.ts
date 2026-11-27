@@ -16,6 +16,7 @@ import {
 } from '../../runtime/wasm/go-process.js'
 import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
+import { holdRuntimeLifeLock } from '../../bldr/runtime-life-lock.js'
 
 // Detect whether we are running as a SharedWorker or a dedicated Worker.
 // SharedWorker receives connections via the 'connect' event.
@@ -228,6 +229,13 @@ if (isSharedWorker) {
       port.start()
     }
     // The first message may also contain an init or connect request.
+    // The creating document names the life lock in its init message; holding
+    // it from here on lets the document watch for this Worker's death.
+    const lifeLockName = (msgEvent.data as WebDocumentToWebRuntime | undefined)
+      ?.initWebRuntime?.lifeLockName
+    if (lifeLockName) {
+      holdRuntimeLifeLock(self, lifeLockName)
+    }
     if (
       msgEvent.data &&
       typeof msgEvent.data === 'object' &&

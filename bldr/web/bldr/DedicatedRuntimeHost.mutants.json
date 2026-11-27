@@ -1,0 +1,52 @@
+[
+  {
+    "name": "the host accepts an attach before its Worker holds the life lock",
+    "replace": [
+      [
+        "  /\\ worker[lease] # \"starting\"\n",
+        ""
+      ]
+    ],
+    "expect": "WatchFollowsHold"
+  },
+  {
+    "name": "the host does not watch its own Worker",
+    "replace": [
+      [
+        "  /\\ watch' = [watch EXCEPT ![d] = <<d, gen[d]>>]\n  /\\ UNCHANGED <<role, lease, gen, conn, view, deaths>>",
+        "  /\\ UNCHANGED <<role, lease, gen, conn, watch, view, deaths>>"
+      ]
+    ],
+    "expect": "AppIsWatched"
+  },
+  {
+    "name": "a failed host keeps the lease",
+    "replace": [
+      [
+        "            /\\ lease' = \"none\"\n",
+        "            /\\ lease' = lease\n"
+      ]
+    ],
+    "expect": "OneHost"
+  },
+  {
+    "name": "an attached document shows the failure",
+    "replace": [
+      [
+        "            /\\ view' = [view EXCEPT ![d] = \"loading\"]\n            /\\ UNCHANGED <<role, lease, worker>>",
+        "            /\\ view' = [view EXCEPT ![d] = \"failed\"]\n            /\\ UNCHANGED <<role, lease, worker>>"
+      ]
+    ],
+    "expect": "OnlyTheHostFails"
+  },
+  {
+    "name": "a host runs a Worker that holds no life lock",
+    "replace": [
+      [
+        "  /\\ role' = [role EXCEPT ![d] = \"failed\"]\n  /\\ lease' = \"none\"\n  /\\ worker' = [worker EXCEPT ![d] = \"none\"]\n  /\\ view' = [view EXCEPT ![d] = \"failed\"]\n  /\\ deaths' = deaths + 1\n  /\\ UNCHANGED <<gen, conn, watch>>",
+        "  /\\ worker' = [worker EXCEPT ![d] = \"alive\"]\n  /\\ deaths' = deaths + 1\n  /\\ UNCHANGED <<role, lease, gen, conn, watch, view>>"
+      ]
+    ],
+    "expect": "AppIsWatched"
+  }
+]

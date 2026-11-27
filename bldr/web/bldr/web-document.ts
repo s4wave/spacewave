@@ -86,6 +86,7 @@ import {
 
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
+import type { RuntimeLifeLockReport } from './runtime-life-lock.js'
 import {
   SAB_PAIR_DIRECTION_MTU_BYTES,
   createSabPair,
@@ -585,6 +586,12 @@ export interface WebDocumentOptions {
   opfsWorkerPath?: string
   // closedCallback is a callback to call during close() on WebDocument.
   closedCallback?: (err?: Error) => void
+  // runtimeFailedCallback is called once each time the runtime this document
+  // hosts or attaches to fails, with the reason, before the document drops
+  // back to its startup surface. The startup surface shows the failure from
+  // the state this callback writes; the runtime.failed startup mark is only
+  // diagnostics.
+  runtimeFailedCallback?: (reason: string) => void
   // runtimeWorkerPath is the path to the runtime-wasm.mjs
   // if unset, defaults to ./runtime-wasm.mjs
   // this is the .mjs file that loads the main Go program (the plugin host)
@@ -731,6 +738,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private releaseVisibilityCallback: DisposeCallback | null
   // closedCallback is a callback to be called when the web document is closed.
   private closedCallback?: (err?: Error) => void
+  // runtimeFailedCallback reports a runtime failure to the startup surface.
+  private runtimeFailedCallback?: (reason: string) => void
 
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebDocumentWebView }
@@ -952,6 +961,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (opts?.closedCallback) {
       this.closedCallback = opts.closedCallback
     }
+    this.runtimeFailedCallback = opts?.runtimeFailedCallback
     this.forceDedicatedWorkers = shouldForceDedicatedWorkers(
       opts?.forceDedicatedWorkers,
     )
@@ -1168,7 +1178,22 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           runtimeId: this.webRuntimeId,
           mode: 'dedicated-worker',
         })
+        const lifeLockName = this.dedicatedRuntimeHost?.lifeLockName
+        if (initMsg.initWebRuntime && lifeLockName) {
+          initMsg.initWebRuntime.lifeLockName = lifeLockName
+        }
         this.runtimeWorker = new Worker(runtimeJsURL, workerOptions)
+        // The Worker posts only one message itself: whether it took its life
+        // lock. Everything else travels over the port.
+        this.runtimeWorker.onmessage = (ev: MessageEvent) => {
+          const report = ev.data as Partial<RuntimeLifeLockReport> | undefined
+          if (report?.runtimeLifeLock) {
+            this.dedicatedRuntimeHost?.workerReportsLifeLock(
+              report.runtimeLifeLock,
+              !!report.held,
+            )
+          }
+        }
         const { port1, port2 } = new MessageChannel()
         this.webRuntimePort = port1
         this.runtimeWorker.postMessage(initMsg, [port2])
@@ -1262,6 +1287,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         startUnavailable: () => {
           startWebRuntimeWorker()
           this.startWebRuntimeConnection()
+        },
+        hostWorkerLost: (reason) => {
+          // The runtime Worker died with this page alive, or cannot take the
+          // life lock that would show its death. Show the failed startup
+          // surface, whose Retry reloads into a fresh election.
+          markStartupBoundary('runtime.failed', {
+            source: 'browser',
+            documentId: this.webDocumentUuid,
+            runtimeId: this.webRuntimeId,
+            reason,
+          })
+          this.handleRuntimeFailed(reason)
+        },
+        attachedHostGone: (hostDocumentId, hostGeneration) => {
+          this.handleDedicatedRuntimeHostLost({
+            webDocumentId: hostDocumentId,
+            hostGeneration,
+            reason: 'runtime worker exited',
+          })
         },
       })
     }
@@ -2045,13 +2089,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private handleDedicatedRuntimeHostLost(
     lost: DedicatedRuntimeHostLostMessage,
   ): void {
-    const host = this.dedicatedRuntimeHost
-    if (!host || host.role !== 'attached') {
-      return
-    }
     if (
-      lost.webDocumentId !== host.connectedHostDocumentId ||
-      lost.hostGeneration !== host.connectedHostGeneration
+      !this.dedicatedRuntimeHost?.hostLost(
+        lost.webDocumentId,
+        lost.hostGeneration,
+      )
     ) {
       return
     }
@@ -2132,6 +2174,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // Retry reloads into that election.
   private handleRuntimeFailed(reason: string) {
     if (!this.dedicatedRuntimeHost) {
+      this.runtimeFailedCallback?.(reason)
       return
     }
     if (this.runtimeWorker) {
@@ -2144,6 +2187,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     this.releasePluginSingletonLock()
     this.dedicatedRuntimeHost.fail(reason)
+    this.runtimeFailedCallback?.(reason)
+    // A page past startup shows the app; drop it back to the startup surface,
+    // which shows the failure.
+    this.setRuntimeConnected(false)
   }
 
   // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
@@ -3006,6 +3053,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       from,
     })
     port.start()
+    if (this.dedicatedRuntimeHost?.role === 'host') {
+      // An attached document watches this term's life lock from the ack on,
+      // so ack only once the Worker holds it; a term that ends first is
+      // rejected below.
+      await this.dedicatedRuntimeHost.waitWorkerHoldsLifeLock().catch(() => {})
+    }
     if (
       this.dedicatedRuntimeHost &&
       this.dedicatedRuntimeHost.role !== 'host' &&

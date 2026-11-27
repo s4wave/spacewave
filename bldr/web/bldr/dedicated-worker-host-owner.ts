@@ -6,6 +6,10 @@ import {
 } from '../runtime/runtime.js'
 
 import { randomId } from './random-id.js'
+import {
+  buildRuntimeLifeLockName,
+  watchRuntimeLifeLock,
+} from './runtime-life-lock.js'
 import { markStartupBoundary } from './startup-marks.js'
 
 // DedicatedWorkerHostRole is the host-election role of this document in the
@@ -28,6 +32,12 @@ export interface DedicatedWorkerHostCallbacks {
   startAttached(): void
   startUnavailable(): void
   promoteToHost(): void
+  // hostWorkerLost reports that this host's runtime Worker died, or that it
+  // cannot take its life lock, so its death could not be seen.
+  hostWorkerLost(reason: string): void
+  // attachedHostGone reports that the Worker of the host this document is
+  // attached to died.
+  attachedHostGone(hostDocumentId: string, hostGeneration: string): void
 }
 
 interface DedicatedWorkerHostOpen {
@@ -43,6 +53,13 @@ export function buildDedicatedWorkerHostLockName(runtimeId: string): string {
 
 // DedicatedWorkerHostOwner makes Chromium issue 528332884's temporary
 // DedicatedWorker fallback keep SharedWorker's one runtime-host owner shape.
+//
+// Each host term's Worker holds the term's life lock (runtime-life-lock.ts).
+// The owner watches the life lock of the term its document runs on: a host
+// once its Worker reports holding it, an attached document once the host acks
+// its attach. The host acks only after its Worker holds the lock, so no watch
+// is requested before the Worker holds it. A grant ends a host's term and
+// sends an attached document to the next election.
 export class DedicatedWorkerHostOwner {
   public role: DedicatedWorkerHostRole = 'pending'
   public generation?: string
@@ -53,6 +70,11 @@ export class DedicatedWorkerHostOwner {
   private closeLease?: () => void
   private standingAbort?: AbortController
   private callbacks?: DedicatedWorkerHostCallbacks
+  // lifeWatch withdraws the watch on the current term's life lock.
+  private lifeWatch?: AbortController
+  // workerHeld settles once this host term's Worker holds its life lock, or
+  // rejects when the term ends first.
+  private workerHeld?: PromiseWithResolvers<void>
   private readonly pendingClientChannels = new Set<DedicatedWorkerHostOpen>()
 
   constructor(
@@ -154,6 +176,9 @@ export class DedicatedWorkerHostOwner {
     const promoted = this.role === 'attached'
     this.role = 'host'
     this.generation = `${this.webDocumentId}-${randomId()}`
+    this.stopLifeWatch()
+    this.workerHeld = Promise.withResolvers<void>()
+    this.workerHeld.promise.catch(() => {})
     markStartupBoundary(
       promoted ? 'dedicated-host.promoted' : 'dedicated-host.lease-acquired',
       {
@@ -189,6 +214,7 @@ export class DedicatedWorkerHostOwner {
     this.connectedHostDocumentId = undefined
     this.connectedHostGeneration = undefined
     this.cancelPendingClientChannels('dedicated runtime host failed')
+    this.endTerm('dedicated runtime host failed')
     this.standingAbort?.abort()
     this.standingAbort = undefined
     this.closeLease?.()
@@ -201,6 +227,98 @@ export class DedicatedWorkerHostOwner {
       from,
       reason,
     })
+  }
+
+  // lifeLockName is the life lock of this host's current term.
+  public get lifeLockName(): string | undefined {
+    if (this.role !== 'host' || !this.generation) {
+      return undefined
+    }
+    return buildRuntimeLifeLockName(this.webRuntimeId, this.generation)
+  }
+
+  // workerReportsLifeLock records whether the Worker of the named term took
+  // its life lock. A held lock lets the host ack attaches and is watched for
+  // the Worker's death. A Worker without one would die unseen, leaving every
+  // page on it waiting forever, so its term fails into Retry instead.
+  public workerReportsLifeLock(name: string, held: boolean): void {
+    const term = this.workerHeld
+    if (!term || name !== this.lifeLockName) {
+      return
+    }
+    if (!held) {
+      this.callbacks?.hostWorkerLost('runtime worker holds no life lock')
+      return
+    }
+    term.resolve()
+    markStartupBoundary('dedicated-host.life-lock-held', {
+      source: 'browser',
+      documentId: this.webDocumentId,
+      runtimeId: this.webRuntimeId,
+      generation: this.generation,
+    })
+    this.watchLifeLock(name, () =>
+      this.callbacks?.hostWorkerLost('runtime worker exited'),
+    )
+  }
+
+  // waitWorkerHoldsLifeLock resolves once this host term's Worker reports its
+  // life lock and rejects if the term ends first. Without Web Locks there is
+  // no life lock to wait for.
+  public waitWorkerHoldsLifeLock(): Promise<void> {
+    return this.workerHeld?.promise ?? Promise.resolve()
+  }
+
+  // hostLost reports whether the named host term is the one this attached
+  // document runs on, and forgets it, so one loss reroutes once whichever
+  // signal reports it first.
+  public hostLost(hostDocumentId: string, hostGeneration?: string): boolean {
+    if (
+      this.role !== 'attached' ||
+      hostDocumentId !== this.connectedHostDocumentId ||
+      hostGeneration !== this.connectedHostGeneration
+    ) {
+      return false
+    }
+    this.connectedHostDocumentId = undefined
+    this.connectedHostGeneration = undefined
+    this.stopLifeWatch()
+    return true
+  }
+
+  // watchLifeLock replaces the watch with one on the named life lock. Only
+  // the current watch reports; a grant that races its own withdrawal does not.
+  private watchLifeLock(name: string, onGone: () => void): void {
+    this.stopLifeWatch()
+    const watch = new AbortController()
+    this.lifeWatch = watch
+    watchRuntimeLifeLock(name, watch.signal, () => {
+      if (this.lifeWatch !== watch) {
+        return
+      }
+      this.lifeWatch = undefined
+      markStartupBoundary('dedicated-host.worker-gone', {
+        source: 'browser',
+        documentId: this.webDocumentId,
+        runtimeId: this.webRuntimeId,
+        role: this.role,
+        lockName: name,
+      })
+      onGone()
+    })
+  }
+
+  private stopLifeWatch(): void {
+    this.lifeWatch?.abort()
+    this.lifeWatch = undefined
+  }
+
+  // endTerm withdraws the life watch and fails a wait on a lock this term's
+  // Worker will no longer take.
+  private endTerm(reason: string): void {
+    this.stopLifeWatch()
+    this.workerHeld?.reject(new Error(reason))
+    this.workerHeld = undefined
   }
 
   public async openClientChannel(
@@ -271,6 +389,11 @@ export class DedicatedWorkerHostOwner {
       }
       this.connectedHostDocumentId = ack.hostDocumentId
       this.connectedHostGeneration = ack.hostGeneration
+      const { hostDocumentId, hostGeneration } = ack
+      this.watchLifeLock(
+        buildRuntimeLifeLockName(this.webRuntimeId, hostGeneration),
+        () => this.callbacks?.attachedHostGone(hostDocumentId, hostGeneration),
+      )
       markStartupBoundary('dedicated-host.attach-open-ready', {
         source: 'browser',
         documentId: this.webDocumentId,
@@ -314,6 +437,7 @@ export class DedicatedWorkerHostOwner {
     this.closed = true
     this.role = 'closed'
     this.cancelPendingClientChannels('dedicated runtime host owner closed')
+    this.endTerm('dedicated runtime host owner closed')
     this.standingAbort?.abort()
     this.standingAbort = undefined
     this.closeLease?.()

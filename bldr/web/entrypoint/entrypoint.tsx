@@ -108,6 +108,11 @@ if (
   webDocumentOpts.forceMessagePortWorkerComms = true
 }
 
+// A runtime that fails after startup puts the page's startup surface in its
+// failed state, whose Retry reloads into a fresh runtime.
+webDocumentOpts.runtimeFailedCallback = (reason) => {
+  setBrowserBootStatus('runtime-error', reason, 'error')
+}
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 
 if (!isDesktop) {

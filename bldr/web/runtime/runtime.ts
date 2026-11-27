@@ -82,6 +82,9 @@ export interface WebDocumentToWebRuntime {
     webRuntimeId: string
     // env is passed to the host Go runtime when it starts.
     env?: Record<string, string>
+    // lifeLockName is the life lock a dedicated runtime Worker holds for its
+    // whole life, so its host can watch for its death.
+    lifeLockName?: string
   }
   // connectWebRuntime contains a request to connect as a client of WebRuntime.
   connectWebRuntime?: {
