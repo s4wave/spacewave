@@ -466,7 +466,7 @@ func testSetRootPowerCut(t *testing.T) {
 	var heldCut []string
 	acked := []string{"uncut"}
 	cuts := 0
-	for n := 0; n < 64; n++ {
+	for n := range 64 {
 		k := "cut-" + strconv.Itoa(n)
 		held.Store(false)
 		dev.CrashAfter(n)
