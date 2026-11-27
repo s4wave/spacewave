@@ -6542,6 +6542,90 @@ func TestLivenessSettle(t *testing.T) {
 		})
 	}
 
+	t.Run("hole written off before the adoption", func(t *testing.T) {
+		// A Volume that predates adoption holds main A -> H -> C -> D
+		// and A -> B -> H, with C's list cut. Opened with frees off, as
+		// an operator's tool opens it, it loses H, an audit records the
+		// hole and the operator writes it off. The next open turns frees
+		// on, which returns the Volume to unadopted, and its recount runs
+		// over the written-off hole. The hole stays written off and off
+		// the front, the flip passes it, and the sweep deletes C and D,
+		// which no walk reached. A put of H, C and D from content then
+		// ends the hole, and H's list holds C from then on.
+		tr := testTree{}
+		tr.add(t, "D")
+		tr.add(t, "C", "D")
+		h := tr.add(t, "H", "C")
+		tr.add(t, "B", "H")
+		tr.add(t, "A", "H", "B")
+		store := newGuardedStore(t)
+		ctx := t.Context()
+		writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, "A", true, "D", "H", "B", "A")
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cut := slices.Concat(livenessPrefix, []byte{'c'}, block_gc.BlockKey(tr["C"].Ref))
+		if err := tx.Set(ctx, cut, block_gc.EncodeChildren(nil)); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		// Lose H, record its hole and write it off with frees off.
+		v1, _ := openLivenessVolume(t, store, false)
+		punchHole(t, v1, h)
+		if res, err := v1.Audit(ctx); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+		}
+		if res, err := v1.WriteOffHoles(ctx, []*block.BlockRef{h}); err != nil || res.WrittenOff != 1 {
+			t.Fatalf("write-off of H = %+v err %v, want one hole written off", res, err)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Turn frees on and let the recount run.
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		holes := func() (int, int) {
+			t.Helper()
+			st, err := v.SettleStatus(ctx, 8)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return st.Holes, st.OpenHoles
+		}
+		if n, open := holes(); n != 1 || open != 0 || has(t, store, front, h) {
+			t.Fatalf("the recount left %d holes, %d open, want H's written off and off the front", n, open)
+		}
+
+		// The flip passes the hole, and the sweep takes what it hid.
+		if res := settleAll(t, v, clk, store, tr); !res.Flipped {
+			t.Fatalf("settle = %+v, want a flip", res)
+		}
+		requireStored(t, v, tr, true, "A", "B")
+		requireStored(t, v, tr, false, "H", "C", "D")
+		if n, open := holes(); n != 1 || open != 0 {
+			t.Fatalf("after the sweep %d holes, %d open, want H's written off", n, open)
+		}
+
+		// Put the lost tree from content and let two grace periods pass.
+		if _, err := v.PutBlockBatch(ctx, tr.entries("D", "C", "H")); err != nil {
+			t.Fatal(err)
+		}
+		for range 2 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		}
+		if n, _ := holes(); n != 0 {
+			t.Fatalf("%d holes after the put, want none", n)
+		}
+		requireReads(t, v, tr, "A", "H", "C", "D", "B")
+		requireAudit(t, v, 0)
+	})
+
 	// oldU builds the root A, verified, and an unreached old block U -> K,
 	// with U's list cut when cut is set.
 	oldU := func(t *testing.T, cut bool) (*Volume, *testClock, kvtx.Store, testTree) {
