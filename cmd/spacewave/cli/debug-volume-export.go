@@ -17,8 +17,6 @@ type debugVolumeExportArgs struct {
 	refs string
 	// out is the private directory receiving verified blocks.
 	out string
-	// followAbsentFrom is the stopped receiver whose present blocks stop the walk.
-	followAbsentFrom string
 	// lacksOut is the optional report of missing or corrupt source blocks.
 	lacksOut string
 }
@@ -28,11 +26,6 @@ func (a *debugVolumeExportArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "refs", Usage: "file of B58 block refs, one per line, optionally followed by a tab and notes", Required: true, Destination: &a.refs},
 		&cli.StringFlag{Name: "out", Usage: "private output directory for blocks named by B58 ref", Required: true, Destination: &a.out},
-		&cli.StringFlag{
-			Name:        "follow-absent-from",
-			Usage:       "also export each child, at any depth, of an exported block that this stopped receiver volume lacks and the source holds",
-			Destination: &a.followAbsentFrom,
-		},
 		&cli.StringFlag{Name: "lacks-out", Usage: "write each missing or corrupt ref and its reason to this file", Destination: &a.lacksOut},
 	}
 }
@@ -68,17 +61,6 @@ func (a *debugVolumeExportArgs) export(ctx context.Context, path string) (res vo
 	}
 	defer func() { err = stderrors.Join(err, errors.Wrap(closeSource(), "close export source")) }()
 
-	// Hold a read-only receiver snapshot before creating any output.
-	var receiver volumeBlockPresence
-	if a.followAbsentFrom != "" {
-		blocks, closeReceiver, openErr := openS4DBBlocks(ctx, a.followAbsentFrom)
-		if openErr != nil {
-			return res, errors.Wrap(openErr, "open export receiver")
-		}
-		defer func() { err = stderrors.Join(err, errors.Wrap(closeReceiver(), "close export receiver")) }()
-		receiver = blocks
-	}
-
 	// Require a private directory before writing any block bytes.
 	if err := os.MkdirAll(a.out, 0o700); err != nil {
 		return res, errors.Wrap(err, "create export directory")
@@ -92,18 +74,14 @@ func (a *debugVolumeExportArgs) export(ctx context.Context, path string) (res vo
 	}
 
 	// Protect the inputs from an optional report's truncation.
-	inputs := []string{path, a.refs}
-	if a.followAbsentFrom != "" {
-		inputs = append(inputs, a.followAbsentFrom)
-	}
-	lacks, closeLacks, err := openVolumeBlockLacks(a.lacksOut, inputs...)
+	lacks, closeLacks, err := openVolumeBlockLacks(a.lacksOut, path, a.refs)
 	if err != nil {
 		return res, err
 	}
 	defer func() { err = stderrors.Join(err, closeLacks()) }()
 
 	// Export without retaining a batch of block bytes or the refs file.
-	r := volumeExport{source: source, receiver: receiver, out: a.out, lacks: lacks}
+	r := volumeExport{source: source, out: a.out, lacks: lacks}
 	err = r.run(ctx, refs)
 	return r.result, err
 }
@@ -116,12 +94,10 @@ func newDebugVolumeExportCommand() *cli.Command {
 		Name:      "volume-export",
 		Usage:     "export selected verified blocks from a stopped s4db volume",
 		ArgsUsage: "<volume-file>",
-		Description: "Read a stopped s4db file next to its data and export the requested blocks. " +
+		Description: "Read a stopped s4db file next to its data and export only the requested blocks. " +
 			"The private output directory holds one file per B58 ref and can feed volume-refill --from. " +
-			"Use --follow-absent-from <receiver-volume-file> to follow exported blocks to any depth, stopping at children the receiver holds. " +
-			"The source and optional receiver are opened read-only and only the engine's reader-slot bookkeeping writes there.\n\n" +
-			"For example, run spacewave debug volume-export --refs missing.tsv --out exported-blocks --lacks-out lacks.tsv backup.s4db.\n" +
-			"To include missing descendants, run spacewave debug volume-export --refs missing.tsv --out exported-blocks --follow-absent-from receiver.s4db backup.s4db",
+			"The source is opened read-only and only the engine's reader-slot bookkeeping writes there.\n\n" +
+			"For example, run spacewave debug volume-export --refs missing.tsv --out exported-blocks --lacks-out lacks.tsv backup.s4db",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}
