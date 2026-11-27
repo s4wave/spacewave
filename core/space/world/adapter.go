@@ -224,6 +224,15 @@ type Adapter struct {
 	// stopped reports that Execute's run ended, so no background store
 	// starts. Guarded by bcast.
 	stopped bool
+	// reloading reports that a write's outcome went unknown or the mount
+	// refused a write because it will reload. It is terminal: gateWrite
+	// refuses every later write and the queue sends nothing more, so no
+	// write commits on this mount between the unknown and its settle.
+	// Guarded by bcast.
+	reloading bool
+	// settles settles the writes of this device whose outcome went unknown,
+	// shared with the other adapters of the Space World.
+	settles *settleSet
 	// runCtx ends every background store when Execute's run ends.
 	runCtx context.Context
 	// cursorSaving reports that a cursor save runs in the background.
@@ -260,6 +269,10 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	if opts.MaxPendingBytes == 0 && !opts.transient {
 		opts.MaxPendingBytes = defaultMaxPendingBytes
 	}
+	settles := opts.settles
+	if settles == nil {
+		settles = newSettleSet()
+	}
 
 	// Front the SharedObject's block store with the kept pages and the shared
 	// decoded block cache.
@@ -290,6 +303,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		payloads:         rootSet{name: RootReplayPayloads},
 		payloadVersions:  make(map[string]uint32),
 		replayState:      newReplayOpening(),
+		settles:          settles,
 	}
 	a.pages.SetKeepStaged(keepStaged)
 	a.lookupOp = a.buildLookupOp()
@@ -352,12 +366,20 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		return err
 	}
 	a.replay.stage = newReplayStage(a.pages)
+
+	// Take the writes an earlier mount left unknown before the driver's
+	// first step, so replay matches each one.
+	adopted := a.adoptSettles()
 	close(a.opened)
 
-	// Run the queue and the storage reclaim.
+	// Run the queue and the storage reclaim, and settle the adopted writes
+	// the loaded state lacks.
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
+	if len(adopted) != 0 {
+		g.Go(func() error { return a.settleAdopted(ctx, adopted) })
+	}
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -461,7 +483,8 @@ func (a *Adapter) waitOpened(ctx context.Context) error {
 // waiting in the queue never reached the SharedObject, so it is superseded:
 // its writer runs again on the next head. Any other may be durable, such as
 // one inside QueueOperation, so its durability is unknown. The next open
-// replays its operation if the SharedObject holds it.
+// replays its operation if the SharedObject holds it, and settles it for
+// WaitSettled. An adopted write stays unsettled for the next adapter.
 func (a *Adapter) endAdmissions() {
 	// Supersede the ones the queue never passed on.
 	waiting := a.queue.drain()
@@ -472,9 +495,11 @@ func (a *Adapter) endAdmissions() {
 	// Leave the rest unknown.
 	var rest []*spaceAdmission
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		rest = slices.Clone(a.pending)
+		rest = slices.DeleteFunc(slices.Clone(a.pending), func(adm *spaceAdmission) bool { return adm.settle != nil })
 	})
-	a.decide(rest, world.Undecided, "", world.ErrDurabilityUnknown)
+	for _, adm := range rest {
+		a.fail(adm, durabilityUnknown(adm, errAdapterStopped))
+	}
 }
 
 // WaitEngine waits for the engine serving the Space World.
@@ -555,8 +580,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		var waitCh <-chan struct{}
 		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			installed, state, waitCh = a.installed, a.headState, getWaitCh()
-			reached = a.headHeight > target.Checkpoint.GetHeight() ||
-				(a.headHeight == target.Checkpoint.GetHeight() && a.headPositions >= len(target.Order))
+			reached = a.reachedLocked(target)
 			waiting = a.replayState.GetWaiting() != nil
 		})
 		if !state.GetHeadRef().GetEmpty() && (reached || waiting) {
@@ -612,6 +636,13 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		broadcast()
 	})
 	return engine, nil
+}
+
+// reachedLocked reports whether the installed head is at or past target's
+// order. The caller holds bcast.
+func (a *Adapter) reachedLocked(target *sobject.OrderEvent) bool {
+	return a.headHeight > target.Checkpoint.GetHeight() ||
+		(a.headHeight == target.Checkpoint.GetHeight() && a.headPositions >= len(target.Order))
 }
 
 // initOp returns the operation that initializes the World when this device
@@ -1589,14 +1620,15 @@ func (a *Adapter) reconcilePlacedLocked(inCheckpoint, kept []spacePosition) {
 
 // decideCovered decides the admissions an installed checkpoint covers without
 // replay placing them: refused ones as Rejected, and unknown ones as
-// Undecided with ErrDurabilityUnknown, since the SharedObject holds them.
+// Undecided with ErrDurabilityUnknown, since the SharedObject holds them, and
+// world.ErrOutcomeHidden, since no successor can settle them either.
 func (a *Adapter) decideCovered(refused, unknown []*spaceAdmission) {
 	const reason = "refused before the installed checkpoint"
 	if len(refused) != 0 {
 		a.decide(refused, world.Rejected, reason, errors.Wrap(sobject.ErrRejectedOp, reason))
 	}
-	if len(unknown) != 0 {
-		a.decide(unknown, world.Undecided, "", errors.Wrap(world.ErrDurabilityUnknown, "checkpoint covers the operation without its outcome"))
+	for _, adm := range unknown {
+		a.fail(adm, durabilityUnknown(adm, world.ErrOutcomeHidden))
 	}
 }
 
@@ -1613,7 +1645,16 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 		a.decide([]*spaceAdmission{adm}, world.Superseded, reasonExpectedWrite, nil)
 		return
 	case errors.Is(err, sobject.ErrStateWriteUnknown):
-		a.fail(adm, errors.Wrap(world.ErrDurabilityUnknown, err.Error()))
+		a.stopWrites()
+		a.fail(adm, durabilityUnknown(adm, err))
+		return
+	case errors.Is(err, world.ErrEngineRetired):
+		a.fail(adm, err)
+		return
+	case errors.Is(err, sobject.ErrMountReloading):
+		// Nothing was written, and the mount writes nothing more.
+		a.stopWrites()
+		a.fail(adm, errors.Wrap(world.ErrEngineRetired, err.Error()))
 		return
 	case err != nil:
 		a.fail(adm, err)
@@ -1669,6 +1710,25 @@ func (a *Adapter) Acknowledge(ctx context.Context) error {
 	return err
 }
 
+// stopWrites moves the adapter to Reloading after a write whose outcome is
+// unknown or that the mount refused because it will reload.
+//
+// Invariant: no write of this device commits on this mount between the
+// unknown and its settle. The queue is serial, so this runs before it takes
+// the next admission. That one and every later one end with
+// world.ErrEngineRetired unsent, and gateWrite admits no new one. The
+// provider's reload fence refuses the mount's other writers, such as the
+// sequencer, the same way.
+func (a *Adapter) stopWrites() {
+	a.queue.stop(world.ErrEngineRetired)
+	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !a.reloading {
+			a.reloading = true
+			broadcast()
+		}
+	})
+}
+
 // fail ends adm with err: its operation never entered the order.
 func (a *Adapter) fail(adm *spaceAdmission, err error) {
 	a.decide([]*spaceAdmission{adm}, world.Undecided, "", err)
@@ -1687,6 +1747,7 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 			}
 			adm.state, adm.decision, adm.reason, adm.err, adm.head = admissionDecided, decision, reason, err, a.head
 			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
+			a.settleDecidedLocked(adm)
 			done = append(done, adm)
 		}
 		a.writer = a.writerHeadLocked()

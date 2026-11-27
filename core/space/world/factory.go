@@ -21,6 +21,10 @@ type Factory struct {
 	bus bus.Bus
 	// opTypes resolves the operation types of each engine.
 	opTypes OpTypes
+	// settles holds each engine's unknown writes across the controllers the
+	// bus constructs for it, since the bus constructs a new one each time
+	// Execute fails, as when the mount reloads.
+	settles settleSets
 }
 
 // NewEngineFactory returns a factory whose engines resolve operation types
@@ -48,7 +52,8 @@ func (f *Factory) ConstructConfig() config.Config {
 
 // Construct constructs the controller with the default block transforms.
 func (f *Factory) Construct(_ context.Context, conf config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
-	return NewController(opts.GetLogger(), f.bus, conf.(*Config), transform_all.BuildFactorySet(), f.opTypes), nil
+	c := conf.(*Config)
+	return NewController(opts.GetLogger(), f.bus, c, transform_all.BuildFactorySet(), f.opTypes, f.settles.get(c.GetEngineId())), nil
 }
 
 // GetVersion returns the version of this controller.

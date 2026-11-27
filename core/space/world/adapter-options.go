@@ -55,4 +55,7 @@ type AdapterOptions struct {
 	// transient replays without holding roots or saving the cursor, for a
 	// one-off replay beside the Space's own adapter.
 	transient bool
+	// settles is the controller's settle set, shared by every adapter of
+	// the Space World it runs, or nil for one of this adapter's own.
+	settles *settleSet
 }

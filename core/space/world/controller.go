@@ -31,10 +31,18 @@ type Controller struct {
 	opTypes OpTypes
 	// adapterCtr holds the adapter of the running execution.
 	adapterCtr *ccontainer.CContainer[*Adapter]
+	// settles settles the writes whose outcome went unknown, across the
+	// adapters this controller runs and the controllers the bus constructs
+	// after it for the same engine.
+	settles *settleSet
 }
 
-// NewController returns the controller of conf's Space World.
-func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transform.StepFactorySet, opTypes OpTypes) *Controller {
+// NewController returns the controller of conf's Space World. settles holds
+// the writes earlier controllers of the engine left unknown, or is nil.
+func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transform.StepFactorySet, opTypes OpTypes, settles *settleSet) *Controller {
+	if settles == nil {
+		settles = newSettleSet()
+	}
 	return &Controller{
 		le:         le.WithField("engine-id", conf.GetEngineId()),
 		bus:        b,
@@ -42,6 +50,7 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transfo
 		sfs:        sfs,
 		opTypes:    opTypes,
 		adapterCtr: ccontainer.NewCContainer[*Adapter](nil),
+		settles:    settles,
 	}
 }
 
@@ -76,6 +85,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 		DisableLookup:   c.conf.GetDisableLookup(),
 		InitWorldOp:     c.conf.GetInitWorldOp(),
 		Verbose:         c.conf.GetVerbose(),
+		settles:         c.settles,
 	})
 	if err != nil {
 		return err

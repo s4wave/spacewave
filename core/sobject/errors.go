@@ -105,4 +105,8 @@ var (
 	// blindly: it re-reads the state and looks for its write first. The
 	// mount reloads the state storage holds.
 	ErrStateWriteUnknown = errors.New("shared object state write outcome unknown")
+	// ErrMountReloading is returned by a state write on a mount whose state
+	// will reload after an unknown or refused write. Nothing was written; the
+	// caller writes again on the reloaded mount.
+	ErrMountReloading = errors.New("shared object mount is reloading")
 )

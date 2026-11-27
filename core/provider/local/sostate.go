@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
@@ -14,6 +15,17 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/peer"
 )
+
+// ReloadFenceEnv turns off the reload fence when set to "off" at startup: a
+// mount that has called Reload keeps writing until the restart ends it, as
+// before, instead of refusing each later write with
+// sobject.ErrMountReloading. The compare-and-set against the loaded token
+// still refuses a write over another writer's state either way.
+const ReloadFenceEnv = "SPACEWAVE_LOCAL_RELOAD_FENCE"
+
+// reloadFenceOff selects ReloadFenceEnv's old behavior. It is read once, here,
+// at startup.
+var reloadFenceOff = os.Getenv(ReloadFenceEnv) == "off"
 
 // SOStateRuns joins the state funcs of the successive mount runs of one
 // shared object. A run's load waits only for this object's own state writes,
@@ -29,7 +41,8 @@ type SOStateRuns struct {
 	// loaded or last wrote, or may: after a write fails its compare, after
 	// a failure that may have committed finds neither the write nor the
 	// state under it, and when such a failure's outcome cannot be read. The
-	// mount cannot write again until it reloads.
+	// mount's later writes fail with sobject.ErrMountReloading from the call
+	// on, even while a backoff postpones the restart.
 	Reload func()
 }
 
@@ -67,6 +80,36 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		}),
 	)
 	soRc.SetContext(rctx, true)
+
+	// writable ends when this run calls Reload, before the restart that ends
+	// rctx, which a backoff may postpone by seconds.
+	//
+	// Invariant: once a write's outcome is unknown, or storage holds a state
+	// this run did not load or write, this run commits no further write. The
+	// restarted run settles what storage holds, so a write the old run
+	// committed in the window would extend a state no reader has settled,
+	// and the settled head would not be the state at the unknown with or
+	// without the unknown write. Each write checks writable inside its
+	// transaction, after taking runs.Writes, so a write that checked before
+	// the fence never commits after a later load either.
+	writable, endWrites := context.WithCancelCause(rctx)
+	reload := func() {
+		if !reloadFenceOff {
+			endWrites(sobject.ErrMountReloading)
+		}
+		runs.Reload()
+	}
+
+	// writeErr returns why this run cannot write, or nil.
+	writeErr := func() error {
+		if err := rctx.Err(); err != nil {
+			return err
+		}
+		if writable.Err() != nil {
+			return context.Cause(writable)
+		}
+		return nil
+	}
 
 	// awaitLoaded waits for ent's loaded state. An ended mount errors at once,
 	// even when another handle keeps its entry loaded, so a lock or a watch
@@ -106,7 +149,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	settle := func(sharedObjectID string, ent *soStateEntry, token []byte, ended bool, err error) error {
 		// A failure before the commit stored nothing.
 		if errors.Is(err, ErrStateChanged) {
-			runs.Reload()
+			reload()
 			return err
 		}
 		if !ended {
@@ -136,7 +179,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		// Settle from what storage holds.
 		switch {
 		case rerr != nil:
-			runs.Reload()
+			reload()
 			return errors.Join(sobject.ErrStateWriteUnknown, err)
 		case found && bytes.Equal(stored, token):
 			return nil
@@ -145,7 +188,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		default:
 			// Another state may be a successor another mount wrote over
 			// this one after it committed, so the outcome is unknown.
-			runs.Reload()
+			reload()
 			return errors.Join(sobject.ErrStateWriteUnknown, err)
 		}
 	}
@@ -166,6 +209,10 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		// Retain the loaded state entry until the write lock is released.
 		ref, ent, _ := soRc.AddKeyRef(sharedObjectID)
 		if err := awaitLoaded(ctx, ent); err != nil {
+			ref.Release()
+			return nil, err
+		}
+		if err := writeErr(); err != nil {
 			ref.Release()
 			return nil, err
 		}
@@ -222,8 +269,9 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						// has ended cannot write: a delete restarts the mount before
 						// releasing the account lock a relist needs, so a stale
 						// handle never writes over a relisted object. A write that
-						// raced the delete finds no state and fails.
-						if err := rctx.Err(); err != nil {
+						// raced the delete finds no state and fails. A run that
+						// called Reload writes nothing more (writable).
+						if err := writeErr(); err != nil {
 							return err
 						}
 						if hook := testHookStateWriting.Load(); hook != nil {
@@ -265,11 +313,17 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if err := writeReadCheckpoint(ctx, tx, sharedObjectID, localPeer, initialState, state); err != nil {
 							return err
 						}
+
+						// Write the state over the entry's token. A test may discard the
+						// transaction after the write.
 						token, err = ent.layout.write(ctx, tx, ent.token, committed, state)
 						if err != nil {
 							return err
 						}
 						ended = true
+						if hook := testHookStateCommit.Load(); hook != nil {
+							return (*hook)(sharedObjectID, initialState, state)
+						}
 						return nil
 					},
 				)

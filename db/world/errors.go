@@ -1,6 +1,7 @@
 package world
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -49,6 +50,13 @@ var (
 	// unmount. It never means the commit failed: the next open reconciles
 	// the head, so the writer reads the World before it writes again.
 	ErrDurabilityUnknown = errors.New("world commit durability unknown")
+	// ErrOutcomeHidden is returned by WaitSettled for an operation a
+	// checkpoint folded in without recording whether it applied. The World
+	// holds its effect or not, but no record names which.
+	ErrOutcomeHidden = errors.New("world checkpoint hides the operation outcome")
+	// ErrSettleUnsupported is returned by WaitSettled on an engine that
+	// cannot settle an unknown write.
+	ErrSettleUnsupported = errors.New("world engine cannot settle an unknown write")
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
@@ -103,4 +111,45 @@ func IsSuperseded(err error) bool {
 		return false
 	}
 	return errors.Is(err, ErrSuperseded) || errors.Is(err, coord.ErrStaleGeneration)
+}
+
+// DurabilityUnknownError is an ErrDurabilityUnknown for one signed operation.
+// OpHash names the operation, so the writer can wait for a successor engine
+// to settle whether it applied before it writes again.
+type DurabilityUnknownError struct {
+	// OpHash is the hash of the signed operation. The caller must not modify it.
+	OpHash []byte
+	// Err is the cause.
+	Err error
+}
+
+// Error returns the cause behind the ErrDurabilityUnknown text.
+func (e *DurabilityUnknownError) Error() string {
+	if e.Err == nil {
+		return ErrDurabilityUnknown.Error()
+	}
+	return ErrDurabilityUnknown.Error() + ": " + e.Err.Error()
+}
+
+// Is reports that the error is an ErrDurabilityUnknown.
+func (e *DurabilityUnknownError) Is(target error) bool {
+	return target == ErrDurabilityUnknown
+}
+
+// Unwrap returns the cause.
+func (e *DurabilityUnknownError) Unwrap() error {
+	return e.Err
+}
+
+// SettleWaiter settles a write whose commit ended with DurabilityUnknownError.
+type SettleWaiter interface {
+	// WaitSettled waits until an engine that reloaded the World's storage
+	// after the write settled it, and returns that engine's head and whether
+	// the operation of opHash applied. The writer holds its own writes until
+	// it returns: one that applied is in head, and one that did not never
+	// will be, since nothing commits on the old engine after the unknown. It
+	// returns ErrOutcomeHidden when a checkpoint folded the operation in
+	// without its outcome. It works after the engine that returned the
+	// unknown retired, since that engine's successor settles the write.
+	WaitSettled(ctx context.Context, opHash []byte) (head Head, applied bool, err error)
 }

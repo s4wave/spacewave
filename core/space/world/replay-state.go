@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // newReplayOpening returns the replay state before the driver's first step.
@@ -43,13 +44,21 @@ func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
 // such as an object root, with nothing to detect the replacement. Opening holds
 // the write rather than refuse it, as replay of what this device already holds
 // usually reaches the end of its order in moments.
+//
+// Reloading is terminal: once a write's outcome went unknown, or the mount
+// refused a write because it will reload, every write returns
+// world.ErrEngineRetired, so its writer runs again on the next adapter after
+// it settles the unknown write (WaitSettled), instead of ending as a second
+// unknown on a mount that cannot commit.
 func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
 	for {
-		var opening bool
+		var opening, retired bool
 		var wait *sobject.WriteWait
 		var waitCh <-chan struct{}
 		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			switch {
+			case a.reloading:
+				retired = true
 			case a.replayState.GetCaughtUp() != nil:
 				if admit != nil {
 					admit()
@@ -60,6 +69,9 @@ func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
 				wait = &sobject.WriteWait{Wake: getWaitCh()}
 			}
 		})
+		if retired {
+			return world.ErrEngineRetired
+		}
 		if wait != nil {
 			return wait
 		}

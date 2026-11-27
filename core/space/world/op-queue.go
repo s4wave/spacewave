@@ -21,6 +21,20 @@ type opQueue struct {
 	// waiting are the admissions not yet passed to QueueOperation, in
 	// admission order. Guarded by bcast.
 	waiting []*spaceAdmission
+	// stopped is why the queue passes nothing more to QueueOperation, or
+	// nil. Guarded by bcast.
+	stopped error
+}
+
+// stop ends each admission the queue takes from now on with err, without
+// passing it to QueueOperation. The first error stays.
+func (q *opQueue) stop(err error) {
+	q.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if q.stopped == nil {
+			q.stopped = err
+			broadcast()
+		}
+	})
 }
 
 // push appends adm to the queue.
@@ -61,15 +75,22 @@ func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, stri
 	for {
 		// Take the oldest waiting admission, waiting for one.
 		var adm *spaceAdmission
+		var stopped error
 		err := q.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
 			if len(q.waiting) == 0 {
 				return false, nil
 			}
-			adm, q.waiting = q.waiting[0], q.waiting[1:]
+			adm, q.waiting, stopped = q.waiting[0], q.waiting[1:], q.stopped
 			return true, nil
 		})
 		if err != nil {
 			return context.Canceled
+		}
+
+		// End it unsent once the queue stopped.
+		if stopped != nil {
+			queued(adm, "", nil, stopped)
+			continue
 		}
 
 		// Queue it with a receipt, except in legacy mode or for an acknowledgment.

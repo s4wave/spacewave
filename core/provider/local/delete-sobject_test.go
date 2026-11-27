@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,9 +16,12 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
@@ -433,6 +437,218 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	if got := testAuthorNonce(ctx, t, last, author); got != before+1 {
 		t.Fatalf("the state after the successor holds the author at nonce %d, want %d", got, before+1)
 	}
+}
+
+// TestReloadFenceRefusesPostponedWrites ends an operation's write unknown
+// with its state lost while the reload's backoff postpones the restart, then
+// tries to commit at the old base in that window: an operation and a state
+// write on the same handle. Each fails with ErrMountReloading and stores
+// nothing, and the restarted mount holds the author at the nonce before the
+// unknown write. Without the fence the compare-and-set passes, since storage
+// still holds the token the mount loaded, and the operation commits at the
+// old base.
+func TestReloadFenceRefusesPostponedWrites(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	ref := createTestSharedObject(ctx, t, a, "fenced")
+	so, rel := mountTestSharedObject(ctx, t, a, ref)
+	defer rel()
+	writeTestStateData(ctx, t, so, []byte("fake-a"))
+	author := so.GetPeerID().String()
+	before := testAuthorNonce(ctx, t, so, author)
+
+	// Postpone the next reload by the longest backoff.
+	tracker, ok := a.sobjects.GetKey("fenced")
+	if !ok {
+		t.Fatal("the mounted object has no tracker")
+	}
+	tracker.reloadMtx.Lock()
+	tracker.reloadLast, tracker.reloadDelay = time.Now(), reloadBackoffMax
+	tracker.reloadMtx.Unlock()
+
+	// An operation's commit fails without storing it, and storage cannot be
+	// read to settle it.
+	var commitOnce, settleOnce sync.Once
+	testHookStateCommit.Store(new(func(string, *sobject.SOState, *sobject.SOState) error {
+		var err error
+		commitOnce.Do(func() { err = errors.New("fake lost commit") })
+		return err
+	}))
+	t.Cleanup(func() { testHookStateCommit.Store(nil) })
+	testHookStateSettling.Store(new(func(string) error {
+		var err error
+		settleOnce.Do(func() { err = errors.New("fake settle read failure") })
+		return err
+	}))
+	t.Cleanup(func() { testHookStateSettling.Store(nil) })
+	if _, _, err := so.QueueOperation(ctx, []byte("op-unknown")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+		t.Fatalf("the unsettled operation returned %v", err)
+	}
+	testHookStateCommit.Store(nil)
+	testHookStateSettling.Store(nil)
+
+	// Before the postponed restart, writes at the old base are refused.
+	if so.ctx.Err() != nil {
+		t.Fatal("the reload restarted the mount without its backoff")
+	}
+	if _, _, err := so.QueueOperation(ctx, []byte("op-stale")); !errors.Is(err, sobject.ErrMountReloading) {
+		t.Fatalf("an operation at the old base returned %v", err)
+	}
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-stale")); !errors.Is(err, sobject.ErrMountReloading) {
+		t.Fatalf("a state write at the old base returned %v", err)
+	}
+
+	// The restarted mount holds neither, and takes writes.
+	expectTestMountEnded(ctx, t, so)
+	next, relNext := mountTestSharedObject(ctx, t, a, ref)
+	defer relNext()
+	waitTestStateData(ctx, t, next, []byte("fake-a"))
+	if got := testAuthorNonce(ctx, t, next, author); got != before {
+		t.Fatalf("the restarted mount holds the author at nonce %d, want %d", got, before)
+	}
+	writeTestStateData(ctx, t, next, []byte("fake-b"))
+}
+
+// TestWaitSettledAfterUnknownCommit ends a World commit's state write
+// unknown twice, once after the commit stored it and once in place of the
+// commit, each time with the settle read failing. The commit returns
+// world.DurabilityUnknownError with the operation's hash, and WaitSettled on
+// the engine that returned it waits for the restarted mount's engine and
+// reports the write applied exactly when the World holds its object. Each
+// time the client then writes again.
+func TestWaitSettledAfterUnknownCommit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
+	tb, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
+	const id = "settle-space"
+	ref, err := a.CreateSharedObject(ctx, id, &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	eng, engRef, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig("settle-world", ref), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer engRef.Release()
+
+	// create commits one object in its own transaction. has reads it.
+	create := func(key string) error {
+		tx, err := eng.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		obj, _, err := world.CreateWorldObject(ctx, tx, key, func(cursor *block.Cursor) error {
+			cursor.SetBlock(block_mock.NewExample("settle wrote "+key), true)
+			return nil
+		})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
+	has := func(key string) bool {
+		tx, err := eng.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		obj, found, err := tx.GetObject(ctx, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		world.ReleaseObjectState(obj)
+		return found
+	}
+	if err := create("before"); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, landed := range []bool{true, false} {
+		key := map[bool]string{true: "landed", false: "lost"}[landed]
+
+		// Fail the state write that adds the World operation, after its
+		// commit stored it or in place of the commit, and the settle read.
+		var commitOnce, settleOnce sync.Once
+		var stored atomic.Bool
+		testHookStateCommit.Store(new(func(sid string, prev, next *sobject.SOState) error {
+			var err error
+			if sid == id && addsTestWorldOp(prev, next) {
+				commitOnce.Do(func() {
+					if landed {
+						stored.Store(true)
+					} else {
+						err = errors.New("fake lost commit")
+					}
+				})
+			}
+			return err
+		}))
+		testHookStateCommitted.Store(new(func(string) error {
+			if stored.Swap(false) {
+				return errors.New("fake ambiguous commit")
+			}
+			return nil
+		}))
+		testHookStateSettling.Store(new(func(sid string) error {
+			var err error
+			if sid == id {
+				settleOnce.Do(func() { err = errors.New("fake settle read failure") })
+			}
+			return err
+		}))
+		err := create(key)
+		testHookStateCommit.Store(nil)
+		testHookStateCommitted.Store(nil)
+		testHookStateSettling.Store(nil)
+		var unknown *world.DurabilityUnknownError
+		if !errors.As(err, &unknown) || len(unknown.OpHash) == 0 {
+			t.Fatalf("the %s commit returned %v, want a durability unknown with its hash", key, err)
+		}
+
+		// The settle reports the outcome the World holds.
+		head, applied, err := eng.WaitSettled(ctx, unknown.OpHash)
+		if err != nil {
+			t.Fatalf("settling the %s commit: %v", key, err)
+		}
+		if applied != landed || head.Root == nil {
+			t.Fatalf("the %s commit settled applied=%t at head %v, want applied=%t", key, applied, head, landed)
+		}
+		if got := has(key); got != landed {
+			t.Fatalf("the World holds the %s object: %t, want %t", key, got, landed)
+		}
+		if err := create("after-" + key); err != nil {
+			t.Fatalf("writing after the %s settle: %v", key, err)
+		}
+	}
+	t.Cleanup(func() {
+		testHookStateCommit.Store(nil)
+		testHookStateCommitted.Store(nil)
+		testHookStateSettling.Store(nil)
+	})
+}
+
+// addsTestWorldOp reports whether next holds an operation other than an
+// acknowledgment that prev lacks.
+func addsTestWorldOp(prev, next *sobject.SOState) bool {
+	had := make(map[string]bool, len(prev.GetOps()))
+	for _, op := range prev.GetOps() {
+		had[string(op.GetInner())] = true
+	}
+	for _, op := range next.GetOps() {
+		if had[string(op.GetInner())] {
+			continue
+		}
+		if inner, err := op.UnmarshalInner(); err == nil && !inner.IsAcknowledgment() {
+			return true
+		}
+	}
+	return false
 }
 
 // testAuthorNonce returns the nonce of author's newest operation in so's

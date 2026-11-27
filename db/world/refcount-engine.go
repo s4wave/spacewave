@@ -115,6 +115,24 @@ func (e *RefCountEngine) retired(err error, tries int) bool {
 	return true
 }
 
+// WaitSettled settles an unknown write through the engine (SettleWaiter). It
+// waits outside the engine's reference, so a long wait holds no engine open,
+// and returns ErrSettleUnsupported for an engine that cannot settle.
+func (e *RefCountEngine) WaitSettled(ctx context.Context, opHash []byte) (Head, bool, error) {
+	var waiter SettleWaiter
+	err := e.access(ctx, func(_ context.Context, val *Engine) error {
+		var ok bool
+		if waiter, ok = (*val).(SettleWaiter); !ok {
+			return ErrSettleUnsupported
+		}
+		return nil
+	})
+	if err != nil {
+		return Head{}, false, err
+	}
+	return waiter.WaitSettled(ctx, opHash)
+}
+
 // Sync fences durable storage and advances the durable head via the engine.
 func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
 	var fenced bool
@@ -276,4 +294,5 @@ func (e *RefCountEngine) WatchIndexedChanges(
 var (
 	_ Engine               = (*RefCountEngine)(nil)
 	_ IndexedChangeWatcher = (*RefCountEngine)(nil)
+	_ SettleWaiter         = (*RefCountEngine)(nil)
 )

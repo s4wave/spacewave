@@ -1,0 +1,29 @@
+[
+  {
+    "name": "the postponed run still commits",
+    "replace": [["CommitGuard == ~fenced /\\ ~qstop", "CommitGuard == TRUE"]],
+    "expect": "BasesHeld",
+    "config": "ReplayUnknownSettle.cfg"
+  },
+  {
+    "name": "the old adapter settles from its own state before the restart",
+    "replace": [
+      ["SettleReady == run = \"new\"", "SettleReady == run \\in {\"postponed\", \"new\"}"],
+      ["SettleView == st", "SettleView == IF run = \"new\" THEN st ELSE mview"]
+    ],
+    "expect": "SettleCorrect",
+    "config": "ReplayUnknownSettle.cfg"
+  },
+  {
+    "name": "the client drops an applied write's rows",
+    "replace": [["/\\ rows' = IF unk \\in SettleView THEN rows ELSE rows \\ {unk}", "/\\ rows' = rows \\ {unk}"]],
+    "expect": "RowsMatch",
+    "config": "ReplayUnknownSettle.cfg"
+  },
+  {
+    "name": "the client writes again before the settle",
+    "replace": [["    /\\ ~Held\n    /\\ inflight'", "    /\\ inflight'"]],
+    "expect": "BasesHeld",
+    "config": "ReplayUnknownSettle.cfg"
+  }
+]

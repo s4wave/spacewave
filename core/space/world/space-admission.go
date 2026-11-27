@@ -77,6 +77,9 @@ type spaceAdmission struct {
 	head world.Head
 	// err is the queue's failure, or the refusal as an error.
 	err error
+	// settle is the unknown write of an earlier mount this admission settles,
+	// or nil for a live write. An adopted admission has no op or candidate.
+	settle *settleEntry
 }
 
 // Seqno returns the World seqno at the candidate's root.
@@ -99,11 +102,16 @@ func (s *spaceAdmission) Head() world.Head {
 // WaitDecided waits until the driver applied the candidate's position and
 // the installed head holds it, or the queue failed it.
 func (s *spaceAdmission) WaitDecided(ctx context.Context) (world.Decision, error) {
-	// Wait for the decision.
+	// Wait for the decision, preferring one already made when ctx ends at
+	// the same time, as when an unmount decides and then retires the engine.
 	select {
-	case <-ctx.Done():
-		return world.Undecided, context.Cause(ctx)
 	case <-s.done:
+	case <-ctx.Done():
+		select {
+		case <-s.done:
+		default:
+			return world.Undecided, context.Cause(ctx)
+		}
 	}
 
 	// Read it.

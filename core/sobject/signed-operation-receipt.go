@@ -39,3 +39,9 @@ func (r *SignedOperationReceipt) MatchesHash(hash []byte) bool {
 func (r *SignedOperationReceipt) OpHash() []byte {
 	return r.position.Load().GetOpHash()
 }
+
+// Position returns the published position, or nil before Publish. The caller
+// must not modify it.
+func (r *SignedOperationReceipt) Position() *SOOperationPosition {
+	return r.position.Load()
+}

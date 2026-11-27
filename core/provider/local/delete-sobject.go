@@ -61,6 +61,11 @@ var (
 	// testHookStateWriting runs in a mounted state write's transaction,
 	// after its mount check, before it reads the stored state.
 	testHookStateWriting atomic.Pointer[func(id string)]
+	// testHookStateCommit runs at the end of a mounted state write's
+	// transaction body, before the commit, with the state it builds on and
+	// the state it writes. An error it returns discards the transaction, as
+	// from a commit that failed without storing the state.
+	testHookStateCommit atomic.Pointer[func(id string, prev, next *sobject.SOState) error]
 	// testHookStateCommitted runs after a mounted state write commits. An
 	// error it returns is the write's, as from a commit that stored the
 	// state and then failed.
