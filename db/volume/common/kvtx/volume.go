@@ -17,6 +17,7 @@ import (
 	pkg_errors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/kvtx"
 	hstore "github.com/s4wave/spacewave/db/store"
@@ -31,6 +32,11 @@ import (
 
 // StatsFn returns storage usage statistics for a volume.
 type StatsFn func(ctx context.Context) (*volume.StorageStats, error)
+
+// volumeCoordinator promotes coordination operations without exposing their implementation.
+type volumeCoordinator interface {
+	coord.Coordinator
+}
 
 // Volume implements a key-value volume.
 type Volume struct {
@@ -293,6 +299,37 @@ func NewVolume(
 		}
 	}
 	op.Handoff()
+	return v, nil
+}
+
+// NewVolumeWithBackend opens a volume and binds its backend before returning it.
+// It takes ownership of closeFn under the same contract as NewVolume.
+func NewVolumeWithBackend(
+	coordinate func(string, coord.Coordinator) coord.Coordinator,
+	logger *logrus.Entry,
+	storageFlows func(*volume.VolumeFlows),
+	ctx context.Context,
+	storeID string,
+	keys *store_kvkey.KVKey,
+	store kvtx.Store,
+	conf *store_kvtx.Config,
+	noGenerateKey, noWriteKey bool,
+	statsFn StatsFn,
+	closeFn func() error,
+	deleteFn ...func() error,
+) (*Volume, error) {
+	// Finish ordinary initialization before installing backend coordination and diagnostics.
+	v, err := NewVolume(ctx, storeID, keys, store, conf, noGenerateKey, noWriteKey, statsFn, closeFn, deleteFn...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Bind the backend to the initialized identity and default coordinator.
+	if coordinate != nil {
+		v.volumeCoordinator = coordinate(v.GetID(), v.volumeCoordinator)
+	}
+	v.le = logger
+	v.storageFlows = storageFlows
 	return v, nil
 }
 

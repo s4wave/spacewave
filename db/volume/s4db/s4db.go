@@ -121,19 +121,17 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 	}
 	op.Handoff()
 	vol, err := volume_kvtx.NewVolumeWithBackend(
-		volume_kvtx.Backend{
-			Coordinate: func(id string, _ coord.Coordinator) coord.Coordinator {
-				return coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(id))
-			},
-			Logger: le,
-			StorageFlows: func(f *volume.VolumeFlows) {
-				st, err := db.Stats(context.Background())
-				if err != nil {
-					return
-				}
-				f.Values = valueFlows(families, st.Families)
-				f.BackgroundWaitMax = st.BackgroundWaitMax
-			},
+		func(id string, _ coord.Coordinator) coord.Coordinator {
+			return coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(id))
+		},
+		le,
+		func(f *volume.VolumeFlows) {
+			st, err := db.Stats(context.Background())
+			if err != nil {
+				return
+			}
+			f.Values = valueFlows(families, st.Families)
+			f.BackgroundWaitMax = st.BackgroundWaitMax
 		},
 		ctx, ControllerID, keys, store, conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(), conf.GetNoWriteKey(), stats, db.Close,

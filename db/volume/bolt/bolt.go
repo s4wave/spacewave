@@ -83,9 +83,9 @@ func NewBolt(
 	boltDB := store.GetDB()
 	path := conf.GetPath()
 	vol, err := kvtx.NewVolumeWithBackend(
-		kvtx.Backend{Coordinate: func(id string, _ coord.Coordinator) coord.Coordinator {
+		func(id string, _ coord.Coordinator) coord.Coordinator {
 			return coord_filelock.NewCoordinator(filepath.Dir(path), path, coord_bolt.NewCoordinator(boltDB, coord_inmem.ForVolume(id)))
-		}},
+		}, nil, nil,
 		ctx,
 		ControllerID,
 		kvkey,
