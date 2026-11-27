@@ -43,7 +43,7 @@ func WriteOffHoles(ctx context.Context, store Store, refs []*block.BlockRef) (Wr
 	// Require a hole record for every ref before writing any.
 	err := store.View(ctx, func(rec *Records) error {
 		for _, ref := range refs {
-			hole, err := rec.tx.Exists(ctx, rec.key(kindHole, BlockKey(ref)))
+			hole, err := rec.hasHole(ctx, BlockKey(ref))
 			if err != nil {
 				return err
 			}

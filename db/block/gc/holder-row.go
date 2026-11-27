@@ -44,25 +44,23 @@ func readHolderRow(ctx context.Context, rec *Records, blocks block.StoreOps, cur
 	if err != nil {
 		return row, err
 	}
-	value, found, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
-	if err != nil {
+	if row.Listed, row.Marked, err = rec.listState(ctx, key); err != nil {
 		return row, err
 	}
-	row.Listed, row.Marked = found, found && listMarked(value)
 
-	// Read the three proof records at exactly this count's ripe sequence.
-	for _, check := range []struct {
-		key  []byte
-		flag *bool
-	}{
-		{rec.queueKey(row.Ripe, key), &row.Queued},
-		{rec.releasedKey(row.Ripe, key), &row.Released},
-		{rec.parkedKey(row.Ripe, key), &row.Parked},
-		{rec.key(kindFront, key), &row.Front},
-	} {
-		if *check.flag, err = rec.tx.Exists(ctx, check.key); err != nil {
-			return row, err
-		}
+	// Read the three proof records at exactly this count's ripe sequence,
+	// and the front key.
+	if row.Queued, err = rec.hasQueueKey(ctx, row.Ripe, key); err != nil {
+		return row, err
+	}
+	if row.Released, err = rec.hasReleasedKey(ctx, row.Ripe, key); err != nil {
+		return row, err
+	}
+	if row.Parked, err = rec.hasParkedKey(ctx, row.Ripe, key); err != nil {
+		return row, err
+	}
+	if row.Front, err = rec.hasFront(ctx, key); err != nil {
+		return row, err
 	}
 
 	// Read raw existence and use the collector's proof for the diagnostic cause.

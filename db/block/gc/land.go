@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // BucketRoots are the root moves of one bucket a Land makes.
@@ -709,14 +708,10 @@ func classifyPuts(
 	}
 
 	// Read the child lists in one batch.
-	reads := make([][]byte, len(keys))
-	for i, key := range keys {
-		reads[i] = rec.key(kindChildren, key)
-	}
 	var listed []bool
 	var err error
-	if len(reads) != 0 {
-		if listed, err = kvtx.ExistsBatch(ctx, rec.tx, reads); err != nil {
+	if len(keys) != 0 {
+		if listed, err = rec.listedBatch(ctx, keys); err != nil {
 			return err
 		}
 	}
@@ -726,7 +721,7 @@ func classifyPuts(
 	// its hole key only while the holes-clear mark is absent, so a put of
 	// new blocks reads one key for the batch, and no seek under the writer.
 	kinds := make([]putKind, len(puts))
-	counted := reads[:0]
+	counted := make([][]byte, 0, len(keys))
 	var countedAt []int
 	var holesRead, holes bool
 	for i, key := range keys {
@@ -744,7 +739,7 @@ func classifyPuts(
 		}
 		hole := false
 		if holes {
-			if hole, err = rec.tx.Exists(ctx, rec.key(kindHole, key)); err != nil {
+			if hole, err = rec.hasHole(ctx, key); err != nil {
 				return err
 			}
 		}
@@ -768,7 +763,7 @@ func classifyPuts(
 	held := holds.gather(rec, puts, keys, kinds, seen)
 	counted = append(counted, held...)
 	if len(counted) != 0 {
-		values, found, err := kvtx.GetBatch(ctx, rec.tx, counted)
+		values, found, err := rec.countsBatch(ctx, counted)
 		if err != nil {
 			return err
 		}
@@ -1019,7 +1014,7 @@ func (l *lander) markStoredLists(ctx context.Context) error {
 func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) error {
 	// A marked list was written from content.
 	key := BlockKey(entry.Ref)
-	value, listed, err := l.rec.tx.Get(ctx, l.rec.key(kindChildren, key))
+	value, listed, err := l.rec.childList(ctx, key)
 	if err != nil || !listed || listMarked(value) {
 		return err
 	}
@@ -1147,14 +1142,10 @@ func (l *lander) holdRefilled(ctx context.Context, children []*block.BlockRef) e
 // list read and holdStored's checks for each listed block.
 func (l *lander) holdOutside(ctx context.Context, refs []*block.BlockRef, keys [][]byte) ([]bool, error) {
 	// Read the lists in one batch.
-	reads := make([][]byte, len(keys))
-	for i, key := range keys {
-		reads[i] = l.rec.key(kindChildren, key)
-	}
 	if l.gen == Generation_GENERATION_SETTLED {
-		return kvtx.ExistsBatch(ctx, l.rec.tx, reads)
+		return l.rec.listedBatch(ctx, keys)
 	}
-	values, listed, err := kvtx.GetBatch(ctx, l.rec.tx, reads)
+	values, listed, err := l.rec.childListsBatch(ctx, keys)
 	if err != nil {
 		return nil, err
 	}

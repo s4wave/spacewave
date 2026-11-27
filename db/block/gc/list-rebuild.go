@@ -229,7 +229,7 @@ func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildR
 	for _, p := range r.pending {
 		// Read the list, and compare a marked one with the refs.
 		key := BlockKey(p.entry.Ref)
-		value, listed, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
+		value, listed, err := rec.childList(ctx, key)
 		if err != nil {
 			return false, err
 		}

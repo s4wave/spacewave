@@ -72,9 +72,11 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 		if st.Rewritten, err = rec.recountOwed(ctx); err != nil {
 			return err
 		}
-		if st.RunComplete, err = rec.tx.Exists(ctx, rec.key(kindUnmarked, runComplete)); err != nil {
+		incomplete, err := rec.runIncomplete(ctx)
+		if err != nil {
 			return err
 		}
+		st.RunComplete = !incomplete
 
 		// Count the front and the holes.
 		if err = st.readFront(ctx, rec, blocks, limit); err != nil {

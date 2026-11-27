@@ -1322,7 +1322,7 @@ func (w *walker) checkChild(
 	if seen == 0 {
 		return bytesCheck{}, false, nil
 	}
-	hole, err := rec.tx.Exists(ctx, rec.key(kindHole, key))
+	hole, err := rec.hasHole(ctx, key)
 	return bytesCheck{ref: ref}, err == nil && !hole, err
 }
 
@@ -1544,7 +1544,7 @@ func stillMissing(ctx context.Context, edges, rec *Records, state *LivenessState
 	if err != nil || listed {
 		return false, 0, nil, err
 	}
-	hole, err := rec.tx.Exists(ctx, rec.key(kindHole, key))
+	hole, err := rec.hasHole(ctx, key)
 	if err != nil || hole {
 		return false, 0, nil, err
 	}

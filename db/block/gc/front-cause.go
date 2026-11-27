@@ -81,12 +81,9 @@ func readFrontCause(ctx context.Context, rec *Records, blocks block.StoreOps, cu
 		return FrontHeldByHolders, 0, err
 	}
 	if listed {
-		proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
+		proven, err := rec.hasQueueKey(ctx, ripe, key)
 		if err == nil && !proven {
-			proven, err = rec.tx.Exists(ctx, rec.releasedKey(ripe, key))
-		}
-		if err == nil && !proven {
-			proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
+			proven, err = rec.parkedAt(ctx, key, ripe)
 		}
 		if err != nil || !proven {
 			return FrontZeroUnqueued, ripe, err

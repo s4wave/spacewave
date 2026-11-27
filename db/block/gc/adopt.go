@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // AdoptStore is the Volume an audit runs in.
@@ -714,17 +713,13 @@ func (a *adoption) countRoots(ctx context.Context, rec *Records, _ block.StoreOp
 	h := make(holds)
 	for _, name := range names {
 		// Read the starting block from the mark, or else the table.
-		start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
+		start, moved, err := rec.adoptRootStart(ctx, name)
 		if err != nil {
 			return nil, false, err
 		}
 		if !moved {
-			value, _, err := rec.tx.Get(ctx, rec.key(kindRoot, name))
+			entry, err := rec.rootAt(ctx, name)
 			if err != nil {
-				return nil, false, err
-			}
-			entry := &RootEntry{}
-			if err := entry.UnmarshalVT(value); err != nil {
 				return nil, false, err
 			}
 			start = entry.GetRef()
@@ -796,7 +791,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 	for i, key := range keys {
 		reads[i] = rec.key(kindCount, []byte(key))
 	}
-	counts, counted, err := kvtx.GetBatch(ctx, rec.tx, reads)
+	counts, counted, err := rec.countsBatch(ctx, reads)
 	if err != nil {
 		return err
 	}
@@ -821,11 +816,11 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 	if len(opened) == 0 {
 		return nil
 	}
-	reads = reads[:len(opened)]
+	openedKeys := make([][]byte, len(opened))
 	for i, key := range opened {
-		reads[i] = rec.key(kindChildren, []byte(key))
+		openedKeys[i] = []byte(key)
 	}
-	lists, listed, err := kvtx.GetBatch(ctx, rec.tx, reads)
+	lists, listed, err := rec.childListsBatch(ctx, openedKeys)
 	if err != nil {
 		return err
 	}

@@ -375,6 +375,13 @@ var errBadBlockKey = errors.New("liveness record names a block in an unknown enc
 // the child lists, count records and named roots that decide which blocks
 // are live, and the up and down logs, free queue, proofs and state the
 // collector keeps. Every key begins with prefix. Opening Records reads nothing.
+//
+// Invariant: Records owns every key under prefix in tx. Code outside its
+// methods reads a liveness record only through a method named by the
+// record's kind, such as hasFront, childList or countsBatch, so each kind's
+// key layout is built in one place and a read cannot reach the wrong kind,
+// prefix or position. A read deletes nothing, but the collector frees a block
+// on what its reads report, so a wrong read is a wrong free.
 type Records struct {
 	// tx is the Volume transaction.
 	tx kvtx.TxOps
@@ -492,7 +499,7 @@ func (r *Records) key(kind byte, parts ...[]byte) []byte {
 // GetChildren returns the children in the child list of ref and whether the
 // list exists, which is whether the Volume stores ref.
 func (r *Records) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error) {
-	value, found, err := r.tx.Get(ctx, r.key(kindChildren, BlockKey(ref)))
+	value, found, err := r.childList(ctx, BlockKey(ref))
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -506,7 +513,7 @@ func (r *Records) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*bloc
 // ref.
 func (r *Records) GetChildList(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, block.RefsSource, error) {
 	// Read the list, then say what its mark proves.
-	value, found, err := r.tx.Get(ctx, r.key(kindChildren, BlockKey(ref)))
+	value, found, err := r.childList(ctx, BlockKey(ref))
 	if err != nil || !found {
 		return nil, block.RefsUnknown, err
 	}
@@ -525,6 +532,35 @@ func (r *Records) HasChildren(ctx context.Context, ref *block.BlockRef) (bool, e
 // listed reports whether the child list of the block at key exists.
 func (r *Records) listed(ctx context.Context, key []byte) (bool, error) {
 	return r.tx.Exists(ctx, r.key(kindChildren, key))
+}
+
+// childList returns the child list record of the block at key, its packed
+// child keys and its mark, and whether it exists. The value belongs to the
+// transaction: a caller that keeps it past a write clones it.
+func (r *Records) childList(ctx context.Context, key []byte) ([]byte, bool, error) {
+	return r.tx.Get(ctx, r.key(kindChildren, key))
+}
+
+// listedBatch reports, for each block key in keys in order, whether its
+// child list exists, in one batched read.
+func (r *Records) listedBatch(ctx context.Context, keys [][]byte) ([]bool, error) {
+	return kvtx.ExistsBatch(ctx, r.tx, r.kindKeys(kindChildren, keys))
+}
+
+// childListsBatch returns, for each block key in keys in order, its child
+// list record and whether it exists, as childList does, in one batched read.
+func (r *Records) childListsBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	return kvtx.GetBatch(ctx, r.tx, r.kindKeys(kindChildren, keys))
+}
+
+// kindKeys returns the record key of kind for each block key in keys, in
+// order, so a batched read answers each block key at its index.
+func (r *Records) kindKeys(kind byte, keys [][]byte) [][]byte {
+	reads := make([][]byte, len(keys))
+	for i, key := range keys {
+		reads[i] = r.key(kind, key)
+	}
+	return reads
 }
 
 // PutChildren writes the child list of ref from its content, with listMark.
@@ -696,6 +732,14 @@ func (r *Records) holders(ctx context.Context, key []byte) (holders, ripe uint64
 	return decodeHolders(value)
 }
 
+// countsBatch returns, for each count record key in keys in order, its
+// value and whether it exists, in one batched read. Each key is a whole
+// kindCount or kindUnmarkedCount key, which key or zeroHolds.gather builds,
+// since the caller picks the kind per block, as countKind describes.
+func (r *Records) countsBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	return kvtx.GetBatch(ctx, r.tx, keys)
+}
+
 // decodeHolders decodes a count record value as GetHolders returns it.
 func decodeHolders(value []byte) (holders, ripe uint64, err error) {
 	// A zero record holds the ripe sequence after its zero byte.
@@ -841,10 +885,10 @@ func (r *Records) releasedLists(ctx context.Context) (map[string]struct{}, error
 // parkedAt reports whether the block at key, with a zero count ripe at
 // ripe, has a parked or a released key. It reads up to two keys.
 func (r *Records) parkedAt(ctx context.Context, key []byte, ripe uint64) (bool, error) {
-	if released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key)); err != nil || released {
+	if released, err := r.hasReleasedKey(ctx, ripe, key); err != nil || released {
 		return released, err
 	}
-	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+	return r.hasParkedKey(ctx, ripe, key)
 }
 
 // AnyParked reports whether the free parked any block that waits for the
@@ -1072,7 +1116,19 @@ func ParseNamedKey(rest []byte) (string, string, error) {
 // GetRoot returns the entry of the root named name in bucketID, or nil when
 // the name is free.
 func (r *Records) GetRoot(ctx context.Context, bucketID, name string) (*RootEntry, error) {
-	value, found, err := r.tx.Get(ctx, r.rootKey(bucketID, name))
+	return r.getRoot(ctx, r.rootKey(bucketID, name))
+}
+
+// rootAt returns the entry of the root whose namedKey after its kind is
+// name, as a scan of the root names reads it, or nil when the name is free.
+func (r *Records) rootAt(ctx context.Context, name []byte) (*RootEntry, error) {
+	return r.getRoot(ctx, r.key(kindRoot, name))
+}
+
+// getRoot returns the entry of the root at the kindRoot key key, or nil
+// when the name is free.
+func (r *Records) getRoot(ctx context.Context, key []byte) (*RootEntry, error) {
+	value, found, err := r.tx.Get(ctx, key)
 	if err != nil || !found {
 		return nil, err
 	}
@@ -1157,6 +1213,25 @@ func (r *Records) runIncomplete(ctx context.Context) (bool, error) {
 	return !done, err
 }
 
+// hasFront reports whether the block at key is on the front. It reads one
+// key.
+func (r *Records) hasFront(ctx context.Context, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.key(kindFront, key))
+}
+
+// frontMark returns the value of the front key of the block at key, the
+// token of the reference scan that marked it or empty, and whether the
+// block is on the front. It reads one key.
+func (r *Records) frontMark(ctx context.Context, key []byte) ([]byte, bool, error) {
+	return r.tx.Get(ctx, r.key(kindFront, key))
+}
+
+// hasHole reports whether the block at key has a hole record, written off
+// or not. It reads one key.
+func (r *Records) hasHole(ctx context.Context, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.key(kindHole, key))
+}
+
 // addFront pushes the block at key onto the front, raising the add
 // revision, as kindAddRev describes. It is the one writer that adds a front
 // key, and it writes no value, which deletes the mark a reference scan set
@@ -1233,7 +1308,7 @@ var holeWrittenOff = []byte{'w'}
 // Cost: three point reads and three writes, in an operator's transaction.
 func (r *Records) writeOffHole(ctx context.Context, key []byte) (bool, error) {
 	// Require the hole record.
-	hole, err := r.tx.Exists(ctx, r.key(kindHole, key))
+	hole, err := r.hasHole(ctx, key)
 	if err != nil || !hole {
 		return false, err
 	}
@@ -1437,6 +1512,24 @@ func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
 // releasedKey returns the released key of the Dead block at key with ripe.
 func (r *Records) releasedKey(ripe uint64, key []byte) []byte {
 	return r.key(kindReleased, binary.BigEndian.AppendUint64(nil, ripe), key)
+}
+
+// hasQueueKey reports whether the Dead block at key waits on the free queue
+// at ripe. It reads one key.
+func (r *Records) hasQueueKey(ctx context.Context, ripe uint64, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.queueKey(ripe, key))
+}
+
+// hasParkedKey reports whether the free parked the Dead block at key, ripe
+// at ripe, without releasing its children. It reads one key.
+func (r *Records) hasParkedKey(ctx context.Context, ripe uint64, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+}
+
+// hasReleasedKey reports whether the free parked the Dead block at key,
+// ripe at ripe, and gave its children their downs. It reads one key.
+func (r *Records) hasReleasedKey(ctx context.Context, ripe uint64, key []byte) (bool, error) {
+	return r.tx.Exists(ctx, r.releasedKey(ripe, key))
 }
 
 // queuePos returns the position on the free queue of the block at key,

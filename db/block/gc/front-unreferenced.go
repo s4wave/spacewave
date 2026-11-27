@@ -175,7 +175,7 @@ func (r *Records) unborn(ctx context.Context, blocks block.StoreOps, key []byte)
 		return false, err
 	}
 	if open {
-		hole, err := r.tx.Exists(ctx, r.key(kindHole, key))
+		hole, err := r.hasHole(ctx, key)
 		if err != nil || hole {
 			return false, err
 		}
@@ -308,7 +308,7 @@ func (c *Collector) unrefMarkSlice(ctx context.Context, rec *Records, blocks blo
 	// Mark each entry still on the front whose block is unborn at one.
 	end := min(from+c.share(sliceRecords), len(u.keys))
 	for _, key := range u.keys[from:end] {
-		fronted, err := rec.tx.Exists(ctx, rec.key(kindFront, key))
+		fronted, err := rec.hasFront(ctx, key)
 		if err != nil {
 			return from, false, err
 		}
@@ -467,7 +467,7 @@ func (c *Collector) unrefPopSlice(ctx context.Context, rec *Records, blocks bloc
 		if referenced, ok := u.cands[string(key)]; !ok || referenced {
 			continue
 		}
-		mark, fronted, err := rec.tx.Get(ctx, rec.key(kindFront, key))
+		mark, fronted, err := rec.frontMark(ctx, key)
 		if err != nil {
 			return from, false, err
 		}

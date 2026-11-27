@@ -1132,7 +1132,7 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 		if q.ripe > state.GetUpCursor() {
 			break
 		}
-		found, err := rec.tx.Exists(ctx, rec.queueKey(q.ripe, q.key))
+		found, err := rec.hasQueueKey(ctx, q.ripe, q.key)
 		if err != nil {
 			return 0, 0, false, err
 		}
@@ -1185,7 +1185,7 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 		if len(key) < 8 {
 			return errBadBlockKey
 		}
-		parked, err := rec.tx.Exists(ctx, rec.key(kindParked, key))
+		parked, err := rec.hasParkedKey(ctx, binary.BigEndian.Uint64(key), key[8:])
 		if err != nil || !parked {
 			return err
 		}

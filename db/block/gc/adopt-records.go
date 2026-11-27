@@ -21,6 +21,13 @@ func (r *Records) NoteAdoptRoot(ctx context.Context, bucketID, name string, held
 	return r.tx.Set(ctx, key, BlockKey(held))
 }
 
+// adoptRootStart returns the block key the root whose namedKey after its
+// kind is name held when the adoption began, empty when the name was free,
+// and whether Land moved the name since, so NoteAdoptRoot recorded it.
+func (r *Records) adoptRootStart(ctx context.Context, name []byte) ([]byte, bool, error) {
+	return r.tx.Get(ctx, r.key(kindAdoptRoot, name))
+}
+
 // adoptRecord is one record a bounded adoption scan read.
 type adoptRecord struct {
 	// key is the record key after its prefix and kind.

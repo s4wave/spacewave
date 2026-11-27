@@ -101,6 +101,13 @@ func (r *Records) Unmarked(ctx context.Context, key []byte) (bool, error) {
 	if err != nil || gen != Generation_GENERATION_SWEEPING {
 		return false, err
 	}
+	return r.inRun(ctx, key)
+}
+
+// inRun reports whether the block at key has an empty run entry, so is
+// neither reborn nor swept since the flip. It reads one key and not the
+// generation, so the caller knows the generation is Sweeping.
+func (r *Records) inRun(ctx context.Context, key []byte) (bool, error) {
 	value, found, err := r.tx.Get(ctx, r.key(kindUnmarked, key))
 	return found && len(value) == 0, err
 }
@@ -146,7 +153,7 @@ func (r *Records) releaseOld(ctx context.Context, key []byte) ([][]byte, error) 
 			return nil, err
 		}
 	default:
-		list, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
+		list, _, err := r.childList(ctx, key)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +179,7 @@ func (r *Records) releaseOld(ctx context.Context, key []byte) ([][]byte, error) 
 // listState reads the list record of the block at key: whether it exists,
 // and whether it was written from content.
 func (r *Records) listState(ctx context.Context, key []byte) (listed, marked bool, err error) {
-	value, found, err := r.tx.Get(ctx, r.key(kindChildren, key))
+	value, found, err := r.childList(ctx, key)
 	return found, found && listMarked(value), err
 }
 
@@ -892,12 +899,8 @@ func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *Collec
 	// Push each root's block when the walk owes it a decode.
 	err = page.each(func(key []byte) error {
 		// Skip a root deleted since the snapshot.
-		value, found, err := rec.tx.Get(ctx, rec.key(kindRoot, key))
-		if err != nil || !found {
-			return err
-		}
-		entry := &RootEntry{}
-		if err := entry.UnmarshalVT(value); err != nil {
+		entry, err := rec.rootAt(ctx, key)
+		if err != nil || entry == nil {
 			return err
 		}
 		pushed, err := rec.pushOwed(ctx, entry.GetRef())
@@ -971,16 +974,16 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 	if err != nil || gen != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
-	done, err := rec.tx.Exists(ctx, rec.key(kindUnmarked, runComplete))
-	if err != nil || done {
+	incomplete, err := rec.runIncomplete(ctx)
+	if err != nil || !incomplete {
 		return from, false, err
 	}
 
 	// Enter each list still unmarked in the run, and complete the run once
 	// the page reached the last.
 	err = page.each(func(key []byte) error {
-		list, found, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
-		if err != nil || !found || listMarked(list) {
+		listed, marked, err := rec.listState(ctx, key)
+		if err != nil || !listed || marked {
 			return err
 		}
 		res.Unmarked++
@@ -1063,7 +1066,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	popped, kept, wake, damaged := false, pos.kept, pos.wake, pos.damaged
 	err = page.each(func(key []byte) error {
 		// Skip a key popped since the snapshot.
-		fronted, err := rec.tx.Exists(ctx, rec.key(kindFront, key))
+		fronted, err := rec.hasFront(ctx, key)
 		if err != nil || !fronted {
 			return err
 		}
@@ -1276,8 +1279,8 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 	var down [][]byte
 	err = page.each(func(key []byte) error {
 		// Skip a key marked or swept since the snapshot.
-		value, found, err := rec.tx.Get(ctx, rec.key(kindUnmarked, key))
-		if err != nil || !found || len(value) != 0 {
+		unmarked, err := rec.inRun(ctx, key)
+		if err != nil || !unmarked {
 			return err
 		}
 

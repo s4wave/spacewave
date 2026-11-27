@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // netting sums one transaction's holder changes per block and writes only
@@ -224,7 +223,7 @@ func (n *netting) write(ctx context.Context) error {
 	var found []bool
 	if len(reads) != 0 {
 		var err error
-		if values, found, err = kvtx.GetBatch(ctx, n.rec.tx, reads); err != nil {
+		if values, found, err = n.rec.countsBatch(ctx, reads); err != nil {
 			return err
 		}
 	}
@@ -350,7 +349,7 @@ func (n *netting) wakeFront(ctx context.Context, key []byte, ripe uint64) error 
 	if n.state.GetGeneration() != Generation_GENERATION_OPEN {
 		return nil
 	}
-	fronted, err := n.rec.tx.Exists(ctx, n.rec.key(kindFront, key))
+	fronted, err := n.rec.hasFront(ctx, key)
 	if err == nil && fronted {
 		n.c.wakeFront(ripe)
 	}
@@ -365,7 +364,7 @@ func (n *netting) wakeUnreferenced(ctx context.Context, key []byte) error {
 	if n.c.opts.KeepUnreferenced || n.state.GetGeneration() != Generation_GENERATION_OPEN {
 		return nil
 	}
-	fronted, err := n.rec.tx.Exists(ctx, n.rec.key(kindFront, key))
+	fronted, err := n.rec.hasFront(ctx, key)
 	if err == nil && fronted {
 		n.c.wakeUnreferenced(key)
 	}
@@ -376,7 +375,7 @@ func (n *netting) wakeUnreferenced(ctx context.Context, key []byte) error {
 // queue it by, and whether the settle unmarked it: while Sweeping an
 // unmarked block counts as unlisted.
 func (n *netting) listed(ctx context.Context, key []byte) (listed, unmarked bool, err error) {
-	listed, err = n.rec.tx.Exists(ctx, n.rec.key(kindChildren, key))
+	listed, err = n.rec.listed(ctx, key)
 	if err != nil || !listed || n.state.GetGeneration() != Generation_GENERATION_SWEEPING {
 		return listed, false, err
 	}

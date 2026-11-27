@@ -200,7 +200,7 @@ func (res *AuditResult) checkStored(
 	// Count a live block the collector would free, and a leak.
 	queued := false
 	if mark.Has(ref) && holders == 0 && frees && ripe <= state.GetUpCursor() {
-		if queued, err = rec.tx.Exists(ctx, rec.queueKey(ripe, key)); err != nil {
+		if queued, err = rec.hasQueueKey(ctx, ripe, key); err != nil {
 			return err
 		}
 	}
@@ -388,7 +388,7 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 	if err != nil || listed {
 		return err
 	}
-	hole, err := rec.tx.Exists(ctx, rec.key(kindHole, BlockKey(h.ref)))
+	hole, err := rec.hasHole(ctx, BlockKey(h.ref))
 	if err != nil || hole {
 		return err
 	}
@@ -463,7 +463,7 @@ func AuditFront(ctx context.Context, rec *Records) (missing uint64, sample []*bl
 			if !listed || marked {
 				continue
 			}
-			front, err := rec.tx.Exists(ctx, rec.key(kindFront, key))
+			front, err := rec.hasFront(ctx, key)
 			if err != nil {
 				return false, err
 			}
