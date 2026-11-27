@@ -14,7 +14,7 @@
     "name": "the old adapter settles from its own state before the restart",
     "replace": [
       [
-        "SettleReady == run = \"new\"",
+        "SettleReady == run = \"new\" /\\ told /\\ adopted",
         "SettleReady == run \\in {\"postponed\", \"new\"}"
       ],
       [
@@ -56,6 +56,17 @@
       ]
     ],
     "expect": "SettleKept",
+    "config": "ReplayUnknownSettle.cfg"
+  },
+  {
+    "name": "the next adapter adopts only at its open",
+    "replace": [
+      [
+        "LateAdopt == TRUE",
+        "LateAdopt == FALSE"
+      ]
+    ],
+    "expect": "Answered",
     "config": "ReplayUnknownSettle.cfg"
   }
 ]

@@ -80,6 +80,10 @@ type spaceAdmission struct {
 	// settle is the unknown write of an earlier mount this admission settles,
 	// or nil for a live write. An adopted admission has no op or candidate.
 	settle *settleEntry
+	// sent is the settle entry of this live write, registered before the
+	// queue passed it to QueueOperationWithReceipt, or nil. decide tells it
+	// when the write ends unknown and drops it otherwise.
+	sent *settleEntry
 }
 
 // Seqno returns the World seqno at the candidate's root.

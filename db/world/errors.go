@@ -143,13 +143,26 @@ func (e *DurabilityUnknownError) Unwrap() error {
 
 // SettleWaiter settles a write whose commit ended with DurabilityUnknownError.
 type SettleWaiter interface {
-	// WaitSettled waits until an engine that reloaded the World's storage
-	// after the write settled it, and returns that engine's head and whether
-	// the operation of opHash applied. The writer holds its own writes until
-	// it returns: one that applied is in head, and one that did not never
-	// will be, since nothing commits on the old engine after the unknown. It
-	// returns ErrOutcomeHidden when a checkpoint folded the operation in
-	// without its outcome. It works after the engine that returned the
-	// unknown retired, since that engine's successor settles the write.
+	// WaitSettled waits until an engine whose storage shows whether the
+	// operation of opHash was stored settles it, and returns that engine's
+	// head and whether the operation applied. That engine either replayed the
+	// operation, or reloaded the World's storage after the engine that
+	// returned the unknown ended its writes and found it absent. The writer
+	// holds its own writes until it returns: one that applied is in head, and
+	// one that did not was never stored and no engine can store it later.
+	//
+	// With the reload fence on, the old engine commits nothing after the
+	// unknown, so head is the state at the unknown, with the operation when
+	// it applied, plus what other devices wrote. With the fence off
+	// (sobject.ReloadFenceOff) the old engine keeps committing until the
+	// reload ends its run, and head may also hold this device's writes that
+	// followed the unknown.
+	//
+	// It returns the answer once: a later call for opHash returns
+	// ErrNoSettle, as does a hash no write ended unknown with. It returns
+	// ErrOutcomeHidden when a checkpoint folded the operation in without its
+	// outcome. It works after the engine that returned the unknown retired,
+	// since a successor settles the write, and waits until ctx ends while no
+	// engine can show the outcome.
 	WaitSettled(ctx context.Context, opHash []byte) (head Head, applied bool, err error)
 }

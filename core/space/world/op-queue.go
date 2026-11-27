@@ -119,5 +119,6 @@ func (q *opQueue) queueOperation(ctx context.Context, adm *spaceAdmission) (stri
 	if err != nil {
 		return "", nil, err
 	}
+	adm.a.registerSent(adm)
 	return so.QueueOperationWithReceipt(ctx, op, &adm.receipt)
 }

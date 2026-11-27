@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"slices"
 	"strconv"
 	"testing"
 	"testing/synctest"
@@ -414,69 +415,107 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	expect(t, "before any install", early, admissionQueued, 0, nil)
 }
 
-// settleTestMount is a distinct SharedObject identity for the settle set.
-type settleTestMount struct {
-	sobject.SharedObject
-	// name tells the mounts apart.
-	name string
-}
-
-// TestSettleAdoptsOnlyWhatTheMountShows tries to make the settle set hand an
-// adapter a write its mount cannot answer. An adapter on the mount a write
-// went unknown on must not adopt it while its QueueOperation has not returned
-// there, since a mount fenced for a reload may lack a write storage holds and
-// would settle it as lost. It adopts it once the call returned without error,
-// and an adapter on another mount adopts it either way. A resolved entry
-// drops its mount and answers one WaitSettled.
+// TestSettleAdoptsOnlyWhatTheMountShows forces the order a restart inside the
+// unknown's reload allows: the old adapter sends its writes, the next adapter
+// opens, and only then does the old adapter tell them unknown. It tries to
+// make the settle set lose a write told after the next adapter opened, or hand
+// an adapter a write its mount cannot answer. The next adapter must learn of
+// each tell, settle a told write by absence only when it was sent before it
+// opened, and on the old mount only once its QueueOperation returned there.
+// Its replay settles a write it applies whether or not the old adapter told it
+// yet. A decided write leaves no entry, and a resolved one drops its mount and
+// answers one WaitSettled.
 func TestSettleAdoptsOnlyWhatTheMountShows(t *testing.T) {
 	ctx := t.Context()
 	set := newSettleSet()
-	oldMount, newMount := &settleTestMount{name: "old"}, &settleTestMount{name: "new"}
-	inFlight := &sobject.SOOperationPosition{Nonce: 1, OpHash: []byte("in-flight")}
-	sent := &sobject.SOOperationPosition{Nonce: 2, OpHash: []byte("sent")}
-	set.add(oldMount, inFlight, false)
-	set.add(oldMount, sent, true)
+	localPeer := peer.ID("local-peer")
+	oldMount, newMount := &advancedSpace{peerID: localPeer}, &advancedSpace{peerID: localPeer}
+	oldA, newA := &Adapter{so: oldMount, settles: set}, &Adapter{so: newMount, settles: set}
+	peerID := localPeer.String()
 
-	// hashes returns the operation hashes an adapter on so would adopt.
-	hashes := func(so sobject.SharedObject) []string {
+	// send admits a write on the old adapter and passes it to the signer, as
+	// the queue does.
+	send := func(nonce uint64, hash string) *spaceAdmission {
+		adm := oldA.newAdmission(world.Candidate{}, []byte(hash), nil, nil)
+		oldA.admit(adm)
+		oldA.registerSent(adm)
+		adm.receipt.Publish(&sobject.SOOperationPosition{PeerId: peerID, Nonce: nonce, OpHash: []byte(hash)})
+		return adm
+	}
+	inFlight, stored, replayed, accepted := send(1, "in-flight"), send(2, "stored"), send(3, "replayed"), send(4, "accepted")
+
+	// The next adapter opens before any tell, and one more write is sent.
+	newA.settleSeq = set.last()
+	late := send(5, "late")
+	var rev uint64
+	set.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { rev = set.rev })
+	woke := make(chan []*settleEntry, 1)
+	go func() {
+		ents, _, _ := set.waitTold(ctx, newMount, newA.settleSeq, rev)
+		woke <- ents
+	}()
+
+	// The next adapter's replay applies one write before the old adapter told
+	// it, and settles it once.
+	op := &sobject.OrderedOperation{Hash: []byte("replayed"), Inner: &sobject.SOOperationInner{PeerId: peerID, Nonce: 3}}
+	adm := newA.match(op)
+	if adm == nil || adm.settle != replayed.sent {
+		t.Fatalf("the next adapter's replay matched %v, want the entry of the write in flight on the old mount", adm)
+	}
+	if again := newA.match(op); again != adm {
+		t.Fatal("replaying the write again adopted it twice")
+	}
+	newA.decide([]*spaceAdmission{adm}, world.Accepted, "", nil)
+
+	// The old adapter decides one write and tells the rest unknown, one of
+	// them after its QueueOperation returned.
+	oldA.decide([]*spaceAdmission{accepted}, world.Accepted, "", nil)
+	stored.pos = stored.receipt.Position()
+	for _, adm := range []*spaceAdmission{inFlight, stored, replayed, late} {
+		oldA.fail(adm, durabilityUnknown(adm.receipt.OpHash(), errAdapterStopped))
+	}
+	if ents := <-woke; len(ents) == 0 {
+		t.Fatal("the next adapter did not learn of a tell after it opened")
+	}
+	if ent, _ := set.replayed([]byte("accepted")); ent != nil {
+		t.Fatal("a decided write kept its entry")
+	}
+
+	// hashes returns the writes an adapter on so that opened after send order
+	// upto settles by absence.
+	hashes := func(so sobject.SharedObject, upto uint64) []string {
+		ents, _, err := set.waitTold(ctx, so, upto, ^uint64(0))
+		if err != nil {
+			t.Fatal(err)
+		}
 		var out []string
-		for _, ent := range set.unsettled(so) {
+		for _, ent := range ents {
 			out = append(out, string(ent.pos.GetOpHash()))
 		}
 		return out
 	}
-	if got := hashes(oldMount); len(got) != 1 || got[0] != "sent" {
-		t.Fatalf("an adapter on the same mount adopts %q, want only the sent write", got)
+	if got := hashes(newMount, newA.settleSeq); !slices.Equal(got, []string{"in-flight", "stored"}) {
+		t.Fatalf("the next adapter settles %q by absence, want the two sent before it opened, in nonce order", got)
 	}
-	if got := hashes(newMount); len(got) != 2 || got[0] != "in-flight" || got[1] != "sent" {
-		t.Fatalf("an adapter on another mount adopts %q, want both in nonce order", got)
+	if got := hashes(newMount, set.last()); !slices.Equal(got, []string{"in-flight", "stored", "late"}) {
+		t.Fatalf("a later adapter settles %q by absence, want every unresolved told write", got)
 	}
-
-	// The in-flight call returning stored makes it the same mount's to settle,
-	// and only that mount's call counts.
-	set.markStored(newMount, inFlight.GetOpHash())
-	if got := hashes(oldMount); len(got) != 1 {
-		t.Fatalf("another mount's call marked the write stored: the same mount adopts %q", got)
+	if got := hashes(oldMount, set.last()); !slices.Equal(got, []string{"stored"}) {
+		t.Fatalf("an adapter on the old mount settles %q by absence, want only the stored write", got)
 	}
-	set.markStored(oldMount, inFlight.GetOpHash())
-	if got := hashes(oldMount); len(got) != 2 {
-		t.Fatalf("after its call returned the same mount adopts %q, want both", got)
+	set.markStored(inFlight.sent)
+	if got := hashes(oldMount, set.last()); !slices.Equal(got, []string{"in-flight", "stored"}) {
+		t.Fatalf("after its call returned an adapter on the old mount settles %q", got)
 	}
 
-	// A resolved entry drops its mount, answers once, then is gone.
-	ent := set.unsettled(newMount)[0]
-	set.resolve(ent, world.Head{Seqno: 7}, true, nil)
-	if ent.so != nil {
+	// The replayed write's answer drops its mount, is read once, then is gone.
+	if replayed.sent.so != nil {
 		t.Fatal("a resolved entry still pins its mount")
 	}
-	if got := hashes(oldMount); len(got) != 1 || got[0] != "sent" {
-		t.Fatalf("after the resolve the same mount adopts %q, want only the sent write", got)
+	if _, applied, err := set.wait(ctx, []byte("replayed")); err != nil || !applied {
+		t.Fatalf("WaitSettled answered applied=%t, %v; want applied", applied, err)
 	}
-	head, applied, err := set.wait(ctx, inFlight.GetOpHash())
-	if err != nil || !applied || head.Seqno != 7 {
-		t.Fatalf("WaitSettled answered applied=%t at %d, %v; want applied at 7", applied, head.Seqno, err)
-	}
-	if _, _, err := set.wait(ctx, inFlight.GetOpHash()); !errors.Is(err, ErrNoSettle) {
+	if _, _, err := set.wait(ctx, []byte("replayed")); !errors.Is(err, ErrNoSettle) {
 		t.Fatalf("a second WaitSettled returned %v, want ErrNoSettle", err)
 	}
 }

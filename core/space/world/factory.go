@@ -21,9 +21,9 @@ type Factory struct {
 	bus bus.Bus
 	// opTypes resolves the operation types of each engine.
 	opTypes OpTypes
-	// settles holds each engine's unknown writes across the controllers the
-	// bus constructs for it, since the bus constructs a new one each time
-	// Execute fails, as when the mount reloads.
+	// settles holds each engine's sent and unknown writes across the
+	// controllers the bus constructs for it, since the bus constructs a new
+	// one each time Execute fails, as when the mount reloads.
 	settles settleSets
 }
 

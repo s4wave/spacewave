@@ -233,6 +233,10 @@ type Adapter struct {
 	// settles settles the writes of this device whose outcome went unknown,
 	// shared with the other adapters of the Space World.
 	settles *settleSet
+	// settleSeq is the send order of the last settle entry registered before
+	// this adapter opened: an entry sent by then may be settled by absence
+	// from the state this mount loaded. Set before opened closes.
+	settleSeq uint64
 	// runCtx ends every background store when Execute's run ends.
 	runCtx context.Context
 	// cursorSaving reports that a cursor save runs in the background.
@@ -367,19 +371,17 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	}
 	a.replay.stage = newReplayStage(a.pages)
 
-	// Take the writes an earlier mount left unknown before the driver's
-	// first step, so replay matches each one.
-	adopted := a.adoptSettles()
+	// Bound the writes this mount's loaded state decides by absence before
+	// the driver's first step. Replay adopts any other one it applies.
+	a.settleSeq = a.settles.last()
 	close(a.opened)
 
-	// Run the queue and the storage reclaim, and settle the adopted writes
-	// the loaded state lacks.
+	// Run the queue and the storage reclaim, and settle the writes an
+	// earlier mount left unknown.
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
-	if len(adopted) != 0 {
-		g.Go(func() error { return a.settleAdopted(ctx, adopted) })
-	}
+	g.Go(func() error { return a.adoptSettles(ctx) })
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -1413,21 +1415,29 @@ func (a *Adapter) match(op *sobject.OrderedOperation) *spaceAdmission {
 		return nil
 	}
 
-	// Keep the previous matcher selectable at adapter open.
+	// Keep the previous matcher selectable at adapter open. Match only the
+	// signer's receipt otherwise, including when a refusal has no body.
+	var out *spaceAdmission
 	if a.legacyReplayMatcher {
-		return a.matchLegacy(op)
+		out = a.matchLegacy(op)
+	} else {
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			for _, adm := range a.pending {
+				if adm.receipt.MatchesHash(op.Hash) {
+					adm.hash = slices.Clone(op.Hash)
+					out = adm
+					return
+				}
+			}
+		})
+	}
+	if out != nil {
+		return out
 	}
 
-	// Match only the signer's receipt, including when a refusal has no body.
-	var out *spaceAdmission
+	// Settle a write another adapter sent or left unknown.
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, adm := range a.pending {
-			if adm.receipt.MatchesHash(op.Hash) {
-				adm.hash = slices.Clone(op.Hash)
-				out = adm
-				return
-			}
-		}
+		out = a.adoptReplayedLocked(op)
 	})
 	return out
 }
@@ -1686,8 +1696,8 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 		// already left unknown is now stored on this mount, so the next
 		// adapter on it may settle it.
 		adm.pos = pos
-		if adm.state == admissionDecided {
-			a.settles.markStored(a.so, pos.GetOpHash())
+		if adm.state == admissionDecided && adm.sent != nil {
+			a.settles.markStored(adm.sent)
 		}
 		if a.legacyReplayMatcher {
 			adm.localID = localID
