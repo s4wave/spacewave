@@ -1,16 +1,22 @@
 package plugin_host_scheduler
 
 import (
+	"context"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	block "github.com/s4wave/spacewave/db/block"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -452,4 +458,334 @@ func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
 			t.Fatal("native build did not replace the JavaScript core")
 		}
 	})
+}
+func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
+	// Create the test logger.
+	le := logrus.NewEntry(logrus.New())
+	host1 := &testPluginHost{id: "desktop/linux/amd64"}
+	host2 := &testPluginHost{id: "desktop/linux/amd64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: &Config{},
+		},
+		le:                      le,
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []plugin_host.PluginHost{host1}})
+
+	// Build the fetch manifest value for the handler.
+	val1 := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 1, "bucket-1"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, val1))
+
+	// Check the execute plugin routine state.
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != host1 || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state to be set from first fetched manifest")
+	}
+	if execState.manifestSnapshot.GetManifestRef() == nil {
+		t.Fatal("expected manifest snapshot ref to be set")
+	}
+	assertDirectSelectionRev(t, pi, 1)
+
+	// Remove the manifest value from the handler.
+	handler.HandleValueRemoved(nil, directive.NewAttachedValue(1, val1))
+
+	// Check the execute plugin routine state.
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != host1 {
+		t.Fatal("expected execute state to remain during empty fetch-manifest gap")
+	}
+	if pi.downloadManifestRoutine.GetState() == nil {
+		t.Fatal("expected download manifest state to remain during empty fetch-manifest gap")
+	}
+	originalExecState := execState
+
+	// Publish the manifest value to the handler.
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, val1))
+
+	// Check the execute plugin routine state.
+	execState = pi.executePluginRoutine.GetState()
+	if execState != originalExecState {
+		t.Fatal("expected re-adding the same manifest target to avoid resetting execute state")
+	}
+
+	// Build the fetch manifest value for the handler.
+	val2 := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 2, "bucket-2"),
+	})
+	handler = pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []plugin_host.PluginHost{host2}})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, val2))
+
+	// Check the execute plugin routine state.
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != host2 {
+		t.Fatal("expected execute state to update to replacement plugin host")
+	}
+	if execState.manifestSnapshot.GetManifestRef() == nil {
+		t.Fatal("expected replacement manifest snapshot ref to be set")
+	}
+	assertDirectSelectionRev(t, pi, 2)
+}
+
+// assertDirectSelectionRev requires the plugin's recorded manifest selection to
+// reference the executing manifest and carry its rev, as plugin list shows
+// them.
+func assertDirectSelectionRev(t *testing.T, pi *pluginInstance, rev uint64) {
+	t.Helper()
+	row := pi.c.pluginStatus.recovery[pluginInstanceKey(pi.pluginID, pi.instanceKey)]
+	if row.GetExecuteManifestRef() == "" || row.GetExecuteManifestRev() != rev {
+		t.Fatalf("selection row = %v, want an execute ref at rev %d", row, rev)
+	}
+}
+
+func TestDirectFetchHandlerSuppressesConfiguredBucketOnly(t *testing.T) {
+	// Bound the test with a timeout.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	const noCopyBucketID = "dist/project"
+	const worldBucketID = "plugin-host-world"
+	host := &testPluginHost{id: "desktop/linux/amd64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: &Config{EngineId: worldBucketID, NoCopyBucketIds: []string{noCopyBucketID}},
+		},
+		le:                      le,
+		manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(ctx, &pluginHostSet{
+		pluginHosts: []plugin_host.PluginHost{host},
+	})
+
+	// Build the fetch manifest value for the handler.
+	suppressed := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 1, noCopyBucketID),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, suppressed))
+
+	// Check the execute plugin routine state.
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected configured no-copy manifest to remain executable")
+	}
+	if pi.downloadManifestRoutine.GetState() != nil {
+		t.Fatal("configured no-copy manifest set download state")
+	}
+	status := pi.manifestCopyStatus.GetValue()
+	if status == nil ||
+		status.phase != manifestCopyPhaseSuppressed ||
+		status.class != manifestCopyClassSuppressed ||
+		status.sourceBucketID != noCopyBucketID ||
+		status.destinationBucketID != worldBucketID {
+		t.Fatalf("suppressed copy status = %#v", status)
+	}
+
+	// Build the fetch manifest value for the handler.
+	dynamic := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 2, "dynamic-provider"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, dynamic))
+
+	// Check the download manifest routine state.
+	downloadState := pi.downloadManifestRoutine.GetState()
+	if downloadState == nil || downloadState.GetManifestRef().GetBucketId() != "dynamic-provider" {
+		t.Fatalf("dynamic download state = %#v, want dynamic provider", downloadState)
+	}
+}
+
+func TestDirectFetchHandlerPrefersCurrentStateAcrossEqualRevOverlap(t *testing.T) {
+	// Create the test logger.
+	le := logrus.NewEntry(logrus.New())
+	host := &testPluginHost{id: "desktop/linux/amd64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: &Config{},
+		},
+		le:                      le,
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []plugin_host.PluginHost{host}})
+
+	// Build the fetch manifest value for the handler.
+	val1 := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 7, "bucket-a"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, val1))
+
+	// Check the execute plugin routine state.
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state after first manifest")
+	}
+	firstRef := execState.manifestSnapshot.GetManifestRef()
+	if firstRef == nil {
+		t.Fatal("expected first manifest ref")
+	}
+
+	// Build the fetch manifest value for the handler.
+	val2 := manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 7, "bucket-b"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, val2))
+
+	// Check the execute plugin routine state.
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state during equal-rev overlap")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(firstRef) {
+		t.Fatal("expected equal-rev overlap to preserve the current execute target")
+	}
+
+	// Remove the manifest value from the handler.
+	handler.HandleValueRemoved(nil, directive.NewAttachedValue(1, val1))
+
+	// Check the execute plugin routine state.
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state after removing original candidate")
+	}
+	if execState.manifestSnapshot.GetManifestRef().EqualVT(firstRef) {
+		t.Fatal("expected execute target to switch once the original candidate is removed")
+	}
+}
+
+func TestExecutePluginArgsEqualHandlesNilManifestRefs(t *testing.T) {
+	if !executePluginArgsEqual(
+		&executePluginArgs{manifestSnapshot: &manifest.ManifestSnapshot{}},
+		&executePluginArgs{manifestSnapshot: &manifest.ManifestSnapshot{}},
+	) {
+		t.Fatal("expected args with nil manifest refs to compare equal")
+	}
+
+	withRef := &executePluginArgs{
+		manifestSnapshot: &manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{BucketId: "bucket"},
+		},
+	}
+	withoutRef := &executePluginArgs{manifestSnapshot: &manifest.ManifestSnapshot{}}
+	if executePluginArgsEqual(withRef, withoutRef) {
+		t.Fatal("expected args with one nil manifest ref to differ")
+	}
+}
+
+func TestExecutePluginArgsEqualIgnoresBucketForSameManifestRoot(t *testing.T) {
+	// Build the root block ref for the fixture.
+	rootRef := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1, 2, 3}))
+	remote := &executePluginArgs{
+		manifestSnapshot: &manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{
+				BucketId: "remote",
+				RootRef:  rootRef.Clone(),
+			},
+		},
+	}
+	local := &executePluginArgs{
+		manifestSnapshot: &manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{
+				BucketId: "local",
+				RootRef:  rootRef.Clone(),
+			},
+		},
+	}
+	if !executePluginArgsEqual(remote, local) {
+		t.Fatal("expected local manifest copy to preserve execute state")
+	}
+
+	// Create the test logger.
+	le := logrus.NewEntry(logrus.New())
+	ctr := routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le)
+	ctr.SetState(remote)
+	if _, changed, _, _ := ctr.SetState(local); changed {
+		t.Fatal("expected local manifest copy not to reset the execute routine")
+	}
+
+	// Clone the root ref for the changed manifest.
+	changedRoot := rootRef.Clone()
+	changedRoot.Hash.Hash[0] ^= 0xff
+	local.manifestSnapshot.ManifestRef.RootRef = changedRoot
+	if executePluginArgsEqual(remote, local) {
+		t.Fatal("expected a changed manifest root to reset execute state")
+	}
+}
+
+func TestFilterPluginPlatformIDsHonorsPlatformPolicy(t *testing.T) {
+	// Build the platform allowlist config.
+	conf := webPlatformAllowlistConfig("spacewave-v86")
+	got := conf.FilterPluginPlatformIDs("spacewave-core", []string{
+		"js",
+		"web/js/wasm",
+		"desktop/darwin/arm64",
+	})
+	want := []string{"js", "desktop/darwin/arm64"}
+	if len(got) != len(want) {
+		t.Fatalf("platform ids: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("platform ids: got %v, want %v", got, want)
+		}
+	}
+
+	// Filter the platform ids through the config.
+	got = conf.FilterPluginPlatformIDs("spacewave-v86", []string{"js", "web/js/wasm"})
+	want = []string{"js", "web/js/wasm"}
+	if len(got) != len(want) {
+		t.Fatalf("allowed platform ids: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("allowed platform ids: got %v, want %v", got, want)
+		}
+	}
+}
+
+func TestFilterPluginPlatformIDsHonorsDeniedPlugins(t *testing.T) {
+	conf := &Config{PlatformSelectionPolicies: []*PlatformSelectionPolicy{{
+		PlatformId:      "web/js/wasm",
+		DeniedPluginIds: []string{"core"},
+	}}}
+	platforms := []string{"js", "web/js/wasm"}
+	if got, want := conf.FilterPluginPlatformIDs("core", platforms), []string{"js"}; !slices.Equal(got, want) {
+		t.Fatalf("denied plugin platforms = %v, want %v", got, want)
+	}
+	if got := conf.FilterPluginPlatformIDs("external", platforms); !slices.Equal(got, platforms) {
+		t.Fatalf("unlisted plugin platforms = %v, want %v", got, platforms)
+	}
+}
+
+func TestDirectFetchHandlerFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
+	// Create the test logger.
+	le := logrus.NewEntry(logrus.New())
+	webHost := &testPluginHost{id: "web/js/wasm"}
+	jsHost := &testPluginHost{id: "js"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: webPlatformAllowlistConfig("spacewave-v86"),
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{
+		pluginHosts: []plugin_host.PluginHost{jsHost, webHost},
+	})
+
+	// Publish the manifest value to the handler.
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, manifest.NewFetchManifestValue([]*manifest.ManifestRef{
+		newTestManifestRef("spacewave-core", "web/js/wasm", 99, "bucket-web"),
+		newTestManifestRef("spacewave-core", "js", 1, "bucket-js"),
+	})))
+
+	// Check the execute plugin routine state.
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != jsHost {
+		t.Fatal("expected unlisted plugin to use js fallback instead of web/js/wasm")
+	}
 }
