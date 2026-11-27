@@ -768,13 +768,9 @@ func bridgeSharingMailbox(
 	swAcc *provider_spacewave.ProviderAccount,
 	soID string,
 ) {
-	accountBcast := swAcc.GetAccountBroadcast()
 	for {
 		// Take the wait channel before reading the mailbox cache.
-		var waitCh <-chan struct{}
-		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-		})
+		waitCh := swAcc.ReadAccountState(nil)
 
 		// Copy the current entries into the sharing state.
 		entries, _ := swAcc.GetPendingMailboxEntriesSnapshot(soID)

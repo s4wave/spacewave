@@ -135,17 +135,13 @@ func (r *SpacewaveSessionResource) WatchOrganizationState(
 		return errors.New("org_id is required")
 	}
 
-	// Watch the organization broadcast for state changes.
+	// Watch the organization cache for state changes.
 	ctx := strm.Context()
-	orgBcast := r.swAcc.GetOrgBroadcast()
 	var prev *s4wave_provider_spacewave.WatchOrganizationStateResponse
 	for {
 		// Take the wait channel before loading, so a change during the load
 		// wakes the next iteration.
-		var ch <-chan struct{}
-		orgBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-		})
+		ch := r.swAcc.ReadOrgState(nil)
 
 		// Send the organization state when it differs from the last sent.
 		resp, err := r.loadOrganizationState(ctx, orgID)

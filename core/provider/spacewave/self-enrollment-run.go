@@ -123,8 +123,7 @@ func (r *selfEnrollmentRunState) buildRequest(ctx context.Context) (*selfenrollm
 		return nil, sobject.ErrSharedObjectRecoveryCredentialRequired
 	}
 	var summary *SelfEnrollmentSummary
-	accountBcast := r.acc.GetAccountBroadcast()
-	accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.acc.ReadAccountState(func() {
 		summary = r.acc.GetSelfEnrollmentSummary()
 	})
 	if summary == nil || summary.GetCount() == 0 {

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	"github.com/sirupsen/logrus"
 )
 
@@ -177,6 +178,52 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 				conn.Close(websocket.StatusNormalClosure, "received terminal status")
 				return nil
 			}
+		}
+	}
+}
+
+// CreateCheckoutSession creates or resumes a Cloud Checkout Session. A pending
+// session's status ticket is kept so WatchCheckoutStatus can follow it.
+func (a *ProviderAccount) CreateCheckoutSession(
+	ctx context.Context,
+	req *s4wave_provider_spacewave.CreateCheckoutSessionRequest,
+) (*api.CheckoutResponse, error) {
+	// Create the session with the current signer.
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := cli.CreateCheckoutSession(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Keep a pending session's ticket for the status watch.
+	if resp.GetStatus() == "pending" && resp.GetWsTicket() != "" {
+		a.checkoutWatcher.SetTicket(resp.GetWsTicket())
+	}
+	return resp, nil
+}
+
+// WatchCheckoutStatus calls fn with the current checkout status and again at
+// each change, keeping the shared checkout socket open meanwhile. It returns
+// nil after fn sees "completed" or "expired", or the first error from fn or ctx.
+func (a *ProviderAccount) WatchCheckoutStatus(ctx context.Context, fn func(status string) error) error {
+	ref := a.checkoutWatcher.AddRef()
+	defer ref.Release()
+
+	for {
+		ch, status := a.checkoutWatcher.WaitStatus()
+		if err := fn(status); err != nil {
+			return err
+		}
+		if status == "completed" || status == "expired" {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ch:
 		}
 	}
 }

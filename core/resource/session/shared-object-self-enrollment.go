@@ -87,8 +87,7 @@ func (r *SharedObjectSelfEnrollmentResource) Skip(
 	// Use the request generation, or the account summary's current generation.
 	key := req.GetGenerationKey()
 	if key == "" {
-		accountBcast := r.swAcc.GetAccountBroadcast()
-		accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.swAcc.ReadAccountState(func() {
 			if summary := r.swAcc.GetSelfEnrollmentSummary(); summary != nil {
 				key = summary.GetGenerationKey()
 			}

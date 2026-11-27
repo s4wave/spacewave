@@ -73,51 +73,46 @@ func (a *ProviderAccount) GetLinkedLocalSession(ctx context.Context, sessionID s
 
 // DeleteLinkedLocalSession removes the linked-local session key from the ObjectStore.
 func (a *ProviderAccount) DeleteLinkedLocalSession(ctx context.Context, sessionID string) error {
-	volID := a.vol.GetID()
-	objectStoreID := SessionObjectStoreID(a.accountID)
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.p.b, false, objectStoreID, volID, nil)
-	if err != nil {
-		return errors.Wrap(err, "mount session object store")
-	}
-	defer diRef.Release()
-
-	objStore := objStoreHandle.GetObjectStore()
-	err = kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := tx.Delete(ctx, linkedLocalKey(sessionID)); err != nil {
-				return errors.Wrap(err, "delete linked-local key")
-			}
-			return nil
-		},
-	)
-	return errors.Wrap(err, "new write transaction")
+	return a.writeLinkedLocal(ctx, func(ctx context.Context, tx kvtx.Tx) error {
+		return errors.Wrap(tx.Delete(ctx, linkedLocalKey(sessionID)), "delete linked-local key")
+	})
 }
 
 // SetLinkedLocalSession writes the linked-local session index to the ObjectStore.
 func (a *ProviderAccount) SetLinkedLocalSession(ctx context.Context, sessionID string, localIdx uint32) error {
-	volID := a.vol.GetID()
+	val := []byte(strconv.FormatUint(uint64(localIdx), 10))
+	return a.writeLinkedLocal(ctx, func(ctx context.Context, tx kvtx.Tx) error {
+		return errors.Wrap(tx.Set(ctx, linkedLocalKey(sessionID), val), "set linked-local key")
+	})
+}
+
+// writeLinkedLocal runs write in one transaction on the session ObjectStore,
+// then wakes the account state watchers, such as the onboarding status watch,
+// that read the linked-local session.
+func (a *ProviderAccount) writeLinkedLocal(ctx context.Context, write func(context.Context, kvtx.Tx) error) error {
+	// Mount the account's session ObjectStore.
 	objectStoreID := SessionObjectStoreID(a.accountID)
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.p.b, false, objectStoreID, volID, nil)
+	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.p.b, false, objectStoreID, a.vol.GetID(), nil)
 	if err != nil {
 		return errors.Wrap(err, "mount session object store")
 	}
 	defer diRef.Release()
 
-	val := []byte(strconv.FormatUint(uint64(localIdx), 10))
+	// Apply the write in one transaction.
 	objStore := objStoreHandle.GetObjectStore()
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return objStore.NewTransaction(ctx, true)
 		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := tx.Set(ctx, linkedLocalKey(sessionID), val); err != nil {
-				return errors.Wrap(err, "set linked-local key")
-			}
-			return nil
-		},
+		write,
 	)
-	return errors.Wrap(err, "new write transaction")
+	if err != nil {
+		return errors.Wrap(err, "new write transaction")
+	}
+
+	// Wake the account state watchers.
+	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+	return nil
 }

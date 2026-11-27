@@ -665,24 +665,38 @@ func (a *ProviderAccount) GetProviderID() string {
 	return a.p.info.GetProviderId()
 }
 
-// GetCheckoutWatcher returns the checkout status watcher.
-func (a *ProviderAccount) GetCheckoutWatcher() *checkoutWatcher {
-	return a.checkoutWatcher
-}
-
 // GetLogger returns the logger for this account.
 func (a *ProviderAccount) GetLogger() *logrus.Entry {
 	return a.le
 }
 
-// GetAccountBroadcast returns the broadcast that fires on account state changes.
-func (a *ProviderAccount) GetAccountBroadcast() *broadcast.Broadcast {
-	return &a.accountBcast
+// ReadAccountState runs read, when not nil, while the account state is
+// locked, and returns a channel that closes at the next account state change.
+// The snapshot getters that need the account lock are called inside read; read
+// must not call ReadAccountState or a method that takes the lock.
+func (a *ProviderAccount) ReadAccountState(read func()) <-chan struct{} {
+	var ch <-chan struct{}
+	a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch = getWaitCh()
+		if read != nil {
+			read()
+		}
+	})
+	return ch
 }
 
-// GetOrgBroadcast returns the broadcast that fires on org cache changes.
-func (a *ProviderAccount) GetOrgBroadcast() *broadcast.Broadcast {
-	return &a.orgBcast
+// ReadOrgState runs read, when not nil, while the organization cache is
+// locked, and returns a channel that closes at the next organization cache
+// change. read must not call a method that takes the organization lock.
+func (a *ProviderAccount) ReadOrgState(read func()) <-chan struct{} {
+	var ch <-chan struct{}
+	a.orgBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch = getWaitCh()
+		if read != nil {
+			read()
+		}
+	})
+	return ch
 }
 
 // GetCachedOrganization returns the cached org summary when available.
@@ -708,7 +722,7 @@ func (a *ProviderAccount) GetCachedOrganization(orgID string) *api.OrgResponse {
 }
 
 // GetAccountStatus returns the current account status.
-// Must be called within an accountBcast HoldLock or the result may be stale.
+// Call it inside ReadAccountState, or the result may be stale.
 func (a *ProviderAccount) GetAccountStatus() provider.ProviderAccountStatus {
 	return a.state.status
 }
@@ -772,7 +786,7 @@ func (a *ProviderAccount) SetCachedPrimaryEmail(email string) {
 }
 
 // KeypairsSnapshot returns the cached keypairs slice.
-// Must be called within an accountBcast HoldLock scope.
+// Call it inside ReadAccountState.
 func (a *ProviderAccount) KeypairsSnapshot() []*session.EntityKeypair {
 	if a.state.info == nil {
 		return nil
@@ -781,7 +795,7 @@ func (a *ProviderAccount) KeypairsSnapshot() []*session.EntityKeypair {
 }
 
 // AuthMethodsSnapshot returns the cached auth-method rows.
-// Must be called within an accountBcast HoldLock scope.
+// Call it inside ReadAccountState.
 func (a *ProviderAccount) AuthMethodsSnapshot() []*api.AccountAuthMethod {
 	if a.state.info == nil {
 		return nil
@@ -790,13 +804,13 @@ func (a *ProviderAccount) AuthMethodsSnapshot() []*api.AccountAuthMethod {
 }
 
 // AccountStateSnapshot returns the full cached account state.
-// Must be called within an accountBcast HoldLock scope.
+// Call it inside ReadAccountState.
 func (a *ProviderAccount) AccountStateSnapshot() *api.AccountStateResponse {
 	return a.state.info
 }
 
 // SessionsSnapshot returns the cached cloud auth session set.
-// Must be called within an accountBcast HoldLock scope.
+// Call it inside ReadAccountState.
 func (a *ProviderAccount) SessionsSnapshot() ([]*api.AccountSessionInfo, bool) {
 	return a.state.sessions, a.state.sessionsValid
 }
@@ -812,7 +826,7 @@ func (a *ProviderAccount) GetCurrentSessionPeerID() peer.ID {
 }
 
 // EmailsSnapshot returns the cached email list.
-// Must be called within an accountBcast HoldLock scope.
+// Call it inside ReadAccountState.
 func (a *ProviderAccount) EmailsSnapshot() ([]*api.AccountEmailInfo, bool) {
 	return a.state.cachedEmails, a.state.cachedEmailsValid
 }

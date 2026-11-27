@@ -212,10 +212,7 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 	}
 
 	// Capture the account broadcast revision before loading billing state.
-	var ch <-chan struct{}
-	r.swAcc.GetAccountBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ch = getWaitCh()
-	})
+	ch := r.swAcc.ReadAccountState(nil)
 	if baID == "" {
 		return &s4wave_provider_spacewave.WatchBillingStateResponse{
 			BillingAccount: &s4wave_provider_spacewave.BillingAccountInfo{

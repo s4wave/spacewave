@@ -14,14 +14,11 @@ func (r *SpacewaveSessionResource) WatchEmails(
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchEmailsStream,
 ) error {
 	ctx := strm.Context()
-	accountBcast := r.swAcc.GetAccountBroadcast()
 	var prev *s4wave_provider_spacewave.WatchEmailsResponse
 	for {
-		var ch <-chan struct{}
 		var cached []*api.AccountEmailInfo
 		var valid bool
-		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
+		ch := r.swAcc.ReadAccountState(func() {
 			cached, valid = r.swAcc.EmailsSnapshot()
 		})
 

@@ -24,18 +24,15 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 	ctx := strm.Context()
 	sessionID := r.getSessionID()
 	sessRef := r.getSessionRef()
-	accountBcast := r.swAcc.GetAccountBroadcast()
 
 	// Retain the prior route projection so unchanged account state is not resent.
 	var prev *s4wave_provider_spacewave.WatchOnboardingStatusResponse
 
 	// Read account status and wait channel for each update.
 	for {
-		var ch <-chan struct{}
 		var accountStatus provider.ProviderAccountStatus
 		var stateLoaded bool
-		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
+		ch := r.swAcc.ReadAccountState(func() {
 			accountStatus = r.swAcc.GetAccountStatus()
 			state := r.swAcc.AccountStateSnapshot()
 			if state != nil {

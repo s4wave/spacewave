@@ -84,7 +84,7 @@ func (a *ProviderAccount) RefreshSelfEnrollmentSummary(ctx context.Context) (rer
 }
 
 // GetSelfEnrollmentSummary returns a copy of the current summary, or nil when
-// none is computed. The caller holds the account broadcast lock.
+// none is computed. Call it inside ReadAccountState.
 func (a *ProviderAccount) GetSelfEnrollmentSummary() *SelfEnrollmentSummary {
 	return a.state.selfEnrollmentSummary.clone()
 }

@@ -73,7 +73,7 @@ type entityKeypairsWatchState struct {
 
 // initializeAccount seeds account inputs before the bridges and watch loop start.
 func (s *entityKeypairsWatchState) initializeAccount(acc *provider_spacewave.ProviderAccount) {
-	acc.GetAccountBroadcast().HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	acc.ReadAccountState(func() {
 		s.keypairs = acc.KeypairsSnapshot()
 		s.valid = acc.AccountStateSnapshot() != nil
 	})
@@ -85,16 +85,13 @@ func (s *entityKeypairsWatchState) bridgeAccount(
 	ctx context.Context,
 	acc *provider_spacewave.ProviderAccount,
 ) {
-	accountBcast := acc.GetAccountBroadcast()
 	for {
-		// Read the account snapshot with the wait channel in one HoldLock.
+		// Read the account snapshot with the wait channel in one lock hold.
 		var keypairs []*session.EntityKeypair
 		var valid bool
-		var waitCh <-chan struct{}
-		accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh := acc.ReadAccountState(func() {
 			keypairs = acc.KeypairsSnapshot()
 			valid = acc.AccountStateSnapshot() != nil
-			waitCh = getWaitCh()
 		})
 
 		// Publish the snapshot when it differs from the watch state.

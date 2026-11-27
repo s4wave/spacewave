@@ -113,7 +113,7 @@ func (r *AccountResource) watchCloudAccountInfo(
 	var prev *s4wave_account.WatchAccountInfoResponse
 	return watchCloudBcast(
 		strm.Context(),
-		r.account.GetAccountBroadcast(),
+		r.account.ReadAccountState,
 		func() (*api.AccountStateResponse, bool) {
 			info := r.account.AccountStateSnapshot()
 			return info, info != nil
@@ -299,16 +299,16 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 	)
 }
 
-// watchCloudBcast drives a bcast-based watch loop. snapshot reads
-// broadcast-guarded state and the wait channel atomically inside one HoldLock
-// per iteration. snapshot must not read state guarded by other locks because
+// watchCloudBcast drives a watch loop over account state. Each iteration runs
+// snapshot inside readState, which takes the wait channel in the same lock
+// hold. snapshot must not read state guarded by other locks because
 // reading such state would risk missed-wakeup races. build runs outside the
 // lock and produces the response sent to the client when changed returns true.
 // send is only invoked when snapshot returns valid=true and changed returns
 // true. The loop exits when ctx is canceled or send returns an error.
 func watchCloudBcast[S any, T any](
 	ctx context.Context,
-	bcast accountBroadcaster,
+	readState func(read func()) <-chan struct{},
 	snapshot func() (state S, valid bool),
 	build func(state S) T,
 	changed func(resp T) bool,
@@ -318,11 +318,9 @@ func watchCloudBcast[S any, T any](
 		var (
 			state S
 			valid bool
-			ch    <-chan struct{}
 		)
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch := readState(func() {
 			state, valid = snapshot()
-			ch = getWaitCh()
 		})
 
 		if valid {
@@ -342,12 +340,6 @@ func watchCloudBcast[S any, T any](
 	}
 }
 
-// accountBroadcaster is the subset of broadcast.Broadcast used by
-// watchCloudBcast. It is satisfied by *broadcast.Broadcast.
-type accountBroadcaster interface {
-	HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{}))
-}
-
 // WatchAuthMethods streams the account auth-method rows for this account.
 func (r *AccountResource) WatchAuthMethods(
 	req *s4wave_account.WatchAuthMethodsRequest,
@@ -361,7 +353,7 @@ func (r *AccountResource) WatchAuthMethods(
 	var prev *s4wave_account.WatchAuthMethodsResponse
 	return watchCloudBcast(
 		strm.Context(),
-		acc.GetAccountBroadcast(),
+		acc.ReadAccountState,
 		func() ([]*api.AccountAuthMethod, bool) {
 			authMethods := acc.AuthMethodsSnapshot()
 			valid := acc.AccountStateSnapshot() != nil
@@ -512,7 +504,7 @@ func (r *AccountResource) watchCloudSessions(
 	var prev *s4wave_account.WatchSessionsResponse
 	return watchCloudBcast(
 		ctx,
-		r.account.GetAccountBroadcast(),
+		r.account.ReadAccountState,
 		func() ([]*api.AccountSessionInfo, bool) {
 			return r.account.SessionsSnapshot()
 		},

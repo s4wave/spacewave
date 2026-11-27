@@ -406,13 +406,7 @@ func waitForCloudAccountSettingsRef(
 			return ref, nil
 		}
 
-		var ch <-chan struct{}
-		swAcc.GetAccountBroadcast().HoldLock(func(
-			_ func(),
-			getWaitCh func() <-chan struct{},
-		) {
-			ch = getWaitCh()
-		})
+		ch := swAcc.ReadAccountState(nil)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -452,14 +446,10 @@ func loadCloudAccountSettingsSyncState(
 		writeAllowed bool
 		ch           <-chan struct{}
 	)
-	swAcc.GetAccountBroadcast().HoldLock(func(
-		_ func(),
-		getWaitCh func() <-chan struct{},
-	) {
+	ch = swAcc.ReadAccountState(func() {
 		if state := swAcc.AccountStateSnapshot(); state != nil {
 			writeAllowed = state.GetSubscriptionStatus().IsWriteAllowed()
 		}
-		ch = getWaitCh()
 	})
 	return writeAllowed, ch
 }

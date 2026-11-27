@@ -18,19 +18,10 @@ func (r *SpacewaveSessionResource) CreateCheckoutSession(
 		return nil, errors.New("success_url and cancel_url required")
 	}
 
-	// Create the Cloud Checkout Session and retain its status ticket.
-	cli, err := r.swAcc.GetSessionClient()
+	// Create the Cloud Checkout Session. The account keeps its status ticket.
+	resp, err := r.swAcc.CreateCheckoutSession(ctx, req)
 	if err != nil {
 		return nil, err
-	}
-	resp, err := cli.CreateCheckoutSession(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Store the ticket on the ProviderAccount so WatchCheckoutStatus can use it.
-	if resp.GetStatus() == "pending" && resp.GetWsTicket() != "" {
-		r.swAcc.GetCheckoutWatcher().SetTicket(resp.GetWsTicket())
 	}
 
 	// Return the cloud result in the resource response.
@@ -67,40 +58,18 @@ func (r *SpacewaveSessionResource) WatchCheckoutStatus(
 	req *s4wave_provider_spacewave.WatchCheckoutStatusRequest,
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchCheckoutStatusStream,
 ) error {
-	// Scope the checkout watch to the caller's stream.
-	ctx := strm.Context()
-
-	// Retain the shared checkout watcher for this stream.
-	watcher := r.swAcc.GetCheckoutWatcher()
-	ref := watcher.AddRef()
-	defer ref.Release()
-
-	// Remember the last checkout status sent to this caller.
+	// Send each change of the mapped status to the caller.
 	var prev s4wave_provider_spacewave.CheckoutStatus
-	for {
-		ch, status := watcher.WaitStatus()
-
+	return r.swAcc.WatchCheckoutStatus(strm.Context(), func(status string) error {
 		mapped := mapCheckoutStatus(status)
-		if mapped != prev {
-			if err := strm.Send(&s4wave_provider_spacewave.WatchCheckoutStatusResponse{
-				Status: mapped,
-			}); err != nil {
-				return err
-			}
-			prev = mapped
-		}
-
-		// Terminal statuses end the stream.
-		if status == "completed" || status == "expired" {
+		if mapped == prev {
 			return nil
 		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
-	}
+		prev = mapped
+		return strm.Send(&s4wave_provider_spacewave.WatchCheckoutStatusResponse{
+			Status: mapped,
+		})
+	})
 }
 
 // mapCheckoutStatus maps a checkout status string to the CheckoutStatus enum.

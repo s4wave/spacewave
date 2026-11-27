@@ -342,8 +342,9 @@ func (s *CoreRootServer) WatchSessions(
 }
 
 type accountStatusWatcher interface {
-	// GetAccountBroadcast wakes consumers when account status changes.
-	GetAccountBroadcast() *broadcast.Broadcast
+	// ReadAccountState runs read under the account state lock and returns a
+	// channel that closes at the next account state change.
+	ReadAccountState(read func()) <-chan struct{}
 	// GetAccountStatus returns the current provider account status.
 	GetAccountStatus() provider.ProviderAccountStatus
 }
@@ -450,12 +451,8 @@ func (s *CoreRootServer) snapshotAllAccountStatuses(
 					if !ok {
 						status = provider.ProviderAccountStatus_ProviderAccountStatus_NONE
 					} else {
-						watcher.GetAccountBroadcast().HoldLock(func(
-							_ func(),
-							getWaitCh func() <-chan struct{},
-						) {
+						accountWaitChs[accountID] = watcher.ReadAccountState(func() {
 							status = watcher.GetAccountStatus()
-							accountWaitChs[accountID] = getWaitCh()
 						})
 					}
 				}

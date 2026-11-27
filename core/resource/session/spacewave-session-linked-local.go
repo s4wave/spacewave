@@ -108,10 +108,5 @@ func (r *SpacewaveSessionResource) UnlinkLocalSession(
 	if err := r.swAcc.DeleteLinkedLocalSession(ctx, sessionID); err != nil {
 		return nil, err
 	}
-
-	r.swAcc.GetAccountBroadcast().HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		broadcast()
-	})
-
 	return &s4wave_provider_spacewave.UnlinkLocalSessionResponse{}, nil
 }
