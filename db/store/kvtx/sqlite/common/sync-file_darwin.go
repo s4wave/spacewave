@@ -21,6 +21,9 @@ func writeBackFile(f *os.File) error {
 	return unix.Fsync(int(f.Fd()))
 }
 
+// dropsCachedPages reports that dropCachedPages drops nothing here.
+const dropsCachedPages = false
+
 // dropCachedPages does nothing: darwin has no call that drops a file's
 // cached pages.
 func dropCachedPages(*os.File) error {

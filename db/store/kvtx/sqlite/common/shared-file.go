@@ -2,9 +2,12 @@ package common
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -34,20 +37,59 @@ var sharedFiles = newFileTable()
 // a connection a closed pool was still opening, makes a new entry rather than
 // reviving the old one, and a release can only remove its own file's entry.
 //
-// failed marks each file whose WAL flush failed in this process. The mark
-// stays until the process exits: while it runs, the kernel's page cache may
-// hold WAL frames the drive never received, and the failed Store's pool,
-// left open, keeps the WAL index that maps them, so a Store opened on the
-// file would read them as committed.
+// marks is the fail-stop mark of each database file a Store holds, keyed by
+// the file's identity rather than its path, so a hard link to a file shares
+// its mark and a new file at the path does not. A mark is the one record that
+// a WAL flush of its file failed in this process. Every Store on the file
+// checks it before each transaction, commit, checkpoint and flush, since a
+// Store whose flush did not fail would otherwise read the frames the other's
+// flush lost as committed, and its own flush of the file could succeed
+// without them. A failed mark stays until the process exits: while it runs,
+// the kernel's page cache may hold WAL frames the drive never received, and
+// the failed Store's pool, left open, keeps the WAL index that maps them.
+// The open pool also keeps the file's inode from being reused by a new file.
 type fileTable struct {
-	mtx    sync.Mutex
-	open   map[string]*sharedFile
-	failed map[string]struct{}
+	mtx   sync.Mutex
+	open  map[string]*sharedFile
+	marks map[fileID]*fileMark
 }
 
 // newFileTable returns an empty fileTable.
 func newFileTable() *fileTable {
-	return &fileTable{open: make(map[string]*sharedFile), failed: make(map[string]struct{})}
+	return &fileTable{open: make(map[string]*sharedFile), marks: make(map[fileID]*fileMark)}
+}
+
+// fileMark is the fail-stop mark of one database file, shared by the Stores
+// in the process that hold it.
+type fileMark struct {
+	// id is the mark's key in its fileTable.
+	id fileID
+	// refs counts the holds marked with it, guarded by the table's mtx.
+	refs int
+	// err is the failure of the file's WAL flush, nil before one.
+	err atomic.Pointer[error]
+}
+
+// failed returns the failure of the file's WAL flush, joined with
+// kvtx.ErrFlushFailed, and otherwise nil, as does a nil m.
+func (m *fileMark) failed() error {
+	if m == nil {
+		return nil
+	}
+	if p := m.err.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
+
+// fail marks the file failed by cause, keeping the first failure. A nil m
+// has no file to mark.
+func (m *fileMark) fail(path string, cause error) {
+	if m == nil {
+		return
+	}
+	err := errors.Join(kvtx.ErrFlushFailed, fmt.Errorf("a WAL flush of %s failed in this process: %w", path, cause))
+	m.err.CompareAndSwap(nil, &err)
 }
 
 // sharedFile is one database file Stores in this process hold.
@@ -59,12 +101,20 @@ type sharedFile struct {
 	// fd is the descriptor checkpointers write back through, opened on first
 	// use and closed with the last hold, guarded by the table's mtx.
 	fd *os.File
+	// retired is the descriptors fd held before create replaced it with one
+	// of a new file at the path, kept open until the last hold, since their
+	// close would drop the locks the process holds on the files they name.
+	// Guarded by the table's mtx.
+	retired []*os.File
 }
 
 // fileHold is one Store's hold on a sharedFile.
 type fileHold struct {
 	table *fileTable
 	file  *sharedFile
+	// mark is the file's fail-stop mark, set by markFile before the Store
+	// that owns the hold exists and nil for a hold without one.
+	mark *fileMark
 	// released is set by the first release, guarded by the table's mtx.
 	released bool
 }
@@ -112,6 +162,34 @@ func (h *fileHold) again() *fileHold {
 	return h.table.acquire(h.file.path)
 }
 
+// create creates the file h holds unless it exists, keeping the new file's
+// descriptor as the one writeBack uses, which closes only with the file's
+// last hold: closing a descriptor opened only to create the file would drop
+// the locks the process holds on it. A descriptor of an earlier file at the
+// path, renamed or removed since, is retired.
+func (h *fileHold) create() error {
+	// Leave an existing file to SQLite.
+	h.table.mtx.Lock()
+	defer h.table.mtx.Unlock()
+	if _, err := os.Stat(h.file.path); err == nil {
+		return nil
+	}
+
+	// Create the file, unless another process just did.
+	fd, err := os.OpenFile(h.file.path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if h.file.fd != nil {
+		h.file.retired = append(h.file.retired, h.file.fd)
+	}
+	h.file.fd = fd
+	return nil
+}
+
 // writeBack writes the file's dirty pages back through its descriptor,
 // opening file, the name SQLite reports for it, on first use. The caller holds
 // h unreleased, so the descriptor stays open while it writes.
@@ -134,36 +212,46 @@ func (h *fileHold) writeBack(file string) {
 	_ = writeBackFile(fd)
 }
 
-// fail marks h's file failed for the life of the process.
-func (h *fileHold) fail() {
-	// Mark the file by its key, which outlives its entry in open.
-	if h == nil {
-		return
-	}
-	h.table.mtx.Lock()
-	h.table.failed[h.file.path] = struct{}{}
-	h.table.mtx.Unlock()
-}
-
-// failure returns an error joined with kvtx.ErrFlushFailed when a WAL flush
-// of h's file failed in this process, and otherwise nil.
-func (h *fileHold) failure() error {
-	// A file in memory has no flush to fail.
-	if h == nil {
-		return nil
+// markFile takes the fail-stop mark of the file h holds, which must exist,
+// for h to keep until its release.
+func (h *fileHold) markFile() error {
+	// Identify the file the path names now.
+	id, err := statFileID(h.file.path)
+	if err != nil {
+		return err
 	}
 
-	// Look the file up among the failed ones.
+	// Find or add its mark and count the hold.
 	h.table.mtx.Lock()
-	_, failed := h.table.failed[h.file.path]
-	h.table.mtx.Unlock()
-	if failed {
-		return errors.Join(kvtx.ErrFlushFailed, errors.New("a WAL flush of "+h.file.path+" failed in this process"))
+	defer h.table.mtx.Unlock()
+	m := h.table.marks[id]
+	if m == nil {
+		m = &fileMark{id: id}
+		h.table.marks[id] = m
 	}
+	m.refs++
+	h.mark = m
 	return nil
 }
 
-// release drops the hold, closing the descriptor with the file's last. Only
+// fail marks h's file failed by cause for the life of the process. A nil h,
+// or one without a mark, has no file to mark.
+func (h *fileHold) fail(cause error) {
+	if h != nil {
+		h.mark.fail(h.file.path, cause)
+	}
+}
+
+// failure returns an error joined with kvtx.ErrFlushFailed when a WAL flush
+// of h's file failed in this process, and otherwise nil, as does a nil h.
+func (h *fileHold) failure() error {
+	if h == nil {
+		return nil
+	}
+	return h.mark.failed()
+}
+
+// release drops the hold, closing the descriptors with the file's last. Only
 // the first release of h counts. It follows the close of the pool that held
 // the file, or the end of the Store's use of a pool left open after a failed
 // WAL flush, whose connections keep their own holds and so the descriptor.
@@ -178,18 +266,25 @@ func (h *fileHold) release() error {
 		return nil
 	}
 	h.released = true
+	if m := h.mark; m != nil {
+		if m.refs--; m.refs == 0 && m.failed() == nil {
+			delete(h.table.marks, m.id)
+		}
+	}
 	f := h.file
 	if f.holds--; f.holds > 0 {
 		return nil
 	}
 
-	// Remove the entry, its own while it has holds, and close the descriptor
+	// Remove the entry, its own while it has holds, and close the descriptors
 	// with the last hold.
 	delete(h.table.open, f.path)
-	fd := f.fd
-	f.fd = nil
-	if fd == nil {
-		return nil
+	var err error
+	for _, fd := range append(f.retired, f.fd) {
+		if fd != nil {
+			err = errors.Join(err, fd.Close())
+		}
 	}
-	return fd.Close()
+	f.fd, f.retired = nil, nil
+	return err
 }

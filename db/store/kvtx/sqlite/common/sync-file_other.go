@@ -15,6 +15,9 @@ func writeBackFile(*os.File) error {
 	return nil
 }
 
+// dropsCachedPages reports that dropCachedPages drops nothing here.
+const dropsCachedPages = false
+
 // dropCachedPages does nothing: the platform has no call that drops a file's
 // cached pages.
 func dropCachedPages(*os.File) error {

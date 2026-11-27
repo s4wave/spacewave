@@ -228,3 +228,35 @@ func TestBoltRefusedCommitKeepsStore(t *testing.T) {
 	}
 	commitTestKey(t, s, "after", false)
 }
+
+// TestBoltFailedBeginStops fails a write Begin as a failed fsync inside it
+// would: bolt fsyncs before it reuses pages from a freelist read from disk.
+// The store must record the failure from both the transaction and the batch
+// path, since after a failed fsync Linux may mark the unwritten pages clean
+// and a later Begin's fsync would succeed without them.
+func TestBoltFailedBeginStops(t *testing.T) {
+	ctx := context.Background()
+	for _, batched := range []bool{false, true} {
+		s, _ := openFailSyncStore(t)
+		begin := beginBolt
+		beginBolt = func(db *bdb.DB, write bool) (*bdb.Tx, error) {
+			if write {
+				return nil, errSyncFault
+			}
+			return begin(db, write)
+		}
+		var err error
+		if batched {
+			_, err = NewBatchStore(s, 4).NewTransaction(ctx, true)
+		} else {
+			_, err = s.NewTransaction(ctx, true)
+		}
+		beginBolt = begin
+		if !errors.Is(err, errSyncFault) || !errors.Is(err, kvtx.ErrFlushFailed) {
+			t.Fatalf("write Begin with a failed fsync returned %v (batched %v)", err, batched)
+		}
+		if _, err := s.NewTransaction(ctx, false); !errors.Is(err, kvtx.ErrFlushFailed) {
+			t.Fatalf("read transaction after a failed Begin returned %v (batched %v)", err, batched)
+		}
+	}
+}

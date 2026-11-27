@@ -112,7 +112,24 @@ func (s *Store) beginBatchTransaction() (*bdb.Tx, error) {
 	if err := s.flusher.Failed(); err != nil {
 		return nil, err
 	}
-	return s.db.Begin(true)
+	return s.beginWrite()
+}
+
+// beginBolt opens a bolt transaction. A test replaces it to fail a write
+// Begin as a failed fsync inside it would, since bolt fsyncs inside Begin only
+// a file it opened itself, which a test cannot make fail.
+var beginBolt = (*bdb.DB).Begin
+
+// beginWrite opens a bolt write transaction. Bolt fsyncs its file inside
+// Begin before it reuses pages from a freelist read from disk, as after an
+// open, so a Begin failing on storage fails the store for the reason a failed
+// commit does.
+func (s *Store) beginWrite() (*bdb.Tx, error) {
+	txn, err := beginBolt(s.db, true)
+	if err != nil && storageErr(err) {
+		return nil, s.flusher.Fail(err)
+	}
+	return txn, err
 }
 
 // commit runs commitFn, which commits txn, unless a flush or commit failed,
@@ -145,7 +162,7 @@ func (s *Store) commit(txn *bdb.Tx, commitFn func() error) error {
 	return err
 }
 
-// storageErr reports whether a commit error may come from writing or
+// storageErr reports whether a Begin or commit error may come from writing or
 // flushing the file. The errors bolt returns before it touches the file, or
 // for a file it no longer writes, are not; any other error is, so an unknown
 // one fails the store.
@@ -157,6 +174,8 @@ func storageErr(err error) bool {
 		bdberrors.ErrDatabaseReadOnly,
 		bdberrors.ErrLockFileChanged,
 		bdberrors.ErrMaxSizeReached,
+		bdberrors.ErrInvalidMapping,
+		bdberrors.ErrTimeout,
 	} {
 		if errors.Is(err, refusal) {
 			return false
@@ -199,7 +218,13 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	}
 
 	// Open the Bolt transaction and attach its durability tracking Store.
-	txn, err := s.db.Begin(write)
+	var txn *bdb.Tx
+	var err error
+	if write {
+		txn, err = s.beginWrite()
+	} else {
+		txn, err = s.db.Begin(false)
+	}
 	if err != nil {
 		if release != nil {
 			release()

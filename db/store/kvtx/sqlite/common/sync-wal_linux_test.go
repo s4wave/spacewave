@@ -13,8 +13,9 @@ import (
 )
 
 // TestSyncWALAtOpenDropsPages writes a WAL through the page cache and runs the
-// open flush on it. No page of the WAL may stay cached: SQLite recovers the
-// WAL by reading it, and a cached frame whose flush failed reads as committed.
+// open flush of a writer and of a reader on it. No page of the WAL may stay
+// cached: SQLite recovers the WAL by reading it, and a reader reads it, so a
+// cached frame whose flush failed reads as committed.
 func TestSyncWALAtOpenDropsPages(t *testing.T) {
 	// The cache of a file in memory is its storage, which no flush drops.
 	dir := t.TempDir()
@@ -26,22 +27,24 @@ func TestSyncWALAtOpenDropsPages(t *testing.T) {
 		t.Skip("the temporary directory is on tmpfs; set TMPDIR to a disk")
 	}
 
-	// Write a WAL whose pages the cache holds, dirty.
 	dbPath := filepath.Join(dir, "db.sqlite")
-	wal := bytes.Repeat([]byte{0xa5}, 1<<20)
-	if err := os.WriteFile(dbPath+"-wal", wal, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if got := cachedPages(t, dbPath+"-wal"); got == 0 {
-		t.Fatal("the written WAL has no cached page to drop")
-	}
+	for _, readOnly := range []bool{false, true} {
+		// Write a WAL whose pages the cache holds, dirty.
+		wal := bytes.Repeat([]byte{0xa5}, 1<<20)
+		if err := os.WriteFile(dbPath+"-wal", wal, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if got := cachedPages(t, dbPath+"-wal"); got == 0 {
+			t.Fatal("the written WAL has no cached page to drop")
+		}
 
-	// Flush it as an open does. The cache must hold none of its pages.
-	if err := syncWALAtOpen(dbPath); err != nil {
-		t.Fatal(err)
-	}
-	if got := cachedPages(t, dbPath+"-wal"); got != 0 {
-		t.Fatalf("%d pages of the WAL stay cached after the open flush", got)
+		// Flush it as an open does. The cache must hold none of its pages.
+		if err := syncWALAtOpen(dbPath, readOnly); err != nil {
+			t.Fatal(err)
+		}
+		if got := cachedPages(t, dbPath+"-wal"); got != 0 {
+			t.Fatalf("%d pages of the WAL stay cached after the open flush (read-only %v)", got, readOnly)
+		}
 	}
 }
 

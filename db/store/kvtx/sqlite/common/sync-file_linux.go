@@ -22,6 +22,9 @@ func writeBackFile(f *os.File) error {
 	return unix.SyncFileRange(int(f.Fd()), 0, 0, unix.SYNC_FILE_RANGE_WAIT_BEFORE|unix.SYNC_FILE_RANGE_WRITE|unix.SYNC_FILE_RANGE_WAIT_AFTER)
 }
 
+// dropsCachedPages reports that dropCachedPages drops pages here.
+const dropsCachedPages = true
+
 // dropCachedPages drops a file's clean cached pages. The kernel keeps a page
 // that is dirty, under writeback or mapped.
 func dropCachedPages(f *os.File) error {

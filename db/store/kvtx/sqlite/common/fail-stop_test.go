@@ -132,6 +132,169 @@ func TestFailedWALFlushStops(t *testing.T) {
 	}
 }
 
+// failOnce routes the WAL flushes of db through a wrap whose next flush,
+// once armed, fails with errWALFault.
+func failOnce(db any) *atomic.Bool {
+	armed := new(atomic.Bool)
+	common.WrapWALFlush(db, func(flush func() error) error {
+		if armed.Swap(false) {
+			return errWALFault
+		}
+		return flush()
+	})
+	return armed
+}
+
+// putKey commits key on db in ctx's commit mode.
+func putKey(ctx context.Context, db kvtx.Store, key string) error {
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	if err := tx.Set(ctx, []byte(key), []byte("v-"+key)); err != nil {
+		tx.Discard()
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// TestFailedFlushStopsOtherStore fails a WAL flush in Store a while Store b
+// is open on the same file. b must refuse from then on: its reads would find
+// a's failed write in the shared WAL and take it for stored, its commits
+// would land after the frames the flush lost, and its own flush of the file
+// could succeed without them, since Linux reports a writeback error once per
+// open file and may mark the lost pages clean. Each case refuses one path
+// first, since the first refusal records the failure in b for the rest. An
+// ordered commit flushes nothing after its COMMIT, so only the refusal
+// before COMMIT keeps its write out of the WAL.
+func TestFailedFlushStopsOtherStore(t *testing.T) {
+	ctx := context.Background()
+	cases := []struct {
+		name string
+		// first refuses the case's path on b, given pre, a write transaction
+		// b opened before the failure, or nil.
+		first func(b kvtx.Store, pre kvtx.Tx) error
+		// pre opens pre for first.
+		pre bool
+	}{
+		{name: "read", first: func(b kvtx.Store, _ kvtx.Tx) error {
+			_, err := b.NewTransaction(ctx, false)
+			return err
+		}},
+		{name: "write", first: func(b kvtx.Store, _ kvtx.Tx) error {
+			_, err := b.NewTransaction(ctx, true)
+			return err
+		}},
+		{name: "ordered commit", pre: true, first: func(_ kvtx.Store, pre kvtx.Tx) error {
+			return pre.Commit(kvtx.WithOrderedCommitContext(ctx))
+		}},
+		{name: "flush", first: func(b kvtx.Store, _ kvtx.Tx) error {
+			return b.(interface{ Sync(context.Context) error }).Sync(ctx)
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Open a and b on one file, and leave on b an ordered commit to
+			// flush and the case's write transaction open.
+			path := filepath.Join(t.TempDir(), "shared.db")
+			a, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer a.Close()
+			b, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			armed := failOnce(a)
+			ordered := kvtx.WithOrderedCommitContext(ctx)
+			if err := putKey(ordered, b, "ordered"); err != nil {
+				t.Fatal(err)
+			}
+			if err := putKey(ordered, a, "lost"); err != nil {
+				t.Fatal(err)
+			}
+			var pre kvtx.Tx
+			if c.pre {
+				if pre, err = b.NewTransaction(ctx, true); err != nil {
+					t.Fatal(err)
+				}
+				defer pre.Discard()
+				if err := pre.Set(ctx, []byte("pre"), []byte("v-pre")); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Fail a's flush of its ordered commit, which b's open write
+			// transaction leaves a no lock to commit again, then require b to
+			// refuse the case's path first and every other after it.
+			armed.Store(true)
+			if err := a.Sync(ctx); !errors.Is(err, errWALFault) {
+				t.Fatalf("failed flush returned %v", err)
+			}
+			if err := c.first(b, pre); !errors.Is(err, kvtx.ErrFlushFailed) {
+				t.Fatalf("%s on b after a's failed flush returned %v", c.name, err)
+			}
+			for _, write := range []bool{false, true} {
+				if _, err := b.NewTransaction(ctx, write); !errors.Is(err, kvtx.ErrFlushFailed) {
+					t.Fatalf("transaction (write %v) on b after a's failed flush returned %v", write, err)
+				}
+			}
+			if err := b.Sync(ctx); !errors.Is(err, kvtx.ErrFlushFailed) {
+				t.Fatalf("Sync on b after a's failed flush returned %v", err)
+			}
+		})
+	}
+}
+
+// TestFailedMarkFollowsFile fails a WAL flush and checks the failed mark
+// belongs to the file, not its path: a hard link to the file is refused, and
+// a new file at the path opens.
+func TestFailedMarkFollowsFile(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "moved.db")
+	a, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	armed := failOnce(a)
+	armed.Store(true)
+	if err := putKey(ctx, a, "lost"); !errors.Is(err, errWALFault) {
+		t.Fatalf("commit with a failed flush returned %v", err)
+	}
+	_ = a.Close()
+
+	// A hard link names the failed file.
+	link := filepath.Join(dir, "link.db")
+	if err := os.Link(path, link); err != nil {
+		t.Fatal(err)
+	}
+	if linked, err := store_kvtx_sqlite.Open(ctx, link, "kv"); !errors.Is(err, kvtx.ErrFlushFailed) {
+		if err == nil {
+			_ = linked.Close()
+		}
+		t.Fatalf("open of a hard link to a failed file returned %v", err)
+	}
+
+	// Move the failed file and its WAL aside: a new file at the path is not
+	// the failed one.
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		if err := os.Rename(path+suffix, filepath.Join(dir, "aside.db"+suffix)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
+	}
+	fresh, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+	if err != nil {
+		t.Fatalf("open of a new file at a failed file's path returned %v", err)
+	}
+	defer fresh.Close()
+	if err := putKey(ctx, fresh, "new"); err != nil {
+		t.Fatalf("commit on a new file at a failed file's path returned %v", err)
+	}
+}
+
 // assertCopy copies the database at path, with its WAL when withWAL is set,
 // opens the copy and fails t unless it holds present, when set, and none of
 // absent.

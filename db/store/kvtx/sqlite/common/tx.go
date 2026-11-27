@@ -41,6 +41,9 @@ type Tx struct {
 	snapshot bool
 	// write marks a write transaction.
 	write bool
+	// failure records in flusher a failed WAL flush of the file by another
+	// Store, and returns the Store's failure, as Store.failure describes.
+	failure func() error
 	// flusher counts a write transaction's commit and makes it durable.
 	flusher *kvtx.OrderedFlusher
 	// flow wakes the store's checkpointer after a commit, and holds back a
@@ -65,12 +68,13 @@ type Tx struct {
 
 // newWriteTx returns a write transaction during the writer turn that release
 // ends. beginWrite opens and begins its connection from keep or db.
-func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
+func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, failure func() error, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
 	return &Tx{
 		queries: queries,
 		db:      db,
 		keep:    keep,
 		write:   true,
+		failure: failure,
 		flusher: flusher,
 		flow:    flow,
 		release: release,
@@ -456,7 +460,9 @@ func (t *Tx) commit() (uint64, error) {
 	// rolling back a refused commit so the connection returns to the pool
 	// outside a transaction. COMMIT shows the write in the WAL before the
 	// flusher syncs it, so Admit orders it against a failing flush: no
-	// commit lands once the failure is recorded.
+	// commit lands once the failure is recorded. A failure of the file in
+	// another Store is recorded first, outside Admit.
+	_ = t.failure()
 	err := t.flusher.Admit(func() error {
 		_, err := t.conn.ExecContext(context.Background(), "COMMIT")
 		return err

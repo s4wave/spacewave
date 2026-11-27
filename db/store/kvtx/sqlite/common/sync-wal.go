@@ -99,8 +99,11 @@ func (w *LocalWAL) closeLocked() error {
 }
 
 // syncWALAtOpen flushes the WAL of the database file at dbPath, then drops
-// its cached pages, before a writable Store opens the file. A WAL with no
-// file at the path, such as one a bridge keeps, has nothing to flush.
+// its cached pages, before a Store opens the file. A reader opens the WAL
+// read-only, which suffices to flush it and drop its pages, and skips it
+// where the platform drops no pages, since there the flush alone keeps the
+// cached frames. A WAL with no file at the path, such as one a bridge keeps,
+// has nothing to flush.
 //
 // A WAL flush that failed leaves the kernel's page cache holding frames the
 // drive may lack, with valid checksums, and the cache outlives the process.
@@ -108,9 +111,16 @@ func (w *LocalWAL) closeLocked() error {
 // without the drop it would take those frames for committed. The flush makes
 // durable whatever pages the cache still holds dirty, so the drop keeps them,
 // and the reads after it see what the drive holds.
-func syncWALAtOpen(dbPath string) error {
-	// Open the WAL, which may not exist.
-	f, err := os.OpenFile(dbPath+"-wal", os.O_RDWR, 0)
+func syncWALAtOpen(dbPath string, readOnly bool) error {
+	// Open the WAL, which may not exist, read-only for a reader.
+	flag := os.O_RDWR
+	if readOnly {
+		if !dropsCachedPages {
+			return nil
+		}
+		flag = os.O_RDONLY
+	}
+	f, err := os.OpenFile(dbPath+"-wal", flag, 0)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
