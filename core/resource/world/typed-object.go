@@ -62,7 +62,10 @@ func NewTypedObjectResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, en
 }
 
 // NewTypedObjectResourceWithContext binds typed access to the mount lifecycle and scope.
-func NewTypedObjectResourceWithContext(ctx context.Context, le *logrus.Entry, b bus.Bus, ws world.WorldState, engine world.Engine, opts ...WorldStateResourceOption) *TypedObjectResource {
+func NewTypedObjectResourceWithContext(
+	ctx context.Context, le *logrus.Entry, b bus.Bus, ws world.WorldState,
+	engine world.Engine, opts ...WorldStateResourceOption,
+) *TypedObjectResource {
 	// Capture trusted access options with the mount lifecycle.
 	access := new(WorldStateResource)
 	applyWorldStateResourceOptions(access, opts...)
@@ -109,7 +112,10 @@ func (r *TypedObjectResource) Close() {
 }
 
 // WatchTypedObject retains scoped handler demand and revokes obsolete children.
-func (r *TypedObjectResource) WatchTypedObject(req *s4wave_world.WatchTypedObjectRequest, stream s4wave_world.SRPCTypedObjectResourceService_WatchTypedObjectStream) error {
+func (r *TypedObjectResource) WatchTypedObject(
+	req *s4wave_world.WatchTypedObjectRequest,
+	stream s4wave_world.SRPCTypedObjectResourceService_WatchTypedObjectStream,
+) error {
 	// Bind the watch to the stream, client generation and granting mount.
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
@@ -317,6 +323,25 @@ func (h *typedObjectHandle) close() {
 	}
 }
 
+// retain returns the routine that keeps the invoker until cancellation.
+// A canceled factory scope records its cause and leaves disposal to the caller.
+func (h *typedObjectHandle) retain(ctx context.Context) keyed.Routine {
+	// Keep canceled factory results for disposal without registering a child.
+	if err := ctx.Err(); err != nil {
+		h.err = context.Cause(ctx)
+		return nil
+	}
+
+	// Retain the invoker until the mount or its last Resource reference is released.
+	routine := func(ctx context.Context) error {
+		// Release the invoker after its shared routine is canceled.
+		<-ctx.Done()
+		h.close()
+		return nil
+	}
+	return routine
+}
+
 // bindCaller resolves accepted participant identity before typed factory dispatch.
 // A caller that is not a participant dispatches with no participant, so each
 // consumer denies the operations that need one.
@@ -383,19 +408,7 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 		invoker: invoker,
 		cleanup: cleanup,
 	}
-	if err := ctx.Err(); err != nil {
-		handle.err = context.Cause(ctx)
-		return nil, handle
-	}
-
-	// Retain the invoker until the mount or its last Resource reference is released.
-	routine := func(ctx context.Context) error {
-		// Release the invoker after its shared routine is canceled.
-		<-ctx.Done()
-		handle.close()
-		return nil
-	}
-	return routine, handle
+	return handle.retain(ctx), handle
 }
 
 // accessPluginUnixFS accesses a plugin filesystem via the AccessUnixFS directive.
@@ -447,7 +460,9 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 
 // typedObjectAcquisitionFailure carries retirement proved by the granting factory
 // context or registration's missing invocation parent, preserving terminal causes.
-func typedObjectAcquisitionFailure(ctx context.Context, resourceCtx resource_server.ResourceClientContext, err error, grantRetired bool) (*s4wave_world.AccessTypedObjectResponse, error) {
+func typedObjectAcquisitionFailure(
+	ctx context.Context, resourceCtx resource_server.ResourceClientContext, err error, grantRetired bool,
+) (*s4wave_world.AccessTypedObjectResponse, error) {
 	// Keep child failures terminal while the exact granting mount remains healthy.
 	if !grantRetired {
 		return nil, err

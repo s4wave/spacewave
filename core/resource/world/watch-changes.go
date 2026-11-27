@@ -84,11 +84,10 @@ func (r *EngineResource) watchNamedChanges(
 	first *s4wave_world.WatchChangesRequest,
 ) error {
 	// Start from the first request's interest and read the deltas after it.
-	in := newInterestInbox()
-	if err := in.names.apply(first.GetInterest()); err != nil {
+	in, err := newInterestInbox(first.GetInterest())
+	if err != nil {
 		return err
 	}
-	in.version = 1
 	go in.read(stream)
 
 	// Keep one change watch subscriber across the interest's changes.
@@ -154,9 +153,14 @@ type interestInbox struct {
 	taken uint64
 }
 
-// newInterestInbox returns an inbox holding an empty interest.
-func newInterestInbox() *interestInbox {
-	return &interestInbox{names: newInterestNames()}
+// newInterestInbox returns an inbox holding the first request's interest.
+// WatchChanges has already checked that first has version 1.
+func newInterestInbox(first *s4wave_world.ChangeInterestDelta) (*interestInbox, error) {
+	in := &interestInbox{names: newInterestNames(), version: 1}
+	if err := in.names.apply(first); err != nil {
+		return nil, err
+	}
+	return in, nil
 }
 
 // read applies each delta on stream until the request side ends. The end of the
