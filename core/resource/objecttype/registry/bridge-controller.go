@@ -419,12 +419,13 @@ func (s *pluginResourceSession) connectLocked(ctx context.Context) error {
 			}
 		}
 		lookupOp := space_world_optypes.BuildSpaceLookupOp(s.b, s.le, s.engineID)
-		s.engineResource = resource_world.NewEngineResource(s.le, s.b, s.engine, lookupOp, &sdk_world.EngineInfo{EngineId: s.engineID},
-			resource_world.WithSessionPeerID(callerPeer),
+		s.engineResource = resource_world.NewMount(
+			s.le, s.b, lookupOp, resource_world.WithSessionPeerID(callerPeer),
 			resource_world.WithCallerParticipantLookup(func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error) {
 				return s.caller.Participant.CloneVT(), nil
-			}),
-			resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(s.reg.GetPluginId())),
+			}), resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(s.reg.GetPluginId()))).NewEngineResource(
+			s.engine,
+			&sdk_world.EngineInfo{EngineId: s.engineID},
 		)
 		s.engineResourceID, err = client.AttachResource(ctx, "world-engine", s.engineResource.GetMux())
 		if err != nil {

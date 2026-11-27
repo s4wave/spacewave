@@ -122,7 +122,8 @@ func searchColdEngine(t *testing.T, ctx context.Context, tbed *testbed.Testbed, 
 
 	// Run the search through the Resource handler.
 	strm := &searchStream{ctx: ctx, stopAfter: stopAfter}
-	err = resource_world.NewWorldStateResource(nil, nil, tx, nil).SearchObjectsWithType(&s4wave_world.SearchObjectsWithTypeRequest{TypeId: "search/a", Query: query}, strm)
+	err = resource_world.NewMount(
+		nil, nil, nil).NewWorldStateResource(tx).SearchObjectsWithType(&s4wave_world.SearchObjectsWithTypeRequest{TypeId: "search/a", Query: query}, strm)
 	if err != nil && (stopAfter == 0 || !errors.Is(err, errStopSearch)) {
 		t.Fatal(err)
 	}

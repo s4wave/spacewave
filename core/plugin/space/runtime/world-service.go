@@ -89,14 +89,13 @@ func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHa
 
 	// Serve the engine as the root Resource, writing as the Space's mount
 	// within what the plugin may write.
-	root := resource_world.NewEngineResource(
-		s.le,
-		s.b,
-		engine,
-		space_world_optypes.BuildSpaceLookupOp(s.b, s.le, s.engineID),
-		&s4wave_world.EngineInfo{EngineId: s.engineID},
+	root := resource_world.NewMount(
+		s.le, s.b, space_world_optypes.BuildSpaceLookupOp(s.b, s.le, s.engineID),
 		resource_world.WithSessionPeerID(s.sessionPeerID),
 		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(pluginID)),
+	).NewEngineResource(
+		engine,
+		&s4wave_world.EngineInfo{EngineId: s.engineID},
 	)
 	defer root.Close()
 	server := resource_server.NewResourceServer(root.GetMux(), worldServiceControllerID)

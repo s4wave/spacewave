@@ -630,7 +630,7 @@ func (r *SpaceResource) NewWorldEngineResource(opts ...resource_world.WorldState
 			return state.GetParticipantConfigForPeer(ctx, caller.String())
 		}),
 	}, opts...)
-	return resource_world.NewEngineResource(r.le, r.b, r.space.GetWorldEngine(), lookupOp, engineInfo, sessionOpts...), nil
+	return resource_world.NewMount(r.le, r.b, lookupOp, sessionOpts...).NewEngineResource(r.space.GetWorldEngine(), engineInfo), nil
 }
 
 // MountSpaceContents mounts the shared plugin runtime of the space and returns a
@@ -807,8 +807,10 @@ func sharingStateToProto(
 	group := state.Control == sobject.SOControl_SO_CONTROL_GROUP
 	canVote := state.ViewerWeight != 0
 	control := s4wave_space.SpaceControl_SpaceControl_OWNER
+	canSetControl := state.CanManage
 	var quorum uint64
 	if group {
+		canSetControl = canVote
 		control = s4wave_space.SpaceControl_SpaceControl_GROUP
 		quorum = state.TotalWeight*2/3 + 1
 	}
@@ -834,7 +836,7 @@ func sharingStateToProto(
 		SequencerChoices: choices,
 		Control:          control,
 		CanVote:          canVote,
-		CanSetControl:    controlHost && (group && canVote || !group && state.CanManage),
+		CanSetControl:    controlHost && canSetControl,
 		TotalWeight:      state.TotalWeight,
 		QuorumWeight:     quorum,
 		GroupChanges:     changes,

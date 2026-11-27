@@ -51,7 +51,7 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 	if err != nil {
 		return nil, err
 	}
-	resource := resource_world.NewEngineResource(r.le, r.b, engine, nil, &s4wave_world.EngineInfo{}, resource_world.WithSessionPeerID(sessionPeerID))
+	resource := resource_world.NewMount(r.le, r.b, nil, resource_world.WithSessionPeerID(sessionPeerID)).NewEngineResource(engine, &s4wave_world.EngineInfo{})
 	releaseResource := func() {
 		resource.Close()
 		release()

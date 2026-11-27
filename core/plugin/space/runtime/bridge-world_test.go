@@ -68,7 +68,7 @@ func TestBridgeAttachedWorldWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	addTestController(t, child, bus_bridge.NewBusBridge(tb.Bus, bridgeFilter(&plugin_space.Config{EngineId: tb.EngineID}, nil)))
-	mount := resource_world.NewEngineResource(tb.Logger, child, tb.Engine, nil, &sdk_world.EngineInfo{EngineId: tb.EngineID})
+	mount := resource_world.NewMount(tb.Logger, child, nil).NewEngineResource(tb.Engine, &sdk_world.EngineInfo{EngineId: tb.EngineID})
 	t.Cleanup(mount.Close)
 
 	// Serve a consumer that watches the World attached by the execution caller.

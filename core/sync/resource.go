@@ -19,7 +19,7 @@ import (
 // Its caller owns the RPC context. Cancel and join that context before release.
 // Releasing the mount leaves the caller's engine usable.
 func AttachEngine(le *logrus.Entry, b bus.Bus, engine world.Engine) (srpc.Invoker, func(), error) {
-	root := resource_world.NewEngineResource(le, b, engine, lookupOp, &sdk_world.EngineInfo{})
+	root := resource_world.NewMount(le, b, lookupOp).NewEngineResource(engine, &sdk_world.EngineInfo{})
 	mux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(root.GetMux(), "").Register(mux); err != nil {
 		root.Close()

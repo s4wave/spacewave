@@ -3,6 +3,7 @@ package resource_world
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
@@ -12,13 +13,20 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
+	"github.com/sirupsen/logrus"
 )
 
 // typedObjectWatch owns one stream's demand, factory work and revocable child.
 // Its owner routine reconciles events independently of stream backpressure.
 type typedObjectWatch struct {
-	// resource retains the exact granting World and factory dependencies.
-	resource *TypedObjectResource
+	// le logs typed factory failures.
+	le *logrus.Entry
+	// b resolves the scoped typed factory directive.
+	b bus.Bus
+	// engine is the granting Engine capability.
+	engine world.Engine
+	// ws is the exact granted World snapshot.
+	ws world.WorldState
 	// objectKey identifies the watched object within that World.
 	objectKey string
 	// engineID is the trusted registry scope of this watch.
@@ -91,8 +99,9 @@ type typedObjectWatchGeneration struct {
 }
 
 // newTypedObjectWatch constructs a watch within the granting mount's authority.
-func newTypedObjectWatch(r *TypedObjectResource, key, engineID string, client resource_server.ResourceClientContext) *typedObjectWatch {
-	return &typedObjectWatch{resource: r, objectKey: key, engineID: engineID, client: client}
+func newTypedObjectWatch(
+	le *logrus.Entry, b bus.Bus, engine world.Engine, ws world.WorldState, key, engineID string, client resource_server.ResourceClientContext) *typedObjectWatch {
+	return &typedObjectWatch{le: le, b: b, engine: engine, ws: ws, objectKey: key, engineID: engineID, client: client}
 }
 
 // execute publishes owner snapshots and waits for teardown before returning.
@@ -274,7 +283,7 @@ func (w *typedObjectWatch) run(ctx context.Context) (retErr error) {
 // object. Changing the quad does not revise the object, so the watch waits on a
 // read set holding the object's record and its type edge.
 func (w *typedObjectWatch) observeWorld(ctx context.Context) error {
-	ws := w.resource.ws
+	ws := w.ws
 	for {
 		// Read the object's root, then its type, after the seqno the wait
 		// below starts from.
@@ -361,7 +370,7 @@ func (w *typedObjectWatch) addLookup(ctx context.Context, typeID string, epoch u
 	)
 
 	// Keep the reference after idle so a later registration can satisfy demand.
-	instance, ref, err := w.resource.b.AddDirective(ctx, objecttype.NewLookupObjectTypeForEngine(typeID, w.engineID), handler)
+	instance, ref, err := w.b.AddDirective(ctx, objecttype.NewLookupObjectTypeForEngine(typeID, w.engineID), handler)
 	if err != nil {
 		return err
 	}
@@ -406,7 +415,7 @@ func (w *typedObjectWatch) releaseLookup() {
 // itself.
 func (w *typedObjectWatch) build(generation *typedObjectWatchGeneration) {
 	// Invoke only this generation's factory against the exact granted state.
-	invoker, cleanup, err := generation.objectType.GetFactory()(generation.ctx, w.resource.le, w.resource.b, w.resource.engine, w.resource.ws, w.objectKey)
+	invoker, cleanup, err := generation.objectType.GetFactory()(generation.ctx, w.le, w.b, w.engine, w.ws, w.objectKey)
 	accepted := false
 	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if w.generation == generation && generation.ctx.Err() == nil {
@@ -463,7 +472,8 @@ func (w *typedObjectWatch) admit(generation *typedObjectWatchGeneration, typeID 
 	generation.childID = id
 	current := false
 	w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		current = generation.ctx.Err() == nil && w.lookup != nil && w.lookup.values[generation.valueID] != nil && w.lookup.typeID == w.typeID && w.lookup.epoch == w.typeEpoch
+		current = generation.ctx.Err() == nil && w.lookup != nil && w.lookup.values[generation.valueID] != nil &&
+			w.lookup.typeID == w.typeID && w.lookup.epoch == w.typeEpoch
 	})
 	if current {
 		w.publish(id, typeID)

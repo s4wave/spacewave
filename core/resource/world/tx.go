@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -35,25 +36,24 @@ type TxResource struct {
 	terminal bool
 }
 
-// NewTxResource creates a new TxResource.
+// newTxResource creates transaction RPCs with the granting mount policy.
 //
 // engine is optional. If provided, TypedObjectResourceService is registered
 // on the mux.
-func NewTxResource(
+func newTxResource(
 	le *logrus.Entry,
 	b bus.Bus,
 	tx world.Tx,
 	lookupOp world.LookupOp,
 	engine world.Engine,
+	mountEngine func(resource_server.ResourceClientContext, world.Engine, ...WorldStateResourceOption) (uint32, error),
 	opts ...WorldStateResourceOption,
 ) *TxResource {
 	// Construct the transaction Resource with the granting World options.
-	wsResource := NewWorldStateResource(le, b, tx, lookupOp, opts...)
-	if engine != nil {
-		engine = world.GuardEngine(engine, wsResource.writeGuard)
-		wsResource.storage = engine
-	}
-	mux := wsResource.mux.(srpc.Mux)
+	access := newMountOptions(opts...)
+	engine = world.GuardEngine(engine, access.writeGuard)
+	mux := srpc.NewMux()
+	wsResource := newWorldStateResource(le, b, tx, lookupOp, mux, engine, false, mountEngine, access)
 	txResource := &TxResource{
 		WorldStateResource: wsResource,
 		tx:                 tx,

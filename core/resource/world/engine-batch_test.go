@@ -31,7 +31,7 @@ func TestExecuteWorldBatch(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 	eng := &writeCountingEngine{Engine: tb.Engine}
-	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, eng, nil, nil)
+	engineResource := resource_world.NewMount(logrus.NewEntry(logrus.New()), tb.Bus, nil).NewEngineResource(eng, nil)
 	defer engineResource.Close()
 	ws := world.NewEngineWorldState(tb.Engine, true)
 
@@ -278,10 +278,7 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 		return &batchTestOp{h: hooks}, nil
 	}
 	bound := peer.ID("bound-mount-peer")
-	engineResource := resource_world.NewEngineResource(
-		logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, lookupOp, nil,
-		resource_world.WithSessionPeerID(bound),
-	)
+	engineResource := resource_world.NewMount(logrus.NewEntry(logrus.New()), tb.Bus, lookupOp, resource_world.WithSessionPeerID(bound)).NewEngineResource(tb.Engine, nil)
 	defer engineResource.Close()
 	ws := world.NewEngineWorldState(tb.Engine, true)
 
@@ -557,7 +554,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 		}
 		return &batchTestOp{h: &batchTestHooks{}}, nil
 	}
-	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, eng, lookupOp, nil)
+	engineResource := resource_world.NewMount(logrus.NewEntry(logrus.New()), tb.Bus, lookupOp).NewEngineResource(eng, nil)
 	defer engineResource.Close()
 	ctx = resource_server.WithResourceClientContext(ctx, &worldStateOperationResourceContext{ctx: ctx})
 	waits := s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_REPLAY_WAITS
@@ -617,7 +614,7 @@ func TestReplayWaitRefusal(t *testing.T) {
 
 	// Check the direct World state writes, each with the code and as an old
 	// client's failed call.
-	stateResource := resource_world.NewWorldStateResource(logrus.NewEntry(logrus.New()), tb.Bus, world.NewEngineWorldState(eng, true), lookupOp)
+	stateResource := resource_world.NewMount(logrus.NewEntry(logrus.New()), tb.Bus, lookupOp).NewWorldStateResource(world.NewEngineWorldState(eng, true))
 	defer stateResource.Close()
 	edgeQuad := world.GraphQuadToQuad(edge)
 	newQuad := world.GraphQuadToQuad(world.NewGraphQuadWithKeys("waits", "<set-waits>", "waits", ""))
@@ -741,10 +738,8 @@ func TestGuardedEngineResourceExecutesOps(t *testing.T) {
 		return &batchTestOp{h: hooks}, nil
 	}
 	mountGuard := &refuseKeyGuard{key: "test/mount-refused"}
-	engineResource := resource_world.NewEngineResource(
-		logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, lookupOp, nil,
-		resource_world.WithWriteGuard(mountGuard),
-	)
+	engineResource := resource_world.NewMount(
+		logrus.NewEntry(logrus.New()), tb.Bus, lookupOp, resource_world.WithWriteGuard(mountGuard)).NewEngineResource(tb.Engine, nil)
 	defer engineResource.Close()
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	exists := func(key string) bool {

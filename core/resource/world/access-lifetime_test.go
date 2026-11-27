@@ -102,7 +102,7 @@ func TestWatchWorldStateDiscardsTrackedTransaction(t *testing.T) {
 
 	// Create le via logrus.NewEntry.
 	le := logrus.NewEntry(logrus.New())
-	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
+	engineResource := resource_world.NewMount(le, tb.Bus, nil).NewEngineResource(engine, nil)
 	defer engineResource.Close()
 
 	// Make the stream.
@@ -168,7 +168,7 @@ func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
 
 	// Create le via logrus.NewEntry.
 	le := logrus.NewEntry(logrus.New())
-	engineResource := resource_world.NewEngineResource(le, tb.Bus, engine, nil, nil)
+	engineResource := resource_world.NewMount(le, tb.Bus, nil).NewEngineResource(engine, nil)
 	defer engineResource.Close()
 
 	// Get resp and err via engineResource.AccessWorldState.
@@ -227,7 +227,7 @@ func TestWatchWorldStateSendsReplacementBeforeRelease(t *testing.T) {
 	// Start the watch against a recording resource context.
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	rpcCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
-	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, nil, nil)
+	engineResource := resource_world.NewMount(logrus.NewEntry(logrus.New()), tb.Bus, nil).NewEngineResource(tb.Engine, nil)
 	defer engineResource.Close()
 	stream := &replacementOrderStream{
 		watchWorldStateTestStream: watchWorldStateTestStream{ctx: rpcCtx, sent: make(chan *s4wave_world.WatchWorldStateResponse, 1)},

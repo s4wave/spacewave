@@ -681,7 +681,7 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 
 	// Read the bodies as JSON through the World state Resource.
 	mux := srpc.NewMux()
-	if err := s4wave_world.SRPCRegisterWorldStateResourceService(mux, resource_world.NewWorldStateResource(le, tb.Bus, tb.WorldState, nil)); err != nil {
+	if err := s4wave_world.SRPCRegisterWorldStateResourceService(mux, resource_world.NewMount(le, tb.Bus, nil).NewWorldStateResource(tb.WorldState)); err != nil {
 		t.Fatal(err)
 	}
 	service := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))

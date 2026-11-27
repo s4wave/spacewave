@@ -64,7 +64,7 @@ func TestWorldStateResourceTypedListPaging(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(read.Discard)
-	resource := resource_world.NewWorldStateResource(nil, tb.Bus, read, nil)
+	resource := resource_world.NewMount(nil, tb.Bus, nil).NewWorldStateResource(read)
 	client := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.GetMux()))))
 
 	// Compare page sizes to ensure the cursor preserves the same subject order.

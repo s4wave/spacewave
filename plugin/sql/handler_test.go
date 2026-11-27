@@ -801,7 +801,7 @@ func newSQLObjectTypeBridgeHarness(
 	cleanupFns = append(cleanupFns, worldOpBridgeRel)
 
 	// Expose the World Engine through a typed object resource client.
-	engineResource := resource_world.NewEngineResource(le, tb.Bus, tb.Engine, nil, nil)
+	engineResource := resource_world.NewMount(le, tb.Bus, nil).NewEngineResource(tb.Engine, nil)
 	engineClient, engineRootClient, cleanupEngine := newSQLResourceClient(t, engineResource.GetMux())
 	cleanupFns = append(cleanupFns, cleanupEngine)
 	typedObjects := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineRootClient)

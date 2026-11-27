@@ -52,7 +52,7 @@ func TestObjectResourceRetiresUnderlyingHandle(t *testing.T) {
 					resources.err = failure
 				}
 				ctx = resource_server.WithResourceClientContext(ctx, resources)
-				r := resource_world.NewWorldStateResource(nil, nil, ws, nil)
+				r := resource_world.NewMount(nil, nil, nil).NewWorldStateResource(ws)
 				err := invoke(ctx, r)
 				if stage == "retirement" {
 					if err != nil {

@@ -34,7 +34,7 @@ func uploadEngineResource(ctx context.Context, tb *db_testbed.Testbed, so sobjec
 	defer releaseTypes()
 
 	// Grant the actual Space engine through its public resource wrapper.
-	engineResource := resource_world.NewEngineResource(tb.Logger, tb.Bus, engine, space_world_optypes.LookupWorldOp, nil)
+	engineResource := resource_world.NewMount(tb.Logger, tb.Bus, space_world_optypes.LookupWorldOp).NewEngineResource(engine, nil)
 	defer engineResource.Close()
 	serverMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(engineResource.GetMux(), "").Register(serverMux); err != nil {

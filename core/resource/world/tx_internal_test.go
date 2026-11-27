@@ -78,7 +78,7 @@ func TestTxResourceCommitRefusalRestoredByType(t *testing.T) {
 				t.Fatal(err)
 			}
 			refused := &failedCommitTx{Tx: tx, err: c.err}
-			resource := NewTxResource(nil, nil, refused, nil, nil)
+			resource := NewMount(nil, nil, nil).NewTxResource(refused, nil)
 			defer resource.Release()
 			rpc := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.mux)))
 			client := s4wave_world.NewSRPCTxResourceServiceClient(rpc)
@@ -135,7 +135,7 @@ func TestTxResourceFailedCommitReleasesWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	failure := errors.New("commit failed")
-	resource := NewTxResource(nil, nil, &failedCommitTx{Tx: tx, err: failure}, nil, nil)
+	resource := NewMount(nil, nil, nil).NewTxResource(&failedCommitTx{Tx: tx, err: failure}, nil)
 	defer resource.Release()
 	if _, err := resource.CommitTx(ctx, &s4wave_world.CommitRequest{}); !errors.Is(err, failure) {
 		t.Fatalf("commit: %v", err)

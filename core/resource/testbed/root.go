@@ -119,7 +119,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		EngineId: engineID,
 		BucketId: bucketID,
 	}
-	engineResource := resource_world.NewEngineResource(s.le, s.bus, busEngine, space_world_optypes.LookupWorldOp, engineInfo)
+	engineResource := resource_world.NewMount(s.le, s.bus, space_world_optypes.LookupWorldOp).NewEngineResource(busEngine, engineInfo)
 
 	// Release function for cleanup
 	releaseFunc := func() {

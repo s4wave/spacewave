@@ -22,17 +22,10 @@ func TestGetEngineInfoReportsNonParticipantWithoutParticipant(t *testing.T) {
 	tb := world_testbed.MustDefault(t, ctx)
 	defer tb.Release()
 	sessionPeerID := peer.ID("session-peer")
-	engine := NewEngineResource(
-		logrus.NewEntry(logrus.New()),
-		tb.Bus,
-		tb.Engine,
-		nil,
-		&s4wave_world.EngineInfo{EngineId: "engine"},
-		WithSessionPeerID(sessionPeerID),
-		WithCallerParticipantLookup(func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error) {
+	engine := NewMount(
+		logrus.NewEntry(logrus.New()), tb.Bus, nil, WithSessionPeerID(sessionPeerID), WithCallerParticipantLookup(func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error) {
 			return nil, sobject.ErrNotParticipant
-		}),
-	)
+		})).NewEngineResource(tb.Engine, &s4wave_world.EngineInfo{EngineId: "engine"})
 	defer engine.Close()
 
 	// Read the engine info for the non-participant session.

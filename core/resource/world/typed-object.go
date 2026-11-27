@@ -67,8 +67,7 @@ func NewTypedObjectResourceWithContext(
 	engine world.Engine, opts ...WorldStateResourceOption,
 ) *TypedObjectResource {
 	// Capture trusted access options with the mount lifecycle.
-	access := new(WorldStateResource)
-	applyWorldStateResourceOptions(access, opts...)
+	access := newMountOptions(opts...)
 	lifecycleCtx, lifecycleCancel := context.WithCancelCause(ctx)
 	r := &TypedObjectResource{
 		le: le, b: b, ws: world.GuardWorldState(ws, access.writeGuard), engine: world.GuardEngine(engine, access.writeGuard),
@@ -155,7 +154,7 @@ func (r *TypedObjectResource) WatchTypedObject(
 	}
 
 	// Run the typed resource's watch against the exact granted World state.
-	watch := newTypedObjectWatch(r, objectKey, engineID, resourceCtx)
+	watch := newTypedObjectWatch(r.le, r.b, r.engine, r.ws, objectKey, engineID, resourceCtx)
 	return watch.execute(ctx, cancel, stream)
 }
 

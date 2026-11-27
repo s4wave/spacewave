@@ -32,7 +32,8 @@ type ObjectStateResource struct {
 func NewObjectStateResource(le *logrus.Entry, b bus.Bus, obj world.ObjectState, lookupOp world.LookupOp, opts ...WorldStateResourceOption) *ObjectStateResource {
 	// Construct the resource and register its service on the rpc mux.
 	objResource := &ObjectStateResource{le: le, b: b, obj: obj, lookupOp: lookupOp}
-	objResource.sessionPeerID, objResource.sessionPeerIDBound = worldStateResourceSessionPeerID(opts...)
+	access := newMountOptions(opts...)
+	objResource.sessionPeerID, objResource.sessionPeerIDBound = access.sessionPeerID, access.sessionPeerIDBound
 	mux := srpc.NewMux()
 	_ = s4wave_world.SRPCRegisterObjectStateResourceService(mux, objResource)
 	objResource.mux = mux

@@ -75,9 +75,10 @@ func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPlu
 	if err := input.Validate(); err != nil {
 		return err
 	}
-	engine := resource_world.NewEngineResource(
-		h.le, h.b, input.GetWorldEngine(), nil, &sdk_world.EngineInfo{EngineId: input.GetWorldEngineID()},
-		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(h.conf.GetPluginId())),
+	engine := resource_world.NewMount(
+		h.le, h.b, nil, resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(h.conf.GetPluginId()))).NewEngineResource(
+		input.GetWorldEngine(),
+		&sdk_world.EngineInfo{EngineId: input.GetWorldEngineID()},
 	)
 	defer engine.Close()
 

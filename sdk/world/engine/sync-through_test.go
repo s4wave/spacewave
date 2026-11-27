@@ -96,7 +96,7 @@ func (r *engineRoot) CreateWorld(ctx context.Context, _ *s4wave_testbed.CreateWo
 	if err != nil {
 		return nil, err
 	}
-	res := resource_world.NewEngineResource(r.le, nil, r.engine, world_mock.LookupMockOp, &s4wave_world.EngineInfo{EngineId: "sync-through"})
+	res := resource_world.NewMount(r.le, nil, world_mock.LookupMockOp).NewEngineResource(r.engine, &s4wave_world.EngineInfo{EngineId: "sync-through"})
 	id, err := resourceCtx.AddResource(res.GetMux(), res.Close)
 	if err != nil {
 		return nil, err

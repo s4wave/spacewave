@@ -354,7 +354,7 @@ func (o *bridgeOperation) applyWorldOp(
 		resource_world.WithSessionPeerID(sender),
 		resource_world.WithWriteGuard(guard),
 	}
-	wsResource := resource_world.NewWorldStateResource(o.le, o.b, ws, lookupOp, opts...)
+	wsResource := resource_world.NewMount(o.le, o.b, lookupOp, opts...).NewWorldStateResource(ws)
 	typedResource := resource_world.NewTypedObjectResourceWithContext(
 		objecttype.WithSessionPeerID(ctx, sender), o.le, o.b, ws, nil, opts...,
 	)

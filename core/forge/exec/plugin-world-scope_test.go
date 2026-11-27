@@ -115,7 +115,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 	// Mount identity controls selection even when caller context carries another scope.
 	for _, engineID := range []string{"", "other-engine", tb.EngineID} {
 		// Probe a trusted mount through Resource RPC rather than reading registry state.
-		mount := resource_world.NewEngineResource(tb.Logger, tb.Bus, tb.Engine, nil, &sdk_world.EngineInfo{EngineId: engineID})
+		mount := resource_world.NewMount(tb.Logger, tb.Bus, nil).NewEngineResource(tb.Engine, &sdk_world.EngineInfo{EngineId: engineID})
 		t.Cleanup(mount.Close)
 		root := srpc.NewMux(mount.GetMux())
 		callerEngineID := tb.EngineID

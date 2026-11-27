@@ -77,7 +77,7 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	}
 	resources := &worldStateOperationResourceContext{ctx: ctx}
 	resourceCtx := resource_server.WithResourceClientContext(ctx, resources)
-	r := resource_world.NewEngineWorldStateResource(tb.Logger, nil, tx, nil, tb.Engine)
+	r := resource_world.NewMount(tb.Logger, nil, nil).NewEngineWorldStateResource(tx, tb.Engine)
 
 	// Abort if resource_world newEngineWorldStateResource fails.
 	if _, err := r.OpenNestedWorld(resourceCtx, &s4wave_world.OpenNestedWorldRequest{ObjectKey: ordinaryKey}); err == nil {

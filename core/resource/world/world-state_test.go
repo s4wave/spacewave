@@ -555,9 +555,9 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 
 	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
-	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+	resource := resource_world.NewMount(nil, nil, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
-	}))
+	})).NewWorldStateResource(tb.WorldState)
 	subjFilter := world.NewGraphQuadWithKeys("operation/a", "<operation-rel>", "", "")
 	objFilter := world.NewGraphQuadWithKeys("", "<operation-rel>", "operation/c", "")
 	resp, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
@@ -644,9 +644,9 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 
 	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
-	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+	resource := resource_world.NewMount(nil, nil, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
-	}))
+	})).NewWorldStateResource(tb.WorldState)
 	resp, err := resource.GetObjectRootRefsBatch(ctx, &s4wave_world.GetObjectRootRefsBatchRequest{
 		ObjectKeys: []string{"root-ref/beta", "missing", "root-ref/alpha", "root-ref/alpha"},
 	})
@@ -724,9 +724,9 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 
 	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
-	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+	resource := resource_world.NewMount(nil, nil, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
-	}))
+	})).NewWorldStateResource(tb.WorldState)
 	mux := srpc.NewMux()
 	if err := s4wave_world.SRPCRegisterWorldStateResourceService(mux, resource); err != nil {
 		t.Fatal(err)
@@ -791,7 +791,7 @@ func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T)
 	ws := &worldStateOwnerBatchTestState{
 		results: [][]world.GraphQuad{{graphQuad}},
 	}
-	resource := resource_world.NewWorldStateResource(nil, nil, ws, nil)
+	resource := resource_world.NewMount(nil, nil, nil).NewWorldStateResource(ws)
 	resp, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
 		Filters: []*quad.Quad{
 			{
@@ -850,9 +850,9 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 
 	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
-	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+	resource := resource_world.NewMount(nil, nil, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
-	}))
+	})).NewWorldStateResource(tb.WorldState)
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	resp, err := resource.QueryGraphPath(resource_server.WithResourceClientContext(ctx, resourceCtx), &s4wave_world.QueryGraphPathRequest{
 		StartKeys: []string{"operation-path/a"},
@@ -913,16 +913,9 @@ func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
 
 	// Perform the action.
 	var records []resource_world.WorldStateOperationRecord
-	engineResource := resource_world.NewEngineResource(
-		nil,
-		nil,
-		tb.Engine,
-		nil,
-		nil,
-		resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
-			records = append(records, record)
-		}),
-	)
+	engineResource := resource_world.NewMount(nil, nil, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+		records = append(records, record)
+	})).NewEngineResource(tb.Engine, nil)
 	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
 	ctx = resource_server.WithResourceClientContext(ctx, resourceCtx)
 

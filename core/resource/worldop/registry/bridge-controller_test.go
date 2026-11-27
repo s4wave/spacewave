@@ -317,7 +317,7 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	// Apply the operation through the World resource over the engine, which
 	// holds the writer for it.
 	ws := world.NewEngineWorldState(tb.Engine, true)
-	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookupPluginOp(ctx, t, tb, le), resource_world.WithSessionPeerID(tb.Volume.GetPeerID()))
+	res := resource_world.NewMount(le, tb.Bus, lookupPluginOp(ctx, t, tb, le), resource_world.WithSessionPeerID(tb.Volume.GetPeerID())).NewWorldStateResource(ws)
 	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
 	go func() {
 		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data"), KnownErrorCode: s4wave_world.KnownErrorCode})
@@ -555,7 +555,7 @@ func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 	const loadDeadline = 2 * time.Second
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	lookup := lookupPluginOp(ctx, t, tb, le, WithPluginLoadDeadline(loadDeadline))
-	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookup, resource_world.WithSessionPeerID(tb.Volume.GetPeerID()))
+	res := resource_world.NewMount(le, tb.Bus, lookup, resource_world.WithSessionPeerID(tb.Volume.GetPeerID())).NewWorldStateResource(ws)
 	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
 	start := time.Now()
 	go func() {
@@ -944,7 +944,7 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	engineRes := resource_world.NewEngineResource(le, tb.Bus, tb.Engine, lookupSettingsOp, nil, resource_world.WithWriteGuard(guard))
+	engineRes := resource_world.NewMount(le, tb.Bus, lookupSettingsOp, resource_world.WithWriteGuard(guard)).NewEngineResource(tb.Engine, nil)
 	batchRefused := []struct {
 		name  string
 		entry *s4wave_world.WorldMutation
@@ -1058,7 +1058,7 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 	}
 	defer rel()
 	lookup := lookupPluginOp(ctx, t, tb, le)
-	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookup, resource_world.WithSessionPeerID(sender))
+	res := resource_world.NewMount(le, tb.Bus, lookup, resource_world.WithSessionPeerID(sender)).NewWorldStateResource(ws)
 	resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
 	if err != nil {
 		t.Fatalf("ApplyWorldOp: %v", err)
@@ -1916,7 +1916,7 @@ func TestBridgedOpWritesFilesThroughStackedGuard(t *testing.T) {
 		if guarded {
 			opts = append(opts, resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard("test-plugin")))
 		}
-		res := resource_world.NewWorldStateResource(le, tb.Bus, world.NewEngineWorldState(tb.Engine, true), lookup, opts...)
+		res := resource_world.NewMount(le, tb.Bus, lookup, opts...).NewWorldStateResource(world.NewEngineWorldState(tb.Engine, true))
 		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
 		if err != nil || resp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED || resp.GetRejectionCode() != "" {
 			t.Fatalf("guarded=%v: apply returned %v, code %v, rejection %q", guarded, err, resp.GetErrorCode(), resp.GetRejectionCode())
@@ -1926,8 +1926,8 @@ func TestBridgedOpWritesFilesThroughStackedGuard(t *testing.T) {
 
 	// Swallow a refused nested op before the same writes.
 	handler.key, handler.swallowKey = "test/seed-fs-swallowed", space_world.SpaceSettingsObjectKey
-	res := resource_world.NewWorldStateResource(le, tb.Bus, world.NewEngineWorldState(tb.Engine, true), lookup,
-		resource_world.WithSessionPeerID(sender), resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard("test-plugin")))
+	res := resource_world.NewMount(
+		le, tb.Bus, lookup, resource_world.WithSessionPeerID(sender), resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard("test-plugin"))).NewWorldStateResource(world.NewEngineWorldState(tb.Engine, true))
 	resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
 	if err != nil || resp.GetRejectionCode() != space_world_optypes.PluginWriteRefusedCode || resp.GetSysErr() {
 		t.Fatalf("swallowed refusal: apply returned %v, code %v, rejection %q, want rejection %q",

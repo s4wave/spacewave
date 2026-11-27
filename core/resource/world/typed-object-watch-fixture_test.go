@@ -61,7 +61,7 @@ func newTypedWatchFixture(t *testing.T, engineID string, wrapResourceClient ...f
 	t.Cleanup(releaseBridge)
 
 	// Serve World, preparation and ObjectType registration through real Resource RPC.
-	mount := resource_world.NewEngineResource(tb.Logger, tb.Bus, tb.Engine, nil, &sdk_world.EngineInfo{EngineId: engineID})
+	mount := resource_world.NewMount(tb.Logger, tb.Bus, nil).NewEngineResource(tb.Engine, &sdk_world.EngineInfo{EngineId: engineID})
 	t.Cleanup(mount.Close)
 	f := &typedWatchFixture{tb: tb, mount: mount}
 	root := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {

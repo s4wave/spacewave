@@ -76,7 +76,7 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	create("job/a", forge_job.JobTypeID, &forge_job.Job{JobState: forge_job.State_JobState_RUNNING, Timestamp: made})
 	create("job/b", forge_job.JobTypeID, &forge_job.Job{JobState: forge_job.State_JobState_COMPLETE, Result: &forge_value.Result{Success: true}})
 
-	resource := resource_world.NewWorldStateResource(nil, tb.Bus, tb.WorldState, nil)
+	resource := resource_world.NewMount(nil, tb.Bus, nil).NewWorldStateResource(tb.WorldState)
 	client := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.GetMux()))))
 
 	// Only the settings type is internal.

@@ -41,86 +41,49 @@ type WorldStateResource struct {
 	lookupOp world.LookupOp
 	// storage accesses the outer World or Engine to open nested World snapshots.
 	storage world.WorldStorage
-	// outerEngine is the Space Engine that authorized a nested World mount.
-	outerEngine world.Engine
-
-	// engineID is the registry scope granted by the mounting component.
-	engineID string
-	// engineIDBound prevents incoming caller context from changing registry scope.
-	engineIDBound bool
-	// options carries trusted mount options into nested and outer World resources.
-	options []WorldStateResourceOption
-
-	// sessionPeerID is the authenticated peer selected by the granting mount.
-	sessionPeerID peer.ID
-	// sessionPeerIDBound prevents request context from replacing the mount peer.
-	sessionPeerIDBound bool
-	// participantLookup reads the caller's accepted participant, when known.
-	participantLookup func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error)
-	// operationObserver receives operation accounting for this mount.
-	operationObserver WorldStateOperationObserver
-	// writeGuard checks every write through ws, when set.
-	writeGuard world.WriteGuard
+	// mountOptions carries the granting mount's trusted access configuration.
+	mountOptions
+	// mountEngine registers a descendant Engine under the same mount policy.
+	mountEngine func(resource_server.ResourceClientContext, world.Engine, ...WorldStateResourceOption) (uint32, error)
 }
 
-// NewWorldStateResource creates a new WorldStateResource.
-//
-// lookupOp may be nil.
-func NewWorldStateResource(
-	le *logrus.Entry,
-	b bus.Bus,
-	ws world.WorldState,
-	lookupOp world.LookupOp,
-	opts ...WorldStateResourceOption,
-) *WorldStateResource {
-	return newWorldStateResource(le, b, ws, lookupOp, nil, opts...)
-}
-
-// NewEngineWorldStateResource creates a WorldStateResource with typed object access.
-func NewEngineWorldStateResource(
-	le *logrus.Entry,
-	b bus.Bus,
-	ws world.WorldState,
-	lookupOp world.LookupOp,
-	engine world.Engine,
-	opts ...WorldStateResourceOption,
-) *WorldStateResource {
-	return newWorldStateResource(le, b, ws, lookupOp, engine, opts...)
-}
-
-// newWorldStateResource binds World access and typed descendants to trusted mount options.
+// newWorldStateResource binds snapshot RPCs to a supplied mux and trusted options.
+// The composing caller guards engine with the same options before passing it.
 func newWorldStateResource(
 	le *logrus.Entry,
 	b bus.Bus,
 	ws world.WorldState,
 	lookupOp world.LookupOp,
+	mux srpc.Mux,
 	engine world.Engine,
-	opts ...WorldStateResourceOption,
+	typed bool,
+	mountEngine func(resource_server.ResourceClientContext, world.Engine, ...WorldStateResourceOption) (uint32, error),
+	access mountOptions,
 ) *WorldStateResource {
 	// Select the granting storage and capture its trusted Resource options.
-	wsResource := &WorldStateResource{le: le, b: b, lookupOp: lookupOp, storage: world.WorldStorage(ws), options: opts}
-	applyWorldStateResourceOptions(wsResource, opts...)
+	wsResource := &WorldStateResource{
+		le: le, b: b, lookupOp: lookupOp, storage: world.WorldStorage(ws),
+		mountOptions: access, mountEngine: mountEngine,
+	}
 	wsResource.ws = world.GuardWorldState(ws, wsResource.writeGuard)
 	if engine != nil {
-		engine = world.GuardEngine(engine, wsResource.writeGuard)
 		wsResource.storage = engine
 	}
 
-	// Register World and optional typed access on the same Resource mux.
-	register := []func(srpc.Mux) error{
-		func(mux srpc.Mux) error {
-			return s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource)
-		},
+	// Register snapshot access on the mux supplied by the composing Resource.
+	if err := s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource); err != nil {
+		panic(err)
 	}
-	if engine != nil {
-		typedResource := NewTypedObjectResource(le, b, ws, engine, opts...)
-		wsResource.typedResource = typedResource
-		register = append(register, func(mux srpc.Mux) error {
-			return s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
-		})
-	}
-	mux := resource_server.NewResourceMux(register...)
 	wsResource.mux = mux
+
+	// Register optional typed access on that same mux.
+	if typed && engine != nil {
+		typedResource := NewTypedObjectResource(le, b, ws, engine, access.options...)
+		wsResource.typedResource = typedResource
+		if err := s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource); err != nil {
+			panic(err)
+		}
+	}
 	return wsResource
 }
 
@@ -265,10 +228,8 @@ func (r *WorldStateResource) OpenNestedWorld(ctx context.Context, req *s4wave_wo
 	// Mount the nested Engine with the granting options and outer authority.
 	nested := world_block.NewNestedEngine(r.le, engine, r.storage, r.lookupOp, key)
 	opts := append(slices.Clone(r.options), WithOuterEngine(authority))
-	resource := NewEngineResource(r.le, r.b, nested, r.lookupOp, nil, opts...)
-	id, err := resourceCtx.AddResource(resource.GetMux(), resource.Close)
+	id, err := r.mountEngine(resourceCtx, nested, opts...)
 	if err != nil {
-		resource.Close()
 		return nil, err
 	}
 	return &s4wave_world.OpenNestedWorldResponse{ResourceId: id}, nil
@@ -290,10 +251,8 @@ func (r *WorldStateResource) OpenOuterWorld(ctx context.Context, _ *s4wave_world
 	// Transfer the outer Engine Resource to the client with its trusted mount
 	// options, as a top-level mount.
 	opts := append(slices.Clone(r.options), WithOuterEngine(nil))
-	resource := NewEngineResource(r.le, r.b, r.outerEngine, r.lookupOp, nil, opts...)
-	id, err := resourceCtx.AddResource(resource.GetMux(), resource.Close)
+	id, err := r.mountEngine(resourceCtx, r.outerEngine, opts...)
 	if err != nil {
-		resource.Close()
 		return nil, err
 	}
 	return &s4wave_world.OpenOuterWorldResponse{ResourceId: id}, nil
@@ -589,7 +548,8 @@ func (r *WorldStateResource) LookupGraphQuads(ctx context.Context, req *s4wave_w
 }
 
 // LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
-func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4wave_world.LookupGraphQuadsBatchRequest) (*s4wave_world.LookupGraphQuadsBatchResponse, error) {
+func (r *WorldStateResource) LookupGraphQuadsBatch(
+	ctx context.Context, req *s4wave_world.LookupGraphQuadsBatchRequest) (*s4wave_world.LookupGraphQuadsBatchResponse, error) {
 	// Account for indexed graph reads through the mounted World.
 	started := time.Now()
 	record := WorldStateOperationRecord{
@@ -639,7 +599,8 @@ func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4w
 }
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
-func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wave_world.ListGraphEdgeBucketsRequest) (*s4wave_world.ListGraphEdgeBucketsResponse, error) {
+func (r *WorldStateResource) ListGraphEdgeBuckets(
+	ctx context.Context, req *s4wave_world.ListGraphEdgeBucketsRequest) (*s4wave_world.ListGraphEdgeBucketsResponse, error) {
 	// Account for grouped graph reads through the mounted World.
 	started := time.Now()
 	record := WorldStateOperationRecord{
@@ -719,7 +680,8 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 
 // SearchObjectsWithType streams the objects of a type whose key or title holds
 // the query, in pages.
-func (r *WorldStateResource) SearchObjectsWithType(req *s4wave_world.SearchObjectsWithTypeRequest, strm s4wave_world.SRPCWorldStateResourceService_SearchObjectsWithTypeStream) error {
+func (r *WorldStateResource) SearchObjectsWithType(
+	req *s4wave_world.SearchObjectsWithTypeRequest, strm s4wave_world.SRPCWorldStateResourceService_SearchObjectsWithTypeStream) error {
 	return searchObjectsWithType(strm.Context(), r.b, r.ws, req, strm.Send)
 }
 
@@ -739,7 +701,8 @@ func (r *WorldStateResource) WatchTypeCounts(req *s4wave_world.WatchTypeCountsRe
 }
 
 // GetObjectRootRefsBatch returns root references for object keys.
-func (r *WorldStateResource) GetObjectRootRefsBatch(ctx context.Context, req *s4wave_world.GetObjectRootRefsBatchRequest) (*s4wave_world.GetObjectRootRefsBatchResponse, error) {
+func (r *WorldStateResource) GetObjectRootRefsBatch(
+	ctx context.Context, req *s4wave_world.GetObjectRootRefsBatchRequest) (*s4wave_world.GetObjectRootRefsBatchResponse, error) {
 	// Account for object root reads through the mounted World.
 	started := time.Now()
 	record := WorldStateOperationRecord{
@@ -779,7 +742,8 @@ func (r *WorldStateResource) GetObjectRootRefsBatch(ctx context.Context, req *s4
 }
 
 // GetObjectMetadataBatch returns graph metadata for object keys.
-func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4wave_world.GetObjectMetadataBatchRequest) (*s4wave_world.GetObjectMetadataBatchResponse, error) {
+func (r *WorldStateResource) GetObjectMetadataBatch(
+	ctx context.Context, req *s4wave_world.GetObjectMetadataBatchRequest) (*s4wave_world.GetObjectMetadataBatchResponse, error) {
 	// Read graph metadata for the requested objects.
 	metadata, err := world_types.GetObjectMetadataBatch(ctx, r.ws, req.GetObjectKeys())
 	if err != nil {
@@ -1126,54 +1090,11 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 
 // applyWorldOp resolves and applies the operation req specifies.
 func (r *WorldStateResource) applyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
-	op, opSender, refused, err := r.resolveWorldOp(ctx, req)
+	op, opSender, refused, err := r.resolveWorldOp(ctx, r.lookupOp, req)
 	if err != nil || refused != nil {
 		return refused, err
 	}
 	return applyResolvedWorldOp(ctx, r.ws, op, opSender, world.AppliesAtomically(r.ws))
-}
-
-// resolveWorldOp resolves and decodes the operation req specifies and binds its
-// sender to the authenticated mount when one is bound. It returns a refusal for
-// an operation type the mount cannot resolve.
-func (r *WorldStateResource) resolveWorldOp(
-	ctx context.Context,
-	req *s4wave_world.ApplyWorldOpRequest,
-) (world.Operation, peer.ID, *s4wave_world.ApplyWorldOpResponse, error) {
-	// Refuse an op the mount cannot resolve without an error.
-	unhandled := &s4wave_world.ApplyWorldOpResponse{
-		ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
-	}
-	if r.lookupOp == nil {
-		return nil, "", unhandled, nil
-	}
-
-	// Resolve the requested World operation and report unsupported types.
-	op, err := r.lookupOp(ctx, req.GetOpTypeId())
-	if err == nil && op == nil {
-		err = world.ErrUnhandledOp
-	}
-	if err != nil {
-		if errors.Is(err, world.ErrUnhandledOp) {
-			return nil, "", unhandled, nil
-		}
-		return nil, "", nil, err
-	}
-
-	// Decode the World operation payload before execution.
-	if err := op.UnmarshalVT(req.GetOpData()); err != nil {
-		return nil, "", nil, err
-	}
-
-	// Bind the operation sender to the authenticated mount when available.
-	opSender := r.sessionPeerID
-	if !r.sessionPeerIDBound {
-		opSender, err = req.ParsePeerID()
-		if err != nil {
-			return nil, "", nil, err
-		}
-	}
-	return op, opSender, nil, nil
 }
 
 // applyResolvedWorldOp applies op to ws and encodes the refusals opErrorRefusal
@@ -1353,10 +1274,11 @@ func graphEdgeBucketDirectionFromProto(dir s4wave_world.GraphEdgeBucketDirection
 
 // newObjectStateResource carries the World capability's authenticated sender to its objects.
 func (r *WorldStateResource) newObjectStateResource(obj world.ObjectState) *ObjectStateResource {
-	resource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
-	resource.sessionPeerID = r.sessionPeerID
-	resource.sessionPeerIDBound = r.sessionPeerIDBound
-	return resource
+	var opts []WorldStateResourceOption
+	if r.sessionPeerIDBound {
+		opts = append(opts, WithSessionPeerID(r.sessionPeerID))
+	}
+	return NewObjectStateResource(r.le, r.b, obj, r.lookupOp, opts...)
 }
 
 // _ is a type assertion.

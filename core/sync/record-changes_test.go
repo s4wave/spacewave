@@ -65,7 +65,7 @@ func TestRecordChanges(t *testing.T) {
 	defer read.Discard()
 
 	// Compare the saved root with the current object records.
-	resource := resource_world.NewWorldStateResource(le, engine.Bus, read, nil)
+	resource := resource_world.NewMount(le, engine.Bus, nil).NewWorldStateResource(read)
 	result, err := resource.CompareObjectRecords(ctx, &sdk_world.CompareObjectRecordsRequest{Bases: []*sdk_world.ObjectRecordBase{{ObjectKey: "counts", RootRef: base}}})
 	if err != nil {
 		t.Fatal(err)
