@@ -7,6 +7,8 @@ import (
 	"os"
 	oexec "os/exec"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/exec"
 	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
@@ -130,6 +132,34 @@ func (e *Electron) Wait(ctx context.Context) error {
 	case <-e.waitDone:
 		return e.waitErr
 	}
+}
+
+// ExecuteRuntimeController runs the private runtime until execution, the process,
+// or ctx ends. It detaches the private runtime after canceling its
+// execution context, including when the bus has not attached it yet.
+func (e *Electron) ExecuteRuntimeController(ctx context.Context, b bus.Bus, rc controller.Controller) error {
+	// Give runtime removal an explicit cancellation and completion fence.
+	runCtx, cancel := context.WithCancel(ctx)
+	result := make(chan error, 1)
+	go func() { result <- b.ExecuteController(runCtx, rc) }()
+
+	// Select the first lifetime to end, then stop and join runtime execution.
+	var err error
+	var joined bool
+	select {
+	case err = <-result:
+		joined = true
+	case <-e.waitDone:
+		err = e.waitErr
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+	cancel()
+	b.RemoveController(rc)
+	if !joined {
+		<-result
+	}
+	return err
 }
 
 // Close shuts down the electron instance.

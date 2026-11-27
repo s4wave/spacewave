@@ -240,7 +240,7 @@ func TestSaucerInProcess(t *testing.T) {
 					// Main RPC: accept incoming streams
 					// from the browser.
 					remEg.Go(func() error {
-						err := rem.GetRpcServer().AcceptMuxedConn(remCtx, mainGoMc)
+						err := rem.AcceptMuxedConn(remCtx, mainGoMc)
 						if err == io.EOF || err == context.Canceled {
 							return nil
 						}

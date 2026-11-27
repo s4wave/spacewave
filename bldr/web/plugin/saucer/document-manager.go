@@ -58,16 +58,16 @@ type DocumentManager struct {
 	le       *logrus.Entry
 	sessions documentSessionOwner
 
-	// server is the SRPC server for handling JS-initiated RPC streams.
-	server *srpc.Server
+	// handleStream serves JS-initiated RPC streams.
+	handleStream func(context.Context, io.ReadWriteCloser)
 }
 
-// NewDocumentManager constructs a manager with a server for JS-initiated streams.
-// A nil server leaves those streams unserved.
-func NewDocumentManager(le *logrus.Entry, server *srpc.Server) *DocumentManager {
+// NewDocumentManager constructs a manager with a handler for JS-initiated streams.
+// A nil handler leaves those streams unserved.
+func NewDocumentManager(le *logrus.Entry, handleStream func(context.Context, io.ReadWriteCloser)) *DocumentManager {
 	return &DocumentManager{
-		le:     le,
-		server: server,
+		le:           le,
+		handleStream: handleStream,
 		sessions: documentSessionOwner{
 			docs:        make(map[string]*documentState),
 			snapshotCtr: ccontainer.NewCContainerVT[*web_runtime.WebRuntimeStatus](nil),
@@ -489,12 +489,12 @@ func (dm *DocumentManager) acceptMuxStreams(ctx context.Context, mc srpc.MuxedCo
 			dm.le.WithError(err).Debug("mux accept stream error")
 			return
 		}
-		if dm.server == nil {
+		if dm.handleStream == nil {
 			dm.le.Error("SRPC server not set, cannot handle JS-initiated stream")
 			_ = stream.Close()
 			continue
 		}
-		go dm.server.HandleStream(ctx, stream)
+		go dm.handleStream(ctx, stream)
 	}
 }
 

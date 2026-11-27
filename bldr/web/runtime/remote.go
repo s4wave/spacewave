@@ -121,9 +121,19 @@ func (r *Remote) GetBus() bus.Bus {
 	return r.bus
 }
 
-// GetRpcServer returns the RPC server.
-func (r *Remote) GetRpcServer() *srpc.Server {
-	return r.rpcServer
+// AcceptMuxedConn serves incoming runtime RPC streams on mc until it ends.
+func (r *Remote) AcceptMuxedConn(ctx context.Context, mc srpc.MuxedConn) error {
+	return r.rpcServer.AcceptMuxedConn(ctx, mc)
+}
+
+// HandleStream serves one length-prefixed runtime RPC stream until it ends.
+func (r *Remote) HandleStream(ctx context.Context, stream io.ReadWriteCloser) {
+	r.rpcServer.HandleStream(ctx, stream)
+}
+
+// NewServerRPC constructs runtime RPC packet handlers for a packet transport.
+func (r *Remote) NewServerRPC(ctx context.Context, writer srpc.PacketWriter) *srpc.ServerRPC {
+	return srpc.NewServerRPC(ctx, r.rpcMux, writer)
 }
 
 // GetWebRuntimeStatusCtr contains a full snapshot of the web runtime status.
@@ -654,8 +664,7 @@ func (r *Remote) updateStatusSnapshot() {
 
 // _ is a type assertion
 var (
-	_ WebRuntime = (*Remote)(nil)
-
 	_ rpcstream.RpcStreamGetter = (*Remote)(nil).GetWebDocumentHost
 	_ rpcstream.RpcStreamGetter = (*Remote)(nil).GetServiceWorkerHost
+	_ WebRuntime                = (*Remote)(nil)
 )

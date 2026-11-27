@@ -287,7 +287,7 @@ func (r *Controller) runElectron(ctx context.Context) error {
 			client := srpc.NewClientWithMuxedConn(mc)
 			remote, err := web_runtime.NewRemote(r.le, r.bus, handler, r.runtimeUuid, client,
 				func(ctx context.Context, remote *web_runtime.Remote) error {
-					return remote.GetRpcServer().AcceptMuxedConn(ctx, mc)
+					return remote.AcceptMuxedConn(ctx, mc)
 				})
 			if err != nil {
 				return nil, err
@@ -308,7 +308,7 @@ func (r *Controller) runElectron(ctx context.Context) error {
 		}, ControllerID, Version)
 
 	// Run the private runtime until it, Electron, or the owning controller ends.
-	err = r.executeRuntimeController(ctx, e, rc)
+	err = e.ExecuteRuntimeController(ctx, r.bus, rc)
 	if !errors.Is(err, srpc.ErrClosedBeforeCompletion) {
 		return err
 	}
@@ -322,33 +322,6 @@ func (r *Controller) runElectron(ctx context.Context) error {
 		return err
 	}
 	return exitErr
-}
-
-// executeRuntimeController detaches the private runtime after canceling its
-// execution context, including when the bus has not attached it yet.
-func (r *Controller) executeRuntimeController(ctx context.Context, e *Electron, rc controller.Controller) error {
-	// Give runtime removal an explicit cancellation and completion fence.
-	runCtx, cancel := context.WithCancel(ctx)
-	result := make(chan error, 1)
-	go func() { result <- r.bus.ExecuteController(runCtx, rc) }()
-
-	// Select the first lifetime to end, then stop and join runtime execution.
-	var err error
-	var joined bool
-	select {
-	case err = <-result:
-		joined = true
-	case <-e.waitDone:
-		err = e.waitErr
-	case <-ctx.Done():
-		err = ctx.Err()
-	}
-	cancel()
-	r.bus.RemoveController(rc)
-	if !joined {
-		<-result
-	}
-	return err
 }
 
 // HandleDirective resolves the plugin's desktop control without starting Electron.

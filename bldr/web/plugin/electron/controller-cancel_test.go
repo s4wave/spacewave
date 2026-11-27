@@ -56,7 +56,7 @@ func TestControllerCancellationBeforeRuntimeAttachment(t *testing.T) {
 	r := &Controller{bus: b}
 	e := &Electron{waitDone: make(chan struct{})}
 	result := make(chan error, 1)
-	go func() { result <- r.executeRuntimeController(ctx, e, r) }()
+	go func() { result <- e.ExecuteRuntimeController(ctx, b, r) }()
 
 	// End the owning controller while runtime execution is still unattached.
 
@@ -105,7 +105,7 @@ func TestControllerRuntimeResultCancelsBeforeRemoval(t *testing.T) {
 	r := &Controller{bus: b}
 	e := &Electron{waitDone: make(chan struct{})}
 	result := make(chan error, 1)
-	go func() { result <- r.executeRuntimeController(t.Context(), e, r) }()
+	go func() { result <- e.ExecuteRuntimeController(t.Context(), b, r) }()
 
 	// Finish execution while the owning context remains live.
 

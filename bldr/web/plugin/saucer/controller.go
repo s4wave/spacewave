@@ -175,7 +175,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 			}
 
 			// Connect document streams to WebRuntimeHost and serve the Remote's loopback RPCs.
-			docMgr := NewDocumentManager(le, remote.GetRpcServer())
+			docMgr := NewDocumentManager(le, remote.HandleStream)
 			if err := web_runtime.SRPCRegisterWebRuntime(mux, docMgr); err != nil {
 				return nil, err
 			}
