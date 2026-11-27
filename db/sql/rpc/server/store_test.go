@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -171,10 +172,10 @@ func TestStoreClientConcurrentTransactions(t *testing.T) {
 	if len(fakeStore.txs) != 2 {
 		t.Fatalf("tx count = %d, want 2", len(fakeStore.txs))
 	}
-	if !fakeStore.txs[0].committed {
+	if !fakeStore.txs[0].committed.Load() {
 		t.Fatal("write tx was not committed")
 	}
-	if !fakeStore.txs[1].discarded {
+	if !fakeStore.txs[1].discarded.Load() {
 		t.Fatal("read tx was not discarded")
 	}
 	if fakeStore.txs[0].dsn != "primary" || fakeStore.txs[1].dsn != "readonly" {
@@ -204,17 +205,17 @@ type fakeSqlTx struct {
 	readOnly  bool
 	dsn       string
 	ops       hydra_sql.SqlOps
-	committed bool
-	discarded bool
+	committed atomic.Bool
+	discarded atomic.Bool
 }
 
 func (t *fakeSqlTx) Commit(ctx context.Context) error {
-	t.committed = true
+	t.committed.Store(true)
 	return nil
 }
 
 func (t *fakeSqlTx) Discard() {
-	t.discarded = true
+	t.discarded.Store(true)
 }
 
 func (t *fakeSqlTx) GetReadOnly() bool {
