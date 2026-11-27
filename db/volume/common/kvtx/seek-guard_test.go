@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -34,11 +38,44 @@ type seekGuard struct {
 	mtx sync.Mutex
 	// deleted tracks committed deletes until a committed write sets the key.
 	deleted *btree.BTreeG[string]
+	// trace holds every committed write in commit order, when
+	// writeTraceDir names a directory, as writeTrace describes.
+	trace []string
 }
+
+// writeTraceEnv names the directory where each test writes the trace of its
+// stores' committed writes. Two builds whose runs write equal traces made the
+// same writes, in the same order, with the same values.
+const writeTraceEnv = "SPACEWAVE_WRITE_TRACE_DIR"
+
+// writeTraceDir is the directory writeTraceEnv names, or empty when unset.
+var writeTraceDir = os.Getenv(writeTraceEnv)
+
+// writeTraceSeqs numbers the guarded stores of each test in the order they
+// open, so each store of a test writes its own trace file.
+var writeTraceSeqs sync.Map // test name -> *atomic.Int64
 
 // newSeekGuard guards the write transactions of store.
 func newSeekGuard(t *testing.T, store kvtx.Store) *seekGuard {
-	return &seekGuard{Store: store, t: t, deleted: btree.NewBTreeG(cmp.Less[string])}
+	g := &seekGuard{Store: store, t: t, deleted: btree.NewBTreeG(cmp.Less[string])}
+	if writeTraceDir != "" {
+		seqs, _ := writeTraceSeqs.LoadOrStore(t.Name(), new(atomic.Int64))
+		seq := seqs.(*atomic.Int64).Add(1)
+		t.Cleanup(func() { g.writeTrace(seq) })
+	}
+	return g
+}
+
+// writeTrace writes the store's committed writes to a file named by the test
+// and the store's number in the test.
+func (s *seekGuard) writeTrace(seq int64) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	name := strings.NewReplacer("/", "_", " ", "_").Replace(s.t.Name())
+	path := filepath.Join(writeTraceDir, fmt.Sprintf("%s.%d.trace", name, seq))
+	if err := os.WriteFile(path, []byte(strings.Join(s.trace, "")), 0o644); err != nil {
+		s.t.Error(err)
+	}
 }
 
 // newGuardedStore builds the store shared by in-memory Volume test opens.
@@ -115,6 +152,8 @@ type seekGuardTx struct {
 	reported map[string]bool
 	// optimistic reports that the write body runs against a read snapshot.
 	optimistic bool
+	// ops are the transaction's writes in order, when writeTraceDir is set.
+	ops []string
 }
 
 // Set records a key to forget from the deletion history at commit.
@@ -122,6 +161,9 @@ func (t *seekGuardTx) Set(ctx context.Context, key, value []byte) error {
 	// Stage the value in the backing transaction.
 	if err := t.Tx.Set(ctx, key, value); err != nil {
 		return err
+	}
+	if writeTraceDir != "" {
+		t.ops = append(t.ops, fmt.Sprintf("S %x %x\n", key, value))
 	}
 
 	// A committed set supersedes a previous deletion.
@@ -136,6 +178,9 @@ func (t *seekGuardTx) Delete(ctx context.Context, key []byte) error {
 	// Stage the deletion in the backing transaction.
 	if err := t.Tx.Delete(ctx, key); err != nil {
 		return err
+	}
+	if writeTraceDir != "" {
+		t.ops = append(t.ops, fmt.Sprintf("D %x\n", key))
 	}
 
 	// Preserve the transaction's final operation for this key.
@@ -180,7 +225,7 @@ func (t *seekGuardTx) commit(ctx context.Context, commit func() error) error {
 	}()
 	switch {
 	case t.optimistic:
-		if len(t.changed) == 0 {
+		if len(t.changed) == 0 && len(t.ops) == 0 {
 			return commit()
 		}
 		if err := kvtx.AtCommit(ctx, t.Tx, func(context.Context, kvtx.Tx) error {
@@ -196,6 +241,9 @@ func (t *seekGuardTx) commit(ctx context.Context, commit func() error) error {
 	// Publish the final operation for each liveness key on success.
 	if err := commit(); err != nil {
 		return err
+	}
+	if len(t.ops) != 0 {
+		t.store.trace = append(append(t.store.trace, "C\n"), t.ops...)
 	}
 	for key, deleted := range t.changed {
 		if deleted {
