@@ -26,9 +26,12 @@ type holderTarget struct {
 // matching parent with the child its list references. Released lists are included;
 // their Released flag shows that the list has already relinquished its holds.
 // Only the first eight parents per ref are followed at the next level.
-// It keeps the requested refs and their bounded parent samples, never all lists.
+// After the walk, visit receives each named root holding a retained target at level -1.
+// Root rows identify the held block in Ref and the name in Root, with a nil child.
+// It keeps the requested refs and each level's bounded parent samples, never all lists.
 // The callback must not open another transaction on this store.
-// Cost: up streaming list scans, plus bounded point reads per emitted row, in one read snapshot.
+// Cost: up streaming list scans and one root scan, plus bounded point reads per block row.
+// All reads share one snapshot.
 func (c *Collector) InspectHolders(
 	ctx context.Context, refs []*block.BlockRef, up int,
 	visit func(level int, child *block.BlockRef, row HolderRow) error,
@@ -45,12 +48,14 @@ func (c *Collector) InspectHolders(
 			return err
 		}
 		targets := make(map[string]*holderTarget, len(refs))
+		retained := make(map[string]*block.BlockRef, len(refs))
 		for _, ref := range refs {
 			key := string(BlockKey(ref))
 			if targets[key] != nil {
 				continue
 			}
 			targets[key] = &holderTarget{ref: ref}
+			retained[key] = ref
 			row, err := readHolderRow(ctx, rec, blocks, state.GetUpCursor(), ref)
 			if err != nil {
 				return err
@@ -119,13 +124,22 @@ func (c *Collector) InspectHolders(
 				for _, parent := range target.parents {
 					key := string(BlockKey(parent))
 					next[key] = &holderTarget{ref: parent}
+					retained[key] = parent
 				}
 			}
 			counts.Followed = len(next)
 			levels = append(levels, counts)
 			targets = next
 		}
-		return nil
+
+		// Stream roots once against the retained targets from every level.
+		return rec.ScanRoots(ctx, func(bucketID, name string, entry *RootEntry) error {
+			ref := retained[string(entry.GetRef())]
+			if ref == nil {
+				return nil
+			}
+			return visit(-1, nil, HolderRow{Ref: ref, Root: &FrontRoot{BucketID: bucketID, Name: name}})
+		})
 	})
 	return levels, err
 }

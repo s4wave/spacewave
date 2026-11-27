@@ -492,7 +492,7 @@ func TestSettleStatusFrontCauses(t *testing.T) {
 	}
 }
 
-// TestInspectHolders checks parent flags, key ordering, streaming beyond the sample and bounded upward traversal.
+// TestInspectHolders checks parent ordering, bounded traversal and roots holding retained targets.
 func TestInspectHolders(t *testing.T) {
 	// Seed a child with ten zero, unqueued parents and a shared grandparent.
 	ctx := t.Context()
@@ -540,6 +540,21 @@ func TestInspectHolders(t *testing.T) {
 	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
 		t.Fatal(err)
 	}
+	// Name the requested child twice and its grandparent once, including a leased root.
+	for _, root := range []struct {
+		bucket, name string
+		ref          *block.BlockRef
+		lease        string
+	}{
+		{"a", "child", child, ""},
+		{"b", "child", child, "reader"},
+		{"b", "head", grandparent, ""},
+		{"b", "unrelated", new(block.BlockRef), ""},
+	} {
+		if err := rec.SetRoot(ctx, root.bucket, root.name, &RootEntry{Ref: BlockKey(root.ref), Lease: root.lease}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -547,8 +562,22 @@ func TestInspectHolders(t *testing.T) {
 	// Inspect through a read-only transaction and check each streamed parent.
 	collector := NewCollector(diagnosticStore{data: data, keys: keys}, CollectorOptions{})
 	seen := [4]int{}
+	roots := make(map[FrontRoot]*block.BlockRef)
 	var previous []byte
 	levels, err := collector.InspectHolders(ctx, []*block.BlockRef{child, child}, 8, func(level int, named *block.BlockRef, row HolderRow) error {
+		// Keep root relationships separate from the parent-level totals.
+		if row.Root != nil {
+			if level != -1 || named != nil || row != (HolderRow{Ref: row.Ref, Root: row.Root}) {
+				t.Fatalf("root row at level %d with child %v: %+v", level, named, row)
+			}
+			if roots[*row.Root] != nil {
+				t.Fatalf("root emitted twice: %+v", row.Root)
+			}
+			roots[*row.Root] = row.Ref
+			return nil
+		}
+
+		// Check the structure and order of each parent level.
 		seen[level]++
 		if level == 1 {
 			want := HolderRow{Ref: row.Ref, Ripe: 5, Listed: true, Marked: true, Stored: true, Front: true, Cause: FrontZeroUnqueued}
@@ -568,6 +597,12 @@ func TestInspectHolders(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Match roots at the requested level and at a shared ancestor only once.
+	if len(roots) != 3 || !roots[FrontRoot{BucketID: "a", Name: "child"}].EqualVT(child) ||
+		!roots[FrontRoot{BucketID: "b", Name: "child"}].EqualVT(child) ||
+		!roots[FrontRoot{BucketID: "b", Name: "head"}].EqualVT(grandparent) {
+		t.Fatalf("roots = %v", roots)
 	}
 	if seen != [4]int{1, 10, 8, 0} || len(levels) != 4 || levels[1].Followed != 8 || levels[2].Followed != 1 {
 		t.Fatalf("seen %v levels %+v", seen, levels)

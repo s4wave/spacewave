@@ -111,6 +111,41 @@ func TestDebugRefRepair(t *testing.T) {
 		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: block_gc.Generation_GENERATION_OPEN})
 	})
 
+	// Preserve both failure reasons when neither the typed read nor the scan succeeded.
+	t.Run("scan fate includes both causes", func(t *testing.T) {
+		// Give an unreached ref each failure independently and then together.
+		ref, err := block.BuildBlockRef([]byte("failed scan fate"), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		repair := newRefRepair(le, vol, nil, space_world_optypes.LookupBlockType)
+		repair.scanUntyped()
+		for _, tc := range []struct {
+			why, failed, want string
+		}{
+			{"", "", "not reached"},
+			{"untyped payload", "", "left, untyped payload"},
+			{"", "not a message", "left, scanned and not a message"},
+			{"untyped payload", "not a message", "left, untyped payload; scanned and not a message"},
+		} {
+			// Install just the causes this case reports.
+			key := ref.MarshalString()
+			delete(repair.unread, key)
+			delete(repair.res.scan.failed, key)
+			if tc.why != "" {
+				repair.unread[key] = tc.why
+			}
+			if tc.failed != "" {
+				repair.res.scan.failed[key] = tc.failed
+			}
+
+			// Keep the unchanged single-cause and unreached cases exact.
+			if got := repair.scanFate(ref, nil, false); got != tc.want {
+				t.Fatalf("scan fate = %q, want %q", got, tc.want)
+			}
+		}
+	})
+
 	// Start a storage testbed whose blocks are copied into the volume
 	// untracked.
 	htb, err := hydra_testbed.NewTestbed(ctx, le)

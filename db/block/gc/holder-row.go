@@ -6,8 +6,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// HolderRow is the stored structure of one block, without its bytes.
+// HolderRow is the stored structure of one block or a named root holding it, without its bytes.
 type HolderRow struct {
+	// Root identifies a named root holding Ref, with other structural fields unset.
+	Root *FrontRoot
 	// Ref is the block inspected.
 	Ref *block.BlockRef
 	// Holders is the netted count, including the implied holder of a missing count record.

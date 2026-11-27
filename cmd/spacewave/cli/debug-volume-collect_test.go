@@ -193,9 +193,13 @@ func TestDebugVolumeHolders(t *testing.T) {
 
 	// Confirm the parent's structural flags and the child relationship in its TSV row.
 	want := strings.Join([]string{"1", parent.MarshalString(), child.MarshalString(), "1", "0",
-		"true", "true", "true", "false", "false", "false", "false", ""}, "\t") + "\n"
+		"true", "true", "true", "false", "false", "false", "false", "", "", ""}, "\t") + "\n"
 	if !strings.Contains(output.String(), want) {
 		t.Fatalf("parent row missing: %q", output.String())
+	}
+	root := strings.Join([]string{"root", parent.MarshalString(), "", "", "", "", "", "", "", "", "", "", "", "holders", "head"}, "\t") + "\n"
+	if !strings.Contains(output.String(), root) || !strings.Contains(output.String(), "# roots: 1 rows\n") {
+		t.Fatalf("root row or summary missing: %q", output.String())
 	}
 	if !strings.Contains(output.String(), "# level 1: 1 rows; 1 held by holders") || !strings.Contains(output.String(), "# level 2: 0 rows") {
 		t.Fatalf("holder summary missing: %q", output.String())

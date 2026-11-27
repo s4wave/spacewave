@@ -33,7 +33,7 @@ func (a *debugVolumeHoldersArgs) BuildFlags() []cli.Flag {
 	}
 }
 
-// Run prints only the requested blocks' structure and their parent relationships.
+// Run prints the requested blocks' structure, parent relationships and named roots.
 func (a *debugVolumeHoldersArgs) Run(c *cli.Context) error {
 	// Validate the bounded depth before opening the stopped volume.
 	if c.NArg() != 1 {
@@ -67,11 +67,13 @@ func (a *debugVolumeHoldersArgs) inspect(ctx context.Context, path string, out i
 		return err
 	}
 	defer func() { err = stderrors.Join(err, vol.Close()) }()
-	if _, err := io.WriteString(out, "level\tref\tchild\tholders\tripe\tlisted\tmarked\tstored\tqueued\treleased\tparked\tfront\tfront cause\n"); err != nil {
+	if _, err := io.WriteString(out, "level\tref\tchild\tholders\tripe\tlisted\tmarked\tstored\tqueued\treleased\tparked\tfront\tfront cause\t"+
+		"root bucket\troot name\n"); err != nil {
 		return err
 	}
 
 	// Print each relationship immediately while the owning package scans.
+	var roots uint64
 	levels, err := vol.InspectHolders(ctx, refs, a.up, func(level int, child *block.BlockRef, row block_gc.HolderRow) error {
 		// Include the child relationship and only label a cause for actual front entries.
 		childRef, cause := "", ""
@@ -87,6 +89,16 @@ func (a *debugVolumeHoldersArgs) inspect(ctx context.Context, path string, out i
 			strconv.FormatBool(row.Listed), strconv.FormatBool(row.Marked), strconv.FormatBool(row.Stored),
 			strconv.FormatBool(row.Queued), strconv.FormatBool(row.Released), strconv.FormatBool(row.Parked), strconv.FormatBool(row.Front), cause,
 		}
+
+		// Root rows name the holder and leave block structure columns empty.
+		bucketID, name := "", ""
+		if row.Root != nil {
+			roots++
+			fields[0] = "root"
+			clear(fields[3:])
+			bucketID, name = row.Root.BucketID, row.Root.Name
+		}
+		fields = append(fields, bucketID, name)
 		_, err := io.WriteString(out, strings.Join(fields, "\t")+"\n")
 		return err
 	})
@@ -107,7 +119,8 @@ func (a *debugVolumeHoldersArgs) inspect(ctx context.Context, path string, out i
 			return err
 		}
 	}
-	return nil
+	_, err = io.WriteString(out, "# roots: "+strconv.FormatUint(roots, 10)+" rows\n")
+	return err
 }
 
 // newDebugVolumeHoldersCommand returns the read-only holder-chain diagnostic.
@@ -115,11 +128,12 @@ func newDebugVolumeHoldersCommand() *cli.Command {
 	args := &debugVolumeHoldersArgs{}
 	return &cli.Command{
 		Name:      "volume-holders",
-		Usage:     "print block counts and parent lists in a stopped volume",
+		Usage:     "print block counts, parent lists and named roots in a stopped volume",
 		ArgsUsage: "<volume-file>",
 		Description: "Opens the stopped volume read-only and prints structural records, never block bytes. " +
 			"Scans child lists once per level in key order, printing every matching parent and its child. " +
 			"Follows only the first eight parents per ref at the next level, up to --up levels. " +
+			"Scans named roots once to print the bucket and name holding each retained ref. " +
 			"Released lists are included and identified by the released column. It writes nothing to the volume.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

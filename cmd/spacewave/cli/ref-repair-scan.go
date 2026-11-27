@@ -158,6 +158,8 @@ func (r *refRepair) scanFate(ref *block.BlockRef, root *block_gc.FrontRoot, root
 		return "read by type"
 	case scanned && !bad:
 		return "read by scanning"
+	case unread && bad:
+		return "left, " + why + "; scanned and " + failed
 	case unread:
 		return "left, " + why
 	case bad:
