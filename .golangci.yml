@@ -124,9 +124,9 @@ linters:
                 - github.com/s4wave/spacewave/sdk/world/engine.NewSDKObjectState:1
                 - github.com/s4wave/spacewave/sdk/world/engine.NewSDKTx:1
                 - github.com/s4wave/spacewave/sdk/world/engine.NewSDKObjectIterator:1
-                - github.com/s4wave/spacewave/sdk/viewer/registry.NewViewerRegistry:1
+                - github.com/s4wave/spacewave/sdk/viewer/registry.NewViewerRegistry:0
                 - github.com/s4wave/spacewave/sdk/provider/local.NewLocalProvider:0
-                - github.com/s4wave/spacewave/sdk/provider/spacewave.NewSpacewaveProvider:1
+                - github.com/s4wave/spacewave/sdk/provider/spacewave.NewSpacewaveProvider:0
                 - github.com/s4wave/spacewave/sdk/bucket/lookup.NewCursor:1
               borrowed:
                 # The returned engine and cleanup own this view of their reference.

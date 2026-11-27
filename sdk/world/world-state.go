@@ -11,14 +11,15 @@ import (
 
 // WorldState implements the World state operations over WorldStateResourceService.
 type WorldState struct {
-	client   *resource_client.Client
+	// client adopts the Resources this wrapper's calls return.
+	client   resource_client.ReferenceCreator
 	ref      resource_client.ResourceRef
 	service  SRPCWorldStateResourceServiceClient
 	readOnly bool
 }
 
 // NewWorldState creates a new WorldState resource wrapper.
-func NewWorldState(client *resource_client.Client, ref resource_client.ResourceRef, readOnly bool) (*WorldState, error) {
+func NewWorldState(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, readOnly bool) (*WorldState, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

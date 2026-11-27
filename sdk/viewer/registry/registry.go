@@ -8,19 +8,17 @@ import (
 
 // ViewerRegistry is the Go SDK wrapper for the ViewerRegistryResourceService.
 type ViewerRegistry struct {
-	client  *resource_client.Client
 	ref     resource_client.ResourceRef
 	service SRPCViewerRegistryResourceServiceClient
 }
 
 // NewViewerRegistry creates a new ViewerRegistry resource wrapper.
-func NewViewerRegistry(client *resource_client.Client, ref resource_client.ResourceRef) (*ViewerRegistry, error) {
+func NewViewerRegistry(ref resource_client.ResourceRef) (*ViewerRegistry, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
 	return &ViewerRegistry{
-		client:  client,
 		ref:     ref,
 		service: NewSRPCViewerRegistryResourceServiceClient(srpcClient),
 	}, nil

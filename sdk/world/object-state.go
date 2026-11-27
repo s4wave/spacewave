@@ -25,14 +25,15 @@ import (
 //
 // This RPC-based implementation wraps ObjectStateResourceService.
 type ObjectState struct {
-	client    *resource_client.Client
+	// client adopts the Resources this wrapper's calls return.
+	client    resource_client.ReferenceCreator
 	ref       resource_client.ResourceRef
 	service   SRPCObjectStateResourceServiceClient
 	objectKey string
 }
 
 // NewObjectState creates a new ObjectState resource wrapper.
-func NewObjectState(client *resource_client.Client, ref resource_client.ResourceRef, objectKey string) (world.ObjectState, error) {
+func NewObjectState(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, objectKey string) (world.ObjectState, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

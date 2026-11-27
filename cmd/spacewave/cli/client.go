@@ -581,7 +581,7 @@ func (c *sdkClient) lookupSpacewaveProvider(ctx context.Context, providerID stri
 
 	// Build the SDK wrapper over the provider resource.
 	ref := c.resClient.CreateResourceReference(resourceID)
-	prov, err := s4wave_provider_spacewave.NewSpacewaveProvider(c.resClient, ref)
+	prov, err := s4wave_provider_spacewave.NewSpacewaveProvider(ref)
 	if err != nil {
 		ref.Release()
 		return nil, nil, errors.Wrap(err, "spacewave provider")

@@ -21,7 +21,7 @@ type Tx struct {
 }
 
 // NewTx creates a new Tx resource wrapper.
-func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, readOnly bool) (*Tx, error) {
+func NewTx(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, readOnly bool) (*Tx, error) {
 	// Wrap the transaction resource with its World state interface.
 	ws, err := NewWorldState(client, ref, readOnly)
 	if err != nil {

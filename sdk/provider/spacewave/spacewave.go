@@ -8,19 +8,17 @@ import (
 
 // SpacewaveProvider is the SDK wrapper for the SpacewaveProviderResourceService.
 type SpacewaveProvider struct {
-	client  *resource_client.Client
 	ref     resource_client.ResourceRef
 	service SRPCSpacewaveProviderResourceServiceClient
 }
 
 // NewSpacewaveProvider creates a new SpacewaveProvider resource wrapper.
-func NewSpacewaveProvider(client *resource_client.Client, ref resource_client.ResourceRef) (*SpacewaveProvider, error) {
+func NewSpacewaveProvider(ref resource_client.ResourceRef) (*SpacewaveProvider, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
 	return &SpacewaveProvider{
-		client:  client,
 		ref:     ref,
 		service: NewSRPCSpacewaveProviderResourceServiceClient(srpcClient),
 	}, nil

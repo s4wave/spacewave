@@ -17,14 +17,15 @@ import (
 //
 // This Go SDK implementation wraps EngineResourceService and WatchWorldStateResourceService.
 type Engine struct {
-	client       *resource_client.Client
+	// client adopts the Resources this wrapper's calls return.
+	client       resource_client.ReferenceCreator
 	ref          resource_client.ResourceRef
 	service      SRPCEngineResourceServiceClient
 	watchService SRPCWatchWorldStateResourceServiceClient
 }
 
 // NewEngine creates a new Engine resource wrapper.
-func NewEngine(client *resource_client.Client, ref resource_client.ResourceRef) (*Engine, error) {
+func NewEngine(client resource_client.ReferenceCreator, ref resource_client.ResourceRef) (*Engine, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
