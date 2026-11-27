@@ -10,11 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	sqlite_common "github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"golang.org/x/sync/errgroup"
@@ -225,4 +227,9 @@ func sleep(ctx context.Context, d time.Duration) error {
 // logf prints a timestamped progress line on stderr.
 func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s "+format+"\n", append([]any{time.Now().Format(time.TimeOnly)}, args...)...)
+	if strings.HasPrefix(format, "stage") {
+		sqlite_common.EachStoreStats(func(st sqlite_common.StoreStats) {
+			fmt.Fprintf(os.Stderr, "sqlstats %+v\n", st)
+		})
+	}
 }

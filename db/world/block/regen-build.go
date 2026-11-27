@@ -2,6 +2,8 @@ package world_block
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/graph/proto"
@@ -131,6 +133,9 @@ func buildNodeGraphRoot(
 		return nil, errors.Wrap(err, "write node graph")
 	}
 
+	// Report the benchmark's streamed and spilled byte counts.
+	fmt.Fprintf(os.Stderr, "regen-bytes streamed %d spilled %d\n", benchStreamed, sorter.Spilled())
+
 	// Mark the World a node graph and write its block.
 	w.Format = WorldFormat_WORLD_FORMAT_NODE_GRAPH
 	w.GraphSettings = nil
@@ -141,6 +146,9 @@ func buildNodeGraphRoot(
 	}
 	return newRoot, nil
 }
+
+// benchStreamed counts the key and value bytes the build streamed (analysis only).
+var benchStreamed int64
 
 // writeBuiltGraph writes builder's key stream as a new OKRA_INLINE tree and
 // sets it as worldCursor's graph sub-block, counting the stream against floor.
@@ -157,6 +165,7 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 	var writeErr error
 	err = graphTx.(*kvtx_block_okra.Tx).ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
 		writeErr = builder.Write(ctx, func(key, value []byte) error {
+			benchStreamed += int64(len(key) + len(value))
 			if err := floor.wrote(int64(len(key) + len(value))); err != nil {
 				return err
 			}

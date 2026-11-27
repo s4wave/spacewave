@@ -29,7 +29,7 @@ type Pragmas struct {
 	// WALCheckpointBytes bounds the write-ahead log: journal_size_limit
 	// truncates the log to it whenever SQLite restarts it, and once the
 	// store's background checkpoint has copied all of a log past it, a
-	// truncating checkpoint resets it. Under constant reads and heavy writes
+	// restarting checkpoint resets it. Under constant reads and heavy writes
 	// SQLite may never restart the log, which can then grow without bound.
 	// 0 uses DefaultWALCheckpointBytes.
 	WALCheckpointBytes int64

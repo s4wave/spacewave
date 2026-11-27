@@ -5,8 +5,11 @@ package store_kvtx_sqlite
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -244,6 +247,106 @@ func TestSQLitePragmas(t *testing.T) {
 		if got != wantCacheSize {
 			t.Fatalf("expected cache_size=%d, got %d", wantCacheSize, got)
 		}
+	}
+}
+
+// TestSQLiteAutoVacuum checks that a fresh file is made with incremental
+// auto_vacuum, so a delete's pages can go back to the disk, and that a file
+// made without it opens and keeps its mode.
+func TestSQLiteAutoVacuum(t *testing.T) {
+	ctx := context.Background()
+	autoVacuum := func(db Store) int {
+		var got int
+		if err := db.GetDB().QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&got); err != nil {
+			t.Fatal(err.Error())
+		}
+		return got
+	}
+
+	// A fresh file: incremental (2), and incremental_vacuum frees the pages
+	// of deleted values.
+	tp := newTempDBPath(t, "hydra-test-sqlite-autovacuum-*.sqlite")
+	db, err := Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := autoVacuum(db); got != 2 {
+		t.Fatalf("fresh file auto_vacuum = %d, want 2", got)
+	}
+	value := make([]byte, 64<<10)
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 64 {
+		if err := tx.Set(ctx, []byte("k"+strconv.Itoa(i)), value); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, err = db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 64 {
+		if err := tx.Delete(ctx, []byte("k"+strconv.Itoa(i))); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	pages := func(pragma string) int {
+		var n int
+		if err := db.GetDB().QueryRowContext(ctx, "PRAGMA "+pragma).Scan(&n); err != nil {
+			t.Fatal(err.Error())
+		}
+		return n
+	}
+	free := pages("freelist_count")
+	if free < 1000 {
+		t.Fatalf("freelist after deletes = %d pages, want the values' pages", free)
+	}
+	before := pages("page_count")
+	// SQLite frees one page per row of the pragma's result, so read them all.
+	rows, err := db.GetDB().QueryContext(ctx, "PRAGMA incremental_vacuum")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for rows.Next() {
+	}
+	if err := rows.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if after := pages("page_count"); after > before-free+1 || pages("freelist_count") != 0 {
+		t.Fatalf("incremental_vacuum left %d of %d pages, freelist %d", after, before, pages("freelist_count"))
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// A file made with auto_vacuum none keeps its mode.
+	tp = newTempDBPath(t, "hydra-test-sqlite-autovacuum-none-*.sqlite")
+	db, err = Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := db.GetDB().ExecContext(ctx, "PRAGMA auto_vacuum=NONE"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := db.GetDB().ExecContext(ctx, "VACUUM"); err != nil {
+		t.Fatal(err.Error())
+	}
+	db.Close()
+	db, err = Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+	if got := autoVacuum(db); got != 0 {
+		t.Fatalf("existing file auto_vacuum = %d, want 0 kept", got)
 	}
 }
 
@@ -487,6 +590,7 @@ func TestSQLiteWALBound(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		if info.Size() <= 4*bound {
+			checkWALBoundStats(t, tp)
 			return
 		}
 		if time.Now().After(deadline) {
@@ -494,4 +598,163 @@ func TestSQLiteWALBound(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+// checkWALBoundStats checks the counters of the store at path after
+// TestSQLiteWALBound's writes: every write took a turn, and the log was
+// checkpointed and truncated.
+func checkWALBoundStats(t *testing.T, path string) {
+	t.Helper()
+	var found bool
+	common.EachStoreStats(func(st common.StoreStats) {
+		if filepath.Base(st.File) != filepath.Base(path) {
+			return
+		}
+		found = true
+		if st.ForegroundWaits < 2000 || st.BackgroundWaits != 0 {
+			t.Fatalf("writer turns: %d foreground, %d background; want at least 2000 foreground", st.ForegroundWaits, st.BackgroundWaits)
+		}
+		if st.Passives == 0 || st.Truncates == 0 || st.LastTruncate <= 0 || st.Truncate < st.LastTruncate {
+			t.Fatalf("checkpoints: %+v", st)
+		}
+		t.Logf("checkpoints: %+v", st)
+	})
+	if !found {
+		t.Fatalf("no store stats for %s", path)
+	}
+}
+
+// TestSQLiteWALRestartsUnderSteadyWrites checks that the checkpointer restarts
+// a log past its bound while writers follow each other without a gap and
+// readers never stop, as on a busy World store. A writer that finds readers on
+// the log never restarts it itself, so the checkpointer's restart is the only
+// one, and it must not lose SQLite's write lock to the next writer.
+func TestSQLiteWALRestartsUnderSteadyWrites(t *testing.T) {
+	// Open a database whose log is bounded at 64 KiB.
+	ctx := context.Background()
+	tp := newTempDBPath(t, "hydra-test-sqlite-wal-steady-*.sqlite")
+	const bound = 64 << 10
+	db, err := OpenWithPragmas(ctx, tp, "test_wal", Pragmas{WALCheckpointBytes: bound})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	// Readers read constantly, a few at a time.
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				if tx, err := db.NewTransaction(ctx, false); err == nil {
+					_, _, _ = tx.Get(ctx, []byte("key-0"))
+					tx.Discard()
+				}
+			}
+		}()
+	}
+	defer func() {
+		close(stop)
+		readers.Wait()
+	}()
+
+	// Writers queue for the turn so each begins as the last commits, and each
+	// holds the write lock for many rows. Watch the log after every commit
+	// until it shrinks, which only a restart does.
+	value := make([]byte, 256)
+	writes := make(chan error, 4)
+	shrank := make(chan struct{})
+	var once sync.Once
+	var largest atomic.Int64
+	deadline := time.Now().Add(10 * time.Second)
+	for range 4 {
+		go func() {
+			var last int64
+			for i := 0; time.Now().Before(deadline); i++ {
+				select {
+				case <-shrank:
+					writes <- nil
+					return
+				default:
+				}
+				tx, err := db.NewTransaction(ctx, true)
+				if err != nil {
+					writes <- err
+					return
+				}
+				for j := range 2000 {
+					if err := tx.Set(ctx, []byte("key-"+strconv.Itoa(j)), value); err != nil {
+						tx.Discard()
+						writes <- err
+						return
+					}
+				}
+				if err := tx.Commit(ctx); err != nil {
+					writes <- err
+					return
+				}
+				info, err := os.Stat(tp + "-wal")
+				if err != nil {
+					writes <- err
+					return
+				}
+				size := info.Size()
+				if size > largest.Load() {
+					largest.Store(size)
+				}
+				if last > 4*bound && size < last {
+					once.Do(func() { close(shrank) })
+				}
+				last = size
+			}
+			writes <- nil
+		}()
+	}
+	for range 4 {
+		if err := <-writes; err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	st := walStats(t, tp)
+	t.Logf("largest log %d bytes; %d passives, %d restarts, %d skipped, %d forced; longest writer turn held %v", largest.Load(), st.Passives, st.Truncates, st.RestartsSkipped, st.RestartsForced, st.MaxRestartHold)
+	select {
+	case <-shrank:
+	default:
+		t.Fatalf("the log grew to %d bytes under steady writes and never restarted; bound %d", largest.Load(), bound)
+	}
+
+	// Writers with no gap add to the log during every passive checkpoint, so
+	// the restart is forced and holds the turn while it copies and syncs the
+	// frames added during one short passive checkpoint.
+	if st.MaxRestartHold > maxRestartHold {
+		t.Fatalf("the checkpointer held the writer turn for %v; want at most %v", st.MaxRestartHold, maxRestartHold)
+	}
+}
+
+// maxRestartHold bounds the writer turn a restart holds: the restart's busy
+// wait for readers and a short copy and sync, with room for a loaded test
+// host.
+const maxRestartHold = 250 * time.Millisecond
+
+// walStats returns the counters of the open store at path.
+func walStats(t *testing.T, path string) common.StoreStats {
+	t.Helper()
+	var st common.StoreStats
+	var found bool
+	common.EachStoreStats(func(s common.StoreStats) {
+		if filepath.Base(s.File) == filepath.Base(path) {
+			st, found = s, true
+		}
+	})
+	if !found {
+		t.Fatalf("no store stats for %s", path)
+	}
+	return st
 }

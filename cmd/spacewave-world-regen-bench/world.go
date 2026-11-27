@@ -11,6 +11,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -77,7 +78,7 @@ func openBenchWorld(ctx context.Context, path string) (*benchWorld, error) {
 // ending in sqliteExt, and an s4db Volume otherwise.
 func volumeConfig(path string) config.Config {
 	if filepath.Ext(path) == sqliteExt {
-		return &volume_sqlite.Config{Path: path, Table: sqliteTable}
+		return &volume_sqlite.Config{Path: path, Table: sqliteTable, MmapSize: 64 << 30, VolumeConfig: &volume_controller.Config{GcIntervalDur: "0"}}
 	}
 	return &volume_s4db.Config{Path: path}
 }
