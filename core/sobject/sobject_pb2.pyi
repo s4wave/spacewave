@@ -560,12 +560,23 @@ class SOCheckpointInner(_message.Message):
     def __init__(self, shared_object_id: _Optional[str] = ..., height: _Optional[int] = ..., prev_checkpoint_hash: _Optional[bytes] = ..., config_hash: _Optional[bytes] = ..., state_data: _Optional[bytes] = ..., replay_version: _Optional[int] = ..., key_epoch: _Optional[int] = ..., authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., sequence: _Optional[_Union[SOSequenceHead, _Mapping]] = ..., outcomes: _Optional[_Union[SOCheckpointOutcomes, _Mapping]] = ...) -> None: ...
 
 class SOCheckpointOutcomes(_message.Message):
-    __slots__ = ("refused", "prev_authors")
+    __slots__ = ("refused", "prev_authors", "carried")
     REFUSED_FIELD_NUMBER: _ClassVar[int]
     PREV_AUTHORS_FIELD_NUMBER: _ClassVar[int]
+    CARRIED_FIELD_NUMBER: _ClassVar[int]
     refused: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
     prev_authors: SOCheckpointAuthors
-    def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., prev_authors: _Optional[_Union[SOCheckpointAuthors, _Mapping]] = ...) -> None: ...
+    carried: _containers.RepeatedCompositeFieldContainer[SOCheckpointCarried]
+    def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., prev_authors: _Optional[_Union[SOCheckpointAuthors, _Mapping]] = ..., carried: _Optional[_Iterable[_Union[SOCheckpointCarried, _Mapping]]] = ...) -> None: ...
+
+class SOCheckpointCarried(_message.Message):
+    __slots__ = ("peer_id", "refused")
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    FROM_FIELD_NUMBER: _ClassVar[int]
+    REFUSED_FIELD_NUMBER: _ClassVar[int]
+    peer_id: str
+    refused: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
+    def __init__(self, peer_id: _Optional[str] = ..., refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., **kwargs) -> None: ...
 
 class SOCheckpointAuthors(_message.Message):
     __slots__ = ("authors",)

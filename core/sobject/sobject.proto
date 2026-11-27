@@ -805,6 +805,30 @@ message SOCheckpointOutcomes {
   // before the field existed, whose previous heads are unknown. Set with no
   // authors when the previous checkpoint covered none, as genesis.
   SOCheckpointAuthors prev_authors = 2;
+
+  // Carried are the outcomes earlier checkpoints recorded for each author
+  // that has not acknowledged them, sorted by peer_id, so a device that
+  // missed those checkpoints can decide its operations they covered. An
+  // author acknowledges a checkpoint by covering an operation that built on
+  // every author head of that checkpoint. An author with no entry is owed
+  // nothing below prev_authors, or its signer recorded no carried outcomes.
+  repeated SOCheckpointCarried carried = 3;
+}
+
+// SOCheckpointCarried are the outcomes one author is owed from checkpoints
+// before the previous one.
+message SOCheckpointCarried {
+  // PeerId is the author.
+  string peer_id = 1;
+
+  // From is the author's last operation covered below the operations it is
+  // owed. Unset when they start at its first operation.
+  SOOperationPosition from = 2;
+
+  // Refused are the author's refused operations above from and at or below
+  // its entry in prev_authors, in order. Every other operation of the author
+  // in that span applied.
+  repeated SOOperationPosition refused = 3;
 }
 
 // SOCheckpointAuthors are the author heads of one checkpoint.
