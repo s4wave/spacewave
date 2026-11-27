@@ -364,11 +364,11 @@ func (l *linkedLane) pass(ctx context.Context) error {
 				// A reconcile can queue a ref just as the
 				// ref's last range drops. The index then
 				// references no file and the entry goes.
-				segs, err := l.files.GetIndex().Lookup(ctx, e.ref)
+				indexed, err := l.files.HasIndexedBlock(ctx, e.ref)
 				if err != nil {
 					return err
 				}
-				if len(segs) == 0 {
+				if !indexed {
 					done = append(done, e.key)
 				} else {
 					stale++
@@ -503,7 +503,7 @@ func (l *linkedLane) queueUnheld(ctx context.Context) error {
 	var after *block.BlockRef
 	for {
 		// Read the next page of indexed refs and probe the catalog.
-		refs, err := l.files.GetIndex().Refs(ctx, after, linkedRefPage)
+		refs, err := l.files.IndexedRefs(ctx, after, linkedRefPage)
 		if err != nil || len(refs) == 0 {
 			return err
 		}

@@ -171,10 +171,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// client.Close is still cheap (the subprocess has already self-exited)
 	// and the refs are released so the plugin-host scheduler can drop its
 	// LoadPlugin references.
-	select {
-	case <-ctx.Done():
-	case <-progress.Done():
-	}
+	progress.WaitDismissed(ctx)
 	return nil
 }
 

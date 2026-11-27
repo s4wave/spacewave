@@ -54,7 +54,7 @@ func NewSessionClient(
 	}
 
 	// Bind this standalone client to its session key.
-	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, priv, nil))
+	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, priv, nil), nil)
 }
 
 // NewSessionClientSigner constructs a SessionClient backed by a request-signing callback.
@@ -72,12 +72,14 @@ func NewSessionClientSigner(
 	}
 
 	// Bind this standalone client to its external signing callback.
-	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, nil, sign))
+	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, nil, sign), nil)
 }
 
-// newSessionClientFromSigner constructs a client bound to one revocable signer.
-func newSessionClientFromSigner(httpCli *http.Client, endpoint, signingEnvPfx string, signer *SessionSigner) *SessionClient {
+// newSessionClientFromSigner binds a revocable signer and the account's shared
+// recovery cache. A standalone client has no cache and fetches each listing.
+func newSessionClientFromSigner(httpCli *http.Client, endpoint, signingEnvPfx string, signer *SessionSigner, cache *recoveryKeypairCache) *SessionClient {
 	return &SessionClient{
+		recoveryKeypairs: cache,
 		SignedHTTPClient: &SignedHTTPClient{
 			httpCli: httpCli,
 			baseURL: endpoint,
@@ -140,7 +142,13 @@ func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
 // bodyHash is the pre-computed SHA-256 hash of the file contents.
 // bloomFormatVersion identifies the bloom encoding
 // (packfile.BloomFormatVersionV1).
-func (c *SessionClient) SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error {
+func (c *SessionClient) SyncPushData(
+	ctx context.Context,
+	resourceID, packID string,
+	blockCount int,
+	packData, bodyHash, bloomFilter []byte,
+	bloomFormatVersion uint32,
+) error {
 	return c.syncPushDataWithProgress(ctx, resourceID, &syncPushPack{
 		packID:             packID,
 		blockCount:         blockCount,
@@ -184,7 +192,13 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 // A pack the catalog already holds does not. A caller that uploads several
 // packs at once commits them in the order it chooses, before the upload's
 // admission expires.
-func (c *SessionClient) SyncPushUpload(ctx context.Context, resourceID, packID string, blockCount int, packData, bodyHash, bloomFilter []byte, bloomFormatVersion uint32) (bool, error) {
+func (c *SessionClient) SyncPushUpload(
+	ctx context.Context,
+	resourceID, packID string,
+	blockCount int,
+	packData, bodyHash, bloomFilter []byte,
+	bloomFormatVersion uint32,
+) (bool, error) {
 	return c.syncPushUpload(ctx, resourceID, &syncPushPack{
 		packID:             packID,
 		blockCount:         blockCount,
@@ -485,7 +499,10 @@ func (c *SessionClient) EnrollMember(ctx context.Context, soID, accountID string
 // target account on a given shared object.
 func (c *SessionClient) ResolveMemberParticipants(ctx context.Context, soID, accountID string) (*api.ResolveMemberParticipantsResponse, error) {
 	resp := &api.ResolveMemberParticipantsResponse{}
-	if err := c.postMessage(ctx, path.Join("/api/sobject", soID, "member-participants"), &api.ResolveMemberParticipantsRequest{AccountId: accountID}, resp, SeedReasonRejoin); err != nil {
+	if err := c.postMessage(ctx,
+		path.Join("/api/sobject", soID, "member-participants"),
+		&api.ResolveMemberParticipantsRequest{AccountId: accountID}, resp, SeedReasonRejoin,
+	); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -1027,7 +1044,11 @@ func (c *SessionClient) ProcessTargetedInvitation(ctx context.Context, req *api.
 
 // AcceptTargetedOrganizationInvitation fulfills a pending organization targeted
 // invitation for the authenticated recipient.
-func (c *SessionClient) AcceptTargetedOrganizationInvitation(ctx context.Context, orgID string, req *api.AcceptTargetedOrganizationInvitationRequest) (*api.AcceptTargetedOrganizationInvitationResponse, error) {
+func (c *SessionClient) AcceptTargetedOrganizationInvitation(
+	ctx context.Context,
+	orgID string,
+	req *api.AcceptTargetedOrganizationInvitationRequest,
+) (*api.AcceptTargetedOrganizationInvitationResponse, error) {
 	var resp api.AcceptTargetedOrganizationInvitationResponse
 	if err := c.postMessage(ctx, "/api/org/"+url.PathEscape(orgID)+"/targeted-invitation/fulfill", req, &resp, SeedReasonMutation); err != nil {
 		return nil, errors.Wrap(err, "accept targeted organization invitation")

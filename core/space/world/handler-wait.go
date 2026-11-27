@@ -94,8 +94,13 @@ func (a *Adapter) endHandlerWait() {
 	if a.handlerWait == nil {
 		return
 	}
-	a.handlerWait.cancel()
+	a.handlerWait.stop()
 	a.handlerWait = nil
+}
+
+// stop releases the handler watch and its plugin requests.
+func (w *handlerWait) stop() {
+	w.cancel()
 }
 
 // watch holds a LoadOpPlugins for the wait's plugins, recording the ones

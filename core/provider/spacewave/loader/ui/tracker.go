@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -10,23 +11,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// defaultHelperBinaryName is the helper executable without a platform suffix.
 const defaultHelperBinaryName = "spacewave-helper"
 
+// defaultAppIconPath locates the icon relative to the helper directory.
 const defaultAppIconPath = "../Resources/app.icns"
 
 // Sender is the minimal loader-helper client surface consumed by Tracker.
 type Sender interface {
+	// SendProgress updates the helper's progress display.
 	SendProgress(fraction float32, text string) error
+	// SendDismiss closes the helper window.
 	SendDismiss() error
-}
-
-// FetchStatus is the loader UI's read-only view of launcher fetch progress.
-type FetchStatus struct {
-	Fetching    bool
-	HasConfig   bool
-	LastErr     string
-	Attempts    uint32
-	NextRetryAt time.Time
 }
 
 // Tracker maintains running state for watched plugin ids plus the latest
@@ -55,14 +51,17 @@ func NewTracker(client Sender, le *logrus.Entry, pluginIDs []string) *Tracker {
 	}
 }
 
-// Done returns a channel that closes after the tracker has sent the dismiss
-// signal to the helper.
-func (t *Tracker) Done() <-chan struct{} {
-	return t.doneCh
+// WaitDismissed waits until the helper has been dismissed or ctx ends.
+func (t *Tracker) WaitDismissed(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+	case <-t.doneCh:
+	}
 }
 
 // MarkRunning flips the per-plugin running state and re-renders progress.
 func (t *Tracker) MarkRunning(pluginID string, running bool) {
+	// Publish only changes to the plugin's running state.
 	t.mu.Lock()
 	if t.running[pluginID] == running {
 		t.mu.Unlock()
@@ -70,11 +69,14 @@ func (t *Tracker) MarkRunning(pluginID string, running bool) {
 	}
 	t.running[pluginID] = running
 	t.mu.Unlock()
+
+	// Send progress after releasing the state lock.
 	t.Render()
 }
 
 // SetFetchStatus updates the cached launcher fetch status and re-renders.
 func (t *Tracker) SetFetchStatus(status *FetchStatus) {
+	// Publish only a new fetch snapshot.
 	t.mu.Lock()
 	if t.fetchStatus == status {
 		t.mu.Unlock()
@@ -82,16 +84,21 @@ func (t *Tracker) SetFetchStatus(status *FetchStatus) {
 	}
 	t.fetchStatus = status
 	t.mu.Unlock()
+
+	// Send progress after releasing the state lock.
 	t.Render()
 }
 
 // Render pushes the current progress snapshot to the helper.
 func (t *Tracker) Render() {
+	// Keep a dismissed helper closed.
 	t.mu.Lock()
 	if t.dismissed {
 		t.mu.Unlock()
 		return
 	}
+
+	// Count running plugins and find the next pending plugin under the lock.
 	total := len(t.pluginIDs)
 	running := 0
 	var nextPending string
@@ -104,6 +111,8 @@ func (t *Tracker) Render() {
 			nextPending = id
 		}
 	}
+
+	// Capture fetch status and dismiss the helper once all plugins run.
 	status := t.fetchStatus
 	if total > 0 && running == total {
 		t.dismissed = true
@@ -119,6 +128,7 @@ func (t *Tracker) Render() {
 	}
 	t.mu.Unlock()
 
+	// Show the fetch failure or connection state before loading plugins.
 	if status != nil && !status.HasConfig {
 		if status.LastErr != "" {
 			text := formatRetryMessage(status.NextRetryAt)
@@ -135,6 +145,7 @@ func (t *Tracker) Render() {
 		}
 	}
 
+	// Show indeterminate progress until a plugin starts.
 	if total == 0 {
 		if err := t.client.SendProgress(-1, "Preparing Spacewave..."); err != nil {
 			t.le.WithError(err).Debug("send preparing status")
@@ -147,6 +158,8 @@ func (t *Tracker) Render() {
 		}
 		return
 	}
+
+	// Report the fraction loaded and the next plugin to start.
 	text := "Loading Spacewave..."
 	if nextPending != "" {
 		text = "Loading " + nextPending + "..."
@@ -187,6 +200,7 @@ func ResolveIconPathFromDirs(baseDirs []string) string {
 
 // ResolveHelperPathIn resolves the helper binary path within baseDir.
 func ResolveHelperPathIn(baseDir, overrideName, goos string) (string, bool) {
+	// Choose the platform's helper name unless the caller supplied one.
 	name := overrideName
 	if name == "" {
 		name = defaultHelperBinaryName
@@ -194,6 +208,8 @@ func ResolveHelperPathIn(baseDir, overrideName, goos string) (string, bool) {
 			name += ".exe"
 		}
 	}
+
+	// Resolve the helper only when the candidate exists.
 	path := filepath.Join(baseDir, name)
 	if _, err := os.Stat(path); err != nil {
 		return "", false
@@ -201,11 +217,15 @@ func ResolveHelperPathIn(baseDir, overrideName, goos string) (string, bool) {
 	return path, true
 }
 
+// formatRetryMessage includes the retry delay when one is scheduled.
 func formatRetryMessage(nextRetryAt time.Time) string {
+	// Show a generic wait when no retry is scheduled.
 	const prefix = "Waiting for network"
 	if nextRetryAt.IsZero() {
 		return prefix + "..."
 	}
+
+	// Report a due retry or its remaining delay.
 	remaining := time.Until(nextRetryAt)
 	if remaining < time.Second {
 		return prefix + " (retrying...)"

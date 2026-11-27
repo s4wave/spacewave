@@ -55,9 +55,6 @@ type Controller struct {
 	apps *keyed.KeyedRefCount[resource_root.AppStorage, *promise.Promise[*appRuntime]]
 	// parent is the root of the installation hosting this nested app, if any.
 	parent *Controller
-	// hostPluginID is the plugin serving this installation, set before apps
-	// start in Execute.
-	hostPluginID string
 	// registries are the plugin capability registries, shared with parent.
 	registries *registries
 	// bindingRegistry is shared with nested Resource roots.
@@ -181,12 +178,11 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 // Execute registers child controllers for the root resource lifecycle.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Inherit the host plugin ID from the parent root or the plugin context.
+	var parent *resource_root.CoreRootServer
 	if c.parent != nil {
-		c.hostPluginID = c.parent.hostPluginID
-	} else if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
-		c.hostPluginID = info.GetPluginMeta().GetPluginId()
+		parent = c.parent.rootResource
 	}
-	c.rootResource.SetHostPluginID(c.hostPluginID)
+	c.rootResource.BindHostPlugin(ctx, parent)
 
 	// Run nested app roots until the controller stops.
 	c.apps.SetContext(ctx, true)

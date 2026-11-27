@@ -21,16 +21,6 @@ import (
 // accountBcast. Every write that changes the slot broadcasts, so a waiter on
 // the account broadcast sees each install and drop.
 
-// configureSessionClient connects cli to the account's recovery keypair
-// cache.
-func (a *ProviderAccount) configureSessionClient(cli *SessionClient) *SessionClient {
-	if cli == nil {
-		return nil
-	}
-	cli.recoveryKeypairs = &a.recoveryKeypairs
-	return cli
-}
-
 // currentSessionClient returns the slot's client, which may be nil or unable
 // to sign.
 func (a *ProviderAccount) currentSessionClient() *SessionClient {
@@ -195,12 +185,13 @@ func (a *ProviderAccount) bindSessionClientLocked(sessionID string, priv crypto.
 	a.sessionClient.GetSessionSigner().revoke()
 	a.sessionSignerGen++
 	signer := newSessionSigner(sessionID, peerID, a.sessionSignerGen, priv, nil)
-	a.sessionClient = a.configureSessionClient(newSessionClientFromSigner(
+	a.sessionClient = newSessionClientFromSigner(
 		a.p.httpCli,
 		a.p.endpoint,
 		a.p.signingEnvPfx,
 		signer,
-	))
+		&a.recoveryKeypairs,
+	)
 	a.sessionClientSessionID = sessionID
 }
 

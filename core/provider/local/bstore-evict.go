@@ -84,6 +84,12 @@ type readSet struct {
 	prevTurned time.Time
 }
 
+// applyPolicy records reads while policy gives the store a resident budget.
+// The caller applies this before publishing the budget to the store.
+func (r *readSet) applyPolicy(policy block_store_writeback.Policy) {
+	r.enabled.Store(policy.ResidentHigh > 0)
+}
+
 // now returns the current time on the set's clock.
 func (r *readSet) now() time.Time {
 	if r.clock != nil {

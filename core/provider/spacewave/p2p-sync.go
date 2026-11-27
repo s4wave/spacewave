@@ -127,6 +127,23 @@ func (s *p2pSyncState) addRelease(release func()) {
 	}
 }
 
+// prepareWatcher binds the list routine to the same admission and drain fence
+// as the Space routines it starts. The watcher starts after controllers mount.
+func (s *p2pSyncState) prepareWatcher(watch routine.Routine) {
+	s.watcher.SetRoutine(func(ctx context.Context) error {
+		if !s.beginRoutine(nil) {
+			return nil
+		}
+		defer s.endRoutine(nil)
+		return watch(ctx)
+	})
+}
+
+// startWatcher starts membership reconciliation after the Session mounts.
+func (s *p2pSyncState) startWatcher(ctx context.Context) {
+	s.watcher.SetContext(ctx, true)
+}
+
 // stop cancels desired membership and drains every admitted Space routine.
 func (s *p2pSyncState) stop() {
 	// Fence late routine admission before canceling the list watcher.
@@ -204,12 +221,8 @@ func (a *ProviderAccount) startP2PSyncForSession(ctx context.Context, sessionID 
 			return a.runP2PSpace(ctx, st, childBus, state, key)
 		}, struct{}{}
 	}, keyed.WithExitLogger[p2pSyncSpaceKey, struct{}](a.le), keyed.WithRetry[p2pSyncSpaceKey, struct{}](providerBackoff))
-	state.watcher.SetRoutine(func(ctx context.Context) error {
-		// The watcher joins the same drain fence as the Space routines it starts.
-		if !state.beginRoutine(nil) {
-			return nil
-		}
-		defer state.endRoutine(nil)
+	state.prepareWatcher(func(ctx context.Context) error {
+		// Deliver account recovery while the list watcher runs.
 		recovery := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-recovery-delivery"), routine.WithRetry(providerBackoff))
 		recovery.SetRoutine(func(ctx context.Context) error { return a.deliverAccountTransitions(ctx, st) })
 		recovery.SetContext(ctx, false)
@@ -259,7 +272,7 @@ func (a *ProviderAccount) startP2PSyncForSession(ctx context.Context, sessionID 
 		a.stopP2PSyncForSession(sessionID)
 		return errors.Wrap(err, "start invite server")
 	}
-	state.watcher.SetContext(syncCtx, true)
+	state.startWatcher(syncCtx)
 	return nil
 }
 

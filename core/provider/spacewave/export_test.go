@@ -19,7 +19,6 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 	// Build the session client and the provider.
 	t.Helper()
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, priv, pid.String())
 	le := logrus.New().WithField("test", t.Name())
 	prov := NewProvider(
 		le,
@@ -32,15 +31,14 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 
 	// Build the account with its shared object trackers and cleanup runner.
 	acc := &ProviderAccount{
-		le:            le,
-		sessionClient: cli,
-		accountID:     "test-account",
-		p:             prov,
-		conf:          &Config{Endpoint: endpoint},
-		sfs:           prov.sfs,
-		soListCtr:     ccontainer.NewCContainer[*sobject.SharedObjectList](nil),
+		le:        le,
+		accountID: "test-account",
+		p:         prov,
+		conf:      &Config{Endpoint: endpoint},
+		sfs:       prov.sfs,
+		soListCtr: ccontainer.NewCContainer[*sobject.SharedObjectList](nil),
 	}
-	acc.sessionClient = acc.configureSessionClient(cli)
+	acc.sessionClient = newSessionClientFromSigner(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, newSessionSigner("", pid, 0, priv, nil), &acc.recoveryKeypairs)
 	acc.sobjects = keyed.NewKeyedRefCountWithLogger(acc.buildSharedObjectTracker, le)
 	acc.gcCleanupRunner = provider_gccleanup.NewRunner(
 		le.WithField("component", "gc-cleanup-runner"),

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
@@ -126,9 +127,14 @@ func (s *CoreRootServer) getListenerStatusBroker() *resource_listener.StatusBrok
 	return s.listenerStatus
 }
 
-// SetHostPluginID records the plugin id serving this resource root.
-func (s *CoreRootServer) SetHostPluginID(pluginID string) {
-	s.hostPluginID = pluginID
+// BindHostPlugin inherits the parent root's host identity, or takes the
+// top-level host identity from ctx, before serving sessions.
+func (s *CoreRootServer) BindHostPlugin(ctx context.Context, parent *CoreRootServer) {
+	if parent != nil {
+		s.hostPluginID = parent.hostPluginID
+	} else if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
+		s.hostPluginID = info.GetPluginMeta().GetPluginId()
+	}
 }
 
 // Close releases process-owned root resources.

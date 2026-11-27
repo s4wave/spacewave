@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -128,16 +129,22 @@ func TestProgressTrackerFetchSuccessFallsThroughToPlugins(t *testing.T) {
 	}
 }
 
+// TestProgressTrackerDismissesWhenAllPluginsRunning checks dismissal is final.
 func TestProgressTrackerDismissesWhenAllPluginsRunning(t *testing.T) {
+	// Keep the helper open while a plugin remains pending.
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "web"})
 	tracker.MarkRunning("spacewave-core", true)
 	if sender.dismissCount() != 0 {
 		t.Fatalf("dismissed after partial progress: count=%d", sender.dismissCount())
 	}
+
+	// Dismiss the helper once every plugin is running.
 	tracker.MarkRunning("web", true)
 	if sender.dismissCount() != 1 {
 		t.Fatalf("dismiss count after all running = %d, want 1", sender.dismissCount())
 	}
+
+	// Send the final ready progress with the dismissal.
 	got := sender.last()
 	if got.fraction != 1 {
 		t.Fatalf("final fraction = %v, want 1.0", got.fraction)
@@ -145,11 +152,16 @@ func TestProgressTrackerDismissesWhenAllPluginsRunning(t *testing.T) {
 	if !strings.Contains(got.text, "Ready") {
 		t.Fatalf("final text = %q, want contains 'Ready'", got.text)
 	}
-	select {
-	case <-tracker.Done():
-	case <-time.After(time.Second):
-		t.Fatalf("tracker.Done() did not close after full progress")
+
+	// Confirm the helper dismissal has completed before changing progress.
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	tracker.WaitDismissed(ctx)
+	if ctx.Err() != nil {
+		t.Fatal("tracker did not dismiss after full progress")
 	}
+
+	// Ignore subsequent plugin and fetch changes after dismissal.
 	prevCalls := len(sender.calls)
 	tracker.MarkRunning("web", false)
 	tracker.SetFetchStatus(&FetchStatus{LastErr: "boom"})

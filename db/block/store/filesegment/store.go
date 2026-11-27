@@ -61,6 +61,19 @@ func (s *Store) GetIndex() *Index {
 	return s.idx
 }
 
+// HasIndexedBlock reports whether ref still has any recorded file ranges,
+// including ranges whose files can no longer be read.
+func (s *Store) HasIndexedBlock(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	segs, err := s.idx.Lookup(ctx, ref)
+	return len(segs) != 0, err
+}
+
+// IndexedRefs returns at most limit recorded block refs after after.
+// It includes refs whose file ranges can no longer be read.
+func (s *Store) IndexedRefs(ctx context.Context, after *block.BlockRef, limit int) ([]*block.BlockRef, error) {
+	return s.idx.Refs(ctx, after, limit)
+}
+
 // SetTransformer sets the Space's transform, with which every block of the
 // Space is encoded.
 func (s *Store) SetTransformer(xfrm block.Transformer) {

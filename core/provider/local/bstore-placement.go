@@ -33,6 +33,11 @@ type settingsWatch struct {
 	release func()
 }
 
+// close releases the watched state and then the mounted settings object.
+func (w *settingsWatch) close() {
+	w.release()
+}
+
 // lookupAccountSettingsRef returns the account settings SharedObject, or nil
 // when the account has no settings yet.
 func (a *ProviderAccount) lookupAccountSettingsRef(ctx context.Context) (*sobject.SharedObjectRef, error) {
@@ -145,7 +150,7 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer watch.release()
+	defer watch.close()
 
 	// Hold a reference on every placed block store while the account runs.
 	releases := a.newStorageReleases()

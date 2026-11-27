@@ -104,7 +104,7 @@ func (r *residentOverride) remove(p *placementState) {
 // broadcasts it, so a loop waiting out evictShortWait checks the new marks at
 // once.
 func (p *placementState) applyPolicy(policy block_store_writeback.Policy) {
-	p.reads.enabled.Store(policy.ResidentHigh > 0)
+	p.reads.applyPolicy(policy)
 	if status, _ := p.wb.GetStatus(); status.Policy != policy {
 		p.wakeEviction()
 	}

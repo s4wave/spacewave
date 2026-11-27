@@ -372,7 +372,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer settings.release()
+		defer settings.close()
 		placed, backend, fallback, err = t.nextBackend(ctx, settings)
 		if err != nil {
 			return err

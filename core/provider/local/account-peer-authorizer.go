@@ -40,7 +40,7 @@ func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func
 	if err != nil {
 		return err
 	}
-	defer watch.release()
+	defer watch.close()
 
 	// Report each settings change.
 	for {

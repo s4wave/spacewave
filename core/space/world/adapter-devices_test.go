@@ -888,8 +888,10 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	// Each undecodable operation is the other device's, and only the newer
 	// body carries the saved refusal. The known body beside a newer field
 	// is unreadable as replay reads it, reporting only the unknown field.
-	if len(unreadable) != 2 || !slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) || !slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{9}) {
-		t.Fatalf("unreadable operations = %v, want field 99, then field 9 beside a known body", unreadable)
+	if len(unreadable) != 2 ||
+		!slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) ||
+		!slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{100}) {
+		t.Fatalf("unreadable operations = %v, want field 99, then field 100 beside a known body", unreadable)
 	}
 	if op := unreadable[0]; op.GetPeerId() != remote.id.String() || !op.SavedUnknownType() || !op.Undecodable() {
 		t.Fatalf("unreadable operation = %v, want the other device's, saved as an unknown operation type", op)
@@ -939,11 +941,11 @@ func unreadableOp() []byte {
 }
 
 // hiddenFieldOp encodes a World operation a newer build wrote beside a body
-// this build reads: a transaction that creates key, with WorldOp field 9,
+// this build reads: a transaction that creates key, with WorldOp field 100,
 // which this build does not declare.
 func hiddenFieldOp(t *testing.T, key string) []byte {
 	field := "a field only a newer build reads"
-	return append(createOp(t, key), append([]byte{0x4a, byte(len(field))}, field...)...)
+	return append(createOp(t, key), append([]byte{0xa2, 0x06, byte(len(field))}, field...)...)
 }
 
 // removedOp encodes a World operation with the removed body field 3, which
