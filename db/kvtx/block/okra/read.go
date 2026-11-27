@@ -244,9 +244,9 @@ func (w *batchWalk[P, C]) load(ctx context.Context, i int) error {
 		return nil
 	}
 
-	// Load an inner page's child onto the load.
+	// Carry the loaded child page and its position together to the next level.
 	var err error
-	l.page, err = w.r.loadAt(ctx, l.cursor)
+	l.page, l.cursor, err = w.r.loadAt(ctx, l.cursor)
 	return err
 }
 

@@ -191,6 +191,22 @@ func TestInlineReplaceAllMatchesSet(t *testing.T) {
 				t.Fatalf("levels %d: %s readback from the reachable copy failed: %v", levels, key, err)
 			}
 		}
+		// A batch crosses both embedded pages and separately stored children.
+		indices := []int{0, count / 2, count - 1}
+		keys := make([][]byte, len(indices))
+		for i, index := range indices {
+			keys[i] = key(index)
+		}
+		batch, found, err := read.GetBatch(ctx, keys)
+		if err != nil {
+			t.Fatalf("levels %d: batch readback: %v", levels, err)
+		}
+		for i, index := range indices {
+			want := bytes.Repeat([]byte{byte(index % 256)}, index%300)
+			if !found[i] || !bytes.Equal(batch[i], want) {
+				t.Fatalf("levels %d: %s batch value differs from the fixture", levels, keys[i])
+			}
+		}
 		read.Discard()
 
 		// Delete every third key in place, collapsing and merging pages, and

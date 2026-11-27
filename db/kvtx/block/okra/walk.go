@@ -43,8 +43,8 @@ type pageReader[P walkPage, C any] interface {
 	rootPage(ctx context.Context) (P, C, error)
 	// childAt returns the position of entry index's child page.
 	childAt(page P, cursor C, index int) C
-	// loadAt loads the page at a position childAt returned.
-	loadAt(ctx context.Context, cursor C) (P, error)
+	// loadAt returns the page and its loaded position after childAt.
+	loadAt(ctx context.Context, cursor C) (P, C, error)
 	// aheadPage adds to b the stored page a loadAt of cursor reads.
 	aheadPage(ctx context.Context, b *block.BatchLoad, cursor C)
 	// aheadValue adds to b the stored block an entryValue of entry index
@@ -70,8 +70,10 @@ func (r cursorPages) childAt(page *Page, cursor *block.Cursor, index int) *block
 }
 
 // loadAt loads the page at a cursor tree position.
-func (r cursorPages) loadAt(ctx context.Context, cursor *block.Cursor) (*Page, error) {
-	return loadPage(ctx, cursor)
+func (r cursorPages) loadAt(ctx context.Context, cursor *block.Cursor) (*Page, *block.Cursor, error) {
+	// Mutable positions already point to the cursor the load populates.
+	page, err := loadPage(ctx, cursor)
+	return page, cursor, err
 }
 
 // aheadPage adds the stored page of a position that holds none yet.
@@ -118,9 +120,10 @@ func (r flatPages) childAt(_ *flatPage, pos flatPos, index int) flatPos {
 }
 
 // loadAt loads the page at a position.
-func (r flatPages) loadAt(ctx context.Context, pos flatPos) (*flatPage, error) {
+func (r flatPages) loadAt(ctx context.Context, pos flatPos) (*flatPage, flatPos, error) {
+	// Preserve the page in the loaded position for the next descent or value.
 	pos, err := pos.load(ctx)
-	return pos.page, err
+	return pos.page, pos, err
 }
 
 // aheadPage adds the stored block of a position the decoded-block cache
@@ -170,9 +173,7 @@ var errMissingPage = fmt.Errorf("okra page: %w", block.ErrNotFound)
 
 // childPage loads the child page of entry index of page through r.
 func childPage[P walkPage, C any](ctx context.Context, r pageReader[P, C], page P, cursor C, index int) (P, C, error) {
-	child := r.childAt(page, cursor, index)
-	out, err := r.loadAt(ctx, child)
-	return out, child, err
+	return r.loadAt(ctx, r.childAt(page, cursor, index))
 }
 
 // pageFrame is one page along a descent from the root, with the position it
