@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -81,10 +80,9 @@ type deviceSetupRecord struct {
 	AccountID string `json:"accountId,omitempty"`
 	// ResourceID is the base64 linked Space ID.
 	ResourceID string `json:"resourceId,omitempty"`
-	// SessionID is the Device session's ID.
+	// SessionID is the Device session's ID. Once a session is open, AccountID
+	// and SessionID name it in the daemon's session list, wherever it moves.
 	SessionID string `json:"sessionId,omitempty"`
-	// SessionIndex is the daemon's index for the mounted Device session.
-	SessionIndex uint32 `json:"sessionIndex,omitempty"`
 	// SessionPeerID is the peer ID the Device session runs as.
 	SessionPeerID string `json:"sessionPeerId,omitempty"`
 	// DeviceObjectKey is the World key of the projected Device object.
@@ -96,6 +94,30 @@ type deviceSetupRecord struct {
 	// Ticket is the Space Link ticket the operator approves.
 	Ticket string `json:"ticket,omitempty"`
 }
+
+// openedSession returns the identity of the Device session the setup opened,
+// or false before the setup opened one. A linked completion names its account
+// and session before the session exists, so only a session-ready record, or a
+// local one whose activation recorded its account, has opened its session.
+func (r *deviceSetupRecord) openedSession() (sessionIdentity, bool) {
+	opened := r.SetupState == deviceSetupStateSessionReady ||
+		(strings.HasPrefix(r.Completion, deviceLocalCompletionPrefix) && r.AccountID != "")
+	if !opened || r.AccountID == "" || r.SessionID == "" {
+		return sessionIdentity{}, false
+	}
+	return sessionIdentity{accountID: r.AccountID, sessionID: r.SessionID}, true
+}
+
+// Device session states that device status reports for a setup that opened
+// its session.
+const (
+	// deviceSessionStateReady means the session list holds the session.
+	deviceSessionStateReady = "ready"
+	// deviceSessionStateGone means the session list no longer holds the
+	// session, so the Device serves nothing until it returns or setup runs
+	// again.
+	deviceSessionStateGone = "gone"
+)
 
 // deviceStatusOutput reports the daemon and the setup record. Fields shared
 // with deviceSetupRecord mean the same. The completion is never reported.
@@ -128,7 +150,10 @@ type deviceStatusOutput struct {
 	ResourceID string `json:"resourceId,omitempty"`
 	// SessionID is the Device session's ID.
 	SessionID string `json:"sessionId,omitempty"`
-	// SessionIndex is the daemon's index for the mounted Device session.
+	// SessionState is whether the session list holds the session the setup
+	// opened, empty before the setup opens one.
+	SessionState string `json:"sessionState,omitempty"`
+	// SessionIndex is the index the session list holds the session at now.
 	SessionIndex uint32 `json:"sessionIndex,omitempty"`
 	// SessionPeerID is the peer ID the Device session runs as.
 	SessionPeerID string `json:"sessionPeerId,omitempty"`
@@ -162,7 +187,6 @@ func newDeviceStatusOutput(record *deviceSetupRecord, resolvedStatePath, sockPat
 		AccountID:        record.AccountID,
 		ResourceID:       record.ResourceID,
 		SessionID:        record.SessionID,
-		SessionIndex:     record.SessionIndex,
 		SessionPeerID:    record.SessionPeerID,
 		DeviceObjectKey:  record.DeviceObjectKey,
 		FailureReason:    record.FailureReason,
@@ -490,12 +514,42 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer client.close()
 
-	// Read the setup record and write its status.
+	// Read the setup record.
 	record, err := readDeviceSetupRecord(resolvedStatePath)
 	if err != nil {
 		return err
 	}
-	return writeDeviceStatusOutput(newDeviceStatusOutput(record, resolvedStatePath, sockPath), outputFormat)
+	out := newDeviceStatusOutput(record, resolvedStatePath, sockPath)
+
+	// Report whether the session list still holds the session setup opened.
+	if _, ok := record.openedSession(); ok {
+		sessions, err := client.listSessions(ctx, "list sessions")
+		if err != nil {
+			return err
+		}
+		setDeviceSessionState(&out, record, sessions)
+	}
+	return writeDeviceStatusOutput(out, outputFormat)
+}
+
+// setDeviceSessionState reports in out whether sessions holds the session the
+// setup record opened, and at which index. It leaves out unchanged for a
+// record that opened no session.
+func setDeviceSessionState(out *deviceStatusOutput, record *deviceSetupRecord, sessions []*core_session.SessionListEntry) {
+	// Skip a record that opened no session.
+	id, ok := record.openedSession()
+	if !ok {
+		return
+	}
+
+	// Report the session gone, or ready at the index the list holds it at.
+	entry := findSessionEntry(sessions, id)
+	if entry == nil {
+		out.SessionState = deviceSessionStateGone
+		return
+	}
+	out.SessionState = deviceSessionStateReady
+	out.SessionIndex = entry.GetSessionIndex()
 }
 
 func buildDeviceDockerSetupReport(c *cli.Context, statePath string, label string) (*deviceDockerSetupReport, error) {
@@ -855,10 +909,11 @@ func openDeviceSession(
 		return nil, errors.New("mount linked device session returned no session entry")
 	}
 
-	// Mark the session ready and upsert the Device object.
+	// Mark the session ready and upsert the Device object. The linked
+	// provider lists the session under the account and session ID requested,
+	// which name it from here on.
 	updated := *record
 	updated.SetupState = deviceSetupStateSessionReady
-	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
 	objectKey, err := deviceUpsertObject(ctx, client, &updated, nil)
 	if err != nil {
@@ -952,25 +1007,29 @@ func projectDeviceEnrollment(
 // daemon startup and reasserts its P2P enrollment without replaying the invite.
 // It then projects the Device object in the background, waiting for the World
 // to accept it, so an interrupted or stale projection is repaired. The
-// returned release stops the projection and drops the session.
+// returned release stops the projection and drops the session. mount returns
+// errSessionGone when the session list no longer holds the session, and the
+// restore returns it without enrolling again, since a new enrollment would
+// make a new session.
 func restoreLocalDeviceEnrollment(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
 	client *sdkClient,
-	mount func(uint32) (localSessionMount, error),
+	mount func(sessionIdentity) (localSessionMount, error),
 ) (func(), error) {
 	// Read the setup record and skip restore unless a local completion already has a session.
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		return nil, err
 	}
-	if !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) || record.SessionIndex == 0 {
+	id, ok := record.openedSession()
+	if !ok || !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
 		return nil, nil
 	}
 
 	// Remount the local session and save the restored record.
-	sess, err := mount(record.SessionIndex)
+	sess, err := mount(id)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,12 +1115,14 @@ func mountLocalDeviceSession(
 		return nil, errors.New("local SpaceLink enrollment returned no session entry")
 	}
 
-	// Record the ready session from the enrollment response.
+	// Record the ready session under the identity the daemon lists it by. The
+	// local provider reuses or creates the session, so its ID is the
+	// provider's, not the one setup derived from the peer.
 	updated := *record
 	updated.SetupState = deviceSetupStateSessionReady
-	updated.SessionIndex = entry.GetSessionIndex()
+	id := sessionIdentityOf(entry.GetSessionRef())
+	updated.AccountID, updated.SessionID = id.accountID, id.sessionID
 	updated.SessionPeerID = pid.String()
-	updated.AccountID = entry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	return &updated, nil
 }
 
@@ -1072,7 +1133,7 @@ func upsertLinkedDeviceObject(
 	record *deviceSetupRecord,
 	onBlocked func(error),
 ) (string, error) {
-	// Decode the resource ID and require a session index.
+	// Decode the resource ID and require an opened session.
 	if record == nil {
 		return "", errors.New("device setup state is required")
 	}
@@ -1080,12 +1141,13 @@ func upsertLinkedDeviceObject(
 	if err != nil {
 		return "", err
 	}
-	if record.SessionIndex == 0 {
-		return "", errors.New("device session index is required")
+	id, ok := record.openedSession()
+	if !ok {
+		return "", errors.New("device session is required")
 	}
 
-	// Mount the linked session.
-	sess, err := client.mountSession(ctx, record.SessionIndex)
+	// Mount the session wherever the session list holds it.
+	sess, err := client.mountSessionByIdentity(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -1408,7 +1470,6 @@ func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
 	setDeviceJSONString(&arena, obj, "accountId", record.AccountID)
 	setDeviceJSONString(&arena, obj, "resourceId", record.ResourceID)
 	setDeviceJSONString(&arena, obj, "sessionId", record.SessionID)
-	setDeviceJSONUint32(&arena, obj, "sessionIndex", record.SessionIndex)
 	setDeviceJSONString(&arena, obj, "sessionPeerId", record.SessionPeerID)
 
 	// Record the Device object, failure, expiry, and ticket, then marshal the object.
@@ -1429,10 +1490,6 @@ func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
 	if v.Type() != fastjson.TypeObject {
 		return nil, errors.New("device setup state must be object")
 	}
-	sessionIndex := v.GetUint("sessionIndex")
-	if sessionIndex > math.MaxUint32 {
-		return nil, errors.Errorf("device setup session index exceeds uint32 range: %d", sessionIndex)
-	}
 	return &deviceSetupRecord{
 		SetupState:       string(v.GetStringBytes("setupState")),
 		PeerID:           string(v.GetStringBytes("peerId")),
@@ -1446,7 +1503,6 @@ func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
 		AccountID:        string(v.GetStringBytes("accountId")),
 		ResourceID:       string(v.GetStringBytes("resourceId")),
 		SessionID:        string(v.GetStringBytes("sessionId")),
-		SessionIndex:     uint32(sessionIndex), //nolint:gosec // the MaxUint32 check above bounds persisted setup state.
 		SessionPeerID:    string(v.GetStringBytes("sessionPeerId")),
 		DeviceObjectKey:  string(v.GetStringBytes("deviceObjectKey")),
 		FailureReason:    string(v.GetStringBytes("failureReason")),
@@ -1466,19 +1522,24 @@ func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
 	setDeviceJSONString(&arena, obj, "peerId", out.PeerID)
 	setDeviceJSONString(&arena, obj, "label", out.Label)
 
-	// Record the requested role, completion, account, and session ID.
+	// Record the requested role and the completion.
 	setDeviceJSONString(&arena, obj, "requestedRole", out.RequestedRole)
 	setDeviceJSONString(&arena, obj, "targetHint", out.TargetHint)
 	setDeviceJSONString(&arena, obj, "completionMode", out.CompletionMode)
 	setDeviceJSONInt64(&arena, obj, "completionAt", out.CompletionAt)
 	setDeviceJSONString(&arena, obj, "completionStatus", out.CompletionStatus)
+
+	// Record the account, resource, and session ID.
 	setDeviceJSONString(&arena, obj, "accountId", out.AccountID)
 	setDeviceJSONString(&arena, obj, "resourceId", out.ResourceID)
 	setDeviceJSONString(&arena, obj, "sessionId", out.SessionID)
 
-	// Record the session index, Device object, expiry, and identity flag, then marshal the object.
+	// Record the session's state, index, and peer.
+	setDeviceJSONString(&arena, obj, "sessionState", out.SessionState)
 	setDeviceJSONUint32(&arena, obj, "sessionIndex", out.SessionIndex)
 	setDeviceJSONString(&arena, obj, "sessionPeerId", out.SessionPeerID)
+
+	// Record the Device object, expiry, and identity flag, then marshal the object.
 	setDeviceJSONString(&arena, obj, "deviceObjectKey", out.DeviceObjectKey)
 	setDeviceJSONString(&arena, obj, "failureReason", out.FailureReason)
 	setDeviceJSONInt64(&arena, obj, "expiresAt", out.ExpiresAt)
@@ -1606,6 +1667,9 @@ func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error 
 		}
 		if out.SessionID != "" {
 			fields = append(fields, [2]string{"Session", out.SessionID})
+		}
+		if out.SessionState != "" {
+			fields = append(fields, [2]string{"Session State", formatDeviceStatusLabel(out.SessionState)})
 		}
 		if out.SessionIndex != 0 {
 			fields = append(fields, [2]string{"Session Index", strconv.FormatUint(uint64(out.SessionIndex), 10)})

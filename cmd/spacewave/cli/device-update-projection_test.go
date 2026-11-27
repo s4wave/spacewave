@@ -189,7 +189,8 @@ func TestDeviceLauncherProjectionTargetRequiresReadyDeviceRecord(t *testing.T) {
 		SetupState:      deviceSetupStateSessionReady,
 		PeerID:          "peer-device",
 		ResourceID:      "c3BhY2UtMQ==",
-		SessionIndex:    7,
+		AccountID:       "account",
+		SessionID:       "session",
 		DeviceObjectKey: "devices/build-host",
 	}); err != nil {
 		t.Fatalf("write setup record: %v", err)

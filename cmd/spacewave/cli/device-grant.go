@@ -44,7 +44,7 @@ func runGrantEnrollment(
 	statePath string,
 	grantPath string,
 	client *sdkClient,
-	mount func(uint32) (localSessionMount, error),
+	mount func(sessionIdentity) (localSessionMount, error),
 ) {
 	// Enroll and restore, waiting longer after each pending or failed attempt.
 	var release func()
@@ -81,7 +81,7 @@ func enrollThroughGrant(
 	statePath string,
 	grantPath string,
 	client *sdkClient,
-	mount func(uint32) (localSessionMount, error),
+	mount func(sessionIdentity) (localSessionMount, error),
 ) (func(), error) {
 	// Build the grant's completion into the setup record on first use.
 	record, err := prepareGrantEnrollment(statePath, grantPath, time.Now())
@@ -91,7 +91,7 @@ func enrollThroughGrant(
 
 	// Redeem the grant until the owner admits the Device's key, recording why
 	// each attempt has not finished.
-	if record.SessionIndex == 0 {
+	if _, ok := record.openedSession(); !ok {
 		updated, err := deviceMountLocalSession(ctx, client, statePath, record)
 		if err != nil {
 			record.FailureReason = err.Error()

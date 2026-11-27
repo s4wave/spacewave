@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	core_session "github.com/s4wave/spacewave/core/session"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -103,6 +104,15 @@ func startLocalSessionKeeper(
 			}()
 			return &keeperSessionMount{session: session, cancel: cancel, done: done}, nil
 		}
+
+		// Mount the Device session wherever the session list holds it.
+		mountDevice := func(id sessionIdentity) (localSessionMount, error) {
+			entry, err := client.findSession(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			return mount(entry.GetSessionIndex())
+		}
 		for {
 			resp, err := watch.Recv()
 			if err != nil {
@@ -117,7 +127,7 @@ func startLocalSessionKeeper(
 				mounted,
 				mount,
 			)
-			reconcileDeviceEnrollment(ctx, le, statePath, grantPath, client, mount, &enrollmentCleanup)
+			reconcileDeviceEnrollment(ctx, le, statePath, grantPath, client, mountDevice, &enrollmentCleanup)
 		}
 	}()
 }
@@ -125,13 +135,15 @@ func startLocalSessionKeeper(
 // reconcileDeviceEnrollment restores a persisted local Device enrollment once
 // its session can be mounted, and keeps it until the keeper exits. With a
 // bootstrap grant, one routine enrolls through it and holds the enrollment.
+// The keeper calls it on each session list revision, so an enrollment whose
+// session left the list restores when the session returns.
 func reconcileDeviceEnrollment(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
 	grantPath string,
 	client *sdkClient,
-	mount func(uint32) (localSessionMount, error),
+	mount func(sessionIdentity) (localSessionMount, error),
 	enrollmentCleanup *func(),
 ) {
 	// Keep the enrollment already held.
@@ -156,6 +168,10 @@ func reconcileDeviceEnrollment(
 
 	// Otherwise restore an enrollment a completion import made.
 	cleanup, err := restoreLocalDeviceEnrollment(ctx, le, statePath, client, mount)
+	if errors.Is(err, errSessionGone) {
+		le.WithError(err).Warn("local Device enrollment waits for its session: run device setup again to enroll a new one")
+		return
+	}
 	if err != nil {
 		le.WithError(err).Warn("local Device enrollment restore failed")
 		return

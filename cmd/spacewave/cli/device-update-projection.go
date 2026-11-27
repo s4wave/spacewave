@@ -96,7 +96,7 @@ func runDeviceUpdateProjection(
 		if ctx.Err() != nil {
 			return
 		}
-		if stderrors.Is(err, world.ErrObjectNotFound) || stderrors.Is(err, errDeviceNotReady) {
+		if isDeviceUpdateTargetMissing(err) {
 			le.WithError(err).Debug("device object not available for update projection")
 		} else {
 			le.WithError(err).Warn("failed to project update state onto device")
@@ -193,6 +193,13 @@ func watchRevisionUpdates(ctx context.Context, le *logrus.Entry, b bus.Bus, upda
 	}
 }
 
+// isDeviceUpdateTargetMissing reports whether err means the Device object to
+// project onto does not exist yet or cannot be reached: the setup is not
+// ready, its session left the session list, or the World lacks the object.
+func isDeviceUpdateTargetMissing(err error) bool {
+	return stderrors.Is(err, world.ErrObjectNotFound) || stderrors.Is(err, errDeviceNotReady) || stderrors.Is(err, errSessionGone)
+}
+
 // errDeviceNotReady means the daemon's Device setup has not completed, so no
 // Device object exists to project onto.
 var errDeviceNotReady = stderrors.New("device setup not ready")
@@ -218,8 +225,9 @@ func projectDeviceUpdate(
 		return err
 	}
 
-	// Mount the Device session.
-	sess, err := client.mountSession(ctx, record.SessionIndex)
+	// Mount the Device session wherever the session list holds it.
+	id, _ := record.openedSession()
+	sess, err := client.mountSessionByIdentity(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -289,7 +297,7 @@ func deviceUpdateProjectionTarget(statePath string) (*deviceSetupRecord, bool, e
 	if record.SetupState != deviceSetupStateSessionReady {
 		return nil, false, nil
 	}
-	if record.PeerID == "" || record.ResourceID == "" || record.SessionIndex == 0 || record.DeviceObjectKey == "" {
+	if _, ok := record.openedSession(); !ok || record.PeerID == "" || record.ResourceID == "" || record.DeviceObjectKey == "" {
 		return nil, false, nil
 	}
 	return record, true, nil

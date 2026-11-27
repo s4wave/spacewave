@@ -449,10 +449,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 		t.Fatal("session id is empty")
 	}
 
-	// Check the session index and device object fields.
-	if got.SessionIndex != 7 {
-		t.Fatalf("session index = %d, want 7", got.SessionIndex)
-	}
+	// Check the device object field.
 	if got.DeviceObjectKey != "devices/build-host" {
 		t.Fatalf("device object key = %q, want devices/build-host", got.DeviceObjectKey)
 	}
@@ -484,8 +481,8 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 	if upsertRecord == nil {
 		t.Fatal("device completion did not create or update the Device object")
 	}
-	if upsertRecord.SessionIndex != 7 {
-		t.Fatalf("upsert session index = %d, want 7", upsertRecord.SessionIndex)
+	if id, ok := upsertRecord.openedSession(); !ok || id != (sessionIdentity{accountID: "acct-device", sessionID: got.SessionID}) {
+		t.Fatalf("upsert session = %+v %v, want the mounted session", id, ok)
 	}
 	if upsertRecord.ResourceID != base64.StdEncoding.EncodeToString([]byte("space-1")) {
 		t.Fatalf("upsert resource id = %q", upsertRecord.ResourceID)
@@ -893,6 +890,44 @@ func TestDeviceStatusUsesSocketOverrideWithoutAutostart(t *testing.T) {
 	}
 }
 
+// TestDeviceStatusReportsGoneSetupSession checks that status reports the
+// session a session-ready setup opened as gone while the session list lacks
+// it, even when another session holds a lower index, and as ready at its
+// current index once the list holds it.
+func TestDeviceStatusReportsGoneSetupSession(t *testing.T) {
+	record := &deviceSetupRecord{SetupState: deviceSetupStateSessionReady, AccountID: "account", SessionID: "session"}
+	other := testSessionEntry(4, "other-account", "other-session")
+
+	// A list without the session reports it gone, with no index.
+	out := newDeviceStatusOutput(record, "state", "sock")
+	setDeviceSessionState(&out, record, []*core_session.SessionListEntry{other})
+	if out.SessionState != deviceSessionStateGone || out.SessionIndex != 0 {
+		t.Fatalf("gone session status = %q at %d", out.SessionState, out.SessionIndex)
+	}
+	var got deviceStatusOutput
+	if err := parseDeviceStatusOutputJSON(marshalDeviceStatusOutput(out), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.SessionState != deviceSessionStateGone {
+		t.Fatalf("status json session state = %q, want gone", got.SessionState)
+	}
+
+	// A list holding the session reports it ready at its index.
+	out = newDeviceStatusOutput(record, "state", "sock")
+	setDeviceSessionState(&out, record, []*core_session.SessionListEntry{other, testSessionEntry(7, "account", "session")})
+	if out.SessionState != deviceSessionStateReady || out.SessionIndex != 7 {
+		t.Fatalf("listed session status = %q at %d", out.SessionState, out.SessionIndex)
+	}
+
+	// A setup that opened no session reports no session state.
+	waiting := &deviceSetupRecord{SetupState: deviceSetupStateImported, AccountID: "account", SessionID: "session"}
+	out = newDeviceStatusOutput(waiting, "state", "sock")
+	setDeviceSessionState(&out, waiting, nil)
+	if out.SessionState != "" {
+		t.Fatalf("unopened session status = %q, want none", out.SessionState)
+	}
+}
+
 func TestDeviceStatusReportsNotConfiguredWhenSetupStateMissing(t *testing.T) {
 	// Clear the state and socket path environment.
 	clearStatePathEnv(t)
@@ -1114,6 +1149,7 @@ func parseDeviceStatusOutputJSON(data []byte, out *deviceStatusOutput) error {
 
 	// Read the session and ticket fields.
 	out.SessionID = string(v.GetStringBytes("sessionId"))
+	out.SessionState = string(v.GetStringBytes("sessionState"))
 	out.SessionIndex = uint32(v.GetUint("sessionIndex"))
 	out.SessionPeerID = string(v.GetStringBytes("sessionPeerId"))
 	out.DeviceObjectKey = string(v.GetStringBytes("deviceObjectKey"))
@@ -1176,7 +1212,7 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 		// Copy the setup record with a mutated field.
 		next := *record
 		next.AccountID = "account"
-		next.SessionIndex = 3
+		next.SessionID = "session"
 		next.SessionPeerID = "peer"
 		next.SetupState = deviceSetupStateSessionReady
 		return &next, nil
@@ -1191,14 +1227,14 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.SetupState != deviceSetupStateImported || got.SessionIndex != 3 || got.AccountID != "account" || got.DeviceObjectKey != "" {
+	if got.SetupState != deviceSetupStateImported || got.SessionID != "session" || got.AccountID != "account" || got.DeviceObjectKey != "" {
 		t.Fatalf("pending activation = %+v", got)
 	}
 	persisted, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if persisted.SessionIndex != 3 || persisted.SetupState != deviceSetupStateImported || persisted.FailureReason == "" {
+	if persisted.SessionID != "session" || persisted.SetupState != deviceSetupStateImported || persisted.FailureReason == "" {
 		t.Fatalf("persisted pending activation = %+v", persisted)
 	}
 }
@@ -1213,7 +1249,7 @@ func TestOpenLocalDeviceSessionProjectsReadyDevice(t *testing.T) {
 	oldMount := deviceMountLocalSession
 	deviceMountLocalSession = func(context.Context, *sdkClient, string, *deviceSetupRecord) (*deviceSetupRecord, error) {
 		next := *record
-		next.SessionIndex = 3
+		next.AccountID, next.SessionID = "account", "session"
 		return &next, nil
 	}
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })

@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	device_flowgraph "github.com/s4wave/spacewave/core/device/flowgraph"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
@@ -60,7 +61,7 @@ func startFlowgraphReconciler(
 		// Keep the daemon alive while a node runs, since nodes serve with no
 		// client attached.
 		hold := func() func() { return idleTracker.serviceAttached("Flowgraph nodes") }
-		if err := runFlowgraphReconciler(ctx, le, statePath, b, mount, store, forgeWorker, hold); err != nil && ctx.Err() == nil {
+		if err := runFlowgraphReconciler(ctx, le, statePath, b, client.followSessions, mount, store, forgeWorker, hold); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("flowgraph reconciler stopped")
 		}
 	}()
@@ -68,13 +69,29 @@ func startFlowgraphReconciler(
 
 // flowgraphTarget is a Space this Device serves and the daemon session it
 // reaches the Space through. That session's peer is this Device's peer in the
-// Space.
+// Space. A move of the session to another index makes a new target.
 type flowgraphTarget struct {
-	// sessionIndex is the daemon's index of the session.
+	// sessionIndex is the index the session list holds the session at.
 	sessionIndex uint32
+	// session is the session's identity, which the mount requires the index
+	// to still hold.
+	session sessionIdentity
 	// spaceID is the shared object ID of the Space.
 	spaceID string
 }
+
+// flowgraphSetup is the Space the Device setup linked and the session the
+// setup opened, named by identity so the session is found wherever it moves.
+type flowgraphSetup struct {
+	// session is the identity of the session the setup opened.
+	session sessionIdentity
+	// spaceID is the shared object ID of the Space.
+	spaceID string
+}
+
+// followSessionListFunc calls set with the daemon's session list, then again
+// after each change, until ctx ends or the watch fails.
+type followSessionListFunc func(ctx context.Context, set func([]*core_session.SessionListEntry)) error
 
 // servedWorld is the mounted World of a served Space.
 type servedWorld struct {
@@ -100,15 +117,18 @@ var flowgraphRetryBackoff = &backoff.Backoff{
 
 // runFlowgraphReconciler runs one Reconciler for each Space this Device
 // serves: the Space its setup linked, once the setup is session-ready, and
-// each Space the DevicePolicy lists as served. It follows the setup record and
-// the policy, starting and stopping Reconcilers as Spaces join and leave the
-// set. Each Space's Reconciler mounts and retries on its own, so one Space's
-// failure leaves the others running.
+// each Space the DevicePolicy lists as served. It follows the setup record,
+// the policy and the session list, starting and stopping Reconcilers as
+// Spaces join and leave the set. A Space whose session the list lacks has no
+// Reconciler until the session returns or the setup names another, so it
+// waits without retrying. Each running Space's Reconciler mounts and retries
+// on its own, so one Space's failure leaves the others running.
 func runFlowgraphReconciler(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
 	b bus.Bus,
+	followSessions followSessionListFunc,
 	mount mountServedWorldFunc,
 	store *device_policy.PolicyStore,
 	forgeWorker *device_flowgraph.ForgeWorkerWatch,
@@ -130,33 +150,44 @@ func runFlowgraphReconciler(
 	defer reconcilers.ClearContext()
 
 	// Follow the setup record and the policy, which together select the
-	// Spaces.
-	targets := &flowgraphTargets{reconcilers: reconcilers}
+	// Spaces, and the session list, which places their sessions.
+	targets := &flowgraphTargets{le: le, reconcilers: reconcilers}
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return watchDeviceSetupTarget(egCtx, le, statePath, targets.setSetup) })
 	eg.Go(func() error { return watchServedSpaces(egCtx, store, targets.setServed) })
+	eg.Go(func() error { return followSessions(egCtx, targets.setSessions) })
 	if err := eg.Wait(); ctx.Err() == nil {
 		return err
 	}
 	return nil
 }
 
-// flowgraphTargets holds the two sources of the served Space set and keeps
-// the keyed Reconcilers in step with their union.
+// flowgraphTargets holds the two sources of the served Space set and the
+// session list that places their sessions, and keeps the keyed Reconcilers in
+// step with the Spaces whose sessions the list holds.
 type flowgraphTargets struct {
+	// le logs each Space whose session leaves or returns to the list.
+	le *logrus.Entry
 	// reconcilers runs a Reconciler for each target.
 	reconcilers *keyed.Keyed[flowgraphTarget, struct{}]
 
 	// mtx guards the fields below and orders the syncs.
 	mtx sync.Mutex
 	// setup is the setup Space, or nil before the setup is session-ready.
-	setup *flowgraphTarget
+	setup *flowgraphSetup
 	// served is the policy's list of served Spaces.
 	served []*device_policy.ServedSpace
+	// sessions is the latest session list.
+	sessions []*core_session.SessionListEntry
+	// sessionsKnown is set once the first session list arrives. Before it,
+	// no session can be placed, so no Reconciler runs.
+	sessionsKnown bool
+	// gone holds the IDs of the Spaces whose session the list lacks.
+	gone map[string]struct{}
 }
 
 // setSetup replaces the setup Space.
-func (t *flowgraphTargets) setSetup(setup *flowgraphTarget) {
+func (t *flowgraphTargets) setSetup(setup *flowgraphSetup) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	t.setup = setup
@@ -171,21 +202,72 @@ func (t *flowgraphTargets) setServed(served []*device_policy.ServedSpace) {
 	t.syncLocked()
 }
 
+// setSessions replaces the session list.
+func (t *flowgraphTargets) setSessions(sessions []*core_session.SessionListEntry) {
+	// Hold the list and place every Space's session in it.
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.sessions = sessions
+	t.sessionsKnown = true
+	t.syncLocked()
+}
+
 // syncLocked starts a Reconciler for each new target and stops each removed
 // one, leaving the rest running. Each Space gets one Reconciler, since two
 // would apply the same ConfigSet keys. The setup Space keeps its setup
-// session when the policy also lists it.
+// session when the policy also lists it and the list holds that session.
 func (t *flowgraphTargets) syncLocked() {
+	// Place nothing before the first session list arrives.
+	if !t.sessionsKnown {
+		return
+	}
+
+	// Place the setup Space's session by its identity.
 	keys := make([]flowgraphTarget, 0, len(t.served)+1)
+	placed := make(map[string]struct{}, len(t.served)+1)
+	gone := make(map[string]struct{})
 	if t.setup != nil {
-		keys = append(keys, *t.setup)
+		if entry := findSessionEntry(t.sessions, t.setup.session); entry != nil {
+			keys = append(keys, flowgraphTarget{sessionIndex: entry.GetSessionIndex(), session: t.setup.session, spaceID: t.setup.spaceID})
+			placed[t.setup.spaceID] = struct{}{}
+		} else {
+			gone[t.setup.spaceID] = struct{}{}
+		}
+	}
+
+	// Place each served Space's session by the index the policy names.
+	byIndex := make(map[uint32]*core_session.SessionListEntry, len(t.sessions))
+	for _, entry := range t.sessions {
+		byIndex[entry.GetSessionIndex()] = entry
 	}
 	for _, served := range t.served {
-		if t.setup != nil && served.GetSpaceId() == t.setup.spaceID {
+		spaceID := served.GetSpaceId()
+		if _, ok := placed[spaceID]; ok {
 			continue
 		}
-		keys = append(keys, flowgraphTarget{sessionIndex: served.GetSessionIndex(), spaceID: served.GetSpaceId()})
+		entry, ok := byIndex[served.GetSessionIndex()]
+		if !ok {
+			gone[spaceID] = struct{}{}
+			continue
+		}
+		keys = append(keys, flowgraphTarget{sessionIndex: entry.GetSessionIndex(), session: sessionIdentityOf(entry.GetSessionRef()), spaceID: spaceID})
+		placed[spaceID] = struct{}{}
+		delete(gone, spaceID)
 	}
+
+	// Log each Space whose session left or returned, then run the placed set.
+	for spaceID := range gone {
+		if _, ok := t.gone[spaceID]; !ok {
+			t.le.WithField("space-id", spaceID).
+				Warn("served Space's session is not in the session list: its nodes wait until the session returns or device setup runs again")
+		}
+	}
+	for spaceID := range t.gone {
+		if _, ok := placed[spaceID]; ok {
+			t.le.WithField("space-id", spaceID).Info("served Space's session is in the session list again")
+		}
+	}
+	t.gone = gone
 	t.reconcilers.SyncKeys(keys, false)
 }
 
@@ -252,7 +334,7 @@ func ensureServedDeviceObject(ctx context.Context, served *servedWorld, label st
 // watchDeviceSetupTarget calls set with the setup Space after each change to
 // the setup state directory, which the setup commands write, or with nil while
 // the setup is not session-ready.
-func watchDeviceSetupTarget(ctx context.Context, le *logrus.Entry, statePath string, set func(*flowgraphTarget)) error {
+func watchDeviceSetupTarget(ctx context.Context, le *logrus.Entry, statePath string, set func(*flowgraphSetup)) error {
 	// Subscribe before the first read, so a write between them is not missed.
 	// The directory may not exist before setup writes its first record.
 	dir := filepath.Dir(deviceSetupRecordPath(statePath))
@@ -283,7 +365,8 @@ func watchDeviceSetupTarget(ctx context.Context, le *logrus.Entry, statePath str
 			if err != nil {
 				return err
 			}
-			set(&flowgraphTarget{sessionIndex: record.SessionIndex, spaceID: spaceID})
+			id, _ := record.openedSession()
+			set(&flowgraphSetup{session: id, spaceID: spaceID})
 		}
 
 		// Wait for the next change.
@@ -317,7 +400,7 @@ func watchServedSpaces(ctx context.Context, store *device_policy.PolicyStore, se
 // hint at it.
 func mountServedWorld(ctx context.Context, le *logrus.Entry, b bus.Bus, client *sdkClient, target flowgraphTarget) (*servedWorld, error) {
 	// Mount the session and read the peer this Device runs as in it.
-	sess, err := client.mountSession(ctx, target.sessionIndex)
+	sess, err := client.mountSessionAt(ctx, target.sessionIndex, target.session)
 	if err != nil {
 		return nil, err
 	}

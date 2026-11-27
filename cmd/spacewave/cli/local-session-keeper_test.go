@@ -319,6 +319,7 @@ func TestReconcileLocalSessionMountsRetainsConfiguredSession(t *testing.T) {
 
 // TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession covers the
 // persisted local completion across session snapshots and keeper shutdown:
+// a snapshot without the recorded session restores and enrolls nothing, then
 // the restore retains the session once and projects the pending Device as
 // session-ready before the release drops the session.
 func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) {
@@ -326,13 +327,15 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	statePath := t.TempDir()
 	record := &deviceSetupRecord{
 		SetupState: deviceSetupStateImported, Completion: deviceLocalCompletionPrefix + "stub",
-		SessionIndex: 3, FailureReason: "Device object projection pending: block not found",
+		AccountID: "account", SessionID: "session", FailureReason: "Device object projection pending: block not found",
 	}
 	if err := writeDeviceSetupRecord(statePath, record); err != nil {
 		t.Fatal(err)
 	}
+	enrollCalls := 0
 	oldMount := deviceMountLocalSession
 	deviceMountLocalSession = func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord) (*deviceSetupRecord, error) {
+		enrollCalls++
 		return current, nil
 	}
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
@@ -345,20 +348,34 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 		return "devices/key", nil
 	})
 
-	// Mount the configured session index and count the calls.
+	// Mount the recorded session, which the first snapshot lacks, and count
+	// the calls.
 	mount := &testLocalSessionMount{}
 	mountCalls := 0
-	mountFunc := func(index uint32) (localSessionMount, error) {
-		mountCalls++
-		if index != 3 {
-			t.Fatalf("mount index = %d, want 3", index)
+	listed := false
+	mountFunc := func(id sessionIdentity) (localSessionMount, error) {
+		if id != (sessionIdentity{accountID: "account", sessionID: "session"}) {
+			t.Fatalf("mounted session = %+v, want the recorded session", id)
 		}
+		if !listed {
+			return nil, errSessionGone
+		}
+		mountCalls++
 		return mount, nil
 	}
 
-	// Reconcile across two snapshots and confirm one retained mount.
+	// A snapshot without the session restores nothing and enrolls no new
+	// session, since a new enrollment would make a new session.
 	le := logrus.NewEntry(logrus.New())
 	var cleanup func()
+	reconcileDeviceEnrollment(t.Context(), le, statePath, "", nil, mountFunc, &cleanup)
+	if cleanup != nil || enrollCalls != 0 {
+		t.Fatalf("gone session: cleanup=%v enrollments=%d", cleanup != nil, enrollCalls)
+	}
+
+	// Reconcile across two snapshots holding the session and confirm one
+	// retained mount.
+	listed = true
 	reconcileDeviceEnrollment(t.Context(), le, statePath, "", nil, mountFunc, &cleanup)
 	reconcileDeviceEnrollment(t.Context(), le, statePath, "", nil, mountFunc, &cleanup)
 	if cleanup == nil || mountCalls != 1 || mount.released {
@@ -412,7 +429,7 @@ func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
 			return nil, errDeviceEnrollmentPending
 		}
 		admitted := *current
-		admitted.SessionIndex = 3
+		admitted.AccountID, admitted.SessionID = "account", "session"
 		return &admitted, nil
 	}
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
@@ -422,9 +439,9 @@ func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
 
 	// Report the retained session mount.
 	mount := &testLocalSessionMount{}
-	mounted := make(chan uint32, 1)
-	mountFunc := func(index uint32) (localSessionMount, error) {
-		mounted <- index
+	mounted := make(chan sessionIdentity, 1)
+	mountFunc := func(id sessionIdentity) (localSessionMount, error) {
+		mounted <- id
 		return mount, nil
 	}
 
@@ -435,9 +452,9 @@ func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
 		t.Fatal("grant enrollment did not start")
 	}
 	select {
-	case index := <-mounted:
-		if index != 3 {
-			t.Fatalf("mount index = %d, want 3", index)
+	case id := <-mounted:
+		if id != (sessionIdentity{accountID: "account", sessionID: "session"}) {
+			t.Fatalf("mounted session = %+v, want the admitted session", id)
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("admitted Device session was not mounted")
@@ -471,7 +488,7 @@ func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ready.SessionIndex != 3 || ready.SetupState != deviceSetupStateSessionReady || ready.FailureReason != "" {
+	if ready.SessionID != "session" || ready.SetupState != deviceSetupStateSessionReady || ready.FailureReason != "" {
 		t.Fatalf("admitted Device record = %+v", ready)
 	}
 }
