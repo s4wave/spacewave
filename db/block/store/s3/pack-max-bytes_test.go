@@ -67,3 +67,58 @@ func TestPackStoreMaxPackBytes(t *testing.T) {
 		}
 	}
 }
+
+// TestPackStoreCompactsUnderLowCeiling checks that compaction weighs packfiles
+// against a lowered ceiling: 64 packfiles of 7 KiB merge into packfiles that
+// fit a 64 KiB ceiling, and every block reads back.
+func TestPackStoreCompactsUnderLowCeiling(t *testing.T) {
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	const ceiling = 64 << 10
+	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "low/", &PackStoreOptions{MaxPackBytes: ceiling})
+	t.Cleanup(store.Close)
+
+	// Write 64 one-block packfiles of incompressible data.
+	var entries []*block.PutBatchEntry
+	for range 64 {
+		data := make([]byte, 7<<10)
+		if _, err := rand.Read(data); err != nil {
+			t.Fatal(err)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entry := &block.PutBatchEntry{Ref: ref, Data: data}
+		if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, entry)
+	}
+
+	// Compact, then check every packfile fits and every block reads back.
+	if err := store.Compact(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var sizes []int64
+	if err := client.ListObjects(ctx, "bucket", "low/"+packDir, func(_ string, size int64) error {
+		sizes = append(sizes, size)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(sizes) >= len(entries) {
+		t.Fatalf("compaction left %d packfiles", len(sizes))
+	}
+	for _, size := range sizes {
+		if size > ceiling {
+			t.Fatalf("packfile of %d bytes exceeds the %d byte ceiling", size, ceiling)
+		}
+	}
+	for _, e := range entries {
+		data, found, err := store.GetBlock(ctx, e.Ref)
+		if err != nil || !found || len(data) != len(e.Data) {
+			t.Fatalf("read back = %d bytes, %v, %v", len(data), found, err)
+		}
+	}
+}

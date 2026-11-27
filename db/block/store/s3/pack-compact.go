@@ -27,11 +27,23 @@ const (
 	// compactTiers is the number of tiers that merge. Heavier packfiles are
 	// final.
 	compactTiers = 3
-	// compactMaxBytes is the packfile size that weighs 1.
+	// compactMaxBytes is the packfile size that weighs 1, or the store's
+	// MaxPackBytes when that is smaller.
 	compactMaxBytes = 16 << 20
 	// compactMaxBlocks is the packfile block count that weighs 1.
 	compactMaxBlocks = writer.DefaultMaxBlocksPerPack
 )
+
+// Compact loads every known packfile entry and merges small packfiles until
+// no tier holds compactFanout of them, as compact describes. The background
+// routine merges only after this store writes, so a store reopened over the
+// small packfiles an earlier process left merges them only through Compact.
+func (s *PackStore) Compact(ctx context.Context) error {
+	if err := s.loadAll(ctx); err != nil {
+		return err
+	}
+	return s.compact(ctx)
+}
 
 // runCompaction runs compact after each write until ctx ends.
 func (s *PackStore) runCompaction(ctx context.Context) error {
@@ -59,7 +71,8 @@ func (s *PackStore) runCompaction(ctx context.Context) error {
 
 // compact merges small packfiles until no tier holds compactFanout of them.
 //
-// A packfile's weight is the larger of its share of compactMaxBytes and of
+// A packfile's weight is the larger of its share of the store's compaction
+// unit, compactMaxBytes or MaxPackBytes when that is smaller, and of
 // compactMaxBlocks. Weights below 1/512, 1/64, and 1/8 form tiers 0 to 2; the
 // rest are final. The compactFanout packfiles of one tier merge into a
 // packfile of weight below 1, so each block is rewritten at most compactTiers
@@ -113,7 +126,7 @@ func (s *PackStore) pickMerge() []*packfile.PackfileEntry {
 	var tiers [compactTiers][]*packfile.PackfileEntry
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 		for _, entry := range s.entries {
-			if tier := packTier(entry); tier >= 0 {
+			if tier := s.packTier(entry); tier >= 0 {
 				tiers[tier] = append(tiers[tier], entry)
 			}
 		}
@@ -306,9 +319,11 @@ func (s *PackStore) deleteObjects(ctx context.Context, dir string, ids []string)
 }
 
 // packTier returns the compaction tier of a packfile, or -1 when it is final.
-func packTier(entry *packfile.PackfileEntry) int {
+// The unit that weighs 1 is at most the store's MaxPackBytes, so the merge of
+// compactFanout packfiles of one tier fits one packfile.
+func (s *PackStore) packTier(entry *packfile.PackfileEntry) int {
 	weight := max(
-		float64(entry.GetSizeBytes())/compactMaxBytes,
+		float64(entry.GetSizeBytes())/float64(min(compactMaxBytes, s.maxPackBytes)),
 		float64(entry.GetBlockCount())/float64(compactMaxBlocks),
 	)
 	bound := math.Pow(compactFanout, -compactTiers)
