@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	stderrors "errors"
+	"io"
 	"os"
 	"slices"
 	"strconv"
@@ -21,8 +22,11 @@ const writeOffRefsBatch = 1024
 
 // debugVolumeWriteOffArgs are the arguments of the offline hole write-off.
 type debugVolumeWriteOffArgs struct {
-	// refs is the file of the block refs to write off.
+	// refs is the file of the block refs to write off, empty to list the
+	// holes only.
 	refs string
+	// holesOut is the optional output of every recorded hole.
+	holesOut string
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -33,8 +37,12 @@ func (a *debugVolumeWriteOffArgs) BuildFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "refs",
 			Usage:       "file of the B58 block refs to write off, one per line, optionally followed by a tab and notes",
-			Required:    true,
 			Destination: &a.refs,
+		},
+		&cli.StringFlag{
+			Name:        "holes-out",
+			Usage:       "write each recorded hole's ref, a tab, and open or written-off to this file",
+			Destination: &a.holesOut,
 		},
 	}, a.upgrade.BuildFlags()...)
 }
@@ -66,27 +74,36 @@ type volumeWriteOffResult struct {
 	status block_gc.SettleStatus
 }
 
+// holeOpen and holeAccepted are the second column of a --holes-out row.
+const (
+	holeOpen     = "open"
+	holeAccepted = "written-off"
+)
+
 // writeOff records the stopped volume's holes with an audit, then writes off
-// the ones the refs file names. It writes off none when the audit left a
-// named ref without a hole record.
+// the ones the refs file names, and lists every recorded hole in the holes
+// output. It writes off none when the audit left a named ref without a hole
+// record, and still lists the holes then, so the operator can correct the
+// list. Without a refs file it records and lists the holes only.
 func (a *debugVolumeWriteOffArgs) writeOff(ctx context.Context, le *logrus.Entry, path string) (res volumeWriteOffResult, err error) {
 	// Read the whole list first: the write-off checks every ref before it
 	// writes one.
-	input, err := os.Open(a.refs)
-	if err != nil {
-		return res, errors.Wrap(err, "open refs")
+	if a.refs == "" && a.holesOut == "" {
+		return res, errors.New("expected --refs, --holes-out or both")
 	}
 	var refs []*block.BlockRef
-	err = streamVolumeBlockRefs(ctx, input, writeOffRefsBatch, func(group []*block.BlockRef) error {
-		refs = append(refs, slices.Clone(group)...)
-		return nil
-	})
-	if err = stderrors.Join(err, errors.Wrap(input.Close(), "close refs")); err != nil {
-		return res, err
+	inputs := []string{path}
+	if a.refs != "" {
+		if refs, err = readWriteOffRefs(ctx, a.refs); err != nil {
+			return res, err
+		}
+		inputs = append(inputs, a.refs)
 	}
-	if len(refs) == 0 {
-		return res, errors.New("the refs file names no block")
+	holes, closeHoles, err := openVolumeBlockLacks(a.holesOut, inputs...)
+	if err != nil {
+		return res, errors.Wrap(err, "holes output")
 	}
+	defer func() { err = stderrors.Join(err, errors.Wrap(closeHoles(), "holes output")) }()
 
 	// Open the stopped volume with the writer claim.
 	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, a.upgrade.StoreConfig(nil), 0)
@@ -100,16 +117,55 @@ func (a *debugVolumeWriteOffArgs) writeOff(ctx context.Context, le *logrus.Entry
 	if res.audit, err = vol.Audit(ctx); err != nil {
 		return res, errors.Wrap(err, "record the holes")
 	}
-	if res.wrote, err = vol.WriteOffHoles(ctx, refs); err != nil {
-		if errors.Is(err, block_gc.ErrNotHole) {
-			err = errors.Wrap(err, "the audit found this block stored, or reached by no live root; nothing was written off")
+	var refused error
+	if len(refs) != 0 {
+		res.wrote, err = vol.WriteOffHoles(ctx, refs)
+		if err != nil && !errors.Is(err, block_gc.ErrNotHole) {
+			return res, err
 		}
+		refused = errors.Wrap(err, "the audit found this block stored, or reached by no live root; nothing was written off")
+	}
+
+	// List the holes as the write-off left them, a refused one included.
+	err = vol.ScanHoles(ctx, func(ref *block.BlockRef, writtenOff bool) error {
+		state := holeOpen
+		if writtenOff {
+			state = holeAccepted
+		}
+		_, err := io.WriteString(holes, ref.MarshalString()+"\t"+state+"\n")
+		return err
+	})
+	if err = stderrors.Join(refused, errors.Wrap(err, "list the holes")); err != nil {
 		return res, err
 	}
 
 	// Read what still holds the flip.
 	res.status, err = vol.SettleStatus(ctx, settleStatusLimit)
 	return res, err
+}
+
+// readWriteOffRefs reads the refs a write-off names from the file at path,
+// which must name at least one.
+func readWriteOffRefs(ctx context.Context, path string) ([]*block.BlockRef, error) {
+	// Read every row's ref.
+	input, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "open refs")
+	}
+	var refs []*block.BlockRef
+	err = streamVolumeBlockRefs(ctx, input, writeOffRefsBatch, func(group []*block.BlockRef) error {
+		refs = append(refs, slices.Clone(group)...)
+		return nil
+	})
+	if err = stderrors.Join(err, errors.Wrap(input.Close(), "close refs")); err != nil {
+		return nil, err
+	}
+
+	// Refuse an empty list, which would only run the audit.
+	if len(refs) == 0 {
+		return nil, errors.New("the refs file names no block")
+	}
+	return refs, nil
 }
 
 // fields formats the write-off in the command's field table.
@@ -140,9 +196,11 @@ func newDebugVolumeWriteOffCommand(upgrade *FormatUpgrade) *cli.Command {
 			"stores only below a written-off hole, since no walk can reach it without the lost block, so keep a copy " +
 			"of the volume until that content is counted. A later put of the block from its content ends the hole " +
 			"and holds the block's children. It writes off nothing when a named ref is not a hole. Refill what a " +
-			"copy still holds with debug volume-refill first. It keeps the reached set in memory. Run it only on a " +
-			"stopped volume.\n\n" +
-			"For example, run spacewave debug volume-write-off --refs lost.tsv volume.s4db",
+			"copy still holds with debug volume-refill first. With --holes-out it lists every recorded hole as " +
+			"open or written-off, in the row format --refs reads, and with --holes-out alone it records and lists " +
+			"the holes and writes none off. It keeps the reached set in memory. Run it only on a stopped volume.\n\n" +
+			"For example, run spacewave debug volume-write-off --holes-out holes.tsv volume.s4db to list the holes, " +
+			"then spacewave debug volume-write-off --refs lost.tsv volume.s4db",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}

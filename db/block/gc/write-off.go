@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/pkg/errors"
@@ -83,4 +84,28 @@ func WriteOffHoles(ctx context.Context, store Store, refs []*block.BlockRef) (Wr
 		return WriteOffResult{}, err
 	}
 	return done.res, nil
+}
+
+// ScanHoles calls fn with the block of each recorded hole and whether an
+// operator wrote it off, in key order, until fn returns an error. An
+// operator's command lists the holes with it, to read which blocks a
+// write-off may name and which holes still hold the flip.
+//
+// Cost: one read snapshot holding a prefix scan of the hole records with one
+// value read each. It keeps nothing, so the caller streams the holes out.
+func ScanHoles(ctx context.Context, store Store, fn func(ref *block.BlockRef, writtenOff bool) error) error {
+	return store.View(ctx, func(rec *Records) error {
+		return rec.scan(ctx, rec.key(kindHole), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+			// Parse the hole's block and read whether it is written off.
+			ref, _, err := ParseBlockKey(key)
+			if err != nil {
+				return false, err
+			}
+			v, err := value()
+			if err != nil {
+				return false, err
+			}
+			return true, fn(ref, bytes.Equal(v, holeWrittenOff))
+		})
+	})
 }

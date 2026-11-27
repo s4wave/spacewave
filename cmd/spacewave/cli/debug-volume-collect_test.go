@@ -198,20 +198,59 @@ func TestDebugVolumeWriteOff(t *testing.T) {
 		return file
 	}
 
+	// listed checks that the holes output holds the lost block alone, in
+	// the given state.
+	listing := filepath.Join(dir, "holes.tsv")
+	listed := func(state string) {
+		t.Helper()
+		data, err := os.ReadFile(listing)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := lost.MarshalString() + "\t" + state + "\n"; string(data) != want {
+			t.Fatalf("holes output %q, want %q", data, want)
+		}
+	}
+
 	// A list that names no block, or a stored block beside the hole, writes
-	// off nothing. The audit still records the hole.
+	// off nothing. The audit still records the hole, and the refused run
+	// still lists it.
+	if _, err := runVolumeBlockCLI(t, "volume-write-off", path); err == nil {
+		t.Fatal("the write-off ran with neither a list nor a holes output")
+	}
 	if _, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("none.tsv"), path); err == nil {
 		t.Fatal("the write-off accepted an empty list")
 	}
 	if recorded, open := holes(); recorded != 0 || open != 0 {
 		t.Fatalf("an empty list left %d holes, %d open; want none recorded", recorded, open)
 	}
-	_, err = runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("stored.tsv", lost, head), path)
+	_, err = runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("stored.tsv", lost, head), "--holes-out", listing, path)
 	if err == nil || !errors.Is(err, block_gc.ErrNotHole) || !strings.Contains(err.Error(), head.MarshalString()) {
 		t.Fatalf("a write-off naming a stored block: %v", err)
 	}
 	if recorded, open := holes(); recorded != 1 || open != 1 {
 		t.Fatalf("the refused write-off left %d holes, %d open; want 1 and 1", recorded, open)
+	}
+	listed("open")
+
+	// The holes output alone lists the hole and writes none off, and its
+	// rows are a list the write-off reads.
+	if err := os.Remove(listing); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runVolumeBlockCLI(t, "volume-write-off", "--holes-out", listing, path); err != nil {
+		t.Fatal(err)
+	}
+	listed("open")
+	if recorded, open := holes(); recorded != 1 || open != 1 {
+		t.Fatalf("the listing left %d holes, %d open; want 1 and 1", recorded, open)
+	}
+	fromListing := filepath.Join(dir, "from-listing.tsv")
+	if err := os.Link(listing, fromListing); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", fromListing, "--holes-out", listing, path); err == nil {
+		t.Fatal("the write-off overwrote its own list")
 	}
 
 	// The list of the lost block alone writes it off, on a first and a
@@ -221,10 +260,11 @@ func TestDebugVolumeWriteOff(t *testing.T) {
 		"Named holes that ended first": "0", "Recorded holes": "1", "Holes not written off": "0",
 	}
 	for range 2 {
-		report, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("lost.tsv", lost), path)
+		report, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("lost.tsv", lost), "--holes-out", listing, path)
 		if err != nil {
 			t.Fatal(err)
 		}
+		listed("written-off")
 		for _, line := range strings.Split(strings.TrimSpace(report), "\n") {
 			label, value, _ := strings.Cut(line, ":")
 			if count, ok := want[label]; ok && strings.TrimSpace(value) != count {

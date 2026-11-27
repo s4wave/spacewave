@@ -174,6 +174,15 @@ func (v *Volume) WriteOffHoles(ctx context.Context, refs []*block.BlockRef) (blo
 	return block_gc.WriteOffHoles(block.WithBackground(ctx), collectorStore{v: v}, refs)
 }
 
+// ScanHoles calls fn with the block of each recorded hole and whether an
+// operator wrote it off, as block_gc.ScanHoles describes. It writes nothing.
+func (v *Volume) ScanHoles(ctx context.Context, fn func(ref *block.BlockRef, writtenOff bool) error) error {
+	if !v.HoldsRoots() {
+		return block.ErrAtomicCommitUnsupported
+	}
+	return block_gc.ScanHoles(block.WithBackground(ctx), collectorStore{v: v}, fn)
+}
+
 // SettleStatus reads what the settle's flip checks find, counting the front
 // and the recorded holes up to limit each, as block_gc.SettleStatus
 // describes. It writes nothing.
