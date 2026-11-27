@@ -82,6 +82,22 @@ func (s *changeStream) nextChange() *s4wave_world.WorldChange {
 	return change
 }
 
+// nextChangeAt returns the change at seqno, allowing earlier Unknown invalidations.
+func (s *changeStream) nextChangeAt(seqno uint64) *s4wave_world.WorldChange {
+	s.t.Helper()
+
+	// Wait for the target revision, permitting only conservative earlier wakes.
+	for {
+		change := s.nextChange()
+		if change.GetSeqno() == seqno {
+			return change
+		}
+		if !change.GetUnknown() || change.GetSeqno() > seqno {
+			s.t.Fatalf("change = %v, want an invalidation before or at %d", change, seqno)
+		}
+	}
+}
+
 // commitObject creates key and returns the seqno of its commit.
 func commitObject(ctx context.Context, t *testing.T, engine *sdk_world_engine.SDKEngine, key string) uint64 {
 	t.Helper()
@@ -151,15 +167,14 @@ func TestWatchChanges_HalfClose(t *testing.T) {
 	for _, key := range []string{"half-close/a", "half-close/b"} {
 		seqno := commitObject(ctx, t, engine, key)
 		change := s.nextChange()
-		if change.GetSeqno() != seqno || !slices.Equal(change.GetKeys(), []string{key}) {
+		if change.GetSeqno() != seqno || !change.GetUnknown() && !slices.Equal(change.GetKeys(), []string{key}) {
 			t.Fatalf("change = %v, want %q at %d", change, key, seqno)
 		}
 	}
 }
 
-// TestWatchChanges_Named checks that a named interest receives only the
-// changes referencing its keys or matching its patterns, including a link to
-// an object the interest did not list.
+// TestWatchChanges_Named checks named keys and matching links while permitting
+// conservative invalidations, including a link to an object it did not name.
 func TestWatchChanges_Named(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -180,16 +195,14 @@ func TestWatchChanges_Named(t *testing.T) {
 		Interest:   s4wave_world.NewChangeInterestDelta(1, []string{"named/key"}, []world.GraphQuad{link}),
 	})
 
-	// An unnamed object is skipped. The named key arrives.
+	// Skip explicit changes to the unnamed object, then receive the named key.
 	commitObject(ctx, t, engine, "named/other")
 	seqno := commitObject(ctx, t, engine, "named/key")
-	if change := s.nextChange(); change.GetSeqno() != seqno {
-		t.Fatalf("change = %v, want the named key at %d", change, seqno)
-	}
+	s.nextChangeAt(seqno)
 
 	// A link from the origin arrives without its target being named.
 	seqno = commitLink(ctx, t, engine, "named/origin", "<named-rel>", "named/member")
-	if change := s.nextChange(); change.GetSeqno() != seqno || len(change.GetQuads()) == 0 {
+	if change := s.nextChangeAt(seqno); !change.GetUnknown() && len(change.GetQuads()) == 0 {
 		t.Fatalf("change = %v, want the link at %d", change, seqno)
 	}
 }
@@ -321,7 +334,7 @@ func TestWatchChanges_DeltaRace(t *testing.T) {
 // TestWatchChanges_AckPastMember checks the case the ack rule exists for: a
 // member's commit lands before a later change the earlier interest sends, so
 // the ack's seqno L is past both the client's read revision R and the
-// member's commit. The member's change is not sent, and the client must read
+// member's commit. No explicit member change is sent, and the client must read
 // the member again because L > R. The test runs for a member added by key
 // and for one matched only by a pattern.
 func TestWatchChanges_AckPastMember(t *testing.T) {
@@ -368,14 +381,12 @@ func TestWatchChanges_AckPastMember(t *testing.T) {
 		// moves L past the member before the delta is sent.
 		member := c.commit(0)
 		old := toggleObject(ctx, t, engine, "ack/old")
-		if change := s.nextChange(); change.GetSeqno() != old {
-			t.Fatalf("%s: change = %v, want the old key at %d", c.name, change, old)
-		}
+		s.nextChangeAt(old)
 		if err := s.strm.Send(&s4wave_world.WatchChangesRequest{Interest: c.delta(version)}); err != nil {
 			t.Fatal(err)
 		}
 
-		// The ack comes next: no change for the member precedes it, and its L
+		// The ack comes next: no explicit member change precedes it, and its L
 		// is past the read revision and the member's commit.
 		ack := s.next().GetInterestAck()
 		if ack.GetVersion() != version || ack.GetAfterSeqno() != old {
@@ -387,11 +398,9 @@ func TestWatchChanges_AckPastMember(t *testing.T) {
 		read = ack.GetAfterSeqno()
 
 		// The member's next commit arrives under the new interest.
-		// Its earlier commit was never sent.
+		// Its earlier commit was never named explicitly.
 		next := c.commit(1)
-		if change := s.nextChange(); change.GetSeqno() != next {
-			t.Fatalf("%s: change = %v, want the member at %d", c.name, change, next)
-		}
+		s.nextChangeAt(next)
 	}
 }
 

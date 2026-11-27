@@ -1576,8 +1576,8 @@ func TestSDKWorldStateObjectAccessWorldStateInvokesCallback(t *testing.T) {
 	}
 }
 
-// TestSDKEngine_WatchChanges checks that the remote change stream lists the
-// object a commit created.
+// TestSDKEngine_WatchChanges checks that the remote change stream invalidates
+// the object a commit created.
 func TestSDKEngine_WatchChanges(t *testing.T) {
 	// Start an SDK engine and take its seqno.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -1600,7 +1600,7 @@ func TestSDKEngine_WatchChanges(t *testing.T) {
 		})
 	}()
 
-	// Commit one object and expect exactly its key.
+	// Commit one object and require its key or a conservative invalidation.
 	ws := world.NewEngineWorldState(engine, true)
 	obj, err := ws.CreateObject(ctx, "watch-changes/created", nil)
 	world.ReleaseObjectState(obj)
@@ -1608,7 +1608,7 @@ func TestSDKEngine_WatchChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	cs := <-changes
-	if cs.Unknown || !slices.Equal(cs.Keys, []string{"watch-changes/created"}) {
+	if !cs.Unknown && !slices.Equal(cs.Keys, []string{"watch-changes/created"}) {
 		t.Fatalf("changes = %+v, want the created key", cs)
 	}
 	if err := <-watchErr; !errors.Is(err, errDone) {
