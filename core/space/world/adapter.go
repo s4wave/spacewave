@@ -31,6 +31,14 @@ import (
 // before opening the adapter.
 const ReplayIdentityEnv = "SPACEWAVE_WORLD_REPLAY_IDENTITY"
 
+// OrderedHoldEnv makes each admitted write's hold durable before its
+// operation is queued, as before ordered holds, when set to "off" before
+// opening the adapter. Otherwise a SharedObject whose state writes order its
+// block store's writes (sobject.BlockWriteOrderer) commits the hold with write
+// ordering only, and the state write that queues the operation makes both
+// durable with one flush.
+const OrderedHoldEnv = "SPACEWAVE_WORLD_ORDERED_HOLD"
+
 // RefusalHandoffEnv selects the local-ID-only refusal cache in legacy replay
 // mode when set to "off" before process start.
 const RefusalHandoffEnv = "SPACEWAVE_WORLD_REFUSAL_HANDOFF"
@@ -179,6 +187,9 @@ type Adapter struct {
 	// expectWrites is whether this device's writes carry an ExpectedWrite. A
 	// legacy matcher queues without a receipt, so it has no hash to expect.
 	expectWrites bool
+	// orderedHolds is whether holdAdmitted commits with write ordering only,
+	// as OrderedHoldEnv describes.
+	orderedHolds bool
 	// unmatched holds early refusals only in legacy mode. Guarded by bcast.
 	unmatched map[string]spacePosition
 	// cover is what the installed checkpoint says about this device's
@@ -297,6 +308,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		missing:             make(map[string]struct{}),
 		legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
 		expectWrites:        os.Getenv(ReplayIdentityEnv) != "off" && os.Getenv(ExpectWriteEnv) != "off",
+		orderedHolds:        os.Getenv(OrderedHoldEnv) != "off" && (sobject.OrdersBlockWrites(so) || forceOrderedHolds.Load()),
 		fences:              make(map[string]*spaceFence),
 		held:                make(map[string]*block.BlockRef),
 
@@ -1342,6 +1354,15 @@ var checkpointStoreHook atomic.Pointer[func(context.Context)]
 // check what its writer reported.
 var admittedHook atomic.Pointer[func(world.Candidate)]
 
+// heldHook, when set, runs after each hold keepAdmitted takes, with whether the
+// hold was ordered, and fails the admission with its error, so a test can
+// abandon a write between its hold and its queued state write.
+var heldHook atomic.Pointer[func(ordered bool) error]
+
+// forceOrderedHolds, set only by tests, orders the holds of an Adapter opened
+// on a SharedObject that does not report ordering its block store's writes.
+var forceOrderedHolds atomic.Bool
+
 // keepAdmitted keeps the blocks of adm's candidate and holds what its queued
 // operation needs, through holdAdmitted.
 //
@@ -1364,7 +1385,15 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	if _, err := overflow.PutBlockBatch(ctx, adm.candidate.Entries); err != nil {
 		return err
 	}
-	return a.holdAdmitted(ctx, adm, overflow.Stored())
+	if err := a.holdAdmitted(ctx, adm, overflow.Stored()); err != nil {
+		return err
+	}
+
+	// Let a test abandon the write after its hold.
+	if hook := heldHook.Load(); hook != nil {
+		return (*hook)(a.orderedHolds)
+	}
+	return nil
 }
 
 // holdAdmitted holds what adm's queued operation needs once it is durable:
@@ -1374,7 +1403,32 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 // its writer's stage or the overflow stage held stay held after they end.
 // Each hold is one swap that stores the writer's own pages, and waits on the
 // root lock only for another swap, never for the driver's store of its pages.
+//
+// Invariant: a hold is durable no later than the operation that needs it.
+// With orderedHolds the swaps commit with write ordering only, and the state
+// write that queues the operation, which starts after holdAdmitted returns,
+// commits after them to the same write-ordered store
+// (sobject.BlockWriteOrderer). A crash keeps a prefix of that order, so it
+// loses a hold only together with the operation, and keeps the operation only
+// with its hold. A crash that keeps the hold and loses the operation leaves
+// only the hold, which the next resetPayloads drops. Without orderedHolds each
+// swap is durable when it returns.
+//
+// holdAdmitted is the one hold that orders itself ahead of an operation the
+// durable state does not hold yet. The others commit durably, not ordered:
+// replay's holds, through addPayloads when it applies another device's
+// position and through Hold, cover operations already in the durable state,
+// and resetPayloads rewrites the payload holds of those operations and of the
+// pending admissions, which holdAdmitted already held. The background stores
+// of the cursor, the checkpoint pages and the trim commit ordered, but they
+// hold only Worlds the durable state already reaches, so a crash that drops
+// one only repeats it.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
+	// Order the swaps behind the operation's state write when it orders them.
+	if a.orderedHolds {
+		ctx = kvtx.WithOrderedCommitContext(ctx)
+	}
+
 	// Hold the payloads before the operation that references them is
 	// queued.
 	if len(adm.payloads) != 0 {

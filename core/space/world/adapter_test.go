@@ -5,17 +5,25 @@ import (
 	"context"
 	"fmt"
 	"math"
+	mrand "math/rand/v2"
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/storage"
 	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -25,11 +33,17 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/s4db"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
 )
 
 // adapterFixture is a Space on the local provider served by the Space World
@@ -54,6 +68,12 @@ type adapterFixture struct {
 	maxPending uint64
 	// acc is the provider account.
 	acc *provider_local.ProviderAccount
+	// opts are the options the fixture boots with.
+	opts fixtureOpts
+	// bootDev is this boot's handle on opts.dev, or nil.
+	bootDev *bootDevice
+	// halt stops this boot's provider and testbed.
+	halt func()
 }
 
 // fixtureOpts selects how a fixture stores its Space.
@@ -69,6 +89,10 @@ type fixtureOpts struct {
 	maxPending uint64
 	// opTypes resolves the operation types, or nil for the mock operations.
 	opTypes *space_world.OpTypes
+	// dev keeps every Volume of the storage in an s4db database on a device
+	// that can lose power, so the test can cut power and boot again
+	// (powerCut). Its Volumes free at once, so set frees with it.
+	dev *device.Memory
 }
 
 // newAdapterFixture creates a Space on a local provider.
@@ -141,47 +165,14 @@ func sqlTestLocation(t *testing.T) (*account_settings.SqlLocation, *block_store_
 
 // newAdapterFixtureOn creates a Space on a local provider as opts select.
 func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
-	// Build the testbed with the engine and local provider factories, on
-	// storage that frees at once when asked.
+	// Boot the testbed and the provider account.
 	t.Helper()
 	ctx := t.Context()
-	var tbOpts []testbed.Option
-	if opts.frees {
-		storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
-		tbOpts = append(tbOpts, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
-	}
-	tb, err := testbed.Default(ctx, tbOpts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	opTypes := space_world.OpTypes{Lookup: world_mock.LookupMockOp}
-	if opts.opTypes != nil {
-		opTypes = *opts.opTypes
-	}
-	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, opTypes))
-	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-
-	// Start the local provider and create the Space.
-	_, provRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
-		ProviderId: "local",
-		PeerId:     tb.Volume.GetPeerID().String(),
-	}), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(provRef.Release)
-	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, "local", "test-account", false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(provAccRef.Release)
-	soProv, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	f := &adapterFixture{engineID: "test-space-world", frees: opts.frees, maxPending: opts.maxPending, opts: opts}
+	soProv := f.boot(t)
 
 	// Make the SQL location the account's primary store.
-	acc := provAcc.(*provider_local.ProviderAccount)
+	acc := f.acc
 	if opts.sql != nil {
 		acc.SetSQLPrimary(true)
 		backendID, check, err := acc.AddSQLStorageBackend(ctx, "sql", opts.sql, opts.creds, true)
@@ -203,7 +194,85 @@ func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
 			t.Fatal(err)
 		}
 	}
-	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world", volume: acc.GetVolume(), frees: opts.frees, maxPending: opts.maxPending, acc: acc}
+	f.ref = ref
+	return f
+}
+
+// boot builds the testbed with the engine and local provider factories, on
+// the storage opts select, starts the local provider and loads the account.
+// A fixture on a device boots again on the same device after a power cut.
+func (f *adapterFixture) boot(t *testing.T) sobject.SharedObjectProvider {
+	// Select the storage: a device that can lose power, or memory that
+	// frees at once when asked.
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	var tbOpts []testbed.Option
+	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
+	switch {
+	case f.opts.dev != nil:
+		f.bootDev = newBootDevice(f.opts.dev)
+		tbOpts = append(tbOpts, testbed.WithStorages(newDeviceStorage("default", f.bootDev, storeConf)))
+	case f.opts.frees:
+		tbOpts = append(tbOpts, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
+	}
+	tb, err := testbed.Default(ctx, tbOpts...)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	opTypes := space_world.OpTypes{Lookup: world_mock.LookupMockOp}
+	if f.opts.opTypes != nil {
+		opTypes = *f.opts.opTypes
+	}
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, opTypes))
+	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
+
+	// Start the local provider and load the account.
+	_, provRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
+		ProviderId: "local",
+		PeerId:     tb.Volume.GetPeerID().String(),
+	}), nil)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	t.Cleanup(provRef.Release)
+	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, "local", "test-account", false, nil)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	t.Cleanup(provAccRef.Release)
+	soProv, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	f.tb, f.acc = tb, provAcc.(*provider_local.ProviderAccount)
+	f.volume = f.acc.GetVolume()
+	f.halt = func() {
+		provAccRef.Release()
+		provRef.Release()
+		cancel()
+		tb.Release()
+	}
+	return soProv
+}
+
+// powerCut stops the booted stack as a power loss does, then boots it again
+// on what the device kept: the boot's device handle refuses every later
+// call, as a process that lost power makes none, the device keeps a state
+// that loss allows, chosen by seed, and the next boot opens it. The test
+// releases its engine first. A fixture not on a device cannot lose power.
+func (f *adapterFixture) powerCut(t *testing.T, seed uint64) {
+	t.Helper()
+	if f.opts.dev == nil {
+		t.Fatal("the fixture is not on a device")
+	}
+	f.bootDev.end()
+	f.halt()
+	f.opts.dev.PowerLoss(mrand.New(mrand.NewPCG(seed, 0))) //nolint:gosec
+	f.boot(t)
 }
 
 // start starts the engine controller and returns its engine.
@@ -1132,3 +1201,239 @@ func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, served *s
 		t.Fatal(err)
 	}
 }
+
+// bootDevice is one boot's handle on a device that outlives it. After end,
+// every call fails as on a crashed device, so a straggling call from the
+// stopped boot never reaches the image the next boot opens.
+type bootDevice struct {
+	// mem is the device.
+	mem *device.Memory
+	// mtx makes end wait for the calls in flight. Calls hold it shared.
+	mtx sync.RWMutex
+	// ended is set once the boot lost power. Guarded by mtx.
+	ended bool
+	// cutOnce closes cut.
+	cutOnce sync.Once
+	// cut is closed once a call found the device crashed, the instant
+	// power was lost. Nothing the boot does after it is observable.
+	cut chan struct{}
+}
+
+// newBootDevice constructs a boot's handle on mem.
+func newBootDevice(mem *device.Memory) *bootDevice {
+	return &bootDevice{mem: mem, cut: make(chan struct{})}
+}
+
+// isCut reports whether the boot already lost power.
+func (d *bootDevice) isCut() bool {
+	select {
+	case <-d.cut:
+		return true
+	default:
+		return false
+	}
+}
+
+// end refuses every later call, once the calls in flight return.
+func (d *bootDevice) end() {
+	d.mtx.Lock()
+	d.ended = true
+	d.mtx.Unlock()
+}
+
+// call runs fn on the device unless the boot ended.
+func (d *bootDevice) call(fn func() error) error {
+	d.mtx.RLock()
+	defer d.mtx.RUnlock()
+	if d.ended {
+		return device.ErrCrashed
+	}
+	err := fn()
+	if errors.Is(err, device.ErrCrashed) {
+		d.cutOnce.Do(func() { close(d.cut) })
+	}
+	return err
+}
+
+// Write applies writes in order and flushes when flush is set.
+func (d *bootDevice) Write(ctx context.Context, writes []device.Write, flush bool) error {
+	return d.call(func() error { return d.mem.Write(ctx, writes, flush) })
+}
+
+// Read fills every read.
+func (d *bootDevice) Read(ctx context.Context, reads []device.Read) error {
+	return d.call(func() error { return d.mem.Read(ctx, reads) })
+}
+
+// Truncate sets a file's length.
+func (d *bootDevice) Truncate(ctx context.Context, name string, size int64) error {
+	return d.call(func() error { return d.mem.Truncate(ctx, name, size) })
+}
+
+// Remove deletes files.
+func (d *bootDevice) Remove(ctx context.Context, names []string) error {
+	return d.call(func() error { return d.mem.Remove(ctx, names) })
+}
+
+// List returns every file.
+func (d *bootDevice) List(ctx context.Context) ([]device.File, error) {
+	var files []device.File
+	err := d.call(func() error {
+		var err error
+		files, err = d.mem.List(ctx)
+		return err
+	})
+	return files, err
+}
+
+// deviceVolumeControllerID identifies the device storage's volume controller.
+const deviceVolumeControllerID = "spacewave/test/space-world/device-volume"
+
+// deviceStorage keeps each Volume in its own s4db database on one boot's
+// device, as the desktop's native storage keeps each in an s4db file, so a
+// test can cut power under the stack and reopen what the device kept.
+type deviceStorage struct {
+	// id identifies the storage in LookupStorage.
+	id string
+	// dev is the boot's device.
+	dev *bootDevice
+	// storeConf configures each Volume's store.
+	storeConf *store_kvtx.Config
+	// mtx guards leases.
+	mtx sync.Mutex
+	// leases admit one open database per Volume, as the file lock does on
+	// disk.
+	leases map[string]*csync.Mutex
+}
+
+// newDeviceStorage constructs the storage registered as id on dev.
+func newDeviceStorage(id string, dev *bootDevice, storeConf *store_kvtx.Config) *deviceStorage {
+	return &deviceStorage{id: id, dev: dev, storeConf: storeConf, leases: make(map[string]*csync.Mutex)}
+}
+
+// GetStorageInfo returns StorageInfo.
+func (s *deviceStorage) GetStorageInfo() *storage.StorageInfo {
+	return &storage.StorageInfo{}
+}
+
+// AddFactories adds the storage's volume factory.
+func (s *deviceStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(&deviceVolumeFactory{b: b, s: s})
+}
+
+// BuildVolumeConfig creates the volume config for the volume id.
+func (s *deviceStorage) BuildVolumeConfig(id string, base *volume_controller.Config) (config.Config, error) {
+	return &deviceVolumeConfig{&storage_inmem.VolumeConfig{StorageId: s.id, StorageVolumeId: id, VolumeConfig: base}}, nil
+}
+
+// DeleteVolume removes the database of the volume id.
+func (s *deviceStorage) DeleteVolume(id string) error {
+	return s.dev.Remove(context.Background(), []string{deviceVolumeFile(id)})
+}
+
+// deviceVolumeFile is the device file of the volume id.
+func deviceVolumeFile(id string) string {
+	return strings.ReplaceAll(id, "/", "_") + ".s4db"
+}
+
+// openVolume leases the database of the volume id and opens the Volume on
+// it. Closing the Volume closes the database and ends the lease.
+func (s *deviceStorage) openVolume(ctx context.Context, id string) (volume.Volume, error) {
+	// Lease the database so a restarted controller waits for the last open.
+	s.mtx.Lock()
+	lease := s.leases[id]
+	if lease == nil {
+		lease = &csync.Mutex{}
+		s.leases[id] = lease
+	}
+	s.mtx.Unlock()
+	release, err := lease.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the database, then the Volume, which owns it from here.
+	keys, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		release()
+		return nil, err
+	}
+	db, err := s4db.OpenDevice(ctx, s.dev, deviceVolumeFile(id), s4db.Options{})
+	if err != nil {
+		release()
+		return nil, err
+	}
+	closeFn := func() error {
+		defer release()
+		return db.Close()
+	}
+	return volume_kvtx.NewVolume(ctx, deviceVolumeControllerID, keys, db, s.storeConf, false, false, nil, closeFn)
+}
+
+// deviceVolumeConfig selects a Volume of a deviceStorage.
+type deviceVolumeConfig struct {
+	*storage_inmem.VolumeConfig
+}
+
+// GetConfigID returns the device storage's volume config ID.
+func (c *deviceVolumeConfig) GetConfigID() string {
+	return deviceVolumeControllerID
+}
+
+// EqualsConfig checks if the config is equal to another.
+func (c *deviceVolumeConfig) EqualsConfig(other config.Config) bool {
+	o, ok := other.(*deviceVolumeConfig)
+	return ok && c.EqualVT(o.VolumeConfig)
+}
+
+// deviceVolumeFactory constructs the Volumes of one deviceStorage.
+type deviceVolumeFactory struct {
+	// b is the controller bus.
+	b bus.Bus
+	// s is the storage.
+	s *deviceStorage
+}
+
+// GetConfigID returns the unique ID for the config.
+func (f *deviceVolumeFactory) GetConfigID() string {
+	return deviceVolumeControllerID
+}
+
+// GetControllerID returns the unique ID for the controller.
+func (f *deviceVolumeFactory) GetControllerID() string {
+	return deviceVolumeControllerID
+}
+
+// ConstructConfig constructs an instance of the controller configuration.
+func (f *deviceVolumeFactory) ConstructConfig() config.Config {
+	return &deviceVolumeConfig{&storage_inmem.VolumeConfig{}}
+}
+
+// Construct constructs the volume controller for conf.
+func (f *deviceVolumeFactory) Construct(_ context.Context, conf config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
+	cc, ok := conf.(*deviceVolumeConfig)
+	if !ok {
+		return nil, errors.Errorf("expected config type %T, got %T", &deviceVolumeConfig{}, conf)
+	}
+	if err := cc.Validate(); err != nil {
+		return nil, err
+	}
+	id := cc.GetStorageVolumeId()
+	return volume_controller.NewController(
+		opts.GetLogger(),
+		cc.GetVolumeConfig(),
+		f.b,
+		controller.NewInfo(deviceVolumeControllerID, deviceVolumeVersion, "test device storage volume"),
+		func(ctx context.Context, _ *logrus.Entry) (volume.Volume, error) {
+			return f.s.openVolume(ctx, id)
+		},
+	), nil
+}
+
+// GetVersion returns the version of this controller.
+func (f *deviceVolumeFactory) GetVersion() controller.Version {
+	return deviceVolumeVersion
+}
+
+// deviceVolumeVersion is the device storage volume controller's version.
+var deviceVolumeVersion = controller.MustParseVersion("0.0.1")

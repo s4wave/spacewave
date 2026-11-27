@@ -38,6 +38,22 @@ func SetAdmittedHook(fn func(world.Candidate)) func() {
 	return func() { admittedHook.Store(nil) }
 }
 
+// SetHeldHook makes fn run after each hold an Adapter takes for an admitted
+// write, with whether the hold was ordered, failing the admission with its
+// error, until the returned func clears it.
+func SetHeldHook(fn func(ordered bool) error) func() {
+	heldHook.Store(&fn)
+	return func() { heldHook.Store(nil) }
+}
+
+// ForceOrderedHolds orders the holds of each Adapter opened until the returned
+// func ends it, even on a SharedObject that does not report ordering its block
+// store's writes.
+func ForceOrderedHolds() func() {
+	forceOrderedHolds.Store(true)
+	return func() { forceOrderedHolds.Store(false) }
+}
+
 // SetCheckpointStoreHook sets fn until the returned function clears it.
 func SetCheckpointStoreHook(fn func(context.Context)) func() {
 	checkpointStoreHook.Store(&fn)

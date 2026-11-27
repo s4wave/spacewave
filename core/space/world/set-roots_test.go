@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
@@ -20,6 +21,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -247,16 +249,31 @@ func TestSetRootReplaysAboveStoredWorld(t *testing.T) {
 }
 
 // TestSetRootNeverDurableUnheld tries to find a durable operation that
+// references a root the store may drop: after a write abandoned between its
+// hold and its operation's state write, and after a power cut at each point of
+// a write on a store that orders the hold before that state write.
+func TestSetRootNeverDurableUnheld(t *testing.T) {
+	t.Run("abandoned", testSetRootAbandoned)
+	t.Run("power cut", testSetRootPowerCut)
+}
+
+// testSetRootAbandoned tries to find a durable operation that
 // references a root the store may drop. After each write, and with no
 // checkpoint, it reads every stored operation above the checkpoint, the way a
 // restart or an account replica does, and requires each root the operation's
 // payload refs list to be in the durable store: a KeypairUpdateOp's staged
 // root, and an object root whose graph nests chunk blocks below it, which must
-// read back whole after a remount.
-func TestSetRootNeverDurableUnheld(t *testing.T) {
+// read back whole after a remount. The holds commit with write ordering only,
+// as on a store whose state writes order them. A write abandoned after its
+// hold and before its operation's state write, as a crash between them leaves
+// it, must leave no operation behind, and after a remount and a collection
+// that frees every block no root holds, no stored operation may name a block
+// the collection freed.
+func testSetRootAbandoned(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
-	f := newAdapterFixtureOn(t, fixtureOpts{opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	defer space_world.ForceOrderedHolds()()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
 	eng, engRef := f.start(t)
 	so := f.space(t)
 
@@ -286,10 +303,61 @@ func TestSetRootNeverDurableUnheld(t *testing.T) {
 		t.Fatalf("checkpoint at %d covers the operations; the test needs them above", h)
 	}
 
+	// Abandon a write with nested blocks after its ordered hold, before its
+	// operation's state write.
+	abandon := errors.New("abandoned after the hold")
+	var ordered atomic.Bool
+	clearHeld := space_world.SetHeldHook(func(o bool) error {
+		ordered.Store(o)
+		return abandon
+	})
+	lost := make([]byte, len(data))
+	if _, err := rand.Read(lost); err != nil {
+		t.Fatal(err)
+	}
+	err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, _, err := world.CreateWorldObject(ctx, ws, "abandoned", func(bcs *block.Cursor) error {
+			_, err := blob.BuildBlobWithBytes(ctx, lost, bcs)
+			return err
+		})
+		world.ReleaseObjectState(obj)
+		return err
+	})
+	clearHeld()
+	if err == nil {
+		t.Fatal("abandoned write committed")
+	}
+	if !ordered.Load() {
+		t.Fatal("abandoned write's hold was not ordered")
+	}
+
 	// Remount and read both through replay.
 	eng, engRef = f.remount(ctx, t, eng, engRef)
 	defer engRef.Release()
 	requireKeypair(ctx, t, "after remount", eng, key, peerID)
+
+	// Free every block no root holds, after another write lets the adapter
+	// drop what it held for the abandoned one: every stored operation's roots
+	// must stay, and the abandoned write must have left no operation.
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "after-abandon", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	requireDurableSetRoots(ctx, t, so, optypes.LookupWorldOp)
+	if err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		obj, found, err := ws.GetObject(ctx, "abandoned")
+		world.ReleaseObjectState(obj)
+		if err == nil && found {
+			return errors.New("abandoned write applied")
+		}
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
 	var got []byte
 	if err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
 		obj, _, err := ws.GetObject(ctx, "nested")
@@ -308,6 +376,176 @@ func TestSetRootNeverDurableUnheld(t *testing.T) {
 	if !bytes.Equal(got, data) {
 		t.Fatalf("nested blob after remount read %d bytes, want %d", len(got), len(data))
 	}
+}
+
+// testSetRootPowerCut cuts power under writes on the s4db store the desktop
+// runs, which orders each admitted write's hold before its operation's state
+// write: write n loses power at its n-th device call, counting the deadline
+// flush that may follow it, and the device keeps what a power loss could
+// leave. Since the hold commits ordered, every call comes after it. After each
+// cut it boots again and, before the World engine starts and replay holds
+// anything, frees every block no durable hold keeps. Every stored operation's
+// roots must then be stored, and every blob that reads back must read whole.
+// A blob that read back after an earlier cut, or whose write returned before
+// its cut, must read back after every later one. A write that returns after
+// its cut is not checked, as a process that lost power reports nothing. The
+// cuts end at the first write that makes no call at its cut point. At least
+// one cut must lose a write after its hold, or the run did not test the
+// window the ordering closes.
+func testSetRootPowerCut(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
+	defer cancel()
+	lookup := optypes.LookupWorldOp
+	dev := device.NewMemory()
+	f := newAdapterFixtureOn(t, fixtureOpts{dev: dev, frees: true, opTypes: &space_world.OpTypes{Lookup: lookup}})
+	eng, engRef := f.start(t)
+	defer func() { engRef.Release() }()
+	key, peerID := storeTestKeypair(ctx, t, eng)
+
+	// Note each hold an admitted write takes, and any that was not ordered.
+	var held, unordered atomic.Bool
+	defer space_world.SetHeldHook(func(ordered bool) error {
+		held.Store(true)
+		unordered.Store(unordered.Load() || !ordered)
+		return nil
+	})()
+
+	// write stores a blob with nested chunks under k.
+	blobs := make(map[string][]byte)
+	write := func(k string) error {
+		data := make([]byte, 1<<20)
+		if _, err := rand.Read(data); err != nil {
+			t.Fatal(err)
+		}
+		blobs[k] = data
+		wctx, wcancel := context.WithTimeout(ctx, 20*time.Second)
+		defer wcancel()
+		return writeBlob(wctx, eng, k, data)
+	}
+
+	// Write once uncut, which must hold ordered on s4db.
+	if err := write("uncut"); err != nil {
+		t.Fatal(err)
+	}
+	if unordered.Load() || !held.Load() {
+		t.Fatal("the write on s4db took no ordered hold")
+	}
+
+	// check boots after a power cut, frees what no durable hold keeps, and
+	// reads every blob back. found holds each blob that must read back.
+	found := map[string]bool{"uncut": true}
+	check := func(phase string, seed uint64) {
+		t.Helper()
+		engRef.Release()
+		f.powerCut(t, seed)
+		f.collect(t)
+		requireDurableSetRoots(ctx, t, f.space(t), lookup)
+		eng, engRef = f.start(t)
+		requireKeypair(ctx, t, phase, eng, key, peerID)
+		for k, data := range blobs {
+			got, ok, err := readBlob(ctx, eng, k)
+			if err != nil {
+				t.Fatalf("%s: blob %s: %v; %s", phase, k, err, f.collectReport(ctx))
+			}
+			if !ok {
+				if found[k] {
+					t.Fatalf("%s: durable blob %s is gone", phase, k)
+				}
+				continue
+			}
+			found[k] = true
+			if !bytes.Equal(got, data) {
+				t.Fatalf("%s: blob %s read %d bytes, want %d", phase, k, len(got), len(data))
+			}
+		}
+	}
+
+	// Cut power at each device call of a write and the flush that follows
+	// it. A write that returned before its cut may still wait in the queue
+	// at the next boot, so the final boot checks it.
+	var heldCut []string
+	acked := []string{"uncut"}
+	cuts := 0
+	for n := 0; n < 64; n++ {
+		k := "cut-" + strconv.Itoa(n)
+		held.Store(false)
+		dev.CrashAfter(n)
+		err := write(k)
+		if err == nil && !f.bootDev.isCut() {
+			acked = append(acked, k)
+		}
+
+		// Wait out the ordered flush deadline for the cut.
+		select {
+		case <-f.bootDev.cut:
+		case <-time.After(3 * time.Second):
+		}
+		if !f.bootDev.isCut() {
+			dev.CrashAfter(-1)
+			break
+		}
+		cuts++
+		if held.Load() {
+			heldCut = append(heldCut, k)
+		}
+		check("after cut "+strconv.Itoa(n), uint64(n))
+	}
+	check("after a clean boot", uint64(cuts))
+	for _, k := range acked {
+		if !found[k] {
+			t.Fatalf("write %s returned before the cut but is gone", k)
+		}
+	}
+	if unordered.Load() {
+		t.Fatal("a write on s4db took a hold that was not ordered")
+	}
+
+	// Require a cut between a hold and its operation's durable state write.
+	window := 0
+	for _, k := range heldCut {
+		if !found[k] {
+			window++
+		}
+	}
+	if window == 0 {
+		t.Fatalf("no cut of %d landed between a hold and its operation's state write", cuts)
+	}
+	t.Logf("%d cuts, %d after the hold and before the state write was durable", cuts, window)
+}
+
+// writeBlob stores data as a blob in a new object at k.
+func writeBlob(ctx context.Context, eng world.Engine, k string, data []byte) error {
+	return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, _, err := world.CreateWorldObject(ctx, ws, k, func(bcs *block.Cursor) error {
+			_, err := blob.BuildBlobWithBytes(ctx, data, bcs)
+			return err
+		})
+		world.ReleaseObjectState(obj)
+		return err
+	})
+}
+
+// readBlob reads the blob of the object at k, reporting whether it exists.
+// A block the store lost fails the read once its timeout passes.
+func readBlob(ctx context.Context, eng world.Engine, k string) ([]byte, bool, error) {
+	rctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	var got []byte
+	var found bool
+	err := world.ExecTransaction(rctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		obj, ok, err := ws.GetObject(ctx, k)
+		defer world.ReleaseObjectState(obj)
+		if err != nil || !ok {
+			return err
+		}
+		found = true
+		_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+			got, err = blob.FetchToBytes(ctx, bcs)
+			return err
+		})
+		return err
+	})
+	return got, found, err
 }
 
 // rewriteOpTypeID is the type ID of rewriteOp.

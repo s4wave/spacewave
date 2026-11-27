@@ -94,6 +94,15 @@ func (s *SharedObject) GetBackingVolume() volume.Volume {
 	return s.tkr.a.vol
 }
 
+// OrdersBlockWrites reports whether the state writes order the block store's
+// writes. Both live on the account volume: the state in its object store, and
+// the blocks in its bucket, or in a pack log that makes each value durable
+// before its entry lands in the bucket. So they share the volume's order
+// whenever the volume makes its writes durable in commit order.
+func (s *SharedObject) OrdersBlockWrites() bool {
+	return volume.OrdersWrites(s.tkr.a.vol)
+}
+
 // WaitDurable waits until every state write completed before the call is
 // durable, without forcing a flush.
 func (s *SharedObject) WaitDurable(ctx context.Context) error {
@@ -1368,6 +1377,7 @@ var (
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.SignedOperationQueuer      = (*SharedObject)(nil)
 	_ sobject.SettledOperationQueuer     = (*SharedObject)(nil)
+	_ sobject.BlockWriteOrderer          = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
