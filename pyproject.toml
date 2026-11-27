@@ -38,7 +38,8 @@ sdk = ["py.typed"]
 strict = true
 
 # The generated message stubs annotate map fields and the dict form of every
-# message field as a bare Mapping.
+# message field as a bare Mapping, and take a field whose name is a Python
+# keyword through an unannotated **kwargs.
 [[tool.mypy.overrides]]
 module = [
     "bldr.resource.resource_pb2",
@@ -61,4 +62,4 @@ module = [
     "sdk.secret.secret_pb2",
     "sdk.session.session_pb2",
 ]
-disable_error_code = ["type-arg"]
+disable_error_code = ["type-arg", "no-untyped-def"]
