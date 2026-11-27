@@ -26,6 +26,15 @@ var controllerDescrip = "loads controllers for space shared objects"
 // Controller is the space sobject controller.
 type Controller struct {
 	*bus.BusController[*Config]
+	// worldFactory starts the World engine of every Space body this
+	// controller mounts.
+	//
+	// Invariant: one factory serves every mount run of a body. The body's
+	// getter runs again each time its SharedObject mount reloads, and the
+	// factory holds the writes whose outcome went unknown on the run before,
+	// which the next run's engine settles (WaitSettled). A factory built per
+	// run would start the next engine with no record of them.
+	worldFactory *space_world.Factory
 }
 
 // NewFactory constructs the component factory.
@@ -40,7 +49,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
-			return &Controller{BusController: base}, nil
+			return &Controller{BusController: base, worldFactory: space_world_engine.NewFactory(base.GetBus())}, nil
 		},
 	)
 }
@@ -80,8 +89,7 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 		// at construction, before its first replay. The body's engine
 		// follows each engine the controller serves, across restarts and
 		// replacements after read access returns.
-		factory := space_world_engine.NewFactory(c.GetBus())
-		eng, ref, err := world.StartEngine(ctx, c.GetBus(), conf, factory)
+		eng, ref, err := world.StartEngine(ctx, c.GetBus(), conf, c.worldFactory)
 		if err != nil {
 			soRef.Release()
 			return nil, nil, err

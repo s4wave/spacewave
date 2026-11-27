@@ -12,11 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/sobject"
-	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/core/space"
+	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -511,29 +513,47 @@ func TestReloadFenceRefusesPostponedWrites(t *testing.T) {
 	writeTestStateData(ctx, t, next, []byte("fake-b"))
 }
 
-// TestWaitSettledAfterUnknownCommit ends a World commit's state write
-// unknown twice, once after the commit stored it and once in place of the
-// commit, each time with the settle read failing. The commit returns
-// world.DurabilityUnknownError with the operation's hash, and WaitSettled on
-// the engine that returned it waits for the restarted mount's engine and
-// reports the write applied exactly when the World holds its object. Each
-// time the client then writes again.
+// TestWaitSettledAfterUnknownCommit mounts a Space body through the space
+// sobject controller, as the product does, and ends four of its World commits
+// unknown in turn, each with the settle read failing: two after the commit
+// stored the write and two in place of the commit. Each unknown reloads the
+// mount, and the body's getter starts the World engine again. Each commit
+// returns world.DurabilityUnknownError with the operation's hash, and
+// WaitSettled on the body's engine waits for the restarted mount's engine. It
+// must report applied exactly when the World holds the write's object. A
+// report of applied for a lost write, a lost settle (ErrNoSettle or a hang)
+// after a reload, or a lost write the World holds all fail. Each time the
+// client then writes again.
 func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
 	tb, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
+	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
+	_, ctrlRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctrlRef.Release()
 	const id = "settle-space"
-	ref, err := a.CreateSharedObject(ctx, id, &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	meta, err := space.NewSharedObjectMeta("Settle Space")
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, engRef, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig("settle-world", ref), nil)
+	ref, err := a.CreateSharedObject(ctx, id, meta, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer engRef.Release()
+	mounted, bodyRef, err := space.ExMountSpaceSoBody(ctx, tb.Bus, ref, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bodyRef.Release()
+	eng := mounted.GetSharedObjectBody().GetWorldEngine()
+	waiter, ok := eng.(world.SettleWaiter)
+	if !ok {
+		t.Fatalf("the Space body's engine %T cannot settle", eng)
+	}
 
 	// create commits one object in its own transaction. has reads it.
 	create := func(key string) error {
@@ -569,8 +589,8 @@ func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, landed := range []bool{true, false} {
-		key := map[bool]string{true: "landed", false: "lost"}[landed]
+	for i, landed := range []bool{true, false, false, true} {
+		key := fmt.Sprintf("%s-%d", map[bool]string{true: "landed", false: "lost"}[landed], i)
 
 		// Fail the state write that adds the World operation, after its
 		// commit stored it or in place of the commit, and the settle read.
@@ -612,7 +632,7 @@ func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 		}
 
 		// The settle reports the outcome the World holds.
-		head, applied, err := eng.WaitSettled(ctx, unknown.OpHash)
+		head, applied, err := waiter.WaitSettled(ctx, unknown.OpHash)
 		if err != nil {
 			t.Fatalf("settling the %s commit: %v", key, err)
 		}
