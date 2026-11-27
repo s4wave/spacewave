@@ -653,7 +653,7 @@ var extentReadsOn atomic.Bool
 
 func init() {
 	extentReadsOn.Store(true)
-	packGraphOrder.Store(os.Getenv("SPACEWAVE_PACK_GRAPH_ORDER") == "1")
+	packGraphOrder.Store(os.Getenv("SPACEWAVE_PACK_GRAPH_ORDER") != "0")
 }
 
 // SetIndexExtentReads turns the extent read path of every PackStore on or
@@ -672,10 +672,11 @@ var packGraphOrder atomic.Bool
 // SetPackGraphOrder chooses how every PackStore lays out the packs it writes:
 // uploads, compaction merges and tail merges. On, a pack holds its trees'
 // structure blocks depth first and then their leaves, with each structure
-// block's reach in its index entry, as writer.PackGraph describes. Off, the
-// default layout, a pack holds its blocks in the order its writer yields them,
-// which for merges is key order. Either layout holds the same blocks. A process
-// started with SPACEWAVE_PACK_GRAPH_ORDER=1 starts with graph order on.
+// block's reach in its index entry, as writer.PackGraph describes, which is
+// the default; off, a pack holds its blocks in the order its writer yields
+// them, which for merges is key order. Either layout holds the same blocks,
+// and a reader reads both. A process started with SPACEWAVE_PACK_GRAPH_ORDER=0
+// starts with graph order off.
 func SetPackGraphOrder(on bool) {
 	packGraphOrder.Store(on)
 }
