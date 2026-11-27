@@ -2,6 +2,7 @@ package resource_sobject
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -87,13 +88,20 @@ type testSpaceBody struct {
 }
 
 type testBodyMountHandler struct {
+	// bodyType selects the supported native body.
 	bodyType string
-	ref      *sobject.SharedObjectRef
-	so       sobject.SharedObject
-	body     space.SpaceSharedObjectBody
+	// ref identifies the mounted SharedObject.
+	ref *sobject.SharedObjectRef
+	// so is the immutable mounted object fixture.
+	so sobject.SharedObject
+	// body is the native body returned by the resolver.
+	body space.SpaceSharedObjectBody
 
-	resolveCt int
-	releaseCt int
+	// resolveCt counts acquisitions across resolver instances.
+	resolveCt atomic.Int32
+	// releaseCt counts completed acquisition releases.
+	releaseCt atomic.Int32
+	// releaseCh signals a completed release without blocking the resolver.
 	releaseCh chan struct{}
 }
 
@@ -180,14 +188,14 @@ func (h *testBodyMountHandler) HandleDirective(
 	}
 
 	return directive.R(directive.NewAccessResolver(func(context.Context, func()) (space.MountSharedObjectBodyValue, func(), error) {
-		h.resolveCt++
+		h.resolveCt.Add(1)
 		return sobject.NewMountSharedObjectBodyValue(
 				h.ref,
 				h.bodyType,
 				h.so,
 				h.body,
 			), func() {
-				h.releaseCt++
+				h.releaseCt.Add(1)
 				if h.releaseCh != nil {
 					select {
 					case h.releaseCh <- struct{}{}:
@@ -571,8 +579,8 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	}
 
 	// Verify that the mount retains one resolved SpaceResource child.
-	if handler.resolveCt != 1 {
-		t.Fatalf("expected body directive resolver to run once, got %d", handler.resolveCt)
+	if handler.resolveCt.Load() != 1 {
+		t.Fatalf("expected body directive resolver to run once, got %d", handler.resolveCt.Load())
 	}
 	if resp.GetResourceId() == 0 {
 		t.Fatal("expected body resource id")
@@ -581,8 +589,8 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	if _, ok := value.(*resource_space.SpaceResource); !ok {
 		t.Fatalf("expected SpaceResource child, got %T", value)
 	}
-	if handler.releaseCt != 0 {
-		t.Fatalf("expected child release to be retained, got %d", handler.releaseCt)
+	if handler.releaseCt.Load() != 0 {
+		t.Fatalf("expected child release to be retained, got %d", handler.releaseCt.Load())
 	}
 
 	// Release the first body resource before mounting it again.
@@ -600,8 +608,8 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 	}
 
 	// Verify that the second mount resolves a fresh directive value.
-	if handler.resolveCt != 2 {
-		t.Fatalf("rejoin reused the released body directive value: resolver calls = %d", handler.resolveCt)
+	if handler.resolveCt.Load() != 2 {
+		t.Fatalf("rejoin reused the released body directive value: resolver calls = %d", handler.resolveCt.Load())
 	}
 
 	// Release the second child and verify both directive values are released.
@@ -612,8 +620,11 @@ func TestMountSharedObjectBodyUsesBodyDirectiveForNativeBody(t *testing.T) {
 		select {
 		case <-handler.releaseCh:
 		case <-time.After(2 * time.Second):
-			t.Fatalf("expected both directive value releases, got %d", handler.releaseCt)
+			t.Fatalf("expected both directive value releases, got %d", handler.releaseCt.Load())
 		}
+	}
+	if got := handler.releaseCt.Load(); got != 2 {
+		t.Fatalf("expected two directive value releases, got %d", got)
 	}
 }
 
