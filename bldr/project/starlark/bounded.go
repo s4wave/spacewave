@@ -89,7 +89,7 @@ func EvaluateFSBounded(ctx context.Context, fsys fs.FS, name string, memoryBytes
 		return nil, context.Cause(ctx)
 	}
 	reason := strings.TrimSpace(string(stderr.buf))
-	if strings.Contains(reason, "out of memory") {
+	if strings.Contains(reason, "out of memory") || strings.Contains(reason, "too many address space collisions for -race mode") {
 		return nil, errors.Errorf("evaluation used more than %d MiB of memory", memoryBytes>>20)
 	}
 	if reason, _, _ = strings.Cut(reason, "\n"); reason != "" {
