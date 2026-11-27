@@ -42,14 +42,8 @@ type Controller struct {
 	// startup manages the set of "start" plugins listed in the config.
 	startup *routine.StateRoutineContainer[*bldr_project.StartConfig]
 
-	// statusSinkMtx guards status sinks and build target metadata.
-	statusSinkMtx sync.Mutex
-	// manifestBuilderStatusSink receives manifest build status events.
-	manifestBuilderStatusSink ManifestBuilderStatusSink
-	// projectConfigStatusSink receives project config status events.
-	projectConfigStatusSink ProjectConfigStatusSink
-	// manifestBuilderBuildTargets records finite build targets by builder key.
-	manifestBuilderBuildTargets map[string][]string
+	// publisher holds the status sinks and build target metadata.
+	publisher statusPublisher
 
 	// mtx serializes project config changes and builder registration.
 	mtx sync.Mutex
@@ -82,7 +76,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	buildBackoff := cc.GetBuildBackoff()
 	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(
 		func(key string) (keyed.Routine, *manifestBuilderTracker) {
-			r, tracker := ctrl.newManifestBuilderTracker(key)
+			r, tracker := ctrl.newManifestBuilderRoutine(key)
 			return ctrl.routines.Wrap(r), tracker
 		},
 		le,
@@ -96,7 +90,6 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		le,
 		keyed.WithRetry[string, *remoteTracker](buildBackoff),
 	)
-	ctrl.manifestBuilderBuildTargets = make(map[string][]string)
 
 	// Startup tasks share the controller's shutdown group with build routines.
 	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
@@ -118,9 +111,7 @@ func (c *Controller) GetConfig() *Config {
 // SetManifestBuilderStatusSink sets the manifest builder status sink.
 func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink) {
 	// Replace the observer before publishing the current build states.
-	c.statusSinkMtx.Lock()
-	c.manifestBuilderStatusSink = sink
-	c.statusSinkMtx.Unlock()
+	c.publisher.setManifestBuilderSink(sink)
 
 	// Call observers outside the sink lock so they can replace themselves.
 	for _, builder := range c.getRunningManifestBuilders() {
@@ -131,11 +122,8 @@ func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink
 // SetProjectConfigStatusSink sets the project config status sink.
 func (c *Controller) SetProjectConfigStatusSink(sink ProjectConfigStatusSink) {
 	// Publish the current configuration after installing the observer.
-	c.statusSinkMtx.Lock()
-	c.projectConfigStatusSink = sink
-	c.statusSinkMtx.Unlock()
-
-	c.publishProjectConfigStatus(c.conf.Load().GetProjectConfig())
+	c.publisher.setProjectConfigSink(sink)
+	c.publisher.publishProjectConfigStatus(c.conf.Load().GetProjectConfig())
 }
 
 // GetControllerInfo returns information about the controller.
@@ -185,93 +173,65 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 		}
 	}
 	c.conf.Store(nextCtrlConf)
-	c.publishProjectConfigStatus(nextConf)
+	c.publisher.publishProjectConfigStatus(nextConf)
 
-	// Snapshot the keyed registry for this reconciliation.
-	manifestBuilders := c.getRunningManifestBuilders()
-
-	// Track builders retained or restarted by the new manifest set.
-	seenManifestBuilders := make(map[string]struct{}, len(manifestBuilders))
-	restartedManifestBuilders := make(map[string]struct{}, len(manifestBuilders))
-
-	// Restart builds whose manifest or remote configuration changed.
+	// Reconcile each running builder with the replacement configuration.
 	nextManifests := nextConf.GetManifests()
 	nextRemotes := nextConf.GetRemotes()
-	for manifestID, nextManifest := range nextManifests {
-		for _, builder := range manifestBuilders {
-			// Only this manifest's builders participate in its reconciliation.
-			if builder.conf.GetManifestId() != manifestID {
-				continue
-			}
-
-			// Each keyed routine needs at most one restart per update.
-			if _, ok := restartedManifestBuilders[builder.key]; ok {
-				continue
-			}
-
-			// Builders without a remote are removed after reconciliation.
-			remoteConf, remoteConfOk := nextRemotes[builder.conf.RemoteId]
-			if !remoteConfOk || remoteConf == nil {
-				continue
-			}
-
-			// Include unresolved configurations so the build reads current inputs.
-			_, wasReset := c.manifestBuilders.RestartRoutine(
+	for _, builder := range c.getRunningManifestBuilders() {
+		nextManifest, manifestExists := nextManifests[builder.conf.GetManifestId()]
+		remoteConf := nextRemotes[builder.conf.GetRemoteId()]
+		switch classifyManifestBuilderUpdate(manifestExists, remoteConf) {
+		case manifestBuilderManifestRemoved:
+			builder.tracker.failWithError(bldr_project.ErrManifestConfNotFound)
+			c.manifestBuilders.RemoveKey(builder.key)
+		case manifestBuilderRemoteRemoved:
+			builder.tracker.failWithError(bldr_project.ErrRemoteNotFound)
+			c.manifestBuilders.RemoveKey(builder.key)
+		case manifestBuilderRetained:
+			// Restart a build whose manifest or remote changed or never
+			// resolved, so it reads the replacement inputs.
+			c.manifestBuilders.RestartRoutine(
 				builder.key,
 				func(_ string, trk *manifestBuilderTracker) bool {
-					// An unloaded manifest must also pick up the replacement.
-					if !trk.manifestConf.Load().EqualVT(nextManifest) {
-						return true
-					}
-
-					// Reset when the remote is unresolved or changed.
 					currRemoteConf := trk.remoteConf.Load()
-					if currRemoteConf == nil {
-						// An unresolved remote must read the replacement configuration.
-						return true
-					}
-
-					// Reset when the remote configuration changed.
-					if !remoteConf.EqualVT(currRemoteConf) {
-						return true
-					}
-
-					return false
+					return !trk.manifestConf.Load().EqualVT(nextManifest) ||
+						currRemoteConf == nil ||
+						!remoteConf.EqualVT(currRemoteConf)
 				},
 			)
-			if wasReset {
-				restartedManifestBuilders[builder.key] = struct{}{}
-			}
-
-			// Retain this build even when its inputs did not require a restart.
-			seenManifestBuilders[builder.key] = struct{}{}
-		}
-	}
-
-	// Fail and remove builds whose manifest or remote no longer exists.
-	for _, builder := range manifestBuilders {
-		if _, ok := seenManifestBuilders[builder.key]; !ok {
-			if _, manifestExists := nextManifests[builder.conf.ManifestId]; !manifestExists {
-				builder.tracker.failWithError(bldr_project.ErrManifestConfNotFound)
-			} else {
-				builder.tracker.failWithError(bldr_project.ErrRemoteNotFound)
-			}
-			c.manifestBuilders.RemoveKey(builder.key)
 		}
 	}
 
 	return nil
 }
 
-// publishProjectConfigStatus publishes a clone of the project config to
-// the status sink.
-func (c *Controller) publishProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
-	// Snapshot the observer, then pass it a detached configuration.
-	c.statusSinkMtx.Lock()
-	sink := c.projectConfigStatusSink
-	c.statusSinkMtx.Unlock()
-	if sink != nil {
-		sink.SetProjectConfigStatus(projectConfig.CloneVT())
+// manifestBuilderUpdate is what a project config update does to one running
+// manifest builder.
+type manifestBuilderUpdate int
+
+const (
+	// manifestBuilderRetained keeps the builder, restarting it when its
+	// inputs changed.
+	manifestBuilderRetained manifestBuilderUpdate = iota
+	// manifestBuilderManifestRemoved fails and removes a builder whose
+	// manifest no longer exists.
+	manifestBuilderManifestRemoved
+	// manifestBuilderRemoteRemoved fails and removes a builder whose remote
+	// no longer exists.
+	manifestBuilderRemoteRemoved
+)
+
+// classifyManifestBuilderUpdate classifies a running builder by whether its
+// manifest still exists and its remote's replacement config.
+func classifyManifestBuilderUpdate(manifestExists bool, remoteConf *bldr_project.RemoteConfig) manifestBuilderUpdate {
+	switch {
+	case !manifestExists:
+		return manifestBuilderManifestRemoved
+	case remoteConf == nil:
+		return manifestBuilderRemoteRemoved
+	default:
+		return manifestBuilderRetained
 	}
 }
 
@@ -390,7 +350,7 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 	}
 
 	// Read the remote's base object key and require it to be set.
-	baseObjKey := remoteRef.tracker.remote.GetObjectKey()
+	baseObjKey := remoteRef.GetRemoteConfig().GetObjectKey()
 	if baseObjKey == "" {
 		remoteRef.Release()
 		return nil, nil, errors.Wrap(world.ErrEmptyObjectKey, "fetch_manifest: remote")

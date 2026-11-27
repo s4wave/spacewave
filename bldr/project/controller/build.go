@@ -144,7 +144,7 @@ func (c *Controller) BuildTargets(
 					resolved.BuildPolicy,
 					buildTarget.GetManifestOverrides(),
 				)
-				c.addManifestBuilderBuildTarget(mbc, target)
+				c.publisher.addBuildTarget(mbc, target)
 				manifestBuilderConfs = append(manifestBuilderConfs, mbc)
 				return true, nil
 			},

@@ -1,6 +1,12 @@
 package bldr_project_controller
 
-import bldr_project "github.com/s4wave/spacewave/bldr/project"
+import (
+	"slices"
+	"strings"
+	"sync"
+
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
+)
 
 // ManifestBuilderStatusState describes ProjectController manifest build status.
 type ManifestBuilderStatusState int32
@@ -57,10 +63,92 @@ type ManifestBuilderStatus struct {
 
 // ManifestBuilderStatusSink consumes ProjectController manifest build status.
 type ManifestBuilderStatusSink interface {
+	// SetManifestBuilderStatus receives the latest status of one builder.
 	SetManifestBuilderStatus(status ManifestBuilderStatus)
 }
 
 // ProjectConfigStatusSink consumes ProjectController project config status.
 type ProjectConfigStatusSink interface {
+	// SetProjectConfigStatus receives a detached copy of the current config.
 	SetProjectConfigStatus(projectConfig *bldr_project.ProjectConfig)
+}
+
+// statusPublisher holds the status sinks and the build targets each manifest
+// builder serves, and publishes status to the sinks. The zero value is ready
+// to use.
+type statusPublisher struct {
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// manifestBuilderSink receives manifest build status events.
+	manifestBuilderSink ManifestBuilderStatusSink
+	// projectConfigSink receives project config status events.
+	projectConfigSink ProjectConfigStatusSink
+	// buildTargets records finite build targets by builder key.
+	buildTargets map[string][]string
+}
+
+// setManifestBuilderSink replaces the manifest builder status sink.
+func (p *statusPublisher) setManifestBuilderSink(sink ManifestBuilderStatusSink) {
+	p.mtx.Lock()
+	p.manifestBuilderSink = sink
+	p.mtx.Unlock()
+}
+
+// setProjectConfigSink replaces the project config status sink.
+func (p *statusPublisher) setProjectConfigSink(sink ProjectConfigStatusSink) {
+	p.mtx.Lock()
+	p.projectConfigSink = sink
+	p.mtx.Unlock()
+}
+
+// publishManifestBuilderStatus passes status to the sink when one is attached.
+// The sink is called outside the lock so it can replace itself.
+func (p *statusPublisher) publishManifestBuilderStatus(status ManifestBuilderStatus) {
+	p.mtx.Lock()
+	sink := p.manifestBuilderSink
+	p.mtx.Unlock()
+	if sink != nil {
+		sink.SetManifestBuilderStatus(status)
+	}
+}
+
+// publishProjectConfigStatus passes a clone of the project config to the sink
+// when one is attached.
+func (p *statusPublisher) publishProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
+	p.mtx.Lock()
+	sink := p.projectConfigSink
+	p.mtx.Unlock()
+	if sink != nil {
+		sink.SetProjectConfigStatus(projectConfig.CloneVT())
+	}
+}
+
+// addBuildTarget records a build target name for a manifest builder config,
+// ignoring an empty name and a repeat.
+func (p *statusPublisher) addBuildTarget(conf *ManifestBuilderConfig, target string) {
+	// Ignore empty target names.
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return
+	}
+
+	// Record the target under the config key.
+	key := conf.MarshalB58()
+	p.mtx.Lock()
+	if p.buildTargets == nil {
+		p.buildTargets = make(map[string][]string)
+	}
+	if !slices.Contains(p.buildTargets[key], target) {
+		p.buildTargets[key] = append(p.buildTargets[key], target)
+	}
+	p.mtx.Unlock()
+}
+
+// getBuildTargets returns the recorded build targets for a manifest builder
+// config key.
+func (p *statusPublisher) getBuildTargets(key string) []string {
+	p.mtx.Lock()
+	targets := slices.Clone(p.buildTargets[key])
+	p.mtx.Unlock()
+	return targets
 }

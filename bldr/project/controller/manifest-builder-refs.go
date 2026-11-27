@@ -42,7 +42,7 @@ func (c *Controller) addManifestBuilderRefs(confs []*ManifestBuilderConfig, reus
 
 	// Status callbacks may reenter the controller, so publish outside its locks.
 	for _, ref := range refs {
-		ref.tracker.refreshManifestBuilderStatusMeta()
+		ref.refreshStatus()
 	}
 	return refs, nil
 }

@@ -32,6 +32,12 @@ func (r *ManifestBuilderRef) GetResultPromiseContainer() *promise.PromiseContain
 	return r.tracker.resultPromiseCtr
 }
 
+// refreshStatus republishes the builder's status with the build targets
+// recorded for it.
+func (r *ManifestBuilderRef) refreshStatus() {
+	r.tracker.refreshManifestBuilderStatusMeta()
+}
+
 // Release releases the reference.
 func (r *ManifestBuilderRef) Release() {
 	r.ref.Release()

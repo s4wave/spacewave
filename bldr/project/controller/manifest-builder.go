@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
@@ -34,10 +35,25 @@ const (
 	manifestBuildBufferedStoreDrainBatchEntries = 1024
 )
 
+// manifestBuilderHost is what a manifest build needs from the project it runs
+// in: the current config and access to its remotes.
+type manifestBuilderHost interface {
+	// GetConfig returns the current project controller config.
+	GetConfig() *Config
+	// WaitRemote retains a remote and waits for its world engine.
+	WaitRemote(ctx context.Context, remoteID string) (world.Engine, *RemoteRef, error)
+}
+
 // manifestBuilderTracker tracks a running manifest build controller.
 type manifestBuilderTracker struct {
-	// c is the controller.
-	c *Controller
+	// le is the logger.
+	le *logrus.Entry
+	// bus is the controller bus.
+	bus bus.Bus
+	// host is the project the build runs in.
+	host manifestBuilderHost
+	// publisher receives the tracker's status.
+	publisher *statusPublisher
 	// conf is the manifest builder config.
 	conf *ManifestBuilderConfig
 	// manifestConf is the manifest config.
@@ -148,18 +164,35 @@ func NewManifestBuilderResult(
 	}
 }
 
-// newManifestBuilderTracker constructs a new build controller tracker.
-func (c *Controller) newManifestBuilderTracker(key string) (keyed.Routine, *manifestBuilderTracker) {
+// newManifestBuilderRoutine constructs the keyed routine and tracker for a
+// manifest builder key.
+func (c *Controller) newManifestBuilderRoutine(key string) (keyed.Routine, *manifestBuilderTracker) {
 	// note: the key is always produced by MarshalB58 of a validated config,
 	// so decoding cannot fail.
 	conf, _ := UnmarshalManifestBuilderConfigB58(key)
+	tr := newManifestBuilderTracker(c.le, c.bus, c, &c.publisher, conf)
+	return tr.execute, tr
+}
+
+// newManifestBuilderTracker constructs a queued tracker for the build conf
+// that runs in host and publishes its status to publisher.
+func newManifestBuilderTracker(
+	le *logrus.Entry,
+	b bus.Bus,
+	host manifestBuilderHost,
+	publisher *statusPublisher,
+	conf *ManifestBuilderConfig,
+) *manifestBuilderTracker {
 	tr := &manifestBuilderTracker{
-		c:                c,
+		le:               le,
+		bus:              b,
+		host:             host,
+		publisher:        publisher,
 		conf:             conf,
 		resultPromiseCtr: promise.NewPromiseContainer[*ManifestBuilderResult](),
 	}
 	tr.status = tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
-	return tr.execute, tr
+	return tr
 }
 
 // failWithError marks the tracker as failed with an error.
@@ -203,7 +236,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "resolving remote", nil)
 
 	// build remote handle
-	worldEng, remoteRef, err := t.c.WaitRemote(ctx, t.conf.GetRemoteId())
+	worldEng, remoteRef, err := t.host.WaitRemote(ctx, t.conf.GetRemoteId())
 	if err != nil {
 		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "resolve remote", err)
 		return err
@@ -242,7 +275,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// ctrlConf is the current controller config
-	ctrlConf := t.c.GetConfig()
+	ctrlConf := t.host.GetConfig()
 
 	// build paths
 	buildWorkingPath := filepath.Join(ctrlConf.GetWorkingPath(), "build", platformIDPath, manifestID)
@@ -322,23 +355,23 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			existingManifest := existingManifests[0]
 			worldBuildResult, _, err := resultworld.LookupManifestBuildResult(ctx, tx, existingManifest.ManifestKey)
 			if err != nil && !errors.Is(err, world.ErrObjectNotFound) {
-				t.c.le.WithError(err).
+				t.le.WithError(err).
 					WithField("manifest-id", t.conf.GetManifestId()).
 					Warn("failed to load world-backed startup build result, falling back to rebuild")
 			}
 			if worldBuildResult != nil && !worldBuildResult.GetManifest().EqualVT(existingManifest.Manifest) {
-				t.c.le.WithField("manifest-id", t.conf.GetManifestId()).
+				t.le.WithField("manifest-id", t.conf.GetManifestId()).
 					Warn("world-backed startup build result manifest mismatch, falling back to rebuild")
 				worldBuildResult = nil
 			}
 			if worldBuildResult != nil && !worldBuildResult.GetManifestRef().GetManifestRef().EqualVT(existingManifest.ManifestRef) {
-				t.c.le.WithField("manifest-id", t.conf.GetManifestId()).
+				t.le.WithField("manifest-id", t.conf.GetManifestId()).
 					Warn("world-backed startup build result manifest ref mismatch, falling back to rebuild")
 				worldBuildResult = nil
 			}
 			if worldBuildResult != nil {
 				startupBuilderResult = worldBuildResult.CloneVT()
-				t.c.le.WithFields(logrus.Fields{
+				t.le.WithFields(logrus.Fields{
 					"manifest-id":   t.conf.GetManifestId(),
 					"manifest-rev":  startupBuilderResult.GetManifest().GetMeta().GetRev(),
 					"build-type":    t.conf.GetBuildType(),
@@ -369,7 +402,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	// A plugin depends on the providers of the web packages it excludes. The
 	// built manifest records them for the plugin host, which holds each
 	// provider while the consumer runs.
-	webPkgDeps := resolveWebPkgDeps(t.c.le, projectConfig.GetManifests())
+	webPkgDeps := resolveWebPkgDeps(t.le, projectConfig.GetManifests())
 	if cycle := findDepCycle(webPkgDeps, manifestID); len(cycle) != 0 {
 		err := errors.Errorf("plugin dependency cycle: %s", strings.Join(cycle, " -> "))
 		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "resolve plugin dependencies", err)
@@ -409,7 +442,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	var buildErr error
 	err = manifest_builder_controller.FollowBuilder(
 		ctx,
-		t.c.bus,
+		t.bus,
 		builderConf,
 		func(builderCtrl *manifest_builder_controller.Controller) {
 			builderCtrl.SetManifestBuilderLifecycleSink(t)
@@ -503,7 +536,7 @@ func (t *manifestBuilderTracker) currentManifestBuilderStatus() ManifestBuilderS
 // from the controller and republishes the status.
 func (t *manifestBuilderTracker) refreshManifestBuilderStatusMeta() {
 	next := t.currentManifestBuilderStatus()
-	next.BuildTargetIDs = t.c.getManifestBuilderBuildTargets(t.conf.MarshalB58())
+	next.BuildTargetIDs = t.publisher.getBuildTargets(t.conf.MarshalB58())
 	next.TargetPlatformIDs = slices.Clone(t.conf.GetTargetPlatformIds())
 	t.storeManifestBuilderStatus(next)
 }
@@ -519,13 +552,7 @@ func (t *manifestBuilderTracker) storeManifestBuilderStatus(status ManifestBuild
 // publishManifestBuilderStatus publishes the current status to the sink.
 func (t *manifestBuilderTracker) publishManifestBuilderStatus() {
 	// Publish the current status to the sink when one is attached.
-	status := t.currentManifestBuilderStatus()
-	t.c.statusSinkMtx.Lock()
-	sink := t.c.manifestBuilderStatusSink
-	t.c.statusSinkMtx.Unlock()
-	if sink != nil {
-		sink.SetManifestBuilderStatus(status)
-	}
+	t.publisher.publishManifestBuilderStatus(t.currentManifestBuilderStatus())
 }
 
 // newStatus builds the initial status for this tracker from its config.
@@ -534,7 +561,7 @@ func (t *manifestBuilderTracker) newStatus(
 	summary string,
 	errText string,
 ) ManifestBuilderStatus {
-	buildTargetIDs := t.c.getManifestBuilderBuildTargets(t.conf.MarshalB58())
+	buildTargetIDs := t.publisher.getBuildTargets(t.conf.MarshalB58())
 	return ManifestBuilderStatus{
 		ID:                t.conf.MarshalB58(),
 		BuildTargetIDs:    buildTargetIDs,
@@ -547,33 +574,6 @@ func (t *manifestBuilderTracker) newStatus(
 		Summary:           summary,
 		Error:             errText,
 	}
-}
-
-// addManifestBuilderBuildTarget records a build target name for a
-// manifest builder config.
-func (c *Controller) addManifestBuilderBuildTarget(conf *ManifestBuilderConfig, target string) {
-	// Ignore empty target names.
-	target = strings.TrimSpace(target)
-	if target == "" {
-		return
-	}
-
-	// Record the target under the config key.
-	key := conf.MarshalB58()
-	c.statusSinkMtx.Lock()
-	if !slices.Contains(c.manifestBuilderBuildTargets[key], target) {
-		c.manifestBuilderBuildTargets[key] = append(c.manifestBuilderBuildTargets[key], target)
-	}
-	c.statusSinkMtx.Unlock()
-}
-
-// getManifestBuilderBuildTargets returns the recorded build targets for a
-// manifest builder config key.
-func (c *Controller) getManifestBuilderBuildTargets(key string) []string {
-	c.statusSinkMtx.Lock()
-	targets := slices.Clone(c.manifestBuilderBuildTargets[key])
-	c.statusSinkMtx.Unlock()
-	return targets
 }
 
 // _ is a type assertion

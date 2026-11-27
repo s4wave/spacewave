@@ -224,9 +224,7 @@ func TestResolveBuildTargetRejectsInvalidBuildPolicy(t *testing.T) {
 
 func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
 	// Prepare a manifest builder with two target platforms and a metadata registry.
-	ctrl := &Controller{
-		manifestBuilderBuildTargets: make(map[string][]string),
-	}
+	ctrl := &Controller{}
 	mbc := NewManifestBuilderConfigWithTargetPlatforms(
 		"spacewave-dist",
 		"release",
@@ -236,20 +234,20 @@ func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
 	)
 
 	// Record build target membership with one repeated target.
-	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
-	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
-	ctrl.addManifestBuilderBuildTarget(mbc, "release")
+	ctrl.publisher.addBuildTarget(mbc, "desktop")
+	ctrl.publisher.addBuildTarget(mbc, "desktop")
+	ctrl.publisher.addBuildTarget(mbc, "release")
 
 	// Verify build target membership preserves order and removes duplicates.
-	targets := ctrl.getManifestBuilderBuildTargets(mbc.MarshalB58())
+	targets := ctrl.publisher.getBuildTargets(mbc.MarshalB58())
 	if len(targets) != 2 || targets[0] != "desktop" || targets[1] != "release" {
 		t.Fatalf("unexpected build target metadata: %#v", targets)
 	}
 
 	// Create a queued manifest status from the recorded build metadata.
 	tr := &manifestBuilderTracker{
-		c:    ctrl,
-		conf: mbc,
+		publisher: &ctrl.publisher,
+		conf:      mbc,
 	}
 	status := tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
 
@@ -264,9 +262,7 @@ func TestManifestBuilderBuildTargetStatusMetadata(t *testing.T) {
 
 func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *testing.T) {
 	// Prepare a finite manifest build with one recorded build target.
-	ctrl := &Controller{
-		manifestBuilderBuildTargets: make(map[string][]string),
-	}
+	ctrl := &Controller{}
 	mbc := NewManifestBuilderConfigWithTargetPlatforms(
 		"spacewave-dist",
 		"release",
@@ -274,14 +270,14 @@ func TestManifestBuilderTrackerLifecycleStatusPreservesFiniteBuildMetadata(t *te
 		"devtool",
 		[]string{"desktop/darwin/arm64"},
 	)
-	ctrl.addManifestBuilderBuildTarget(mbc, "desktop")
+	ctrl.publisher.addBuildTarget(mbc, "desktop")
 
 	// Attach a recording status sink to the queued manifest tracker.
 	sink := &recordingManifestBuilderStatusSink{}
-	ctrl.manifestBuilderStatusSink = sink
+	ctrl.publisher.setManifestBuilderSink(sink)
 	tr := &manifestBuilderTracker{
-		c:    ctrl,
-		conf: mbc,
+		publisher: &ctrl.publisher,
+		conf:      mbc,
 	}
 	tr.status = tr.newStatus(ManifestBuilderStatusStateQueued, "queued", "")
 
