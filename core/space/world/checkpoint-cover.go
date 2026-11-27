@@ -37,12 +37,15 @@ const (
 // used. So an operation counts as covered and applied only when the walk from
 // H back through the operations this device holds reaches its hash. A
 // checkpoint that records outcomes lists every refused operation it newly
-// covers, so any other operation it newly covers on H's chain applied.
+// covers, so any other operation it newly covers on H's chain applied. A
+// refusal names its operation by hash, so it decides that operation at any
+// install. Applied needs the previous checkpoint's head, which says where
+// "newly covers" starts.
 type checkpointCover struct {
 	// height is the installed checkpoint's height.
 	height uint64
 	// from is the nonce of this device's last operation that the checkpoint
-	// installed before this one covered, or zero.
+	// before this one covered, or zero. It is known only when chain is set.
 	from uint64
 	// head is this device's last covered operation, or nil when the
 	// checkpoint covers none.
@@ -51,7 +54,8 @@ type checkpointCover struct {
 	// covers, nil when it does not know them.
 	refused map[string]struct{}
 	// chain holds the hashes of the operations this device holds on the
-	// covered chain ending at head, above from, when refused is known.
+	// covered chain ending at head, above from. It is nil when from is
+	// unknown, so the cover proves no operation applied.
 	chain map[string]struct{}
 }
 
@@ -73,16 +77,25 @@ func nextCover(
 		}
 	}
 
-	// Know the refusals only for a checkpoint that records them and directly
-	// follows the one installed before it, whose coverage it extends.
-	if prev == nil || checkpoint.GetOutcomes() == nil || c.height != prev.height+1 {
+	// Know the refusals of a checkpoint that records outcomes. Under
+	// checkpointStandaloneOutcomeEnv=off, know them only when it directly
+	// follows the one installed before it.
+	outcomes := checkpoint.GetOutcomes()
+	follows := prev != nil && c.height == prev.height+1
+	if outcomes == nil || (!follows && checkpointStandaloneOutcomeOff()) {
+		return c
+	}
+	c.refused = make(map[string]struct{}, len(outcomes.GetRefused()))
+	for _, refused := range outcomes.GetRefused() {
+		c.refused[string(refused.GetOpHash())] = struct{}{}
+	}
+
+	// Prove applied operations only above the previous checkpoint's head,
+	// known when this checkpoint follows the one installed before it.
+	if !follows {
 		return c
 	}
 	c.from = prev.head.GetNonce()
-	c.refused = make(map[string]struct{}, len(checkpoint.GetOutcomes().GetRefused()))
-	for _, refused := range checkpoint.GetOutcomes().GetRefused() {
-		c.refused[string(refused.GetOpHash())] = struct{}{}
-	}
 	if c.head != nil {
 		c.chain = heldChain(held, peerID, c.head.GetOpHash(), c.from)
 	}
@@ -115,6 +128,17 @@ func heldChain(held func(h []byte) *sobject.SOOperationInner, peerID string, tip
 // checkpointTipOutcomeEnv disables membership proof from the signed tip alone.
 const checkpointTipOutcomeEnv = "SPACEWAVE_WORLD_CHECKPOINT_TIP_OUTCOME"
 
+// checkpointStandaloneOutcomeEnv, set to "off", restores the rule that a
+// checkpoint decides nothing unless it directly follows the one installed
+// before it, as at the first install after a mount.
+const checkpointStandaloneOutcomeEnv = "SPACEWAVE_WORLD_CHECKPOINT_STANDALONE_OUTCOME"
+
+// checkpointStandaloneOutcomeOff reports whether checkpointStandaloneOutcomeEnv
+// restores the old rule.
+func checkpointStandaloneOutcomeOff() bool {
+	return os.Getenv(checkpointStandaloneOutcomeEnv) == "off"
+}
+
 // outcome returns what the cover decides about this device's operation at pos.
 func (c *checkpointCover) outcome(pos *sobject.SOOperationPosition) coverOutcome {
 	// An operation above the covered head waits for replay.
@@ -122,13 +146,15 @@ func (c *checkpointCover) outcome(pos *sobject.SOOperationPosition) coverOutcome
 		return coverNone
 	}
 
-	// Decide only an operation the checkpoint newly covers, from outcomes it
-	// records: refused by its hash, applied only on the covered chain.
-	if c.refused == nil || pos.GetNonce() <= c.from {
-		return coverUnknown
-	}
+	// A refusal the checkpoint records names the operation by its hash.
 	if _, ok := c.refused[string(pos.GetOpHash())]; ok {
 		return coverRefused
+	}
+
+	// Decide applied only for an operation the checkpoint newly covers,
+	// above the previous head, on the covered chain.
+	if c.chain == nil || pos.GetNonce() <= c.from {
+		return coverUnknown
 	}
 	if _, ok := c.chain[string(pos.GetOpHash())]; ok {
 		return coverApplied

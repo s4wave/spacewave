@@ -261,11 +261,44 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	expect(t, "pre-change checkpoint head", second, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
 
 	// A checkpoint that skips an installed height may cover refusals the
-	// skipped one listed, so its outcomes decide nothing.
+	// skipped one listed, so it proves nothing applied. A refusal it lists
+	// names its operation by hash and decides it.
 	a = newAdapter()
-	skipped := admit(a, 2)
-	install(a, checkpoint(3, pos(2), &sobject.SOCheckpointOutcomes{}))
+	skipped, skippedRefused := admit(a, 2), admit(a, 3)
+	install(a, checkpoint(3, pos(3), &sobject.SOCheckpointOutcomes{Refused: []*sobject.SOOperationPosition{pos(3)}}))
 	expect(t, "skipped height", skipped, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect(t, "refused at a skipped height", skippedRefused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
+
+	// The first install after a mount knows no previous head. It decides the
+	// refusals the checkpoint lists, and an operation not listed stays hidden:
+	// an earlier checkpoint may have covered it.
+	firstInstall := func() (applied, refused *spaceAdmission) {
+		a := &Adapter{}
+		applied, refused = admit(a, 2), admit(a, 3)
+		install(a, checkpoint(2, pos(3), &sobject.SOCheckpointOutcomes{Refused: []*sobject.SOOperationPosition{pos(3)}}))
+		return applied, refused
+	}
+	first, firstRefused := firstInstall()
+	expect(t, "first install applied", first, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect(t, "first install refused", firstRefused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
+
+	// Two checkpoints signed after the unknown operation before the remount:
+	// C1 covered op-2 and op-3 and refused op-3, then C2 covered op-4 and
+	// op-5 and refused op-5. The first install is C2. It answers its own
+	// refusal, and neither proves op-2 applied nor op-3 refused, since only
+	// C1 recorded them.
+	a = &Adapter{}
+	behindApplied, behindRefused, newRefused := admit(a, 2), admit(a, 3), admit(a, 5)
+	install(a, checkpoint(3, pos(5), &sobject.SOCheckpointOutcomes{Refused: []*sobject.SOOperationPosition{pos(5)}}))
+	expect(t, "applied before the first install's checkpoint", behindApplied, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect(t, "refused before the first install's checkpoint", behindRefused, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect(t, "refused by the first install's checkpoint", newRefused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
+
+	// The switch restores the old rule: the first install decides nothing.
+	t.Setenv(checkpointStandaloneOutcomeEnv, "off")
+	_, firstRefused = firstInstall()
+	expect(t, "first install refused, switch off", firstRefused, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	t.Setenv(checkpointStandaloneOutcomeEnv, "")
 
 	// A covered head whose hash is not this operation's names another chain.
 	a = newAdapter()
