@@ -444,16 +444,22 @@ func TestWatchChanges_QuietDelta(t *testing.T) {
 		AfterSeqno: after,
 		Interest:   s4wave_world.NewChangeInterestDelta(1, []string{"quiet/old"}, nil),
 	})
-	all := openChangeStream(ctx, t, engine, &s4wave_world.WatchChangesRequest{AfterSeqno: after})
 
-	// Commit past the recorded heads without naming the interest, and wait
-	// until the shared change watch compared the last commit.
+	// Establish the quiet subscription before its starting head can be evicted.
+	ready := commitObject(ctx, t, engine, "quiet/old")
+	if change := s.nextChange(); change.GetUnknown() || change.GetSeqno() != ready {
+		t.Fatalf("initial change = %v, want quiet/old at %d", change, ready)
+	}
+	all := openChangeStream(ctx, t, engine, &s4wave_world.WatchChangesRequest{AfterSeqno: ready})
+
+	// Advance past the retained heads while keeping the feed caught up, so
+	// only the quiet subscriber's unsent revision falls outside retention.
 	var prev, last uint64
 	for i := range 130 {
 		prev, last = last, commitObject(ctx, t, engine, "quiet/skip-"+strconv.Itoa(i))
-	}
-	for seqno := uint64(0); seqno < last; {
-		seqno = all.nextChange().GetSeqno()
+		if change := all.nextChange(); change.GetUnknown() || change.GetSeqno() != last {
+			t.Fatalf("feed change = %v, want skipped commit at %d", change, last)
+		}
 	}
 
 	// The ack reaches the compared heads: the watch handed out at least the
