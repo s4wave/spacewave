@@ -31,6 +31,14 @@ type value struct {
 	del bool
 }
 
+// detach returns a value whose inline bytes outlive the decoder's window.
+func (v value) detach() value {
+	if !v.isRef && !v.del {
+		v.inline = append([]byte(nil), v.inline...)
+	}
+	return v
+}
+
 // read returns the value's bytes, reading and checking an extent.
 func (v value) read(r io.ReaderAt) ([]byte, error) {
 	// An inline value is in hand.

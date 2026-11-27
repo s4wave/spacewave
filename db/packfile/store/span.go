@@ -24,6 +24,21 @@ func newSpan(off int64, data []byte) *span {
 	return &span{off: off, size: int64(len(data)), data: data}
 }
 
+// admit records the span as the newest resident interval in lru.
+func (s *span) admit(lru *list.List) {
+	s.lru = lru.PushBack(s)
+}
+
+// evict removes the span from its resident recency list.
+func (s *span) evict(lru *list.List) {
+	lru.Remove(s.lru)
+}
+
+// touch makes the resident span the most recently used interval.
+func (s *span) touch(lru *list.List) {
+	lru.MoveToBack(s.lru)
+}
+
 // end returns the exclusive end offset of the span.
 func (s *span) end() int64 {
 	return s.off + s.size

@@ -2,12 +2,14 @@ package unixfs_checkout
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/sirupsen/logrus"
 )
@@ -201,6 +203,39 @@ func latestSibling(parent string) string {
 		previous, used = filepath.Join(parent, sibling.Name()), info.ModTime()
 	}
 	return previous
+}
+
+// write bounds a source-backed write by arriving progress, excluding time
+// spent yielding remote reads to foreground work.
+func (s *sources) write(ctx context.Context, yield func(context.Context) error, write func(context.Context, func()) error) error {
+	// Give up once nothing arrives for stallTimeout, so a source that
+	// stops answering fails the checkout, which its caller retries, instead
+	// of holding it at the same percent.
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	var held atomic.Int32
+	var stall *time.Timer
+	stall = time.AfterFunc(math.MaxInt64, func() {
+		if held.Load() != 0 {
+			stall.Reset(stallTimeout)
+			return
+		}
+		cancel(errStalled)
+	})
+	stall.Reset(stallTimeout)
+	defer stall.Stop()
+
+	// Exclude time yielding to foreground work from the stall deadline.
+	s.yield = func(ctx context.Context) error {
+		held.Add(1)
+		defer held.Add(-1)
+		return yield(ctx)
+	}
+	err := write(ctx, func() { stall.Reset(stallTimeout) })
+	if cause := context.Cause(ctx); err != nil && errors.Is(cause, errStalled) {
+		return cause
+	}
+	return err
 }
 
 // _ is a type assertion

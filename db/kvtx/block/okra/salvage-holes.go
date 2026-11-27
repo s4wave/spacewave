@@ -51,8 +51,7 @@ func (t *Tx) SalvageHoles(ctx context.Context, low, high []byte) (uint64, []Salv
 	// Queue the root page's children.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	w := &holeWalk{span: salvage{low: low, high: high}, cancel: cancel}
-	w.cond = sync.NewCond(&w.mu)
+	w := newHoleWalk(low, high, cancel)
 	w.visit(page, cursor, nil, nil)
 
 	// Load the rest of the tree with a pool of loaders.
@@ -94,6 +93,13 @@ type holeWalk struct {
 	holes []SalvageHole
 	// err is the first read error that is not a hole.
 	err error
+}
+
+// newHoleWalk prepares the shared page queue and its worker notification.
+func newHoleWalk(low, high []byte, cancel context.CancelFunc) *holeWalk {
+	w := &holeWalk{span: salvage{low: low, high: high}, cancel: cancel}
+	w.cond = sync.NewCond(&w.mu)
+	return w
 }
 
 // holeChild is a child page to load: entry index of parent, bounded by

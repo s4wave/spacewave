@@ -483,7 +483,7 @@ func (e *PackReader) insertSpanLocked(s *span) {
 		return e.spans[i].off >= s.off
 	})
 	e.spans = slices.Insert(e.spans, i, s)
-	s.lru = e.lru.PushBack(s)
+	s.admit(&e.lru)
 	e.chargeLocked(s.size)
 	if len(e.spans) == 1 {
 		e.budget.spansChanged(e, 1)
@@ -503,7 +503,7 @@ func (e *PackReader) removeSpanLocked(s *span) {
 
 	// Detach the resident span and return its bytes to the shared budget.
 	e.spans = slices.Delete(e.spans, i, i+1)
-	e.lru.Remove(s.lru)
+	s.evict(&e.lru)
 	e.chargeLocked(-s.size)
 	if len(e.spans) == 0 {
 		e.budget.spansChanged(e, 0)
@@ -519,7 +519,7 @@ func (e *PackReader) chargeLocked(delta int64) {
 // touchSpanLocked marks a span as the reader's most recently used and the
 // reader as used for the budget's span ring.
 func (e *PackReader) touchSpanLocked(s *span) {
-	e.lru.MoveToBack(s.lru)
+	s.touch(&e.lru)
 	e.spanRef.Store(true)
 }
 

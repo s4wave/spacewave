@@ -115,9 +115,7 @@ func (t *Tx) scan(ctx context.Context, beforeStart func(context.Context) error, 
 	}
 
 	// Create a lazy backend iterator with the requested start fence.
-	it := newTxScanIterator(ctx, t.tx, pref)
-	it.beforeStart = beforeStart
-	return it
+	return newTxScanIterator(ctx, t.tx, pref, beforeStart)
 }
 
 // Commit applies all changes made in the transaction.

@@ -689,7 +689,7 @@ func (s *Server) handleMkdir(ctx context.Context, tag uint16, payload []byte) ([
 
 	// Encode the new directory QID.
 	resp := NewWriteBuffer(13)
-	resp.WriteQID(QID{Type: QidDir, Version: 0, Path: s.fids.qidPath.Add(1)})
+	resp.WriteQID(s.fids.NewQID(QidDir))
 	return buildMessage(RMKDIR, tag, resp.Bytes()), nil
 }
 
@@ -721,7 +721,7 @@ func (s *Server) handleSymlink(ctx context.Context, tag uint16, payload []byte) 
 
 	// Encode the new symbolic link QID.
 	resp := NewWriteBuffer(13)
-	resp.WriteQID(QID{Type: QidSymlink, Version: 0, Path: s.fids.qidPath.Add(1)})
+	resp.WriteQID(s.fids.NewQID(QidSymlink))
 	return buildMessage(RSYMLINK, tag, resp.Bytes()), nil
 }
 
@@ -853,7 +853,7 @@ func (s *Server) handleMknod(ctx context.Context, tag uint16, payload []byte) ([
 
 	// Encode the new file node QID.
 	resp := NewWriteBuffer(13)
-	resp.WriteQID(QID{Type: QidFile, Version: 0, Path: s.fids.qidPath.Add(1)})
+	resp.WriteQID(s.fids.NewQID(QidFile))
 	return buildMessage(RMKNOD, tag, resp.Bytes()), nil
 }
 

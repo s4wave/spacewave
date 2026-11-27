@@ -286,18 +286,8 @@ func (s *Sorter) Merge(ctx context.Context, sorted []iter.Seq2[[]byte, []byte], 
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		c := m.items[0]
-		if err := fn(c.cur.key(), c.cur.value()); err != nil {
+		if err := m.emit(fn); err != nil {
 			return err
-		}
-		ok, err := c.cur.next()
-		if err != nil {
-			return err
-		}
-		if ok {
-			heap.Fix(&m, 0)
-		} else {
-			heap.Pop(&m)
 		}
 	}
 	return nil
@@ -487,6 +477,27 @@ func (m *mergeHeap) init() error {
 		}
 	}
 	heap.Init(m)
+	return nil
+}
+
+// emit passes on the least record and restores the heap after advancing it.
+func (m *mergeHeap) emit(fn func(key, value []byte) error) error {
+	// Emit the least record before advancing its borrowed bytes.
+	c := m.items[0]
+	if err := fn(c.cur.key(), c.cur.value()); err != nil {
+		return err
+	}
+
+	// Advance the cursor and restore the remaining records' order.
+	ok, err := c.cur.next()
+	if err != nil {
+		return err
+	}
+	if ok {
+		heap.Fix(m, 0)
+	} else {
+		heap.Pop(m)
+	}
 	return nil
 }
 

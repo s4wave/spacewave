@@ -30,11 +30,13 @@ type txScanIterator struct {
 	value kv.Value
 }
 
-func newTxScanIterator(ctx context.Context, tx kvtx.Tx, prefix []byte) *txScanIterator {
+// newTxScanIterator prepares a lazy scan with its snapshot fence.
+func newTxScanIterator(ctx context.Context, tx kvtx.Tx, prefix []byte, beforeStart func(context.Context) error) *txScanIterator {
 	return &txScanIterator{
-		ctx:    ctx,
-		tx:     tx,
-		prefix: prefix,
+		ctx:         ctx,
+		tx:          tx,
+		prefix:      prefix,
+		beforeStart: beforeStart,
 	}
 }
 

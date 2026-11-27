@@ -87,11 +87,7 @@ func (r *record) decodeCommit(d *decoder) {
 	r.ops = make([]op, d.count())
 	for i := range r.ops {
 		r.ops[i].key = append([]byte(nil), d.bytes()...)
-		v := d.value(d.kind())
-		if !v.isRef && !v.del {
-			v.inline = append([]byte(nil), v.inline...)
-		}
-		r.ops[i].val = v
+		r.ops[i].val = d.value(d.kind()).detach()
 	}
 
 	// Skip the freed extents.

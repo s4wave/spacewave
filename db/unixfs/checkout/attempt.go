@@ -4,12 +4,10 @@ import (
 	"context"
 	"io"
 	"io/fs"
-	"math"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,7 +26,10 @@ type attempt struct {
 // sharing the worker of every caller in this process that asks for the same
 // directory and parts. what identifies the release in errors and the log, which
 // records how long this caller waited.
-func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch, what, directory string, parts []*block.BlockRef, check func(staging string) error) error {
+func (s *attempt) checkout(
+	ctx context.Context, registry *registry, fetch Fetch, what, directory string,
+	parts []*block.BlockRef, check func(staging string) error,
+) error {
 	// Name the immutable content before joining its shared worker.
 	var key strings.Builder
 	key.WriteString(directory)
@@ -65,7 +66,10 @@ func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch,
 // the next.
 // Each attempt logs one line with the time each phase took and the bytes
 // each kind of source served while fetching. Assembly reads the bytes again.
-func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]block.StoreOps, func()), what, directory string, parts []*block.BlockRef, check func(staging string) error, report func(Progress), yield func(context.Context) error) (err error) {
+func (s *attempt) prepare(
+	ctx context.Context, open func(context.Context) ([]block.StoreOps, func()), what, directory string,
+	parts []*block.BlockRef, check func(staging string) error, report func(Progress), yield func(context.Context) error,
+) (err error) {
 	// Time each phase, and log the attempt when it ends.
 	clock := newPhaseClock()
 	var blocks *sources
@@ -145,7 +149,12 @@ func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]blo
 	cache := &blockCache{dir: filepath.Join(filepath.Dir(directory), "."+filepath.Base(directory)+".blocks")}
 	outcome = "written"
 	blocks = newSources(s.le, seed(ctx, s.le, s.codec, directory, parts[0]), cache, remotes)
-	if err := s.write(ctx, blocks, parts, staging, report, yield); err != nil {
+	if err := blocks.write(ctx, yield, func(ctx context.Context, arrived func()) error {
+		return s.copyParts(ctx, blocks, parts, staging, func(count Progress) {
+			arrived()
+			report(count)
+		})
+	}); err != nil {
 		return errors.Wrapf(err, "Download %s", what)
 	}
 	if err := check(staging); err != nil {
@@ -165,44 +174,6 @@ func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]blo
 		s.le.WithError(err).Debug("keeping the fetched blocks until the next eviction")
 	}
 	return nil
-}
-
-// write writes the files of every part into staging, reading their blocks
-// from blocks, and fails once they stop arriving. yield holds a remote read
-// while a foreground checkout needs the network. A held read does not count
-// as stalled.
-func (s *attempt) write(ctx context.Context, blocks *sources, parts []*block.BlockRef, staging string, progress func(Progress), yield func(context.Context) error) error {
-	// Give up once nothing arrives for stallTimeout, so a source that
-	// stops answering fails the checkout, which its caller retries, instead
-	// of holding it at the same percent.
-	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(nil)
-	var held atomic.Int32
-	var stall *time.Timer
-	stall = time.AfterFunc(math.MaxInt64, func() {
-		if held.Load() != 0 {
-			stall.Reset(stallTimeout)
-			return
-		}
-		cancel(errStalled)
-	})
-	stall.Reset(stallTimeout)
-	defer stall.Stop()
-
-	// Exclude time yielding to foreground work from the stall deadline.
-	blocks.yield = func(ctx context.Context) error {
-		held.Add(1)
-		defer held.Add(-1)
-		return yield(ctx)
-	}
-	err := s.copyParts(ctx, blocks, parts, staging, func(count Progress) {
-		stall.Reset(stallTimeout)
-		progress(count)
-	})
-	if cause := context.Cause(ctx); err != nil && errors.Is(cause, errStalled) {
-		return cause
-	}
-	return err
 }
 
 // stallTimeout is how long a checkout waits for its next block or chunk. A

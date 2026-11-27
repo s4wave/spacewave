@@ -47,7 +47,7 @@ func WalkChangedQuads(ctx context.Context, before, after kvtx.TxOps, keys [][]by
 		if !ok {
 			continue
 		}
-		added, err := trees[1].tx.Exists(ctx, k)
+		added, err := after.Exists(ctx, k)
 		if err != nil {
 			return err
 		}
