@@ -247,9 +247,16 @@ var deviceMountLinkedSession = func(
 	return prov.MountLinkedDeviceSession(ctx, req)
 }
 
+// Device enrollment seams let tests replace daemon effects.
 var (
-	deviceUpsertObject      = upsertLinkedDeviceObject
-	deviceMountLocalSession = mountLocalDeviceSession
+	// deviceUpsertObject is the replaceable daemon Device projection.
+	deviceUpsertObject = func(ctx context.Context, client *sdkClient, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
+		return client.upsertLinkedDeviceObject(ctx, record, onBlocked)
+	}
+	// deviceMountLocalSession is the replaceable local enrollment mount.
+	deviceMountLocalSession = func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord) (*deviceSetupRecord, error) {
+		return client.mountLocalDeviceSession(ctx, statePath, record)
+	}
 )
 
 func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
@@ -446,7 +453,7 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 		ExpiresAt:      expiresAt.Unix(),
 		Ticket:         ticket,
 	}
-	if err := writeDeviceSetupRecord(resolvedStatePath, record); err != nil {
+	if err := record.write(resolvedStatePath); err != nil {
 		return err
 	}
 	out := newDeviceStatusOutput(record, resolvedStatePath, sockPath)
@@ -476,7 +483,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	if err != nil {
 		return err
 	}
-	if err := writeDeviceSetupRecord(resolvedStatePath, updated); err != nil {
+	if err := updated.write(resolvedStatePath); err != nil {
 		return err
 	}
 
@@ -484,17 +491,17 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	// this request projects the Device into the World.
 	_ = requestDevicePolicyReload(ctx, client)
 	if updated.SetupState == deviceSetupStateImported {
-		activated, err := openDeviceSession(ctx, client, resolvedStatePath, updated)
+		activated, err := client.openDeviceSession(ctx, resolvedStatePath, updated)
 		if err != nil {
 			updated.SetupState = deviceSetupStateImported
 			updated.FailureReason = err.Error()
-			if persistErr := writeDeviceSetupRecord(resolvedStatePath, updated); persistErr != nil {
+			if persistErr := updated.write(resolvedStatePath); persistErr != nil {
 				return errors.Wrapf(err, "persist Device setup failure: %v", persistErr)
 			}
 			return err
 		}
 		updated = activated
-		if err := writeDeviceSetupRecord(resolvedStatePath, updated); err != nil {
+		if err := updated.write(resolvedStatePath); err != nil {
 			return err
 		}
 	}
@@ -736,7 +743,7 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 	if err != nil {
 		return nil, err
 	}
-	payload, err := decodeDeviceStoredTicketPayload(record)
+	payload, err := record.ticketPayload()
 	if err != nil {
 		return nil, err
 	}
@@ -825,7 +832,7 @@ func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion str
 	if err != nil {
 		return nil, err
 	}
-	payload, err := decodeDeviceStoredTicketPayload(record)
+	payload, err := record.ticketPayload()
 	if err != nil {
 		return nil, err
 	}
@@ -866,15 +873,15 @@ func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion str
 	return &updated, nil
 }
 
-func openDeviceSession(
+// openDeviceSession opens the approved session and projects its Device.
+func (c *sdkClient) openDeviceSession(
 	ctx context.Context,
-	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
 	// Reject a local completion or an identity that cannot open a linked session.
 	if strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
-		return openLocalDeviceSession(ctx, client, statePath, record)
+		return c.openLocalDeviceSession(ctx, statePath, record)
 	}
 	if record.AccountID == "" {
 		return nil, errors.New("device completion missing account id")
@@ -894,7 +901,7 @@ func openDeviceSession(
 	}
 
 	// Mount the linked device session.
-	resp, err := deviceMountLinkedSession(ctx, client, &s4wave_provider_spacewave.MountLinkedDeviceSessionRequest{
+	resp, err := deviceMountLinkedSession(ctx, c, &s4wave_provider_spacewave.MountLinkedDeviceSessionRequest{
 		AccountId:            record.AccountID,
 		SessionId:            record.SessionID,
 		Label:                record.Label,
@@ -915,7 +922,7 @@ func openDeviceSession(
 	updated := *record
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionPeerID = pid.String()
-	objectKey, err := deviceUpsertObject(ctx, client, &updated, nil)
+	objectKey, err := deviceUpsertObject(ctx, c, &updated, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "create or update device object")
 	}
@@ -928,26 +935,25 @@ func openDeviceSession(
 // key and joins the target Space through the one-use targeted invite.
 // openLocalDeviceSession then waits for the joined World to accept the Device
 // object.
-func openLocalDeviceSession(
+func (c *sdkClient) openLocalDeviceSession(
 	ctx context.Context,
-	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
 	// Mount the local session and persist it as imported.
-	updated, err := deviceMountLocalSession(ctx, client, statePath, record)
+	updated, err := deviceMountLocalSession(ctx, c, statePath, record)
 	if err != nil {
 		return nil, err
 	}
 	updated.SetupState = deviceSetupStateImported
 	updated.DeviceObjectKey = ""
 	updated.FailureReason = ""
-	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+	if err := updated.write(statePath); err != nil {
 		return nil, errors.Wrap(err, "persist activated Device session")
 	}
 
 	// Project the Device object, reporting while the World is not writable.
-	return projectDeviceEnrollment(ctx, client, statePath, updated, func(err error) {
+	return c.projectDeviceEnrollment(ctx, statePath, updated, func(err error) {
 		fmt.Fprintf(os.Stderr, "waiting for the Space World to accept the Device: %v\n", err)
 	})
 }
@@ -959,9 +965,8 @@ func openLocalDeviceSession(
 // record as imported with its reason. A failed repair of a projected record
 // changes nothing. The result is not persisted when another completion
 // replaced the record during the projection.
-func projectDeviceEnrollment(
+func (c *sdkClient) projectDeviceEnrollment(
 	ctx context.Context,
-	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
 	onBlocked func(error),
@@ -970,7 +975,7 @@ func projectDeviceEnrollment(
 	ready := *record
 	ready.SetupState = deviceSetupStateSessionReady
 	ready.FailureReason = ""
-	objectKey, err := deviceUpsertObject(ctx, client, &ready, onBlocked)
+	objectKey, err := deviceUpsertObject(ctx, c, &ready, onBlocked)
 
 	// Keep a newer enrollment that replaced this record while projecting.
 	current, readErr := readDeviceSetupRecord(statePath)
@@ -989,7 +994,7 @@ func projectDeviceEnrollment(
 		pending := *record
 		pending.SetupState = deviceSetupStateImported
 		pending.FailureReason = "Device object projection pending: " + err.Error()
-		if persistErr := writeDeviceSetupRecord(statePath, &pending); persistErr != nil {
+		if persistErr := pending.write(statePath); persistErr != nil {
 			return nil, errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
 		}
 		return &pending, nil
@@ -997,7 +1002,7 @@ func projectDeviceEnrollment(
 
 	// Persist the ready record with its object key.
 	ready.DeviceObjectKey = objectKey
-	if err := writeDeviceSetupRecord(statePath, &ready); err != nil {
+	if err := ready.write(statePath); err != nil {
 		return nil, err
 	}
 	return &ready, nil
@@ -1041,7 +1046,7 @@ func restoreLocalDeviceEnrollment(
 	if updated.DeviceObjectKey == "" {
 		updated.SetupState = deviceSetupStateImported
 	}
-	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+	if err := updated.write(statePath); err != nil {
 		sess.Release()
 		return nil, err
 	}
@@ -1051,7 +1056,7 @@ func restoreLocalDeviceEnrollment(
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_, err := projectDeviceEnrollment(projectCtx, client, statePath, updated, func(err error) {
+		_, err := client.projectDeviceEnrollment(projectCtx, statePath, updated, func(err error) {
 			le.WithError(err).Warn("Device object projection waiting for the World")
 		})
 		if err != nil && projectCtx.Err() == nil {
@@ -1068,9 +1073,8 @@ func restoreLocalDeviceEnrollment(
 // mountLocalDeviceSession restores the durable session and P2P enrollment
 // without requiring the Space World to be writable. The local session keeper
 // retains this mount while the daemon serves requests.
-func mountLocalDeviceSession(
+func (c *sdkClient) mountLocalDeviceSession(
 	ctx context.Context,
-	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
@@ -1094,7 +1098,7 @@ func mountLocalDeviceSession(
 	}
 
 	// Complete the Space Link enrollment with the local provider.
-	prov, cleanup, err := client.lookupLocalProvider(ctx)
+	prov, cleanup, err := c.lookupLocalProvider(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1127,9 +1131,8 @@ func mountLocalDeviceSession(
 }
 
 // upsertLinkedDeviceObject writes the setup record into its linked Space World.
-func upsertLinkedDeviceObject(
+func (c *sdkClient) upsertLinkedDeviceObject(
 	ctx context.Context,
-	client *sdkClient,
 	record *deviceSetupRecord,
 	onBlocked func(error),
 ) (string, error) {
@@ -1147,28 +1150,28 @@ func upsertLinkedDeviceObject(
 	}
 
 	// Mount the session wherever the session list holds it.
-	sess, err := client.mountSessionByIdentity(ctx, id)
+	sess, err := c.mountSessionByIdentity(ctx, id)
 	if err != nil {
 		return "", err
 	}
 	defer sess.Release()
 
 	// Mount the Space service for the linked resource.
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	spaceSvc, spaceCleanup, err := c.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		return "", err
 	}
 	defer spaceCleanup()
 
 	// Open the World engine through the Space service.
-	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	engine, engineCleanup, err := c.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		return "", err
 	}
 	defer engineCleanup()
 
 	// Upsert the Device object.
-	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, time.Now(), onBlocked)
+	return upsertLinkedDeviceObjectInWorld(ctx, engine, record.deviceObject(time.Now()), onBlocked)
 }
 
 // upsertLinkedDeviceObjectInWorld replays the Device projection from a fresh
@@ -1180,14 +1183,16 @@ func upsertLinkedDeviceObject(
 func upsertLinkedDeviceObjectInWorld(
 	ctx context.Context,
 	engine world.Engine,
-	record *deviceSetupRecord,
-	now time.Time,
+	device *s4wave_device.Device,
 	onBlocked func(error),
 ) (string, error) {
-	objectKey, err := deviceObjectKey(record.PeerID)
+	// Derive the object key from the candidate Device identity.
+	objectKey, err := deviceObjectKey(device.GetPeerId())
 	if err != nil {
 		return "", err
 	}
+
+	// Retry the same candidate until its World transaction can commit.
 	stale := 0
 	for {
 		// Note the revision this attempt writes against.
@@ -1197,7 +1202,7 @@ func upsertLinkedDeviceObjectInWorld(
 		}
 
 		// Reopen the complete read/merge/write transaction after a stale base.
-		err = upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, now)
+		err = upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, device)
 		if err == nil {
 			return objectKey, nil
 		}
@@ -1229,8 +1234,7 @@ func upsertLinkedDeviceObjectAttempt(
 	ctx context.Context,
 	engine world.Engine,
 	objectKey string,
-	record *deviceSetupRecord,
-	now time.Time,
+	device *s4wave_device.Device,
 ) error {
 	// Open a write transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, true)
@@ -1239,8 +1243,8 @@ func upsertLinkedDeviceObjectAttempt(
 	}
 	defer tx.Discard()
 
-	// Merge the setup record into the Device object and commit it.
-	next := deviceObjectFromSetupRecord(record, now)
+	// Merge a fresh candidate into the stored Device and commit it.
+	next := device.CloneVT()
 	existingState, found, err := tx.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(existingState)
 	if err != nil {
@@ -1251,7 +1255,7 @@ func upsertLinkedDeviceObjectAttempt(
 		if err != nil {
 			return err
 		}
-		if existing != nil && existing.GetPeerId() != "" && existing.GetPeerId() != record.PeerID {
+		if existing != nil && existing.GetPeerId() != "" && existing.GetPeerId() != device.GetPeerId() {
 			return errors.New("existing device object peer_id does not match setup state")
 		}
 		mergeDeviceObjectState(next, existing)
@@ -1305,14 +1309,15 @@ func readDeviceBlock(ctx context.Context, objState world.ObjectState) (*s4wave_d
 	return state, err
 }
 
-func deviceObjectFromSetupRecord(record *deviceSetupRecord, now time.Time) *s4wave_device.Device {
+// deviceObject constructs the Device projection of the setup at now.
+func (r *deviceSetupRecord) deviceObject(now time.Time) *s4wave_device.Device {
 	ts := timestamppb.New(now)
 	return &s4wave_device.Device{
-		PeerId:        record.PeerID,
-		Label:         record.Label,
+		PeerId:        r.PeerID,
+		Label:         r.Label,
 		Platform:      &s4wave_device.DevicePlatform{Os: runtime.GOOS, Arch: runtime.GOARCH},
 		DaemonVersion: "unknown",
-		SetupState:    deviceSetupStateProto(record.SetupState),
+		SetupState:    deviceSetupStateProto(r.SetupState),
 		UpdateState:   s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_IDLE,
 		LastStatus: &s4wave_device.DeviceStatus{
 			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
@@ -1392,12 +1397,13 @@ func decodeDeviceCompletion(encoded string) (*s4wave_provider_spacewave.SpaceLin
 	return completion, nil
 }
 
-func decodeDeviceStoredTicketPayload(record *deviceSetupRecord) (*s4wave_provider_spacewave.SpaceLinkAuthRequest, error) {
-	// Decode the stored Space Link ticket payload.
-	if record == nil || strings.TrimSpace(record.Ticket) == "" {
+// ticketPayload decodes the approval request held by the setup ticket.
+func (r *deviceSetupRecord) ticketPayload() (*s4wave_provider_spacewave.SpaceLinkAuthRequest, error) {
+	// Require a stored ticket before decoding its envelope.
+	if r == nil || strings.TrimSpace(r.Ticket) == "" {
 		return nil, errors.New("device setup ticket is missing")
 	}
-	ticketBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(record.Ticket))
+	ticketBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(r.Ticket))
 	if err != nil {
 		return nil, errors.Wrap(err, "decode device setup ticket")
 	}
@@ -1405,6 +1411,8 @@ func decodeDeviceStoredTicketPayload(record *deviceSetupRecord) (*s4wave_provide
 	if err := ticket.UnmarshalVT(ticketBytes); err != nil {
 		return nil, errors.Wrap(err, "parse device setup ticket")
 	}
+
+	// Decode the signed request from the ticket envelope.
 	payload := &s4wave_provider_spacewave.SpaceLinkAuthRequest{}
 	if err := payload.UnmarshalVT(ticket.GetPayload()); err != nil {
 		return nil, errors.Wrap(err, "parse device setup ticket payload")
@@ -1452,31 +1460,32 @@ func deviceSessionID(pid peer.ID) string {
 	return "device-" + hex.EncodeToString(sum[:])[:32]
 }
 
-func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
+// marshalJSON encodes the persisted setup fields in their stable order.
+func (r *deviceSetupRecord) marshalJSON() []byte {
 	// Start the setup record object with its identity fields.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
-	obj.Set("setupState", arena.NewString(record.SetupState))
-	setDeviceJSONString(&arena, obj, "peerId", record.PeerID)
-	setDeviceJSONString(&arena, obj, "label", record.Label)
-	setDeviceJSONString(&arena, obj, "requestedRole", record.RequestedRole)
-	setDeviceJSONString(&arena, obj, "targetHint", record.TargetHint)
-	setDeviceJSONString(&arena, obj, "completionMode", record.CompletionMode)
+	obj.Set("setupState", arena.NewString(r.SetupState))
+	setDeviceJSONString(&arena, obj, "peerId", r.PeerID)
+	setDeviceJSONString(&arena, obj, "label", r.Label)
+	setDeviceJSONString(&arena, obj, "requestedRole", r.RequestedRole)
+	setDeviceJSONString(&arena, obj, "targetHint", r.TargetHint)
+	setDeviceJSONString(&arena, obj, "completionMode", r.CompletionMode)
 
 	// Record the completion, account, and session fields.
-	setDeviceJSONString(&arena, obj, "completion", record.Completion)
-	setDeviceJSONInt64(&arena, obj, "completionAt", record.CompletionAt)
-	setDeviceJSONString(&arena, obj, "completionStatus", record.CompletionStatus)
-	setDeviceJSONString(&arena, obj, "accountId", record.AccountID)
-	setDeviceJSONString(&arena, obj, "resourceId", record.ResourceID)
-	setDeviceJSONString(&arena, obj, "sessionId", record.SessionID)
-	setDeviceJSONString(&arena, obj, "sessionPeerId", record.SessionPeerID)
+	setDeviceJSONString(&arena, obj, "completion", r.Completion)
+	setDeviceJSONInt64(&arena, obj, "completionAt", r.CompletionAt)
+	setDeviceJSONString(&arena, obj, "completionStatus", r.CompletionStatus)
+	setDeviceJSONString(&arena, obj, "accountId", r.AccountID)
+	setDeviceJSONString(&arena, obj, "resourceId", r.ResourceID)
+	setDeviceJSONString(&arena, obj, "sessionId", r.SessionID)
+	setDeviceJSONString(&arena, obj, "sessionPeerId", r.SessionPeerID)
 
 	// Record the Device object, failure, expiry, and ticket, then marshal the object.
-	setDeviceJSONString(&arena, obj, "deviceObjectKey", record.DeviceObjectKey)
-	setDeviceJSONString(&arena, obj, "failureReason", record.FailureReason)
-	setDeviceJSONInt64(&arena, obj, "expiresAt", record.ExpiresAt)
-	setDeviceJSONString(&arena, obj, "ticket", record.Ticket)
+	setDeviceJSONString(&arena, obj, "deviceObjectKey", r.DeviceObjectKey)
+	setDeviceJSONString(&arena, obj, "failureReason", r.FailureReason)
+	setDeviceJSONInt64(&arena, obj, "expiresAt", r.ExpiresAt)
+	setDeviceJSONString(&arena, obj, "ticket", r.Ticket)
 	return obj.MarshalTo(nil)
 }
 
@@ -1586,15 +1595,18 @@ func setDeviceJSONUint32(arena *fastjson.Arena, obj *fastjson.Value, key string,
 	}
 }
 
-func writeDeviceSetupRecord(statePath string, record *deviceSetupRecord) error {
+// write persists the setup record, defaulting an empty setup state.
+func (r *deviceSetupRecord) write(statePath string) error {
 	// Write the setup record, defaulting an empty setup state.
-	if record == nil {
-		record = &deviceSetupRecord{SetupState: deviceSetupStateNotConfigured}
+	if r == nil {
+		r = &deviceSetupRecord{SetupState: deviceSetupStateNotConfigured}
 	}
-	if record.SetupState == "" {
-		record.SetupState = deviceSetupStateNotConfigured
+	if r.SetupState == "" {
+		r.SetupState = deviceSetupStateNotConfigured
 	}
-	data := marshalDeviceSetupRecord(record)
+
+	// Encode and write the record at its existing setup path.
+	data := r.marshalJSON()
 	data = append(data, '\n')
 	path := deviceSetupRecordPath(statePath)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

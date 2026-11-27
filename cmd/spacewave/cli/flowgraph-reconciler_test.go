@@ -76,14 +76,14 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 	}()
 
 	// Complete the setup and require the Device object to appear.
-	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
+	if err := (&deviceSetupRecord{
 		SetupState:      deviceSetupStateSessionReady,
 		PeerID:          peerID,
 		ResourceID:      "c3BhY2UtMQ==",
 		AccountID:       "account",
 		SessionID:       "session",
 		DeviceObjectKey: deviceKey,
-	}); err != nil {
+	}).write(statePath); err != nil {
 		t.Fatal(err)
 	}
 	waitDevice(t, ctx, engine, deviceKey, func(device *s4wave_device.Device) bool { return device != nil })
@@ -113,14 +113,14 @@ func TestRunFlowgraphReconcilerFollowsSetupSessionByIdentity(t *testing.T) {
 
 	// Write a session-ready setup and an empty policy.
 	statePath := t.TempDir()
-	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
+	if err := (&deviceSetupRecord{
 		SetupState:      deviceSetupStateSessionReady,
 		PeerID:          "peer",
 		ResourceID:      "c3BhY2UtMQ==",
 		AccountID:       "device-account",
 		SessionID:       "device-session",
 		DeviceObjectKey: "devices/key",
-	}); err != nil {
+	}).write(statePath); err != nil {
 		t.Fatal(err)
 	}
 	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{}); err != nil {

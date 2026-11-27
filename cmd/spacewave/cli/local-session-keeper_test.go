@@ -329,7 +329,7 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 		SetupState: deviceSetupStateImported, Completion: deviceLocalCompletionPrefix + "stub",
 		AccountID: "account", SessionID: "session", FailureReason: "Device object projection pending: block not found",
 	}
-	if err := writeDeviceSetupRecord(statePath, record); err != nil {
+	if err := record.write(statePath); err != nil {
 		t.Fatal(err)
 	}
 	enrollCalls := 0

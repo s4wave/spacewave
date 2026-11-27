@@ -185,14 +185,14 @@ func TestDeviceLauncherProjectionTargetRequiresReadyDeviceRecord(t *testing.T) {
 	}
 
 	// Accept a ready setup record with a Device object key.
-	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
+	if err := (&deviceSetupRecord{
 		SetupState:      deviceSetupStateSessionReady,
 		PeerID:          "peer-device",
 		ResourceID:      "c3BhY2UtMQ==",
 		AccountID:       "account",
 		SessionID:       "session",
 		DeviceObjectKey: "devices/build-host",
-	}); err != nil {
+	}).write(statePath); err != nil {
 		t.Fatalf("write setup record: %v", err)
 	}
 	record, ok, err := deviceUpdateProjectionTarget(statePath)

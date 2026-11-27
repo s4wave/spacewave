@@ -95,13 +95,13 @@ func enrollThroughGrant(
 		updated, err := deviceMountLocalSession(ctx, client, statePath, record)
 		if err != nil {
 			record.FailureReason = err.Error()
-			if writeErr := writeDeviceSetupRecord(statePath, record); writeErr != nil {
+			if writeErr := record.write(statePath); writeErr != nil {
 				return nil, errors.Wrapf(err, "persist Device setup state: %v", writeErr)
 			}
 			return nil, err
 		}
 		updated.FailureReason = ""
-		if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+		if err := updated.write(statePath); err != nil {
 			return nil, err
 		}
 	}
@@ -164,7 +164,7 @@ func prepareGrantEnrollment(statePath, grantPath string, now time.Time) (*device
 	updated.SessionPeerID = pid.String()
 
 	// Persist the completion so later boots redeem with the same key.
-	if err := writeDeviceSetupRecord(statePath, &updated); err != nil {
+	if err := updated.write(statePath); err != nil {
 		return nil, err
 	}
 	return &updated, nil

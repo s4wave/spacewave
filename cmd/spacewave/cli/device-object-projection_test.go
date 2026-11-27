@@ -64,7 +64,7 @@ func TestDeviceObjectProjectionReappliesStaleWrite(t *testing.T) {
 	}
 
 	// Apply the enrollment projection across one stale commit.
-	key, err := upsertLinkedDeviceObjectInWorld(ctx, engine, record, time.Now(), nil)
+	key, err := upsertLinkedDeviceObjectInWorld(ctx, engine, record.deviceObject(time.Now()), nil)
 	if err != nil {
 		t.Fatalf("project Device after stale commit: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestDeviceObjectProjectionWaitsForWorld(t *testing.T) {
 			advanced <- writeUnrelatedObject(ctx, tb.Engine)
 		}()
 	}
-	key, err := upsertLinkedDeviceObjectInWorld(ctx, engine, record, time.Now(), onBlocked)
+	key, err := upsertLinkedDeviceObjectInWorld(ctx, engine, record.deviceObject(time.Now()), onBlocked)
 	if err != nil {
 		t.Fatalf("project Device after the World advanced: %v", err)
 	}

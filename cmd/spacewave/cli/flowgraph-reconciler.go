@@ -325,7 +325,7 @@ func ensureServedDeviceObject(ctx context.Context, served *servedWorld, label st
 
 	// Write the object as a session-ready Device.
 	record := &deviceSetupRecord{SetupState: deviceSetupStateSessionReady, PeerID: served.peerID, Label: label}
-	if _, err := upsertLinkedDeviceObjectInWorld(ctx, served.engine, record, time.Now(), nil); err != nil {
+	if _, err := upsertLinkedDeviceObjectInWorld(ctx, served.engine, record.deviceObject(time.Now()), nil); err != nil {
 		return "", errors.Wrap(err, "write device object")
 	}
 	return deviceKey, nil

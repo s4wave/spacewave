@@ -853,7 +853,7 @@ func TestDeviceStatusUsesSocketOverrideWithoutAutostart(t *testing.T) {
 	// Run device status through the CLI and check the output.
 	statePath := filepath.Join(t.TempDir(), "state")
 	socketPath := filepath.Join(t.TempDir(), "desktop.sock")
-	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{SetupState: deviceSetupStateLocalReady}); err != nil {
+	if err := (&deviceSetupRecord{SetupState: deviceSetupStateLocalReady}).write(statePath); err != nil {
 		t.Fatalf("write setup record: %v", err)
 	}
 	var dialed string
@@ -990,7 +990,7 @@ func buildDeviceCompletion(
 	t.Helper()
 
 	// Decode the ticket payload from the setup record.
-	payload, err := decodeDeviceStoredTicketPayload(&deviceSetupRecord{Ticket: ticket})
+	payload, err := (&deviceSetupRecord{Ticket: ticket}).ticketPayload()
 	if err != nil {
 		t.Fatalf("decode setup ticket payload: %v", err)
 	}
@@ -1223,7 +1223,7 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, *deviceSetupRecord, func(error)) (string, error) {
 		return "", errors.New("base World root is stale")
 	})
-	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
+	got, err := (*sdkClient)(nil).openLocalDeviceSession(context.Background(), statePath, record)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1260,7 +1260,7 @@ func TestOpenLocalDeviceSessionProjectsReadyDevice(t *testing.T) {
 		projected = current.SetupState
 		return "devices/key", nil
 	})
-	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
+	got, err := (*sdkClient)(nil).openLocalDeviceSession(context.Background(), statePath, record)
 	if err != nil {
 		t.Fatal(err)
 	}
