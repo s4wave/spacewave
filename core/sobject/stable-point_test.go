@@ -166,7 +166,7 @@ func TestCarryOutcomes(t *testing.T) {
 			byHash[string(h)] = inner
 			prefix = append(prefix, h)
 		}
-		return carryOutcomes(prev, func(h []byte) *SOOperationInner { return byHash[string(h)] }, prefix)
+		return carryOutcomes(prev, func(h []byte) *SOOperationInner { return byHash[string(h)] }, prefix, carriedBudget)
 	}
 	want := func(name string, got []*SOCheckpointCarried, want ...*SOCheckpointCarried) {
 		t.Helper()
@@ -231,7 +231,7 @@ func TestCarriedEquivocation(t *testing.T) {
 	}
 
 	// The next checkpoint carries the writer's entry with both refusals.
-	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil)
+	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil, carriedBudget)
 	if len(carried) != 1 || len(carried[0].GetRefused()) != 2 || comparePosition(carried[0].GetRefused()[0], carried[0].GetRefused()[1]) >= 0 {
 		t.Fatalf("carried %v, want the writer's two refusals in hash order", carried)
 	}
@@ -284,11 +284,11 @@ func TestCarriedBudget(t *testing.T) {
 
 	// The kept entries fit, are newer than every dropped one, and keep
 	// peer ID order.
-	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil)
+	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil, carriedBudget)
 	size, oldestKept := 0, uint64(authors+1)
 	kept := make(map[string]struct{}, len(carried))
 	for j, entry := range carried {
-		size += entry.SizeVT()
+		size += carriedSize(entry)
 		oldestKept = min(oldestKept, entry.GetHeight())
 		kept[entry.GetPeerId()] = struct{}{}
 		if j > 0 && carried[j-1].GetPeerId() >= entry.GetPeerId() {
@@ -302,5 +302,73 @@ func TestCarriedBudget(t *testing.T) {
 		if _, ok := kept[entry.GetPeerId()]; !ok && entry.GetHeight() >= oldestKept {
 			t.Fatalf("dropped the entry from height %d while keeping one from %d", entry.GetHeight(), oldestKept)
 		}
+	}
+}
+
+// TestCarriedRoom checks that carried entries within carriedBudget still give
+// way to state data that leaves them less room, so the checkpoint signs and
+// verifies with the newest entries that fit.
+func TestCarriedRoom(t *testing.T) {
+	// The held checkpoint carries entries for 56 authors that never
+	// acknowledge, about a megabyte in all and within carriedBudget.
+	peers := createMockPeers(t, 57)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers[:1])
+	configHash, prevHash := sha256.Sum256([]byte("config")), sha256.Sum256([]byte("prev"))
+	held := &SOCheckpointInner{
+		SharedObjectId:     mockSharedObjectID,
+		Height:             60,
+		PrevCheckpointHash: prevHash[:],
+		ConfigHash:         configHash[:],
+		ReplayVersion:      SOReplayVersion,
+		Outcomes:           &SOCheckpointOutcomes{PrevAuthors: &SOCheckpointAuthors{}},
+	}
+	for i, p := range peers[1:] {
+		id := p.GetPeerID().String()
+		h := sha256.Sum256([]byte(id))
+		pos := func(nonce uint64) *SOOperationPosition {
+			return &SOOperationPosition{PeerId: id, Nonce: nonce, OpHash: h[:]}
+		}
+		entry := &SOCheckpointCarried{PeerId: id, From: pos(1), Height: uint64(1 + i)}
+		for n := range uint64(190) {
+			entry.Refused = append(entry.Refused, pos(2+n))
+		}
+		held.Authors = append(held.Authors, pos(300))
+		held.Outcomes.PrevAuthors.Authors = append(held.Outcomes.PrevAuthors.Authors, pos(299))
+		held.Outcomes.Carried = append(held.Outcomes.Carried, entry)
+	}
+
+	// Sort the authors as a checkpoint lists them.
+	byPeer := func(a, b *SOOperationPosition) int { return strings.Compare(a.GetPeerId(), b.GetPeerId()) }
+	slices.SortFunc(held.Authors, byPeer)
+	slices.SortFunc(held.Outcomes.PrevAuthors.Authors, byPeer)
+	slices.SortFunc(held.Outcomes.Carried, func(a, b *SOCheckpointCarried) int { return strings.Compare(a.GetPeerId(), b.GetPeerId()) })
+	size := 0
+	for _, entry := range held.Outcomes.Carried {
+		size += carriedSize(entry)
+	}
+	if size > carriedBudget || size < carriedBudget/2+carriedReserve {
+		t.Fatalf("held entries take %d bytes, want within carriedBudget and above the room left", size)
+	}
+	checkpoint, err := BuildSOCheckpoint(keys[0], held)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Checkpoint = checkpoint
+
+	// State data takes all but half of carriedBudget, so the next checkpoint
+	// keeps only the newest entries that fit and still signs and verifies.
+	stateData := make([]byte, MaxSyncStateSize-carriedBudget/2)
+	next, err := state.signStableCheckpoint(mockSharedObjectID, mustOperationSet(t, state), keys[0], nil, stateData, &SOCheckpointOutcomes{})
+	if err != nil {
+		t.Fatalf("sign the checkpoint over nearly full state data: %v", err)
+	}
+	inner, _, err := next.Verify(mockSharedObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	carried := inner.GetOutcomes().GetCarried()
+	if len(carried) == 0 || len(carried) == len(held.Outcomes.Carried) {
+		t.Fatalf("kept %d of %d entries, want the newest that fit", len(carried), len(held.Outcomes.Carried))
 	}
 }

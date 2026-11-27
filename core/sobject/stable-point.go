@@ -363,11 +363,8 @@ func (s *SOState) stableCheckpointInner(
 			prevAuthors[i] = author.CloneVT()
 		}
 		outcomes.PrevAuthors = &SOCheckpointAuthors{Authors: prevAuthors}
-		if !CarriedOutcomesOff() {
-			outcomes.Carried = carryOutcomes(prevInner, set.Get, prefix)
-		}
 	}
-	return &SOCheckpointInner{
+	inner := &SOCheckpointInner{
 		SharedObjectId:     sharedObjectID,
 		Height:             prevInner.GetHeight() + 1,
 		PrevCheckpointHash: prev.Hash(),
@@ -378,7 +375,13 @@ func (s *SOState) stableCheckpointInner(
 		Authors:            set.cover(prefix),
 		Sequence:           sequenceHeadOrNil(set.SequenceHead(prefix)),
 		Outcomes:           outcomes,
-	}, nil
+	}
+
+	// Carry outcomes past the held checkpoint in the room the rest leaves.
+	if outcomes != nil && !CarriedOutcomesOff() {
+		outcomes.Carried = carryOutcomes(prevInner, set.Get, prefix, carriedRoom(inner))
+	}
+	return inner, nil
 }
 
 // sequenceHeadOrNil returns head, or nil at height 0, so a checkpoint below
