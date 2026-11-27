@@ -272,11 +272,10 @@ func (c *Controller) processExec(
 	}
 
 	// Resolve target inputs and retain their resources through execution.
-	inputsMap, inputsUnresolved, inputsRelease, err := forge_target.ResolveInputMap(
+	inputsMap, inputsUnresolved, inputsRelease, err := tgt.ResolveInputs(
 		ctx,
 		tgtBus,
 		targetWorld,
-		tgt,
 		inputsValMap,
 		forge_task.ResolveOutput,
 	)

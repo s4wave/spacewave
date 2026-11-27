@@ -10,27 +10,26 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// ResolveInputMap resolves Target inputs and returns their release function and
-// unresolved inputs. Input values supply aliases and scheduler-provided values.
-// Other inputs resolve afresh so retained values cannot satisfy missing
+// ResolveInputs resolves the Target's inputs and returns their release function
+// and unresolved inputs. Input values supply aliases and scheduler-provided
+// values. Other inputs resolve afresh so retained values cannot satisfy missing
 // sources.
 // ResolveTaskOutput supplies the Task package's completed-output reader.
-func ResolveInputMap(
+func (t *Target) ResolveInputs(
 	ctx context.Context,
 	b bus.Bus,
 	defWorld InputValueWorld,
-	tgt *Target,
 	inputVals forge_value.ValueMap,
 	resolveTaskOutput TaskOutputResolver,
 ) (im InputMap, unresolved []*Input, relAll func(), err error) {
 	// Reserve the resolved input map for the Target inputs.
-	im = make(InputMap, len(tgt.GetInputs()))
+	im = make(InputMap, len(t.GetInputs()))
 
 	// Seed aliases and scheduler values, removing stale dynamically resolved inputs.
 	for k, v := range inputVals {
 		im[k] = NewInputValueInline(v)
 	}
-	for _, input := range tgt.GetInputs() {
+	for _, input := range t.GetInputs() {
 		if input.GetInputType() != InputType_InputType_ALIAS {
 			delete(im, input.GetName())
 		}
@@ -50,7 +49,7 @@ func ResolveInputMap(
 	}
 
 	// Track Target input names resolved across dependent resolution passes.
-	tgtInputs := tgt.GetInputs()
+	tgtInputs := t.GetInputs()
 	resolved := make(map[string]struct{}, len(tgtInputs))
 
 	// Resolve dependent Target inputs until a pass makes no further progress.
@@ -63,7 +62,7 @@ func ResolveInputMap(
 			if _, ok := resolved[inpName]; ok {
 				continue
 			}
-			inpVal, inpValRel, err := ResolveInput(ctx, b, inp, im, defWorld, resolveTaskOutput)
+			inpVal, inpValRel, err := inp.ResolveValue(ctx, b, im, defWorld, resolveTaskOutput)
 			if err != nil {
 				if relAll != nil {
 					relAll()
@@ -103,30 +102,29 @@ func ResolveInputMap(
 	return im, unresolved, relAll, nil
 }
 
-// ResolveInput resolves one input, with an optional resource release function.
-// Unavailable inputs return nil without error. ResolveTaskOutput supplies the
-// Task package's completed-output reader.
-func ResolveInput(
+// ResolveValue resolves one input against the inputs resolved so far, with an
+// optional resource release function. Unavailable inputs return nil without
+// error. ResolveTaskOutput supplies the Task package's completed-output reader.
+func (i *Input) ResolveValue(
 	ctx context.Context,
 	b bus.Bus,
-	inp *Input,
 	im InputMap,
 	defWorld InputValueWorld,
 	resolveTaskOutput TaskOutputResolver,
 ) (InputValue, func(), error) {
-	switch inp.GetInputType() {
+	switch i.GetInputType() {
 	case InputType_InputType_ALIAS:
-		return im[inp.GetName()], nil, nil
+		return im[i.GetName()], nil, nil
 	case InputType_InputType_VALUE:
-		return NewInputValueInline(inp.GetValue()), nil, nil
+		return NewInputValueInline(i.GetValue()), nil, nil
 	case InputType_InputType_WORLD:
-		return inp.GetWorld().ResolveValue(ctx, b)
+		return i.GetWorld().ResolveValue(ctx, b)
 	case InputType_InputType_TASK_OUTPUT:
-		value, err := inp.GetTaskOutput().ResolveValue(ctx, inp.GetName(), defWorld, resolveTaskOutput)
+		value, err := i.GetTaskOutput().ResolveValue(ctx, i.GetName(), defWorld, resolveTaskOutput)
 		return value, nil, err
 	case InputType_InputType_WORLD_OBJECT:
 		// Select the explicit World input or the default Forge Job World.
-		inpWo := inp.GetWorldObject()
+		inpWo := i.GetWorldObject()
 		inpWorldID := inpWo.GetWorld()
 
 		worldInp := defWorld
@@ -136,10 +134,10 @@ func ResolveInput(
 		}
 
 		// Resolve the object against the selected World input.
-		return inpWo.ResolveValue(ctx, b, inp.GetName(), worldInp)
+		return inpWo.ResolveValue(ctx, b, i.GetName(), worldInp)
 	case InputType_InputType_UNKNOWN:
 		return nil, nil, nil
 	}
 
-	return nil, nil, errors.Wrap(ErrUnknownInputType, inp.GetInputType().String())
+	return nil, nil, errors.Wrap(ErrUnknownInputType, i.GetInputType().String())
 }

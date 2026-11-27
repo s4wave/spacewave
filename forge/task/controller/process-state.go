@@ -87,7 +87,7 @@ func (c *Controller) ProcessState(
 		return true, errors.Wrap(err, "stored inputs")
 	}
 	defWorld := forge_target.NewInputValueWorld(c.conf.GetEngineId(), nil, ws)
-	inputMap, unsetInputs, inputMapRel, err := forge_target.ResolveInputMap(ctx, c.bus, defWorld, tgt, storedInputs, forge_task.ResolveOutput)
+	inputMap, unsetInputs, inputMapRel, err := tgt.ResolveInputs(ctx, c.bus, defWorld, storedInputs, forge_task.ResolveOutput)
 	if err != nil {
 		return true, errors.Wrap(err, "resolve inputs")
 	}

@@ -55,7 +55,7 @@ func TestTaskOutputWatchesCompletionAndRerun(t *testing.T) {
 	inputWorld := forge_target.NewInputValueWorld(tb.EngineID, nil, tb.WorldState)
 	for _, key := range []string{"test/task/missing", sourceKey} {
 		input.TaskOutput.TaskKey = key
-		inputs, unset, release, err := forge_target.ResolveInputMap(ctx, tb.Bus, inputWorld, target, nil, forge_task.ResolveOutput)
+		inputs, unset, release, err := target.ResolveInputs(ctx, tb.Bus, inputWorld, nil, forge_task.ResolveOutput)
 		if err != nil {
 			t.Fatal(err)
 		}
