@@ -11,6 +11,7 @@ import { AccountTransition } from '../../provider.pb.js'
 import {
   SharedObjectConfig,
   SharedObjectList,
+  SharedObjectListEntry,
   SOCheckpoint,
   SOConfigChainResponse,
   SOControlMessage,
@@ -7614,4 +7615,35 @@ export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
       [7, 'checkpoint_state', 12],
       [8, 'config_history', 12],
     ],
+  )
+
+/**
+ * LookupSObjectRequest has no body; the signed route identifies the object.
+ *
+ * @generated from message provider.spacewave.api.LookupSObjectRequest
+ */
+export interface LookupSObjectRequest {}
+
+export const LookupSObjectRequest: MessageType<LookupSObjectRequest> =
+  /* @__PURE__ */ createMessageType<LookupSObjectRequest>(
+    'provider.spacewave.api.LookupSObjectRequest',
+    () => [],
+  )
+
+/**
+ * LookupSObjectResponse contains one descriptor visible in the caller's catalog.
+ *
+ * @generated from message provider.spacewave.api.LookupSObjectResponse
+ */
+export interface LookupSObjectResponse {
+  /**
+   * Entry is required on success and has the catalog's account-specific fields.
+   */
+  entry?: SharedObjectListEntry
+}
+
+export const LookupSObjectResponse: MessageType<LookupSObjectResponse> =
+  /* @__PURE__ */ createMessageType<LookupSObjectResponse>(
+    'provider.spacewave.api.LookupSObjectResponse',
+    () => [[1, 'entry', 11, 0, SharedObjectListEntry.codec]],
   )

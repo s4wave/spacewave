@@ -9923,6 +9923,37 @@ func (x *CreateWithStateRequest) GetConfigHistory() []byte {
 	return nil
 }
 
+// LookupSObjectRequest has no body; the signed route identifies the object.
+type LookupSObjectRequest struct {
+	unknownFields []byte
+}
+
+func (x *LookupSObjectRequest) Reset() {
+	*x = LookupSObjectRequest{}
+}
+
+func (*LookupSObjectRequest) ProtoMessage() {}
+
+// LookupSObjectResponse contains one descriptor visible in the caller's catalog.
+type LookupSObjectResponse struct {
+	unknownFields []byte
+	// Entry is required on success and has the catalog's account-specific fields.
+	Entry *sobject.SharedObjectListEntry `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+}
+
+func (x *LookupSObjectResponse) Reset() {
+	*x = LookupSObjectResponse{}
+}
+
+func (*LookupSObjectResponse) ProtoMessage() {}
+
+func (x *LookupSObjectResponse) GetEntry() *sobject.SharedObjectListEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
 func (m *RegisterAccountRequest) CloneVT() *RegisterAccountRequest {
 	if m == nil {
 		return (*RegisterAccountRequest)(nil)
@@ -14920,6 +14951,37 @@ func (m *CreateWithStateRequest) CloneVT() *CreateWithStateRequest {
 }
 
 func (m *CreateWithStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupSObjectRequest) CloneVT() *LookupSObjectRequest {
+	if m == nil {
+		return (*LookupSObjectRequest)(nil)
+	}
+	r := new(LookupSObjectRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupSObjectRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupSObjectResponse) CloneVT() *LookupSObjectResponse {
+	if m == nil {
+		return (*LookupSObjectResponse)(nil)
+	}
+	r := new(LookupSObjectResponse)
+	r.Entry = protobuf_go_lite.CloneVTValue(m.Entry)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupSObjectResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -21955,6 +22017,43 @@ func (this *CreateWithStateRequest) EqualVT(that *CreateWithStateRequest) bool {
 
 func (this *CreateWithStateRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateWithStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupSObjectRequest) EqualVT(that *LookupSObjectRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupSObjectRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupSObjectRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupSObjectResponse) EqualVT(that *LookupSObjectResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Entry, that.Entry) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupSObjectResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupSObjectResponse)
 	if !ok {
 		return false
 	}
@@ -37580,6 +37679,82 @@ func (x *CreateWithStateRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the LookupSObjectRequest message to JSON.
+func (x *LookupSObjectRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupSObjectRequest to JSON.
+func (x *LookupSObjectRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupSObjectRequest message from JSON.
+func (x *LookupSObjectRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupSObjectRequest from JSON.
+func (x *LookupSObjectRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupSObjectResponse message to JSON.
+func (x *LookupSObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Entry != nil || s.HasField("entry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entry")
+		x.Entry.MarshalProtoJSON(s.WithField("entry"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupSObjectResponse to JSON.
+func (x *LookupSObjectResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupSObjectResponse message from JSON.
+func (x *LookupSObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entry":
+			if s.ReadNil() {
+				x.Entry = nil
+				return
+			}
+			x.Entry = &sobject.SharedObjectListEntry{}
+			x.Entry.UnmarshalProtoJSON(s.WithField("entry", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupSObjectResponse from JSON.
+func (x *LookupSObjectResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *RegisterAccountRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -50548,6 +50723,80 @@ func (m *CreateWithStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *LookupSObjectRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupSObjectRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupSObjectRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupSObjectResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupSObjectResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupSObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Entry != nil {
+		size, err := m.Entry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RegisterAccountRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -54561,6 +54810,30 @@ func (m *CreateWithStateRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CheckpointState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHistory)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupSObjectRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupSObjectResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Entry != nil {
+		l = m.Entry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -60373,6 +60646,30 @@ func (x *CreateWithStateRequest) MarshalProtoText() string {
 }
 
 func (x *CreateWithStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupSObjectRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "LookupSObjectRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupSObjectRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupSObjectResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LookupSObjectResponse")
+	if x.Entry != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entry")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Entry)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupSObjectResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -78978,6 +79275,107 @@ func (m *CreateWithStateRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupSObjectRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupSObjectRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupSObjectRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupSObjectResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupSObjectResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupSObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Entry == nil {
+				m.Entry = &sobject.SharedObjectListEntry{}
+			}
+			if err := m.Entry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

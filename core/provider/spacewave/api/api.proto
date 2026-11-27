@@ -2748,3 +2748,13 @@ message CreateWithStateRequest {
   // later than genesis. The authenticated account must own that config.
   bytes config_history = 8;
 }
+
+// LookupSObjectRequest has no body; the signed route identifies the object.
+message LookupSObjectRequest {
+}
+
+// LookupSObjectResponse contains one descriptor visible in the caller's catalog.
+message LookupSObjectResponse {
+  // Entry is required on success and has the catalog's account-specific fields.
+  .sobject.SharedObjectListEntry entry = 1;
+}
