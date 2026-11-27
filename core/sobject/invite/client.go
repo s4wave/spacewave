@@ -2,7 +2,6 @@ package sobject_invite
 
 import (
 	"context"
-	"crypto/sha256"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -155,11 +154,4 @@ func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoin
 	// Attach the signature.
 	unsigned.Signature = sig
 	return unsigned, nil
-}
-
-// HashInviteToken computes the SHA256 hash of a raw invite token.
-// Used by clients that need to compare raw invite tokens with SOInvite.token_hash.
-func HashInviteToken(token []byte) []byte {
-	h := sha256.Sum256(token)
-	return h[:]
 }

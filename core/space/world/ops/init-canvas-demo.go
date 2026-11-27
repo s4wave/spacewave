@@ -14,19 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// InitCanvasDemo initializes a Canvas with demo content in a world.
-// Returns any error.
-func InitCanvasDemo(
-	ctx context.Context,
-	ws world.WorldState,
-	sender peer.ID,
-	objKey string,
-	ts time.Time,
-) (rev uint64, sysErr bool, err error) {
-	op := NewInitCanvasDemoOp(objKey, ts)
-	return ws.ApplyWorldOp(ctx, op, sender)
-}
-
 // NewInitCanvasDemoOp constructs a new InitCanvasDemoOp block.
 func NewInitCanvasDemoOp(
 	objKey string,

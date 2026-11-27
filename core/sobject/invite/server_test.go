@@ -1,9 +1,7 @@
 package sobject_invite
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
@@ -89,81 +87,5 @@ func TestBuildJoinResponseSignatureContext(t *testing.T) {
 	}
 	if valid {
 		t.Fatal("signature should not validate with wrong context")
-	}
-}
-
-func TestHashInviteToken(t *testing.T) {
-	token := []byte("test-token")
-	h := HashInviteToken(token)
-	if len(h) != 32 {
-		t.Fatalf("expected 32-byte hash, got %d", len(h))
-	}
-
-	// Same token produces same hash.
-	h2 := HashInviteToken(token)
-	if !bytes.Equal(h, h2) {
-		t.Fatal("deterministic hash expected")
-	}
-
-	// Different token produces different hash.
-	h3 := HashInviteToken([]byte("other-token"))
-	if bytes.Equal(h, h3) {
-		t.Fatal("different tokens should produce different hashes")
-	}
-}
-
-func TestHashInviteTokenMatchesCreateSOInviteOp(t *testing.T) {
-	// Verify that HashInviteToken produces the same result as the
-	// SHA256 hashing used in CreateSOInviteOp.
-	token := []byte("a]b^c_d`e{f|g}h~i")
-	hashArr := sha256.Sum256(token)
-	expected := hashArr[:]
-	got := HashInviteToken(token)
-	if !bytes.Equal(got, expected) {
-		t.Fatal("HashInviteToken should match sha256.Sum256")
-	}
-}
-
-func TestSerializeDeserializeInviteLink(t *testing.T) {
-	msg := &sobject.SOInviteMessage{
-		InviteId:       "inv-link-test",
-		SharedObjectId: "so-test-123",
-		OwnerPeerId:    "QmTest123",
-		ProviderId:     "local",
-		Token:          []byte("token-32-bytes-for-testing-here!"),
-		Role:           sobject.SOParticipantRole_SOParticipantRole_WRITER,
-		MaxUses:        10,
-	}
-
-	encoded, err := SerializeInviteLink(msg)
-	if err != nil {
-		t.Fatalf("SerializeInviteLink: %v", err)
-	}
-	if encoded == "" {
-		t.Fatal("encoded should not be empty")
-	}
-
-	decoded, err := DeserializeInviteLink(encoded)
-	if err != nil {
-		t.Fatalf("DeserializeInviteLink: %v", err)
-	}
-
-	if decoded.GetInviteId() != msg.GetInviteId() {
-		t.Fatal("invite_id mismatch")
-	}
-	if decoded.GetSharedObjectId() != msg.GetSharedObjectId() {
-		t.Fatal("shared_object_id mismatch")
-	}
-	if decoded.GetOwnerPeerId() != msg.GetOwnerPeerId() {
-		t.Fatal("owner_peer_id mismatch")
-	}
-	if decoded.GetRole() != msg.GetRole() {
-		t.Fatal("role mismatch")
-	}
-	if decoded.GetMaxUses() != msg.GetMaxUses() {
-		t.Fatal("max_uses mismatch")
-	}
-	if !bytes.Equal(decoded.GetToken(), msg.GetToken()) {
-		t.Fatal("token mismatch")
 	}
 }

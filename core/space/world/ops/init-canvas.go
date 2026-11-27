@@ -14,19 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// InitCanvas initializes a blank Canvas in a world.
-// Returns any error.
-func InitCanvas(
-	ctx context.Context,
-	ws world.WorldState,
-	sender peer.ID,
-	objKey string,
-	ts time.Time,
-) (rev uint64, sysErr bool, err error) {
-	op := NewCanvasInitOp(objKey, ts)
-	return ws.ApplyWorldOp(ctx, op, sender)
-}
-
 // NewCanvasInitOp constructs a new CanvasInitOp block.
 func NewCanvasInitOp(
 	objKey string,

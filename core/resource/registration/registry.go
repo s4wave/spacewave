@@ -74,10 +74,11 @@ func (r *Registry) ForgetLocked(member any) {
 	delete(r.members, member)
 }
 
-// GenerationLocked returns a registration's group, or nil for an ungrouped
-// registration. The caller runs in a Registry transaction.
-func (r *Registry) GenerationLocked(member any) *Generation {
-	return r.members[member]
+// CanReplaceUngroupedLocked permits in-place replacement only when neither
+// registration belongs to a generation. Generation members are replaced by
+// activating their complete generation. The caller runs in a Registry transaction.
+func (r *Registry) CanReplaceUngroupedLocked(member any, candidate *Generation) bool {
+	return candidate == nil && r.members[member] == nil
 }
 
 // InstanceKeyLocked returns the plugin instance that serves a registration,

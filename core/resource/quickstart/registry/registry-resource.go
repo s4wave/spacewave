@@ -107,7 +107,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 				err = ErrQuickstartIdAlreadyRegistered
 				return
 			}
-			if generation != nil || r.generations.GenerationLocked(v) != nil {
+			if !r.generations.CanReplaceUngroupedLocked(v, generation) {
 				err = ErrQuickstartIdAlreadyRegistered
 				return
 			}

@@ -29,52 +29,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DefaultPromptTimeout is the default auto-deny timeout for a prompt.
-const DefaultPromptTimeout = 30 * time.Second
+// defaultPromptTimeout is the default auto-deny timeout for a prompt.
+const defaultPromptTimeout = 30 * time.Second
 
-// Decision represents a resolved prompt outcome.
-type Decision int
+// promptDecision represents a resolved prompt outcome.
+type promptDecision int
 
 const (
-	// DecisionPending means the prompt has not been resolved yet.
-	DecisionPending Decision = 0
-	// DecisionAllowed means the user allowed the takeover.
-	DecisionAllowed Decision = 1
-	// DecisionDenied means the user denied the takeover or the prompt
+	// decisionPending means the prompt has not been resolved yet.
+	decisionPending promptDecision = 0
+	// decisionAllowed means the user allowed the takeover.
+	decisionAllowed promptDecision = 1
+	// decisionDenied means the user denied the takeover or the prompt
 	// timed out with no response.
-	DecisionDenied Decision = 2
+	decisionDenied promptDecision = 2
 )
-
-// Prompt is a pending takeover prompt.
-type Prompt struct {
-	// ID is the unique prompt identifier.
-	ID string
-	// RequesterName is the human-readable name of the requesting
-	// runtime (e.g. "spacewave serve").
-	RequesterName string
-	// SocketPath is the Unix socket path the requester wants to bind.
-	SocketPath string
-	// DeadlineUnixMs is the auto-deny deadline in unix milliseconds.
-	DeadlineUnixMs int64
-}
-
-// HandoffState is the current runtime-handoff state emitted to the UI.
-type HandoffState struct {
-	// Active is true when the listener has yielded and is waiting for
-	// the user to reclaim the runtime.
-	Active bool
-	// RequesterName is the name of the runtime that took over.
-	RequesterName string
-	// SocketPath is the socket path that was yielded.
-	SocketPath string
-	// SinceUnixMs is when the handoff started.
-	SinceUnixMs int64
-}
 
 // pending is the internal record for a pending prompt.
 type pending struct {
 	prompt   Prompt
-	decision Decision
+	decision promptDecision
 	done     chan struct{}
 }
 
@@ -94,15 +68,15 @@ type Broker struct {
 
 // NewBroker constructs a broker using the default prompt timeout.
 func NewBroker() *Broker {
-	return NewBrokerWithTimeout(DefaultPromptTimeout)
+	return NewBrokerWithTimeout(defaultPromptTimeout)
 }
 
 // NewBrokerWithTimeout constructs a broker with a specific timeout.
-// A nonpositive timeout uses DefaultPromptTimeout.
+// A nonpositive timeout uses defaultPromptTimeout.
 func NewBrokerWithTimeout(timeout time.Duration) *Broker {
 	// Resolve the prompt timeout shared by deadlines and expiry.
 	if timeout <= 0 {
-		timeout = DefaultPromptTimeout
+		timeout = defaultPromptTimeout
 	}
 
 	// Build the broker with an empty pending prompt set.
@@ -151,7 +125,7 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 
 	// Prepare the pending takeover decision and its completion notification.
 	p := &pending{
-		decision: DecisionPending,
+		decision: decisionPending,
 		done:     make(chan struct{}),
 	}
 
@@ -176,11 +150,11 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 	// Resolve the takeover result on cancellation, expiry, or desktop response.
 	select {
 	case <-ctx.Done():
-		b.finalizePrompt(id, DecisionDenied)
+		b.finalizePrompt(id, decisionDenied)
 		return ctx.Err()
 	case <-timer.C:
-		decision := b.finalizePrompt(id, DecisionDenied)
-		if decision == DecisionAllowed {
+		decision := b.finalizePrompt(id, decisionDenied)
+		if decision == decisionAllowed {
 			return nil
 		}
 		return errors.Errorf(
@@ -188,12 +162,12 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 			b.timeout,
 		)
 	case <-p.done:
-		var final Decision
+		var final promptDecision
 		b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			final = p.decision
 			delete(b.pending, id)
 		})
-		if final == DecisionAllowed {
+		if final == decisionAllowed {
 			return nil
 		}
 		return errors.New(
@@ -204,18 +178,18 @@ func (b *Broker) requestTakeover(ctx context.Context, requesterName, socketPath 
 
 // finalizePrompt finalizes a prompt with decision if still pending and
 // broadcasts the change. Returns the effective decision.
-func (b *Broker) finalizePrompt(id string, decision Decision) Decision {
-	var result Decision
+func (b *Broker) finalizePrompt(id string, decision promptDecision) promptDecision {
+	var result promptDecision
 	b.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		// Find the pending takeover prompt or report that it has already been removed.
 		p, ok := b.pending[id]
 		if !ok {
-			result = DecisionDenied
+			result = decisionDenied
 			return
 		}
 
 		// Finalize the takeover decision and remove the prompt from desktop snapshots.
-		if p.decision == DecisionPending {
+		if p.decision == decisionPending {
 			p.decision = decision
 			close(p.done)
 		}
@@ -239,15 +213,15 @@ func (b *Broker) ResolvePrompt(id string, allow bool) error {
 			return
 		}
 		existed = true
-		if p.decision != DecisionPending {
+		if p.decision != decisionPending {
 			return
 		}
 
 		// Publish the desktop decision and wake the takeover policy.
 		if allow {
-			p.decision = DecisionAllowed
+			p.decision = decisionAllowed
 		} else {
-			p.decision = DecisionDenied
+			p.decision = decisionDenied
 		}
 		close(p.done)
 		resolved = true
@@ -274,7 +248,7 @@ func (b *Broker) SnapshotPrompts() ([]Prompt, <-chan struct{}) {
 		waitCh = getWaitCh()
 		out = make([]Prompt, 0, len(b.pending))
 		for _, p := range b.pending {
-			if p.decision != DecisionPending {
+			if p.decision != decisionPending {
 				continue
 			}
 			out = append(out, p.prompt)

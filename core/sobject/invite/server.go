@@ -11,13 +11,10 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/sirupsen/logrus"
 )
 
-// Server implements the SOInviteService SRPC server.
-type Server struct {
-	// le provides diagnostics for this service.
-	le *logrus.Entry
+// server implements the SOInviteService SRPC server.
+type server struct {
 	// h performs the owner operations.
 	h Handlers
 	// acceptMtx serializes invite acceptance from lookup through the use
@@ -25,14 +22,9 @@ type Server struct {
 	acceptMtx csync.Mutex
 }
 
-// NewServer constructs a new SO invite server.
-func NewServer(le *logrus.Entry, h Handlers) *Server {
-	return &Server{le: le, h: h}
-}
-
 // Leave binds the transport to a departing identity before invoking the native
 // owner.
-func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
+func (s *server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error) {
 	// A valid proof from another connection cannot be relayed as fresh caller
 	// authority.
 	peers, err := request.Verify()
@@ -53,7 +45,7 @@ func (s *Server) Leave(ctx context.Context, request *sobject.SOLeaveRequest) (*s
 }
 
 // WithdrawJoinRequest removes the stream peer's pending join request.
-func (s *Server) WithdrawJoinRequest(ctx context.Context, req *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error) {
+func (s *server) WithdrawJoinRequest(ctx context.Context, req *WithdrawJoinRequestRequest) (*WithdrawJoinRequestResponse, error) {
 	// Validate the request.
 	soID := req.GetSharedObjectId()
 	if soID == "" {
@@ -77,7 +69,7 @@ func (s *Server) WithdrawJoinRequest(ctx context.Context, req *WithdrawJoinReque
 }
 
 // AcceptInvite processes a join request from an invitee.
-func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*AcceptInviteResponse, error) {
+func (s *server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*AcceptInviteResponse, error) {
 	// Validate the request.
 	joinResp := req.GetJoinResponse()
 	if joinResp == nil {
@@ -190,7 +182,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 // answerAccept returns the redeemer's grant with the durable owner state and
 // its config lineage. A nil grant is read from the current key epoch, for a
 // redeemer that already held one.
-func (s *Server) answerAccept(
+func (s *server) answerAccept(
 	ctx context.Context,
 	result *InviteLookupResult,
 	responderPeerID peer.ID,
@@ -232,7 +224,7 @@ func (s *Server) answerAccept(
 
 // readHeldConfigs reads this host's configuration of each Space the invite
 // selects.
-func (s *Server) readHeldConfigs(ctx context.Context, inv *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
+func (s *server) readHeldConfigs(ctx context.Context, inv *sobject.SOInvite) (map[string]*sobject.SharedObjectConfig, error) {
 	// Without named Spaces or a reader there is nothing to read.
 	ids := inv.GetParticipantOf().GetSharedObjectIds()
 	if len(ids) == 0 || s.h.HeldConfig == nil {
@@ -254,4 +246,4 @@ func (s *Server) readHeldConfigs(ctx context.Context, inv *sobject.SOInvite) (ma
 }
 
 // _ is a type assertion.
-var _ SRPCSOInviteServiceServer = (*Server)(nil)
+var _ SRPCSOInviteServiceServer = (*server)(nil)

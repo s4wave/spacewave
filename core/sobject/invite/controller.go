@@ -18,24 +18,18 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "alpha/so-invite/server"
 
-// InviteController wraps the SRPC server with the bifrost stream handler.
-type InviteController struct {
-	// Server owns the invitation stream service and its controller lifetime.
-	*stream_srpc_server.Server
-}
-
 // NewInviteController constructs an SO invite controller.
 func NewInviteController(
 	le *logrus.Entry,
 	b bus.Bus,
 	h Handlers,
 	peerIDs []string,
-) (*InviteController, error) {
-	// Construct the invitation stream server and its SRPC controller.
-	srv := NewServer(le, h)
-	ctrl := &InviteController{}
-	var err error
-	ctrl.Server, err = stream_srpc_server.NewServer(
+) (*stream_srpc_server.Server, error) {
+	// Construct the private invitation service.
+	srv := &server{h: h}
+
+	// Bind the invitation service to the stream controller.
+	return stream_srpc_server.NewServer(
 		b,
 		le,
 		controller.NewInfo(ControllerID, Version, "so invite server"),
@@ -48,8 +42,4 @@ func NewInviteController(
 		peerIDs,
 		false,
 	)
-	if err != nil {
-		return nil, err
-	}
-	return ctrl, nil
 }

@@ -60,7 +60,7 @@ func ValidateRedeemer(joinResp, storageJoinResp *sobject.SOJoinResponse) (*Redee
 // redeemer may join. Admit checks nothing about the invite.
 func Admit(
 	ctx context.Context,
-	enroll EnrollFn,
+	enroll enrollFn,
 	result *InviteLookupResult,
 	r *Redeemer,
 ) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
