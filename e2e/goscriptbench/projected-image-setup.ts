@@ -1,8 +1,7 @@
-import { mountSpace } from '@s4wave/app/space/space.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/index.js'
 
-type ResourceLike = { release?: () => void }
+import { withMountedWorld } from '../wasm/mounted-world.js'
 
 interface ProjectedImageSetupArgs {
   action: 'upload' | 'verify'
@@ -20,26 +19,6 @@ interface FixtureProof {
   path: string
   encodedBytes: number
   sha256: string
-}
-
-function cleanupTracker() {
-  const stack: ResourceLike[] = []
-  const cleanup = <T extends ResourceLike | undefined | null>(
-    resource: T,
-  ): T => {
-    if (resource?.release) stack.push(resource)
-    return resource
-  }
-  return {
-    cleanup,
-    releaseAll() {
-      for (;;) {
-        const resource = stack.pop()
-        if (!resource) return
-        resource.release?.()
-      }
-    },
-  }
 }
 
 function decodeBase64(data: string): Uint8Array {
@@ -94,44 +73,23 @@ async function withRootHandle<T>(
   signal: AbortSignal,
   fn: (rootHandle: FSHandle) => Promise<T>,
 ): Promise<T> {
-  const root = globalThis.__s4wave_debug?.root
-  if (!root) throw new Error('missing __s4wave_debug.root')
-
-  const tracker = cleanupTracker()
-  try {
-    const mounted = await root.mountSessionByIdx(
-      { sessionIdx: args.sessionIndex },
-      signal,
-    )
-    const session = tracker.cleanup(mounted?.session)
-    if (!session) throw new Error('mountSessionByIdx returned no session')
-
-    const space = tracker.cleanup(
-      await mountSpace({
-        session,
-        spaceResp: {
-          sharedObjectRef: {
-            providerResourceRef: { id: args.spaceId },
-          },
-        },
-        abortSignal: signal,
-        cleanup: tracker.cleanup,
-      }),
-    )
-    const world = tracker.cleanup(
-      await space.accessWorldState(args.action === 'upload', signal),
-    )
-    const access = await world.accessTypedObject(UNIXFS_OBJECT_KEY, signal)
-    if (!access.resourceId) {
-      throw new Error('accessTypedObject returned no UnixFS resource ID')
-    }
-    const rootHandle = tracker.cleanup(
-      new FSHandle(world.getResourceRef().createRef(access.resourceId)),
-    )
-    return await fn(rootHandle)
-  } finally {
-    tracker.releaseAll()
-  }
+  const target = { sessionIdx: args.sessionIndex, sharedObjectId: args.spaceId }
+  const write = args.action === 'upload'
+  return await withMountedWorld(
+    target,
+    write,
+    signal,
+    async (world, cleanup) => {
+      const access = await world.accessTypedObject(UNIXFS_OBJECT_KEY, signal)
+      if (!access.resourceId) {
+        throw new Error('accessTypedObject returned no UnixFS resource ID')
+      }
+      const rootHandle = cleanup(
+        new FSHandle(world.getResourceRef().createRef(access.resourceId)),
+      )
+      return await fn(rootHandle)
+    },
+  )
 }
 
 export default async function projectedImageSetup(

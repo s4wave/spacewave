@@ -30,6 +30,9 @@
       "@s4wave/core/*": ["./core/*"],
       "@s4wave/net/*": ["./net/*"],
       "@s4wave/net": ["./net"],
+      "spacewave": ["./packages/spacewave/index.ts"],
+      "spacewave/react": ["./packages/spacewave/react.ts"],
+      "spacewave/server": ["./packages/spacewave/server.ts"],
       "web/*": ["./bldr/web/*"]
     }
   },

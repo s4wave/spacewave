@@ -1,5 +1,4 @@
 import { initObjectLayout } from '@s4wave/app/quickstart/create.js'
-import { mountSpace } from '@s4wave/app/space/space.js'
 import { OBJECT_LAYOUT_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-object-layout.js'
 import type {
   LayoutModel,
@@ -21,12 +20,12 @@ import {
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { BASE_MODEL } from '@s4wave/web/layout/layout.js'
 
+import {
+  currentSpaceTarget,
+  type SpaceTarget,
+  withMountedWorld,
+} from './mounted-world.js'
 import { withTimeout } from './test-utils.js'
-
-interface RouteTarget {
-  sessionIdx: number
-  sharedObjectId: string
-}
 
 interface LayoutTabSummary {
   id: string
@@ -61,83 +60,23 @@ type LayoutRuntimeArgs = {
   deadlineMs?: number
 }
 
-type ResourceLike = { release?: () => void }
-
-function currentRouteTarget(): RouteTarget {
-  const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
-  if (!match) {
-    throw new Error('expected current /u/{idx}/so/{id} route')
-  }
-  return {
-    sessionIdx: Number(match[1]),
-    sharedObjectId: decodeURIComponent(match[2] ?? ''),
-  }
-}
-
-function objectHash(target: RouteTarget): string {
+function objectHash(target: SpaceTarget): string {
   return `#/u/${target.sessionIdx}/so/${encodeURIComponent(target.sharedObjectId)}/-/${OBJECT_LAYOUT_OBJECT_KEY}`
-}
-
-function cleanupTracker() {
-  const stack: ResourceLike[] = []
-  const cleanup = <T extends ResourceLike>(resource: T): T => {
-    stack.push(resource)
-    return resource
-  }
-  return {
-    cleanup,
-    releaseAll() {
-      for (;;) {
-        const resource = stack.pop()
-        if (!resource) {
-          return
-        }
-        resource.release?.()
-      }
-    },
-  }
 }
 
 async function withMountedSpace<T>(
   signal: AbortSignal,
   fn: (worlds: MountedWorlds) => Promise<T>,
 ): Promise<T> {
-  const debug = globalThis.__s4wave_debug
-  const root = debug?.root
-  if (!root) {
-    throw new Error('missing __s4wave_debug.root')
-  }
-  const target = currentRouteTarget()
-  const tracker = cleanupTracker()
-  try {
-    const mounted = await root.mountSessionByIdx(
-      { sessionIdx: target.sessionIdx },
-      signal,
-    )
-    const session = tracker.cleanup(mounted?.session)
-    if (!session) {
-      throw new Error('mountSessionByIdx returned no session')
-    }
-    const space = tracker.cleanup(
-      await mountSpace({
-        session,
-        spaceResp: {
-          sharedObjectRef: {
-            providerResourceRef: { id: target.sharedObjectId },
-          },
-        },
-        abortSignal: signal,
-        cleanup: tracker.cleanup,
-      }),
-    )
-    const writeWorld = tracker.cleanup(
-      await space.accessWorldState(true, signal),
-    )
-    const readWorld = new EngineWorldState(writeWorld.getEngine(), false)
-    return await fn({ readWorld, writeWorld })
-  } finally {
-    tracker.releaseAll()
-  }
+  return await withMountedWorld(
+    currentSpaceTarget(),
+    true,
+    signal,
+    async (writeWorld) => {
+      const readWorld = new EngineWorldState(writeWorld.getEngine(), false)
+      return await fn({ readWorld, writeWorld })
+    },
+  )
 }
 
 async function accessLayoutHost(
@@ -297,7 +236,7 @@ function decodeTab(data: Uint8Array | undefined): ObjectLayoutTabType | null {
 async function inspectLayout(
   signal: AbortSignal,
 ): Promise<LayoutRuntimeResult> {
-  const target = currentRouteTarget()
+  const target = currentSpaceTarget()
   return await withMountedSpace(signal, async ({ readWorld }) => {
     const layoutHost = await accessLayoutHost(readWorld, signal)
     try {
@@ -323,7 +262,7 @@ async function inspectLayout(
 async function prepareLayout(
   signal: AbortSignal,
 ): Promise<LayoutRuntimeResult> {
-  const target = currentRouteTarget()
+  const target = currentSpaceTarget()
   const created = await withMountedSpace(
     signal,
     async ({ readWorld, writeWorld }) => {
@@ -349,7 +288,7 @@ async function prepareLayout(
 }
 
 async function seedModel(signal: AbortSignal): Promise<LayoutRuntimeResult> {
-  const target = currentRouteTarget()
+  const target = currentSpaceTarget()
   const seed = await withMountedSpace(
     signal,
     async ({ readWorld, writeWorld }) => {
@@ -399,7 +338,7 @@ async function seedModel(signal: AbortSignal): Promise<LayoutRuntimeResult> {
 }
 
 async function mutateLayout(signal: AbortSignal): Promise<LayoutRuntimeResult> {
-  const target = currentRouteTarget()
+  const target = currentSpaceTarget()
   return await withMountedSpace(signal, async ({ readWorld }) => {
     const layoutHost = await accessLayoutHost(readWorld, signal)
     try {

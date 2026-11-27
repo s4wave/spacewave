@@ -1,4 +1,3 @@
-import { mountSpace } from '@s4wave/app/space/space.js'
 import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
 import {
   SqlDbTypeID,
@@ -14,6 +13,7 @@ import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { keyToIRI, predToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 
+import { currentSpaceTarget, withMountedWorld } from './mounted-world.js'
 import { withTimeout } from './test-utils.js'
 
 const KV_STORE_KEY = 'kv/store'
@@ -24,11 +24,6 @@ const SQL_WORKBENCH_KEY = 'sql/workbench/e2e'
 
 const PRED_SQL_QUERY_AGAINST = 'against'
 const PRED_SQL_QUERY_PRODUCED_BY = 'produced-by'
-
-interface RouteTarget {
-  sessionIdx: number
-  sharedObjectId: string
-}
 
 interface MountedWorlds {
   readWorld: EngineWorldState
@@ -59,76 +54,19 @@ type ActionArgs =
       deadlineMs?: number
     }
 
-type ResourceLike = { release?: () => void }
-
-function currentRouteTarget(): RouteTarget {
-  const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
-  if (!match) {
-    throw new Error('expected current /u/{idx}/so/{id} route')
-  }
-  return {
-    sessionIdx: Number(match[1]),
-    sharedObjectId: decodeURIComponent(match[2] ?? ''),
-  }
-}
-
-function cleanupTracker() {
-  const stack: ResourceLike[] = []
-  const cleanup = <T extends ResourceLike>(resource: T): T => {
-    stack.push(resource)
-    return resource
-  }
-  return {
-    cleanup,
-    releaseAll() {
-      for (;;) {
-        const resource = stack.pop()
-        if (!resource) return
-        resource.release?.()
-      }
-    },
-  }
-}
-
 async function withMountedSpace<T>(
   signal: AbortSignal,
   fn: (worlds: MountedWorlds) => Promise<T>,
 ): Promise<T> {
-  const root = globalThis.__s4wave_debug?.root
-  if (!root) {
-    throw new Error('missing __s4wave_debug.root')
-  }
-  const target = currentRouteTarget()
-  const tracker = cleanupTracker()
-  try {
-    const mounted = await root.mountSessionByIdx(
-      { sessionIdx: target.sessionIdx },
-      signal,
-    )
-    const session = tracker.cleanup(mounted?.session)
-    if (!session) {
-      throw new Error('mountSessionByIdx returned no session')
-    }
-    const space = tracker.cleanup(
-      await mountSpace({
-        session,
-        spaceResp: {
-          sharedObjectRef: {
-            providerResourceRef: { id: target.sharedObjectId },
-          },
-        },
-        abortSignal: signal,
-        cleanup: tracker.cleanup,
-      }),
-    )
-    const writeWorld = tracker.cleanup(
-      await space.accessWorldState(true, signal),
-    )
-    const readWorld = new EngineWorldState(writeWorld.getEngine(), false)
-    return await fn({ readWorld, writeWorld })
-  } finally {
-    tracker.releaseAll()
-  }
+  return await withMountedWorld(
+    currentSpaceTarget(),
+    true,
+    signal,
+    async (writeWorld) => {
+      const readWorld = new EngineWorldState(writeWorld.getEngine(), false)
+      return await fn({ readWorld, writeWorld })
+    },
+  )
 }
 
 async function accessKvStore(
