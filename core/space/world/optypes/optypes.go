@@ -8,6 +8,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/blocktype"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
@@ -97,4 +98,17 @@ func LookupBlockType(ctx context.Context, typeID string) (blocktype.BlockType, e
 		return blocktype.New[s4wave_wizard.WizardState](typeID), nil
 	}
 	return schema.LookupBlockType(ctx, typeID)
+}
+
+// BlockConstructors returns the block types registered in this runtime's
+// Space schema. Callers can type stored object roots without loading viewers.
+func BlockConstructors(ctx context.Context) map[string]block.Ctor {
+	// The schema also holds operations. Keep only types that construct blocks.
+	constructors := make(map[string]block.Ctor, len(schema))
+	for id := range schema {
+		if typ, err := schema.LookupBlockType(ctx, id); err == nil && typ != nil {
+			constructors[id] = typ.Constructor
+		}
+	}
+	return constructors
 }
