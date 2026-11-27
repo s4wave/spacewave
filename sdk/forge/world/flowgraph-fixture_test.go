@@ -102,6 +102,12 @@ func (f *flowgraphFixture) startRun(key, graph string) {
 	f.transact(func(ctx context.Context, ws world.WorldState) error {
 		return flowgraph_run.StartRun(ctx, ws, f.sender, key, graph, harnessClusterKey, nil)
 	})
+	f.attachRun(key)
+}
+
+// attachRun starts the controller of the run already stored at key, as a
+// restarted host process does.
+func (f *flowgraphFixture) attachRun(key string) {
 	_, ref, err := flowgraph_run.StartControllerWithConfig(f.ctx, f.tb.Bus, flowgraph_run.NewConfig(f.tb.EngineID, key))
 	if err != nil {
 		f.t.Fatal(err)

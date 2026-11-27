@@ -174,6 +174,11 @@ type workerHarnessOptions struct {
 	dockerPath  string
 	cards       []*s4wave_device.GraphicsCard
 	storage     []db_testbed.Option
+	// workerKey is the Worker's peer key, generated when nil.
+	workerKey crypto.PrivKey
+	// reopen opens a World that already holds the Worker and Cluster, as a
+	// restarted host process does, instead of creating them.
+	reopen bool
 }
 
 // newWorkerHarnessWithOptions keeps storage alive until runtime cleanup has joined.
@@ -200,7 +205,14 @@ func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *wo
 
 	// Create the Worker's peer and serve it with its key, as its running
 	// Session does, so a Step can ask it to sign.
-	workerPeer, workerKey, _, err := peer.NewPeerWithGenerateED25519()
+	workerKey := options.workerKey
+	if workerKey == nil {
+		workerKey, _, err = crypto.GenerateEd25519Key(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	workerPeer, err := peer.NewPeer(workerKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,19 +222,22 @@ func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *wo
 	}
 	t.Cleanup(releasePeer)
 
-	// Create the Worker and the Cluster that places Jobs on it.
-	keypair, err := identity.NewKeypair(workerPeer.GetPubKey(), "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, harnessWorkerKey, "test-worker", []*identity.Keypair{keypair}, sender); err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := forge_cluster.CreateCluster(ctx, tb.WorldState, harnessClusterKey, "test-cluster", workerPeer.GetPeerID(), sender); err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := forge_cluster.AssignWorkerToCluster(ctx, tb.WorldState, harnessClusterKey, harnessWorkerKey, sender); err != nil {
-		t.Fatal(err)
+	// Create the Worker and the Cluster that places Jobs on it, unless the
+	// reopened World already holds them.
+	if !options.reopen {
+		keypair, err := identity.NewKeypair(workerPeer.GetPubKey(), "", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, harnessWorkerKey, "test-worker", []*identity.Keypair{keypair}, sender); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := forge_cluster.CreateCluster(ctx, tb.WorldState, harnessClusterKey, "test-cluster", workerPeer.GetPeerID(), sender); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := forge_cluster.AssignWorkerToCluster(ctx, tb.WorldState, harnessClusterKey, harnessWorkerKey, sender); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Install the fake Docker CLI.
