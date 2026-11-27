@@ -115,8 +115,17 @@ func (e *evicter) step(ctx context.Context) error {
 	// Delete the run in one statement, then report its blocks removed.
 	first, last := keys[0], keys[len(keys)-1]
 	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
+	if evictDeleted != nil {
+		evictDeleted()
+	}
 	e.reportRemoved(keys)
 	return err
+}
+
+// evictDeleted is the test seam of the branch, added here alone.
+var evictDeleted func()
+
+func init() {
 }
 
 // reportRemoved reports the blocks under the table keys as removed to the
