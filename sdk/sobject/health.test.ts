@@ -1,4 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { pushable } from 'it-pushable'
+import type { ResourceClientResponse } from '@aptre/bldr-sdk/resource/resource.pb.js'
 import { Client } from '@aptre/bldr-sdk/resource/client.js'
 import type { ResourceService } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
 import {
@@ -34,6 +36,7 @@ it.each([
 ])(
   'preserves typed health through mount and body SDK calls: %s',
   async (commonReason, remediationHint) => {
+    // Return typed health from both mount RPC adapters.
     const health = {
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.SHARED_OBJECT,
@@ -49,14 +52,28 @@ it.each([
       SharedObjectResourceServiceClient.prototype,
       'MountSharedObjectBody',
     ).mockResolvedValue({ result: { case: 'health', value: health } })
+
+    // Keep the client generation open until the fixture disposes it.
+    const responses = pushable<ResourceClientResponse>({ objectMode: true })
+    responses.push({
+      body: {
+        case: 'init',
+        value: { clientHandleId: 1, rootResourceId: 1 },
+      },
+    })
     const service: ResourceService = {
-      ResourceClient: async function* () {},
+      ResourceClient: (_requests, signal) => {
+        signal?.addEventListener('abort', () => responses.end(), { once: true })
+        return responses
+      },
       ResourceRpc: async function* () {},
       ResourceAttach: async function* () {},
     }
+
+    // Acquire a live root before checking each SDK adapter.
     const client = new Client(service, new AbortController().signal)
-    const ref = client.createResourceReference(1)
     try {
+      const ref = await client.accessRootResource()
       await expect(
         new Session(ref, {}).mountSharedObject({ sharedObjectId: 'example' }),
       ).rejects.toMatchObject({ health })
@@ -71,6 +88,7 @@ it.each([
 )
 
 it('recognizes health from another bundle without interpreting text', () => {
+  // Recognize the shared error brand while leaving ordinary errors untyped.
   const health = { commonReason: SharedObjectHealthCommonReason.ACCESS_REVOKED }
   const foreign = Object.assign(new Error('opaque'), {
     [Symbol.for('spacewave.SharedObjectHealthError')]: true,
