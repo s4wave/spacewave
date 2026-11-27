@@ -3,6 +3,7 @@ package sobject
 import (
 	"bytes"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/crypto"
@@ -130,4 +131,67 @@ func mustOperationSet(t *testing.T, state *SOState) *SOOperationSet {
 		t.Fatal(err)
 	}
 	return set
+}
+
+// TestCarryOutcomes checks that a checkpoint carries an author's refusals and
+// span start until the author acknowledges the previous checkpoint by building
+// on all of its heads, and that it starts no entry from a previous checkpoint
+// that records no span.
+func TestCarryOutcomes(t *testing.T) {
+	// Authors a and b. The previous checkpoint covers a to 5 and b to 2,
+	// newly from a@3 and b@1, refused a@4, and carries a's entry from a@1
+	// with a@2 refused.
+	at := func(peer string, nonce uint64) *SOOperationPosition {
+		return &SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: []byte(peer + strconv.FormatUint(nonce, 10))}
+	}
+	prev := &SOCheckpointInner{
+		Authors: []*SOOperationPosition{at("a", 5), at("b", 2)},
+		Outcomes: &SOCheckpointOutcomes{
+			Refused:     []*SOOperationPosition{at("a", 4)},
+			PrevAuthors: &SOCheckpointAuthors{Authors: []*SOOperationPosition{at("a", 3), at("b", 1)}},
+			Carried:     []*SOCheckpointCarried{{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2)}}},
+		},
+	}
+	op := func(peer string, nonce uint64, parents ...*SOOperationPosition) *SOOperationInner {
+		return &SOOperationInner{PeerId: peer, Nonce: nonce, PrevOpHash: at(peer, nonce-1).GetOpHash(), Parents: parents}
+	}
+	carry := func(ops ...*SOOperationInner) []*SOCheckpointCarried {
+		byHash := make(map[string]*SOOperationInner, len(ops))
+		prefix := make([][]byte, 0, len(ops))
+		for _, inner := range ops {
+			h := at(inner.GetPeerId(), inner.GetNonce()).GetOpHash()
+			byHash[string(h)] = inner
+			prefix = append(prefix, h)
+		}
+		return carryOutcomes(prev, func(h []byte) *SOOperationInner { return byHash[string(h)] }, prefix)
+	}
+	want := func(name string, got []*SOCheckpointCarried, want ...*SOCheckpointCarried) {
+		t.Helper()
+		if !slices.EqualFunc(got, want, (*SOCheckpointCarried).EqualVT) {
+			t.Fatalf("%s: carried %v, want %v", name, got, want)
+		}
+	}
+	aEntry := &SOCheckpointCarried{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2), at("a", 4)}}
+	bEntry := &SOCheckpointCarried{PeerId: "b", From: at("b", 1)}
+
+	// With no acknowledgment, a's entry grows by prev's refusal and b's
+	// starts at its previous head.
+	want("none acknowledge", carry(), aEntry, bEntry)
+
+	// b builds on a@5 and its own b@2, so only a's entry remains. a building
+	// on b's operation reaches b@2 through it and ends a's entry as well.
+	b3 := op("b", 3, at("a", 5))
+	want("b acknowledges", carry(b3), aEntry)
+	want("both acknowledge", carry(b3, op("a", 6, at("b", 3))))
+
+	// An operation that builds on its own chain alone acknowledges nothing.
+	want("own chain only", carry(op("a", 6)), aEntry, bEntry)
+
+	// An author whose span is empty owes nothing.
+	prev.Outcomes.PrevAuthors.Authors[1] = at("b", 2)
+	want("nothing owed", carry(), aEntry)
+
+	// A previous checkpoint that records no span starts no entry.
+	prev.Outcomes.PrevAuthors = nil
+	want("no recorded span", carry())
 }

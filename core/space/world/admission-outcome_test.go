@@ -340,6 +340,41 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	expect(t, "applied by the first install's checkpoint", newApplied, admissionCovered, 0, nil)
 	expect(t, "refused by the first install's checkpoint", newRefused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
 
+	// A device that installed C1 misses C2, which applied op-2 and refused
+	// op-3, and C3, which applied op-4 and op-5. C4 carries C2 and C3's
+	// outcomes for it, from its head in C1, so its first install after them
+	// decides each write it slept through: op-3 refused, op-2 and op-4
+	// applied. A write at nonce 5 whose hash is not on the covered chain
+	// has no proof and stays unknown.
+	carriedC4 := checkpoint(4, pos(7), &sobject.SOCheckpointOutcomes{
+		PrevAuthors: &sobject.SOCheckpointAuthors{Authors: []*sobject.SOOperationPosition{pos(5)}},
+		Carried: []*sobject.SOCheckpointCarried{{
+			PeerId:  peer,
+			From:    pos(1),
+			Refused: []*sobject.SOOperationPosition{pos(3)},
+		}},
+	})
+	sleptThrough := func() (applied, refused, later, unproven *spaceAdmission) {
+		a := newAdapter()
+		applied, refused, later, unproven = admit(a, 2), admit(a, 3), admit(a, 4), admit(a, 5)
+		unproven.pos.OpHash = []byte("forked-5")
+		install(a, carriedC4)
+		return applied, refused, later, unproven
+	}
+	slept, sleptRefused, sleptLater, sleptUnproven := sleptThrough()
+	expect(t, "slept through, applied", slept, admissionCovered, 0, nil)
+	expect(t, "slept through, refused", sleptRefused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
+	expect(t, "slept through, applied later", sleptLater, admissionCovered, 0, nil)
+	expect(t, "slept through, no proof", sleptUnproven, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+
+	// With carried outcomes off, the spans C4 does not newly cover stay
+	// unknown, as before they existed.
+	t.Setenv(sobject.CarriedOutcomesEnv, "off")
+	slept, sleptRefused, _, _ = sleptThrough()
+	expect(t, "slept through, applied, carried off", slept, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	expect(t, "slept through, refused, carried off", sleptRefused, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
+	t.Setenv(sobject.CarriedOutcomesEnv, "")
+
 	// The switch restores the old rule: the first install decides nothing,
 	// even with the previous heads.
 	t.Setenv(checkpointStandaloneOutcomeEnv, "off")
