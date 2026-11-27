@@ -6,6 +6,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -631,6 +633,15 @@ func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 			t.Fatalf("the %s commit returned %v, want a durability unknown with its hash", key, err)
 		}
 
+		// A write during the restart backoff waits for the old engine to
+		// retire and lands on its successor, instead of using up its
+		// retries on the old one. With the fence off the old mount takes
+		// it, or refuses it with the state it changed, as before.
+		during := "during-" + key
+		if err := create(during); err != nil && !sobject.ReloadFenceOff {
+			t.Fatalf("writing during the %s reload: %v", key, err)
+		}
+
 		// The settle reports the outcome the World holds.
 		head, applied, err := waiter.WaitSettled(ctx, unknown.OpHash)
 		if err != nil {
@@ -642,6 +653,9 @@ func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 		if got := has(key); got != landed {
 			t.Fatalf("the World holds the %s object: %t, want %t", key, got, landed)
 		}
+		if !sobject.ReloadFenceOff && !has(during) {
+			t.Fatalf("the World lacks the %s object", during)
+		}
 		if err := create("after-" + key); err != nil {
 			t.Fatalf("writing after the %s settle: %v", key, err)
 		}
@@ -651,6 +665,23 @@ func TestWaitSettledAfterUnknownCommit(t *testing.T) {
 		testHookStateCommitted.Store(nil)
 		testHookStateSettling.Store(nil)
 	})
+}
+
+// TestWaitSettledWithReloadFenceOff runs TestWaitSettledAfterUnknownCommit
+// again in a child process with sobject.ReloadFenceEnv set to "off", which is
+// read once at startup. The switch back must keep every settle answer right:
+// the old mount keeps writing after an unknown, and WaitSettled still reports
+// applied exactly when the World holds the write.
+func TestWaitSettledWithReloadFenceOff(t *testing.T) {
+	if sobject.ReloadFenceOff {
+		t.Skip("the fence is already off in this process")
+	}
+	cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestWaitSettledAfterUnknownCommit$", "-test.count=1")
+	cmd.Env = append(os.Environ(), sobject.ReloadFenceEnv+"=off")
+	out, err := cmd.CombinedOutput()
+	if err != nil || !bytes.Contains(out, []byte("PASS")) {
+		t.Fatalf("with the reload fence off: %v\n%s", err, out)
+	}
 }
 
 // addsTestWorldOp reports whether next holds an operation other than an

@@ -49,22 +49,30 @@ func (a *Adapter) ObserveReplay(state *sobject.SOReplayState) {
 // refused a write because it will reload, every write returns
 // world.ErrEngineRetired, so its writer runs again on the next adapter after
 // it settles the unknown write (WaitSettled), instead of ending as a second
-// unknown on a mount that cannot commit.
+// unknown on a mount that cannot commit. The write waits to return it until
+// this adapter's engine stops serving and no lookup publishes it any more,
+// which the lookup marks by releasing its AcquireEngine hold, or until ctx
+// ends. The mount restarts only after a backoff of up to seconds, and a
+// writer that resolved the engine again before then would resolve this one,
+// and use up its retries on it. So a write made under an AcquireEngine hold
+// of its own waits until ctx ends (see AcquireEngine).
 func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
 	for {
-		var opening, retired bool
+		var held, retired bool
 		var wait *sobject.WriteWait
 		var waitCh <-chan struct{}
 		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			switch {
-			case a.reloading:
+			case a.reloading && ((a.engine == nil && a.holders == 0) || a.stopped):
 				retired = true
+			case a.reloading:
+				held, waitCh = true, getWaitCh()
 			case a.replayState.GetCaughtUp() != nil:
 				if admit != nil {
 					admit()
 				}
 			case a.replayState.GetOpening() != nil:
-				opening, waitCh = true, getWaitCh()
+				held, waitCh = true, getWaitCh()
 			default:
 				wait = &sobject.WriteWait{Wake: getWaitCh()}
 			}
@@ -75,7 +83,7 @@ func (a *Adapter) gateWrite(ctx context.Context, admit func()) error {
 		if wait != nil {
 			return wait
 		}
-		if !opening {
+		if !held {
 			return nil
 		}
 		select {

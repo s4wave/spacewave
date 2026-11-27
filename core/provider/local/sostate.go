@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"os"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
@@ -15,17 +14,6 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/peer"
 )
-
-// ReloadFenceEnv turns off the reload fence when set to "off" at startup: a
-// mount that has called Reload keeps writing until the restart ends it, as
-// before, instead of refusing each later write with
-// sobject.ErrMountReloading. The compare-and-set against the loaded token
-// still refuses a write over another writer's state either way.
-const ReloadFenceEnv = "SPACEWAVE_LOCAL_RELOAD_FENCE"
-
-// reloadFenceOff selects ReloadFenceEnv's old behavior. It is read once, here,
-// at startup.
-var reloadFenceOff = os.Getenv(ReloadFenceEnv) == "off"
 
 // SOStateRuns joins the state funcs of the successive mount runs of one
 // shared object. A run's load waits only for this object's own state writes,
@@ -94,7 +82,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	// the fence never commits after a later load either.
 	writable, endWrites := context.WithCancelCause(rctx)
 	reload := func() {
-		if !reloadFenceOff {
+		if !sobject.ReloadFenceOff {
 			endWrites(sobject.ErrMountReloading)
 		}
 		runs.Reload()

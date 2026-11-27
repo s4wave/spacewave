@@ -226,9 +226,9 @@ type Adapter struct {
 	stopped bool
 	// reloading reports that a write's outcome went unknown or the mount
 	// refused a write because it will reload. It is terminal: gateWrite
-	// refuses every later write and the queue sends nothing more, so no
-	// write commits on this mount between the unknown and its settle.
-	// Guarded by bcast.
+	// holds every later write until the engine stops serving, then refuses
+	// it, and the queue sends nothing more, so no write commits on this
+	// mount between the unknown and its settle. Guarded by bcast.
 	reloading bool
 	// settles settles the writes of this device whose outcome went unknown,
 	// shared with the other adapters of the Space World.
@@ -514,7 +514,11 @@ func (a *Adapter) WaitEngine(ctx context.Context) (*Engine, error) {
 
 // AcquireEngine waits for the serving engine and holds it open until release
 // is called. The adapter retires the engine before it closes it, and waits
-// for every hold first, so a holder never sees it close.
+// for every hold first, so a holder never sees it close. A holder releases
+// once WaitEngineReplaced returns, and writes through another reference,
+// such as a lookup: a write on a reloading adapter waits for every hold to
+// end (gateWrite), so a write under the caller's own hold waits until its
+// ctx ends.
 func (a *Adapter) AcquireEngine(ctx context.Context) (*Engine, func(), error) {
 	// Hold the engine once one serves.
 	var engine *Engine
@@ -710,14 +714,17 @@ func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), err
 // turn's Base is the writer head, not durable while a candidate admitted
 // before it waits.
 func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
-	// Refuse a participant that cannot write.
-	if err := a.checkWrites(ctx); err != nil {
+	// Wait while replay opens, and refuse a write while it waits or
+	// reloads. The admission gates again, as replay may stop at a wait
+	// before it. This gate comes first, since a reloading mount ends and
+	// then fails the role check's state read with its own error, which no
+	// retry on the successor would follow.
+	if err := a.gateWrite(ctx, nil); err != nil {
 		return nil, err
 	}
 
-	// Wait while replay opens, and refuse a write while it waits. The
-	// admission gates again, as replay may stop at a wait before it.
-	if err := a.gateWrite(ctx, nil); err != nil {
+	// Refuse a participant that cannot write.
+	if err := a.checkWrites(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1645,7 +1652,9 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 		a.decide([]*spaceAdmission{adm}, world.Superseded, reasonExpectedWrite, nil)
 		return
 	case errors.Is(err, sobject.ErrStateWriteUnknown):
-		a.stopWrites()
+		if !sobject.ReloadFenceOff {
+			a.stopWrites()
+		}
 		a.fail(adm, durabilityUnknown(adm, err))
 		return
 	case errors.Is(err, world.ErrEngineRetired):
@@ -1718,7 +1727,9 @@ func (a *Adapter) Acknowledge(ctx context.Context) error {
 // the next admission. That one and every later one end with
 // world.ErrEngineRetired unsent, and gateWrite admits no new one. The
 // provider's reload fence refuses the mount's other writers, such as the
-// sequencer, the same way.
+// sequencer, the same way. With sobject.ReloadFenceOff the adapter keeps
+// writing after an unknown, as before the fence, until the reload ends its
+// run, and WaitSettled's head may then hold writes that followed the unknown.
 func (a *Adapter) stopWrites() {
 	a.queue.stop(world.ErrEngineRetired)
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
