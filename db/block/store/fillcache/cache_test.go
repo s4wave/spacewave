@@ -245,3 +245,69 @@ func TestCacheCloseAfterCancel(t *testing.T) {
 		}
 	}
 }
+
+// TestCacheSizeHoldsUnderSustainedFills fills a cache with distinct blocks
+// summing to many times its size bound, without pause, while it measures the
+// cache's rows. The rows must stay within the bound at every measurement, not
+// only once the fills stop, and the cache must go on holding blocks.
+func TestCacheSizeHoldsUnderSustainedFills(t *testing.T) {
+	// Measure the cache's rows until the fills are written.
+	const limit = 2 << 20
+	ctx := t.Context()
+	c := openTest(t, filepath.Join(t.TempDir(), "blocks.db"), limit)
+	var peak atomic.Int64
+	stop := make(chan struct{})
+	measured := make(chan error, 1)
+	go func() {
+		for {
+			size, err := c.Size(ctx)
+			if err != nil {
+				measured <- err
+				return
+			}
+			if size > peak.Load() {
+				peak.Store(size)
+			}
+			select {
+			case <-stop:
+				measured <- nil
+				return
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}()
+
+	// Fill distinct 16 KiB blocks summing to 16 times the bound.
+	for i := range 2048 {
+		data := bytes.Repeat([]byte{byte(i), byte(i >> 8)}, 8<<10)
+		ref, err := block.BuildBlockRef(data, &block.PutOpts{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Fill(ctx, nil, ref, &block.StoredBlock{Data: data}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	if err := c.Wait(waitCtx); err != nil {
+		t.Fatal(err)
+	}
+	close(stop)
+	if err := <-measured; err != nil {
+		t.Fatal(err)
+	}
+
+	// The rows stayed within the bound, and the cache holds blocks.
+	if got := peak.Load(); got > limit {
+		t.Fatalf("the cache's rows reached %d bytes under sustained fills, want at most %d", got, limit)
+	}
+	var rows int
+	if err := c.store.GetDB().QueryRowContext(ctx, "SELECT count(*) FROM "+cacheTable).Scan(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if rows == 0 {
+		t.Fatal("the cache holds no block after sustained fills")
+	}
+	t.Logf("peak %d bytes of %d, %d blocks held", peak.Load(), limit, rows)
+}
