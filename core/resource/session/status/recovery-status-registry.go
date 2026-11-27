@@ -1,4 +1,4 @@
-package resource_session
+package status
 
 import (
 	"sync"

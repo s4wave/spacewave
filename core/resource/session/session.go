@@ -26,6 +26,7 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/resource/session/mountedresource"
+	"github.com/s4wave/spacewave/core/resource/session/status"
 	resource_sobject "github.com/s4wave/spacewave/core/resource/sobject"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/session"
@@ -138,7 +139,7 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 	b bus.Bus,
 	sess session.Session,
 	hostPluginID string,
-	recoveryStatusRegistry *RecoveryStatusRegistry,
+	recoveryStatusRegistry *status.RecoveryStatusRegistry,
 	bindingRegistry *process_binding.BindingRegistry,
 	cdnLookup func(sharedObjectID string) (sobject.SharedObject, *sobject.SharedObjectMeta),
 ) *SessionResource {
@@ -156,7 +157,7 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 	}
 
 	// Create the recovery-status resource and register the core Session services.
-	statusRes := NewStatusResourceWithSession(
+	statusRes := status.NewStatusResourceWithSession(
 		b,
 		sess,
 		recoveryStatusRegistry.GetSessionRecoveryStatusCtr(sess),

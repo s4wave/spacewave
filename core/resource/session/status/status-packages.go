@@ -1,6 +1,6 @@
 //go:build !js
 
-package resource_session
+package status
 
 import (
 	"context"

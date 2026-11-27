@@ -16,7 +16,7 @@ import (
 	resource_debugdb "github.com/s4wave/spacewave/core/resource/debugdb"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
-	resource_session "github.com/s4wave/spacewave/core/resource/session"
+	"github.com/s4wave/spacewave/core/resource/session/status"
 	"github.com/s4wave/spacewave/core/session"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"github.com/sirupsen/logrus"
@@ -58,7 +58,7 @@ type CoreRootServer struct {
 	webListeners *webListenerRegistry
 	// recoveryStatusRegistry owns volatile renderer recovery facts by logical
 	// session across separately mounted SessionResources.
-	recoveryStatusRegistry *resource_session.RecoveryStatusRegistry
+	recoveryStatusRegistry *status.RecoveryStatusRegistry
 	// bindingRegistry wakes binding watches for this Resource root.
 	bindingRegistry *process_binding.BindingRegistry
 
@@ -92,7 +92,7 @@ func NewCoreRootServer(
 	s.stateAtomMgr = newStateAtomManager(s)
 	s.cdnRegistry = resource_cdn.NewRegistry(le, b)
 	s.webListeners = newWebListenerRegistry(le)
-	s.recoveryStatusRegistry = resource_session.NewRecoveryStatusRegistry()
+	s.recoveryStatusRegistry = status.NewRecoveryStatusRegistry()
 	return s
 }
 
