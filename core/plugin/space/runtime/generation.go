@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_core "github.com/s4wave/spacewave/bldr/core"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	"github.com/s4wave/spacewave/bldr/storage"
@@ -94,6 +95,66 @@ func (g *Generation) GetSpaceController() *plugin_space.Controller {
 // Done returns a channel closed after the generation is released.
 func (g *Generation) Done() <-chan struct{} {
 	return g.done
+}
+
+// AttachController installs a temporary controller on the generation's child bus.
+// The caller releases the returned route when its attachment ends.
+// A failed installation on a released generation returns nil, nil for retry.
+func (g *Generation) AttachController(ctx context.Context, ctrl controller.Controller) (func(), error) {
+	// Install the route without making its failure end the generation.
+	release, err := g.bus.AddController(ctx, ctrl, nil)
+	if err == nil {
+		return release, nil
+	}
+
+	// Retry a route whose generation finished during installation.
+	select {
+	case <-g.done:
+		return nil, nil
+	default:
+		return nil, err
+	}
+}
+
+// WaitForReleaseOr waits for release, event, or one of the caller's stop signals.
+// Nil channels disable their cases. Simultaneous signals have no priority.
+// Release returns true, -1. The event returns false, -1.
+// A caller stop returns false and its index in stops.
+func (g *Generation) WaitForReleaseOr(event <-chan struct{}, stops [4]<-chan struct{}) (bool, int) {
+	select {
+	case <-g.done:
+		return true, -1
+	case <-event:
+		return false, -1
+	case <-stops[0]:
+		return false, 0
+	case <-stops[1]:
+		return false, 1
+	case <-stops[2]:
+		return false, 2
+	case <-stops[3]:
+		return false, 3
+	}
+}
+
+// ObserveHosts reads the generation's plugin hosts and their next change waiter.
+func (g *Generation) ObserveHosts() ([]plugin_host.PluginHost, func(context.Context) error, error) {
+	return g.scheduler.GetHostState()
+}
+
+// ObservePluginStatus reads plugin status and waits for that exact snapshot to change.
+func (g *Generation) ObservePluginStatus() (*bldr_plugin.PluginStatusSnapshot, func(context.Context) error) {
+	status := g.scheduler.GetPluginStatusCtr()
+	snapshot := status.GetValue()
+	return snapshot, func(ctx context.Context) error {
+		_, err := status.WaitValueChange(ctx, snapshot, nil)
+		return err
+	}
+}
+
+// RestartPlugin ends the selected plugin execution so its scheduler starts it again.
+func (g *Generation) RestartPlugin(pluginID, instanceKey string) bool {
+	return g.scheduler.RestartPlugin(pluginID, instanceKey)
 }
 
 // start builds the child bus, bridges the parent infrastructure into it, and

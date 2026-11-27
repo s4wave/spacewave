@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
@@ -42,9 +43,11 @@ func NewAttachedRpcServiceController(prefix string, client srpc.Invoker) *Attach
 	}
 }
 
-// Ready returns a channel closed once the route can resolve calls.
-func (c *AttachedRpcServiceController) Ready() <-chan struct{} {
-	return c.ready
+// WaitReady waits until the route can resolve calls, its generation is released,
+// or a caller stop signal fires. It returns the release or stop selected by the
+// generation, with false, -1 indicating a ready route.
+func (c *AttachedRpcServiceController) WaitReady(gen *plugin_space_runtime.Generation, stops [4]<-chan struct{}) (bool, int) {
+	return gen.WaitForReleaseOr(c.ready, stops)
 }
 
 // Execute initializes the RPC service controller and then signals readiness.

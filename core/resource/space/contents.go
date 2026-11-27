@@ -217,20 +217,24 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 			}
 		}
 		if gen == installed {
-			select {
-			case <-strm.Context().Done():
-				return strm.Context().Err()
-			case <-resourceCtx.Context().Done():
-				return resourceCtx.Context().Err()
-			case <-r.ctx.Done():
-				return errSpaceContentsReleased
-			case <-clientDone:
-				return nil
-			case <-gen.Done():
+			released, stopped := gen.WaitForReleaseOr(nil, [4]<-chan struct{}{
+				strm.Context().Done(), resourceCtx.Context().Done(), r.ctx.Done(), clientDone,
+			})
+			if released {
 				installed = nil
 				release()
 				release = nil
 				continue
+			}
+			switch stopped {
+			case 0:
+				return strm.Context().Err()
+			case 1:
+				return resourceCtx.Context().Err()
+			case 2:
+				return errSpaceContentsReleased
+			default:
+				return nil
 			}
 		}
 
@@ -241,33 +245,36 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 			release = nil
 		}
 		ctrl := NewAttachedRpcServiceController(prefix, invoker)
-		release, err = gen.GetBus().AddController(strm.Context(), ctrl, nil)
+		release, err = gen.AttachController(strm.Context(), ctrl)
 		if err != nil {
-			select {
-			case <-gen.Done():
-				continue
-			default:
-			}
 			return err
+		}
+		if release == nil {
+			continue
 		}
 		installed = gen
 
 		// Wait until the route can answer before the first readiness response.
-		select {
-		case <-ctrl.Ready():
-		case <-strm.Context().Done():
-			return strm.Context().Err()
-		case <-resourceCtx.Context().Done():
-			return resourceCtx.Context().Err()
-		case <-r.ctx.Done():
-			return errSpaceContentsReleased
-		case <-clientDone:
-			return errors.New("attached resource ended before attached service was ready")
-		case <-gen.Done():
+		released, stopped := ctrl.WaitReady(gen, [4]<-chan struct{}{
+			strm.Context().Done(), resourceCtx.Context().Done(), r.ctx.Done(), clientDone,
+		})
+		if released {
 			installed = nil
 			release()
 			release = nil
 			continue
+		}
+		if stopped >= 0 {
+			switch stopped {
+			case 0:
+				return strm.Context().Err()
+			case 1:
+				return resourceCtx.Context().Err()
+			case 2:
+				return errSpaceContentsReleased
+			default:
+				return errors.New("attached resource ended before attached service was ready")
+			}
 		}
 		// Let focused lifecycle tests replace the Space runtime after its route is ready.
 		if r.afterAttachedRpcServiceReady != nil {
@@ -406,7 +413,7 @@ func (r *SpaceContentsResource) WatchState(
 		schedulerExecutions := map[string]*bldr_plugin.PluginExecutionStatus{}
 		var waitStatusChange, waitHostChange func(context.Context) error
 		if gen != nil {
-			_, hostChanged, hostErr := gen.GetScheduler().GetHostState()
+			_, hostChanged, hostErr := gen.ObserveHosts()
 			waitHostChange = hostChanged
 			if hostErr != nil {
 				runtimeErr = errors.Wrap(hostErr, "watch daemon plugin hosts")
@@ -420,15 +427,11 @@ func (r *SpaceContentsResource) WatchState(
 			requested, requestedCh = gen.GetSpaceController().GetRequestedPluginIDsAndWaitCh()
 			requestedIDs = pluginids.Missing(slices.Concat(pluginIDs, accountIDs), requested)
 
-			statusCtr := gen.GetScheduler().GetPluginStatusCtr()
-			statusSnapshot := statusCtr.GetValue()
+			var statusSnapshot *bldr_plugin.PluginStatusSnapshot
+			statusSnapshot, waitStatusChange = gen.ObservePluginStatus()
 			schedulerStatuses = schedulerRowsByPluginID(statusSnapshot.GetPlugins(), r.spaceID)
 			schedulerManifests = schedulerRowsByPluginID(statusSnapshot.GetManifestRecovery(), r.spaceID)
 			schedulerExecutions = schedulerRowsByPluginID(statusSnapshot.GetExecutions(), r.spaceID)
-			waitStatusChange = func(waitCtx context.Context) error {
-				_, err := statusCtr.WaitValueChange(waitCtx, statusSnapshot, nil)
-				return err
-			}
 		}
 		plugins := make([]*s4wave_space.SpacePluginStatus, 0, len(pluginIDs)+len(accountIDs))
 		for i, pid := range slices.Concat(pluginIDs, accountIDs) {
@@ -725,7 +728,7 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 		return cached, nil
 	}
 
-	// Rebuild the catalog and cache it.
+	// Rebuild the catalog from the current manifest refs.
 	lookupManifest := r.lookupManifest
 	if lookupManifest == nil {
 		lookupManifest = bldr_manifest_world.LookupManifest
@@ -734,6 +737,8 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 	if err != nil {
 		return nil, err
 	}
+
+	// Cache the rebuilt catalog under its manifest fingerprint.
 	r.mu.Lock()
 	r.availablePluginManifestRefs = slices.Clone(manifestRefs)
 	r.availablePlugins = cloneAvailablePlugins(availablePlugins)
@@ -892,7 +897,7 @@ func (r *SpaceContentsResource) RestartPlugin(
 	if gen == nil {
 		return nil, errors.New("space plugin runtime is not running")
 	}
-	if !gen.GetScheduler().RestartPlugin(pluginID, r.spaceID) {
+	if !gen.RestartPlugin(pluginID, r.spaceID) {
 		return nil, errors.Errorf("plugin %s is not loaded in this space", pluginID)
 	}
 	r.le.Infof("restarted plugin %s", pluginID)
