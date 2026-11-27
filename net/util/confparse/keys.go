@@ -66,7 +66,7 @@ func ParsePublicKey(pubKeyStr string) (crypto.PubKey, error) {
 
 	// Parse the public key as PEM when its header selects that encoding.
 	if strings.HasPrefix(pubKeyStr, "-----BEGIN") {
-		return ParsePublicKeyPEM([]byte(pubKeyStr))
+		return parsePublicKeyPEM([]byte(pubKeyStr))
 	}
 
 	// Decode the public key from its base58 representation.
@@ -104,7 +104,7 @@ func ParsePrivateKey(privKeyStr string) (crypto.PrivKey, error) {
 
 	// Parse the private key as PEM when its header selects that encoding.
 	if strings.HasPrefix(privKeyStr, "-----BEGIN") {
-		return ParsePrivateKeyPEM([]byte(privKeyStr))
+		return parsePrivateKeyPEM([]byte(privKeyStr))
 	}
 
 	// Decode the private key from its base58 representation.
@@ -127,34 +127,4 @@ func MarshalPrivateKey(key crypto.PrivKey) (string, error) {
 		return "", err
 	}
 	return b58.Encode(data), nil
-}
-
-// ValidatePubKey checks if a public key is set and valid.
-//
-// if the peer id is given, checks if it matches
-func ValidatePubKey(id string, peerID peer.ID) error {
-	// Require a configured public key before checking its peer identity.
-	pkey, err := ParsePublicKey(id)
-	if err == nil && pkey == nil {
-		err = errors.New("pub_key cannot be empty")
-	}
-	if err != nil || len(peerID) == 0 {
-		return err
-	}
-
-	// Reject a public key whose identity differs from the configured peer.
-	if !peerID.MatchesPublicKey(pkey) {
-		pkeyID, err := peer.IDFromPublicKey(pkey)
-		if err != nil {
-			return err
-		}
-
-		return errors.Errorf(
-			"pub_key id %s does not match peer_id %s",
-			pkeyID.String(),
-			peerID.String(),
-		)
-	}
-
-	return nil
 }

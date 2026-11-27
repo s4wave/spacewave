@@ -27,11 +27,8 @@ type LookupRpcService interface {
 // Multiple results may be pushed to the directive.
 type LookupRpcServiceValue = srpc.Invoker
 
-// LookupRpcServiceResolver resolves LookupRpcService with an Invoker.
-type LookupRpcServiceResolver = *directive.ValueResolver[LookupRpcServiceValue]
-
 // NewLookupRpcServiceResolver constructs a new LookupRpcServiceResolver directive.
-func NewLookupRpcServiceResolver(invoker srpc.Invoker) LookupRpcServiceResolver {
+func NewLookupRpcServiceResolver(invoker srpc.Invoker) *directive.ValueResolver[LookupRpcServiceValue] {
 	return directive.NewValueResolver([]LookupRpcServiceValue{invoker})
 }
 
@@ -87,7 +84,7 @@ func ExLookupRpcService(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// It checks whether the directive arguments are present.
 func (d *lookupRpcService) Validate() error {
 	if d.serviceID == "" {
 		return srpc.ErrEmptyServiceID

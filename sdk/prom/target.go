@@ -190,3 +190,25 @@ func ReadTarget(ctx context.Context, ws world.WorldState, key string) (*TargetMe
 func ListTargets(ctx context.Context, ws world.WorldState) ([]string, error) {
 	return world_types.ListObjectsWithType(ctx, ws, TargetTypeID)
 }
+
+// WalkTargets reads each target's meta and status in ws and calls visit in
+// ListTargets order. It stops at the first read or visitor error.
+func WalkTargets(ctx context.Context, ws world.WorldState, visit func(string, *TargetMeta, *TargetStatus) error) error {
+	// Resolve the target keys in the caller's World state.
+	keys, err := ListTargets(ctx, ws)
+	if err != nil {
+		return err
+	}
+
+	// Decode one target at a time before handing it to the caller.
+	for _, key := range keys {
+		meta, status, err := ReadTarget(ctx, ws, key)
+		if err != nil {
+			return err
+		}
+		if err := visit(key, meta, status); err != nil {
+			return err
+		}
+	}
+	return nil
+}

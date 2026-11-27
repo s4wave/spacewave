@@ -12,7 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestPrefixClientValueSatisfiesSRPCClient checks the value published by the controller.
 func TestPrefixClientValueSatisfiesSRPCClient(t *testing.T) {
+	// Construct the client controller with one service prefix.
 	ctrl := NewClientController(
 		logrus.NewEntry(logrus.New()),
 		nil,
@@ -20,7 +22,9 @@ func TestPrefixClientValueSatisfiesSRPCClient(t *testing.T) {
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux()))),
 		[]string{"plugin-host/"},
 	)
-	var val directive.Value = ctrl.GetClient()
+
+	// Check the same prefixed client the directive resolver publishes.
+	var val directive.Value = ctrl.client
 	if _, ok := val.(srpc.Client); !ok {
 		t.Fatal("expected prefixed client value to satisfy srpc.Client")
 	}

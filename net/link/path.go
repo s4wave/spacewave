@@ -13,18 +13,6 @@ const (
 	PathRelay
 )
 
-// String returns the path's lower-case name.
-func (p Path) String() string {
-	switch p {
-	case PathDirect:
-		return "direct"
-	case PathRelay:
-		return "relay"
-	default:
-		return "unknown"
-	}
-}
-
 // PathLink is a Link or MountedLink that reports its current path.
 type PathLink interface {
 	// GetPath returns how the link reaches its remote peer now. The path can

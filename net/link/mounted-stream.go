@@ -38,33 +38,30 @@ type MountedStreamHandler interface {
 	HandleMountedStream(ctx context.Context, ms MountedStream) error
 }
 
-// MountedStreamContext is the value attached to a Context containing
-// information about the current mounted stream.
-type MountedStreamContext = MountedStream
-
 // mountedStreamContextKey is the context key used for WithValue.
 type mountedStreamContextKey struct{}
 
-// WithMountedStreamContext attaches a MountedStreamContext to a Context.
-func WithMountedStreamContext(ctx context.Context, msc MountedStreamContext) context.Context {
+// WithMountedStreamContext attaches a MountedStream to a Context.
+func WithMountedStreamContext(ctx context.Context, msc MountedStream) context.Context {
 	return context.WithValue(ctx, mountedStreamContextKey{}, msc)
 }
 
-// GetMountedStreamContext returns the MountedStreamContext from the Context or nil if unset.
-func GetMountedStreamContext(ctx context.Context) MountedStreamContext {
+// GetMountedStreamContext returns the MountedStream from the Context or nil if unset.
+func GetMountedStreamContext(ctx context.Context) MountedStream {
+	// Recover the mounted stream stored under the package context key.
 	val := ctx.Value(mountedStreamContextKey{})
-	msc, ok := val.(MountedStreamContext)
+	msc, ok := val.(MountedStream)
 	if !ok || msc == nil {
 		return nil
 	}
 	return msc
 }
 
-// ErrNoMountedStreamContext is returned if there was no MountedStreamContext.
+// ErrNoMountedStreamContext is returned if the context has no mounted stream.
 var ErrNoMountedStreamContext = errors.New("no mounted stream context")
 
-// MustGetMountedStreamContext returns the MountedStreamContext from the Context or an error if unset.
-func MustGetMountedStreamContext(ctx context.Context) (MountedStreamContext, error) {
+// MustGetMountedStreamContext returns the MountedStream from the Context or an error if unset.
+func MustGetMountedStreamContext(ctx context.Context) (MountedStream, error) {
 	msc := GetMountedStreamContext(ctx)
 	if msc == nil {
 		return nil, ErrNoMountedStreamContext

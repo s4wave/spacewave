@@ -102,22 +102,14 @@ func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, er
 		return v.volPeer, nil
 	}
 
-	// Read and validate the remote volume private-key response.
+	// Read the remote volume private-key response.
 	resp, err := v.client.GetPeerPriv(ctx, &volume_rpc.GetPeerPrivRequest{})
-	if err == nil {
-		err = resp.Validate()
-	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Decode the remote private key before constructing the volume peer.
-	privKey, err := resp.ParsePrivKey()
-	if err != nil {
-		return nil, err
-	}
-
-	return peer.NewPeer(privKey)
+	// Let the response decode and validate the volume peer once.
+	return resp.ParsePeer()
 }
 
 // LoadPeerPriv attempts to load the volume private key.

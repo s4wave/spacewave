@@ -18,23 +18,19 @@ func (s *queryService) WatchTargets(_ *s4wave_prom.WatchTargetsRequest, strm s4w
 	first := true
 	return watchWorld(strm.Context(), s.eng, watchTargetsGap, func(ctx context.Context, ws world.WorldState) error {
 		// Read every target.
-		keys, err := s4wave_prom.ListTargets(ctx, ws)
-		if err != nil {
-			return err
-		}
 		resp := &s4wave_prom.WatchTargetsResponse{}
-		seen := make(map[string]struct{}, len(keys))
-		for _, key := range keys {
-			meta, status, err := s4wave_prom.ReadTarget(ctx, ws, key)
-			if err != nil {
-				return err
-			}
+		seen := make(map[string]struct{}, len(sent))
+		err := s4wave_prom.WalkTargets(ctx, ws, func(key string, meta *s4wave_prom.TargetMeta, status *s4wave_prom.TargetStatus) error {
 			info := &s4wave_prom.TargetInfo{ObjectKey: key, Meta: meta, Status: status}
 			seen[key] = struct{}{}
 			if !sent[key].EqualVT(info) {
 				resp.Changed = append(resp.Changed, info)
 				sent[key] = info
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
 		// Collect the removed targets.

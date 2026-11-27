@@ -2,7 +2,6 @@ package confparse
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
@@ -28,13 +27,4 @@ func ParseTimestamp(timestampStr string) (*timestamppb.Timestamp, error) {
 	}
 
 	return ts, nil
-}
-
-// MarshalTimestamp marshals a timestamp to a RFC3339 string.
-// This format is also supported by proto3.
-func MarshalTimestamp(ts *timestamppb.Timestamp) string {
-	if ts == nil {
-		return ""
-	}
-	return ts.AsTime().Format(time.RFC3339)
 }

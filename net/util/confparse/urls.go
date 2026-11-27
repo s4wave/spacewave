@@ -15,15 +15,6 @@ func ParseURL(uri string) (*url.URL, error) {
 	return url.Parse(uri)
 }
 
-// ValidateURL checks if a URL is set and valid.
-func ValidateURL(uri string, allowEmpty bool) error {
-	url, err := ParseURL(uri)
-	if err == nil && (url == nil && !allowEmpty) {
-		err = errors.New("url cannot be empty")
-	}
-	return err
-}
-
 // ParseURLs parses a list of urls.
 //
 // Removes any empty values.

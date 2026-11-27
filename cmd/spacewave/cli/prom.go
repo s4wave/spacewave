@@ -123,7 +123,10 @@ type promTargetCreateArgs struct {
 // BuildFlags returns the create flags.
 func (a *promTargetCreateArgs) BuildFlags() []cli.Flag {
 	return append(a.promArgs.BuildFlags(),
-		&cli.StringFlag{Name: "url", Usage: "exporter metrics URL, or " + s4wave_prom.DeviceMetricsURL + " for the Device's own Spacewave process", Required: true, Destination: &a.url},
+		&cli.StringFlag{
+			Name: "url", Usage: "exporter metrics URL, or " + s4wave_prom.DeviceMetricsURL + " for the Device's own Spacewave process",
+			Required: true, Destination: &a.url,
+		},
 		&cli.StringFlag{Name: "job", Usage: "job label of every series", Required: true, Destination: &a.job},
 		&cli.StringFlag{Name: "instance", Usage: "instance label of every series (default: the URL host)", Destination: &a.instance},
 		&cli.StringSliceFlag{Name: "label", Usage: "extra NAME=VALUE label of every series", Destination: &a.labels},
@@ -327,18 +330,10 @@ func (a *promTargetListArgs) Run(c *cli.Context) error {
 	var rows []row
 	err := a.withSpace(c, func(_ *sdkClient, _ s4wave_space.SRPCSpaceResourceServiceClient, engine world.Engine) error {
 		return world.ExecTransaction(c.Context, engine, false, func(ctx context.Context, tx world.WorldState) error {
-			keys, err := s4wave_prom.ListTargets(ctx, tx)
-			if err != nil {
-				return err
-			}
-			for _, key := range keys {
-				meta, status, err := s4wave_prom.ReadTarget(ctx, tx, key)
-				if err != nil {
-					return err
-				}
+			return s4wave_prom.WalkTargets(ctx, tx, func(key string, meta *s4wave_prom.TargetMeta, status *s4wave_prom.TargetStatus) error {
 				rows = append(rows, row{key: key, meta: meta, status: status})
-			}
-			return nil
+				return nil
+			})
 		})
 	})
 	if err != nil {

@@ -189,10 +189,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer fwdDevtoolRpcRef.Release()
 
-	// get the srpc.Client for the devtool
+	// Keep the devtool controller for calls without service prefix stripping.
 	fwdDevtoolCtrl := fwdDevtoolCtrlI.(*stream_srpc_client_controller.Controller)
-	devtoolPrefixClient, devtoolBaseClient := fwdDevtoolCtrl.GetClient(), fwdDevtoolCtrl.GetBaseClient()
-	_ = devtoolPrefixClient
 
 	// forward LookupVolume directives via RPC to the devtool
 	devtoolVolumeInfo := devtoolInfo.GetDevtoolVolumeInfo()
@@ -202,7 +200,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		le,
 		devtoolVolumeInfo,
 		[]string{devtoolVolumeID},
-		devtoolBaseClient,
+		fwdDevtoolCtrl,
 		devtool_web.HostVolumeServiceIDPrefix,
 	)
 	relDevtoolVolumeController, err := b.AddController(ctx, devtoolVolumeController, func(err error) {

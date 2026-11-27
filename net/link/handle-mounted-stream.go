@@ -28,9 +28,6 @@ type HandleMountedStream interface {
 	HandleMountedStreamRemotePeerID() peer.ID
 }
 
-// HandleMountedStreamValue is the value type for HandleMountedStream.
-type HandleMountedStreamValue = MountedStreamHandler
-
 // handleMountedStream implements HandleMountedStream with a protocol ID and
 // peer ID.
 type handleMountedStream struct {
@@ -70,7 +67,7 @@ func (d *handleMountedStream) HandleMountedStreamRemotePeerID() peer.ID {
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// It checks whether the directive arguments are present.
 func (d *handleMountedStream) Validate() error {
 	if len(d.localPeerID) == 0 {
 		return errors.New("local peer id required")

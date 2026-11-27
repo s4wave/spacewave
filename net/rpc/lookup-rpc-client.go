@@ -27,14 +27,6 @@ type LookupRpcClient interface {
 // Multiple results may be pushed to the directive.
 type LookupRpcClientValue = srpc.Client
 
-// LookupRpcClientResolver resolves LookupRpcClient with an Invoker.
-type LookupRpcClientResolver = *directive.ValueResolver[LookupRpcClientValue]
-
-// NewLookupRpcClientResolver constructs a new LookupRpcClientResolver directive.
-func NewLookupRpcClientResolver(client srpc.Client) LookupRpcClientResolver {
-	return directive.NewValueResolver([]LookupRpcClientValue{client})
-}
-
 // lookupRpcClient implements LookupRpcClient.
 type lookupRpcClient struct {
 	serviceID string
@@ -53,7 +45,7 @@ func NewLookupRpcClient(serviceID, clientID string) LookupRpcClient {
 // Otherwise returns nil, nil, err
 // If waitOne is set, waits for at least one value before returning.
 // disposeCb is called if the directive or any of the clients is released.
-// disposeCb is optional
+// disposeCb is optional.
 func ExLookupRpcClient(
 	ctx context.Context,
 	b bus.Bus,
@@ -82,7 +74,7 @@ func ExLookupRpcClient(
 // Returns ErrServiceClientUnavailable if no clients are returned.
 // If waitOne is set, waits for at least one value before returning.
 // disposeCb is called if the directive or any of the clients is released.
-// disposeCb is optional
+// disposeCb is optional.
 func ExLookupRpcClientSet(
 	ctx context.Context,
 	b bus.Bus,
@@ -101,7 +93,7 @@ func ExLookupRpcClientSet(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// It checks whether the directive arguments are present.
 func (d *lookupRpcClient) Validate() error {
 	if d.serviceID == "" {
 		return srpc.ErrEmptyServiceID

@@ -51,14 +51,15 @@ func (c *ClientController) GetControllerInfo() *controller.Info {
 	return c.info.Clone()
 }
 
-// GetClient returns the prefixed client.
-func (c *ClientController) GetClient() *srpc.PrefixClient {
-	return c.client
+// ExecCall calls the remote service without stripping its service ID.
+// Service prefixes apply only to clients resolved through LookupRpcClient.
+func (c *ClientController) ExecCall(ctx context.Context, service, method string, in, out srpc.Message) error {
+	return c.baseClient.ExecCall(ctx, service, method, in, out)
 }
 
-// GetBaseClient returns the client without the prefix stripping.
-func (c *ClientController) GetBaseClient() srpc.Client {
-	return c.baseClient
+// NewStream opens a remote stream without stripping its service ID.
+func (c *ClientController) NewStream(ctx context.Context, service, method string, firstMsg srpc.Message) (srpc.Stream, error) {
+	return c.baseClient.NewStream(ctx, service, method, firstMsg)
 }
 
 // Execute executes the controller.
@@ -80,7 +81,7 @@ func (c *ClientController) HandleDirective(
 				return nil, nil
 			}
 		}
-		return directive.R(NewLookupRpcClientResolver(c.client), nil)
+		return directive.R(directive.NewValueResolver([]LookupRpcClientValue{c.client}), nil)
 	}
 	return nil, nil
 }
@@ -92,4 +93,7 @@ func (c *ClientController) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = (*ClientController)(nil)
+var (
+	_ controller.Controller = (*ClientController)(nil)
+	_ srpc.Client           = (*ClientController)(nil)
+)

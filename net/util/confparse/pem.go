@@ -7,9 +7,9 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 )
 
-// ParsePublicKeyPEM parses the public key from a configuration.
+// parsePublicKeyPEM parses the public key from a configuration.
 // If there is no public key specified, returns nil, nil.
-func ParsePublicKeyPEM(pubKeyDat []byte) (crypto.PubKey, error) {
+func parsePublicKeyPEM(pubKeyDat []byte) (crypto.PubKey, error) {
 	// Treat an empty PEM public-key setting as an absent key.
 	if len(pubKeyDat) == 0 {
 		return nil, nil
@@ -35,9 +35,9 @@ func MarshalPublicKeyPEM(key crypto.PubKey) ([]byte, error) {
 	return keypem.MarshalPubKeyPem(key)
 }
 
-// ParsePrivateKeyPEM parses the private key from a configuration.
+// parsePrivateKeyPEM parses the private key from a configuration.
 // If there is no private key specified, returns nil, nil.
-func ParsePrivateKeyPEM(privKeyDat []byte) (crypto.PrivKey, error) {
+func parsePrivateKeyPEM(privKeyDat []byte) (crypto.PrivKey, error) {
 	// Treat an empty PEM private-key setting as an absent key.
 	if len(privKeyDat) == 0 {
 		return nil, nil

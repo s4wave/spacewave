@@ -30,27 +30,3 @@ func ParseProtocolIDs(ids []string, allowEmpty bool) ([]protocol.ID, error) {
 	}
 	return pids, nil
 }
-
-// ParseProtocolIDsUnique parses a list of protocol IDs and dedupes.
-func ParseProtocolIDsUnique(ids []string, allowEmpty bool) ([]protocol.ID, error) {
-	m := make(map[protocol.ID]struct{})
-	o := make([]protocol.ID, 0, len(ids))
-	for i, s := range ids {
-		pid, err := ParseProtocolID(s, allowEmpty)
-		if err != nil {
-			return nil, errors.Wrapf(err, "protocol_ids[%d]", i)
-		}
-		if _, ok := m[pid]; ok {
-			continue
-		}
-		m[pid] = struct{}{}
-		o = append(o, pid)
-	}
-	return o, nil
-}
-
-// ValidateProtocolID checks if a protocol ID is valid.
-func ValidateProtocolID(id string, allowEmpty bool) error {
-	_, err := ParseProtocolID(id, allowEmpty)
-	return err
-}

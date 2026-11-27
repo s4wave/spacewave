@@ -20,21 +20,27 @@ func TestGetPeerPrivResponse(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Build and validate the private-key response.
+	// Build the private-key response.
 	resp, err := NewGetPeerPrivResponse(privKey)
-	if err == nil {
-		err = resp.Validate()
-	}
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Verify parsing the response recovers the original private key.
-	parsedPriv, err := resp.ParsePrivKey()
+	// Verify the response reconstructs the original peer and private key.
+	parsedPeer, err := resp.ParsePeer()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !parsedPriv.Equals(privKey) {
+	parsedPriv, err := parsedPeer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !parsedPriv.Equals(privKey) || parsedPeer.GetPeerID() != testPeer.GetPeerID() {
 		t.Fail()
+	}
+
+	// Preserve the required-key error for an empty response.
+	if _, err := (&GetPeerPrivResponse{}).ParsePeer(); err != peer.ErrNoPrivKey {
+		t.Fatalf("empty response: got %v, want %v", err, peer.ErrNoPrivKey)
 	}
 }

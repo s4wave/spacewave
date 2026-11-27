@@ -212,21 +212,17 @@ func StarterDashboard(jobs []string) *Dashboard {
 // TargetJobs returns the sorted job labels of the World's targets.
 func TargetJobs(ctx context.Context, ws world.WorldState) ([]string, error) {
 	// Collect each target's job label.
-	keys, err := ListTargets(ctx, ws)
-	if err != nil {
-		return nil, err
-	}
 	seen := make(map[string]bool)
-	for _, key := range keys {
-		meta, _, err := ReadTarget(ctx, ws, key)
-		if err != nil {
-			return nil, err
-		}
+	err := WalkTargets(ctx, ws, func(_ string, meta *TargetMeta, _ *TargetStatus) error {
 		for _, l := range meta.GetLabels().GetLabels() {
 			if l.GetName() == "job" {
 				seen[l.GetValue()] = true
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Return them sorted.

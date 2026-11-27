@@ -9,11 +9,3 @@ func ParseDuration(dur string) (time.Duration, error) {
 	}
 	return time.ParseDuration(dur)
 }
-
-// MarshalDuration marshals a duration to a string.
-func MarshalDuration(dur time.Duration, ignoreEmpty bool) string {
-	if dur == 0 && !ignoreEmpty {
-		return ""
-	}
-	return dur.String()
-}

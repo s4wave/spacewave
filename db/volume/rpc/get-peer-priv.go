@@ -15,17 +15,17 @@ func NewGetPeerPrivResponse(privKey crypto.PrivKey) (*GetPeerPrivResponse, error
 	return &GetPeerPrivResponse{PrivKey: privKeyTxt}, nil
 }
 
-// Validate validates the response object.
-func (r *GetPeerPrivResponse) Validate() error {
-	privKey, err := r.ParsePrivKey()
-	if err == nil && privKey == nil {
-		return peer.ErrNoPrivKey
+// ParsePeer constructs the volume peer from the response's required private key.
+func (r *GetPeerPrivResponse) ParsePeer() (peer.Peer, error) {
+	// Decode the response and require the private key promised by this RPC.
+	privKey, err := confparse.ParsePrivateKey(r.GetPrivKey())
+	if err != nil {
+		return nil, err
 	}
-	return err
-}
+	if privKey == nil {
+		return nil, peer.ErrNoPrivKey
+	}
 
-// ParsePrivKey parses the private key field.
-// Returns nil, nil if the response field was empty.
-func (r *GetPeerPrivResponse) ParsePrivKey() (crypto.PrivKey, error) {
-	return confparse.ParsePrivateKey(r.GetPrivKey())
+	// Construct the peer only after its private key is available.
+	return peer.NewPeer(privKey)
 }
