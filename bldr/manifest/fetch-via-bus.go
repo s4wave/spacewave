@@ -2,57 +2,28 @@ package bldr_manifest
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/util/valuelist"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
-// ManifestFetchViaBusControllerID is the controller ID used for ManifestFetchViaBus.
-const ManifestFetchViaBusControllerID = "bldr/manifest/fetch-via-bus"
-
-// ManifestFetchViaBusVersion is the controller version used for ManifestFetchViaBus.
-var ManifestFetchViaBusVersion = controller.MustParseVersion("0.0.1")
-
-// ManifestFetchViaBus implements the ManifestFetch service.
-type ManifestFetchViaBus struct {
+// manifestFetchViaBus implements the ManifestFetch service.
+type manifestFetchViaBus struct {
 	le *logrus.Entry
 	b  bus.Bus
 }
 
-// NewManifestFetchViaBus constructs a new ManifestFetchViaBus implementation.
-func NewManifestFetchViaBus(le *logrus.Entry, b bus.Bus) *ManifestFetchViaBus {
-	return &ManifestFetchViaBus{le: le, b: b}
-}
-
-// NewManifestFetchViaBusController constructs a new controller resolving
-// LookupRpcService with the FetchManifestViaBus service.
-func NewManifestFetchViaBusController(le *logrus.Entry, b bus.Bus) *bifrost_rpc.InvokerController {
-	mux := srpc.NewMux()
-	f := NewManifestFetchViaBus(le, b)
-	_ = SRPCRegisterManifestFetch(mux, f)
-
-	return bifrost_rpc.NewInvokerController(
-		le,
-		b,
-		controller.NewInfo(
-			ManifestFetchViaBusControllerID,
-			ManifestFetchViaBusVersion,
-			"FetchManifest rpc to directive",
-		),
-		mux,
-		nil,
-	)
+// NewManifestFetchViaBus serves manifest fetch requests through the bus.
+func NewManifestFetchViaBus(le *logrus.Entry, b bus.Bus) SRPCManifestFetchServer {
+	return &manifestFetchViaBus{le: le, b: b}
 }
 
 // FetchManifest fetches a manifest by metadata.
-func (f *ManifestFetchViaBus) FetchManifest(
+func (f *manifestFetchViaBus) FetchManifest(
 	req *FetchManifestRequest,
 	strm SRPCManifestFetch_FetchManifestStream,
 ) error {
 	// Validate the request before fetching.
-	if err := req.Validate(); err != nil {
+	if err := req.validate(); err != nil {
 		return err
 	}
 
@@ -79,4 +50,4 @@ func (f *ManifestFetchViaBus) FetchManifest(
 }
 
 // _ is a type assertion
-var _ SRPCManifestFetchServer = (*ManifestFetchViaBus)(nil)
+var _ SRPCManifestFetchServer = (*manifestFetchViaBus)(nil)

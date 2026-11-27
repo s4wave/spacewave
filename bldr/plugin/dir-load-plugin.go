@@ -189,13 +189,13 @@ func waitRunningPluginClient(
 	return rp.GetRpcClient(), rpRef, nil
 }
 
-// ExPluginLoadAccess calls LoadPlugin and passes the running plugin to cb.
+// exPluginLoadAccess calls LoadPlugin and passes the running plugin to cb.
 //
 // The callback is canceled and restarted if the plugin becomes invalid. Its
 // context is canceled when the plugin value changes, and it should return
 // context.Canceled in that case. If the callback returns nil, so does
-// ExPluginLoadAccess.
-func ExPluginLoadAccess(
+// exPluginLoadAccess.
+func exPluginLoadAccess(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
@@ -253,7 +253,7 @@ func ExPluginLoadAccessClient(
 	pluginID string,
 	cb func(ctx context.Context, c srpc.Client) error,
 ) error {
-	return ExPluginLoadAccess(ctx, b, pluginID, func(ctx context.Context, rp RunningPlugin) error {
+	return exPluginLoadAccess(ctx, b, pluginID, func(ctx context.Context, rp RunningPlugin) error {
 		return cb(ctx, rp.GetRpcClient())
 	})
 }

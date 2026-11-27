@@ -25,9 +25,9 @@ func TestResolveLookupRpcServiceUsesPluginServiceIDPrefix(t *testing.T) {
 	}
 
 	// Verify the resolver targets the plugin and strips its service prefix.
-	got, ok := resolver.(*LookupRpcServiceResolver)
+	got, ok := resolver.(*lookupRpcServiceResolver)
 	if !ok {
-		t.Fatalf("expected LookupRpcServiceResolver, got %T", resolver)
+		t.Fatalf("expected lookupRpcServiceResolver, got %T", resolver)
 	}
 	if got.pluginID != "spacewave-notes" {
 		t.Fatalf("expected plugin id spacewave-notes, got %q", got.pluginID)
@@ -60,7 +60,7 @@ func TestResolveLookupRpcServiceHandlesNilReleaseFunc(t *testing.T) {
 	// must not defer a nil func call because that call panics (nil func
 	// value, pc=0x0) when the defer runs and crashes the whole plugin
 	// process.
-	resolver := NewLookupRpcServiceResolver(
+	resolver := newLookupRpcServiceResolver(
 		&nilReleaseClientHandler{client: &testForwardingClient{}},
 		"mercury-core",
 		"plugin/mercury-core/",

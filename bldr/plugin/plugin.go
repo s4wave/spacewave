@@ -49,14 +49,6 @@ func ParsePluginRpcComponentID(componentID string) (pluginID, instanceKey, manif
 	return
 }
 
-// Validate validates the PluginStatus object.
-func (s *PluginStatus) Validate() error {
-	if err := ValidatePluginID(s.GetPluginId(), false); err != nil {
-		return err
-	}
-	return nil
-}
-
 // Validate validates the LoadPlugin request.
 func (r *LoadPluginRequest) Validate() error {
 	if err := ValidatePluginID(r.GetPluginId(), false); err != nil {

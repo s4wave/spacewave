@@ -29,25 +29,25 @@ func TestLookupRpcClientReleasesBeforeReplacement(t *testing.T) {
 		invalidators <- invalidated
 		return &testForwardingClient{}, func() { releases.Add(1) }, nil
 	})
-	resolver := NewLookupRpcClientResolver(handler, "materializer", "")
+	resolver := newLookupRpcClientResolver(handler, "materializer", "")
 	done := make(chan error, 1)
 	go func() { done <- resolver.Resolve(ctx, stubResolverHandler{}) }()
 
 	// Start the resolver and capture the first published client.
 	// Invalidate the published client and observe a replacement publication.
-	first, err := resolver.GetRpcClientCtr().WaitValue(ctx, nil)
+	first, err := resolver.rpcClientCtr.WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	(<-invalidators)()
 
 	// Wait for the replacement publication after invalidation.
-	second, err := resolver.GetRpcClientCtr().WaitValueChange(ctx, first, nil)
+	second, err := resolver.rpcClientCtr.WaitValueChange(ctx, first, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if second == nil {
-		if _, err := resolver.GetRpcClientCtr().WaitValue(ctx, nil); err != nil {
+		if _, err := resolver.rpcClientCtr.WaitValue(ctx, nil); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
@@ -60,7 +60,7 @@ func TestLookupRpcClientReleasesBeforeReplacement(t *testing.T) {
 	if got := releases.Load(); got != 2 {
 		t.Fatalf("released %d clients, want 2", got)
 	}
-	if resolver.GetRpcClientCtr().GetValue() != nil {
+	if resolver.rpcClientCtr.GetValue() != nil {
 		t.Fatal("canceled resolver still publishes a client")
 	}
 }
@@ -73,21 +73,21 @@ func TestLookupRpcClientHostNeedsNoRelease(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// Resolve the host-owned client that needs no caller release.
-	resolver := NewLookupRpcClientResolver(&nilReleaseClientHandler{
+	resolver := newLookupRpcClientResolver(&nilReleaseClientHandler{
 		client: &testForwardingClient{},
 	}, "", "")
 	done := make(chan error, 1)
 	go func() { done <- resolver.Resolve(ctx, stubResolverHandler{}) }()
 
 	// Wait for a real publication before canceling the host lookup.
-	if _, err := resolver.GetRpcClientCtr().WaitValue(ctx, nil); err != nil {
+	if _, err := resolver.rpcClientCtr.WaitValue(ctx, nil); err != nil {
 		t.Fatal(err.Error())
 	}
 	cancel()
 	if err := <-done; !errors.Is(err, context.Canceled) {
 		t.Fatalf("resolver returned %v, want context canceled", err)
 	}
-	if resolver.GetRpcClientCtr().GetValue() != nil {
+	if resolver.rpcClientCtr.GetValue() != nil {
 		t.Fatal("canceled host lookup still publishes a client")
 	}
 }

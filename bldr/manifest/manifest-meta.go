@@ -16,28 +16,6 @@ func NewManifestMeta(manifestID string, buildType BuildType, platformID string, 
 	}
 }
 
-// UnmarshalManifestMetaB58 unmarshals a b58 manifest meta.
-func UnmarshalManifestMetaB58(str string) (*ManifestMeta, error) {
-	// Decode the base58 manifest metadata into protobuf bytes.
-	m := &ManifestMeta{}
-	data, err := b58.Decode(str)
-	if err != nil {
-		return nil, err
-	}
-
-	// Populate the manifest metadata from its decoded protobuf bytes.
-	if err := m.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// MustUnmarshalManifestB58 unmarshals ignoring any error.
-func MustUnmarshalManifestB58(str string) *ManifestMeta {
-	v, _ := UnmarshalManifestMetaB58(str)
-	return v
-}
-
 // Resolve resolves the platform ID to a fully qualified ID.
 //
 // returns a copy of the meta object w/ the platform id set.

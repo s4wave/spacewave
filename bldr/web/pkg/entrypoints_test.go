@@ -199,7 +199,7 @@ func TestResolveWebPkgEntrypointsNodeModuleSubpathExports(t *testing.T) {
 	}
 
 	// Resolve the package entrypoints without explicit subpaths.
-	got, err := ResolveWebPkgEntrypoints(pkgRoot, nil)
+	got, err := resolveWebPkgEntrypoints(pkgRoot, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestResolveWebPkgEntrypointsNodeModuleSubpathExports(t *testing.T) {
 	}
 
 	// Resolve the package entrypoints with the explicit language subpath.
-	got, err = ResolveWebPkgEntrypoints(pkgRoot, []WebPkgEntrypointConfig{{Path: "./langs"}})
+	got, err = resolveWebPkgEntrypoints(pkgRoot, []WebPkgEntrypointConfig{{Path: "./langs"}})
 	if err != nil {
 		t.Fatal(err)
 	}

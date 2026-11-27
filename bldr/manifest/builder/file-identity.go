@@ -55,7 +55,7 @@ func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 // content, or for a DirSuffix input the names of the matching files.
 func (f *InputManifest_File) CaptureIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 	if suffix := f.GetDirSuffix(); suffix != "" {
-		return CaptureDirIdentity(filePath, suffix)
+		return captureDirIdentity(filePath, suffix)
 	}
 	return CaptureFileIdentity(filePath)
 }
@@ -77,10 +77,10 @@ func (f *InputManifest_File) MatchesPath(filePath string) (bool, error) {
 	return bytes.Equal(recorded.GetSha256(), current.GetSha256()), nil
 }
 
-// CaptureDirIdentity captures the identity of the files directly in dirPath
+// captureDirIdentity captures the identity of the files directly in dirPath
 // whose names end in suffix: the digest of their sorted names, with their
 // count as the size. Their contents are not read.
-func CaptureDirIdentity(dirPath, suffix string) (*InputManifest_FileIdentity, error) {
+func captureDirIdentity(dirPath, suffix string) (*InputManifest_FileIdentity, error) {
 	// List the matching file names in order.
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {

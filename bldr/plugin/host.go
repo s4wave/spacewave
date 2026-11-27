@@ -1,7 +1,6 @@
 package bldr_plugin
 
 import (
-	"context"
 	"strings"
 )
 
@@ -139,34 +138,6 @@ const PluginAssetsServiceID = "plugin-assets/unixfs.rpc.FSCursorService"
 //
 // This service is exposed by the plugin host to the plugin.
 const PluginDistServiceID = "plugin-dist/unixfs.rpc.FSCursorService"
-
-// PluginHTTPPath adds the plugin http prefix to the given path.
-func PluginHTTPPath(pluginID string, httpPaths ...string) string {
-	// Build the plugin route prefix with a separator for the first path.
-	var sb strings.Builder
-	_, _ = sb.WriteString(PluginHttpPrefix)
-	_, _ = sb.WriteString(pluginID)
-	if len(httpPaths) == 0 || !strings.HasPrefix(httpPaths[0], "/") {
-		_, _ = sb.WriteString("/")
-	}
-
-	// Append the requested HTTP paths beneath the plugin route.
-	for _, httpPath := range httpPaths {
-		_, _ = sb.WriteString(httpPath)
-	}
-	return sb.String()
-}
-
-// PluginHTTPPathFromContext detects the current plugin from the context and
-// conditionally adds the plugin http path prefix to the given path.
-func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
-	info := GetPluginContextInfo(ctx)
-	pluginID := info.GetPluginMeta().GetPluginId()
-	if pluginID != "" {
-		return PluginHTTPPath(pluginID, httpPath)
-	}
-	return httpPath
-}
 
 // ParseHTTPPathPluginID parses and validates a {plugin-id}/ prefix from a HTTP path.
 func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err error) {

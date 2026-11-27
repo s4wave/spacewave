@@ -10,7 +10,7 @@ import (
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
-// LookupRpcClientHandler handles callbacks for LookupRpcClientResolver.
+// LookupRpcClientHandler handles callbacks for lookupRpcClientResolver.
 type LookupRpcClientHandler interface {
 	// WaitPluginHostClient waits for an RPC client for the plugin host.
 	//
@@ -31,12 +31,12 @@ type LookupRpcClientHandler interface {
 	WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error)
 }
 
-// LookupRpcClientResolver resolves LookupRpcClient with the plugin or plugin host.
+// lookupRpcClientResolver resolves LookupRpcClient with the plugin or plugin host.
 //
 // Resolves service IDs like:
 //   - plugin/{plugin-id}/{service id}
 //   - plugin-host/{service id}
-type LookupRpcClientResolver struct {
+type lookupRpcClientResolver struct {
 	// h supplies retained plugin clients.
 	h LookupRpcClientHandler
 	// pluginID identifies the plugin, or the host when empty.
@@ -47,13 +47,13 @@ type LookupRpcClientResolver struct {
 	stripServiceIDPrefix string
 }
 
-// NewLookupRpcClientResolver constructs a new LookupRpcClientResolver.
+// newLookupRpcClientResolver constructs a new lookupRpcClientResolver.
 //
 // Prefer ResolveLookupRpcClient in most cases.
 // If pluginID is empty, addresses the plugin host.
 // stripServiceIDPrefix is the prefix to strip from the service ID, if any.
-func NewLookupRpcClientResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *LookupRpcClientResolver {
-	return &LookupRpcClientResolver{
+func newLookupRpcClientResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *lookupRpcClientResolver {
+	return &lookupRpcClientResolver{
 		h:                    h,
 		pluginID:             pluginID,
 		stripServiceIDPrefix: stripServiceIDPrefix,
@@ -90,22 +90,16 @@ func ResolveLookupRpcClient(ctx context.Context, dir bifrost_rpc.LookupRpcClient
 		return nil, nil
 	}
 
-	return NewLookupRpcClientResolver(
+	return newLookupRpcClientResolver(
 		h,
 		pluginID,
 		stripServiceIDPrefix,
 	), nil
 }
 
-// GetRpcClientCtr returns the rpc client container.
-// The RPC client will be set when it becomes ready.
-func (r *LookupRpcClientResolver) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
-	return r.rpcClientCtr
-}
-
 // Resolve publishes the current plugin client until the directive ends. A
 // released client is cleared and relinquished before requesting its replacement.
-func (r *LookupRpcClientResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+func (r *lookupRpcClientResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	for {
 		retry, err := r.resolveClient(ctx, handler)
 		if err != nil || !retry {
@@ -117,7 +111,7 @@ func (r *LookupRpcClientResolver) Resolve(ctx context.Context, handler directive
 // resolveClient retains one client while its value is published. It returns true
 // when invalidation requires a replacement, false when the handler declines the
 // lookup, and an error when lookup or the parent context fails.
-func (r *LookupRpcClientResolver) resolveClient(ctx context.Context, handler directive.ResolverHandler) (bool, error) {
+func (r *lookupRpcClientResolver) resolveClient(ctx context.Context, handler directive.ResolverHandler) (bool, error) {
 	// A canceled parent context ends the resolution.
 	if err := ctx.Err(); err != nil {
 		return false, err
@@ -161,5 +155,5 @@ func (r *LookupRpcClientResolver) resolveClient(ctx context.Context, handler dir
 	return true, ctx.Err()
 }
 
-// LookupRpcClientResolver implements the directive resolver contract.
-var _ directive.Resolver = (*LookupRpcClientResolver)(nil)
+// lookupRpcClientResolver implements the directive resolver contract.
+var _ directive.Resolver = (*lookupRpcClientResolver)(nil)

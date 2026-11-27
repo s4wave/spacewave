@@ -41,7 +41,7 @@ func (c *BuilderConfig) Validate() error {
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
-	if _, err := c.ParsePeerID(); err != nil {
+	if _, err := c.parsePeerID(); err != nil {
 		return err
 	}
 
@@ -79,8 +79,8 @@ func withManifestCommitTimestamp(ctx context.Context, ts *timestamp.Timestamp) c
 	return context.WithValue(ctx, manifestCommitTimestampContextKey{}, ts.CloneVT())
 }
 
-// ParsePeerID parses the peer id field.
-func (c *BuilderConfig) ParsePeerID() (peer.ID, error) {
+// parsePeerID parses the peer id field.
+func (c *BuilderConfig) parsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
@@ -96,7 +96,7 @@ func (c *BuilderConfig) CommitManifest(
 	assetsFs billy.Filesystem,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	// Parse the peer id and capture the fixed commit timestamp.
-	pid, err := c.ParsePeerID()
+	pid, err := c.parsePeerID()
 	if err != nil {
 		return nil, nil, err
 	}

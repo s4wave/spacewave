@@ -21,17 +21,6 @@ func UnmarshalManifestRef(ctx context.Context, bcs *block.Cursor) (*ManifestRef,
 	return block.UnmarshalBlock[ManifestRef](ctx, bcs)
 }
 
-// CreateManifestRef creates the manifest ref at the block cursor.
-func CreateManifestRef(
-	bcs *block.Cursor,
-	meta *ManifestMeta,
-	ref *bucket.ObjectRef,
-) (*ManifestRef, error) {
-	manifestRef := NewManifestRef(meta.CloneVT(), ref.Clone())
-	bcs.SetBlock(manifestRef, true)
-	return manifestRef, nil
-}
-
 // IsNil checks if the object is nil.
 func (m *ManifestRef) IsNil() bool {
 	return m == nil
@@ -51,11 +40,6 @@ func (m *ManifestRef) Validate() error {
 		return errors.Wrap(err, "manifest_ref")
 	}
 	return nil
-}
-
-// FollowManifestRef follows the ManifestRef sub-block.
-func (m *ManifestRef) FollowManifestRef(bcs *block.Cursor) *block.Cursor {
-	return bcs.FollowSubBlock(2)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

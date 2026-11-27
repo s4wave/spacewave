@@ -29,33 +29,10 @@ func ValidateManifestID(id string, allowEmpty bool) error {
 	return nil
 }
 
-// Validate validates the request.
-func (f *FetchManifestRequest) Validate() error {
+// validate validates the request.
+func (f *FetchManifestRequest) validate() error {
 	if err := f.ToDirective().Validate(); err != nil {
 		return err
-	}
-	return nil
-}
-
-// Validate validates the FetchManifest response.
-func (r *FetchManifestResponse) Validate() error {
-	if !r.GetRemoved() && r.GetValueId() != 0 {
-		if err := r.GetValue().Validate(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Validate validates the FetchManifestValue.
-func (r *FetchManifestValue) Validate() error {
-	for i, ref := range r.GetManifestRefs() {
-		if ref.GetEmpty() {
-			return errors.Errorf("manifest_refs[%d]: cannot be empty", i)
-		}
-		if err := ref.Validate(); err != nil {
-			return errors.Wrapf(err, "manifest_refs[%d]", i)
-		}
 	}
 	return nil
 }
@@ -126,7 +103,8 @@ func CreateManifestWithBilly(
 
 // CreateManifestWithIoFS writes the manifest at the block cursor with io/fs.FS
 // instances for its dist and assets trees.
-// Note: does not yet support symlinks: https://github.com/golang/go/issues/49580
+//
+// Symlinks are not supported: https://github.com/golang/go/issues/49580.
 func CreateManifestWithIoFS(
 	ctx context.Context,
 	bcs *block.Cursor,
@@ -186,11 +164,6 @@ func (m *Manifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	n[3] = m.GetDistFsRef()
 	n[4] = m.GetAssetsFsRef()
 	return n, nil
-}
-
-// FollowDistFs follows the DistFsRef.
-func (m *Manifest) FollowDistFs(bcs *block.Cursor) *block.Cursor {
-	return bcs.FollowRef(3, m.GetDistFsRef())
 }
 
 // FollowAssetsFsRef follows the AssetsFsRef.

@@ -112,7 +112,7 @@ func (c *ProjectConfig) Validate() error {
 	if err := ValidateProjectID(c.GetId()); err != nil {
 		return err
 	}
-	if err := c.GetStart().Validate(); err != nil {
+	if err := c.GetStart().validate(); err != nil {
 		return errors.Wrap(err, "start")
 	}
 
@@ -135,15 +135,15 @@ func (c *ProjectConfig) Validate() error {
 
 	// Validate each build config.
 	for buildID, buildConf := range c.GetBuild() {
-		if err := buildConf.Validate(); err != nil {
+		if err := buildConf.validate(); err != nil {
 			return errors.Wrapf(err, "build[%s]: config invalid", buildID)
 		}
 	}
 	return nil
 }
 
-// Validate validates the build target configuration.
-func (c *BuildConfig) Validate() error {
+// validate validates the build target configuration.
+func (c *BuildConfig) validate() error {
 	if err := c.GetBuildPolicy().Validate(); err != nil {
 		return errors.Wrap(err, "build_policy")
 	}
@@ -187,8 +187,8 @@ func (c *RemoteConfig) CleanupLinkObjectKeys() (storeObjKey string, linkObjKeys 
 	return storeObjKey, linkObjKeys
 }
 
-// Validate validates the start configuration.
-func (c *StartConfig) Validate() error {
+// validate validates the start configuration.
+func (c *StartConfig) validate() error {
 	// Validate each plugin id in the start config.
 	for _, pluginID := range c.GetPlugins() {
 		if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {

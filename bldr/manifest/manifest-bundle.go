@@ -3,19 +3,9 @@ package bldr_manifest
 import (
 	"context"
 
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/sbset"
 )
-
-// NewManifestBundle constructs a new ManifestBundle.
-func NewManifestBundle(refs []*ManifestRef, ts *timestamp.Timestamp) *ManifestBundle {
-	return &ManifestBundle{
-		ManifestRefs: refs,
-		Timestamp:    ts,
-	}
-}
 
 // NewManifestBundleBlock constructs a new ManifestBundle block.
 func NewManifestBundleBlock() block.Block {
@@ -31,25 +21,6 @@ func UnmarshalManifestBundle(ctx context.Context, bcs *block.Cursor) (*ManifestB
 func NewManifestBundleEntryKey(bundleObjKey string, meta *ManifestMeta) (string, error) {
 	b := meta.MarshalB58()
 	return bundleObjKey + "/" + b, nil
-}
-
-// NewManifestBundleSubBlockCtor returns the sub-block constructor.
-func NewManifestBundleSubBlockCtor(r **ManifestBundle) block.SubBlockCtor {
-	if r == nil {
-		return nil
-	}
-	return func(create bool) block.SubBlock {
-		// Return the existing bundle or skip when not creating.
-		v := *r
-		if v != nil || !create {
-			return v
-		}
-
-		// Allocate the bundle and store it through the pointer.
-		v = &ManifestBundle{}
-		*r = v
-		return v
-	}
 }
 
 // IsNil checks if the object is nil.
@@ -70,12 +41,6 @@ func (m *ManifestBundle) Validate() error {
 	return nil
 }
 
-// FollowManifestRefs follows the ManifestRefs sub-block.
-func (m *ManifestBundle) FollowManifestRefs(bcs *block.Cursor) (*sbset.SubBlockSet, *block.Cursor) {
-	sbcs := bcs.FollowSubBlock(1)
-	return NewManifestRefSet(&m.ManifestRefs, sbcs), sbcs
-}
-
 // ApplySubBlock applies a sub-block change with a field id.
 func (m *ManifestBundle) ApplySubBlock(id uint32, next block.SubBlock) error {
 	// no-op
@@ -86,7 +51,7 @@ func (m *ManifestBundle) ApplySubBlock(id uint32, next block.SubBlock) error {
 // May return nil, and values may also be nil.
 func (m *ManifestBundle) GetSubBlocks() map[uint32]block.SubBlock {
 	v := make(map[uint32]block.SubBlock)
-	v[1] = NewManifestRefSet(&m.ManifestRefs, nil)
+	v[1] = newManifestRefSet(&m.ManifestRefs, nil)
 	return v
 }
 
@@ -95,7 +60,7 @@ func (m *ManifestBundle) GetSubBlocks() map[uint32]block.SubBlock {
 func (m *ManifestBundle) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
-		return NewManifestRefSetSubBlockCtor(&m.ManifestRefs)
+		return newManifestRefSetSubBlockCtor(&m.ManifestRefs)
 	}
 	return nil
 }

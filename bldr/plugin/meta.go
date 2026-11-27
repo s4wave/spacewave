@@ -2,8 +2,6 @@ package bldr_plugin
 
 import (
 	b58 "github.com/mr-tron/base58/base58"
-	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // NewPluginMeta constructs a new PluginMeta.
@@ -31,17 +29,6 @@ func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
 		return nil, err
 	}
 	return m, nil
-}
-
-// Validate checks the plugin meta.
-func (m *PluginMeta) Validate() error {
-	if err := labels.ValidateDNSLabel(m.GetProjectId()); err != nil {
-		return errors.Wrap(err, "project_id")
-	}
-	if err := labels.ValidateDNSLabel(m.GetPluginId()); err != nil {
-		return errors.Wrap(err, "plugin_id")
-	}
-	return nil
 }
 
 // MarshalB58 marshals the conf to a b58 string.

@@ -29,10 +29,10 @@ type HostPluginScheduler interface {
 	GetHostPluginIds() []string
 }
 
-// WaitHostPluginScheduler waits for the root host scheduler, the one with
+// waitHostPluginScheduler waits for the root host scheduler, the one with
 // instance key "", to be added to b itself. Schedulers that a runtime forwards
 // from a child bus never count: their host set is not the host bus's.
-func WaitHostPluginScheduler(ctx context.Context, b bus.Bus) (HostPluginScheduler, error) {
+func waitHostPluginScheduler(ctx context.Context, b bus.Bus) (HostPluginScheduler, error) {
 	var scheduler HostPluginScheduler
 	err := b.GetControllersBroadcast().Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
 		for _, ctrl := range b.GetControllers() {

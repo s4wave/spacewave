@@ -375,12 +375,12 @@ func TestRoutedInvoker_ConcurrentInvoke(t *testing.T) {
 	wg.Wait()
 }
 
-// --- NewRoutedClient tests ---
+// --- NewRoutedClientWithDone tests ---
 
 func TestRoutedClient_ExecCallPrependsPrefix(t *testing.T) {
 	// Create a recording client for the prefixed ExecCall.
 	rec := &recordingClient{}
-	rc := NewRoutedClient(rec, 42)
+	rc := NewRoutedClientWithDone(rec, 42, nil)
 
 	// Execute the call through the routed client.
 	err := rc.ExecCall(context.Background(), "foo.Service", "Bar", nil, nil)
@@ -407,7 +407,7 @@ func TestRoutedClient_ExecCallPrependsPrefix(t *testing.T) {
 func TestRoutedClient_NewStreamPrependsPrefix(t *testing.T) {
 	// Create a recording client for the prefixed stream.
 	rec := &recordingClient{}
-	rc := NewRoutedClient(rec, 7)
+	rc := NewRoutedClientWithDone(rec, 7, nil)
 
 	// Open a stream through the routed client.
 	_, err := rc.NewStream(context.Background(), "my.Svc", "DoThing", nil)
@@ -434,7 +434,7 @@ func TestRoutedClient_NewStreamPrependsPrefix(t *testing.T) {
 func TestRoutedClient_MethodPassesThrough(t *testing.T) {
 	// Create a recording client for both pass-through methods.
 	rec := &recordingClient{}
-	rc := NewRoutedClient(rec, 1)
+	rc := NewRoutedClientWithDone(rec, 1, nil)
 
 	// Invoke ExecCall and NewStream with their original methods.
 	rc.ExecCall(context.Background(), "svc", "MyMethod", nil, nil)
@@ -456,7 +456,7 @@ func TestRoutedClient_MethodPassesThrough(t *testing.T) {
 func TestRoutedClient_ZeroResourceID(t *testing.T) {
 	// Create a routed client with resource ID zero.
 	rec := &recordingClient{}
-	rc := NewRoutedClient(rec, 0)
+	rc := NewRoutedClientWithDone(rec, 0, nil)
 
 	// Execute a call through the zero-ID routed client.
 	rc.ExecCall(context.Background(), "svc", "m", nil, nil)
@@ -474,7 +474,7 @@ func TestRoutedClient_ZeroResourceID(t *testing.T) {
 func TestRoutedClient_LargeResourceID(t *testing.T) {
 	// Create a routed client with the largest uint32 resource ID.
 	rec := &recordingClient{}
-	rc := NewRoutedClient(rec, 4294967295) // max uint32
+	rc := NewRoutedClientWithDone(rec, 4294967295, nil) // max uint32
 
 	// Execute a call through the maximum-ID routed client.
 	rc.ExecCall(context.Background(), "svc", "m", nil, nil)
@@ -491,7 +491,7 @@ func TestRoutedClient_LargeResourceID(t *testing.T) {
 
 func TestRoutedClient_PropagatesExecError(t *testing.T) {
 	rec := &recordingClient{retErr: ErrClientReleased}
-	rc := NewRoutedClient(rec, 1)
+	rc := NewRoutedClientWithDone(rec, 1, nil)
 
 	err := rc.ExecCall(context.Background(), "svc", "m", nil, nil)
 	if err != ErrClientReleased {
@@ -501,7 +501,7 @@ func TestRoutedClient_PropagatesExecError(t *testing.T) {
 
 func TestRoutedClient_PropagatesStreamError(t *testing.T) {
 	rec := &recordingClient{strmErr: ErrClientReleased}
-	rc := NewRoutedClient(rec, 1)
+	rc := NewRoutedClientWithDone(rec, 1, nil)
 
 	_, err := rc.NewStream(context.Background(), "svc", "m", nil)
 	if err != ErrClientReleased {
@@ -509,7 +509,7 @@ func TestRoutedClient_PropagatesStreamError(t *testing.T) {
 	}
 }
 
-// --- Roundtrip: NewRoutedClient -> RoutedInvoker ---
+// --- Roundtrip: NewRoutedClientWithDone -> RoutedInvoker ---
 
 func TestRoutedRoundtrip(t *testing.T) {
 	// Register the invoker used to test a complete routed roundtrip.
@@ -517,7 +517,7 @@ func TestRoutedRoundtrip(t *testing.T) {
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(99, inv)
 
-	// Simulate what NewRoutedClient produces being consumed by RoutedInvoker.
+	// Simulate what NewRoutedClientWithDone produces being consumed by RoutedInvoker.
 	// The client prefixes "99/" to the service ID, and the invoker strips it.
 	prefixed := "99/" + "my.Package.Service"
 	found, err := ri.InvokeMethod(prefixed, "Execute", nil)

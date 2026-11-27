@@ -36,7 +36,7 @@ func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
 
 	// Record the TinyGo profile in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
-	addTinyGoStartupCacheInputs(inputManifest)
+	inputManifest.AddEnvStartupInputs(gocompiler.TinyGoStartupCacheEnvKeys())
 
 	// Require every TinyGo profile setting in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
@@ -57,7 +57,7 @@ func TestAddGoScriptStartupCacheInputsIgnoresCommandIdentity(t *testing.T) {
 	t.Setenv("BLDR_GOSCRIPT", "/opt/bin/goscript-dev")
 
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
-	addGoScriptStartupCacheInputs(inputManifest)
+	inputManifest.AddEnvStartupInputs(gocompiler.GoScriptStartupCacheEnvKeys())
 
 	if got := inputManifest.GetStartupInputs(); len(got) != 0 {
 		t.Fatalf("GoScript library compilation should not record command env startup inputs: %v", got)
@@ -70,7 +70,7 @@ func TestAddGoCompilerStartupCacheInputsIncludesModeIdentity(t *testing.T) {
 
 	// Record the default compiler mode in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
-	addGoCompilerStartupCacheInputs(inputManifest)
+	inputManifest.AddEnvStartupInputs(gocompiler.GoCompilerStartupCacheEnvKeys())
 
 	// Require the GoScript mode in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
@@ -91,7 +91,7 @@ func TestAddGoWasmOptimizeStartupCacheInputsIncludesOptimizerIdentity(t *testing
 
 	// Record the Go wasm optimizer setting in the input manifest.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
-	addGoWasmOptimizeStartupCacheInputs(inputManifest)
+	inputManifest.AddEnvStartupInputs(gocompiler.GoWasmOptimizeStartupCacheEnvKeys())
 
 	// Require the disabled optimizer setting in the manifest environment inputs.
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))

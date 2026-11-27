@@ -13,12 +13,12 @@ import (
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
-// LookupRpcServiceResolver resolves LookupRpcService with the plugin or plugin host.
+// lookupRpcServiceResolver resolves LookupRpcService with the plugin or plugin host.
 //
 // Resolves service IDs like:
 //   - plugin/{plugin-id}/{service id}
 //   - plugin-host/{service id}
-type LookupRpcServiceResolver struct {
+type lookupRpcServiceResolver struct {
 	// h is the handler.
 	h LookupRpcClientHandler
 	// pluginID is the plugin identifier.
@@ -29,13 +29,13 @@ type LookupRpcServiceResolver struct {
 	stripServiceIDPrefix string
 }
 
-// NewLookupRpcServiceResolver constructs a new LookupRpcServiceResolver.
+// newLookupRpcServiceResolver constructs a new lookupRpcServiceResolver.
 //
 // Prefer ResolveLookupRpcService in most cases.
 // If pluginID is empty, addresses the plugin host.
 // stripServiceIDPrefix is the prefix to strip from the service id, if any.
-func NewLookupRpcServiceResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *LookupRpcServiceResolver {
-	return &LookupRpcServiceResolver{
+func newLookupRpcServiceResolver(h LookupRpcClientHandler, pluginID, stripServiceIDPrefix string) *lookupRpcServiceResolver {
+	return &lookupRpcServiceResolver{
 		h:                    h,
 		pluginID:             pluginID,
 		stripServiceIDPrefix: stripServiceIDPrefix,
@@ -58,7 +58,7 @@ func ResolveLookupRpcService(ctx context.Context, dir bifrost_rpc.LookupRpcServi
 		return nil, nil
 	}
 
-	return NewLookupRpcServiceResolver(
+	return newLookupRpcServiceResolver(
 		h,
 		pluginID,
 		stripServiceIDPrefix,
@@ -174,7 +174,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 }
 
 // Resolve resolves the values, emitting them to the handler.
-func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+func (r *lookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Clear any previous values before resolving.
 	handler.ClearValues()
 
@@ -236,6 +236,6 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 
 // _ is a type assertion
 var (
-	_ directive.Resolver = (*LookupRpcServiceResolver)(nil)
+	_ directive.Resolver = (*lookupRpcServiceResolver)(nil)
 	_ srpc.Invoker       = (*clientForwardingInvoker)(nil)
 )

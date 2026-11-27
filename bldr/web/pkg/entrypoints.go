@@ -5,7 +5,6 @@ package web_pkg
 import (
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
@@ -27,7 +26,7 @@ type WebPkgEntrypointConfig struct {
 	Path string
 }
 
-// ResolveWebPkgEntrypoints resolves the entry points for a web package
+// resolveWebPkgEntrypoints resolves the entry points for a web package
 // into file paths relative to pkgRoot.
 //
 // For project-local packages (no package.json with exports):
@@ -39,7 +38,7 @@ type WebPkgEntrypointConfig struct {
 //   - Always serves the root import: the exports "." target, then module or main.
 //   - Configured entrypoints add subpaths, resolved through the exports map
 //     ("./langs" -> "dist/langs.mjs") or else as local files.
-func ResolveWebPkgEntrypoints(
+func resolveWebPkgEntrypoints(
 	pkgRoot string,
 	entrypoints []WebPkgEntrypointConfig,
 ) ([]string, error) {
@@ -114,9 +113,14 @@ func resolveNodeModuleEntrypoints(
 
 	// Collect distinct imports while preserving package export order.
 	var imports []string
+	seenImports := make(map[string]struct{})
 	add := func(imps ...string) {
 		for _, imp := range imps {
-			if imp != "" && !slices.Contains(imports, imp) {
+			if imp == "" {
+				continue
+			}
+			if _, seen := seenImports[imp]; !seen {
+				seenImports[imp] = struct{}{}
 				imports = append(imports, imp)
 			}
 		}
@@ -436,7 +440,7 @@ func ResolveWebPkgRefsFromConfig(
 		}
 
 		// Resolve entry points from config.
-		imports, err := ResolveWebPkgEntrypoints(pkgRoot, conf.Entrypoints)
+		imports, err := resolveWebPkgEntrypoints(pkgRoot, conf.Entrypoints)
 		if err != nil {
 			return nil, errors.Wrapf(err, "resolve entry points for web pkg %s", pkgID)
 		}
@@ -552,14 +556,6 @@ func resolveTSConfigPathTarget(codeRootPath string, raw *fastjson.Value) string 
 		return ""
 	}
 	return target
-}
-
-// WebPkgResolveConfig holds the config needed to resolve a web package.
-// Avoids importing web/bundler proto types to prevent import cycles.
-type WebPkgResolveConfig struct {
-	ID          string
-	Exclude     bool
-	Entrypoints []WebPkgEntrypointConfig
 }
 
 // fileExists reports whether the named file exists and is not a directory.

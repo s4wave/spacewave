@@ -88,7 +88,7 @@ func NewHostRootResolver(b bus.Bus, serverID string, res directive.Resolver) dir
 	}
 	return directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 		// Wait for the host set, then refuse a server ID outside it.
-		scheduler, err := WaitHostPluginScheduler(ctx, b)
+		scheduler, err := waitHostPluginScheduler(ctx, b)
 		if err != nil {
 			return err
 		}

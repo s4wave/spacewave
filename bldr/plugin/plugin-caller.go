@@ -10,16 +10,16 @@ import (
 )
 
 // ComponentID encodes the caller as the PluginRpc component ID the host opens
-// on the target plugin. ParsePluginCallerComponentID decodes it.
+// on the target plugin. parsePluginCallerComponentID decodes it.
 func (c *PluginCaller) ComponentID() string {
 	data, _ := c.MarshalVT()
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
-// ParsePluginCallerComponentID decodes a PluginRpc component ID into the
+// parsePluginCallerComponentID decodes a PluginRpc component ID into the
 // caller the host stamped on it. It refuses an ID that does not decode or
 // identifies no valid plugin.
-func ParsePluginCallerComponentID(componentID string) (*PluginCaller, error) {
+func parsePluginCallerComponentID(componentID string) (*PluginCaller, error) {
 	// Decode the message and require a valid caller plugin ID.
 	data, err := base64.RawURLEncoding.DecodeString(componentID)
 	if err != nil {
@@ -56,7 +56,7 @@ func PluginCallerFromContext(ctx context.Context) *PluginCaller {
 // does every stream nested beneath it, such as a Resource's calls.
 func ServePluginRpc(strm rpcstream.RpcStream, invokerFor func(caller *PluginCaller) srpc.Invoker) error {
 	return rpcstream.HandleRpcStream(strm, func(_ context.Context, componentID string, _ func()) (srpc.Invoker, func(), error) {
-		caller, err := ParsePluginCallerComponentID(componentID)
+		caller, err := parsePluginCallerComponentID(componentID)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -48,8 +48,3 @@ func (i *PluginContextInfo) PinAssetsHref(href string) string {
 	// Insert the manifest root after the plugin ID.
 	return PluginAssetsHttpPrefix + PluginArtifactID(pluginID, root) + "/" + file
 }
-
-// Validate validates the context info.
-func (i *PluginContextInfo) Validate() error {
-	return i.GetPluginMeta().Validate()
-}

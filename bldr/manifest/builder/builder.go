@@ -3,6 +3,7 @@ package bldr_manifest_builder
 import (
 	"bytes"
 	"context"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -38,11 +39,6 @@ type Controller interface {
 
 	// SupportsStartupManifestCache returns true if startup cache reuse is safe.
 	SupportsStartupManifestCache() bool
-
-	// GetSupportedPlatforms returns the base platform IDs this compiler supports.
-	// Used by the build system to select the appropriate platform for a target.
-	// Returns values like "desktop" or "js".
-	GetSupportedPlatforms() []string
 }
 
 // BuildManifestHost is the host API available to a BuildManifest routine.
@@ -143,4 +139,16 @@ func (m *InputManifest) SortStartupInputs() {
 		}
 		return bytes.Compare(a.GetBytesValue(), b.GetBytesValue())
 	})
+}
+
+// AddEnvStartupInputs records the current environment values and orders the
+// startup inputs for deterministic cache comparisons.
+func (m *InputManifest) AddEnvStartupInputs(keys []string) {
+	// Capture each requested environment value through the manifest's deduplication.
+	for _, key := range keys {
+		m.AddStartupInput(NewEnvStartupInput(key, os.Getenv(key)))
+	}
+
+	// Keep the complete startup input list in its canonical order.
+	m.SortStartupInputs()
 }

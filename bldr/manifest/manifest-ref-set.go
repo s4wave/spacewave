@@ -10,23 +10,23 @@ type manifestRefSet struct {
 	v *[]*ManifestRef
 }
 
-// NewManifestRefSet builds a new manifestRefSet container.
+// newManifestRefSet builds a new manifestRefSet container.
 //
 // bcs should be located at the manifestRefSet sub-block.
-func NewManifestRefSet(v *[]*ManifestRef, bcs *block.Cursor) *sbset.SubBlockSet {
+func newManifestRefSet(v *[]*ManifestRef, bcs *block.Cursor) *sbset.SubBlockSet {
 	if v == nil {
 		return nil
 	}
 	return sbset.NewSubBlockSet(&manifestRefSet{v: v}, bcs)
 }
 
-// NewManifestRefSetSubBlockCtor returns the sub-block constructor.
-func NewManifestRefSetSubBlockCtor(r *[]*ManifestRef) block.SubBlockCtor {
+// newManifestRefSetSubBlockCtor returns the sub-block constructor.
+func newManifestRefSetSubBlockCtor(r *[]*ManifestRef) block.SubBlockCtor {
 	if r == nil {
 		return nil
 	}
 	return func(create bool) block.SubBlock {
-		return NewManifestRefSet(r, nil)
+		return newManifestRefSet(r, nil)
 	}
 }
 
