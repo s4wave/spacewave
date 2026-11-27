@@ -822,6 +822,15 @@ message SpaceMetadataResponse {
   int64 updated_at = 7;
 }
 
+// LookupSObjectResponse is the response body for GET /sobject/:id/lookup.
+// It carries one descriptor from the caller's catalog. The route refuses an
+// object outside the catalog with the same 403 whether or not it exists.
+message LookupSObjectResponse {
+  // Entry is required on success and has the catalog's account-specific
+  // fields, including the caller's reference and display metadata.
+  .sobject.SharedObjectListEntry entry = 1;
+}
+
 // -- Organizations --
 
 // CreateOrgRequest is the request body for POST /org/create.

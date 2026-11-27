@@ -11,6 +11,7 @@ import { AccountTransition } from '../../provider.pb.js'
 import {
   SharedObjectConfig,
   SharedObjectList,
+  SharedObjectListEntry,
   SOCheckpoint,
   SOConfigChainResponse,
   SOControlMessage,
@@ -2337,6 +2338,27 @@ export const SpaceMetadataResponse: MessageType<SpaceMetadataResponse> =
       [6, 'public_base_url', 9],
       [7, 'updated_at', 3],
     ],
+  )
+
+/**
+ * LookupSObjectResponse is the response body for GET /sobject/:id/lookup.
+ * It carries one descriptor from the caller's catalog. The route refuses an
+ * object outside the catalog with the same 403 whether or not it exists.
+ *
+ * @generated from message provider.spacewave.api.LookupSObjectResponse
+ */
+export interface LookupSObjectResponse {
+  /**
+   * Entry is required on success and has the catalog's account-specific
+   * fields, including the caller's reference and display metadata.
+   */
+  entry?: SharedObjectListEntry
+}
+
+export const LookupSObjectResponse: MessageType<LookupSObjectResponse> =
+  /* @__PURE__ */ createMessageType<LookupSObjectResponse>(
+    'provider.spacewave.api.LookupSObjectResponse',
+    () => [[1, 'entry', 11, 0, SharedObjectListEntry.codec]],
   )
 
 /**

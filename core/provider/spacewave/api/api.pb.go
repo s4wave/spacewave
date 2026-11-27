@@ -3039,6 +3039,29 @@ func (x *SpaceMetadataResponse) GetUpdatedAt() int64 {
 	return 0
 }
 
+// LookupSObjectResponse is the response body for GET /sobject/:id/lookup.
+// It carries one descriptor from the caller's catalog. The route refuses an
+// object outside the catalog with the same 403 whether or not it exists.
+type LookupSObjectResponse struct {
+	unknownFields []byte
+	// Entry is required on success and has the catalog's account-specific
+	// fields, including the caller's reference and display metadata.
+	Entry *sobject.SharedObjectListEntry `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+}
+
+func (x *LookupSObjectResponse) Reset() {
+	*x = LookupSObjectResponse{}
+}
+
+func (*LookupSObjectResponse) ProtoMessage() {}
+
+func (x *LookupSObjectResponse) GetEntry() *sobject.SharedObjectListEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
 // CreateOrgRequest is the request body for POST /org/create.
 type CreateOrgRequest struct {
 	unknownFields []byte
@@ -11311,6 +11334,22 @@ func (m *SpaceMetadataResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *LookupSObjectResponse) CloneVT() *LookupSObjectResponse {
+	if m == nil {
+		return (*LookupSObjectResponse)(nil)
+	}
+	r := new(LookupSObjectResponse)
+	r.Entry = protobuf_go_lite.CloneVTValue(m.Entry)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupSObjectResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CreateOrgRequest) CloneVT() *CreateOrgRequest {
 	if m == nil {
 		return (*CreateOrgRequest)(nil)
@@ -16888,6 +16927,26 @@ func (this *SpaceMetadataResponse) EqualVT(that *SpaceMetadataResponse) bool {
 
 func (this *SpaceMetadataResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SpaceMetadataResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupSObjectResponse) EqualVT(that *LookupSObjectResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Entry, that.Entry) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupSObjectResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupSObjectResponse)
 	if !ok {
 		return false
 	}
@@ -26302,6 +26361,52 @@ func (x *SpaceMetadataResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SpaceMetadataResponse from JSON.
 func (x *SpaceMetadataResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupSObjectResponse message to JSON.
+func (x *LookupSObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Entry != nil || s.HasField("entry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entry")
+		x.Entry.MarshalProtoJSON(s.WithField("entry"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupSObjectResponse to JSON.
+func (x *LookupSObjectResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupSObjectResponse message from JSON.
+func (x *LookupSObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entry":
+			if s.ReadNil() {
+				x.Entry = nil
+				return
+			}
+			x.Entry = &sobject.SharedObjectListEntry{}
+			x.Entry.UnmarshalProtoJSON(s.WithField("entry", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupSObjectResponse from JSON.
+func (x *LookupSObjectResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -41135,6 +41240,48 @@ func (m *SpaceMetadataResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *LookupSObjectResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupSObjectResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupSObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Entry != nil {
+		size, err := m.Entry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CreateOrgRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -51670,6 +51817,20 @@ func (m *SpaceMetadataResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *LookupSObjectResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Entry != nil {
+		l = m.Entry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CreateOrgRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -56155,6 +56316,20 @@ func (x *SpaceMetadataResponse) MarshalProtoText() string {
 }
 
 func (x *SpaceMetadataResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupSObjectResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LookupSObjectResponse")
+	if x.Entry != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entry")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Entry)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupSObjectResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -65414,6 +65589,64 @@ func (m *SpaceMetadataResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupSObjectResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupSObjectResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupSObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Entry == nil {
+				m.Entry = &sobject.SharedObjectListEntry{}
+			}
+			if err := m.Entry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
