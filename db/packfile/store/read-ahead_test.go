@@ -258,3 +258,114 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 		t.Fatal("structural layout did not improve related-content range reads")
 	}
 }
+
+// TestPackfileStoreCoBlockWriteback verifies that fetching one block triggers
+// persistence for every covered block within the configured physical window.
+func TestPackfileStoreCoBlockWriteback(t *testing.T) {
+	// Build and publish a pack of adjacent blocks.
+	ctx := t.Context()
+	ordered := []struct{ Name, Data string }{
+		{"a", "alpha"},
+		{"b", "beta"},
+		{"c", "charlie"},
+	}
+	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+	opener, _ := openerFromBytes(packBytes)
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "writeback-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(ordered)),
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	// Enable writeback for the entire adjacent-block window.
+	wb := newWritebackStore(nil)
+	store.SetWriteback(ctx, wb, 1<<20)
+
+	// Read alpha and verify the requested block payload.
+	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+	got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
+	if err != nil || !found || !bytes.Equal(got, []byte("alpha")) {
+		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
+	}
+
+	// Wait for every covered block to reach the writeback store.
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(ordered))
+	}) {
+		t.Fatalf("expected %d co-block writebacks, got %d", len(ordered), wb.putCount())
+	}
+
+	// Collect written payloads by their block reference under the store lock.
+	wb.mtx.Lock()
+	defer wb.mtx.Unlock()
+	gotKeys := make(map[string][]byte, len(wb.puts))
+	for _, p := range wb.puts {
+		gotKeys[p.Ref.GetHash().MarshalString()] = p.Data
+	}
+
+	// Verify every adjacent block retains its payload in writeback.
+	for _, o := range ordered {
+		h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte(o.Data))
+		if got, ok := gotKeys[h.MarshalString()]; !ok {
+			t.Fatalf("expected neighbor %q in writebacks", o.Name)
+		} else if !bytes.Equal(got, []byte(o.Data)) {
+			t.Fatalf("neighbor %q data mismatch", o.Name)
+		}
+	}
+}
+
+// TestPackfileStoreTrailerPromotesBlocks verifies that bytes fetched during a
+// cold kvfile trailer/index scan become first-class residents: blocks fully
+// contained in those spans are immediately published into the writeback
+// pipeline without a second transport round-trip.
+func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
+	// Build a small pack whose trailer window can cover every block.
+	ctx := t.Context()
+	ordered := []struct{ Name, Data string }{
+		{"a", "alpha"},
+		{"b", "beta"},
+	}
+	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+
+	// Large minimum transport window so the trailer fetch covers the entire
+	// pack (including all block bytes).
+	transport := &bytesTransport{data: packBytes}
+	opener := func(packID string, size int64) (*PackReader, error) {
+		e := NewPackReader(packID, size, transport)
+		e.minWindow = len(packBytes)
+		e.currentWindow = len(packBytes)
+		return e, nil
+	}
+
+	// Publish the trailer-promotion pack in the store.
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "promote-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(ordered)),
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	// Attach the writeback target for trailer-promoted blocks.
+	wb := newWritebackStore(nil)
+
+	// A window of 1 means target-only semantic alignment, but the trailer
+	// fetch already covered everything so promotion should still publish
+	// all blocks.
+	store.SetWriteback(ctx, wb, 1)
+
+	// Read alpha through the trailer-covering transport.
+	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
+		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
+	}
+
+	// Wait for every trailer-covered block to reach writeback.
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(ordered))
+	}) {
+		t.Fatalf("expected %d trailer-promoted writebacks, got %d", len(ordered), wb.putCount())
+	}
+}
