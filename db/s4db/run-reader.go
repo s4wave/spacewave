@@ -3,7 +3,10 @@ package s4db
 import (
 	"bytes"
 	"cmp"
+	"context"
+	rtrace "runtime/trace"
 	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -84,6 +87,7 @@ func (db *DB) readChecked(r ref, buf []byte) ([]byte, error) {
 	default:
 		b = buf[:n]
 	}
+	rtrace.Log(context.Background(), "s4c", "pread")
 	if _, err := db.s.ReadAt(b, fileOff(r.off)); err != nil {
 		return nil, err
 	}
@@ -101,7 +105,13 @@ func (rr *runReader) block(r ref, scratch *[]byte) ([]byte, error) {
 	// Serve the cache.
 	k := cacheKey{run: rr.meta.id, off: r.off}
 	if b := rr.db.cache.get(k); b != nil {
+		rtrace.Log(context.Background(), "s4c", "hit")
 		return b, nil
+	}
+	if scratch == nil {
+		rtrace.Log(context.Background(), "s4c", "miss")
+	} else {
+		rtrace.Log(context.Background(), "s4c", "sread")
 	}
 
 	// Read, then keep the block or the buffer.
@@ -172,6 +182,7 @@ func (rr *runReader) get(key []byte, sc *getScratch) (value, bool, error) {
 	if err != nil {
 		return value{}, false, err
 	}
+	rtrace.Log(context.Background(), "s4c", "has")
 	if !decodeRunFilter(fb).has(key) {
 		return value{}, false, nil
 	}
@@ -211,6 +222,10 @@ func (rr *runReader) get(key []byte, sc *getScratch) (value, bool, error) {
 // lookup through sc leaves the block cache alone.
 func (db *DB) lookupRuns(st *state, key []byte, sc *getScratch) (value, bool, error) {
 	runs := st.m.runs
+	if rtrace.IsEnabled() {
+		rtrace.Log(context.Background(), "s4c", "lookup")
+		rtrace.Log(context.Background(), "s4c-runs", strconv.Itoa(len(runs)))
+	}
 	for len(runs) != 0 {
 		// Split off the next level, which lookupOrder keeps contiguous.
 		level := runs[0].level

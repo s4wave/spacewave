@@ -4,7 +4,9 @@ package main
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
@@ -79,7 +81,8 @@ func volumeConfig(path string) config.Config {
 	if filepath.Ext(path) == sqliteExt {
 		return &volume_sqlite.Config{Path: path, Table: sqliteTable}
 	}
-	return &volume_s4db.Config{Path: path}
+	cb, _ := strconv.ParseInt(os.Getenv("S4C_CACHE_BYTES"), 10, 64)
+	return &volume_s4db.Config{Path: path, CacheBytes: cb}
 }
 
 // Close closes the engine and the Volume.

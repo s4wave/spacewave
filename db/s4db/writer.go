@@ -2,6 +2,7 @@ package s4db
 
 import (
 	"context"
+	rtrace "runtime/trace"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -60,6 +61,7 @@ func (w *writer) take(ctx context.Context) error {
 	}
 	w.unlockMtx = release
 	w.held.Store(true)
+	rtrace.Log(ctx, "s4db", "take")
 
 	// Apply what other processes wrote before any record is appended.
 	if err := w.db.refresh(ctx); err != nil {
@@ -86,6 +88,7 @@ func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	}
 	w.unlockMtx = release
 	w.held.Store(true)
+	rtrace.Log(ctx, "s4db", "take")
 
 	// An optional closing mark yields to foreground requests in every process.
 	if slot, err := w.waitingSlot(); err != nil || slot >= 0 {
@@ -104,6 +107,9 @@ func (w *writer) tryLock(ctx context.Context) (bool, error) {
 // unlock releases the writer lock and tells other processes the file
 // changed.
 func (w *writer) unlock() {
+	// End the measured writer hold before releasing its locks.
+	rtrace.Log(context.Background(), "s4db", "unlock")
+
 	// Release other processes and wake their watchers, then this handle's
 	// writers.
 	w.held.Store(false)
@@ -192,6 +198,10 @@ type valueWrite struct {
 // cleaner's moves, which the flows do not count. The caller holds the writer
 // lock, and base is the published state.
 func (w *writer) commit(ctx context.Context, base *state, changes []tentry, moves bool) error {
+	// Measure the commit through its final return.
+	rtrace.Log(ctx, "s4db", "commit")
+	defer rtrace.Log(ctx, "s4db", "commit-end")
+
 	// Start the record on a copy of the state. Placement takes chunks from
 	// the copy's table, which the record's replay reproduces.
 	db := w.db

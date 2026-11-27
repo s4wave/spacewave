@@ -3,6 +3,7 @@ package s4db
 import (
 	"bytes"
 	"context"
+	rtrace "runtime/trace"
 	"slices"
 	"sync/atomic"
 
@@ -209,6 +210,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	}
 
 	// Test presence in the pinned snapshot.
+	rtrace.Log(ctx, "s4c", "exists")
 	t.read(key)
 	_, found, err := t.db.lookup(t.st, key)
 	return found, err
