@@ -28,8 +28,8 @@ github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1 h1:mu8bU+ZH
 github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1/go.mod h1:1SZzsdyfNK4sMviqdMDvKFukCrtTK6XLvtSfqaSE/s8=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91 h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91/go.mod h1:ScP6os8RpgAhrC+jvlv7m8p6MfBgWLkcNM25lPFq6rc=
-github.com/aperturerobotics/controllerbus v0.53.6-0.20261127175246-fc3d01fdb1ec h1:Cdgunx8woaEVKXprMG1qNiifMLVjUEwir3Xfp8RxUPg=
-github.com/aperturerobotics/controllerbus v0.53.6-0.20261127175246-fc3d01fdb1ec/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261127192832-dd0a38577071 h1:3+8Ai9pY2PK/RjwkAj+mRDflqVgKRP2RQ6EZ739D/7c=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261127192832-dd0a38577071/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a h1:1+aqnPBdCps2DXBoiQ9q586iwJSacGXdK3QI3Rk+Wg8=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
@@ -86,8 +86,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.52.4-0.20261120055505-a231db0c7226 h1:JhUWtfWRLmLKHlLtC+q/m8SGAF6mmCKDdmfJhwgrRJc=
 github.com/aperturerobotics/starpc v0.52.4-0.20261120055505-a231db0c7226/go.mod h1:/GCnO8xZhs7y3zP9b5Ug+Ndey/VZ6NTN98pZThFE/Tc=
-github.com/aperturerobotics/util v1.34.10-0.20261127175558-e826986323f3 h1:Dbjfkc31WFafiASXmoaYFMpcUezodB1L8KJll9kIFEA=
-github.com/aperturerobotics/util v1.34.10-0.20261127175558-e826986323f3/go.mod h1:SjqV+ZLhFQ3AlYiXk1n4HKR5gwLNou1tpq03CGmLATQ=
+github.com/aperturerobotics/util v1.34.10-0.20261127192238-8c87e8933f53 h1:v/AdlzSpPPxDqaf/HfMSCTK54a4b3J2oPiCl5s6tk2k=
+github.com/aperturerobotics/util v1.34.10-0.20261127192238-8c87e8933f53/go.mod h1:SjqV+ZLhFQ3AlYiXk1n4HKR5gwLNou1tpq03CGmLATQ=
 github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17 h1:vxDUO7AnOjee5clJZ4d+x1+GZJzKtlyMERQ7zpNKjm0=
 github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/aperturerobotics/wazero v0.0.0-20261015230425-cef9eb51e433 h1:47nHIG21jQvOmVHYbdZHdGcd7SQ89+gor1LG9JkTOLM=
@@ -309,8 +309,8 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.6.7-0.20261126063816-4a85e52f0e43 h1:a/4vTaZMnAV0cP/CGvjhMx0z5TSKT1B1v7BU22NvVDo=
-github.com/s4wave/goscript v0.6.7-0.20261126063816-4a85e52f0e43/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
+github.com/s4wave/goscript v0.6.7-0.20261127193802-dcd86469ced0 h1:jkAC6eBcvPJCLmoEDfBwzteQZT621iAmkCmTdrcUSX0=
+github.com/s4wave/goscript v0.6.7-0.20261127193802-dcd86469ced0/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
