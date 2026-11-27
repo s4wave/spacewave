@@ -90,6 +90,7 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 			return nil
 		},
 		s.navigateTab,
+		nil,
 	)
 	_ = s4wave_layout.SRPCRegisterLayoutHost(serverMux, layoutResource)
 

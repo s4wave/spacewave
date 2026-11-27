@@ -44,6 +44,7 @@ func NewLayoutServer(le *logrus.Entry) *LayoutServer {
 		layoutStateCtr,
 		s.handleSetLayout,
 		s.handleNavigateTab,
+		nil,
 	)
 	_ = s4wave_layout.SRPCRegisterLayoutHost(mux, layoutResource)
 

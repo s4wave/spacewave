@@ -204,8 +204,7 @@ func ObjectLayoutFactory(
 	}
 
 	// Serve the layout and stop the watch on release.
-	layoutResource := resource_layout.NewLayoutResource(stateCtr, setLayout, navigateTab)
-	layoutResource.SetReplaceTabFunc(replaceTab)
+	layoutResource := resource_layout.NewLayoutResource(stateCtr, setLayout, navigateTab, replaceTab)
 
 	return layoutResource.GetMux(), func() {
 		watch.ClearContext()

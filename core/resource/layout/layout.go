@@ -37,15 +37,18 @@ type LayoutResource struct {
 // stateCtr is a watchable container for the layout model state.
 // setLayout is called when the frontend updates the layout (may be nil).
 // navigateTab is called when the frontend navigates within a tab (may be nil).
+// replaceTab is called when the frontend replaces a tab payload (may be nil).
 func NewLayoutResource(
 	stateCtr ccontainer.Watchable[*s4wave_layout.LayoutModel],
 	setLayout SetLayoutModelFunc,
 	navigateTab NavigateTabFunc,
+	replaceTab ReplaceTabFunc,
 ) *LayoutResource {
 	r := &LayoutResource{
 		stateCtr:    stateCtr,
 		setLayout:   setLayout,
 		navigateTab: navigateTab,
+		replaceTab:  replaceTab,
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_layout.SRPCRegisterLayoutHost(mux, r)
@@ -56,11 +59,6 @@ func NewLayoutResource(
 // SetAddTabFunc sets the callback for adding tabs.
 func (r *LayoutResource) SetAddTabFunc(addTab AddTabFunc) {
 	r.addTab = addTab
-}
-
-// SetReplaceTabFunc sets the callback for replacing tabs.
-func (r *LayoutResource) SetReplaceTabFunc(replaceTab ReplaceTabFunc) {
-	r.replaceTab = replaceTab
 }
 
 // GetMux returns the rpc mux.
