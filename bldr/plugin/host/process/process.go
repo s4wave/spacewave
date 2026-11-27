@@ -55,24 +55,6 @@ type ProcessHost struct {
 	dists *distCheckouts
 }
 
-// PluginPackageStatus describes native dist materialization state for one
-// plugin. It deliberately excludes plugin state-dir contents.
-type PluginPackageStatus struct {
-	PluginID     string
-	DistDir      string
-	Materialized bool
-	Invalidated  bool
-	LastAction   string
-	LastError    string
-	UpdatedAt    time.Time
-}
-
-// PluginPackageStatusSnapshot is the read-only native package recovery status
-// snapshot.
-type PluginPackageStatusSnapshot struct {
-	Packages []PluginPackageStatus
-}
-
 // NewProcessHost constructs a new ProcessHost.
 // DistReclaimEnv selects where unused dist checkouts are reclaimed.
 func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, error) {
