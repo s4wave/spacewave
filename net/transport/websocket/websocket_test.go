@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -18,8 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// buildTestbed constructs a peer bus with the WebSocket transport factory.
 func buildTestbed(t *testing.T, ctx context.Context) (*testbed.Testbed, *logrus.Entry) {
 	// Configure the logger for the WebSocket transport testbed.
+	t.Helper()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -29,10 +32,12 @@ func buildTestbed(t *testing.T, ctx context.Context) (*testbed.Testbed, *logrus.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(tb.Release)
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	return tb, le
 }
 
+// execPeer starts a peer transport and returns its retained controller reference.
 func execPeer(
 	ctx context.Context,
 	t *testing.T,
@@ -40,6 +45,7 @@ func execPeer(
 	conf *Config,
 ) (*transport_controller.Controller, *WebSocket, directive.Reference) {
 	// Derive the WebSocket peer identity from the testbed key.
+	t.Helper()
 	peerID, err := peer.IDFromPrivateKey(tb.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -76,20 +82,19 @@ func TestWebSocketLink(t *testing.T) {
 	// Bind the WebSocket test to the testing lifecycle.
 	ctx := t.Context()
 
-	// Create two peer testbeds for a fixed local WebSocket listener.
+	// Create two peer testbeds for an isolated local WebSocket listener.
 	tb1, le1 := buildTestbed(t, ctx)
 	le1 = le1.WithField("testbed", 0)
 	tb2, le2 := buildTestbed(t, ctx)
 	le2 = le2.WithField("testbed", 1)
-	const listenAddr = "127.0.0.1:19384"
 
-	// Peer 1 listens on localhost.
-	_, ws1, ws1Ref := execPeer(ctx, t, tb1, &Config{
-		ListenAddr: listenAddr,
-		Verbose:    true,
-	})
+	// Serve peer 1 through an owned, ephemeral HTTP endpoint.
+	_, ws1, ws1Ref := execPeer(ctx, t, tb1, &Config{Verbose: true})
 	defer ws1Ref.Release()
 	peerID1 := ws1.GetPeerID()
+	server := httptest.NewServer(ws1)
+	t.Cleanup(server.Close)
+	listenAddr := server.Listener.Addr().String()
 
 	// Peer 2 dials peer 1 over websocket.
 	_, ws2, ws2Ref := execPeer(ctx, t, tb2, &Config{
@@ -168,4 +173,26 @@ func TestWebSocketLink(t *testing.T) {
 		t.Fatalf("final echo mismatch: got %q, want %q", buf[:n], data)
 	}
 	le1.Info("final echo verified, test passed")
+}
+
+// TestListenHTTPStopsOnCancellation checks cancellation before serving starts.
+func TestListenHTTPStopsOnCancellation(t *testing.T) {
+	// Build a real transport before canceling its listener context.
+	tb, _ := buildTestbed(t, t.Context())
+	_, transport, ref := execPeer(t.Context(), t, tb, &Config{})
+	t.Cleanup(ref.Release)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	done := make(chan error, 1)
+	go func() { done <- transport.ListenHTTP(ctx, "127.0.0.1:0") }()
+
+	// A canceled transport must not retain its HTTP listener.
+	select {
+	case err := <-done:
+		if err != context.Canceled {
+			t.Fatalf("canceled listener returned %v, want context cancellation", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("HTTP listener survived transport cancellation")
+	}
 }

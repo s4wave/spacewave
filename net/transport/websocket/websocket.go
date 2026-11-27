@@ -182,12 +182,19 @@ func (w *WebSocket) ListenHTTP(ctx context.Context, addr string) error {
 		ReadHeaderTimeout: time.Second * 10,
 	}
 
+	// Close the owned listener even when cancellation precedes serving.
+	stop := context.AfterFunc(ctx, func() { _ = server.Close() })
+	defer stop()
+
 	// Serve requests, then shut down and close the server.
 	err := server.ListenAndServe()
 	if serr := server.Shutdown(ctx); serr != nil && serr != context.Canceled {
 		w.le.WithError(serr).Warn("graceful shutdown failed")
 	}
 	_ = server.Close()
+	if ctx.Err() != nil && err == http.ErrServerClosed {
+		return ctx.Err()
+	}
 	return err
 }
 

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "waiting for serve to return strands a canceled listener",
+    "replace": [["Managed == TRUE", "Managed == FALSE"]],
+    "expect": "CanceledEventuallyStops"
+  }
+]
