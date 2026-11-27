@@ -164,6 +164,7 @@ func (w *Walker) enqueue(ctx context.Context, db executor, c Child, parent strin
 		if err != nil {
 			return err
 		}
+
 		// Keep pack membership separate from which source served the bytes.
 		var found bool
 		num, off, n, found, err = w.Locate(ctx, c.Ref)
@@ -183,7 +184,8 @@ func (w *Walker) enqueue(ctx context.Context, db executor, c Child, parent strin
 				return err
 			}
 			found = false
-		} else if err != nil {
+		}
+		if err != nil {
 			return err
 		}
 		if found {
