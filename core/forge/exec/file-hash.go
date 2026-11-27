@@ -93,10 +93,5 @@ func NewFileHashHandler(
 	}, nil
 }
 
-// RegisterFileHash registers the file-hash handler in the registry.
-func RegisterFileHash(r *Registry) {
-	r.Register(FileHashConfigID, NewFileHashHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*fileHashHandler)(nil)

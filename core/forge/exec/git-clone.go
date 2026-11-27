@@ -106,10 +106,5 @@ func NewGitCloneHandler(
 	}, nil
 }
 
-// RegisterGitClone registers the git clone handler in the registry.
-func RegisterGitClone(r *Registry) {
-	r.Register(GitCloneConfigID, NewGitCloneHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*gitCloneHandler)(nil)

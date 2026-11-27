@@ -11,7 +11,7 @@ func TestNoopHandler(t *testing.T) {
 	// Register the noop handler in an isolated execution registry.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterNoop(r)
+	r.Register(NoopConfigID, NewNoopHandler)
 
 	// Lookup returns the factory.
 	factory := r.Lookup(NoopConfigID)
@@ -44,7 +44,7 @@ func TestRegistryUnknownID(t *testing.T) {
 func TestKvtxHandlerRegistration(t *testing.T) {
 	// Register the key-value transaction handler in an isolated registry.
 	r := NewRegistry()
-	RegisterKvtx(r)
+	r.Register(KvtxConfigID, NewKvtxHandler)
 
 	// Verify the registered transaction factory and its config identity.
 	factory := r.Lookup(KvtxConfigID)
@@ -59,7 +59,7 @@ func TestKvtxHandlerRegistration(t *testing.T) {
 func TestGitCloneHandlerRegistration(t *testing.T) {
 	// Register the Git clone handler in an isolated registry.
 	r := NewRegistry()
-	RegisterGitClone(r)
+	r.Register(GitCloneConfigID, NewGitCloneHandler)
 
 	// Verify the registered Git clone factory and its config identity.
 	factory := r.Lookup(GitCloneConfigID)
@@ -78,7 +78,7 @@ func TestGitCloneInvalidConfig(t *testing.T) {
 	// Prepare the Git clone registry for invalid configuration checks.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterGitClone(r)
+	r.Register(GitCloneConfigID, NewGitCloneHandler)
 
 	// Empty config should fail validation (missing object_key).
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, GitCloneConfigID, nil)
@@ -253,7 +253,7 @@ func TestSpaceExecConfigRoundTrip(t *testing.T) {
 func TestUnixfsReadRegistration(t *testing.T) {
 	// Register the filesystem read handler in an isolated registry.
 	r := NewRegistry()
-	RegisterUnixfsRead(r)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
 
 	// Verify the registered filesystem read factory and its config identity.
 	factory := r.Lookup(UnixfsReadConfigID)
@@ -269,7 +269,7 @@ func TestUnixfsReadEmptyConfig(t *testing.T) {
 	// Prepare the filesystem read registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterUnixfsRead(r)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
 
 	// Empty config should fail.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, nil)
@@ -282,7 +282,7 @@ func TestUnixfsReadInvalidJSON(t *testing.T) {
 	// Prepare the filesystem read registry for malformed config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterUnixfsRead(r)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
 
 	// Require malformed filesystem read JSON to fail handler creation.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, []byte("not json"))
@@ -295,7 +295,7 @@ func TestUnixfsReadMissingObjectKey(t *testing.T) {
 	// Prepare the filesystem read registry for missing object-key rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterUnixfsRead(r)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
 
 	// Require a filesystem read config to identify a source World object.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, []byte(`{"file_path":"test.txt"}`))
@@ -308,7 +308,7 @@ func TestUnixfsReadValidConfig(t *testing.T) {
 	// Prepare the filesystem read registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterUnixfsRead(r)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
 
 	// Valid config creates a handler (Execute would fail without world state).
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, []byte(`{"object_key":"fs/test","file_path":"hello.txt"}`))
@@ -323,7 +323,7 @@ func TestUnixfsReadValidConfig(t *testing.T) {
 func TestFileHashRegistration(t *testing.T) {
 	// Register the file hash handler in an isolated registry.
 	r := NewRegistry()
-	RegisterFileHash(r)
+	r.Register(FileHashConfigID, NewFileHashHandler)
 
 	// Verify the registered file hash factory and its config identity.
 	factory := r.Lookup(FileHashConfigID)
@@ -339,7 +339,7 @@ func TestFileHashEmptyConfig(t *testing.T) {
 	// Prepare the file hash registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterFileHash(r)
+	r.Register(FileHashConfigID, NewFileHashHandler)
 
 	// Require file hash handler construction to reject empty config.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, FileHashConfigID, nil)
@@ -352,7 +352,7 @@ func TestFileHashValidConfig(t *testing.T) {
 	// Prepare the file hash registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterFileHash(r)
+	r.Register(FileHashConfigID, NewFileHashHandler)
 
 	// Construct and verify a file hash handler from a complete source config.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, FileHashConfigID, []byte(`{"object_key":"fs/data","file_path":"doc.md"}`))
@@ -367,7 +367,7 @@ func TestFileHashValidConfig(t *testing.T) {
 func TestExportZipRegistration(t *testing.T) {
 	// Register the ZIP export handler in an isolated registry.
 	r := NewRegistry()
-	RegisterExportZip(r)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Verify the registered ZIP export factory and its config identity.
 	factory := r.Lookup(ExportZipConfigID)
@@ -383,7 +383,7 @@ func TestExportZipEmptyConfig(t *testing.T) {
 	// Prepare the ZIP export registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterExportZip(r)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Require ZIP export handler construction to reject empty config.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, nil)
@@ -396,7 +396,7 @@ func TestExportZipInvalidJSON(t *testing.T) {
 	// Prepare the ZIP export registry for malformed config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterExportZip(r)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Require malformed ZIP export JSON to fail handler creation.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte("not json"))
@@ -409,7 +409,7 @@ func TestExportZipMissingObjectKey(t *testing.T) {
 	// Prepare the ZIP export registry for missing object-key rejection.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterExportZip(r)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Require ZIP export config to identify a source World object.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte(`{}`))
@@ -422,7 +422,7 @@ func TestExportZipValidConfig(t *testing.T) {
 	// Prepare the ZIP export registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterExportZip(r)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Construct and verify a ZIP export handler from a complete source config.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte(`{"object_key":"fs/test"}`))

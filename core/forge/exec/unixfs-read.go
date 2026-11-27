@@ -170,10 +170,5 @@ func NewUnixfsReadHandler(
 	}, nil
 }
 
-// RegisterUnixfsRead registers the unixfs-read handler in the registry.
-func RegisterUnixfsRead(r *Registry) {
-	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*unixfsReadHandler)(nil)

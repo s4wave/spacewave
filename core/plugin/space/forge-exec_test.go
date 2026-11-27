@@ -126,7 +126,7 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 	t.Cleanup(tb.Release)
 	peerID := tb.Volume.GetPeerID()
 	registry := space_exec.NewRegistry()
-	space_exec.RegisterPluginExec(registry, tb.Bus)
+	registry.Register(space_exec.PluginExecConfigID, space_exec.NewPluginExecHandler(tb.Bus))
 	tb.StaticResolver.AddFactory(execution_controller.NewFactory(tb.Bus))
 	for _, factory := range space_exec.BridgeFactories(registry) {
 		tb.StaticResolver.AddFactory(factory)

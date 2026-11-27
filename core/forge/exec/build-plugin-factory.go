@@ -13,11 +13,19 @@ import (
 // BuildPluginConfigID selects a native Bldr build of Space-stored source.
 const BuildPluginConfigID = "space-exec/build-plugin"
 
-// RegisterBuildPlugin exposes plugin builds to the existing Forge worker owner.
-func RegisterBuildPlugin(r *Registry, b bus.Bus) {
-	r.Register(BuildPluginConfigID, func(ctx context.Context, le *logrus.Entry, ws world.WorldState, handle forge_target.ExecControllerHandle, inputs forge_target.InputMap, data []byte) (Handler, error) {
+// NewBuildPluginHandler returns the plugin build handler factory bound to the
+// controller bus.
+func NewBuildPluginHandler(b bus.Bus) HandlerFactory {
+	return func(
+		ctx context.Context,
+		le *logrus.Entry,
+		ws world.WorldState,
+		handle forge_target.ExecControllerHandle,
+		inputs forge_target.InputMap,
+		data []byte,
+	) (Handler, error) {
 		return NewBuildPluginHandlerWithBus(ctx, b, le, ws, handle, inputs, data)
-	})
+	}
 }
 
 // PluginFrontendProtocol identifies one execution's authenticated compiler service.

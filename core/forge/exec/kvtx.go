@@ -57,10 +57,5 @@ func NewKvtxHandler(
 	return &kvtxHandler{ctrl: ctrl}, nil
 }
 
-// RegisterKvtx registers the kvtx handler in the registry.
-func RegisterKvtx(r *Registry) {
-	r.Register(KvtxConfigID, NewKvtxHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*kvtxHandler)(nil)

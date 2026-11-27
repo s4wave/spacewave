@@ -28,8 +28,3 @@ func NewGitCloneHandler(
 	}
 	return nil, errors.New("git clone is not available in this browser build")
 }
-
-// RegisterGitClone registers the Git clone handler in the registry.
-func RegisterGitClone(r *Registry) {
-	r.Register(GitCloneConfigID, NewGitCloneHandler)
-}

@@ -351,10 +351,5 @@ func newPluginExecHandlerWithOpenTimeout(b bus.Bus, load pluginExecClientLoader,
 	}
 }
 
-// RegisterPluginExec registers the plugin bridge handler in the registry.
-func RegisterPluginExec(r *Registry, b bus.Bus) {
-	r.Register(PluginExecConfigID, NewPluginExecHandler(b))
-}
-
 // _ verifies the execution handler contract.
 var _ Handler = (*pluginExecHandler)(nil)

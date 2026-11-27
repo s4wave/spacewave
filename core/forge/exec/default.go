@@ -17,17 +17,17 @@ func NewDefaultRegistry() *Registry {
 func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
 	// Register the built-in handlers that execute directly against Space data.
 	r := NewRegistry()
-	RegisterNoop(r)
-	RegisterKvtx(r)
-	RegisterGitClone(r)
-	RegisterUnixfsRead(r)
-	RegisterFileHash(r)
-	RegisterExportZip(r)
+	r.Register(NoopConfigID, NewNoopHandler)
+	r.Register(KvtxConfigID, NewKvtxHandler)
+	r.Register(GitCloneConfigID, NewGitCloneHandler)
+	r.Register(UnixfsReadConfigID, NewUnixfsReadHandler)
+	r.Register(FileHashConfigID, NewFileHashHandler)
+	r.Register(ExportZipConfigID, NewExportZipHandler)
 
 	// Register the VM and plugin handlers with their controller bus.
-	RegisterV86(r, b)
-	RegisterPluginExec(r, b)
-	RegisterBuildPlugin(r, b)
+	r.Register(V86ConfigID, NewV86Handler(b))
+	r.Register(PluginExecConfigID, NewPluginExecHandler(b))
+	r.Register(BuildPluginConfigID, NewBuildPluginHandler(b))
 	return r
 }
 

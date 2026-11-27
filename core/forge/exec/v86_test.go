@@ -27,7 +27,7 @@ func TestV86RegistrationAndDefaultRegistryWithBus(t *testing.T) {
 
 	// Register and verify the VM handler's config identity.
 	r := NewRegistry()
-	RegisterV86(r, b)
+	r.Register(V86ConfigID, NewV86Handler(b))
 	if V86ConfigID != "space-exec/v86" {
 		t.Fatalf("V86ConfigID = %q", V86ConfigID)
 	}
@@ -46,7 +46,7 @@ func TestV86ConfigValidation(t *testing.T) {
 	// Register the VM handler for configuration validation.
 	ctx := context.Background()
 	r := NewRegistry()
-	RegisterV86(r, bus_inmem.NewBus(nil))
+	r.Register(V86ConfigID, NewV86Handler(bus_inmem.NewBus(nil)))
 
 	// Require malformed VM configurations to fail handler construction.
 	for _, tc := range []struct {

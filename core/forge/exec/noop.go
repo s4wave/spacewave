@@ -39,10 +39,5 @@ func NewNoopHandler(
 	return &noopHandler{handle: handle}, nil
 }
 
-// RegisterNoop registers the noop handler in the registry.
-func RegisterNoop(r *Registry) {
-	r.Register(NoopConfigID, NewNoopHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*noopHandler)(nil)

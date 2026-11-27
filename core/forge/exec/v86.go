@@ -196,10 +196,5 @@ func defaultV86InvokerFactory(
 	return s4wave_vm_world.VmV86Type.GetFactory()(ctx, le, b, nil, ws, objectKey)
 }
 
-// RegisterV86 registers the V86 VM object handler in the registry.
-func RegisterV86(r *Registry, b bus.Bus) {
-	r.Register(V86ConfigID, NewV86Handler(b))
-}
-
 // _ is a type assertion.
 var _ Handler = (*v86Handler)(nil)

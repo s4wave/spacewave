@@ -223,10 +223,5 @@ func NewExportZipHandler(
 	}, nil
 }
 
-// RegisterExportZip registers the export-zip handler in the registry.
-func RegisterExportZip(r *Registry) {
-	r.Register(ExportZipConfigID, NewExportZipHandler)
-}
-
 // _ is a type assertion
 var _ Handler = (*exportZipHandler)(nil)
