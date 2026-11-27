@@ -1239,38 +1239,19 @@ func releasePending(ctx context.Context, rec *Records, state *LivenessState, key
 		return pending, nil
 	}
 
-	// Find the first child not below the first key.
+	// Find the first child not below the first key, then merge the
+	// children with the keys.
 	cur := newReleaseCursor(rec, rel)
-	lo, hi := rel.GetNext(), rel.GetChildren()
-	for lo < hi {
-		cur.next = lo + (hi-lo)/2
-		child, err := cur.child(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if bytes.Compare(BlockKey(child), keys[0]) < 0 {
-			lo = cur.next + 1
-		} else {
-			hi = cur.next
-		}
+	if err := cur.seek(ctx, keys[0]); err != nil {
+		return nil, err
 	}
-
-	// Merge the children with the keys.
-	cur.next = lo
 	for _, key := range keys {
-		for {
-			child, err := cur.child(ctx)
-			if err != nil || child == nil {
-				return pending, err
-			}
-			cmp := bytes.Compare(BlockKey(child), key)
-			if cmp > 0 {
-				break
-			}
-			if cmp == 0 {
-				pending[string(key)]++
-			}
-			cur.next++
+		n, err := cur.count(ctx, key)
+		if err != nil {
+			return pending, err
+		}
+		if n != 0 {
+			pending[string(key)] = n
 		}
 	}
 	return pending, nil

@@ -1717,21 +1717,64 @@ func (c *releaseCursor) child(ctx context.Context) (*block.BlockRef, error) {
 	return c.page[within], nil
 }
 
+// seek moves the cursor from its position to the first child whose key is
+// not below key. Children are in block key order, as EncodeChildren and
+// mergeList keep them, so a binary search over the children from the cursor
+// finds it, reading only the pages it probes. The cursor only reads release
+// pages: it never moves the release's Next, which only the release step
+// that commits a page of moves writes.
+func (c *releaseCursor) seek(ctx context.Context, key []byte) error {
+	lo, hi := c.next, c.rel.GetChildren()
+	for lo < hi {
+		c.next = lo + (hi-lo)/2
+		child, err := c.child(ctx)
+		if err != nil {
+			return err
+		}
+		if bytes.Compare(BlockKey(child), key) < 0 {
+			lo = c.next + 1
+		} else {
+			hi = c.next
+		}
+	}
+	c.next = lo
+	return nil
+}
+
+// skipBelow moves the cursor past the children below key and returns the
+// child at it, or nil past the last one.
+func (c *releaseCursor) skipBelow(ctx context.Context, key []byte) (*block.BlockRef, error) {
+	for {
+		child, err := c.child(ctx)
+		if err != nil || child == nil || bytes.Compare(BlockKey(child), key) >= 0 {
+			return child, err
+		}
+		c.next++
+	}
+}
+
 // has reports whether the release references the block at key, moving the
 // cursor past the children below it. Calls pass keys in ascending order, as
 // ScanChildren yields them.
 func (c *releaseCursor) has(ctx context.Context, key []byte) (bool, error) {
+	child, err := c.skipBelow(ctx, key)
+	if err != nil || child == nil {
+		return false, err
+	}
+	return bytes.Equal(BlockKey(child), key), nil
+}
+
+// count moves the cursor past every child not above key and returns how
+// many equal it, since a release lists a block once per edge that names it.
+// Calls pass keys in ascending order.
+func (c *releaseCursor) count(ctx context.Context, key []byte) (int64, error) {
+	var n int64
 	for {
-		child, err := c.child(ctx)
-		if err != nil || child == nil {
-			return false, err
+		child, err := c.skipBelow(ctx, key)
+		if err != nil || child == nil || !bytes.Equal(BlockKey(child), key) {
+			return n, err
 		}
-		switch cmp := bytes.Compare(BlockKey(child), key); {
-		case cmp == 0:
-			return true, nil
-		case cmp > 0:
-			return false, nil
-		}
+		n++
 		c.next++
 	}
 }

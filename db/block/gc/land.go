@@ -238,15 +238,7 @@ func Land(
 	// Record the blocks the roots move onto, whose counts the puts' count
 	// batch reads, then store the entries and find the blocks they give
 	// birth to.
-	if l.logs {
-		for _, move := range moves {
-			for _, root := range move.Roots {
-				if !root.Ref.GetEmpty() {
-					l.holds.roots = append(l.holds.roots, BlockKey(root.Ref))
-				}
-			}
-		}
-	}
+	l.holdRoots(moves)
 	existed, err := l.putEntries(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -260,12 +252,8 @@ func Land(
 	}
 
 	// Mark the unverified lists of the stored blocks the Land puts again.
-	if l.gen == Generation_GENERATION_OPEN {
-		for _, entry := range l.stored {
-			if err := l.markStored(ctx, entry); err != nil {
-				return nil, err
-			}
-		}
+	if err := l.markStoredLists(ctx); err != nil {
+		return nil, err
 	}
 
 	// Count the holders the born blocks give their children.
@@ -986,6 +974,39 @@ func adoptCounted(state *LivenessState, key []byte) bool {
 	default:
 		return false
 	}
+}
+
+// holdRoots records the blocks moves will root, when the Volume keeps the
+// logs. It must run before putEntries, since classifyPuts reads holds.roots
+// in the puts' count batch to dequeue a stored block a root now holds at
+// zero; recorded after it, the Land would leave on the free queue a block it
+// is about to root.
+func (l *lander) holdRoots(moves []BucketRoots) {
+	if !l.logs {
+		return
+	}
+	for _, move := range moves {
+		for _, root := range move.Roots {
+			if !root.Ref.GetEmpty() {
+				l.holds.roots = append(l.holds.roots, BlockKey(root.Ref))
+			}
+		}
+	}
+}
+
+// markStoredLists marks the unverified list of each stored block the Land
+// puts again, in entry order, while the generation is Open, as markStored
+// describes. It runs after putEntries, which fills stored.
+func (l *lander) markStoredLists(ctx context.Context) error {
+	if l.gen != Generation_GENERATION_OPEN {
+		return nil
+	}
+	for _, entry := range l.stored {
+		if err := l.markStored(ctx, entry); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // markStored marks the unverified list of the stored block entry puts
