@@ -85,8 +85,10 @@ type Volume struct {
 	// with frees on, so no read hides a block until the Volume opens again,
 	// as hideAbsent describes.
 	hidesNone atomic.Bool
-	// adoptMu runs one adoption of this Volume at a time.
-	adoptMu sync.Mutex
+	// adoptMu runs one adoption of this Volume at a time. A caller waits its
+	// turn under its own context, so it can leave while the background
+	// adoption, which runs until Close, holds the turn.
+	adoptMu csync.Mutex
 	// atomic is set when the store commits transactions atomically. The
 	// Volume's liveness, roots, pins and stages need atomic commits.
 	atomic bool

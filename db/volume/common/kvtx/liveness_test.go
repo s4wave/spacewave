@@ -5406,6 +5406,23 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("adoption waited for under a context", func(t *testing.T) {
+		// A caller that finds an adoption running, as a command does while
+		// the background adoption counts, leaves when its own context ends
+		// instead of waiting the run out.
+		v, _ := openUnadoptedVolume(t, newGuardedStore(t))
+		unlock, err := v.adoptMu.Lock(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer unlock()
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		if _, err := v.Adopt(ctx); !errors.Is(err, context.Canceled) {
+			t.Fatalf("adopt under a held turn = %v, want canceled", err)
+		}
+	})
+
 	t.Run("adoption resumed across reopens", func(t *testing.T) {
 		// An unadopted Volume holds about twenty slices of records
 		// across the passes. Adoptions are cancelled at random slices

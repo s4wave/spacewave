@@ -81,16 +81,20 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 // Adopt counts the holders of every block of an unadopted Volume, such as one
 // that predates its logs, and marks it adopted, as block_gc.Adopt describes,
 // reporting the mark phase while it runs. It runs one adoption of this Volume
-// at a time. An adoption from another process on the same store supersedes that
-// adoption, as block_gc.Adopt describes. Adopt a Volume only once every writer
-// that uses it holds what it needs under named roots.
+// at a time, and a caller that finds one running waits for it until ctx ends.
+// An adoption from another process on the same store supersedes that adoption,
+// as block_gc.Adopt describes. Adopt a Volume only once every writer that uses
+// it holds what it needs under named roots.
 func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	// Require liveness, then adopt one run at a time.
 	if !v.HoldsRoots() {
 		return block_gc.AdoptResult{}, block.ErrAtomicCommitUnsupported
 	}
-	v.adoptMu.Lock()
-	defer v.adoptMu.Unlock()
+	unlock, err := v.adoptMu.Lock(ctx)
+	if err != nil {
+		return block_gc.AdoptResult{}, err
+	}
+	defer unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v}, v.now)
 }
