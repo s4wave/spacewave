@@ -891,7 +891,7 @@ func (r *SessionResource) MountSharedObject(
 		return nil, err
 	}
 	defer relSoListCtr()
-	soListEntry, err := lookupSharedObjectListEntry(
+	soListEntry, err := lookupMountSharedObjectListEntry(
 		ctx,
 		soProvider,
 		soListCtr,

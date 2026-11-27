@@ -71,6 +71,7 @@ func (e accountWSEvents) soNotify(soID string, payload *api.SONotifyEventPayload
 // soListUpdate publishes the new shared object list and refreshes
 // Self-Enrollment against it.
 func (e accountWSEvents) soListUpdate(list *sobject.SharedObjectList) {
+	e.acc.invalidateSharedObjectLookup()
 	e.acc.soListCtr.SetValue(list)
 	e.acc.selfEnrollmentRefresh.Trigger()
 }
@@ -81,6 +82,7 @@ func (e accountWSEvents) connected() {
 	// Refetch account state and the caches that events would update.
 	acc := e.acc
 	acc.le.Debug("session ws connected; invalidating event-driven caches")
+	acc.resetSharedObjectLookup()
 	acc.BumpLocalEpoch()
 	acc.InvalidatePendingMailboxEntries()
 	acc.InvalidateTargetedInvitations()
@@ -180,6 +182,7 @@ func (e accountWSEvents) dormantChanged(dormant bool) {
 // or stale Session.
 func (e accountWSEvents) sessionUnauthenticated() {
 	acc := e.acc
+	acc.invalidateSharedObjectLookup()
 	acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		acc.state.status = accountstatus.Unauthenticated(acc.state.info)
 		broadcast()
@@ -192,6 +195,7 @@ func (e accountWSEvents) sessionUnauthenticated() {
 func (e accountWSEvents) accountWasDeleted() {
 	// Release the account's roots and clean up its storage.
 	acc := e.acc
+	acc.invalidateSharedObjectLookup()
 	acc.releaseAccountRoots(e.ctx, acc.le)
 	acc.triggerGCCleanup()
 

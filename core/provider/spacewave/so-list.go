@@ -31,6 +31,7 @@ func (a *ProviderAccount) syncSharedObjectListAccess(
 
 	// Clear the list when access is revoked and restart its resolution.
 	if !allowed {
+		a.invalidateSharedObjectLookup()
 		a.soListCtr.SetValue(&sobject.SharedObjectList{})
 		a.selfEnrollmentRefresh.Trigger()
 	}

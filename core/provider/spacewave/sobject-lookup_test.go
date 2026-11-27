@@ -1,0 +1,260 @@
+package provider_spacewave
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	api "github.com/aperturerobotics/spacewave-cloud/api"
+	"github.com/aperturerobotics/util/refcount"
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/sobject"
+)
+
+// lookupTestID is the valid Cloud resource used by descriptor lookup fixtures.
+const lookupTestID = "01j00000000000000000000000"
+
+// TestLookupSharedObjectRouteDetection confines legacy fallback to the old
+// dispatcher's typed 404 and forgets it at the authenticated reconnect boundary.
+func TestLookupSharedObjectRouteDetection(t *testing.T) {
+	for _, outcome := range []string{"absent", "refused", "unauth", "throttled", "blocked", "gateway", "bare404", "malformed", "wrong-account", "wrong-id", "empty-ref"} {
+		t.Run(outcome, func(t *testing.T) {
+			// Answer the actual signed lookup request with one rollout outcome.
+			var calls atomic.Int32
+			var upgraded atomic.Bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				if r.Method != http.MethodGet || r.URL.Path != "/api/sobject/"+lookupTestID+"/lookup" {
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				}
+				if upgraded.Load() {
+					data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+					_, _ = w.Write(data)
+					return
+				}
+				switch outcome {
+				case "absent":
+					w.WriteHeader(http.StatusNotFound)
+					_, _ = w.Write([]byte(`{"code":"not_found"}`))
+				case "refused":
+					w.WriteHeader(http.StatusForbidden)
+					_, _ = w.Write([]byte(`{"code":"sobject_not_accessible"}`))
+				case "unauth":
+					w.WriteHeader(http.StatusUnauthorized)
+				case "throttled":
+					w.WriteHeader(http.StatusTooManyRequests)
+				case "blocked":
+					w.WriteHeader(http.StatusUnavailableForLegalReasons)
+				case "gateway":
+					w.WriteHeader(http.StatusBadGateway)
+					_, _ = w.Write([]byte("<html>gateway</html>"))
+				case "bare404":
+					w.WriteHeader(http.StatusNotFound)
+					_, _ = w.Write([]byte("<html>not found</html>"))
+				case "malformed":
+					_, _ = w.Write([]byte{255})
+				case "wrong-account", "wrong-id", "empty-ref":
+					entry := &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}
+					switch outcome {
+					case "wrong-account":
+						entry.Ref.ProviderResourceRef.ProviderAccountId = "foreign"
+					case "wrong-id":
+						entry.Ref.ProviderResourceRef.Id = "foreign"
+					case "empty-ref":
+						entry.Ref = nil
+					}
+					data, _ := (&api.LookupSObjectResponse{Entry: entry}).MarshalVT()
+					_, _ = w.Write(data)
+				}
+			}))
+			defer srv.Close()
+			acc := NewTestProviderAccount(t, srv.URL)
+
+			// Only typed action absence suppresses subsequent probes.
+			for range 2 {
+				entry, err := acc.LookupSharedObject(t.Context(), lookupTestID)
+				if entry != nil || err == nil || errors.Is(err, sobject.ErrSharedObjectLookupUnsupported) != (outcome == "absent") {
+					t.Fatalf("outcome %s returned %v %v", outcome, entry, err)
+				}
+			}
+			want := int32(2)
+			if outcome == "absent" {
+				want = 1
+			}
+			if calls.Load() != want {
+				t.Fatalf("got %d probes, want %d", calls.Load(), want)
+			}
+
+			// A reconnect discovers an upgraded server with the next needed lookup.
+			upgraded.Store(true)
+			acc.resetSharedObjectLookup()
+			entry, err := acc.LookupSharedObject(t.Context(), lookupTestID)
+			if err != nil || entry.GetRef().GetProviderResourceRef().GetId() != lookupTestID {
+				t.Fatalf("lookup after upgrade: %v %v", entry, err)
+			}
+		})
+	}
+}
+
+// TestLookupSharedObjectInvalidation rejects a reply superseded by deletion,
+// access invalidation, a reconnect or replacement of the account's signer.
+func TestLookupSharedObjectInvalidation(t *testing.T) {
+	for _, change := range []string{"delete", "access", "reconnect", "signer", "account"} {
+		t.Run(change, func(t *testing.T) {
+			// Hold a successful response after the request has started.
+			started, release := make(chan struct{}), make(chan struct{})
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				close(started)
+				<-release
+				data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+				_, _ = w.Write(data)
+			}))
+			defer srv.Close()
+			acc := NewTestProviderAccount(t, srv.URL)
+			done := make(chan error, 1)
+			go func() {
+				_, err := acc.LookupSharedObject(t.Context(), lookupTestID)
+				done <- err
+			}()
+			<-started
+
+			// Supersede its authority before the response can publish.
+			switch change {
+			case "delete":
+				acc.DeleteSharedObjectMetadata(lookupTestID)
+			case "access":
+				acc.invalidateSharedObjectLookup()
+			case "reconnect":
+				acc.resetSharedObjectLookup()
+			case "account":
+				acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+					acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DELETED
+				})
+			case "signer":
+				priv, pid := generateTestKeypair(t)
+				acc.ReplaceSessionClient("replacement", priv, pid)
+			}
+			close(release)
+			if err := <-done; err == nil {
+				t.Fatal("accepted a superseded descriptor")
+			}
+			if acc.HasCachedSharedObject(lookupTestID) {
+				t.Fatal("late response restored a catalog entry")
+			}
+		})
+	}
+}
+
+// TestLookupSharedObjectDemand shares a request and keeps it alive after one
+// caller cancels, while a cached descriptor needs no subsequent request.
+func TestLookupSharedObjectDemand(t *testing.T) {
+	// Hold the request while two independently cancellable callers attach.
+	started, release := make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			close(started)
+		}
+		select {
+		case <-release:
+		case <-r.Context().Done():
+			return
+		}
+		data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+	acc := NewTestProviderAccount(t, srv.URL)
+	firstCtx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	first, second := make(chan error, 1), make(chan error, 1)
+	go func() { _, err := acc.LookupSharedObject(firstCtx, lookupTestID); first <- err }()
+	<-started
+
+	// Add a second ref directly to the production demand primitive before cancelling.
+	var lookup *refcount.RefCount[*sobject.SharedObjectListEntry]
+	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		lookup = acc.state.sharedObjectMetadata[lookupTestID].lookup
+	})
+	secondPromise, secondRef := lookup.WaitWithReleased(t.Context(), nil)
+	go func() { _, err := secondPromise.Await(t.Context()); second <- err; secondRef.Release() }()
+	cancel()
+	if err := <-first; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled caller: %v", err)
+	}
+	close(release)
+	if err := <-second; err != nil {
+		t.Fatal(err)
+	}
+
+	// Reuse the persisted catalog descriptor even after the HTTP server closes.
+	srv.Close()
+	if _, err := acc.LookupSharedObject(t.Context(), lookupTestID); err != nil || calls.Load() != 1 {
+		t.Fatalf("cached lookup: calls=%d error=%v", calls.Load(), err)
+	}
+}
+
+// TestLookupSharedObjectLastCancellation releases the HTTP request when no
+// caller still needs its descriptor.
+func TestLookupSharedObjectLastCancellation(t *testing.T) {
+	// Keep the server waiting until the final demand cancels the request.
+	started, stopped := make(chan struct{}), make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+		close(stopped)
+	}))
+	defer srv.Close()
+	acc := NewTestProviderAccount(t, srv.URL)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { _, err := acc.LookupSharedObject(ctx, lookupTestID); done <- err }()
+	<-started
+
+	// The caller finishes and the HTTP server observes transport cancellation.
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled lookup: %v", err)
+	}
+	select {
+	case <-stopped:
+	case <-t.Context().Done():
+		t.Fatal("last demand did not cancel the HTTP request")
+	}
+}
+
+// TestLookupSharedObjectRetryDeadline waits out a typed retry hint while retaining
+// the original demand, then resolves the descriptor without a catalog refresh.
+func TestLookupSharedObjectRetryDeadline(t *testing.T) {
+	// Return one throttled response followed by the descriptor.
+	var calls atomic.Int32
+	var firstAt atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			firstAt.Store(time.Now().UnixNano())
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"code":"rate_limited","retryable":true,"retryAfterSeconds":1}`))
+			return
+		}
+		if time.Since(time.Unix(0, firstAt.Load())) < time.Second {
+			t.Error("retried before the server deadline")
+		}
+		data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+
+	// Resolve through the account's existing demand and retry primitives.
+	acc := NewTestProviderAccount(t, srv.URL)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	entry, err := acc.LookupSharedObject(ctx, lookupTestID)
+	if err != nil || entry == nil || calls.Load() != 2 {
+		t.Fatalf("retry: calls=%d entry=%v error=%v", calls.Load(), entry, err)
+	}
+}

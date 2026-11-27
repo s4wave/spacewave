@@ -3,6 +3,8 @@ package sobject
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/aperturerobotics/util/ccontainer"
 	provider "github.com/s4wave/spacewave/core/provider"
 )
@@ -12,6 +14,9 @@ const OwnerTypeAccount = "account"
 
 // OwnerTypeOrganization is the owner type for org-owned shared objects.
 const OwnerTypeOrganization = "organization"
+
+// ErrSharedObjectLookupUnsupported selects the catalog path for providers without targeted lookup.
+var ErrSharedObjectLookupUnsupported = errors.New("shared object lookup is unsupported")
 
 // SharedObjectProvider implements ProviderFeature_SHARED_OBJECT.
 type SharedObjectProvider interface {
@@ -41,6 +46,10 @@ type SharedObjectProvider interface {
 	// AccessSharedObjectList adds a reference to the list of shared objects and returns the container.
 	// Returns a release function. Accepts a function that is called if the Watchable becomes invalid.
 	AccessSharedObjectList(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectList], func(), error)
+
+	// LookupSharedObject returns one account-visible catalog descriptor, or
+	// ErrSharedObjectLookupUnsupported when the provider lacks this operation.
+	LookupSharedObject(ctx context.Context, id string) (*SharedObjectListEntry, error)
 
 	// RefreshSharedObjectList invalidates and reloads the current shared object
 	// list snapshot when the provider has a remote list source.
