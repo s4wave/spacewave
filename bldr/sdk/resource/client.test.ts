@@ -9,7 +9,7 @@ import type {
   ResourceClientResponse,
 } from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
-import { Client, ResourceClientError } from './client.js'
+import { Client, ResourceClientError, type ClientResourceRef } from './client.js'
 
 function setInitializedResourceSession(client: Client): void {
   Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
@@ -96,16 +96,26 @@ describe('ResourceClient', () => {
     const first = await client.accessRootResource()
     const retired = vi.fn()
     client.onConnectionLost(retired)
+    const cached = first.client
+    const onReleased = vi.fn()
+    first.onReleased(onReleased)
+    const pendingRoot = client.accessRootResource()
 
     client.resetConnection()
 
     expect(first.released).toBe(true)
     expect(signals[0].aborted).toBe(true)
     expect(retired).toHaveBeenCalledOnce()
-    const second = await client.accessRootResource()
+    const second = await pendingRoot
     expect(second.resourceId).toBe(2)
     expect(second.released).toBe(false)
     expect(client.connectionGeneration).toBe(1)
+    await expect(
+      cached.request('test.Root', 'Read', new Uint8Array()),
+    ).rejects.toThrow('generation')
+    expect(onReleased).toHaveBeenCalledExactlyOnceWith('connection-lost')
+    expect(first.releaseReason).toBe('connection-lost')
+    expect(() => first.createRef(second.resourceId)).toThrow('generation')
     client.dispose('CONNECTION_FAILED')
     await waitForCondition(() => finished === 2)
     client.resetConnection()
@@ -536,7 +546,7 @@ describe('ResourceClient', () => {
     expect(resourceRpcCalls).toBe(1)
   })
 
-  it('marks stale ResourceRpc refs server-released before ack error rejects the request', async () => {
+  it('marks stale ResourceRpc refs route-refused before ack error rejects the request', async () => {
     const service = buildUnusedService()
     const staleMessage = 'selected handle is no longer available'
     service.ResourceRpc = async function* (request) {
@@ -581,7 +591,7 @@ describe('ResourceClient', () => {
           expect(onResourceReleased).toHaveBeenCalledOnce()
           expect(onResourceReleased).toHaveBeenCalledWith({
             resourceId: 51,
-            reason: 'server-released',
+            reason: 'route-refused',
           })
           throw error
         }),
@@ -709,7 +719,15 @@ describe('ResourceClient', () => {
     await waitForCondition(() => controls.length === 2)
     const second = first.createRef(first.resourceId)
     await new Promise((resolve) => setTimeout(resolve, 0))
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const observer = vi.fn(() => {
+      throw new Error('subscriber failed')
+    })
+    first.onReleased(observer)
     first.release()
+    expect(observer).toHaveBeenCalledExactlyOnceWith('client-released')
+    expect(reportError).toHaveBeenCalledOnce()
+    reportError.mockRestore()
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(controls).toHaveLength(2)
 
@@ -726,6 +744,19 @@ describe('ResourceClient', () => {
       ['init', undefined],
       ['adopt', 1],
       ['release', 1],
+    ])
+
+    // Failed construction relinquishes the newly adopted child, even after parent retirement.
+    class BrokenResource {
+      constructor(_ref: ClientResourceRef) {
+        throw new Error('wrapper failed')
+      }
+    }
+    expect(() => first.createResource(12, BrokenResource)).toThrow('wrapper failed')
+    await waitForCondition(() => controls.length === 5)
+    expect(controls.slice(3).map((control) => control.body?.case)).toEqual([
+      'adopt',
+      'release',
     ])
 
     client.dispose()

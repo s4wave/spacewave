@@ -14,6 +14,9 @@ import type {
   ClientResourceRef,
   ResourceReleasedEvent,
 } from '../resource/client.js'
+import { ReferenceLifetime } from '../resource/reference-lifetime.js'
+
+const handleLifetimes = new Map<number, ReferenceLifetime>()
 
 class FakeResourceClient {
   private listeners = new Set<(event: ResourceReleasedEvent) => void>()
@@ -26,6 +29,7 @@ class FakeResourceClient {
   }
 
   emit(event: ResourceReleasedEvent): void {
+    handleLifetimes.get(event.resourceId)?.retire(event.reason)
     this.listeners.forEach((listener) => listener(event))
   }
 }
@@ -34,7 +38,11 @@ class FakeSDKHandle extends SDKResource {}
 
 function buildHandle(id: number): FakeSDKHandle {
   const ref = {} as ClientResourceRef
+  const lifetime = new ReferenceLifetime()
+  handleLifetimes.set(id, lifetime)
   Object.assign(ref, {
+    get releaseReason() { return lifetime.reason },
+    onReleased: (callback: Parameters<ClientResourceRef['onReleased']>[0]) => lifetime.onReleased(callback),
     resourceId: id,
     released: false,
     client: {} as never,
@@ -42,8 +50,8 @@ function buildHandle(id: number): FakeSDKHandle {
     createResource: () => {
       throw new Error('not implemented')
     },
-    release: () => {},
-    [Symbol.dispose]: () => {},
+    release: () => lifetime.retire('client-released'),
+    [Symbol.dispose]: () => lifetime.retire('client-released'),
   })
   return new FakeSDKHandle(ref)
 }
@@ -471,6 +479,44 @@ describe('useResource', () => {
     )
     expect(view('data-handle-id')).toBe('2')
     expect(factory).toHaveBeenCalledTimes(2)
+  })
+
+  it('recovers composite acquisitions and ignores retirement from an older run', async () => {
+    // Return an ordinary record while cleanup owns both of its constituent handles.
+    let nextId = 100
+    let failNext = false
+    const acquisitions: FakeSDKHandle[][] = []
+    function Composite() {
+      const resource = useResource(async (_signal, cleanup) => {
+        if (failNext) throw new Error('reopen failed')
+        const first = cleanup(buildHandle(nextId++))
+        const second = cleanup(buildHandle(nextId++))
+        acquisitions.push([first, second])
+        return { title: `pair:${first.id}:${second.id}` }
+      }, [])
+      return React.createElement('div', {
+        'data-value': resource.value?.title ?? '',
+        'data-last': resource.error ? resource.last?.title ?? '' : '',
+        'data-error': resource.error?.message ?? '',
+      })
+    }
+    mount()
+    await render(React.createElement(Composite))
+    expect(view('data-value')).toBe('pair:100:101')
+
+    // A constituent's revocation reopens the composite without an ID extractor.
+    await update(() => handleLifetimes.get(101)!.retire('server-released'))
+    expect(view('data-value')).toBe('pair:102:103')
+    expect(acquisitions).toHaveLength(2)
+    await update(() => handleLifetimes.get(100)!.retire('server-released'))
+    expect(acquisitions).toHaveLength(2)
+    expect(view('data-value')).toBe('pair:102:103')
+
+    // A failed reopen must not keep a composite containing retired handles as last.
+    failNext = true
+    await update(() => handleLifetimes.get(103)!.retire('server-released'))
+    expect(view('data-error')).toBe('reopen failed')
+    expect(view('data-last')).toBe('')
   })
 
   it('allows opting out of release-triggered retries', async () => {

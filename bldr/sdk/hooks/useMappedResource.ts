@@ -31,7 +31,8 @@ export function useMappedResource<A, B>(
         loading: source.loading,
         error: source.error,
         retry: source.retry,
+      onReleased: source.onReleased,
       }),
-    [value, last, source.loading, source.error, source.retry],
+    [value, last, source.loading, source.error, source.retry, source.onReleased],
   )
 }

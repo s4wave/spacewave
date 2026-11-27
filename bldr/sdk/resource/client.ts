@@ -20,6 +20,7 @@ import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import { ResourceFailureCode } from './resource.pb.js'
 import { openResourceRpcStream, ResourceFailureError } from './rpc-stream.js'
+import { ReferenceLifetime } from './reference-lifetime.js'
 import type { ResourceRpcStream } from './rpc-stream.js'
 
 // ReleasedResourceClient is returned from the client getter when a resource has been released.
@@ -118,6 +119,10 @@ function isServerMissingResourceError(error: unknown): boolean {
 export interface ClientResourceRef {
   readonly resourceId: number
   readonly released: boolean
+  /** releaseReason is the first terminal cause, or null while live. */
+  readonly releaseReason: ResourceReleaseReason | null
+  /** onReleased subscribes to this reference, including an already retired one. */
+  onReleased(callback: (reason: ResourceReleaseReason) => void): () => void
   readonly client: SRPCClient | ReleasedResourceClient
   createRef(id: number): ClientResourceRef
   createResource<T, Args extends unknown[]>(
@@ -143,6 +148,7 @@ export interface ResourceReleasedEvent {
 export type ResourceReleaseReason =
   | 'client-released' // Client called release()
   | 'server-released' // Server notified the client of release
+  | 'route-refused' // A typed route refusal retired the handle
   | 'connection-lost' // Connection was lost
   | 'client-disposed' // Client was disposed/cancelled
 
@@ -216,7 +222,7 @@ class EventEmitter<T> {
  * InternalResourceRef extends the public interface with mutable state.
  */
 interface InternalResourceRef extends ClientResourceRef {
-  _markReleased(): void
+  _markReleased(reason: ResourceReleaseReason): void
 }
 
 /**
@@ -231,6 +237,7 @@ interface ClientInitState {
 class OrderedSRPCClient extends SRPCClient {
   constructor(
     private readonly resourceClient: Client,
+    private readonly assertGeneration: () => void,
     private readonly openRoute: (
       retain?: boolean,
     ) => Promise<ResourceRpcStream>,
@@ -246,7 +253,9 @@ class OrderedSRPCClient extends SRPCClient {
     abortSignal?: AbortSignal,
   ): Promise<Uint8Array> {
     // Keep this call's route separate from concurrent unary and streaming calls.
+    this.assertGeneration()
     await this.resourceClient.waitForControls(abortSignal)
+    this.assertGeneration()
     let route: ResourceRpcStream | undefined
     const call = new SRPCClient(async () => {
       route = await this.openRoute(true)
@@ -270,7 +279,9 @@ class OrderedSRPCClient extends SRPCClient {
     data: AsyncIterable<Uint8Array>,
     abortSignal?: AbortSignal,
   ): Promise<Uint8Array> {
+    this.assertGeneration()
     await this.resourceClient.waitForControls(abortSignal)
+    this.assertGeneration()
     return super.clientStreamingRequest(service, method, data, abortSignal)
   }
 
@@ -282,7 +293,9 @@ class OrderedSRPCClient extends SRPCClient {
   ): AsyncIterable<Uint8Array> {
     const outgoing = pushable<Uint8Array>({ objectMode: true })
     void (async () => {
+      this.assertGeneration()
       await this.resourceClient.waitForControls(abortSignal)
+      this.assertGeneration()
       for await (const value of super.serverStreamingRequest(
         service,
         method,
@@ -304,7 +317,9 @@ class OrderedSRPCClient extends SRPCClient {
   ): AsyncIterable<Uint8Array> {
     const outgoing = pushable<Uint8Array>({ objectMode: true })
     void (async () => {
+      this.assertGeneration()
       await this.resourceClient.waitForControls(abortSignal)
+      this.assertGeneration()
       for await (const value of super.bidirectionalStreamingRequest(
         service,
         method,
@@ -323,13 +338,15 @@ function createResourceRef(
   id: number,
   client: Client,
   onRelease: (id: number, ref: InternalResourceRef) => void,
-  onServerRelease: (id: number) => void,
+  onRouteRefused: (id: number) => void,
+  assertGeneration: () => void,
+  generationSignal: AbortSignal,
 ): InternalResourceRef {
   // Release the reference once, reporting it to the client.
-  let released = false
+  const lifetime = new ReferenceLifetime()
   const release = () => {
-    if (released) return
-    released = true
+    if (lifetime.reason !== null) return
+    lifetime.retire('client-released')
     onRelease(id, ref)
   }
 
@@ -337,16 +354,18 @@ function createResourceRef(
   let srpcClient: SRPCClient | null = null
   const getSrpcClient = (): SRPCClient => {
     if (!srpcClient) {
-      srpcClient = new OrderedSRPCClient(client, async (retain) => {
+      srpcClient = new OrderedSRPCClient(client, assertGeneration, async (retain) => {
+        assertGeneration()
         return withResourceClientInitTimeout(
           openResourceRpcStream(
             id,
             client.service.ResourceRpc.bind(client.service),
             retain,
+            generationSignal,
           ),
         ).catch((error) => {
           if (isServerMissingResourceError(error)) {
-            onServerRelease(id)
+            onRouteRefused(id)
           }
           throw error
         })
@@ -362,23 +381,25 @@ function createResourceRef(
     },
 
     get released() {
-      return released
+      return lifetime.reason !== null
     },
 
+    get releaseReason() {
+      return lifetime.reason
+    },
+
+    onReleased: (callback) => lifetime.onReleased(callback),
+
     get client(): SRPCClient | ReleasedResourceClient {
-      if (released) {
+      if (lifetime.reason !== null) {
         return releasedResourceClient
       }
       return getSrpcClient()
     },
 
     createRef(newId: number): ClientResourceRef {
-      if (released) {
-        throw new ResourceClientError(
-          `Cannot create ref from released resource ${id}`,
-          'INVALID_RESOURCE',
-        )
-      }
+      assertGeneration()
+      // A delivered child belongs to this generation even after its parent retires.
       return client.createResourceReference(newId)
     },
 
@@ -388,15 +409,18 @@ function createResourceRef(
       ...args: Args
     ): T {
       const ref = this.createRef(newId)
-      return new ResourceClass(ref, ...args)
+      try {
+        return new ResourceClass(ref, ...args)
+      } catch (error) {
+        ref.release()
+        throw error
+      }
     },
 
     release,
     [Symbol.dispose]: release,
 
-    _markReleased() {
-      released = true
-    },
+    _markReleased: (reason) => lifetime.retire(reason),
   }
   return ref
 }
@@ -511,8 +535,11 @@ export class Client {
    * opens a fresh connection after that failure.
    */
   async accessRootResource(): Promise<ClientResourceRef> {
-    const state = await this.ensureInitialized()
-    return this.createResourceReference(state.rootResourceId)
+    for (;;) {
+      const state = await this.ensureInitialized()
+      if (state !== this.initState) continue
+      return this.createResourceReference(state.rootResourceId)
+    }
   }
 
   // attachRawInvoker provides a leaf callback mux. Raw attached invokers are
@@ -639,8 +666,15 @@ export class Client {
   // openAttachSession opens the ResourceAttach bidi stream.
   private async openAttachSession(): Promise<AttachSession> {
     // Attach under the initialized client handle.
-    const state = await this.ensureInitialized()
-    const controller = createAbortController(this.signal)
+    let state: ClientInitState
+    do {
+      state = await this.ensureInitialized()
+    } while (state !== this.initState)
+    const generation = this.resourceSession
+    if (!generation || generation.closed) {
+      throw new ResourceClientError('Resource generation was replaced', 'CONNECTION_FAILED')
+    }
+    const controller = createAbortController(generation.controller.signal)
 
     // Create an outgoing packet pushable.
     const outgoing = pushable<ResourceAttachRequest>({ objectMode: true })
@@ -664,6 +698,12 @@ export class Client {
 
     // Read the session Ack.
     const ackResult = await incomingIt.next()
+    if (controller.signal.aborted || this.resourceSession !== generation) {
+      outgoing.end()
+      controller.abort()
+      await Promise.resolve(incomingIt.return?.()).catch(() => {})
+      throw new ResourceClientError('Resource attach generation was replaced', 'ATTACH_SESSION_CLOSED')
+    }
     if (ackResult.done) {
       outgoing.end()
       controller.abort()
@@ -839,7 +879,7 @@ export class Client {
     // Release every reference and clear the client state.
     const releaseReason: ResourceReleaseReason = 'client-disposed'
     for (const [resourceId, refs] of this.resources.entries()) {
-      refs.forEach((ref) => ref._markReleased())
+      refs.forEach((ref) => ref._markReleased(releaseReason))
       this.events.emit({ resourceId, reason: releaseReason })
     }
     this.resources.clear()
@@ -1116,6 +1156,14 @@ export class Client {
   private createRef(id: number): ClientResourceRef {
     // Find or start the reference set for the resource.
     this.throwIfDisposed()
+    const session = this.resourceSession
+    // A reference must never leak past its generation, even through a cached client.
+    const assertGeneration = () => {
+      if (!session || session.closed || this.resourceSession !== session) {
+        throw new ResourceClientError('Resource generation was replaced', 'CONNECTION_FAILED')
+      }
+    }
+    assertGeneration()
     let refs = this.resources.get(id)
     const firstRef = !refs
     if (!refs) {
@@ -1128,7 +1176,11 @@ export class Client {
       id,
       this,
       this.releaseRef.bind(this),
-      this.handleServerResourceRelease.bind(this),
+      (id) => {
+        if (this.resourceSession === session) this.retireResource(id, 'route-refused')
+      },
+      assertGeneration,
+      session!.controller.signal,
     )
     refs.add(ref)
     if (firstRef)
@@ -1138,7 +1190,8 @@ export class Client {
 
   // releaseRef drops ref and releases the resource with its last reference.
   private releaseRef(id: number, ref: InternalResourceRef): void {
-    // Keep the resource while other references remain.
+    // A live handle must never be freed under its holder: only the last
+    // reference sends Release; every other holder keeps the shared handle.
     const refs = this.resources.get(id)
     if (!refs) return
     refs.delete(ref)
@@ -1268,12 +1321,17 @@ export class Client {
    * resource was released.
    */
   private handleServerResourceRelease(resourceId: number): void {
+    this.retireResource(resourceId, 'server-released')
+  }
+
+  // retireResource commits the first terminal cause to all current holders.
+  private retireResource(resourceId: number, reason: ResourceReleaseReason): void {
     // Ignore a resource with no references.
     const refs = this.resources.get(resourceId)
     if (!refs) return
 
     // Mark all references as released
-    refs.forEach((ref) => ref._markReleased())
+    refs.forEach((ref) => ref._markReleased(reason))
 
     // Remove the resource from tracking
     this.resources.delete(resourceId)
@@ -1281,7 +1339,7 @@ export class Client {
     // Emit the resource release event
     this.events.emit({
       resourceId,
-      reason: 'server-released',
+      reason,
     })
   }
 
@@ -1294,7 +1352,7 @@ export class Client {
     this._connectionGeneration++
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
-      refs.forEach((ref) => ref._markReleased())
+      refs.forEach((ref) => ref._markReleased(reason))
       this.events.emit({ resourceId, reason })
     }
     this.resources.clear()
@@ -1321,7 +1379,7 @@ export class Client {
     this.connectionController = null
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
-      refs.forEach((ref) => ref._markReleased())
+      refs.forEach((ref) => ref._markReleased('connection-lost'))
       this.events.emit({ resourceId, reason: 'connection-lost' })
     }
     this.resources.clear()

@@ -9,6 +9,8 @@ import {
 import { ResourceFailureError } from '../rpc-stream.js'
 import type { AttachedResource } from './attached-resource.js'
 import type { TrackedResource } from './tracked-resource.js'
+import { ReferenceLifetime } from '../reference-lifetime.js'
+import type { ResourceOffers } from './resource-offers.js'
 
 // releasedAttachedClient is a singleton proxy for released attached refs.
 const releasedAttachedClient: ReleasedResourceClient = new Proxy(
@@ -50,21 +52,18 @@ function createRawAttachedResourceRef(
   id: number,
   attached: AttachedResource,
 ): ClientResourceRef {
-  let released = false
-
-  const release = () => {
-    released = true
-  }
+  const lifetime = new ReferenceLifetime(attached.signal)
+  const release = () => lifetime.retire('client-released')
 
   const ref: ClientResourceRef = {
     get resourceId() {
       return id
     },
     get released() {
-      return released || attached.signal.aborted
+      return lifetime.reason !== null
     },
     get client(): SRPCClient | ReleasedResourceClient {
-      if (released || attached.signal.aborted) {
+      if (lifetime.reason !== null) {
         return releasedAttachedClient
       }
       return attached.client
@@ -79,6 +78,10 @@ function createRawAttachedResourceRef(
         `Cannot create child resource from raw attached resource ${id}`,
       )
     },
+    get releaseReason() {
+      return lifetime.reason
+    },
+    onReleased: (callback) => lifetime.onReleased(callback),
     release,
     [Symbol.dispose]: release,
   }
@@ -93,11 +96,11 @@ function createAttachedResourceRef(
   id: number,
   owner: RemoteResourceClient,
 ): ClientResourceRef {
-  let released = false
-
+  const attached = owner.attachedResources.get(id)!
+  const lifetime = new ReferenceLifetime(attached.signal)
   const release = () => {
-    if (released) return
-    released = true
+    if (lifetime.reason !== null) return
+    lifetime.retire('client-released')
     owner.releaseResource(id)
   }
 
@@ -107,18 +110,18 @@ function createAttachedResourceRef(
     },
     get released() {
       const attached = owner.attachedResources.get(id)
-      return released || !attached || attached.signal.aborted
+      return lifetime.reason !== null || !attached || attached.signal.aborted
     },
     get client(): SRPCClient | ReleasedResourceClient {
       const attached = owner.attachedResources.get(id)
-      if (released || !attached || attached.signal.aborted) {
+      if (lifetime.reason !== null || !attached || attached.signal.aborted) {
         return releasedAttachedClient
       }
       return attached.client
     },
     createRef(newId: number): ClientResourceRef {
       const attached = owner.attachedResources.get(id)
-      if (released || !attached || attached.signal.aborted) {
+      if (lifetime.reason !== null || !attached || attached.signal.aborted) {
         throw new Error(
           `Cannot create ref from released attached resource ${id}`,
         )
@@ -134,8 +137,17 @@ function createAttachedResourceRef(
       ...args: Args
     ): T {
       const childRef = this.createRef(newId)
-      return new ResourceClass(childRef, ...args)
+      try {
+        return new ResourceClass(childRef, ...args)
+      } catch (error) {
+        childRef.release()
+        throw error
+      }
     },
+    get releaseReason() {
+      return lifetime.reason
+    },
+    onReleased: (callback) => lifetime.onReleased(callback),
     release,
     [Symbol.dispose]: release,
   }
@@ -171,7 +183,7 @@ class RemoteResourceClient {
   private txQueue: ResourceClientResponse[] = []
   private notifyCallbacks = new Set<() => void>()
   private nextResourceID: () => number
-  private pendingChildren = new Map<number, Set<number>>()
+  private children = new Map<number, Set<number>>()
   private warnedPending = new Set<number>()
   private warningTimer: ReturnType<typeof setTimeout> | undefined
   private readonly now: () => number
@@ -208,11 +220,22 @@ class RemoteResourceClient {
     parentResourceID?: number,
     serviceID?: string,
     methodID?: string,
+    offer?: ResourceOffers,
   ): number {
     if (this.released) {
       throw new ResourceFailureError({
         code: ResourceFailureCode.CLIENT_RELEASED,
         message: 'client was released',
+      })
+    }
+    if (offer?.ended) throw new Error('resource invocation has ended')
+    if (
+      parentResourceID !== undefined &&
+      !this.resources.has(parentResourceID)
+    ) {
+      throw new ResourceFailureError({
+        code: ResourceFailureCode.RESOURCE_NOT_FOUND,
+        message: 'resource parent was released',
       })
     }
     const resourceID = this.nextResourceID()
@@ -225,12 +248,14 @@ class RemoteResourceClient {
       serviceID,
       methodID,
       adopted: false,
+      offer,
     })
+    offer?.register(resourceID)
     if (parentResourceID !== undefined) {
-      let children = this.pendingChildren.get(parentResourceID)
+      let children = this.children.get(parentResourceID)
       if (!children) {
         children = new Set()
-        this.pendingChildren.set(parentResourceID, children)
+        this.children.set(parentResourceID, children)
       }
       children.add(resourceID)
       this.schedulePendingWarning()
@@ -247,6 +272,8 @@ class RemoteResourceClient {
     if (!resource) {
       return this.attachedResources.has(resourceID) ? 'adopted' : 'invalid'
     }
+    resource.offer?.accept(resourceID)
+    resource.offer = undefined
     resource.adopted = true
     resource.pendingSince = undefined
     this.warnedPending.delete(resourceID)
@@ -285,13 +312,13 @@ class RemoteResourceClient {
       return true
     }
     if (resourceID === this.retainedRootResourceID) {
-      this.releasePendingChildren(resourceID)
       return true
     }
-    this.releasePendingChildren(resourceID)
     if (resource.parentResourceID !== undefined) {
-      this.pendingChildren.get(resource.parentResourceID)?.delete(resourceID)
+      this.children.get(resource.parentResourceID)?.delete(resourceID)
     }
+    resource.offer?.accept(resourceID)
+    resource.offer = undefined
     this.resources.delete(resourceID)
     this.tombstones.add(resourceID)
     if (notify) this.pushReleased(resourceID)
@@ -323,7 +350,7 @@ class RemoteResourceClient {
     }
     this.released = true
     this.resources.clear()
-    this.pendingChildren.clear()
+    this.children.clear()
     this.controller.abort()
     this.notify()
   }
@@ -364,24 +391,17 @@ class RemoteResourceClient {
   }
 
   private releaseResourceTree(resourceID: number): void {
-    for (const childID of this.pendingChildren.get(resourceID) ?? []) {
+    for (const childID of this.children.get(resourceID) ?? []) {
       this.releaseResourceTree(childID)
     }
     const resource = this.resources.get(resourceID)
     if (!resource) return
+    resource.offer?.accept(resourceID)
+    resource.offer = undefined
     this.resources.delete(resourceID)
     this.tombstones.add(resourceID)
     resource.releaseFn?.()
   }
-  private releasePendingChildren(parentID: number): void {
-    const children = [...(this.pendingChildren.get(parentID) ?? [])]
-    for (const childID of children) {
-      const child = this.resources.get(childID)
-      if (child?.adopted) continue
-      this.releaseResource(childID)
-    }
-  }
-
   private pushReleased(resourceID: number): void {
     this.pushMessage({
       body: {

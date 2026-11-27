@@ -21,6 +21,7 @@ import type { ResourceServiceHandler } from '../resource_srpc.pb.js'
 import { RemoteResourceClient } from './tracked-client.js'
 
 import { withResourceCall } from './context.js'
+import { ResourceOffers } from './resource-offers.js'
 import { ResourceFailureCode } from '../resource.pb.js'
 import { handleResourceRpcStream, ResourceFailureError } from '../rpc-stream.js'
 async function nextResourceClientControl(
@@ -184,7 +185,7 @@ class ResourceServer implements ResourceServiceHandler {
   ): MessageStream<ResourceRpcPacket> {
     return handleResourceRpcStream(
       request[Symbol.asyncIterator](),
-      async (resourceID: number) => {
+      async (resourceID: number, onAbandon) => {
         if (!Number.isInteger(resourceID) || resourceID <= 0) {
           throw new ResourceFailureError({
             code: ResourceFailureCode.INVALID_RESOURCE_ID,
@@ -202,18 +203,43 @@ class ResourceServer implements ResourceServiceHandler {
           const invokeFn = await mux.lookupMethod(serviceID, methodID)
           if (!invokeFn) return null
           return async (dataSource, dataSink, callContext) => {
+            const offers = new ResourceOffers(client)
+            onAbandon(() => offers.abandon())
             const resourceContext = withResourceCall(callContext, {
               client,
               parentResourceId: resourceID,
               serviceId: serviceID,
               methodId: methodID,
+              offers,
             })
-            await invokeFn(dataSource, dataSink, resourceContext)
+            const outputDone = Promise.withResolvers<void>()
+            let sending = false
+            try {
+              await invokeFn(
+                dataSource,
+                async (source) => {
+                  sending = true
+                  try {
+                    await dataSink(offers.publish(source))
+                  } finally {
+                    outputDone.resolve()
+                  }
+                },
+                resourceContext,
+              )
+            } catch (error) {
+              // Preserve the handler failure before the response sink can close successfully.
+              offers.finish()
+              throw error
+            }
+            if (sending) await outputDone.promise
+            offers.finish()
           }
         }
         const server = new Server(wrappedLookup)
         return server.rpcStreamHandler
       },
+      _abortSignal,
     )
   }
 

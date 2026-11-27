@@ -71,6 +71,14 @@ func (r *bucketLookupCursorRef) Done() <-chan struct{} { return nil }
 // ReleasedByServer reports false: the scripted resource is never released.
 func (r *bucketLookupCursorRef) ReleasedByServer() bool { return false }
 
+// ReleaseReason reports the scripted reference's local release state.
+func (r *bucketLookupCursorRef) ReleaseReason() resource_client.ResourceReleaseReason {
+	if r.released {
+		return resource_client.ResourceClientReleased
+	}
+	return resource_client.ResourceLive
+}
+
 var _ resource_client.ResourceRef = (*bucketLookupCursorRef)(nil)
 
 // bucketLookupCursorClient returns the scripted cursor binding.

@@ -316,3 +316,87 @@ func newPendingResourceTestClient(t *testing.T, ctx context.Context, root srpc.I
 	}
 	return client, server, rpc
 }
+
+// BenchmarkResourceLifecycle measures calls and acknowledged release over real SRPC pipes.
+func BenchmarkResourceLifecycle(b *testing.B) {
+	// Serve an echo call or offer one child using the real resource context.
+	ctx := b.Context()
+	root := srpc.InvokerFunc(func(_, _ string, strm srpc.Stream) (bool, error) {
+		// Decode the request before optionally registering the returned child.
+		msg := &echo.EchoMsg{}
+		if err := strm.MsgRecv(msg); err != nil {
+			return true, err
+		}
+		if msg.Body == "child" {
+			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+			if err != nil {
+				return true, err
+			}
+			id, err := owner.AddResource(srpc.NewMux(), nil)
+			if err != nil {
+				return true, err
+			}
+			msg.Body = strconv.FormatUint(uint64(id), 10)
+		}
+		return true, strm.MsgSend(msg)
+	})
+
+	// Open one immutable generation over the production client/server adapters.
+	server := resource_server.NewResourceServer(root, "")
+	mux := srpc.NewMux()
+	if err := resource.SRPCRegisterResourceService(mux, server); err != nil {
+		b.Fatal(err)
+	}
+	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+	client, err := resource_client.NewClient(ctx, service)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer client.Release()
+	ref := client.AccessRootResource()
+	defer ref.Release()
+	rpc, err := ref.GetClient()
+	if err != nil {
+		b.Fatal(err)
+	}
+	echoClient := echo.NewSRPCEchoerClient(rpc)
+	if _, err := echoClient.Echo(ctx, &echo.EchoMsg{}); err != nil {
+		b.Fatal(err)
+	}
+
+	// Time a resource call independently of resource allocation and release.
+	b.Run("call", func(b *testing.B) {
+		for range b.N {
+			if _, err := echoClient.Echo(ctx, &echo.EchoMsg{}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	// Time last-reference release through its generation-wide completion fence.
+	b.Run("release", func(b *testing.B) {
+		for range b.N {
+			// Prepare and adopt the child outside the measured interval.
+			b.StopTimer()
+			response, err := echoClient.Echo(ctx, &echo.EchoMsg{Body: "child"})
+			if err != nil {
+				b.Fatal(err)
+			}
+			id, err := strconv.ParseUint(response.Body, 10, 32)
+			if err != nil {
+				b.Fatal(err)
+			}
+			child := client.CreateResourceReference(uint32(id))
+			if _, err := echoClient.Echo(ctx, &echo.EchoMsg{}); err != nil {
+				b.Fatal(err)
+			}
+
+			// A root call fences the child's Release and its cleanup callbacks.
+			b.StartTimer()
+			child.Release()
+			if _, err := echoClient.Echo(ctx, &echo.EchoMsg{}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

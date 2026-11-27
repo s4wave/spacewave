@@ -6,7 +6,6 @@ import type {
   UseResourceOptions,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Resource as SDKResource } from '@aptre/bldr-sdk/resource/resource.js'
-import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 const h = vi.hoisted(() => ({
@@ -39,20 +38,6 @@ function resource<T>(value: T | null): Resource<T> {
   }
 }
 
-function fakeResourceRef(resourceId: number): ClientResourceRef {
-  const ref = {
-    resourceId,
-    released: false,
-    client: {} as never,
-    createRef: vi.fn((id: number) => fakeResourceRef(id)),
-    createResource: vi.fn(),
-    release: vi.fn(),
-    [Symbol.dispose]: vi.fn(),
-  }
-
-  return ref
-}
-
 describe('useAccessTypedHandle released-resource retry contract', () => {
   it('retries typed handles released by either the server or a lost ResourceClient connection', () => {
     const worldState = resource({} as IWorldState)
@@ -76,10 +61,8 @@ describe('useAccessTypedHandle released-resource retry contract', () => {
 
     expect(retryOnReleasedResource.reasons).toEqual([
       'server-released',
+      'route-refused',
       'connection-lost',
     ])
-
-    const handle = new FakeHandle(fakeResourceRef(407))
-    expect(retryOnReleasedResource.getResourceIds?.(handle)).toEqual([407])
   })
 })

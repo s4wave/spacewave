@@ -33,8 +33,6 @@ type RemoteResourceClient struct {
 	resources map[uint32]*trackedResource
 	// children links parent resource IDs to descendants under bcast.
 	children map[uint32]*btree.Map[uint32, struct{}]
-	// pendingChildren indexes only unadopted children in callback order.
-	pendingChildren map[uint32]*btree.Map[uint32, struct{}]
 	// attachedResources retains client-published handles under bcast.
 	attachedResources map[uint32]*attachedResource
 }
@@ -103,8 +101,7 @@ func (c *RemoteResourceClient) addResource(
 		}
 
 		// Reject a child whose parent was released while the invocation ran.
-		// The parent's release already swept its pending children, so this
-		// child would be unreachable by any later Release.
+		// A new child would refer to native state whose cleanup already ran.
 		if parentID != 0 && c.resources[parentID] == nil {
 			err = resource.ErrResourceNotFound
 			return
@@ -127,7 +124,7 @@ func (c *RemoteResourceClient) addResource(
 			ownerClientID:    c.clientID,
 			releaseFn:        releaseFn,
 			parentResourceID: parentID,
-			pending:          invocation != nil,
+			offer:            invocation,
 		}
 		if invocation != nil {
 			if invocation.unpublished == nil {
@@ -136,21 +133,12 @@ func (c *RemoteResourceClient) addResource(
 			invocation.unpublished[id] = struct{}{}
 		}
 
-		// Index children by ID and pending state without sorting at release time.
+		// Keep provenance solely for child-first generation teardown.
 		if parentID != 0 {
 			if c.children[parentID] == nil {
 				c.children[parentID] = btree.NewMap[uint32, struct{}](0)
 			}
 			c.children[parentID].Set(id, struct{}{})
-			if invocation != nil {
-				if c.pendingChildren == nil {
-					c.pendingChildren = make(map[uint32]*btree.Map[uint32, struct{}])
-				}
-				if c.pendingChildren[parentID] == nil {
-					c.pendingChildren[parentID] = btree.NewMap[uint32, struct{}](0)
-				}
-				c.pendingChildren[parentID].Set(id, struct{}{})
-			}
 		}
 		broadcast()
 	})
@@ -169,10 +157,7 @@ func (c *RemoteResourceClient) adoptResource(resourceID uint32) bool {
 		}
 		if _, exists := c.resources[resourceID]; exists {
 			res := c.resources[resourceID]
-			res.pending = false
-			if kids := c.pendingChildren[res.parentResourceID]; kids != nil {
-				kids.Delete(resourceID)
-			}
+			res.acceptOffer(resourceID)
 			broadcast()
 			ok = true
 			return
@@ -221,9 +206,9 @@ func (c *RemoteResourceClient) queueControlAck(controlID uint32) {
 	})
 }
 
-// releaseLocked removes one resource after recursively removing pending
-// descendants. It appends callbacks and notifications under the generation
-// lock, or while exclusively draining detached maps. Callbacks are always invoked by the caller after unlocking.
+// releaseLocked removes one resource without revoking its invocation offers.
+// It appends callbacks and notifications under the generation lock, or while
+// exclusively draining detached maps. Callbacks always run after unlocking.
 func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bool, releaseFns *[]func(), releasedIDs *[]uint32) bool {
 	// Look up the resource and reject unknown IDs.
 	res := c.resources[id]
@@ -231,14 +216,16 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 		return false
 	}
 
-	// Release only the pending descendants when the root itself is kept.
+	// Keep the root retained until generation teardown.
 	if keepRoot && id == c.rootResourceID {
-		c.releasePendingChildrenLocked(id, releaseFns, releasedIDs)
 		return true
 	}
 
-	// Release pending descendants and unlink the resource from its parent.
-	c.releasePendingChildrenLocked(id, releaseFns, releasedIDs)
+	// A live handle must never be freed under its holder: an invocation owns
+	// its offers independently of this parent, until adoption or abandonment.
+	if !c.released {
+		res.acceptOffer(id)
+	}
 	delete(c.resources, id)
 	count := 1
 	if c.released {
@@ -254,13 +241,6 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 		}
 	}
 	delete(c.children, id)
-	if kids := c.pendingChildren[res.parentResourceID]; kids != nil {
-		kids.Delete(id)
-		if kids.Len() == 0 {
-			delete(c.pendingChildren, res.parentResourceID)
-		}
-	}
-	delete(c.pendingChildren, id)
 
 	// Queue the release callback and the released notification.
 	if res.releaseFn != nil {
@@ -270,19 +250,6 @@ func (c *RemoteResourceClient) releaseLocked(id uint32, notify bool, keepRoot bo
 		*releasedIDs = append(*releasedIDs, id)
 	}
 	return true
-}
-
-// releasePendingChildrenLocked removes unadopted descendants under bcast.
-func (c *RemoteResourceClient) releasePendingChildrenLocked(parentID uint32, releaseFns *[]func(), releasedIDs *[]uint32) {
-	// Consume only pending children in ID order; adopted siblings are not scanned.
-	kids := c.pendingChildren[parentID]
-	if kids == nil {
-		return
-	}
-	for kids.Len() != 0 {
-		id, _, _ := kids.Min()
-		c.releaseLocked(id, true, false, releaseFns, releasedIDs)
-	}
 }
 
 // releaseAllChildrenLocked releases an exclusively owned tree child-first.
@@ -333,10 +300,9 @@ func (c *RemoteResourceClient) GetResourceValue(resourceID uint32) (any, error) 
 	return value, nil
 }
 
-// ReleaseResource is server initiated and therefore notifies the client of
-// the target as well as pending descendants.
+// ReleaseResource revokes the target and notifies its holders.
 func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
-	// Release the server resource tree and queue descendant notifications.
+	// Revoke only the target; invocation offers have their own owner.
 	var releaseFns []func()
 	var releasedIDs []uint32
 	var found bool
@@ -374,10 +340,9 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	return found
 }
 
-// releaseClientControl handles a client-owned target release and reports only
-// descendants released by the server.
+// releaseClientControl releases a client-owned target before acknowledging cleanup.
 func (c *RemoteResourceClient) releaseClientControl(resourceID uint32) (bool, error) {
-	// Resolve the target and release its pending descendants under the lock.
+	// Resolve and remove the target under the generation lock.
 	var releaseFns []func()
 	var releasedIDs []uint32
 	var found bool

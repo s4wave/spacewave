@@ -10,6 +10,8 @@ import (
 	"github.com/s4wave/spacewave/bldr/resource"
 )
 
+// resourceLifetime owns every handle in one immutable transport generation.
+// A reference must never leak past its generation; releaseAll retires them together.
 type resourceLifetime struct {
 	// ctx ends every ResourceRpc stream in this generation.
 	ctx context.Context
@@ -20,7 +22,7 @@ type resourceLifetime struct {
 
 	// mtx guards the lifetime state below.
 	mtx              sync.Mutex
-	released         bool
+	reason           ResourceReleaseReason
 	resources        map[uint32]*resourceRefSet
 	srpcClients      map[uint32]srpc.Client
 	resourceContexts map[uint32]context.CancelFunc
@@ -53,9 +55,9 @@ func (l *resourceLifetime) createReference(resourceID uint32) ResourceRef {
 	// Return a pre-released reference when the lifetime already retired.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
-	if l.released {
+	if l.reason != ResourceLive {
 		ref := &resourceRef{lifetime: l, resourceID: resourceID, done: make(chan struct{})}
-		ref.retireLocked()
+		ref.retireLocked(l.reason)
 		return ref
 	}
 
@@ -76,19 +78,20 @@ func (l *resourceLifetime) createReference(resourceID uint32) ResourceRef {
 	return ref
 }
 
-func (l *resourceLifetime) releaseAll() {
+// releaseAll retires the generation without transferring references to a replacement.
+func (l *resourceLifetime) releaseAll(reason ResourceReleaseReason) {
 	// Retire every local reference and ResourceRpc client as one transition.
 	l.mtx.Lock()
-	if l.released {
+	if l.reason != ResourceLive {
 		l.mtx.Unlock()
 		return
 	}
-	l.released = true
+	l.reason = reason
 	ids := make([]uint32, 0, len(l.resources))
 	for id, set := range l.resources {
 		ids = append(ids, id)
 		for ref := range set.refs {
-			ref.retireLocked()
+			ref.retireLocked(reason)
 		}
 	}
 
@@ -115,13 +118,11 @@ func (l *resourceLifetime) releaseAll() {
 // released with a ResourceReleased message, marking each one released by
 // the server.
 func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
-	l.retireResource(resourceID, true)
+	l.retireResource(resourceID, ResourceServerReleased)
 }
 
-// retireResource retires every local reference to resourceID. byServer marks
-// the references released by the server. A refused route leaves byServer false,
-// since a server that is shutting down refuses routes too.
-func (l *resourceLifetime) retireResource(resourceID uint32, byServer bool) {
+// retireResource commits one terminal cause to every holder of resourceID.
+func (l *resourceLifetime) retireResource(resourceID uint32, reason ResourceReleaseReason) {
 	// Retire all references while their lifetime is locked.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
@@ -130,22 +131,20 @@ func (l *resourceLifetime) retireResource(resourceID uint32, byServer bool) {
 		return
 	}
 	for ref := range set.refs {
-		if !ref.released {
-			ref.serverReleased = byServer
-		}
-		ref.retireLocked()
+		ref.retireLocked(reason)
 	}
 	l.clearResourceLocked(resourceID)
 }
 
 func (l *resourceLifetime) releaseRef(ref *resourceRef) {
-	// Drop one local reference and release the resource with its last one.
+	// A live handle must never be freed under its holder: only the last local
+	// reference queues Release, and retirement preserves every remaining holder.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
-	if ref.released {
+	if ref.reason != ResourceLive {
 		return
 	}
-	ref.retireLocked()
+	ref.retireLocked(ResourceClientReleased)
 	id, notify := l.releaseRefLocked(ref)
 	if notify {
 		_ = l.enqueueControlLocked(&resource.ResourceClientRequest{Body: &resource.ResourceClientRequest_Release{
@@ -157,7 +156,7 @@ func (l *resourceLifetime) releaseRef(ref *resourceRef) {
 func (l *resourceLifetime) clientForRef(ref *resourceRef) (srpc.Client, error) {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
-	if ref.released {
+	if ref.reason != ResourceLive {
 		return nil, resource.ErrResourceOrClientReleased
 	}
 	return l.getOrCreateClientLocked(ref.resourceID)
@@ -329,7 +328,7 @@ func (c *orderedResourceClient) retireRefused(err error) error {
 	if errors.Is(err, resource.ErrResourceNotFound) ||
 		errors.Is(err, resource.ErrInvalidResourceID) ||
 		errors.Is(err, resource.ErrResourceOrClientReleased) {
-		c.lifetime.retireResource(c.resourceID, false)
+		c.lifetime.retireResource(c.resourceID, ResourceRouteRefused)
 	}
 	return err
 }
@@ -363,15 +362,13 @@ func (c *resourceRPCClientWithContext) Close() error {
 }
 
 // resourceRef is one local reference to a remote resource. The lifetime's
-// mutex guards released and serverReleased.
+// mutex guards its terminal release reason.
 type resourceRef struct {
 	lifetime   *resourceLifetime
 	resourceID uint32
-	released   bool
-	// serverReleased is set when a ResourceReleased message retired the
-	// reference, and never changes after released becomes true.
-	serverReleased bool
-	// done closes when released becomes true.
+	// reason is fixed by the first terminal event.
+	reason ResourceReleaseReason
+	// done closes when the reason becomes terminal.
 	done chan struct{}
 }
 
@@ -389,15 +386,20 @@ func (r *resourceRef) Done() <-chan struct{} { return r.done }
 
 // ReleasedByServer reports whether the server released the resource.
 func (r *resourceRef) ReleasedByServer() bool {
-	r.lifetime.mtx.Lock()
-	defer r.lifetime.mtx.Unlock()
-	return r.serverReleased
+	return r.ReleaseReason() == ResourceServerReleased
 }
 
-// retireLocked marks the reference released and closes done once.
-func (r *resourceRef) retireLocked() {
-	if !r.released {
-		r.released = true
+// ReleaseReason returns the first terminal transition, or ResourceLive.
+func (r *resourceRef) ReleaseReason() ResourceReleaseReason {
+	r.lifetime.mtx.Lock()
+	defer r.lifetime.mtx.Unlock()
+	return r.reason
+}
+
+// retireLocked commits the terminal reason and closes done once.
+func (r *resourceRef) retireLocked(reason ResourceReleaseReason) {
+	if r.reason == ResourceLive {
+		r.reason = reason
 		close(r.done)
 	}
 }

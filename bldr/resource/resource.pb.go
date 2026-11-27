@@ -286,12 +286,12 @@ type ResourceClientRequest_Init struct {
 }
 
 type ResourceClientRequest_Adopt struct {
-	// Adopt detaches a pending child from its parent.
+	// Adopt accepts an invocation-owned offer.
 	Adopt *ResourceClientAdopt `protobuf:"bytes,3,opt,name=adopt,proto3,oneof"`
 }
 
 type ResourceClientRequest_Release struct {
-	// Release releases a resource and its pending descendants.
+	// Release releases one resource; outstanding invocation offers remain owned.
 	Release *ResourceClientRelease `protobuf:"bytes,4,opt,name=release,proto3,oneof"`
 }
 
@@ -312,7 +312,7 @@ func (x *ResourceClientInitRequest) Reset() {
 
 func (*ResourceClientInitRequest) ProtoMessage() {}
 
-// ResourceClientAdopt adopts a pending resource.
+// ResourceClientAdopt accepts an offered resource within its generation.
 type ResourceClientAdopt struct {
 	unknownFields []byte
 	// ResourceId identifies the pending resource to adopt.
@@ -332,7 +332,7 @@ func (x *ResourceClientAdopt) GetResourceId() uint32 {
 	return 0
 }
 
-// ResourceClientRelease releases a resource and its pending descendants.
+// ResourceClientRelease releases one resource without revoking invocation offers.
 type ResourceClientRelease struct {
 	unknownFields []byte
 	// ResourceId identifies the resource to release.

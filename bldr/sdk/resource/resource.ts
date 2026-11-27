@@ -1,7 +1,8 @@
 import '../dispose-symbol.js'
 
 import { ItState } from '../../web/bldr/it-state.js'
-import type { ClientResourceRef } from './client.js'
+import type { ClientResourceRef, ResourceReleaseReason } from './client.js'
+import type { ResourceOwnership } from './reference-lifetime.js'
 
 // ResourceDebugInfo contains debug information for a resource.
 export interface ResourceDebugInfo {
@@ -30,7 +31,7 @@ export function createWatchableDebugInfo(initial: ResourceDebugInfo = {}) {
 }
 
 // Resource is the base abstract class for a Resource type.
-export abstract class Resource {
+export abstract class Resource implements ResourceOwnership {
   constructor(public readonly resourceRef: ClientResourceRef) {}
 
   // id returns the resource ID.
@@ -46,6 +47,11 @@ export abstract class Resource {
   // released reports whether the resource has been released.
   public get released() {
     return this.resourceRef.released
+  }
+
+  // onReleased observes this handle independently of its numeric ID or wrapper class.
+  public onReleased(callback: (reason: ResourceReleaseReason) => void): () => void {
+    return this.resourceRef.onReleased(callback)
   }
 
   // release releases the resource.

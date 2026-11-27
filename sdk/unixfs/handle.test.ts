@@ -33,6 +33,8 @@ function buildResourceRef(resourceId = 1): ClientResourceRef {
   const ref: ClientResourceRef = {
     resourceId,
     released: false,
+    releaseReason: null,
+    onReleased: () => () => {},
     client: new SRPCClient(),
     createRef: (id) => buildResourceRef(id),
     createResource(id, ResourceClass, ...args) {

@@ -203,6 +203,8 @@ function resourceRef(client: ClientResourceRef['client']): ClientResourceRef {
   const ref: ClientResourceRef = {
     resourceId: 1,
     released: false,
+    releaseReason: null,
+    onReleased: () => () => {},
     client,
     createRef: () => ref,
     createResource: () => {

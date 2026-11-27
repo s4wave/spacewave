@@ -136,7 +136,7 @@ func TestResourceLifetimeCloseQueuesAllReleases(t *testing.T) {
 	// Leave two resource references outstanding and close their lifetime.
 	lifetime.createReference(11) //nolint:lostresource // Leave references outstanding to verify releaseAll queues their releases.
 	lifetime.createReference(3)  //nolint:lostresource // Leave references outstanding to verify releaseAll queues their releases.
-	lifetime.releaseAll()
+	lifetime.releaseAll(ResourceConnectionLost)
 
 	// Verify closing the resource lifetime releases every outstanding resource.
 	if len(controls) != 4 {
@@ -151,7 +151,7 @@ func TestResourceLifetimeCloseQueuesAllReleases(t *testing.T) {
 	}
 
 	// Verify a retired resource lifetime cannot create a live reference.
-	if got := lifetime.createReference(11); !got.(*resourceRef).released { //nolint:lostresource // Verify that a retired lifetime cannot create a live reference.
+	if got := lifetime.createReference(11); got.ReleaseReason() == ResourceLive { //nolint:lostresource // Verify that a retired lifetime cannot create a live reference.
 		t.Fatal("reference created after close was live")
 	}
 }
@@ -208,7 +208,7 @@ func TestResourceRefDoneClosesOnEveryRelease(t *testing.T) {
 	// Verify a refused route closes Done without reading as a server release.
 	refused := lifetime.createReference(5)
 	defer refused.Release()
-	lifetime.retireResource(5, false)
+	lifetime.retireResource(5, ResourceRouteRefused)
 	if !isDone(refused) || refused.ReleasedByServer() {
 		t.Fatalf("after refused route: done=%v by server=%v", isDone(refused), refused.ReleasedByServer())
 	}
@@ -217,7 +217,7 @@ func TestResourceRefDoneClosesOnEveryRelease(t *testing.T) {
 	// without reading as a server release.
 	remaining := lifetime.createReference(3)
 	defer remaining.Release()
-	lifetime.releaseAll()
+	lifetime.releaseAll(ResourceConnectionLost)
 	if !isDone(remaining) || remaining.ReleasedByServer() {
 		t.Fatalf("after the lifetime ended: done=%v by server=%v", isDone(remaining), remaining.ReleasedByServer())
 	}

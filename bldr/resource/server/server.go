@@ -103,7 +103,6 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 			rootResourceID:    s.resourceIDCtr,
 			resources:         make(map[uint32]*trackedResource),
 			children:          make(map[uint32]*btree.Map[uint32, struct{}]),
-			pendingChildren:   make(map[uint32]*btree.Map[uint32, struct{}]),
 			attachedResources: make(map[uint32]*attachedResource),
 		}
 		client.resources[client.rootResourceID] = &trackedResource{mux: s.rootResourceMux, ownerClientID: client.clientID}

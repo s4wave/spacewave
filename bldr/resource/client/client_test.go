@@ -3,11 +3,13 @@ package resource_client
 import (
 	"context"
 	"errors"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -15,6 +17,8 @@ import (
 )
 
 type mockResourceService struct {
+	// real forwards controls and calls through the real RPC testbed when set.
+	real              resource.SRPCResourceServiceClient
 	mu                sync.Mutex
 	attachCalls       int
 	nextResourceID    uint32
@@ -28,6 +32,15 @@ type mockResourceService struct {
 func (m *mockResourceService) SRPCClient() srpc.Client { return nil }
 
 func (m *mockResourceService) ResourceClient(ctx context.Context) (resource.SRPCResourceService_ResourceClientClient, error) {
+	// Preserve the real ResourceClient transport when exercising fault injection.
+	if m.real != nil {
+		stream, err := m.real.ResourceClient(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &mockResourceClientClient{ctx: ctx, service: m, stream: stream}, nil
+	}
+
 	// Initialize the mock resource event stream under the service lock.
 	m.mu.Lock()
 	if m.clientEvents == nil {
@@ -41,6 +54,9 @@ func (m *mockResourceService) ResourceClient(ctx context.Context) (resource.SRPC
 func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
 	if m.onResourceRPC != nil {
 		return m.onResourceRPC(ctx)
+	}
+	if m.real != nil {
+		return m.real.ResourceRpc(ctx)
 	}
 	return nil, errors.New("unused")
 }
@@ -77,6 +93,8 @@ func (m *mockResourceService) nextAttachResourceID() uint32 {
 }
 
 type mockResourceClientClient struct {
+	// stream is the real generation transport, or nil for unit checks.
+	stream   resource.SRPCResourceService_ResourceClientClient
 	ctx      context.Context
 	events   chan *resource.ResourceClientResponse
 	service  *mockResourceService
@@ -89,10 +107,19 @@ func (m *mockResourceClientClient) CloseSend() error {
 	if m.service != nil && m.service.onClientCloseSend != nil {
 		m.service.onClientCloseSend()
 	}
+	if m.stream != nil {
+		return m.stream.CloseSend()
+	}
 	return nil
 }
 
-func (m *mockResourceClientClient) Close() error { return nil }
+// Close ends the real transport when the fault injector wraps one.
+func (m *mockResourceClientClient) Close() error {
+	if m.stream != nil {
+		return m.stream.Close()
+	}
+	return nil
+}
 
 func (m *mockResourceClientClient) MsgSend(msg srpc.Message) error {
 	req, ok := msg.(*resource.ResourceClientRequest)
@@ -105,6 +132,12 @@ func (m *mockResourceClientClient) MsgSend(msg srpc.Message) error {
 func (m *mockResourceClientClient) Send(req *resource.ResourceClientRequest) error {
 	if m.service.onControl != nil {
 		m.service.onControl(req)
+	}
+	if m.stream != nil {
+		if err := m.ctx.Err(); err != nil {
+			return err
+		}
+		return m.stream.Send(req)
 	}
 	if controlID := req.GetControlId(); controlID != 0 {
 		m.events <- &resource.ResourceClientResponse{Body: &resource.ResourceClientResponse_ControlAck{
@@ -129,6 +162,11 @@ func (m *mockResourceClientClient) MsgRecv(msg srpc.Message) error {
 }
 
 func (m *mockResourceClientClient) Recv() (*resource.ResourceClientResponse, error) {
+	// Real response delivery preserves the server's actual adoption and release ordering.
+	if m.stream != nil {
+		return m.stream.Recv()
+	}
+
 	// Deliver the client initialization once before reading resource events.
 	var resp *resource.ResourceClientResponse
 	var sent bool
@@ -1463,5 +1501,134 @@ func TestResourceControlQueueRetiresWhenIdleStreamCloses(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("idle queue did not finish after its stream closed")
+	}
+}
+
+// TestResourceTransportLossDuringOwnershipTransfer checks adopted and offered cleanup.
+func TestResourceTransportLossDuringOwnershipTransfer(t *testing.T) {
+	for _, phase := range []string{"adopt", "release"} {
+		t.Run(phase, func(t *testing.T) {
+			// Offer a real child with an observable native cleanup callback.
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			releases := atomic.Int32{}
+			released := make(chan struct{}, 1)
+			root := srpc.InvokerFunc(func(_, _ string, strm srpc.Stream) (bool, error) {
+				// Decode a root call and register its child only when requested.
+				msg := &echo.EchoMsg{}
+				if err := strm.MsgRecv(msg); err != nil {
+					return true, err
+				}
+				if msg.Body == "child" {
+					owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+					if err != nil {
+						return true, err
+					}
+					id, err := owner.AddResource(srpc.NewMux(), func() { releases.Add(1); released <- struct{}{} })
+					if err != nil {
+						return true, err
+					}
+					msg.Body = strconv.FormatUint(uint64(id), 10)
+				}
+				return true, strm.MsgSend(msg)
+			})
+
+			// Gate a lifecycle control while keeping every other byte on real SRPC pipes.
+			server := resource_server.NewResourceServer(root, "")
+			mux := srpc.NewMux()
+			if err := resource.SRPCRegisterResourceService(mux, server); err != nil {
+				t.Fatal(err)
+			}
+			real := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+			blocked := make(chan struct{})
+			var gate atomic.Bool
+			service := &mockResourceService{real: real, onControl: func(req *resource.ResourceClientRequest) {
+				// Hold exactly the selected child control until its transport drops.
+				kind := ""
+				if req.GetAdopt() != nil {
+					kind = "adopt"
+				}
+				if req.GetRelease() != nil {
+					kind = "release"
+				}
+				if kind == phase && gate.CompareAndSwap(true, false) {
+					close(blocked)
+					<-ctx.Done()
+				}
+			}}
+			client, err := NewClient(ctx, service)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Release()
+			rootRef := client.AccessRootResource()
+			defer rootRef.Release()
+			rpc, err := rootRef.GetClient()
+			if err != nil {
+				t.Fatal(err)
+			}
+			echoClient := echo.NewSRPCEchoerClient(rpc)
+
+			// Receive an offered ID before allowing its adoption control to leave.
+			response, err := echoClient.Echo(ctx, &echo.EchoMsg{Body: "child"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			id, err := strconv.ParseUint(response.Body, 10, 32)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if phase == "adopt" {
+				gate.Store(true)
+			}
+			first := client.CreateResourceReference(uint32(id))
+			second := client.CreateResourceReference(uint32(id))
+			defer second.Release()
+
+			// A surviving holder prevents native cleanup and a Release control.
+			first.Release()
+			if phase == "release" {
+				if _, err := echoClient.Echo(ctx, &echo.EchoMsg{}); err != nil {
+					t.Fatal(err)
+				}
+				if releases.Load() != 0 || server.CountTrackedResources() != 2 {
+					t.Fatal("native work was freed under its remaining holder")
+				}
+				gate.Store(true)
+				second.Release()
+			}
+			select {
+			case <-blocked:
+			case <-ctx.Done():
+				t.Fatal("control did not reach the transport gate")
+			}
+
+			// Drop transport during the control and require complete generation cleanup.
+			cancel()
+			waitCtx, waitCancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer waitCancel()
+			if err := client.Wait(waitCtx); err != nil {
+				t.Fatal(err)
+			}
+			if got := server.WaitTrackedResourceCount(waitCtx, 0); got != 0 {
+				t.Fatalf("leaked %d resources", got)
+			}
+			select {
+			case <-second.Done():
+			case <-waitCtx.Done():
+				t.Fatal("live reference escaped its generation")
+			}
+			if phase == "adopt" && second.ReleaseReason() != ResourceConnectionLost {
+				t.Fatalf("release reason = %v", second.ReleaseReason())
+			}
+			select {
+			case <-released:
+			case <-waitCtx.Done():
+				t.Fatal("native cleanup did not finish")
+			}
+			if releases.Load() != 1 {
+				t.Fatalf("native cleanup count = %d", releases.Load())
+			}
+		})
 	}
 }

@@ -170,7 +170,7 @@ export const ResourceClientInitRequest: MessageType<ResourceClientInitRequest> =
   )
 
 /**
- * ResourceClientAdopt adopts a pending resource.
+ * ResourceClientAdopt accepts an offered resource within its generation.
  *
  * @generated from message resource.ResourceClientAdopt
  */
@@ -188,7 +188,7 @@ export const ResourceClientAdopt: MessageType<ResourceClientAdopt> =
   )
 
 /**
- * ResourceClientRelease releases a resource and its pending descendants.
+ * ResourceClientRelease releases one resource without revoking invocation offers.
  *
  * @generated from message resource.ResourceClientRelease
  */

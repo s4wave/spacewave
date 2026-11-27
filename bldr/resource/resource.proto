@@ -84,9 +84,9 @@ message ResourceClientRequest {
   oneof body {
     // Init starts a new client generation.
     ResourceClientInitRequest init = 2;
-    // Adopt detaches a pending child from its parent.
+    // Adopt accepts an invocation-owned offer.
     ResourceClientAdopt adopt = 3;
-    // Release releases a resource and its pending descendants.
+    // Release releases one resource; outstanding invocation offers remain owned.
     ResourceClientRelease release = 4;
   }
 }
@@ -95,13 +95,13 @@ message ResourceClientRequest {
 message ResourceClientInitRequest {
 }
 
-// ResourceClientAdopt adopts a pending resource.
+// ResourceClientAdopt accepts an offered resource within its generation.
 message ResourceClientAdopt {
   // ResourceId identifies the pending resource to adopt.
   uint32 resource_id = 1;
 }
 
-// ResourceClientRelease releases a resource and its pending descendants.
+// ResourceClientRelease releases one resource without revoking invocation offers.
 message ResourceClientRelease {
   // ResourceId identifies the resource to release.
   uint32 resource_id = 1;

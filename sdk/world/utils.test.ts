@@ -39,6 +39,10 @@ function createResourceRef(
   let released = false
   const ref: ClientResourceRef = {
     resourceId,
+    get releaseReason() {
+      return released ? ('client-released' as const) : null
+    },
+    onReleased: () => () => {},
     get released() {
       return released
     },

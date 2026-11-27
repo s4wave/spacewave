@@ -7,6 +7,7 @@ import {
 } from 'starpc'
 import type { ClientResourceRef } from '../client.js'
 import type { RemoteResourceClient } from './tracked-client.js'
+import { ResourceOffers } from './resource-offers.js'
 
 export interface ConstructResult<T> {
   mux: Mux
@@ -26,10 +27,15 @@ interface ResourceCallInit {
   readonly parentResourceId: number
   readonly serviceId: string
   readonly methodId: string
+  readonly offers?: ResourceOffers
 }
 
 class ActiveResourceCall implements ResourceCall {
-  constructor(private readonly init: ResourceCallInit) {}
+  private readonly offers: ResourceOffers
+
+  constructor(private readonly init: ResourceCallInit) {
+    this.offers = init.offers ?? new ResourceOffers(init.client)
+  }
 
   constructChildResource<T>(
     build: (signal: AbortSignal) => ConstructResult<T>,
@@ -63,6 +69,7 @@ class ActiveResourceCall implements ResourceCall {
         this.init.parentResourceId,
         this.init.serviceId,
         this.init.methodId,
+        this.offers,
       )
       return { result: built.result, resourceId }
     } catch (error) {

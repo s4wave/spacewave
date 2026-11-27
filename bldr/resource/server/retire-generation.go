@@ -31,9 +31,9 @@ func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 		retired = &RemoteResourceClient{
 			server: s, released: true, rootResourceID: client.rootResourceID,
 			resources: client.resources, children: client.children,
-			pendingChildren: client.pendingChildren, attachedResources: client.attachedResources,
+			attachedResources: client.attachedResources,
 		}
-		client.resources, client.children, client.pendingChildren, client.attachedResources = nil, nil, nil, nil
+		client.resources, client.children, client.attachedResources = nil, nil, nil
 
 		// Remove admission and subtract the complete detached handle count.
 		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {

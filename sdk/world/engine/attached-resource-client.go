@@ -53,10 +53,12 @@ type attachedResourceRef struct {
 	done chan struct{}
 }
 
+// GetResourceID returns the attached handle ID.
 func (r *attachedResourceRef) GetResourceID() uint32 {
 	return r.resourceID
 }
 
+// GetClient resolves the attached resource while this reference is live.
 func (r *attachedResourceRef) GetClient() (srpc.Client, error) {
 	if r.released.Load() {
 		return nil, resource.ErrResourceOrClientReleased
@@ -67,6 +69,7 @@ func (r *attachedResourceRef) GetClient() (srpc.Client, error) {
 	return r.resourceCtx.GetAttachedResource(r.resourceID)
 }
 
+// Release drops the local reference and its remote attachment.
 func (r *attachedResourceRef) Release() {
 	if r.released.Swap(true) {
 		return
@@ -78,6 +81,7 @@ func (r *attachedResourceRef) Release() {
 	r.resourceCtx.ReleaseResource(r.resourceID)
 }
 
+// Done returns the local retirement notification.
 func (r *attachedResourceRef) Done() <-chan struct{} {
 	return r.done
 }
@@ -86,6 +90,14 @@ func (r *attachedResourceRef) Done() <-chan struct{} {
 // release by the other side.
 func (r *attachedResourceRef) ReleasedByServer() bool {
 	return false
+}
+
+// ReleaseReason reports local release; attached contexts have no revocation feed.
+func (r *attachedResourceRef) ReleaseReason() resource_client.ResourceReleaseReason {
+	if r.released.Load() {
+		return resource_client.ResourceClientReleased
+	}
+	return resource_client.ResourceLive
 }
 
 var _ ResourceClient = (*AttachedResourceClient)(nil)

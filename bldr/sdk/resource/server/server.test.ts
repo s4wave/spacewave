@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMux, Packet, Server, type ServerContext } from 'starpc'
+import {
+  createMux,
+  Packet,
+  Server,
+  Client as SRPCClient,
+  createHandler,
+  type ServerContext,
+} from 'starpc'
+import { Client as ResourceClient } from '../client.js'
+import { EchoerClient, EchoerDefinition } from 'starpc/echo'
+import { openResourceRpcStream } from '../rpc-stream.js'
+import type { ResourceService } from '../resource_srpc.pb.js'
 import { RemoteResourceClient } from './tracked-client.js'
 import { ResourceServer } from './server.js'
+import { ResourceOffers } from './resource-offers.js'
 import { getResourceCall, withResourceCall } from './context.js'
 import { newResourceMux } from './mux.js'
 import { ResourceServiceDefinition } from '../resource_srpc.pb.js'
@@ -18,6 +30,140 @@ import type {
 function serverContext(signal = new AbortController().signal): ServerContext {
   return { signal }
 }
+
+describe('Resource invocation ownership', () => {
+  it('reclaims a response rejected after an invocation finishes while preserving an accepted one', async () => {
+    // Drive the same sink iterator handshake StarPC uses around writeCallData.
+    let nextId = 0
+    const client = new RemoteResourceClient(() => ++nextId, 1)
+    const released = vi.fn()
+    const offers = new ResourceOffers(client)
+    const child = client.addResource(
+      createMux(),
+      released,
+      undefined,
+      undefined,
+      undefined,
+      offers,
+    )
+    const output = offers
+      .publish(
+        (async function* () {
+          yield new Uint8Array([1])
+        })(),
+      )
+      [Symbol.asyncIterator]()
+    await output.next()
+    offers.finish()
+    expect(released).not.toHaveBeenCalled()
+
+    // Returning the iterator represents a failed write, which cannot publish its offer.
+    await output.return?.()
+    await Promise.resolve()
+    expect(released).toHaveBeenCalledOnce()
+    expect(client.resources.has(child)).toBe(false)
+
+    // A sink that accepts the same in-flight response retains the offer for adoption.
+    const accepted = new ResourceOffers(client)
+    const retained = client.addResource(
+      createMux(),
+      released,
+      undefined,
+      undefined,
+      undefined,
+      accepted,
+    )
+    const delivered = accepted
+      .publish(
+        (async function* () {
+          yield new Uint8Array([2])
+        })(),
+      )
+      [Symbol.asyncIterator]()
+    await delivered.next()
+    accepted.finish()
+    await delivered.next()
+    await Promise.resolve()
+    expect(client.resources.has(retained)).toBe(true)
+    expect(client.adoptResource(retained)).toBe('adopted')
+    accepted.abandon()
+    expect(released).toHaveBeenCalledOnce()
+    client.releaseAll()
+    expect(released).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['handler-error', 'abandoned', 'adopted'])(
+    'reclaims %s offers through the real client/server route',
+    async (mode) => {
+      // Offer a real child from a custom method; only response transport is synthetic.
+      const released = vi.fn()
+      const mux = createMux()
+      let childId = 0
+      mux.register(
+        createHandler(EchoerDefinition, {
+          Echo: async (_request, _signal, context) => {
+            childId = getResourceCall(context!).constructChildResource(() => ({
+              mux: createMux(),
+              result: null,
+              releaseFn: released,
+            })).resourceId
+            if (mode === 'handler-error')
+              throw new Error('handler failed after registration')
+            return { body: String(childId) }
+          },
+        }),
+      )
+      const server = new ResourceServer(mux)
+      const controller = new AbortController()
+      const client = new ResourceClient(
+        server as unknown as ResourceService,
+        controller.signal,
+      )
+      const root = await client.accessRootResource()
+      await client.waitForControls()
+
+      // Retain the outer route after nested completion, just as a unary caller does.
+      const closed = Promise.withResolvers<void>()
+      const route = await openResourceRpcStream(
+        root.resourceId,
+        async function* (requests, signal) {
+          try {
+            yield* server.ResourceRpc(requests, signal)
+          } finally {
+            closed.resolve()
+          }
+        },
+        true,
+      )
+      const rpc = new EchoerClient(new SRPCClient(async () => route))
+      if (mode === 'handler-error') {
+        await expect(rpc.Echo({ body: 'child' })).rejects.toThrow(
+          'handler failed',
+        )
+      } else {
+        const response = await rpc.Echo({ body: 'child' })
+        expect(response.body).toBe(String(childId))
+        expect(released).not.toHaveBeenCalled()
+      }
+
+      // Adoption wins abandonment; a missing result leaves only the offer owner.
+      if (mode === 'adopted') root.release()
+      const child = mode === 'adopted' ? root.createRef(childId) : null
+      if (child) await client.waitForControls()
+      route.finish(true)
+      await closed.promise
+      expect(released).toHaveBeenCalledTimes(child ? 0 : 1)
+      expect(root.released).toBe(mode === 'adopted')
+      if (child) {
+        child.release()
+        await client.waitForControls()
+        expect(released).toHaveBeenCalledOnce()
+      }
+      root.release()
+      client.dispose('CONNECTION_FAILED')
+    },
+  )
+})
 
 describe('RemoteResourceClient', () => {
   let idCtr: number
@@ -221,27 +367,30 @@ describe('RemoteResourceClient', () => {
     expect(client.signal).toBe(client.controller.signal)
   })
 
-  it('releases an adopted orphan when the generation disconnects', () => {
-    const client = new RemoteResourceClient(nextID, 1)
-    const rootID = client.addResource(createMux())
-    client.setRetainedRootResourceID(rootID)
-    const parentRelease = vi.fn()
-    const childRelease = vi.fn()
-    const parentID = client.addResource(createMux(), parentRelease, rootID)
-    expect(client.adoptResource(parentID)).toBe('adopted')
-    const childID = client.addResource(createMux(), childRelease, parentID)
-    expect(client.adoptResource(childID)).toBe('adopted')
+  it.each([false, true])(
+    'retains an offered or adopted orphan until disconnect (adopted=%s)',
+    (adopted) => {
+      const client = new RemoteResourceClient(nextID, 1)
+      const rootID = client.addResource(createMux())
+      client.setRetainedRootResourceID(rootID)
+      const parentRelease = vi.fn()
+      const childRelease = vi.fn()
+      const parentID = client.addResource(createMux(), parentRelease, rootID)
+      expect(client.adoptResource(parentID)).toBe('adopted')
+      const childID = client.addResource(createMux(), childRelease, parentID)
+      if (adopted) expect(client.adoptResource(childID)).toBe('adopted')
 
-    expect(client.releaseResource(parentID)).toBe(true)
-    expect(parentRelease).toHaveBeenCalledOnce()
-    expect(childRelease).not.toHaveBeenCalled()
-    expect(client.resources.has(childID)).toBe(true)
+      expect(client.releaseResource(parentID)).toBe(true)
+      expect(parentRelease).toHaveBeenCalledOnce()
+      expect(childRelease).not.toHaveBeenCalled()
+      expect(client.resources.has(childID)).toBe(true)
 
-    client.releaseAll()
+      client.releaseAll()
 
-    expect(childRelease).toHaveBeenCalledOnce()
-    expect(client.resources.size).toBe(0)
-  })
+      expect(childRelease).toHaveBeenCalledOnce()
+      expect(client.resources.size).toBe(0)
+    },
+  )
 
   it('schedules one warning at the oldest pending deadline', async () => {
     vi.useFakeTimers()

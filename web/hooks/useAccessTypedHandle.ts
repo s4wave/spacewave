@@ -12,8 +12,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 // subscribed once per handle instead of once per render.
 const typedHandleOptions: UseResourceOptions<SDKResource> = {
   retryOnReleasedResource: {
-    reasons: ['server-released', 'connection-lost'],
-    getResourceIds: (handle) => [handle.id],
+    reasons: ['server-released', 'route-refused', 'connection-lost'],
   },
 }
 

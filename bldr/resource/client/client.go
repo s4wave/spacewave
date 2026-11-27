@@ -30,6 +30,8 @@ type ResourceRef interface {
 	// caller can tell the server ending the resource from losing the
 	// connection.
 	ReleasedByServer() bool
+	// ReleaseReason returns the first terminal cause, or ResourceLive.
+	ReleaseReason() ResourceReleaseReason
 }
 
 // Client manages one immutable remote ResourceClient generation.
@@ -124,7 +126,7 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 }
 
 func (c *Client) retire() {
-	c.resourceLifetime.releaseAll()
+	c.resourceLifetime.releaseAll(ResourceConnectionLost)
 	c.cancelAttach()
 	c.cancel()
 }
@@ -169,7 +171,7 @@ func (c *Client) CreateResourceReference(resourceID uint32) ResourceRef {
 
 // Release queues final releases and closes this ResourceClient generation.
 func (c *Client) Release() {
-	c.resourceLifetime.releaseAll()
+	c.resourceLifetime.releaseAll(ResourceClientReleased)
 	c.cancelAttach()
 	c.controls.finish()
 }

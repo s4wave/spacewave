@@ -34,39 +34,38 @@ func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) 
 	return server, client
 }
 
-// TestPendingChildrenReleasePostorderAndRootRetention checks pending tree cleanup.
-func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
-	// Add a pending child and grandchild invocation resource with release recorders.
-	_, client := ownershipTestClient(t)
-	var order []uint32
-	releaseChild := func() { order = append(order, 2) }
-	child, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), releaseChild)
-	if err != nil || child != 2 {
-		t.Fatalf("child = %d/%v", child, err)
+// TestOffersSurviveParentRelease checks that invocation ownership outlives its parent.
+func TestOffersSurviveParentRelease(t *testing.T) {
+	// Register a parent and a child offered by its invocation.
+	server, client := ownershipTestClient(t)
+	parent, err := client.AddResource(srpc.NewMux(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	offer := newResourceRPCContext(client, parent)
+	releases := 0
+	child, err := offer.AddResource(srpc.NewMux(), func() { releases++ })
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// Register a pending grandchild beneath the child.
-	releaseGrandchild := func() { order = append(order, 3) }
-	grandchild, err := newResourceRPCContext(client, child).AddResource(srpc.NewMux(), releaseGrandchild)
-	if err != nil || grandchild != 3 {
-		t.Fatalf("grandchild = %d/%v", grandchild, err)
+	// Release the parent while its caller can still adopt the returned child.
+	client.ReleaseResource(parent)
+	if client.resources[child] == nil || releases != 0 {
+		t.Fatal("parent release freed an invocation offer")
+	}
+	if !client.adoptResource(child) || len(offer.unpublished) != 0 {
+		t.Fatal("adoption did not consume the invocation offer")
+	}
+	offer.abandon()
+	if client.resources[child] == nil || releases != 0 {
+		t.Fatal("abandonment freed an adopted child")
 	}
 
-	// Release the root and verify descendants drain postorder while it stays.
-	if _, err := client.releaseClientControl(1); err != nil {
-		t.Fatalf("root release: %v", err)
-	}
-	if client.resources[1] == nil {
-		t.Fatal("root was released")
-	}
-	if client.resources[2] != nil || client.resources[3] != nil {
-		t.Fatal("pending descendants survived root release")
-	}
-	if len(order) != 2 || order[0] != 3 || order[1] != 2 {
-		t.Fatalf("release order = %v", order)
-	}
-	if len(client.txQueue) != 2 {
-		t.Fatalf("notifications = %d, want 2", len(client.txQueue))
+	// Generation teardown remains the final owner even after the parent disappears.
+	server.releaseClientGeneration(client)
+	if releases != 1 || server.CountTrackedResources() != 0 {
+		t.Fatalf("releases = %d, resources = %d", releases, server.CountTrackedResources())
 	}
 }
 

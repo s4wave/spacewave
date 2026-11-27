@@ -20,7 +20,8 @@
 \* returns it to ready. A streaming run that gives no first value by its
 \* deadline closes and reopens after a backoff, its state unchanged. Retry in
 \* either hook reads again at once, staying failed over a kept last. A value that holds a handle the hook released
-\* never becomes last.
+\* never becomes last. handles includes any cleanup-registered constituent of a
+\* composite acquisition; no transition depends on the returned value's class.
 
 EXTENDS Naturals
 

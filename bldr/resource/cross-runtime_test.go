@@ -147,6 +147,37 @@ func (p *crossRuntimeProcess) waitLine(
 	}
 }
 
+// waitLines consumes every requested event without requiring their relative order.
+func (p *crossRuntimeProcess) waitLines(t *testing.T, ctx context.Context, wants ...string) {
+	// Count repeated events so every handler must complete independently.
+	t.Helper()
+	pending := make(map[string]int, len(wants))
+	for _, want := range wants {
+		pending[want]++
+	}
+
+	// Preserve unordered lifecycle completion while retaining the fixture timeout.
+	for len(pending) != 0 {
+		select {
+		case line := <-p.lines:
+			for want, count := range pending {
+				if line == want || strings.HasPrefix(line, want) {
+					if count == 1 {
+						delete(pending, want)
+					} else {
+						pending[want] = count - 1
+					}
+					break
+				}
+			}
+		case <-p.done:
+			t.Fatalf("%s exited before events %v: %v\n%s", p.cmd.Path, pending, p.err, p.logs())
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for events %v from %s\n%s", pending, p.cmd.Path, p.logs())
+		}
+	}
+}
+
 func (p *crossRuntimeProcess) waitExit(t *testing.T, ctx context.Context) {
 	t.Helper()
 	select {
@@ -197,9 +228,7 @@ func TestPythonClientResourceLifecycleAgainstTypeScriptServer(t *testing.T) {
 	// Drive the Python client through adopt and release against the TypeScript server.
 	server.waitLine(t, ctx, "ADOPT_ACK_HELD")
 	server.send(t, "ALLOW_ADOPT")
-	server.waitLine(t, ctx, "HANDLER_FINALLY")
-	server.waitLine(t, ctx, "RELEASE_COMPLETE")
-	server.waitLine(t, ctx, "HANDLER_FINALLY")
+	server.waitLines(t, ctx, "HANDLER_FINALLY", "HANDLER_FINALLY", "RELEASE_COMPLETE")
 
 	// Invalidate the TypeScript server and wait for both runtimes to drain.
 	client.waitLine(t, ctx, "PY_CLIENT_READY_TO_INVALIDATE")

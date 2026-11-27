@@ -157,13 +157,13 @@ import (
 //go:embed resource/state/state.pb.ts resource/state/state_srpc.pb.ts
 //go:embed sdk/*.ts sdk/impl/*.ts
 //go:embed sdk/resource/client.ts sdk/resource/resource.ts sdk/resource/index.ts
-//go:embed sdk/resource/unix-client.ts
+//go:embed sdk/resource/unix-client.ts sdk/resource/reference-lifetime.ts sdk/resource/acquired-resources.ts
 //go:embed sdk/resource/rpc-stream.ts sdk/resource/shared-streams.ts sdk/resource/held-views.ts sdk/resource/view.pb.ts
 //go:embed sdk/resource/resource.pb.ts sdk/resource/resource_srpc.pb.ts
 //go:embed sdk/resource/server/server.ts sdk/resource/server/tracked-client.ts
 //go:embed sdk/resource/server/attached-resource.ts
 //go:embed sdk/resource/server/tracked-resource.ts
-//go:embed sdk/resource/server/context.ts
+//go:embed sdk/resource/server/context.ts sdk/resource/server/resource-offers.ts
 //go:embed sdk/resource/server/mux.ts sdk/resource/server/index.ts
 //go:embed sdk/state/*.ts
 //go:embed sdk/plugin/host/*.ts

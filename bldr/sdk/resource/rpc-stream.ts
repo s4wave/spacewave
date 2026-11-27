@@ -1,4 +1,4 @@
-import { RpcStream } from 'starpc'
+import { RpcStream, ERR_RPC_ABORT } from 'starpc'
 import type { MessageStream, PacketStream, RpcStreamPacket } from 'starpc'
 import { pushable } from 'it-pushable'
 import type { Message } from '@aptre/protobuf-es-lite'
@@ -63,10 +63,17 @@ export async function openResourceRpcStream(
     signal?: AbortSignal,
   ) => MessageStream<ResourceRpcPacket>,
   retain = false,
+  generationSignal?: AbortSignal,
 ): Promise<ResourceRpcStream> {
   // The outer call owns cancellation even while acknowledgement is pending.
   const controller = new AbortController()
   const outgoing = pushable<Message<ResourceRpcPacket>>({ objectMode: true })
+  const generationEnded = () => {
+    outgoing.end()
+    controller.abort()
+  }
+  generationSignal?.addEventListener('abort', generationEnded, { once: true })
+  if (generationSignal?.aborted) generationEnded()
   let requestsClosed!: () => void
   const requestsDone = new Promise<void>((resolve) => {
     requestsClosed = resolve
@@ -92,6 +99,7 @@ export async function openResourceRpcStream(
     const failure = next.value.body.value.failure
     if (failure) throw new ResourceFailureError(failure)
     const close = () => {
+      generationSignal?.removeEventListener('abort', generationEnded)
       controller.abort()
       void Promise.resolve(incoming.return?.()).catch(() => {})
     }
@@ -127,6 +135,7 @@ export async function openResourceRpcStream(
       },
     })
   } catch (error) {
+    generationSignal?.removeEventListener('abort', generationEnded)
     outgoing.end()
     controller.abort()
     await Promise.resolve(incoming.return?.()).catch(() => {})
@@ -139,27 +148,72 @@ export async function* handleResourceRpcStream(
   incoming: AsyncIterator<Message<ResourceRpcPacket>>,
   lookup: (
     resourceId: number,
+    onAbandon: (cleanup: () => void) => void,
   ) => Promise<(stream: PacketStream) => Promise<void>>,
+  signal?: AbortSignal,
 ): AsyncGenerator<Message<ResourceRpcPacket>> {
   const first = await incoming.next()
   if (first.done || first.value.body?.case !== 'init')
     throw new Error('expected ResourceRpc init')
   let handler: (stream: PacketStream) => Promise<void>
+  let abandoned = false
+  const callbacks = new Set<() => void>()
+  const onAbandon = (cleanup: () => void) => {
+    if (abandoned) cleanup()
+    else callbacks.add(cleanup)
+  }
   try {
-    handler = await lookup(first.value.body.value.resourceId ?? 0)
+    handler = await lookup(first.value.body.value.resourceId ?? 0, onAbandon)
   } catch (error) {
     yield { body: { case: 'ack', value: { failure: resourceFailure(error) } } }
     return
   }
   yield { body: { case: 'ack', value: {} } }
 
-  // One handler owns the route until cancellation and method teardown finish.
+  // Keep the route reader alive after nested completion for late Abandon packets.
   const outgoing = pushable<Message<RpcStreamPacket>>({ objectMode: true })
-  const stream = new RpcStream(outgoing, receiveData(incoming))
-  const task = handler(stream).then(
-    () => outgoing.end(),
-    (error: Error) => outgoing.end(error),
+  const data = pushable<Message<RpcStreamPacket>>({ objectMode: true })
+  const stream = new RpcStream(
+    {
+      push: (packet) => outgoing.push(packet),
+      end: () => {},
+    } as ConstructorParameters<typeof RpcStream>[0],
+    data,
+    () => {},
   )
+  const abort = () => {
+    stream.abort(new Error(ERR_RPC_ABORT))
+    data.end(new Error(ERR_RPC_ABORT))
+    outgoing.end()
+    void Promise.resolve(incoming.return?.()).catch(() => {})
+  }
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) abort()
+  const reading = (async () => {
+    try {
+      for (;;) {
+        const next = await incoming.next()
+        if (next.done) break
+        if (next.value.body?.case === 'abandon') {
+          abandoned = true
+          for (const cleanup of callbacks) cleanup()
+          callbacks.clear()
+          data.end(new Error(ERR_RPC_ABORT))
+        } else if (next.value.body?.case === 'data') {
+          if (!abandoned) data.push({ body: next.value.body })
+        } else {
+          throw new Error('expected ResourceRpc data or abandonment')
+        }
+      }
+    } finally {
+      // EOF ends the route, including a streaming method awaiting cancellation.
+      stream.abort(new Error(ERR_RPC_ABORT))
+      data.end()
+      outgoing.end()
+      signal?.removeEventListener('abort', abort)
+    }
+  })().catch((error: Error) => outgoing.end(error))
+  const serving = handler(stream).catch((error: Error) => outgoing.end(error))
   try {
     for await (const packet of outgoing) {
       if (packet.body?.case !== 'data')
@@ -168,6 +222,9 @@ export async function* handleResourceRpcStream(
     }
   } finally {
     await stream.close()
-    await task
+    // The reader owns late abandonment until request EOF; do not wait for that
+    // EOF before delivering a handler failure to the caller that must send it.
+    void reading
+    await serving
   }
 }

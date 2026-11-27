@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
-// resourceRPCContext retains published children until the route closes.
+// resourceRPCContext owns unaccepted offers independently of the invoking parent.
 // Handler completion releases unpublished children. Abandonment also releases
 // published children that remain pending adoption.
 type resourceRPCContext struct {
@@ -72,7 +72,9 @@ func (c *resourceRPCContext) send(strm srpc.Stream, msg srpc.Message) error {
 			c.published = make(map[uint32]struct{}, len(ids))
 		}
 		for _, id := range ids {
-			c.published[id] = struct{}{}
+			if res := c.client.resources[id]; res != nil && res.offer == c {
+				c.published[id] = struct{}{}
+			}
 			delete(c.unpublished, id)
 		}
 	})
@@ -104,7 +106,7 @@ func (c *resourceRPCContext) releasePending(abandon bool) {
 		}
 		ids := slices.Sorted(maps.Keys(c.unpublished))
 		for _, id := range ids {
-			if res := c.client.resources[id]; res != nil && res.pending {
+			if res := c.client.resources[id]; res != nil && res.offer == c {
 				c.client.releaseLocked(id, true, false, &releaseFns, &releasedIDs)
 			}
 		}

@@ -7,10 +7,10 @@ import {
   useState,
 } from 'react'
 import type { ResourceReleaseReason } from '../resource/client.js'
-import { Resource as SDKResource } from '../resource/resource.js'
+import { ownsResources, type ResourceOwnership } from '../resource/reference-lifetime.js'
+import { AcquiredResources } from '../resource/acquired-resources.js'
 import { castToError } from 'starpc'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
-import { useResourcesClient } from './useResourcesClient.js'
 import {
   lastOf,
   resourceOf,
@@ -65,19 +65,16 @@ export interface UseResourceOptions<TValue> {
     | {
         /**
          * reasons lists release reasons that should trigger a retry.
-         * Defaults to ['server-released'].
+         * Defaults to ['server-released', 'route-refused'].
          */
         reasons?: ResourceReleaseReason[]
-        /**
-         * getResourceIds extracts resource IDs from non-Resource or composite
-         * return values.
-         */
-        getResourceIds?: (value: TValue) => number[]
       }
 }
 
 /** ResourceBase holds the fields every Resource state carries. */
 interface ResourceBase {
+  /** onReleased observes the constituent handles of this acquisition. */
+  onReleased?: ResourceOwnership['onReleased']
   /** retry retries loading the resource. */
   retry: () => void
   /**
@@ -273,23 +270,9 @@ function getReleasedResourceRetryReasons<T>(
     return []
   }
   if (retryConfig === undefined || retryConfig === true) {
-    return ['server-released']
+    return ['server-released', 'route-refused']
   }
-  return retryConfig.reasons ?? ['server-released']
-}
-
-function getReleasedResourceRetryIds<T>(
-  value: T,
-  options?: UseResourceOptions<T>,
-): number[] {
-  const retryConfig = options?.retryOnReleasedResource
-  if (retryConfig === false) {
-    return []
-  }
-  if (retryConfig && retryConfig !== true && retryConfig.getResourceIds) {
-    return retryConfig.getResourceIds(value)
-  }
-  return value instanceof SDKResource ? [value.id] : []
+  return retryConfig.reasons ?? ['server-released', 'route-refused']
 }
 
 /**
@@ -416,7 +399,6 @@ export function useResource<T>(
   // Get a stable ID and context for DevTools tracking.
   const trackingId = useTrackingId()
   const devtools = useResourceDevToolsContext()
-  const resourcesClient = useResourcesClient()
 
   const parsed = useMemo<ParsedArgs<T>>(
     () => parseArgs<T>(args),
@@ -484,45 +466,32 @@ export function useResource<T>(
     () => getReleasedResourceRetryReasons(parsed.options),
     [parsed.options],
   )
-  const releasedResourceRetryIds = useMemo(() => {
-    if (!enabled || state.value === null) {
-      return []
-    }
-    return getReleasedResourceRetryIds(state.value, parsed.options)
-  }, [enabled, state.value, parsed.options])
   const pendingReleasedResourceRetryRef = useRef(false)
-
   const activeRunRef = useRef<ResourceTransitionRun | null>(null)
+  const acquiredRef = useRef<AcquiredResources | null>(null)
 
-  const parentResourceIds = useMemo(
-    () =>
-      parent.values.flatMap((value) =>
-        value instanceof SDKResource ? [value.id] : [],
-      ),
-    [parent.values],
-  )
+  const onOwnedReleased = useEffectEvent((reason: ResourceReleaseReason) => {
+    if (!releasedResourceRetryReasons.includes(reason)) return
+    if (pendingReleasedResourceRetryRef.current) return
+    pendingReleasedResourceRetryRef.current = true
+    retry()
+  })
 
   useEffect(() => {
     pendingReleasedResourceRetryRef.current = false
   }, [retryCount, state.value])
 
   useEffect(() => {
-    if (!resourcesClient || parentResourceIds.length === 0) return
-
-    return resourcesClient.onResourceReleased((event) => {
-      if (
-        event.reason !== 'server-released' &&
-        event.reason !== 'connection-lost' &&
-        event.reason !== 'client-released'
-      ) {
-        return
-      }
-      if (!parentResourceIds.includes(event.resourceId)) {
-        return
-      }
-      activeRunRef.current?.abort()
+    // Observe parent acquisitions, including a composite's constituent handles.
+    const subscriptions = parsed.parents.flatMap((resource) => {
+      const callback = () => activeRunRef.current?.abort()
+      if (resource.onReleased) return [resource.onReleased(callback)]
+      const value = resource.value
+      return typeof value === 'object' && value !== null && ownsResources(value)
+        ? [value.onReleased(callback)] : []
     })
-  }, [parentResourceIds, resourcesClient])
+    return () => subscriptions.forEach((unsubscribe) => unsubscribe())
+  }, [parsed.parents])
 
   // DevTools: Extract parent tracking IDs from parent Resource objects.
   // Use spread-deps pattern (like useParentState's failedRetries) so the array
@@ -603,23 +572,14 @@ export function useResource<T>(
     }
     const run: ResourceTransitionRun = started
 
-    const cleanupResources: { [Symbol.dispose](): void }[] = []
+    const acquired = new AcquiredResources()
+    acquiredRef.current = acquired
     activeRunRef.current = run
-    let cleanedUp = false
-
-    const registerCleanup: RegisterCleanup = (resource) => {
-      if (!resource) return resource
-      if (cleanedUp) {
-        queueMicrotask(() => resource[Symbol.dispose]())
-        return resource
-      }
-      cleanupResources.push(resource)
-      return resource
-    }
-
+    let unsubscribe = () => {}
+    const registerCleanup: RegisterCleanup = (resource) => acquired.add(resource)
     const disposeAll = () => {
-      cleanedUp = true
-      cleanupResources.forEach((r) => r[Symbol.dispose]())
+      unsubscribe()
+      acquired[Symbol.dispose]()
     }
     async function load() {
       try {
@@ -635,6 +595,11 @@ export function useResource<T>(
           return
         }
 
+        unsubscribe = acquired.onReleased((reason) => {
+          if (run.signal.aborted) return
+          disposed(run)
+          onOwnedReleased(reason)
+        })
         onSuccess(result)
       } catch (err) {
         disposeAll()
@@ -657,7 +622,7 @@ export function useResource<T>(
       if (activeRunRef.current === run) {
         activeRunRef.current = null
       }
-      const owned = cleanupResources.length !== 0
+      const owned = acquired.hasResources
       disposeAll()
       if (owned) {
         disposed(run)
@@ -682,37 +647,7 @@ export function useResource<T>(
     settleEmpty,
   ])
 
-  useEffect(() => {
-    if (
-      !resourcesClient ||
-      state.loading ||
-      releasedResourceRetryReasons.length === 0 ||
-      releasedResourceRetryIds.length === 0
-    ) {
-      return
-    }
-
-    return resourcesClient.onResourceReleased((event) => {
-      if (!releasedResourceRetryReasons.includes(event.reason)) {
-        return
-      }
-      if (!releasedResourceRetryIds.includes(event.resourceId)) {
-        return
-      }
-      if (pendingReleasedResourceRetryRef.current) {
-        return
-      }
-
-      pendingReleasedResourceRetryRef.current = true
-      retry()
-    })
-  }, [
-    releasedResourceRetryIds,
-    releasedResourceRetryReasons,
-    resourcesClient,
-    retry,
-    state.loading,
-  ])
+  const acquired = acquiredRef.current
 
   // Report the parent's error ahead of the resource's own.
   return useMemo(
@@ -723,11 +658,13 @@ export function useResource<T>(
         loading: enabled && (parent.loading || effectiveLoading),
         error: enabled ? parent.error || state.error : null,
         retry,
+        onReleased: (callback) => acquired?.onReleased(callback) ?? (() => {}),
         __devtools: devtools ? { id: trackingId } : undefined,
       }),
     [
       enabled,
       state,
+      acquired,
       effectiveLoading,
       parent.loading,
       parent.error,

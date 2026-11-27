@@ -13,8 +13,17 @@ type trackedResource struct {
 	// releaseFn tears down the resource after removal from the generation.
 	releaseFn func()
 
-	// parentResourceID links invocation resources for pending-child cleanup.
+	// parentResourceID orders generation teardown, without controlling ownership.
 	parentResourceID uint32
-	// pending remains true until the client adopts the resource.
-	pending bool
+	// offer owns the unaccepted handle, independently of its invoking parent.
+	offer *resourceRPCContext
+}
+
+// acceptOffer consumes the invocation's obligation under the generation lock.
+func (r *trackedResource) acceptOffer(id uint32) {
+	if r.offer != nil {
+		delete(r.offer.unpublished, id)
+		delete(r.offer.published, id)
+		r.offer = nil
+	}
 }

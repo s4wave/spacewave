@@ -374,7 +374,7 @@
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6,uv.lock=e4c4bd2b1b09f2f90e1d7b987a9b18c5bf9158758fbd55f3b5d3d46656bd88be",
       "packages": {
         "github.com/s4wave/spacewave/bldr/resource": {
-          "hash": "a8d6a79b0ec74816ddac2d876599be923f00c955d6218020e4f21290664f9b2f",
+          "hash": "3a1110a030ada9a3a14fb0c59970c2c7b92cbe6c72fafe819983e440230694ff",
           "generatedFiles": [
             "bldr/resource/resource_pb2.py",
             "bldr/resource/resource_pb2.pyi",
@@ -987,7 +987,7 @@
           ]
         },
         "github.com/s4wave/spacewave/bldr/resource": {
-          "hash": "41697a17e860375be6205024b633042bafb9c7849f656cd51da0fa78af0deb03",
+          "hash": "c220227982c2a613a6acd63521b366ffb430b7065bd2e990d0e80a445cc32365",
           "generatedFiles": [
             "bldr/resource/resource.pb.go",
             "bldr/resource/resource.pb.ts",
