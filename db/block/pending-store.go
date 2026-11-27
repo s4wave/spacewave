@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // PendingStore keeps the blocks put through it in memory and stores them only
@@ -66,14 +67,14 @@ type PendingStore struct {
 	// a moved root share it, so a read does not wait for a walk.
 	mtx sync.RWMutex
 	// kept holds the blocks put and not yet stored, by reference.
-	kept map[string]*PutBatchEntry
+	kept map[pendingKey]*PutBatchEntry
 	// held counts, by key, the open stages that put each kept block. Sweep
 	// keeps a held block and what it reaches: its writer has not referenced
 	// its root yet.
-	held map[string]int
+	held map[pendingKey]int
 	// flushed counts, by key, the open Flushes that stored each kept block
 	// under their stage. SetRoots puts no flushed block again.
-	flushed map[string]int
+	flushed map[pendingKey]int
 	// skipping counts the SetRoots in flight and the open Flushes that left
 	// out a block an open Flush stored, and deferred holds the flush stage
 	// releases that wait for the last of them to end. A walk that holds mtx
@@ -83,7 +84,7 @@ type PendingStore struct {
 	deferred []func()
 	// keptAt is the put sequence at which each kept block was kept. A sweep
 	// drops only blocks kept before its mark.
-	keptAt map[string]uint64
+	keptAt map[pendingKey]uint64
 	// seq counts the puts that kept a block.
 	seq uint64
 	// keptBytes is the total data length of kept.
@@ -100,10 +101,10 @@ type PendingStore struct {
 func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
 	return &PendingStore{
 		StoreOps: inner,
-		kept:     make(map[string]*PutBatchEntry),
-		held:     make(map[string]int),
-		flushed:  make(map[string]int),
-		keptAt:   make(map[string]uint64),
+		kept:     make(map[pendingKey]*PutBatchEntry),
+		held:     make(map[pendingKey]int),
+		flushed:  make(map[pendingKey]int),
+		keptAt:   make(map[pendingKey]uint64),
 		maxBytes: maxBytes,
 	}
 }
@@ -222,9 +223,9 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 		return nil, false, errors.Wrap(ErrUnheldPut, "pending store is full and the put has no stage")
 	}
 	for i, e := range entries {
-		key := pendingKey(e.Ref)
+		key := pendingKeyOf(e.Ref)
 		switch {
-		case !keep:
+		case !keep || key == (pendingKey{}):
 			rest, restIdx = append(rest, e), append(restIdx, i)
 		case s.kept[key] != nil:
 			out[i] = true
@@ -269,10 +270,11 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 func (s *PendingStore) fitsLocked(entries []*PutBatchEntry) bool {
 	size := s.keptBytes
 	for _, e := range entries {
-		if s.kept[pendingKey(e.Ref)] != nil {
+		key := pendingKeyOf(e.Ref)
+		if s.kept[key] != nil {
 			continue
 		}
-		if !e.RefsKnown {
+		if !e.RefsKnown || key == (pendingKey{}) {
 			return false
 		}
 		size += len(e.Data)
@@ -280,29 +282,54 @@ func (s *PendingStore) fitsLocked(entries []*PutBatchEntry) bool {
 	return size <= s.maxBytes
 }
 
-// pendingKey returns the key of ref in kept: its hash type and digest. A read
-// of every block passes through lookup, so the key avoids the base58 encoding
-// of MarshalString.
-func pendingKey(ref *BlockRef) string {
+// pendingKeyDigest bounds the digest a pendingKey holds. Every hash type's
+// digest fits.
+const pendingKeyDigest = 32
+
+// pendingKey is the key of a block in kept: its hash type and digest, a
+// comparable value, so building a key allocates nothing. A read of every block
+// passes through lookup, and every walk keys each block it meets.
+type pendingKey struct {
+	// hashType is the hash type.
+	hashType hash.HashType
+	// size is the digest's length.
+	size uint8
+	// digest is the digest, zero past size.
+	digest [pendingKeyDigest]byte
+}
+
+// pendingKeyOf returns the key of ref in kept. An empty ref, and a ref whose
+// digest exceeds pendingKeyDigest, get the zero key, under which put keeps no
+// block.
+func pendingKeyOf(ref *BlockRef) pendingKey {
+	// Give a digest the key cannot hold the zero key.
 	h := ref.GetHash()
-	return string(rune(h.GetHashType())) + string(h.GetHash())
+	digest := h.GetHash()
+	if len(digest) == 0 || len(digest) > pendingKeyDigest {
+		return pendingKey{}
+	}
+
+	// Copy the type and digest into the key.
+	key := pendingKey{hashType: h.GetHashType(), size: uint8(len(digest))} //nolint:gosec // the digest fits pendingKeyDigest.
+	copy(key.digest[:], digest)
+	return key
 }
 
 // pendingHold is a set of kept blocks a stage or a pin holds: Sweep keeps
 // each, and what it reaches, until the hold is released.
 type pendingHold struct {
 	// keys are the held blocks. Guarded by the PendingStore's mtx.
-	keys map[string]struct{}
+	keys map[pendingKey]struct{}
 }
 
 // newPendingHold returns an empty hold.
 func newPendingHold() *pendingHold {
-	return &pendingHold{keys: make(map[string]struct{})}
+	return &pendingHold{keys: make(map[pendingKey]struct{})}
 }
 
 // holdLocked adds the kept block key to h, once per hold. A nil h holds
 // nothing. The caller holds mtx.
-func (s *PendingStore) holdLocked(h *pendingHold, key string) {
+func (s *PendingStore) holdLocked(h *pendingHold, key pendingKey) {
 	if h == nil || h.keys == nil {
 		return
 	}
@@ -345,7 +372,7 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 	}
 
 	// Find the kept entry.
-	return s.kept[pendingKey(ref)]
+	return s.kept[pendingKeyOf(ref)]
 }
 
 // Unflushed returns the data length of ref's kept block, and true when it is
@@ -356,7 +383,7 @@ func (s *PendingStore) Unflushed(ref *BlockRef) (int, bool) {
 	if ref.GetEmpty() {
 		return 0, false
 	}
-	key := pendingKey(ref)
+	key := pendingKeyOf(ref)
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	e := s.kept[key]
@@ -512,7 +539,7 @@ func (r pendingReads) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat,
 
 // RmBlock drops a kept block and removes it from the inner store.
 func (s *PendingStore) RmBlock(ctx context.Context, ref *BlockRef) error {
-	s.drop([]string{pendingKey(ref)})
+	s.drop([]pendingKey{pendingKeyOf(ref)})
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
@@ -550,18 +577,18 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 func (s *PendingStore) reach(roots []*BlockRef) []*PutBatchEntry {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.reachLocked(roots, make(map[string]struct{}))
+	return s.reachLocked(roots, make(map[pendingKey]struct{}))
 }
 
 // reachLocked is reach for a caller holding mtx, shared or exclusive. It
 // adds each block it returns to seen, and neither returns nor descends into a
 // block seen holds already.
-func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[string]struct{}) []*PutBatchEntry {
+func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[pendingKey]struct{}) []*PutBatchEntry {
 	// Walk the kept blocks from each root, depth first, emitting each block
 	// after its kept children.
 	var out []*PutBatchEntry
 	type frame struct {
-		key   string
+		key   pendingKey
 		e     *PutBatchEntry
 		child int
 	}
@@ -569,7 +596,7 @@ func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[string]struct{}) 
 		if root.GetEmpty() {
 			continue
 		}
-		key := pendingKey(root)
+		key := pendingKeyOf(root)
 		e := s.kept[key]
 		if _, ok := seen[key]; ok || e == nil {
 			continue
@@ -581,7 +608,7 @@ func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[string]struct{}) 
 			if top.child < len(top.e.Refs) {
 				ref := top.e.Refs[top.child]
 				top.child++
-				ckey := pendingKey(ref)
+				ckey := pendingKeyOf(ref)
 				if _, ok := seen[ckey]; ok {
 					continue
 				}
@@ -599,7 +626,7 @@ func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[string]struct{}) 
 }
 
 // drop forgets the kept blocks with keys.
-func (s *PendingStore) drop(keys []string) {
+func (s *PendingStore) drop(keys []pendingKey) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for _, key := range keys {
@@ -625,7 +652,7 @@ func (s *PendingStore) SweepMark() uint64 {
 // mark, and what each of those reaches.
 func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 	// Mark what the live roots and the held blocks reach.
-	reached := make(map[string]struct{})
+	reached := make(map[pendingKey]struct{})
 	s.mtx.RLock()
 	for key := range s.held {
 		if e := s.kept[key]; e != nil {
@@ -640,7 +667,7 @@ func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 	// set was read, or a release that stamped its blocks, protects the tree
 	// below it, and a pin holds only its root.
 	s.mtx.Lock()
-	var unreached []string
+	var unreached []pendingKey
 	var since []*BlockRef
 	for key, e := range s.kept {
 		if _, ok := reached[key]; ok {
@@ -682,7 +709,7 @@ func (s *PendingStore) HoldsRoots() bool {
 // what a held block reaches. Any other ref is pinned in the inner store.
 func (s *PendingStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	// Hold a kept tree in memory.
-	key := pendingKey(ref)
+	key := pendingKeyOf(ref)
 	s.mtx.Lock()
 	if s.kept[key] != nil {
 		h := newPendingHold()

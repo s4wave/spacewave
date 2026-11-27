@@ -41,7 +41,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	s.mtx.Lock()
 	var unkept []*BlockRef
 	for _, root := range roots {
-		if !root.GetEmpty() && s.kept[pendingKey(root)] == nil {
+		if !root.GetEmpty() && s.kept[pendingKeyOf(root)] == nil {
 			unkept = append(unkept, root)
 		}
 	}
@@ -121,7 +121,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 }
 
 // unmark ends one Flush's mark of each of keys.
-func (s *PendingStore) unmark(keys []string) {
+func (s *PendingStore) unmark(keys []pendingKey) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for _, key := range keys {
@@ -147,20 +147,20 @@ const (
 // and calls landed once it no longer does. A block kept or dropped between
 // slices is seen or missed as of its slice: the trees are immutable, and a
 // dropped block is stored.
-func (s *PendingStore) reachSliced(roots []*BlockRef, stopFlushed bool) (out []*PutBatchEntry, keys []string, stopped bool) {
+func (s *PendingStore) reachSliced(roots []*BlockRef, stopFlushed bool) (out []*PutBatchEntry, keys []pendingKey, stopped bool) {
 	// Hold the lock for the walk, yielding it every walkSlice blocks.
-	seen := make(map[string]struct{})
+	seen := make(map[pendingKey]struct{})
 	visits := 0
 	s.mtx.RLock()
 	defer func() { s.mtx.RUnlock() }()
 
 	// Enter each kept block once.
 	type frame struct {
-		key   string
+		key   pendingKey
 		e     *PutBatchEntry
 		child int
 	}
-	enter := func(key string) (*PutBatchEntry, bool) {
+	enter := func(key pendingKey) (*PutBatchEntry, bool) {
 		// Yield the lock every walkSlice blocks.
 		if visits++; visits%walkSlice == 0 {
 			s.mtx.RUnlock()
@@ -191,7 +191,7 @@ func (s *PendingStore) reachSliced(roots []*BlockRef, stopFlushed bool) (out []*
 		if root.GetEmpty() {
 			continue
 		}
-		key := pendingKey(root)
+		key := pendingKeyOf(root)
 		e, ok := enter(key)
 		if !ok {
 			continue
@@ -202,7 +202,7 @@ func (s *PendingStore) reachSliced(roots []*BlockRef, stopFlushed bool) (out []*
 			if top.child < len(top.e.Refs) {
 				ref := top.e.Refs[top.child]
 				top.child++
-				ckey := pendingKey(ref)
+				ckey := pendingKeyOf(ref)
 				if ce, ok := enter(ckey); ok {
 					stack = append(stack, frame{key: ckey, e: ce})
 				}
@@ -216,7 +216,7 @@ func (s *PendingStore) reachSliced(roots []*BlockRef, stopFlushed bool) (out []*
 }
 
 // dropSliced forgets the kept blocks with keys, dropSlice at a time.
-func (s *PendingStore) dropSliced(keys []string) {
+func (s *PendingStore) dropSliced(keys []pendingKey) {
 	for len(keys) != 0 {
 		n := min(len(keys), dropSlice)
 		s.drop(keys[:n])
@@ -228,7 +228,7 @@ func (s *PendingStore) dropSliced(keys []string) {
 // When it leaves one out, it counts the caller's SetRoots in flight until the
 // returned landed is called, so no flush releases the stage that holds the
 // block before the SetRoots that references it lands.
-func (s *PendingStore) unflushed(tree []*PutBatchEntry, keys []string) (out []*PutBatchEntry, landed func()) {
+func (s *PendingStore) unflushed(tree []*PutBatchEntry, keys []pendingKey) (out []*PutBatchEntry, landed func()) {
 	// Return the tree whole while nothing is flushed.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
