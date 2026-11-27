@@ -124,31 +124,6 @@ func (h *ProcessHost) Execute(ctx context.Context) error {
 	return nil
 }
 
-// ListPlugins lists the set of initialized plugins.
-func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
-	// List the directories in the dist directory.
-	dirents, err := os.ReadDir(h.distDir)
-	if err != nil {
-		return nil, err
-	}
-
-	// Collect the valid plugin IDs from the dist directories.
-	var ids []string
-	for _, ent := range dirents {
-		if !ent.IsDir() {
-			continue
-		}
-		entName := ent.Name()
-		if err := bldr_plugin.ValidatePluginID(entName, false); err != nil {
-			h.le.Warnf("ignoring unknown directory in plugin bins dir: %s", entName)
-			continue
-		}
-		ids = append(ids, entName)
-	}
-
-	return ids, nil
-}
-
 // ExecutePlugin executes the plugin with the given ID.
 // If the plugin was already initialized, existing state can be reused.
 // The plugin should be stopped if/when the function exits.
@@ -667,19 +642,6 @@ func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
 			a.LastError == b.LastError &&
 			a.UpdatedAt.Equal(b.UpdatedAt)
 	})
-}
-
-// DeletePlugin clears cached plugin data for the given plugin ID.
-func (h *ProcessHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	// Remove the dist checkout and the state directory.
-	pluginDistDir := h.pluginDistDir(pluginID)
-	e1 := os.RemoveAll(pluginDistDir)
-	pluginStateDir := h.pluginStateDir(pluginID)
-	e2 := os.RemoveAll(pluginStateDir)
-	if e1 != nil {
-		return e1
-	}
-	return e2
 }
 
 // _ is a type assertion

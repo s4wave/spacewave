@@ -30,9 +30,6 @@ type PluginHost interface {
 	// Return context.Canceled if context was canceled.
 	Execute(ctx context.Context) error
 
-	// ListPlugins lists the set of loaded plugins in the host.
-	ListPlugins(ctx context.Context) ([]string, error)
-
 	// ExecutePlugin executes the plugin with the given ID.
 	// If the plugin was already initialized, existing state can be reused.
 	// The plugin should be stopped if/when the function exits.
@@ -58,9 +55,6 @@ type PluginHost interface {
 		hostRpcMux srpc.Mux,
 		rpcInit PluginRpcInitCb,
 	) error
-
-	// DeletePlugin clears cached plugin data for the given plugin ID.
-	DeletePlugin(ctx context.Context, pluginID string) error
 }
 
 // PluginHostScheduler manages the PluginHosts and running plugins.

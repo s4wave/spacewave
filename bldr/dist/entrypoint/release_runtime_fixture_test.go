@@ -477,9 +477,6 @@ func (h *releaseFixturePluginHost) Execute(ctx context.Context) error {
 	return context.Canceled
 }
 
-// ListPlugins reports no executables before scheduler admission.
-func (h *releaseFixturePluginHost) ListPlugins(context.Context) ([]string, error) { return nil, nil }
-
 // ExecutePlugin records admission and holds the executable until cancellation.
 func (h *releaseFixturePluginHost) ExecutePlugin(
 	ctx context.Context,
@@ -525,6 +522,3 @@ func (h *releaseFixturePluginHost) ExecutePlugin(
 	<-ctx.Done()
 	return context.Canceled
 }
-
-// DeletePlugin accepts removal without maintaining an executable cache.
-func (h *releaseFixturePluginHost) DeletePlugin(context.Context, string) error { return nil }

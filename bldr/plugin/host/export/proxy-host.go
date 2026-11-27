@@ -41,11 +41,6 @@ func (h *proxyHost) Execute(ctx context.Context) error {
 	return nil
 }
 
-// ListPlugins returns nil: the exporting host owns its plugin list.
-func (h *proxyHost) ListPlugins(ctx context.Context) ([]string, error) {
-	return nil, nil
-}
-
 // ExecutePlugin runs the plugin on the exported host over one session. The
 // session serves hostRpcMux to the plugin and carries calls to the plugin.
 // pluginDist and pluginAssets are unused: the host reads them from
@@ -118,11 +113,6 @@ func (h *proxyHost) ExecutePlugin(
 			return errors.Wrap(err, "plugin rpc init")
 		}
 	}
-}
-
-// DeletePlugin returns nil: the exporting host owns its plugin data.
-func (h *proxyHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	return nil
 }
 
 // _ is a type assertion

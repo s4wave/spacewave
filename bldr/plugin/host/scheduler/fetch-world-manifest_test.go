@@ -4822,10 +4822,6 @@ func (h *testPluginHost) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (h *testPluginHost) ListPlugins(ctx context.Context) ([]string, error) {
-	return nil, nil
-}
-
 func (h *testPluginHost) ExecutePlugin(
 	ctx context.Context,
 	pluginID,
@@ -4838,10 +4834,6 @@ func (h *testPluginHost) ExecutePlugin(
 	hostRpcMux srpc.Mux,
 	rpcInit bldr_plugin_host.PluginRpcInitCb,
 ) error {
-	return nil
-}
-
-func (h *testPluginHost) DeletePlugin(ctx context.Context, pluginID string) error {
 	return nil
 }
 

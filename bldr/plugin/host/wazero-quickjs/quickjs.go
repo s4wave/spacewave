@@ -209,13 +209,6 @@ func (h *WazeroQuickJsHost) GetPlatformId() string {
 	return h.pluginPlatformID
 }
 
-// ListPlugins lists the set of initialized plugins.
-func (h *WazeroQuickJsHost) ListPlugins(ctx context.Context) ([]string, error) {
-	// TODO list stored plugins or temporary storage
-	// Nothing calls ListPlugins or DeletePlugin yet.
-	return nil, nil
-}
-
 // ExecutePlugin executes the plugin with the given ID.
 // If the plugin was already initialized, existing state can be reused.
 // The plugin should be stopped if/when the function exits.
@@ -573,14 +566,6 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			}
 		}
 	}
-}
-
-// DeletePlugin clears cached plugin data for the given plugin ID.
-func (h *WazeroQuickJsHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	if h.bytecode == nil {
-		return nil
-	}
-	return h.bytecode.deletePlugin(pluginID)
 }
 
 // _ is a type assertion

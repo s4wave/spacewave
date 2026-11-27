@@ -100,13 +100,6 @@ func (h *WebHost) GetPlatformId() string {
 	return h.pluginPlatformID
 }
 
-// ListPlugins lists the set of initialized plugins.
-func (h *WebHost) ListPlugins(ctx context.Context) ([]string, error) {
-	// TODO list stored plugins or temporary storage
-	// Nothing calls ListPlugins or DeletePlugin yet.
-	return nil, nil
-}
-
 // ExecutePlugin executes the plugin with the given ID.
 // If the plugin was already initialized, existing state can be reused.
 // The plugin should be stopped if/when the function exits.
@@ -601,12 +594,6 @@ func (h *WebHost) ExecutePlugin(
 			unlock()
 		}
 	}
-}
-
-// DeletePlugin clears cached plugin data for the given plugin ID.
-func (h *WebHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	// TODO remove caches or local storage?
-	return nil
 }
 
 func parseWebHostPlatform(platformID string) (bldr_platform.Platform, error) {

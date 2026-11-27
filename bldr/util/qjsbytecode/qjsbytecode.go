@@ -111,11 +111,6 @@ func (c *Cache) Prune(owner string, used map[string]struct{}) error {
 	return nil
 }
 
-// DeleteOwner removes the cached modules of an owner.
-func (c *Cache) DeleteOwner(owner string) error {
-	return os.RemoveAll(c.OwnerDir(owner))
-}
-
 // FileName returns the cache file name of a module.
 func FileName(name string, src []byte) string {
 	// Hash the reactor build, the module name and the source.

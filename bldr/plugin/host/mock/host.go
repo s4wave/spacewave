@@ -30,11 +30,6 @@ func (h *Host) Execute(context.Context) error {
 	return nil
 }
 
-// ListPlugins returns no plugins.
-func (h *Host) ListPlugins(context.Context) ([]string, error) {
-	return nil, nil
-}
-
 // ExecutePlugin returns immediately.
 func (h *Host) ExecutePlugin(
 	context.Context,
@@ -48,11 +43,6 @@ func (h *Host) ExecutePlugin(
 	srpc.Mux,
 	plugin_host.PluginRpcInitCb,
 ) error {
-	return nil
-}
-
-// DeletePlugin returns immediately.
-func (h *Host) DeletePlugin(context.Context, string) error {
 	return nil
 }
 
