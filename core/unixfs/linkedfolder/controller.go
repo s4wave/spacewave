@@ -114,15 +114,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		stale := newStalePaths()
+
+		// Collect hash misses and watch remote Drive changes before following the folder.
+		staleReady := make(chan struct{}, 1)
+		stale := newStalePaths(staleReady)
 		release := files.WatchHashMisses(stale.add)
 		defer release()
 		remote := make(chan struct{}, 1)
 		if c.conf.GetTwoWay() {
 			go c.watchDrive(ctx, eng, remote)
 		}
+
+		// Resume following when the folder returns to its original file system.
 		for {
-			err := c.run(ctx, link, stale, remote)
+			err := c.run(ctx, link, stale, staleReady, remote)
 			if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
 				return err
 			}
@@ -189,7 +194,7 @@ func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
 
 // run syncs the folder and follows its changes. It returns
 // ErrFolderRootChanged once the root leaves its file system.
-func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths, remote <-chan struct{}) error {
+func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths, staleReady, remote <-chan struct{}) error {
 	// Watch the folder before the sync reads it, so no change escapes both.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -209,7 +214,7 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 	}
 	c.le.Debug("folder synced")
 	c.showWatching(link)
-	return c.follow(ctx, link, watcher, stale, remote, folder, err != nil)
+	return c.follow(ctx, link, watcher, stale, staleReady, remote, folder, err != nil)
 }
 
 // follow syncs the directories the watcher reports once the folder has been
@@ -229,6 +234,7 @@ func (c *Controller) follow(
 	link *unixfs_world.FolderLink,
 	watcher *fsnotify.Watcher,
 	stale *stalePaths,
+	staleReady <-chan struct{},
 	remote <-chan struct{},
 	folder string,
 	resync bool,
@@ -315,7 +321,7 @@ func (c *Controller) follow(
 			}
 			c.le.WithError(err).Debug("folder watcher dropped events, syncing the whole folder")
 			all, changed = true, true
-		case <-stale.wake:
+		case <-staleReady:
 			for _, path := range stale.take() {
 				if rel, ok := relPath(folder, path); ok {
 					files[rel] = struct{}{}
@@ -413,13 +419,13 @@ type stalePaths struct {
 	mtx sync.Mutex
 	// paths holds the reported paths not yet taken.
 	paths map[string]struct{}
-	// wake holds a signal while paths is not empty.
-	wake chan struct{}
+	// wake receives a signal when a path is reported.
+	wake chan<- struct{}
 }
 
-// newStalePaths constructs an empty stalePaths.
-func newStalePaths() *stalePaths {
-	return &stalePaths{paths: make(map[string]struct{}), wake: make(chan struct{}, 1)}
+// newStalePaths collects paths and signals the caller-owned wake channel.
+func newStalePaths(wake chan<- struct{}) *stalePaths {
+	return &stalePaths{paths: make(map[string]struct{}), wake: wake}
 }
 
 // add records path and signals wake. It never blocks the read reporting path.
