@@ -158,6 +158,11 @@ func (i *SOCheckpointInner) Validate() error {
 	if err := validateAuthorHeads("outcomes prev_authors", i.GetOutcomes().GetPrevAuthors().GetAuthors()); err != nil {
 		return err
 	}
+
+	// Check carried entries even with CarriedOutcomesEnv off, so a checkpoint
+	// is valid or not whatever the reader's switch says. A reader with the
+	// switch off accepts a signer's entries and decides nothing from them,
+	// and a signer with it off writes none.
 	if err := validateCarried(i.GetOutcomes().GetCarried()); err != nil {
 		return err
 	}
