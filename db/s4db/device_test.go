@@ -410,9 +410,20 @@ type recordStorage struct {
 	storage
 	// reads, writes and truncates count ReadAt, WriteAt and truncate calls.
 	reads, writes, truncates atomic.Int64
-	// evicts counts evict calls, and readsAtEvict the reads made before the
-	// first.
-	evicts, readsAtEvict atomic.Int64
+	// flushes counts flushDurable calls, and readsAtFlush the reads made
+	// before the first.
+	flushes, readsAtFlush atomic.Int64
+	// evicts counts evict calls, and readsAtEvict and flushesAtEvict the
+	// reads and flushes made before the first.
+	evicts, readsAtEvict, flushesAtEvict atomic.Int64
+}
+
+// flushDurable counts the flush and the reads made before the first.
+func (s *recordStorage) flushDurable() error {
+	if s.flushes.Add(1) == 1 {
+		s.readsAtFlush.Store(s.reads.Load())
+	}
+	return s.storage.flushDurable()
 }
 
 // ReadAt counts the read and passes it on.
@@ -433,10 +444,11 @@ func (s *recordStorage) truncate(n int64) error {
 	return s.storage.truncate(n)
 }
 
-// evict counts the eviction and the reads made before the first.
+// evict counts the eviction and the reads and flushes made before the first.
 func (s *recordStorage) evict() error {
 	if s.evicts.Add(1) == 1 {
 		s.readsAtEvict.Store(s.reads.Load())
+		s.flushesAtEvict.Store(s.flushes.Load())
 	}
 	return s.storage.evict()
 }
@@ -467,39 +479,81 @@ func openRecorded(t *testing.T, dev device.Device) (*DB, *recordStorage) {
 	return db, rec
 }
 
-// TestFailedHandleWritesNothing fails a flush and checks that no later write
-// or truncation of the handle reaches the file, from a release step or a
-// direct call, so nothing is built on a state the file may not hold. It also
-// checks that a writable open drops the file's cached pages before recovery
-// reads them.
+// TestFailedHandleWritesNothing checks that a writable open flushes the
+// file and then drops its cached pages before recovery reads it, and that a
+// handle whose flush failed sends the device nothing more, not even the
+// writes it held at the failure when it closes: the next open would read
+// them as stored.
 func TestFailedHandleWritesNothing(t *testing.T) {
-	ctx := context.Background()
 	mem := device.NewMemory()
 	dev := &failFlushDevice{Memory: mem}
 	db, rec := openRecorded(t, dev)
-	if n, before := rec.evicts.Load(), rec.readsAtEvict.Load(); n != 1 || before != 0 {
-		t.Fatalf("writable open evicted %d times after %d reads, want once before any read", n, before)
+	if n, before := rec.flushes.Load(), rec.readsAtFlush.Load(); n == 0 || before != 0 {
+		t.Fatalf("writable open flushed %d times after %d reads, want a flush before any read", n, before)
+	}
+	if n, reads, flushes := rec.evicts.Load(), rec.readsAtEvict.Load(), rec.flushesAtEvict.Load(); n != 1 || reads != 0 || flushes != 1 {
+		t.Fatalf("writable open evicted %d times after %d reads and %d flushes, want once after the flush and before any read", n, reads, flushes)
 	}
 
-	// Fail a durable flush.
+	// Fail a durable flush. Its first device call fails, so the handle
+	// still holds the commit's writes.
 	dev.armed.Store(true)
-	if err := putKey(db, "failed"); !errors.Is(err, kvtx.ErrFlushFailed) {
-		t.Fatalf("commit with a failed flush returned %v", err)
+	if err := putKey(db, "failed"); err == nil {
+		t.Fatal("commit with a failed flush returned nil")
 	}
 
-	// Nothing writes or truncates the file after it.
-	writes, truncates := rec.writes.Load(), rec.truncates.Load()
-	if db.sched != nil {
-		_ = db.sched.releaseStep(ctx)
-	}
-	if _, err := db.s.WriteAt([]byte{1}, 0); !errors.Is(err, kvtx.ErrFlushFailed) {
-		t.Fatalf("write after a failed flush returned %v", err)
-	}
-	if err := db.s.truncate(0); !errors.Is(err, kvtx.ErrFlushFailed) {
-		t.Fatalf("truncate after a failed flush returned %v", err)
-	}
+	// Nothing reaches the device after it, through close either.
+	calls := mem.Calls()
 	_ = db.Close()
-	if w, tr := rec.writes.Load()-writes, rec.truncates.Load()-truncates; w != 0 || tr != 0 {
-		t.Fatalf("failed handle made %d writes and %d truncations", w, tr)
+	if n := mem.Calls() - calls; n != 0 {
+		t.Fatalf("failed handle made %d device calls after the failure", n)
+	}
+}
+
+// TestFailedFlushReopen fails a flush, closes the handle and reopens it, then
+// cuts the power under the new handle. A commit the reopened handle reads as
+// stored must survive the power cut: a reader takes what it reads after a
+// reopen for durable.
+func TestFailedFlushReopen(t *testing.T) {
+	for seed := range uint64(24) {
+		r := rand.New(rand.NewPCG(seed, seed))
+		mem := device.NewMemory()
+		dev := &failFlushDevice{Memory: mem}
+		db := openDevice(t, dev, Options{})
+		if err := putKey(db, "kept"); err != nil {
+			t.Fatal(err)
+		}
+		dev.armed.Store(true)
+		if err := putKey(db, "failed"); err == nil {
+			t.Fatal("commit with a failed flush returned nil")
+		}
+		_ = db.Close()
+
+		// Reopen, read the failed commit, and cut the power under the
+		// open handle.
+		db = openDevice(t, mem, Options{})
+		read, err := hasKey(db, "failed")
+		if err != nil {
+			t.Fatal(err)
+		}
+		mem.CrashAfter(0)
+		_ = db.Close()
+		mem.PowerLoss(r)
+
+		// What the reopened handle read survives, and so does the
+		// durable commit.
+		db = openDevice(t, mem, Options{})
+		after, err := hasKey(db, "failed")
+		if err != nil {
+			t.Fatal(err)
+		}
+		kept, err := hasKey(db, "kept")
+		_ = db.Close()
+		if err != nil || !kept {
+			t.Fatalf("seed %d: durable commit after the power cut found=%v err=%v", seed, kept, err)
+		}
+		if read && !after {
+			t.Fatalf("seed %d: the reopened handle read the failed commit, and the power cut dropped it", seed)
+		}
 	}
 }

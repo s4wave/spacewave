@@ -46,10 +46,17 @@ func (f deviceFile) flushDurable() error {
 	return f.Sync()
 }
 
-// evict does nothing: a device handle caches no pages a failed flush could
-// leave behind, since it keeps a failed call's writes and issues them again.
+// evict does nothing: a device handle caches no pages. The flush a writable
+// open runs first makes whatever the device holds durable before recovery
+// reads it.
 func (deviceFile) evict() error {
 	return nil
+}
+
+// discard drops the collected writes, which a failed flush left unsent, so
+// close does not send them.
+func (f deviceFile) discard() {
+	f.Discard()
 }
 
 // writeback sends all the collected writes without a flush, so a job's bytes

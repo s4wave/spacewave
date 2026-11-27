@@ -153,6 +153,16 @@ func (h *Handle) Barrier() error {
 	return h.dev.Write(h.ctx, nil, true)
 }
 
+// Discard drops the collected writes without issuing them, leaving the file
+// as a crash at this point would. It breaks the rule that a write the caller
+// saw succeed is kept, so it serves only a caller whose flush failed and that
+// builds nothing more on the file, which then holds what the device holds.
+func (h *Handle) Discard() {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	h.pending, h.size = nil, h.devSize
+}
+
 // Close issues the collected writes without a flush.
 func (h *Handle) Close() error {
 	h.mtx.Lock()

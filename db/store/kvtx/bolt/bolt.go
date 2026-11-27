@@ -106,9 +106,44 @@ func (s *Store) FileSize() (uint64, error) {
 }
 
 // beginBatchTransaction opens the batch's shared write transaction without a
-// per-transaction writer turn. BatchStore serializes its use with its mutex.
+// per-transaction writer turn, unless a flush or commit failed. BatchStore
+// serializes its use with its mutex.
 func (s *Store) beginBatchTransaction() (*bdb.Tx, error) {
+	if err := s.flusher.Failed(); err != nil {
+		return nil, err
+	}
 	return s.db.Begin(true)
+}
+
+// commit runs commitFn, which commits txn, unless a flush or commit failed,
+// and otherwise rolls txn back so it releases bolt's writer lock. A write
+// transaction opened before the failure thus commits nothing after it.
+//
+// Any failed write commit fails the store. bolt reports a failed write or
+// fsync of its own full commit like any other commit error, and after a
+// failed fsync Linux may mark the unwritten pages clean, so the next commit's
+// fsync succeeds and its meta page points at pages the drive never held.
+func (s *Store) commit(txn *bdb.Tx, commitFn func() error) error {
+	// A read-only transaction writes nothing to fail.
+	if !txn.Writable() {
+		return commitFn()
+	}
+
+	// Commit unless the store failed, rolling back a refused transaction,
+	// and record a failed commit as the store's failure.
+	ran := false
+	err := s.flusher.Admit(func() error {
+		ran = true
+		return commitFn()
+	})
+	if !ran {
+		_ = txn.Rollback()
+		return err
+	}
+	if err != nil {
+		return s.flusher.Fail(err)
+	}
+	return nil
 }
 
 // RefreshForCoordinationLock refreshes the underlying bbolt handle after an

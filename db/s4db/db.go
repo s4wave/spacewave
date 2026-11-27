@@ -187,10 +187,16 @@ func openOwned(s storage, opts Options) (*DB, error) {
 // load creates the file if empty, takes a reader slot, and recovers state.
 func (db *DB) load() error {
 	// The lifetime writer claim already excludes creation or repair by a peer.
-	// Drop the file's cached pages first, so recovery reads what the drive
-	// holds and not pages a failed flush of an earlier handle left behind.
+	// Before recovery reads anything, flush the file, so whatever it holds is
+	// durable: dirty pages a crashed process left, and writes a device holds.
+	// Then drop its cached pages, so recovery reads what the drive holds and
+	// not pages a failed flush of an earlier handle left marked clean. A
+	// failed flush fails the open.
 	if !db.opts.ReadOnly {
 		if !kvtx.FailStopOff {
+			if err := db.s.flushDurable(); err != nil {
+				return err
+			}
 			if err := db.s.evict(); err != nil {
 				return err
 			}

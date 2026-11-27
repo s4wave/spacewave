@@ -86,3 +86,13 @@ func (s *Store[T]) wrapWALFlush(wrap func(func() error) error) {
 	_ = s.flusher.Close()
 	s.flusher = kvtx.NewOrderedFlusher(func() error { return wrap(s.flushWAL) }, SyncDeadline)
 }
+
+// CheckpointsDone returns the channel closed when s's checkpointer returns.
+func CheckpointsDone(s any) <-chan struct{} {
+	return s.(interface{ checkpointsExited() <-chan struct{} }).checkpointsExited()
+}
+
+// checkpointsExited returns the channel closed when the checkpointer returns.
+func (s *Store[T]) checkpointsExited() <-chan struct{} {
+	return s.checkpointsDone
+}

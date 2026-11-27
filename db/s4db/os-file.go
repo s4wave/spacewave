@@ -209,6 +209,9 @@ func (f *osFile) waitOwner(ctx context.Context) error {
 	}
 }
 
+// discard does nothing: each WriteAt reaches the kernel at once.
+func (f *osFile) discard() {}
+
 // close closes the file and releases its registration.
 func (f *osFile) close() error {
 	return f.closeFile()

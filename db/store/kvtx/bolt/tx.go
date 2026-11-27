@@ -212,14 +212,21 @@ func (t *Tx) CommitOrdered(ctx context.Context) error {
 	return nil
 }
 
-// commit finishes the transaction with commitFn unless it was discarded.
+// commit finishes the transaction with commitFn unless it was discarded,
+// through its Store's fail-stop when it has one.
 func (t *Tx) commit(commitFn func() error) (err error) {
+	// Finish the transaction once, releasing the writer turn after.
 	defer recoverBoltTxPanic(&err)
 	if !t.discardOnce.CompareAndSwap(false, true) {
 		return errors.New("commit called after discard")
 	}
 	defer t.releaseWriter()
-	return commitFn()
+
+	// Commit through the Store's fail-stop when the transaction has one.
+	if t.store == nil {
+		return commitFn()
+	}
+	return t.store.commit(t.txn, commitFn)
 }
 
 // releaseWriter ends the Store's writer turn, if the transaction holds one.

@@ -105,7 +105,7 @@ func (b *BatchStore) flush() error {
 		close(b.flushCancel)
 		b.flushCancel = nil
 	}
-	err := b.writeTx.Commit()
+	err := b.store.commit(b.writeTx, b.writeTx.Commit)
 	b.writeTx = nil
 	b.pending = 0
 	b.stats.Commits.Add(1)

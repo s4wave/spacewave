@@ -732,7 +732,8 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 }
 
 // Close stops the checkpointer, flushes pending ordered commits, and closes
-// the database.
+// the database. After a failed WAL flush it leaves the pool open, as the
+// body describes.
 func (s *Store[T]) Close() error {
 	// Leave the stats registry, then wait for the checkpointer's running step.
 	openStores.Delete(s)
@@ -744,7 +745,18 @@ func (s *Store[T]) Close() error {
 	// so SQLite keeps its locks.
 	s.urgentReads.close()
 	s.writeConn.close()
-	return errors.Join(s.flusher.Close(), s.db.Close(), s.wal.Close(), s.hold.release())
+	flushErr := s.flusher.Close()
+
+	// After a failed WAL flush, leave the pool open. SQLite checkpoints the
+	// WAL when its last connection closes, which would copy the frames
+	// whose flush failed into the database file, or stale bytes where the
+	// kernel dropped their pages. The pool's connections and their holds on
+	// the file stay until the process exits, and the first open after that
+	// recovers the WAL by its frame checksums.
+	if s.flusher.Failed() != nil {
+		return errors.Join(flushErr, s.wal.Close(), s.hold.release())
+	}
+	return errors.Join(flushErr, s.db.Close(), s.wal.Close(), s.hold.release())
 }
 
 // flushWAL makes every commit the WAL holds durable through the driver.
@@ -864,7 +876,7 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		}
 		var c checkpoint
 		c, mode = s.pass(ctx, s.db, mode)
-		if ctx.Err() != nil {
+		if ctx.Err() != nil || errors.Is(c.err, kvtx.ErrFlushFailed) {
 			return
 		}
 		failing = s.logCheckpoint(failing, c.err)
@@ -1148,7 +1160,9 @@ func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	if c.err = waitCopyDelay(ctx); c.err != nil {
 		return c
 	}
-	c.err = q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&c.busy, &c.logged, &c.copied)
+	c.err = s.flusher.Admit(func() error {
+		return q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&c.busy, &c.logged, &c.copied)
+	})
 	took := time.Since(start)
 	s.stats.addPassive(took)
 	if c.err != nil || c.busy {

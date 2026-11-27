@@ -18,11 +18,16 @@ type storage interface {
 	// flushDurable makes earlier writes durable on the drive.
 	flushDurable() error
 	// evict drops the file's clean cached pages, so the next reads come from
-	// the drive. A writable open calls it before recovery reads the file: a
-	// failed flush of an earlier handle may have left pages marked clean that
-	// never reached the drive, and the next flush would not write them. A
-	// platform or device with no such cache does nothing.
+	// the drive. A writable open flushes and then calls it before recovery
+	// reads the file: a failed flush of an earlier handle may have left pages
+	// marked clean that never reached the drive, and the next flush would not
+	// write them. A platform or device with no such cache does nothing.
 	evict() error
+	// discard drops the writes the storage holds and has not sent to the
+	// file, as a crash would. A failed handle calls it before close, so close
+	// sends nothing a failed flush left behind. Storage that sends each write
+	// at once holds none.
+	discard()
 	// writeback writes chunks' dirty pages to the drive and waits for them.
 	// A background job calls it every bgDirtyMax from its idle thread with
 	// the chunks it wrote, so its bytes leave at the idle priority and a
