@@ -5,7 +5,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
@@ -16,12 +15,10 @@ import (
 	"github.com/s4wave/spacewave/core/space"
 	space_backup "github.com/s4wave/spacewave/core/space/backup"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	"github.com/s4wave/spacewave/core/space/world/objecttypes"
+	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
-	packcopy_world "github.com/s4wave/spacewave/db/block/packcopy/world"
 	block_store_gdrive "github.com/s4wave/spacewave/db/block/store/gdrive"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
-	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/world"
@@ -369,24 +366,13 @@ func (a *ProviderAccount) runBackupPass(
 		}
 		recipients = append(recipients, pub)
 	}
-	roots := packcopy_world.RootTypes{}
-	for _, id := range objecttypes.BuiltInObjectTypeIDs() {
-		value, _, reference, err := bus.ExecOneOffTyped[blocktype.LookupBlockTypeValue](ctx, a.t.p.b,
-			blocktype.NewLookupBlockType(id), bus.ReturnWhenIdle(), nil)
-		if reference != nil {
-			defer reference.Release()
-		}
-		if err == nil && value != nil {
-			roots[id] = value.GetValue().Constructor
-		}
-	}
 
 	// Open the destination only after Pass's unchanged-root check.
 	prefix := conf.GetSpaceId() + "/"
 	destination := backend.GetId() + "/" + backend.GetGdrive().GetRootFolderId() + "/" + prefix
 	pass := &space_backup.Pass{
 		Log: a.le, Snapshot: snapshot, Source: source, Local: local,
-		Destination: destination, Prefix: prefix, RootTypes: roots,
+		Destination: destination, Prefix: prefix, RootTypes: optypes.BlockConstructors(ctx),
 		Pin:               func(ctx context.Context) error { return engine.PinBackup(ctx, conf.GetId(), snapshot, local) },
 		ProviderAccountID: a.GetAccountID(), EntityID: a.GetAccountID(), Recipients: recipients,
 		Open: func(ctx context.Context, index kvtx.Store) (*block_store_s3.PackStore, block_store_s3.ObjectStore, func(), error) {

@@ -134,11 +134,12 @@ var runtimeModules = []string{
 	"github.com/xrash/smetrics",
 	"gopkg.in/yaml.v2",
 
-	// The local provider's SFTP, FTPS and SQL block stores.
+	// The local provider's SFTP, FTPS and SQL stores and Google Drive backup.
 	"github.com/go-sql-driver/mysql",
 	"github.com/jlaffaye/ftp",
 	"github.com/kr/fs",
 	"github.com/pkg/sftp",
+	"golang.org/x/oauth2",
 }
 
 // TestRuntimeRootsLinkOnlyRuntimeModules checks that the Windows build of the
