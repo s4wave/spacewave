@@ -6,7 +6,6 @@ import (
 	"context"
 	"path"
 
-	"github.com/pkg/errors"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	"github.com/sirupsen/logrus"
 )
@@ -27,26 +26,11 @@ func AnalyzeCliImports(ctx context.Context, le *logrus.Entry, sourcePath string,
 		return nil, err
 	}
 
-	// CLI builders require exactly one parameter, including any variadic tail.
+	// Validate constructors before projecting package aliases for CLI generation.
+	if err := analysis.ValidateCliImports(cliPkgs); err != nil {
+		return nil, err
+	}
 	for _, cliPkg := range cliPkgs {
-		pkgPath := cliPkg
-		if resolved, ok := analysis.GetPackagePathMappings()[cliPkg]; ok {
-			pkgPath = resolved
-		}
-		pkg := analysis.GetPackages()[pkgPath]
-		if pkg == nil {
-			return nil, errors.Errorf("failed to analyze cli package %s", cliPkg)
-		}
-		constructor := pkg.CliCommands
-		if constructor == nil {
-			return nil, errors.Errorf("cli package %s does not export NewCliCommands", pkgPath)
-		}
-		if !constructor.IsFunction {
-			return nil, errors.Errorf("cli package %s NewCliCommands is not a function", pkgPath)
-		}
-		if constructor.Parameters != 1 {
-			return nil, errors.Errorf("cli package %s NewCliCommands must take only getBus", pkgPath)
-		}
 		cliImports[cliPkg] = CliImport{Alias: path.Base(cliPkg)}
 	}
 	return cliImports, nil

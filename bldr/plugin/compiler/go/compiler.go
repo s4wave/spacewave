@@ -693,11 +693,9 @@ func (c *Controller) BuildPlugin(
 		return nil, err
 	}
 
-	// ensure all go packages were found.
-	for srcPkg, dstPkg := range an.GetPackagePathMappings() {
-		if _, ok := an.GetPackages()[dstPkg]; !ok {
-			return nil, errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
-		}
+	// Require all configured roots before generating the wrapper.
+	if err := an.ValidatePackagePaths(); err != nil {
+		return nil, err
 	}
 
 	// mapping between go.package.path.Variable and value

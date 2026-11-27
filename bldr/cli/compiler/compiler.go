@@ -162,21 +162,16 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// build factory imports from analyzed packages
+	// Build imports using the call shapes resolved by analysis.
 	factoryImports := make(map[string]FactoryImport)
-	for _, pkg := range analysis.GetPackages() {
-		if pkg.Factory == nil {
-			continue
-		}
-		passBus, err := pkg.Factory.NeedsBus(pkg.Path)
-		if err != nil {
-			return nil, err
-		}
-		factoryImports[pkg.Path] = FactoryImport{
-			Path:    pkg.Path,
-			Alias:   pkg.Name,
+	if err := analysis.ForEachFactory(func(pkgPath, alias string, passBus bool) {
+		factoryImports[pkgPath] = FactoryImport{
+			Path:    pkgPath,
+			Alias:   alias,
 			PassBus: passBus,
 		}
+	}); err != nil {
+		return nil, err
 	}
 
 	// resolve cli package paths

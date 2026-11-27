@@ -52,16 +52,15 @@ func buildFactoryCall(pkg *Package) (gast.Expr, error) {
 	return call, nil
 }
 
-// CodegenPluginWrapperFromAnalysis codegens a plugin wrapper from analysis.
+// CodegenPluginWrapper generates a plugin wrapper from the discovered declarations.
 //
 // configSetFiles will be embedded in the binary and parsed as a ConfigSet.
 //
 // devInfoFile will be loaded at runtime and used to populate variables in
 // init(). if devInfoFile is empty, the values of the go variable defs are
 // hardcoded into init().
-func CodegenPluginWrapperFromAnalysis(
+func (a *Analysis) CodegenPluginWrapper(
 	le *logrus.Entry,
-	a *Analysis,
 	pluginMeta *bldr_plugin.PluginMeta,
 	configSetFiles []string,
 	goVarDefs []*vardef.PluginVar,

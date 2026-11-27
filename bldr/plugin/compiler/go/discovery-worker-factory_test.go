@@ -29,7 +29,7 @@ func TestDiscoveryWorkerFactory(t *testing.T) {
 	}
 
 	// The analysis must hold the package without a discovered factory.
-	pkg := an.GetPackages()[dockerPkg]
+	pkg := an.packages[dockerPkg]
 	if pkg == nil {
 		t.Fatalf("package %s was not analyzed", dockerPkg)
 	}

@@ -453,14 +453,61 @@ func (a *Analysis) GetPackagePaths() []string {
 	return a.packagePaths
 }
 
-// GetPackagePathMappings returns the mappings from the provided go pkg path to the resolved one.
-func (a *Analysis) GetPackagePathMappings() map[string]string {
-	return a.packagePathMappings
+// ValidatePackagePaths checks that every mapped root was discovered.
+func (a *Analysis) ValidatePackagePaths() error {
+	for srcPkg, dstPkg := range a.packagePathMappings {
+		if _, ok := a.packages[dstPkg]; !ok {
+			return errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
+		}
+	}
+	return nil
 }
 
-// GetPackages returns the discovered package records keyed by import path.
-func (a *Analysis) GetPackages() map[string]*Package {
-	return a.packages
+// ValidateCliImports checks the command builder required by each requested package.
+func (a *Analysis) ValidateCliImports(cliPkgs []string) error {
+	for _, cliPkg := range cliPkgs {
+		// Resolve caller-relative paths against the analyzed module.
+		pkgPath := cliPkg
+		if resolved, ok := a.packagePathMappings[cliPkg]; ok {
+			pkgPath = resolved
+		}
+		pkg := a.packages[pkgPath]
+		if pkg == nil {
+			return errors.Errorf("failed to analyze cli package %s", cliPkg)
+		}
+
+		// CLI builders require exactly one parameter, including any variadic tail.
+		constructor := pkg.CliCommands
+		if constructor == nil {
+			return errors.Errorf("cli package %s does not export NewCliCommands", pkgPath)
+		}
+		if !constructor.IsFunction {
+			return errors.Errorf("cli package %s NewCliCommands is not a function", pkgPath)
+		}
+		if constructor.Parameters != 1 {
+			return errors.Errorf("cli package %s NewCliCommands must take only getBus", pkgPath)
+		}
+	}
+	return nil
+}
+
+// ForEachFactory calls visit with each factory's import path, alias and bus requirement.
+// It stops at the first invalid factory signature without exposing package records.
+func (a *Analysis) ForEachFactory(visit func(pkgPath, alias string, passBus bool)) error {
+	for _, pkg := range a.packages {
+		// Ignore packages without a factory constructor.
+		if pkg.Factory == nil {
+			continue
+		}
+
+		// Resolve the call shape before emitting the factory import.
+		passBus, err := pkg.Factory.NeedsBus(pkg.Path)
+		if err != nil {
+			return err
+		}
+		visit(pkg.Path, pkg.Name, passBus)
+	}
+	return nil
 }
 
 // GetGoCodeFiles returns syntax for explicitly configured annotation roots.

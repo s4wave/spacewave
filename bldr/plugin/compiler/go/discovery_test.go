@@ -60,7 +60,7 @@ func TestDiscoveryConstructors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Resolve the analyzed package for this fixture.
-			pkg := an.GetPackages()["github.com/s4wave/spacewave/"+tc.name]
+			pkg := an.packages["github.com/s4wave/spacewave/"+tc.name]
 			if tc.absent {
 				if pkg.Factory != nil {
 					t.Fatal("method discovered as a package constructor")

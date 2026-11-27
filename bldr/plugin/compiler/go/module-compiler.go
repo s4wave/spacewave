@@ -117,9 +117,8 @@ func (m *ModuleCompiler) GenerateModule(
 	}
 
 	// Build the plugin main() code file.
-	gfile, err := CodegenPluginWrapperFromAnalysis(
+	gfile, err := analysis.CodegenPluginWrapper(
 		m.le,
-		analysis,
 		pluginMeta,
 		configSetBinFiles,
 		goVarDefs,

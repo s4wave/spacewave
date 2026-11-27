@@ -163,9 +163,8 @@ func TestCodegen(t *testing.T) {
 	testcases := []*testcase{
 		{
 			fn: func() (*ast.File, error) {
-				return CodegenPluginWrapperFromAnalysis(
+				return an.CodegenPluginWrapper(
 					le,
-					an,
 					pluginMeta,
 					[]string{"config-set.bin"},
 					goVarDefs,
@@ -176,9 +175,8 @@ func TestCodegen(t *testing.T) {
 		},
 		{
 			fn: func() (*ast.File, error) {
-				return CodegenPluginWrapperFromAnalysis(
+				return an.CodegenPluginWrapper(
 					le,
-					an,
 					pluginMeta,
 					[]string{"config-set.bin"},
 					goVarDefs,
@@ -225,9 +223,8 @@ func TestCodegen(t *testing.T) {
 
 	// Generate the release wrapper for the JavaScript platform.
 	releaseMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "js", "release")
-	genFile, err := CodegenPluginWrapperFromAnalysis(
+	genFile, err := an.CodegenPluginWrapper(
 		le,
-		an,
 		releaseMeta,
 		[]string{"config-set.bin"},
 		goVarDefs,
