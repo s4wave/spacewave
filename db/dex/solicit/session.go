@@ -78,22 +78,6 @@ type queuedSend struct {
 	done chan error
 }
 
-// countedStream counts each read's bytes in the session's received count,
-// which the session's delivery rate and the progress of each read pending on
-// it measure.
-type countedStream struct {
-	io.ReadWriteCloser
-	// received is the session's count.
-	received *atomic.Uint64
-}
-
-// Read reads from the stream and counts the bytes read.
-func (s countedStream) Read(p []byte) (int, error) {
-	n, err := s.ReadWriteCloser.Read(p)
-	s.received.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
-	return n, err
-}
-
 // errPeerClosedStream reports a session whose peer closed the stream.
 var errPeerClosedStream = errors.New("the peer closed the stream")
 
@@ -166,7 +150,7 @@ func newPeerSession(
 		pending:  make(map[uint32]*pendingRequest),
 		handling: make(map[uint32]*handledRequest),
 	}
-	s.sess = stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), received: &s.rate.received}, maxMessageSize)
+	s.sess = stream_packet.NewSession(s.rate.countStream(ms.GetStream()), maxMessageSize)
 	s.runRoutine = routine.NewRoutineContainer()
 	_, _ = s.runRoutine.SetRoutine(func(ctx context.Context) error {
 		s.run(ctx)
@@ -1023,8 +1007,7 @@ func (s *peerSession) openRequest(ctx context.Context, req *DexMessage, limit in
 	// pending.
 	var endProgress func()
 	if rp := getReadProgress(ctx); rp != nil {
-		end := rp.begin(&s.rate.received)
-		endProgress = func() { rp.end(end) }
+		endProgress = s.rate.beginProgress(rp)
 	}
 
 	// Unregister the request, and cancel it at the peer while open. The

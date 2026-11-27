@@ -1,6 +1,7 @@
 package dex_solicit
 
 import (
+	"io"
 	"math"
 	"sync/atomic"
 	"time"
@@ -38,6 +39,19 @@ type deliveryRate struct {
 	start time.Time
 	// startBytes is received at start. Guarded by the session's mtx.
 	startBytes uint64
+}
+
+// countStream wraps stream so every read contributes to delivery samples and
+// the progress of requests pending on this session.
+func (r *deliveryRate) countStream(stream io.ReadWriteCloser) io.ReadWriteCloser {
+	return countedStream{ReadWriteCloser: stream, received: &r.received}
+}
+
+// beginProgress counts bytes toward p from this point until the returned
+// function ends the request's window.
+func (r *deliveryRate) beginProgress(p *readProgress) func() {
+	w := p.begin(&r.received)
+	return func() { p.end(w) }
 }
 
 // begin starts a sample unless one runs, when a request goes outstanding.

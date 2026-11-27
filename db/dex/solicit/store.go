@@ -2,7 +2,6 @@ package dex_solicit
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -91,7 +90,7 @@ func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock fans the request out to the controller's peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	found, err := s.fetch(ctx, ref, true, nil)
+	found, err := s.controller.fetchBlock(ctx, ref, true, nil)
 	if found == nil || err != nil {
 		return nil, false, err
 	}
@@ -103,7 +102,7 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 // Under WithLinkedAnswers, a linked answer returns the refs, marked Linked,
 // with no data.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	found, err := s.fetch(ctx, ref, true, linkedAnswers(ctx))
+	found, err := s.controller.fetchBlock(ctx, ref, true, linkedAnswers(ctx))
 	if found == nil || err != nil {
 		return nil, err
 	}
@@ -117,52 +116,6 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}, nil
 }
 
-// fetch requests a block from the settled peer sessions, first waiting for a
-// peer session when wantPeer is set and ctx allows waiting. Returns nil when
-// every peer answered that it does not have the block, and an error when the
-// exchange failed or no peer was there to ask, which wraps ErrNoPeerSession.
-// linked admits the peers that may answer linked (peerBlockFanout).
-func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool, linked func(peer.ID) bool) (*DexMessage, error) {
-	// Settle the peer sessions, waiting for one only when ctx allows it.
-	peerWait := block.GetPeerWait(ctx)
-	skipWait := wantPeer && peerWait != nil
-	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrNoPeerSession, err)
-	}
-	if skipWait && len(sessions) == 0 {
-		// A peer whose session just ended is expected back within seconds,
-		// so wait for its recovery rather than report the block unavailable.
-		sessions, err = s.controller.waitRecovery(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrNoPeerSession, err)
-		}
-	}
-	if skipWait && len(sessions) == 0 {
-		peerWait.Skip(ref)
-		return nil, fmt.Errorf("%w: %w to ask for block %s", block.ErrUnavailable, ErrNoPeerSession, ref.MarshalString())
-	}
-
-	// Ask the settled peer sessions for the block.
-	f := peerBlockFanout{sessions: sessions, ref: ref, hops: s.controller.cc.GetMaxForwardHops(), linked: linked}
-	found, _, err := s.controller.askPeers(ctx, f, nil)
-	if err != nil {
-		if p := getReadProgress(ctx); p != nil && peerRefused(err) {
-			p.refuse()
-		}
-		return nil, err
-	}
-
-	// Log a miss with the number of peers asked.
-	if found == nil {
-		s.controller.le.
-			WithField("session-count", len(sessions)).
-			WithField("ref", ref.String()).
-			Debug("dex block unavailable")
-	}
-	return found, nil
-}
-
 // HasPeerSession reports whether a peer session is open now, so a read that
 // must not wait for a peer can skip asking when none is.
 func (s *Store) HasPeerSession() bool {
@@ -172,7 +125,7 @@ func (s *Store) HasPeerSession() bool {
 // GetBlockExists checks whether any connected peer has the block. It does not
 // wait for a peer to connect.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	found, err := s.fetch(ctx, ref, false, nil)
+	found, err := s.controller.fetchBlock(ctx, ref, false, nil)
 	return found != nil, err
 }
 
