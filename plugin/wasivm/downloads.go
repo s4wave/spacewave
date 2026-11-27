@@ -78,12 +78,15 @@ type vmDownloads struct {
 // WatchDownloads streams the downloads of the running VM's root filesystem
 // until the run ends or the viewer leaves.
 func (v *vmDownloads) WatchDownloads(_ *s4wave_vm.WatchWasiVmDownloadsRequest, strm s4wave_vm.SRPCWasiVmDownloadService_WatchDownloadsStream) error {
+	// Wait for the VM to run.
 	ctx := strm.Context()
 	c, err := v.consoles.wait(ctx, v.objectKey)
 	if err != nil {
 		return err
 	}
-	return c.downloads.watch(ctx, strm.Send)
+
+	// Stream the running console's root filesystem downloads.
+	return c.watchDownloads(ctx, strm.Send)
 }
 
 // _ is a type assertion

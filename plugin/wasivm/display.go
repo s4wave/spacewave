@@ -2,11 +2,9 @@ package wasivm_plugin
 
 import (
 	"context"
-	"image"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/plugin/wasivm/display"
-	"github.com/s4wave/spacewave/plugin/wasivm/wayland"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
@@ -67,15 +65,8 @@ func (v *vmDisplay) WatchWindows(_ *s4wave_vm.WatchWasiVmWindowsRequest, strm s4
 		return err
 	}
 
-	// Stream its compositor's windows, or none.
-	if c.wayland == nil {
-		if err := strm.Send(&s4wave_vm.WasiVmWindowList{}); err != nil {
-			return err
-		}
-		<-ctx.Done()
-		return context.Cause(ctx)
-	}
-	return c.wayland.WatchWindows(ctx, strm.Send)
+	// Stream the running console's windows.
+	return c.watchWindows(ctx, strm.Send)
 }
 
 // Window pops one window of the running VM's Wayland display out to the
@@ -101,42 +92,7 @@ func (v *vmDisplay) Window(strm s4wave_vm.SRPCWasiVmDisplayService_WindowStream)
 	if err != nil {
 		return err
 	}
-	if c.wayland == nil {
-		return nil
-	}
-	win, err := c.wayland.OpenWindow(open.GetId(), windowSize(open.GetSize()))
-	if errors.Is(err, wayland.ErrWindowClosed) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	defer win.Close()
-
-	// Stream it, applying each resize as it comes.
-	recv := func() (*s4wave_vm.WasiVmDisplayInput, error) {
-		for {
-			in, err := strm.Recv()
-			if err != nil {
-				return nil, err
-			}
-			if size := in.GetResize(); size != nil {
-				win.Resize(windowSize(size))
-			} else if in := in.GetInput(); in != nil {
-				return in, nil
-			}
-		}
-	}
-	err = serveScreen(ctx, strm.Send, recv, win)
-	if errors.Is(err, wayland.ErrWindowClosed) {
-		return nil
-	}
-	return err
-}
-
-// windowSize returns a viewer's window size as a point.
-func windowSize(s *s4wave_vm.WasiVmWindowSize) image.Point {
-	return image.Pt(int(s.GetWidth()), int(s.GetHeight()))
+	return c.serveWindow(open, strm)
 }
 
 // framesAhead is how many scene updates the viewer may have been sent but

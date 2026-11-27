@@ -2,9 +2,11 @@ package wasivm_plugin
 
 import (
 	"context"
+	"image"
 	"io"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/plugin/wasivm/kernel"
 	"github.com/s4wave/spacewave/plugin/wasivm/wayland"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -58,6 +60,66 @@ func (c *console) Write(p []byte) (int, error) {
 		broadcast()
 	})
 	return len(p), nil
+}
+
+// watchDownloads streams the run's root filesystem downloads until ctx ends.
+func (c *console) watchDownloads(ctx context.Context, send func(*s4wave_vm.WasiVmDownloads) error) error {
+	return c.downloads.watch(ctx, send)
+}
+
+// watchWindows streams the run's windows, or an empty list when Wayland is unavailable.
+func (c *console) watchWindows(ctx context.Context, send func(*s4wave_vm.WasiVmWindowList) error) error {
+	// Stream the compositor's windows, or wait after sending an empty list.
+	if c.wayland == nil {
+		if err := send(&s4wave_vm.WasiVmWindowList{}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return context.Cause(ctx)
+	}
+	return c.wayland.WatchWindows(ctx, send)
+}
+
+// serveWindow serves one window at the viewer's size until it closes or the viewer leaves.
+func (c *console) serveWindow(open *s4wave_vm.WasiVmWindowOpen, strm s4wave_vm.SRPCWasiVmDisplayService_WindowStream) error {
+	// Open the requested window, retaining its desktop attachment until the viewer leaves.
+	ctx := strm.Context()
+	if c.wayland == nil {
+		return nil
+	}
+	win, err := c.wayland.OpenWindow(open.GetId(), windowSize(open.GetSize()))
+	if errors.Is(err, wayland.ErrWindowClosed) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer win.Close()
+
+	// Stream it, applying each resize as it comes.
+	recv := func() (*s4wave_vm.WasiVmDisplayInput, error) {
+		for {
+			in, err := strm.Recv()
+			if err != nil {
+				return nil, err
+			}
+			if size := in.GetResize(); size != nil {
+				win.Resize(windowSize(size))
+			} else if in := in.GetInput(); in != nil {
+				return in, nil
+			}
+		}
+	}
+	err = serveScreen(ctx, strm.Send, recv, win)
+	if errors.Is(err, wayland.ErrWindowClosed) {
+		return nil
+	}
+	return err
+}
+
+// windowSize returns a viewer's window size as a point.
+func windowSize(s *s4wave_vm.WasiVmWindowSize) image.Point {
+	return image.Pt(int(s.GetWidth()), int(s.GetHeight()))
 }
 
 // exit records how the run ended and tells the attached viewers.
