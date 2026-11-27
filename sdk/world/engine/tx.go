@@ -20,7 +20,7 @@ type SDKTx struct {
 
 // NewSDKTx creates a new SDKTx wrapping a resource reference.
 // The reference must point to a TxResource on the server.
-func NewSDKTx(client ResourceClient, ref resource_client.ResourceRef, readOnly bool) (*SDKTx, error) {
+func NewSDKTx(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, readOnly bool) (*SDKTx, error) {
 	// Wrap the transaction resource as a World state with its read-only setting.
 	ws, err := NewSDKWorldState(client, ref, readOnly)
 	if err != nil {

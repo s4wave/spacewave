@@ -34,7 +34,7 @@ import (
 // setupSDKEngine creates a testbed, resource client, and SDKEngine for testing.
 func setupSDKEngine(ctx context.Context, t *testing.T) (*sdk_world_engine.SDKEngine, func()) {
 	t.Helper()
-	return setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) sdk_world_engine.ResourceClient {
+	return setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) resource_client.ReferenceCreator {
 		return client
 	})
 }
@@ -42,7 +42,7 @@ func setupSDKEngine(ctx context.Context, t *testing.T) (*sdk_world_engine.SDKEng
 func setupSDKEngineWithResourceClient(
 	ctx context.Context,
 	t *testing.T,
-	wrapClient func(*resource_client.Client) sdk_world_engine.ResourceClient,
+	wrapClient func(*resource_client.Client) resource_client.ReferenceCreator,
 ) (*sdk_world_engine.SDKEngine, func()) {
 	// Build the resource testbed and prepare its root client.
 	t.Helper()
@@ -109,7 +109,7 @@ func TestSDKEngine_NewTransaction(t *testing.T) {
 func TestSDKEngine_DiscardReleasesWriteTransaction(t *testing.T) {
 	// Start an engine whose client drops transaction references on release.
 	ctx := context.Background()
-	engine, cleanup := setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) sdk_world_engine.ResourceClient {
+	engine, cleanup := setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) resource_client.ReferenceCreator {
 		return releaseDroppingClient{client: client}
 	})
 	defer cleanup()
@@ -146,7 +146,7 @@ func TestSDKEngine_DiscardReleasesWriteTransaction(t *testing.T) {
 }
 
 type releaseDroppingClient struct {
-	client sdk_world_engine.ResourceClient
+	client resource_client.ReferenceCreator
 }
 
 func (c releaseDroppingClient) CreateResourceReference(resourceID uint32) resource_client.ResourceRef {

@@ -17,7 +17,7 @@ import (
 // ObjectStateResourceService calls on a remote resource.
 type SDKObjectState struct {
 	// client creates references to resources returned by the service.
-	client ResourceClient
+	client resource_client.ReferenceCreator
 	// ref retains the remote object state.
 	ref resource_client.ResourceRef
 	// service accesses the remote object state.
@@ -29,7 +29,7 @@ type SDKObjectState struct {
 }
 
 // NewSDKObjectState wraps an object resource with its containing World's read-only mode.
-func NewSDKObjectState(client ResourceClient, ref resource_client.ResourceRef, objectKey string, readOnly bool) (*SDKObjectState, error) {
+func NewSDKObjectState(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, objectKey string, readOnly bool) (*SDKObjectState, error) {
 	// Acquire the remote object state client.
 	srpcClient, err := ref.GetClient()
 	if err != nil {

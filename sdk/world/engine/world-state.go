@@ -19,7 +19,7 @@ import (
 // WorldStateResourceService calls on a remote resource.
 type SDKWorldState struct {
 	// client creates references to resources returned by the service.
-	client ResourceClient
+	client resource_client.ReferenceCreator
 	// ref retains the remote World state.
 	ref resource_client.ResourceRef
 	// service accesses the remote World state.
@@ -29,7 +29,7 @@ type SDKWorldState struct {
 }
 
 // NewSDKWorldState creates a new SDKWorldState wrapping a resource reference.
-func NewSDKWorldState(client ResourceClient, ref resource_client.ResourceRef, readOnly bool) (*SDKWorldState, error) {
+func NewSDKWorldState(client resource_client.ReferenceCreator, ref resource_client.ResourceRef, readOnly bool) (*SDKWorldState, error) {
 	// Acquire the remote World state client.
 	srpcClient, err := ref.GetClient()
 	if err != nil {

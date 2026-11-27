@@ -15,12 +15,6 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
-// ResourceClient creates references for resource IDs returned by RPCs.
-type ResourceClient interface {
-	// CreateResourceReference acquires a reference the caller must release.
-	CreateResourceReference(resourceID uint32) resource_client.ResourceRef
-}
-
 // NewCursor wraps a bucket lookup cursor resource reference in a local
 // bucket_lookup.Cursor backed by RPC calls to the cursor resource.
 // The returned cursor releases the reference when released.
@@ -73,7 +67,7 @@ func NewCursor(
 // cursor, and releases the reference after cb returns.
 func AccessCursor(
 	ctx context.Context,
-	client ResourceClient,
+	client resource_client.ReferenceCreator,
 	resourceID uint32,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {

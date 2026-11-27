@@ -100,6 +100,6 @@ func (r *attachedResourceRef) ReleaseReason() resource_client.ResourceReleaseRea
 	return resource_client.ResourceLive
 }
 
-var _ ResourceClient = (*AttachedResourceClient)(nil)
+var _ resource_client.ReferenceCreator = (*AttachedResourceClient)(nil)
 
 var _ resource_client.ResourceRef = (*attachedResourceRef)(nil)

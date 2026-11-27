@@ -248,7 +248,7 @@ func TestAptImportDebWrapsCommitError(t *testing.T) {
 	// Create a repository whose commit fails after the package is staged.
 	ctx := t.Context()
 	failure := &aptCommitFailureClient{err: errors.New("storage commit failed")}
-	engine := setupAptSDKEngineWithClient(t, ctx, func(client *resource_client.Client) sdk_engine.ResourceClient {
+	engine := setupAptSDKEngineWithClient(t, ctx, func(client *resource_client.Client) resource_client.ReferenceCreator {
 		failure.client = client
 		return failure
 	})
@@ -305,7 +305,7 @@ func runAptCLI(t *testing.T, args ...string) error {
 func setupAptSDKEngine(t *testing.T, ctx context.Context) *sdk_engine.SDKEngine {
 	t.Helper()
 
-	return setupAptSDKEngineWithClient(t, ctx, func(client *resource_client.Client) sdk_engine.ResourceClient {
+	return setupAptSDKEngineWithClient(t, ctx, func(client *resource_client.Client) resource_client.ReferenceCreator {
 		return client
 	})
 }
@@ -313,7 +313,7 @@ func setupAptSDKEngine(t *testing.T, ctx context.Context) *sdk_engine.SDKEngine 
 func setupAptSDKEngineWithClient(
 	t *testing.T,
 	ctx context.Context,
-	wrap func(*resource_client.Client) sdk_engine.ResourceClient,
+	wrap func(*resource_client.Client) resource_client.ReferenceCreator,
 ) *sdk_engine.SDKEngine {
 	// Mark the helper.
 	t.Helper()

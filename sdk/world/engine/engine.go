@@ -20,7 +20,7 @@ import (
 // SDKEngine implements world.Engine over SRPC by delegating to
 // EngineResourceService calls on a remote resource.
 type SDKEngine struct {
-	client  ResourceClient
+	client  resource_client.ReferenceCreator
 	ref     resource_client.ResourceRef
 	service s4wave_world.SRPCEngineResourceServiceClient
 }
@@ -47,7 +47,7 @@ func (e *SDKEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error
 }
 
 // NewSDKEngine creates a new SDKEngine wrapping a resource reference.
-func NewSDKEngine(client ResourceClient, ref resource_client.ResourceRef) (*SDKEngine, error) {
+func NewSDKEngine(client resource_client.ReferenceCreator, ref resource_client.ResourceRef) (*SDKEngine, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (e *SDKEngine) GetEngineInfo(ctx context.Context) (*s4wave_world.GetEngineI
 }
 
 // TypedObject mounts the typed object and returns its owned reference and client.
-func (e *SDKEngine) TypedObject(ctx context.Context, res ResourceClient, objectKey string) (resource_client.ResourceRef, srpc.Client, error) {
+func (e *SDKEngine) TypedObject(ctx context.Context, res resource_client.ReferenceCreator, objectKey string) (resource_client.ResourceRef, srpc.Client, error) {
 	// Access the typed object through the engine client.
 	engineClient, err := e.ref.GetClient()
 	if err != nil {

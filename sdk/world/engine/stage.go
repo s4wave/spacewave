@@ -23,7 +23,7 @@ func (e *SDKEngine) StageWorldState(ctx context.Context) (world.WorldStage, erro
 }
 
 // newSDKStage wraps a stage resource, releasing it if construction fails.
-func newSDKStage(client ResourceClient, resourceID uint32) (*sdkStage, error) {
+func newSDKStage(client resource_client.ReferenceCreator, resourceID uint32) (*sdkStage, error) {
 	// Acquire the remote stage resource and its client.
 	ref := client.CreateResourceReference(resourceID)
 	srpcClient, err := ref.GetClient()
@@ -43,7 +43,7 @@ func newSDKStage(client ResourceClient, resourceID uint32) (*sdkStage, error) {
 // sdkStage implements world.WorldStage over a remote stage resource.
 type sdkStage struct {
 	// client creates references to resources returned by the stage.
-	client ResourceClient
+	client resource_client.ReferenceCreator
 	// ref retains the remote stage.
 	ref resource_client.ResourceRef
 	// service accesses the remote stage.
