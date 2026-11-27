@@ -232,7 +232,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/session": {
-          "hash": "f1ab692179fce0fbbab25df70829dae885b05b0e558f6bb11a9d23451f12142f",
+          "hash": "426e4e12a1cbec7a9017269649f10857b84c0bcea03329df59660d742cae747a",
           "generatedFiles": [
             "sdk/session/session_pb2.py",
             "sdk/session/session_pb2.pyi",
@@ -4851,7 +4851,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/session": {
-          "hash": "16ff8c8148cc5f34194f43d68f247bfb35abdc03e42810dabd902b9ec2ce541b",
+          "hash": "30ba1b4f8bacde410cdaace7df0c7fa4df477c73d160dd03f97209439b5d577a",
           "generatedFiles": [
             "sdk/session/local-session.pb.go",
             "sdk/session/local-session.pb.ts",

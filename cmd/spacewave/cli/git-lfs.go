@@ -330,10 +330,12 @@ func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error 
 		if err != nil {
 			return errors.Wrap(err, "recv sync status")
 		}
-		if uploadErr := status.GetUploadError(); uploadErr != "" {
+		cloud := status.GetCloud()
+		transfer := cloud.GetTransfer()
+		if uploadErr := cloud.GetUploadError(); uploadErr != "" {
 			return errors.Errorf("upload failed: %s", uploadErr)
 		}
-		if status.GetPendingUploadCount() == 0 && status.GetPendingUploadBytes() == 0 && status.GetInFlightUploadCount() == 0 {
+		if transfer.GetPendingUploadCount() == 0 && transfer.GetPendingUploadBytes() == 0 && transfer.GetInFlightUploadCount() == 0 {
 			if reported {
 				os.Stderr.WriteString("spacewave: synced\n")
 			}
@@ -343,8 +345,8 @@ func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error 
 		// Report the remaining upload backlog.
 		os.Stderr.WriteString(
 			"spacewave: syncing " +
-				strconv.FormatUint(uint64(status.GetPendingUploadCount()), 10) + " items, " +
-				formatSize(status.GetPendingUploadBytes()) + " pending\n",
+				strconv.FormatUint(uint64(transfer.GetPendingUploadCount()), 10) + " items, " +
+				formatSize(transfer.GetPendingUploadBytes()) + " pending\n",
 		)
 		reported = true
 	}

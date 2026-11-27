@@ -119,30 +119,39 @@ func activityRowFromSyncStatus(
 	sessionLabel string,
 	status *s4wave_session.WatchSyncStatusResponse,
 ) *activitypolicy.Row {
+	// Select the transfer source; peer failures never replace cloud progress.
+	transfer := status.GetCloud().GetTransfer()
+	lastError := transfer.GetLastError()
+	if status.GetAccess() == s4wave_session.SyncAccountAccessState_SyncAccountAccessState_LOCAL {
+		transfer = status.GetPeer().GetTransfer()
+		lastError = status.GetPeer().GetLastError()
+	}
+
 	// Copy session identity and transfer counts into the activity row.
 	row := &activitypolicy.Row{
 		SessionIndex:         sessionIndex,
 		SessionLabel:         sessionLabel,
-		PendingUploadCount:   uint64(status.GetPendingUploadCount()),
-		PendingDownloadCount: uint64(status.GetPendingDownloadCount()),
-		InFlightUploadCount:  uint64(status.GetInFlightUploadCount()),
-		LastError:            status.GetLastError(),
+		PendingUploadCount:   uint64(transfer.GetPendingUploadCount()),
+		PendingDownloadCount: uint64(transfer.GetPendingDownloadCount()),
+		InFlightUploadCount:  uint64(transfer.GetInFlightUploadCount()),
+		LastError:            lastError,
 	}
 
 	// Translate the session sync state into an activity policy state.
-	switch status.GetState() {
+	switch transfer.GetState() {
 	case s4wave_session.SyncStatusState_SyncStatusState_ERROR:
 		row.State = activitypolicy.SyncStateError
 	case s4wave_session.SyncStatusState_SyncStatusState_ACTIVE:
 		row.State = activitypolicy.SyncStateActive
-	case s4wave_session.SyncStatusState_SyncStatusState_SYNCED:
+	case s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
+		s4wave_session.SyncStatusState_SyncStatusState_UNKNOWN:
 		row.State = activitypolicy.SyncStateSynced
 	default:
 		row.State = activitypolicy.SyncStateIdle
 	}
 
 	// Translate the session transfer direction into an activity policy direction.
-	switch status.GetDirection() {
+	switch transfer.GetDirection() {
 	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD:
 		row.Direction = activitypolicy.SyncDirectionUpload
 	case s4wave_session.SyncActivityDirection_SyncActivityDirection_DOWNLOAD:
@@ -154,7 +163,7 @@ func activityRowFromSyncStatus(
 	}
 
 	// Retain the last activity time when the sync snapshot supplies one.
-	ts := status.GetLastActivityAt()
+	ts := transfer.GetLastActivityAt()
 	if ts != nil && !ts.GetEmpty() {
 		row.LastActivityAtUnixMs = ts.AsTime().UnixMilli()
 		row.HasLastActivityAtTime = true
@@ -218,13 +227,8 @@ func snapshotSpacewaveSessionAccountProjection(
 	acc *provider_spacewave.ProviderAccount,
 ) (sessionAccountProjection, []<-chan struct{}) {
 	// Read the account status under the account broadcast lock.
-	proj := sessionAccountProjection{}
-	acc.GetAccountBroadcast().HoldLock(func(
-		_ func(),
-		_ func() <-chan struct{},
-	) {
-		proj.status = acc.GetAccountStatus()
-	})
+	status, accountCh := acc.SnapshotAccountStatus()
+	proj := sessionAccountProjection{status: status}
 
 	// Read the self-enrollment snapshot with its source watches.
 	selfEnrollment, watch := acc.WatchSelfEnrollmentProjection()
@@ -237,7 +241,7 @@ func snapshotSpacewaveSessionAccountProjection(
 			waitChs = append(waitChs, ch)
 		}
 	}
-	appendWaitCh(watch.AccountCh)
+	appendWaitCh(accountCh)
 	appendWaitCh(watch.RunCh)
 	appendWaitCh(watch.EntityKeyCh)
 	return proj, waitChs

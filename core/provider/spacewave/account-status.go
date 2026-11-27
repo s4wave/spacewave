@@ -29,3 +29,15 @@ func (a *ProviderAccount) canSelfEnrollCloudObjects() bool {
 	})
 	return accountstatus.CanSelfEnrollCloudObjects(status, state)
 }
+
+// SnapshotAccountStatus reads access and its next notification atomically, so
+// a projection need not borrow the account's broadcast lock.
+func (a *ProviderAccount) SnapshotAccountStatus() (provider.ProviderAccountStatus, <-chan struct{}) {
+	var status provider.ProviderAccountStatus
+	var wait <-chan struct{}
+	a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		status = a.state.status
+		wait = getWaitCh()
+	})
+	return status, wait
+}

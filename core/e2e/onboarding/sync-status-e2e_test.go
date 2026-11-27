@@ -161,9 +161,9 @@ func TestCloudSyncStatusUploadLifecycle(t *testing.T) {
 
 	// The status reports the upload, then settles to synced again.
 	uploading := recvSyncStatusUntil(t, strm.msgs, func(resp *s4wave_session.WatchSyncStatusResponse) bool {
-		return resp.GetState() == s4wave_session.SyncStatusState_SyncStatusState_ACTIVE &&
-			resp.GetDirection() == s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD &&
-			resp.GetPendingUploadBytes() > 0
+		return resp.GetCloud().GetTransfer().GetState() == s4wave_session.SyncStatusState_SyncStatusState_ACTIVE &&
+			resp.GetCloud().GetTransfer().GetDirection() == s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD &&
+			resp.GetCloud().GetTransfer().GetPendingUploadBytes() > 0
 	})
 	waitSyncStatusSynced(ctx, t, strm.msgs, swAcc, uploading)
 }
@@ -183,14 +183,14 @@ func waitSyncStatusSynced(
 	t.Helper()
 	deadline := time.After(20 * time.Second)
 	for {
-		if last.GetState() == s4wave_session.SyncStatusState_SyncStatusState_SYNCED &&
-			last.GetDirection() == s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE &&
-			last.GetPendingUploadBytes() == 0 &&
-			last.GetLastError() == "" {
+		if last.GetCloud().GetTransfer().GetState() == s4wave_session.SyncStatusState_SyncStatusState_SYNCED &&
+			last.GetCloud().GetTransfer().GetDirection() == s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE &&
+			last.GetCloud().GetTransfer().GetPendingUploadBytes() == 0 &&
+			last.GetCloud().GetTransfer().GetLastError() == "" {
 			return
 		}
-		if last.GetPendingUploadCount() != 0 {
-			for _, store := range last.GetBlockStores() {
+		if last.GetCloud().GetTransfer().GetPendingUploadCount() != 0 {
+			for _, store := range last.GetCloud().GetBlockStores() {
 				forceSyncBlockStore(ctx, t, acc, store.GetBlockStoreId())
 			}
 		}

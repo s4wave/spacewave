@@ -260,14 +260,36 @@ message WatchSyncStatusRequest {}
 // WatchStorageStatsRequest is the request type for WatchStorageStats.
 message WatchStorageStatsRequest {}
 
-// SyncStatusState describes the aggregate session sync state.
+// SyncStatusState describes one source's transfer progress.
 enum SyncStatusState {
+  // SyncStatusState_UNKNOWN means the source has not reported progress.
+  SyncStatusState_UNKNOWN = 0;
   // SyncStatusState_SYNCED means no sync work or sync error is known.
-  SyncStatusState_SYNCED = 0;
+  SyncStatusState_SYNCED = 1;
   // SyncStatusState_ACTIVE means upload or download sync work is active.
-  SyncStatusState_ACTIVE = 1;
+  SyncStatusState_ACTIVE = 2;
   // SyncStatusState_ERROR means sync is blocked by the last recorded error.
-  SyncStatusState_ERROR = 2;
+  SyncStatusState_ERROR = 3;
+}
+
+// SyncAccountAccessState reports account access independently of transfers.
+enum SyncAccountAccessState {
+  // SyncAccountAccessState_UNKNOWN has not reported access.
+  SyncAccountAccessState_UNKNOWN = 0;
+  // SyncAccountAccessState_LOCAL uses a local account without cloud access.
+  SyncAccountAccessState_LOCAL = 1;
+  // SyncAccountAccessState_READY can access the cloud account.
+  SyncAccountAccessState_READY = 2;
+  // SyncAccountAccessState_PENDING is opening the cloud account.
+  SyncAccountAccessState_PENDING = 3;
+  // SyncAccountAccessState_DORMANT is idle with cloud access retained.
+  SyncAccountAccessState_DORMANT = 4;
+  // SyncAccountAccessState_FAILED could not open the cloud account.
+  SyncAccountAccessState_FAILED = 5;
+  // SyncAccountAccessState_DELETED refers to a deleted cloud account.
+  SyncAccountAccessState_DELETED = 6;
+  // SyncAccountAccessState_UNAUTHENTICATED requires account authentication.
+  SyncAccountAccessState_UNAUTHENTICATED = 7;
 }
 
 // SyncUploadHold identifies the account limit that holds cloud uploads.
@@ -293,17 +315,17 @@ enum SyncActivityDirection {
   SyncActivityDirection_UPLOAD_DOWNLOAD = 3;
 }
 
-// SyncTransportState describes cloud transport availability for the session.
+// SyncTransportState describes local peer network availability.
 enum SyncTransportState {
-  // SyncTransportState_UNKNOWN means transport availability has not been reported.
+  // SyncTransportState_UNKNOWN means peer network availability has not been reported.
   SyncTransportState_UNKNOWN = 0;
-  // SyncTransportState_UNAVAILABLE means no cloud transport is configured.
+  // SyncTransportState_UNAVAILABLE means the local peer network is not running.
   SyncTransportState_UNAVAILABLE = 1;
-  // SyncTransportState_CONNECTING means cloud transport is connecting.
+  // SyncTransportState_CONNECTING means the local peer network is connecting.
   SyncTransportState_CONNECTING = 2;
-  // SyncTransportState_ONLINE means cloud transport is online.
+  // SyncTransportState_ONLINE means the local peer network is online.
   SyncTransportState_ONLINE = 3;
-  // SyncTransportState_ERROR means cloud transport is in an error state.
+  // SyncTransportState_ERROR means the local peer network failed.
   SyncTransportState_ERROR = 4;
 }
 
@@ -377,136 +399,156 @@ message SyncHeldState {
   bool partial = 3;
 }
 
-// WatchSyncStatusResponse is the response type for WatchSyncStatus.
+// WatchSyncStatusResponse keeps independent source observations separate.
 message WatchSyncStatusResponse {
-  // State is the aggregate sync state.
+  // Cloud reports account-wide cloud work, absent for a local account.
+  SyncCloudProgress cloud = 1;
+  // Access reports account access, not socket or cloud transfer health.
+  SyncAccountAccessState access = 2;
+  // Peer reports direct work for this Session, independently of cloud work.
+  SyncPeerProgress peer = 3;
+}
+
+// SyncTransferProgress reports work and failures observed by one transfer source.
+message SyncTransferProgress {
+  // State is the source's transfer state.
   SyncStatusState state = 1;
   // Direction is the active transfer direction, when any.
   SyncActivityDirection direction = 2;
-  // TransportState is the cloud transport state.
-  SyncTransportState transport_state = 3;
-  // P2PState is the p2p lifecycle state.
-  SyncP2PState p2p_state = 4;
   // PendingUploadBytes is the approximate upload backlog in bytes.
-  uint64 pending_upload_bytes = 5;
+  uint64 pending_upload_bytes = 3;
   // PendingDownloadBytes is the approximate download backlog in bytes.
-  uint64 pending_download_bytes = 6;
+  uint64 pending_download_bytes = 4;
   // PendingUploadCount is the approximate number of pending upload items.
-  uint32 pending_upload_count = 7;
+  uint32 pending_upload_count = 5;
   // PendingDownloadCount is the approximate number of pending download items.
-  uint32 pending_download_count = 8;
+  uint32 pending_download_count = 6;
   // UploadBytesPerSecond is the approximate current upload rate.
-  uint64 upload_bytes_per_second = 9;
+  uint64 upload_bytes_per_second = 7;
   // DownloadBytesPerSecond is the approximate current download rate.
-  uint64 download_bytes_per_second = 10;
+  uint64 download_bytes_per_second = 8;
   // ActiveUploadBytes is the approximate byte size of upload work in flight.
-  uint64 active_upload_bytes = 52;
+  uint64 active_upload_bytes = 9;
   // ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
-  uint64 active_upload_transferred_bytes = 53;
+  uint64 active_upload_transferred_bytes = 10;
   // InFlightUploadCount is the number of active upload requests.
-  uint32 in_flight_upload_count = 54;
-  // ActiveStoreCount is the number of stores currently contributing activity.
-  uint32 active_store_count = 11;
-  // ActivePeerCount is the number of connected p2p peers.
-  uint32 active_peer_count = 12;
-  // LastError is the latest sync or transport error message, if any.
-  string last_error = 13;
+  uint32 in_flight_upload_count = 11;
+  // LastError is the latest transfer error message from this source, if any.
+  string last_error = 12;
   // LastActivityAt is the latest sync activity timestamp, if known.
-  google.protobuf.Timestamp last_activity_at = 14;
+  google.protobuf.Timestamp last_activity_at = 13;
+}
+
+// SyncCloudProgress reports cloud telemetry without direct peer failures.
+message SyncCloudProgress {
+  // Transfer reports account-wide cloud transfer progress.
+  SyncTransferProgress transfer = 1;
+  // ActiveStoreCount is the number of stores currently contributing activity.
+  uint32 active_store_count = 2;
   // PackRangeRequestCount is the number of completed packfile range requests.
-  uint64 pack_range_request_count = 15;
+  uint64 pack_range_request_count = 3;
   // PackRangeResponseBytes is the number of bytes returned by packfile range responses.
-  uint64 pack_range_response_bytes = 16;
+  uint64 pack_range_response_bytes = 4;
   // PackFullResponseFallbackCount is the number of range requests served by full responses.
-  uint64 pack_full_response_fallback_count = 17;
+  uint64 pack_full_response_fallback_count = 5;
   // PackFullResponseFallbackBytes is the number of discarded prefix bytes from full responses.
-  uint64 pack_full_response_fallback_bytes = 18;
+  uint64 pack_full_response_fallback_bytes = 6;
   // PackLastFullResponseFallbackBytes is the latest full-response prefix discard.
-  uint64 pack_last_full_response_fallback_bytes = 19;
+  uint64 pack_last_full_response_fallback_bytes = 7;
   // PackManifestEntries is the number of packfile manifest entries.
-  uint32 pack_manifest_entries = 20;
+  uint32 pack_manifest_entries = 8;
   // PackBlockCountTotal is the sum of manifest entry block counts.
-  uint64 pack_block_count_total = 21;
+  uint64 pack_block_count_total = 9;
   // PackBlockCountMin is the smallest manifest entry block count.
-  uint64 pack_block_count_min = 22;
+  uint64 pack_block_count_min = 10;
   // PackBlockCountMax is the largest manifest entry block count.
-  uint64 pack_block_count_max = 23;
+  uint64 pack_block_count_max = 11;
   // PackSizeBytesTotal is the sum of manifest entry pack sizes.
-  uint64 pack_size_bytes_total = 24;
+  uint64 pack_size_bytes_total = 12;
   // PackSizeBytesMin is the smallest manifest entry pack size.
-  uint64 pack_size_bytes_min = 25;
+  uint64 pack_size_bytes_min = 13;
   // PackSizeBytesMax is the largest manifest entry pack size.
-  uint64 pack_size_bytes_max = 26;
+  uint64 pack_size_bytes_max = 14;
   // PackBloomFilterCount is the number of entries with valid bloom metadata.
-  uint32 pack_bloom_filter_count = 27;
+  uint32 pack_bloom_filter_count = 15;
   // PackBloomMissingCount is the number of entries missing bloom metadata.
-  uint32 pack_bloom_missing_count = 28;
+  uint32 pack_bloom_missing_count = 16;
   // PackBloomInvalidCount is the number of entries with malformed bloom metadata.
-  uint32 pack_bloom_invalid_count = 29;
+  uint32 pack_bloom_invalid_count = 17;
   // PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
-  double pack_bloom_max_false_positive_rate = 31;
+  double pack_bloom_max_false_positive_rate = 18;
   // PackBloomRiskPackCount is the number of packs above the bloom false-positive target.
-  uint32 pack_bloom_risk_pack_count = 32;
+  uint32 pack_bloom_risk_pack_count = 19;
   // PackLookupCount is the number of pack lookups.
-  uint64 pack_lookup_count = 33;
+  uint64 pack_lookup_count = 20;
   // PackCandidatePacks is the total number of manifest candidates selected by lookups.
-  uint64 pack_candidate_packs = 34;
+  uint64 pack_candidate_packs = 21;
   // PackOpenedPacks is the total number of candidate packs opened by lookups.
-  uint64 pack_opened_packs = 35;
+  uint64 pack_opened_packs = 22;
   // PackNegativePacks is the total number of opened candidates that missed.
-  uint64 pack_negative_packs = 36;
+  uint64 pack_negative_packs = 23;
   // PackTargetHits is the total number of lookups that found the target block.
-  uint64 pack_target_hits = 37;
+  uint64 pack_target_hits = 24;
   // PackLastCandidatePacks is the candidate count from the latest lookup.
-  uint32 pack_last_candidate_packs = 38;
+  uint32 pack_last_candidate_packs = 25;
   // PackLastOpenedPacks is the opened pack count from the latest lookup.
-  uint32 pack_last_opened_packs = 39;
+  uint32 pack_last_opened_packs = 26;
   // PackLastNegativePacks is the negative pack count from the latest lookup.
-  uint32 pack_last_negative_packs = 40;
+  uint32 pack_last_negative_packs = 27;
   // PackLastTargetHit is true when the latest lookup found its target.
-  bool pack_last_target_hit = 41;
+  bool pack_last_target_hit = 28;
   // PackIndexCacheHits is the number of pack index cache hits.
-  uint64 pack_index_cache_hits = 42;
+  uint64 pack_index_cache_hits = 29;
   // PackIndexCacheMisses is the number of pack index cache misses.
-  uint64 pack_index_cache_misses = 43;
+  uint64 pack_index_cache_misses = 30;
   // PackIndexCacheReadErrors is the number of pack index cache read errors.
-  uint64 pack_index_cache_read_errors = 44;
+  uint64 pack_index_cache_read_errors = 31;
   // PackIndexCacheWriteErrors is the number of pack index cache write errors.
-  uint64 pack_index_cache_write_errors = 45;
+  uint64 pack_index_cache_write_errors = 32;
   // PackRemoteIndexLoads is the number of remote pack index loads.
-  uint64 pack_remote_index_loads = 46;
+  uint64 pack_remote_index_loads = 33;
   // PackRemoteIndexBytes is the number of remote pack index bytes fetched.
-  uint64 pack_remote_index_bytes = 47;
+  uint64 pack_remote_index_bytes = 34;
   // PackLastRemoteIndexBytes is the latest remote pack index load byte count.
-  uint64 pack_last_remote_index_bytes = 48;
+  uint64 pack_last_remote_index_bytes = 35;
   // PackIndexTailFetchCount is the number of completed index-tail range fetches.
-  uint64 pack_index_tail_fetch_count = 49;
+  uint64 pack_index_tail_fetch_count = 36;
   // PackIndexTailFetchBytes is the number of requested index-tail range bytes.
-  uint64 pack_index_tail_fetch_bytes = 50;
+  uint64 pack_index_tail_fetch_bytes = 37;
   // PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
-  uint64 pack_index_tail_response_bytes = 51;
-  // DirectP2PDisabled is the configured Session-local direct transport policy.
-  // The zero value preserves direct P2P for existing Sessions.
-  bool direct_p2p_disabled = 55;
+  uint64 pack_index_tail_response_bytes = 38;
   // BlockStores contains owner-observed mechanics keyed by mounted block store.
-  repeated SyncBlockStoreStatus block_stores = 56;
-  // LocalAccount selects account-replica status instead of cloud queues.
-  bool local_account = 57;
-  // LocalCopies reports durable availability for each accepted Space head.
-  repeated SyncLocalCopyStatus local_copies = 58;
-  // PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
-  uint64 peer_upload_bytes = 59;
-  uint64 peer_download_bytes = 60;
-  // Peers breaks the payload totals down by authenticated Session peer.
-  repeated SyncPeerTransferStatus peers = 61;
+  repeated SyncBlockStoreStatus block_stores = 39;
   // UploadError is the latest upload failure of a store whose uploads are
-  // still pending, empty while pending uploads succeed. Unlike LastError, it
+  // still pending, empty while pending uploads succeed. Unlike Transfer.LastError, it
   // ignores download and transport errors.
-  string upload_error = 62;
+  string upload_error = 40;
   // UploadHold identifies the account limit that refused the latest upload of a
   // store whose uploads are still pending. Those uploads wait, without
   // retrying, until the account state changes, as when the limit is raised.
-  SyncUploadHold upload_hold = 63;
+  SyncUploadHold upload_hold = 41;
+}
+
+// SyncPeerProgress reports direct transport and local replication for this Session.
+message SyncPeerProgress {
+  // State reports the direct peer path state.
+  SyncP2PState state = 1;
+  // LastError describes a direct path failure, independently of cloud work.
+  string last_error = 2;
+  // Transfer reports local-account replication traffic, absent for cloud accounts.
+  SyncTransferProgress transfer = 3;
+  // NetworkState reports local-account peer network readiness.
+  SyncTransportState network_state = 4;
+  // ActivePeerCount is the number of connected p2p peers.
+  uint32 active_peer_count = 5;
+  // LocalCopies reports durable availability for each accepted Space head.
+  repeated SyncLocalCopyStatus local_copies = 6;
+  // PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
+  uint64 peer_upload_bytes = 7;
+  // PeerDownloadBytes counts received block payload traffic.
+  uint64 peer_download_bytes = 8;
+  // Peers breaks the payload totals down by authenticated Session peer.
+  repeated SyncPeerTransferStatus peers = 9;
 }
 
 // SyncPeerTransferStatus reports one peer's traffic on the active transport.

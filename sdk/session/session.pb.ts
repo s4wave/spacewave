@@ -53,33 +53,100 @@ import {
 } from '../../db/block/store/s3/s3.pb.js'
 
 /**
- * SyncStatusState describes the aggregate session sync state.
+ * SyncStatusState describes one source's transfer progress.
  *
  * @generated from enum s4wave.session.SyncStatusState
  */
 export enum SyncStatusState {
   /**
+   * SyncStatusState_UNKNOWN means the source has not reported progress.
+   */
+  SyncStatusState_UNKNOWN = 0,
+
+  /**
    * SyncStatusState_SYNCED means no sync work or sync error is known.
    */
-  SyncStatusState_SYNCED = 0,
+  SyncStatusState_SYNCED = 1,
 
   /**
    * SyncStatusState_ACTIVE means upload or download sync work is active.
    */
-  SyncStatusState_ACTIVE = 1,
+  SyncStatusState_ACTIVE = 2,
 
   /**
    * SyncStatusState_ERROR means sync is blocked by the last recorded error.
    */
-  SyncStatusState_ERROR = 2,
+  SyncStatusState_ERROR = 3,
 }
 
 export const SyncStatusState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncStatusState',
   [
-    [0, 'SyncStatusState_SYNCED'],
-    [1, 'SyncStatusState_ACTIVE'],
-    [2, 'SyncStatusState_ERROR'],
+    [0, 'SyncStatusState_UNKNOWN'],
+    [1, 'SyncStatusState_SYNCED'],
+    [2, 'SyncStatusState_ACTIVE'],
+    [3, 'SyncStatusState_ERROR'],
+  ],
+)
+
+/**
+ * SyncAccountAccessState reports account access independently of transfers.
+ *
+ * @generated from enum s4wave.session.SyncAccountAccessState
+ */
+export enum SyncAccountAccessState {
+  /**
+   * SyncAccountAccessState_UNKNOWN has not reported access.
+   */
+  SyncAccountAccessState_UNKNOWN = 0,
+
+  /**
+   * SyncAccountAccessState_LOCAL uses a local account without cloud access.
+   */
+  SyncAccountAccessState_LOCAL = 1,
+
+  /**
+   * SyncAccountAccessState_READY can access the cloud account.
+   */
+  SyncAccountAccessState_READY = 2,
+
+  /**
+   * SyncAccountAccessState_PENDING is opening the cloud account.
+   */
+  SyncAccountAccessState_PENDING = 3,
+
+  /**
+   * SyncAccountAccessState_DORMANT is idle with cloud access retained.
+   */
+  SyncAccountAccessState_DORMANT = 4,
+
+  /**
+   * SyncAccountAccessState_FAILED could not open the cloud account.
+   */
+  SyncAccountAccessState_FAILED = 5,
+
+  /**
+   * SyncAccountAccessState_DELETED refers to a deleted cloud account.
+   */
+  SyncAccountAccessState_DELETED = 6,
+
+  /**
+   * SyncAccountAccessState_UNAUTHENTICATED requires account authentication.
+   */
+  SyncAccountAccessState_UNAUTHENTICATED = 7,
+}
+
+export const SyncAccountAccessState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.session.SyncAccountAccessState',
+  [
+    [0, 'SyncAccountAccessState_UNKNOWN'],
+    [1, 'SyncAccountAccessState_LOCAL'],
+    [2, 'SyncAccountAccessState_READY'],
+    [3, 'SyncAccountAccessState_PENDING'],
+    [4, 'SyncAccountAccessState_DORMANT'],
+    [5, 'SyncAccountAccessState_FAILED'],
+    [6, 'SyncAccountAccessState_DELETED'],
+    [7, 'SyncAccountAccessState_UNAUTHENTICATED'],
   ],
 )
 
@@ -153,33 +220,33 @@ export const SyncActivityDirection_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * SyncTransportState describes cloud transport availability for the session.
+ * SyncTransportState describes local peer network availability.
  *
  * @generated from enum s4wave.session.SyncTransportState
  */
 export enum SyncTransportState {
   /**
-   * SyncTransportState_UNKNOWN means transport availability has not been reported.
+   * SyncTransportState_UNKNOWN means peer network availability has not been reported.
    */
   SyncTransportState_UNKNOWN = 0,
 
   /**
-   * SyncTransportState_UNAVAILABLE means no cloud transport is configured.
+   * SyncTransportState_UNAVAILABLE means the local peer network is not running.
    */
   SyncTransportState_UNAVAILABLE = 1,
 
   /**
-   * SyncTransportState_CONNECTING means cloud transport is connecting.
+   * SyncTransportState_CONNECTING means the local peer network is connecting.
    */
   SyncTransportState_CONNECTING = 2,
 
   /**
-   * SyncTransportState_ONLINE means cloud transport is online.
+   * SyncTransportState_ONLINE means the local peer network is online.
    */
   SyncTransportState_ONLINE = 3,
 
   /**
-   * SyncTransportState_ERROR means cloud transport is in an error state.
+   * SyncTransportState_ERROR means the local peer network failed.
    */
   SyncTransportState_ERROR = 4,
 }
@@ -1039,27 +1106,49 @@ export const SyncHeldState: MessageType<SyncHeldState> =
   )
 
 /**
- * WatchSyncStatusResponse is the response type for WatchSyncStatus.
+ * WatchSyncStatusResponse keeps independent source observations separate.
  *
  * @generated from message s4wave.session.WatchSyncStatusResponse
  */
 export interface WatchSyncStatusResponse {
   /**
-   * State is the aggregate sync state.
+   * Cloud reports account-wide cloud work, absent for a local account.
+   */
+  cloud?: SyncCloudProgress
+  /**
+   * Access reports account access, not socket or cloud transfer health.
+   */
+  access?: SyncAccountAccessState
+  /**
+   * Peer reports direct work for this Session, independently of cloud work.
+   */
+  peer?: SyncPeerProgress
+}
+
+export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
+  /* @__PURE__ */ createMessageType<WatchSyncStatusResponse>(
+    's4wave.session.WatchSyncStatusResponse',
+    () => [
+      [1, 'cloud', 11, 0, SyncCloudProgress.codec],
+      [2, 'access', 14, 0, SyncAccountAccessState_Enum],
+      [3, 'peer', 11, 0, SyncPeerProgress.codec],
+    ],
+  )
+
+/**
+ * SyncTransferProgress reports work and failures observed by one transfer source.
+ *
+ * @generated from message s4wave.session.SyncTransferProgress
+ */
+export interface SyncTransferProgress {
+  /**
+   * State is the source's transfer state.
    */
   state?: SyncStatusState
   /**
    * Direction is the active transfer direction, when any.
    */
   direction?: SyncActivityDirection
-  /**
-   * TransportState is the cloud transport state.
-   */
-  transportState?: SyncTransportState
-  /**
-   * P2PState is the p2p lifecycle state.
-   */
-  p2pState?: SyncP2PState
   /**
    * PendingUploadBytes is the approximate upload backlog in bytes.
    */
@@ -1097,21 +1186,49 @@ export interface WatchSyncStatusResponse {
    */
   inFlightUploadCount?: number
   /**
-   * ActiveStoreCount is the number of stores currently contributing activity.
-   */
-  activeStoreCount?: number
-  /**
-   * ActivePeerCount is the number of connected p2p peers.
-   */
-  activePeerCount?: number
-  /**
-   * LastError is the latest sync or transport error message, if any.
+   * LastError is the latest transfer error message from this source, if any.
    */
   lastError?: string
   /**
    * LastActivityAt is the latest sync activity timestamp, if known.
    */
   lastActivityAt?: Date
+}
+
+export const SyncTransferProgress: MessageType<SyncTransferProgress> =
+  /* @__PURE__ */ createMessageType<SyncTransferProgress>(
+    's4wave.session.SyncTransferProgress',
+    () => [
+      [1, 'state', 14, 0, SyncStatusState_Enum],
+      [2, 'direction', 14, 0, SyncActivityDirection_Enum],
+      [3, 'pending_upload_bytes', 4],
+      [4, 'pending_download_bytes', 4],
+      [5, 'pending_upload_count', 13],
+      [6, 'pending_download_count', 13],
+      [7, 'upload_bytes_per_second', 4],
+      [8, 'download_bytes_per_second', 4],
+      [9, 'active_upload_bytes', 4],
+      [10, 'active_upload_transferred_bytes', 4],
+      [11, 'in_flight_upload_count', 13],
+      [12, 'last_error', 9],
+      [13, 'last_activity_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * SyncCloudProgress reports cloud telemetry without direct peer failures.
+ *
+ * @generated from message s4wave.session.SyncCloudProgress
+ */
+export interface SyncCloudProgress {
+  /**
+   * Transfer reports account-wide cloud transfer progress.
+   */
+  transfer?: SyncTransferProgress
+  /**
+   * ActiveStoreCount is the number of stores currently contributing activity.
+   */
+  activeStoreCount?: number
   /**
    * PackRangeRequestCount is the number of completed packfile range requests.
    */
@@ -1257,34 +1374,12 @@ export interface WatchSyncStatusResponse {
    */
   packIndexTailResponseBytes?: bigint
   /**
-   * DirectP2PDisabled is the configured Session-local direct transport policy.
-   * The zero value preserves direct P2P for existing Sessions.
-   */
-  directP2pDisabled?: boolean
-  /**
    * BlockStores contains owner-observed mechanics keyed by mounted block store.
    */
   blockStores?: SyncBlockStoreStatus[]
   /**
-   * LocalAccount selects account-replica status instead of cloud queues.
-   */
-  localAccount?: boolean
-  /**
-   * LocalCopies reports durable availability for each accepted Space head.
-   */
-  localCopies?: SyncLocalCopyStatus[]
-  /**
-   * PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
-   */
-  peerUploadBytes?: bigint
-  peerDownloadBytes?: bigint
-  /**
-   * Peers breaks the payload totals down by authenticated Session peer.
-   */
-  peers?: SyncPeerTransferStatus[]
-  /**
    * UploadError is the latest upload failure of a store whose uploads are
-   * still pending, empty while pending uploads succeed. Unlike LastError, it
+   * still pending, empty while pending uploads succeed. Unlike Transfer.LastError, it
    * ignores download and transport errors.
    */
   uploadError?: string
@@ -1296,72 +1391,111 @@ export interface WatchSyncStatusResponse {
   uploadHold?: SyncUploadHold
 }
 
-export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
-  /* @__PURE__ */ createMessageType<WatchSyncStatusResponse>(
-    's4wave.session.WatchSyncStatusResponse',
+export const SyncCloudProgress: MessageType<SyncCloudProgress> =
+  /* @__PURE__ */ createMessageType<SyncCloudProgress>(
+    's4wave.session.SyncCloudProgress',
     () => [
-      [1, 'state', 14, 0, SyncStatusState_Enum],
-      [2, 'direction', 14, 0, SyncActivityDirection_Enum],
-      [3, 'transport_state', 14, 0, SyncTransportState_Enum],
-      [4, 'p2p_state', 14, 0, SyncP2PState_Enum],
-      [5, 'pending_upload_bytes', 4],
-      [6, 'pending_download_bytes', 4],
-      [7, 'pending_upload_count', 13],
-      [8, 'pending_download_count', 13],
-      [9, 'upload_bytes_per_second', 4],
-      [10, 'download_bytes_per_second', 4],
-      [11, 'active_store_count', 13],
-      [12, 'active_peer_count', 13],
-      [13, 'last_error', 9],
-      [14, 'last_activity_at', 11, 0, Timestamp.codec],
-      [15, 'pack_range_request_count', 4],
-      [16, 'pack_range_response_bytes', 4],
-      [17, 'pack_full_response_fallback_count', 4],
-      [18, 'pack_full_response_fallback_bytes', 4],
-      [19, 'pack_last_full_response_fallback_bytes', 4],
-      [20, 'pack_manifest_entries', 13],
-      [21, 'pack_block_count_total', 4],
-      [22, 'pack_block_count_min', 4],
-      [23, 'pack_block_count_max', 4],
-      [24, 'pack_size_bytes_total', 4],
-      [25, 'pack_size_bytes_min', 4],
-      [26, 'pack_size_bytes_max', 4],
-      [27, 'pack_bloom_filter_count', 13],
-      [28, 'pack_bloom_missing_count', 13],
-      [29, 'pack_bloom_invalid_count', 13],
-      [31, 'pack_bloom_max_false_positive_rate', 1],
-      [32, 'pack_bloom_risk_pack_count', 13],
-      [33, 'pack_lookup_count', 4],
-      [34, 'pack_candidate_packs', 4],
-      [35, 'pack_opened_packs', 4],
-      [36, 'pack_negative_packs', 4],
-      [37, 'pack_target_hits', 4],
-      [38, 'pack_last_candidate_packs', 13],
-      [39, 'pack_last_opened_packs', 13],
-      [40, 'pack_last_negative_packs', 13],
-      [41, 'pack_last_target_hit', 8],
-      [42, 'pack_index_cache_hits', 4],
-      [43, 'pack_index_cache_misses', 4],
-      [44, 'pack_index_cache_read_errors', 4],
-      [45, 'pack_index_cache_write_errors', 4],
-      [46, 'pack_remote_index_loads', 4],
-      [47, 'pack_remote_index_bytes', 4],
-      [48, 'pack_last_remote_index_bytes', 4],
-      [49, 'pack_index_tail_fetch_count', 4],
-      [50, 'pack_index_tail_fetch_bytes', 4],
-      [51, 'pack_index_tail_response_bytes', 4],
-      [52, 'active_upload_bytes', 4],
-      [53, 'active_upload_transferred_bytes', 4],
-      [54, 'in_flight_upload_count', 13],
-      [55, 'direct_p2p_disabled', 8],
-      [56, 'block_stores', 11, 1, SyncBlockStoreStatus.codec],
-      [57, 'local_account', 8],
-      [58, 'local_copies', 11, 1, SyncLocalCopyStatus.codec],
-      [59, 'peer_upload_bytes', 4],
-      [60, 'peer_download_bytes', 4],
-      [61, 'peers', 11, 1, SyncPeerTransferStatus.codec],
-      [62, 'upload_error', 9],
-      [63, 'upload_hold', 14, 0, SyncUploadHold_Enum],
+      [1, 'transfer', 11, 0, SyncTransferProgress.codec],
+      [2, 'active_store_count', 13],
+      [3, 'pack_range_request_count', 4],
+      [4, 'pack_range_response_bytes', 4],
+      [5, 'pack_full_response_fallback_count', 4],
+      [6, 'pack_full_response_fallback_bytes', 4],
+      [7, 'pack_last_full_response_fallback_bytes', 4],
+      [8, 'pack_manifest_entries', 13],
+      [9, 'pack_block_count_total', 4],
+      [10, 'pack_block_count_min', 4],
+      [11, 'pack_block_count_max', 4],
+      [12, 'pack_size_bytes_total', 4],
+      [13, 'pack_size_bytes_min', 4],
+      [14, 'pack_size_bytes_max', 4],
+      [15, 'pack_bloom_filter_count', 13],
+      [16, 'pack_bloom_missing_count', 13],
+      [17, 'pack_bloom_invalid_count', 13],
+      [18, 'pack_bloom_max_false_positive_rate', 1],
+      [19, 'pack_bloom_risk_pack_count', 13],
+      [20, 'pack_lookup_count', 4],
+      [21, 'pack_candidate_packs', 4],
+      [22, 'pack_opened_packs', 4],
+      [23, 'pack_negative_packs', 4],
+      [24, 'pack_target_hits', 4],
+      [25, 'pack_last_candidate_packs', 13],
+      [26, 'pack_last_opened_packs', 13],
+      [27, 'pack_last_negative_packs', 13],
+      [28, 'pack_last_target_hit', 8],
+      [29, 'pack_index_cache_hits', 4],
+      [30, 'pack_index_cache_misses', 4],
+      [31, 'pack_index_cache_read_errors', 4],
+      [32, 'pack_index_cache_write_errors', 4],
+      [33, 'pack_remote_index_loads', 4],
+      [34, 'pack_remote_index_bytes', 4],
+      [35, 'pack_last_remote_index_bytes', 4],
+      [36, 'pack_index_tail_fetch_count', 4],
+      [37, 'pack_index_tail_fetch_bytes', 4],
+      [38, 'pack_index_tail_response_bytes', 4],
+      [39, 'block_stores', 11, 1, SyncBlockStoreStatus.codec],
+      [40, 'upload_error', 9],
+      [41, 'upload_hold', 14, 0, SyncUploadHold_Enum],
+    ],
+  )
+
+/**
+ * SyncPeerProgress reports direct transport and local replication for this Session.
+ *
+ * @generated from message s4wave.session.SyncPeerProgress
+ */
+export interface SyncPeerProgress {
+  /**
+   * State reports the direct peer path state.
+   */
+  state?: SyncP2PState
+  /**
+   * LastError describes a direct path failure, independently of cloud work.
+   */
+  lastError?: string
+  /**
+   * Transfer reports local-account replication traffic, absent for cloud accounts.
+   */
+  transfer?: SyncTransferProgress
+  /**
+   * NetworkState reports local-account peer network readiness.
+   */
+  networkState?: SyncTransportState
+  /**
+   * ActivePeerCount is the number of connected p2p peers.
+   */
+  activePeerCount?: number
+  /**
+   * LocalCopies reports durable availability for each accepted Space head.
+   */
+  localCopies?: SyncLocalCopyStatus[]
+  /**
+   * PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
+   */
+  peerUploadBytes?: bigint
+  /**
+   * PeerDownloadBytes counts received block payload traffic.
+   */
+  peerDownloadBytes?: bigint
+  /**
+   * Peers breaks the payload totals down by authenticated Session peer.
+   */
+  peers?: SyncPeerTransferStatus[]
+}
+
+export const SyncPeerProgress: MessageType<SyncPeerProgress> =
+  /* @__PURE__ */ createMessageType<SyncPeerProgress>(
+    's4wave.session.SyncPeerProgress',
+    () => [
+      [1, 'state', 14, 0, SyncP2PState_Enum],
+      [2, 'last_error', 9],
+      [3, 'transfer', 11, 0, SyncTransferProgress.codec],
+      [4, 'network_state', 14, 0, SyncTransportState_Enum],
+      [5, 'active_peer_count', 13],
+      [6, 'local_copies', 11, 1, SyncLocalCopyStatus.codec],
+      [7, 'peer_upload_bytes', 4],
+      [8, 'peer_download_bytes', 4],
+      [9, 'peers', 11, 1, SyncPeerTransferStatus.codec],
     ],
   )
 

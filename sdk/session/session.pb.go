@@ -26,29 +26,33 @@ import (
 	approval "github.com/s4wave/spacewave/sdk/plugin/approval"
 )
 
-// SyncStatusState describes the aggregate session sync state.
+// SyncStatusState describes one source's transfer progress.
 type SyncStatusState int32
 
 const (
+	// SyncStatusState_UNKNOWN means the source has not reported progress.
+	SyncStatusState_SyncStatusState_UNKNOWN SyncStatusState = 0
 	// SyncStatusState_SYNCED means no sync work or sync error is known.
-	SyncStatusState_SyncStatusState_SYNCED SyncStatusState = 0
+	SyncStatusState_SyncStatusState_SYNCED SyncStatusState = 1
 	// SyncStatusState_ACTIVE means upload or download sync work is active.
-	SyncStatusState_SyncStatusState_ACTIVE SyncStatusState = 1
+	SyncStatusState_SyncStatusState_ACTIVE SyncStatusState = 2
 	// SyncStatusState_ERROR means sync is blocked by the last recorded error.
-	SyncStatusState_SyncStatusState_ERROR SyncStatusState = 2
+	SyncStatusState_SyncStatusState_ERROR SyncStatusState = 3
 )
 
 // Enum value maps for SyncStatusState.
 var (
 	SyncStatusState_name = map[int32]string{
-		0: "SyncStatusState_SYNCED",
-		1: "SyncStatusState_ACTIVE",
-		2: "SyncStatusState_ERROR",
+		0: "SyncStatusState_UNKNOWN",
+		1: "SyncStatusState_SYNCED",
+		2: "SyncStatusState_ACTIVE",
+		3: "SyncStatusState_ERROR",
 	}
 	SyncStatusState_value = map[string]int32{
-		"SyncStatusState_SYNCED": 0,
-		"SyncStatusState_ACTIVE": 1,
-		"SyncStatusState_ERROR":  2,
+		"SyncStatusState_UNKNOWN": 0,
+		"SyncStatusState_SYNCED":  1,
+		"SyncStatusState_ACTIVE":  2,
+		"SyncStatusState_ERROR":   3,
 	}
 )
 
@@ -60,6 +64,66 @@ func (x SyncStatusState) Enum() *SyncStatusState {
 
 func (x SyncStatusState) String() string {
 	name, valid := SyncStatusState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SyncAccountAccessState reports account access independently of transfers.
+type SyncAccountAccessState int32
+
+const (
+	// SyncAccountAccessState_UNKNOWN has not reported access.
+	SyncAccountAccessState_SyncAccountAccessState_UNKNOWN SyncAccountAccessState = 0
+	// SyncAccountAccessState_LOCAL uses a local account without cloud access.
+	SyncAccountAccessState_SyncAccountAccessState_LOCAL SyncAccountAccessState = 1
+	// SyncAccountAccessState_READY can access the cloud account.
+	SyncAccountAccessState_SyncAccountAccessState_READY SyncAccountAccessState = 2
+	// SyncAccountAccessState_PENDING is opening the cloud account.
+	SyncAccountAccessState_SyncAccountAccessState_PENDING SyncAccountAccessState = 3
+	// SyncAccountAccessState_DORMANT is idle with cloud access retained.
+	SyncAccountAccessState_SyncAccountAccessState_DORMANT SyncAccountAccessState = 4
+	// SyncAccountAccessState_FAILED could not open the cloud account.
+	SyncAccountAccessState_SyncAccountAccessState_FAILED SyncAccountAccessState = 5
+	// SyncAccountAccessState_DELETED refers to a deleted cloud account.
+	SyncAccountAccessState_SyncAccountAccessState_DELETED SyncAccountAccessState = 6
+	// SyncAccountAccessState_UNAUTHENTICATED requires account authentication.
+	SyncAccountAccessState_SyncAccountAccessState_UNAUTHENTICATED SyncAccountAccessState = 7
+)
+
+// Enum value maps for SyncAccountAccessState.
+var (
+	SyncAccountAccessState_name = map[int32]string{
+		0: "SyncAccountAccessState_UNKNOWN",
+		1: "SyncAccountAccessState_LOCAL",
+		2: "SyncAccountAccessState_READY",
+		3: "SyncAccountAccessState_PENDING",
+		4: "SyncAccountAccessState_DORMANT",
+		5: "SyncAccountAccessState_FAILED",
+		6: "SyncAccountAccessState_DELETED",
+		7: "SyncAccountAccessState_UNAUTHENTICATED",
+	}
+	SyncAccountAccessState_value = map[string]int32{
+		"SyncAccountAccessState_UNKNOWN":         0,
+		"SyncAccountAccessState_LOCAL":           1,
+		"SyncAccountAccessState_READY":           2,
+		"SyncAccountAccessState_PENDING":         3,
+		"SyncAccountAccessState_DORMANT":         4,
+		"SyncAccountAccessState_FAILED":          5,
+		"SyncAccountAccessState_DELETED":         6,
+		"SyncAccountAccessState_UNAUTHENTICATED": 7,
+	}
+)
+
+func (x SyncAccountAccessState) Enum() *SyncAccountAccessState {
+	p := new(SyncAccountAccessState)
+	*p = x
+	return p
+}
+
+func (x SyncAccountAccessState) String() string {
+	name, valid := SyncAccountAccessState_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -151,19 +215,19 @@ func (x SyncActivityDirection) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// SyncTransportState describes cloud transport availability for the session.
+// SyncTransportState describes local peer network availability.
 type SyncTransportState int32
 
 const (
-	// SyncTransportState_UNKNOWN means transport availability has not been reported.
+	// SyncTransportState_UNKNOWN means peer network availability has not been reported.
 	SyncTransportState_SyncTransportState_UNKNOWN SyncTransportState = 0
-	// SyncTransportState_UNAVAILABLE means no cloud transport is configured.
+	// SyncTransportState_UNAVAILABLE means the local peer network is not running.
 	SyncTransportState_SyncTransportState_UNAVAILABLE SyncTransportState = 1
-	// SyncTransportState_CONNECTING means cloud transport is connecting.
+	// SyncTransportState_CONNECTING means the local peer network is connecting.
 	SyncTransportState_SyncTransportState_CONNECTING SyncTransportState = 2
-	// SyncTransportState_ONLINE means cloud transport is online.
+	// SyncTransportState_ONLINE means the local peer network is online.
 	SyncTransportState_SyncTransportState_ONLINE SyncTransportState = 3
-	// SyncTransportState_ERROR means cloud transport is in an error state.
+	// SyncTransportState_ERROR means the local peer network failed.
 	SyncTransportState_SyncTransportState_ERROR SyncTransportState = 4
 )
 
@@ -1181,137 +1245,15 @@ func (x *SyncHeldState) GetPartial() bool {
 	return false
 }
 
-// WatchSyncStatusResponse is the response type for WatchSyncStatus.
+// WatchSyncStatusResponse keeps independent source observations separate.
 type WatchSyncStatusResponse struct {
 	unknownFields []byte
-	// State is the aggregate sync state.
-	State SyncStatusState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
-	// Direction is the active transfer direction, when any.
-	Direction SyncActivityDirection `protobuf:"varint,2,opt,name=direction,proto3" json:"direction,omitempty"`
-	// TransportState is the cloud transport state.
-	TransportState SyncTransportState `protobuf:"varint,3,opt,name=transport_state,json=transportState,proto3" json:"transportState,omitempty"`
-	// P2PState is the p2p lifecycle state.
-	P2PState SyncP2PState `protobuf:"varint,4,opt,name=p2p_state,json=p2pState,proto3" json:"p2pState,omitempty"`
-	// PendingUploadBytes is the approximate upload backlog in bytes.
-	PendingUploadBytes uint64 `protobuf:"varint,5,opt,name=pending_upload_bytes,json=pendingUploadBytes,proto3" json:"pendingUploadBytes,omitempty"`
-	// PendingDownloadBytes is the approximate download backlog in bytes.
-	PendingDownloadBytes uint64 `protobuf:"varint,6,opt,name=pending_download_bytes,json=pendingDownloadBytes,proto3" json:"pendingDownloadBytes,omitempty"`
-	// PendingUploadCount is the approximate number of pending upload items.
-	PendingUploadCount uint32 `protobuf:"varint,7,opt,name=pending_upload_count,json=pendingUploadCount,proto3" json:"pendingUploadCount,omitempty"`
-	// PendingDownloadCount is the approximate number of pending download items.
-	PendingDownloadCount uint32 `protobuf:"varint,8,opt,name=pending_download_count,json=pendingDownloadCount,proto3" json:"pendingDownloadCount,omitempty"`
-	// UploadBytesPerSecond is the approximate current upload rate.
-	UploadBytesPerSecond uint64 `protobuf:"varint,9,opt,name=upload_bytes_per_second,json=uploadBytesPerSecond,proto3" json:"uploadBytesPerSecond,omitempty"`
-	// DownloadBytesPerSecond is the approximate current download rate.
-	DownloadBytesPerSecond uint64 `protobuf:"varint,10,opt,name=download_bytes_per_second,json=downloadBytesPerSecond,proto3" json:"downloadBytesPerSecond,omitempty"`
-	// ActiveUploadBytes is the approximate byte size of upload work in flight.
-	ActiveUploadBytes uint64 `protobuf:"varint,52,opt,name=active_upload_bytes,json=activeUploadBytes,proto3" json:"activeUploadBytes,omitempty"`
-	// ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
-	ActiveUploadTransferredBytes uint64 `protobuf:"varint,53,opt,name=active_upload_transferred_bytes,json=activeUploadTransferredBytes,proto3" json:"activeUploadTransferredBytes,omitempty"`
-	// InFlightUploadCount is the number of active upload requests.
-	InFlightUploadCount uint32 `protobuf:"varint,54,opt,name=in_flight_upload_count,json=inFlightUploadCount,proto3" json:"inFlightUploadCount,omitempty"`
-	// ActiveStoreCount is the number of stores currently contributing activity.
-	ActiveStoreCount uint32 `protobuf:"varint,11,opt,name=active_store_count,json=activeStoreCount,proto3" json:"activeStoreCount,omitempty"`
-	// ActivePeerCount is the number of connected p2p peers.
-	ActivePeerCount uint32 `protobuf:"varint,12,opt,name=active_peer_count,json=activePeerCount,proto3" json:"activePeerCount,omitempty"`
-	// LastError is the latest sync or transport error message, if any.
-	LastError string `protobuf:"bytes,13,opt,name=last_error,json=lastError,proto3" json:"lastError,omitempty"`
-	// LastActivityAt is the latest sync activity timestamp, if known.
-	LastActivityAt *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=last_activity_at,json=lastActivityAt,proto3" json:"lastActivityAt,omitempty"`
-	// PackRangeRequestCount is the number of completed packfile range requests.
-	PackRangeRequestCount uint64 `protobuf:"varint,15,opt,name=pack_range_request_count,json=packRangeRequestCount,proto3" json:"packRangeRequestCount,omitempty"`
-	// PackRangeResponseBytes is the number of bytes returned by packfile range responses.
-	PackRangeResponseBytes uint64 `protobuf:"varint,16,opt,name=pack_range_response_bytes,json=packRangeResponseBytes,proto3" json:"packRangeResponseBytes,omitempty"`
-	// PackFullResponseFallbackCount is the number of range requests served by full responses.
-	PackFullResponseFallbackCount uint64 `protobuf:"varint,17,opt,name=pack_full_response_fallback_count,json=packFullResponseFallbackCount,proto3" json:"packFullResponseFallbackCount,omitempty"`
-	// PackFullResponseFallbackBytes is the number of discarded prefix bytes from full responses.
-	PackFullResponseFallbackBytes uint64 `protobuf:"varint,18,opt,name=pack_full_response_fallback_bytes,json=packFullResponseFallbackBytes,proto3" json:"packFullResponseFallbackBytes,omitempty"`
-	// PackLastFullResponseFallbackBytes is the latest full-response prefix discard.
-	PackLastFullResponseFallbackBytes uint64 `protobuf:"varint,19,opt,name=pack_last_full_response_fallback_bytes,json=packLastFullResponseFallbackBytes,proto3" json:"packLastFullResponseFallbackBytes,omitempty"`
-	// PackManifestEntries is the number of packfile manifest entries.
-	PackManifestEntries uint32 `protobuf:"varint,20,opt,name=pack_manifest_entries,json=packManifestEntries,proto3" json:"packManifestEntries,omitempty"`
-	// PackBlockCountTotal is the sum of manifest entry block counts.
-	PackBlockCountTotal uint64 `protobuf:"varint,21,opt,name=pack_block_count_total,json=packBlockCountTotal,proto3" json:"packBlockCountTotal,omitempty"`
-	// PackBlockCountMin is the smallest manifest entry block count.
-	PackBlockCountMin uint64 `protobuf:"varint,22,opt,name=pack_block_count_min,json=packBlockCountMin,proto3" json:"packBlockCountMin,omitempty"`
-	// PackBlockCountMax is the largest manifest entry block count.
-	PackBlockCountMax uint64 `protobuf:"varint,23,opt,name=pack_block_count_max,json=packBlockCountMax,proto3" json:"packBlockCountMax,omitempty"`
-	// PackSizeBytesTotal is the sum of manifest entry pack sizes.
-	PackSizeBytesTotal uint64 `protobuf:"varint,24,opt,name=pack_size_bytes_total,json=packSizeBytesTotal,proto3" json:"packSizeBytesTotal,omitempty"`
-	// PackSizeBytesMin is the smallest manifest entry pack size.
-	PackSizeBytesMin uint64 `protobuf:"varint,25,opt,name=pack_size_bytes_min,json=packSizeBytesMin,proto3" json:"packSizeBytesMin,omitempty"`
-	// PackSizeBytesMax is the largest manifest entry pack size.
-	PackSizeBytesMax uint64 `protobuf:"varint,26,opt,name=pack_size_bytes_max,json=packSizeBytesMax,proto3" json:"packSizeBytesMax,omitempty"`
-	// PackBloomFilterCount is the number of entries with valid bloom metadata.
-	PackBloomFilterCount uint32 `protobuf:"varint,27,opt,name=pack_bloom_filter_count,json=packBloomFilterCount,proto3" json:"packBloomFilterCount,omitempty"`
-	// PackBloomMissingCount is the number of entries missing bloom metadata.
-	PackBloomMissingCount uint32 `protobuf:"varint,28,opt,name=pack_bloom_missing_count,json=packBloomMissingCount,proto3" json:"packBloomMissingCount,omitempty"`
-	// PackBloomInvalidCount is the number of entries with malformed bloom metadata.
-	PackBloomInvalidCount uint32 `protobuf:"varint,29,opt,name=pack_bloom_invalid_count,json=packBloomInvalidCount,proto3" json:"packBloomInvalidCount,omitempty"`
-	// PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
-	PackBloomMaxFalsePositiveRate float64 `protobuf:"fixed64,31,opt,name=pack_bloom_max_false_positive_rate,json=packBloomMaxFalsePositiveRate,proto3" json:"packBloomMaxFalsePositiveRate,omitempty"`
-	// PackBloomRiskPackCount is the number of packs above the bloom false-positive target.
-	PackBloomRiskPackCount uint32 `protobuf:"varint,32,opt,name=pack_bloom_risk_pack_count,json=packBloomRiskPackCount,proto3" json:"packBloomRiskPackCount,omitempty"`
-	// PackLookupCount is the number of pack lookups.
-	PackLookupCount uint64 `protobuf:"varint,33,opt,name=pack_lookup_count,json=packLookupCount,proto3" json:"packLookupCount,omitempty"`
-	// PackCandidatePacks is the total number of manifest candidates selected by lookups.
-	PackCandidatePacks uint64 `protobuf:"varint,34,opt,name=pack_candidate_packs,json=packCandidatePacks,proto3" json:"packCandidatePacks,omitempty"`
-	// PackOpenedPacks is the total number of candidate packs opened by lookups.
-	PackOpenedPacks uint64 `protobuf:"varint,35,opt,name=pack_opened_packs,json=packOpenedPacks,proto3" json:"packOpenedPacks,omitempty"`
-	// PackNegativePacks is the total number of opened candidates that missed.
-	PackNegativePacks uint64 `protobuf:"varint,36,opt,name=pack_negative_packs,json=packNegativePacks,proto3" json:"packNegativePacks,omitempty"`
-	// PackTargetHits is the total number of lookups that found the target block.
-	PackTargetHits uint64 `protobuf:"varint,37,opt,name=pack_target_hits,json=packTargetHits,proto3" json:"packTargetHits,omitempty"`
-	// PackLastCandidatePacks is the candidate count from the latest lookup.
-	PackLastCandidatePacks uint32 `protobuf:"varint,38,opt,name=pack_last_candidate_packs,json=packLastCandidatePacks,proto3" json:"packLastCandidatePacks,omitempty"`
-	// PackLastOpenedPacks is the opened pack count from the latest lookup.
-	PackLastOpenedPacks uint32 `protobuf:"varint,39,opt,name=pack_last_opened_packs,json=packLastOpenedPacks,proto3" json:"packLastOpenedPacks,omitempty"`
-	// PackLastNegativePacks is the negative pack count from the latest lookup.
-	PackLastNegativePacks uint32 `protobuf:"varint,40,opt,name=pack_last_negative_packs,json=packLastNegativePacks,proto3" json:"packLastNegativePacks,omitempty"`
-	// PackLastTargetHit is true when the latest lookup found its target.
-	PackLastTargetHit bool `protobuf:"varint,41,opt,name=pack_last_target_hit,json=packLastTargetHit,proto3" json:"packLastTargetHit,omitempty"`
-	// PackIndexCacheHits is the number of pack index cache hits.
-	PackIndexCacheHits uint64 `protobuf:"varint,42,opt,name=pack_index_cache_hits,json=packIndexCacheHits,proto3" json:"packIndexCacheHits,omitempty"`
-	// PackIndexCacheMisses is the number of pack index cache misses.
-	PackIndexCacheMisses uint64 `protobuf:"varint,43,opt,name=pack_index_cache_misses,json=packIndexCacheMisses,proto3" json:"packIndexCacheMisses,omitempty"`
-	// PackIndexCacheReadErrors is the number of pack index cache read errors.
-	PackIndexCacheReadErrors uint64 `protobuf:"varint,44,opt,name=pack_index_cache_read_errors,json=packIndexCacheReadErrors,proto3" json:"packIndexCacheReadErrors,omitempty"`
-	// PackIndexCacheWriteErrors is the number of pack index cache write errors.
-	PackIndexCacheWriteErrors uint64 `protobuf:"varint,45,opt,name=pack_index_cache_write_errors,json=packIndexCacheWriteErrors,proto3" json:"packIndexCacheWriteErrors,omitempty"`
-	// PackRemoteIndexLoads is the number of remote pack index loads.
-	PackRemoteIndexLoads uint64 `protobuf:"varint,46,opt,name=pack_remote_index_loads,json=packRemoteIndexLoads,proto3" json:"packRemoteIndexLoads,omitempty"`
-	// PackRemoteIndexBytes is the number of remote pack index bytes fetched.
-	PackRemoteIndexBytes uint64 `protobuf:"varint,47,opt,name=pack_remote_index_bytes,json=packRemoteIndexBytes,proto3" json:"packRemoteIndexBytes,omitempty"`
-	// PackLastRemoteIndexBytes is the latest remote pack index load byte count.
-	PackLastRemoteIndexBytes uint64 `protobuf:"varint,48,opt,name=pack_last_remote_index_bytes,json=packLastRemoteIndexBytes,proto3" json:"packLastRemoteIndexBytes,omitempty"`
-	// PackIndexTailFetchCount is the number of completed index-tail range fetches.
-	PackIndexTailFetchCount uint64 `protobuf:"varint,49,opt,name=pack_index_tail_fetch_count,json=packIndexTailFetchCount,proto3" json:"packIndexTailFetchCount,omitempty"`
-	// PackIndexTailFetchBytes is the number of requested index-tail range bytes.
-	PackIndexTailFetchBytes uint64 `protobuf:"varint,50,opt,name=pack_index_tail_fetch_bytes,json=packIndexTailFetchBytes,proto3" json:"packIndexTailFetchBytes,omitempty"`
-	// PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
-	PackIndexTailResponseBytes uint64 `protobuf:"varint,51,opt,name=pack_index_tail_response_bytes,json=packIndexTailResponseBytes,proto3" json:"packIndexTailResponseBytes,omitempty"`
-	// DirectP2PDisabled is the configured Session-local direct transport policy.
-	// The zero value preserves direct P2P for existing Sessions.
-	DirectP2PDisabled bool `protobuf:"varint,55,opt,name=direct_p2p_disabled,json=directP2pDisabled,proto3" json:"directP2pDisabled,omitempty"`
-	// BlockStores contains owner-observed mechanics keyed by mounted block store.
-	BlockStores []*SyncBlockStoreStatus `protobuf:"bytes,56,rep,name=block_stores,json=blockStores,proto3" json:"blockStores,omitempty"`
-	// LocalAccount selects account-replica status instead of cloud queues.
-	LocalAccount bool `protobuf:"varint,57,opt,name=local_account,json=localAccount,proto3" json:"localAccount,omitempty"`
-	// LocalCopies reports durable availability for each accepted Space head.
-	LocalCopies []*SyncLocalCopyStatus `protobuf:"bytes,58,rep,name=local_copies,json=localCopies,proto3" json:"localCopies,omitempty"`
-	// PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
-	PeerUploadBytes   uint64 `protobuf:"varint,59,opt,name=peer_upload_bytes,json=peerUploadBytes,proto3" json:"peerUploadBytes,omitempty"`
-	PeerDownloadBytes uint64 `protobuf:"varint,60,opt,name=peer_download_bytes,json=peerDownloadBytes,proto3" json:"peerDownloadBytes,omitempty"`
-	// Peers breaks the payload totals down by authenticated Session peer.
-	Peers []*SyncPeerTransferStatus `protobuf:"bytes,61,rep,name=peers,proto3" json:"peers,omitempty"`
-	// UploadError is the latest upload failure of a store whose uploads are
-	// still pending, empty while pending uploads succeed. Unlike LastError, it
-	// ignores download and transport errors.
-	UploadError string `protobuf:"bytes,62,opt,name=upload_error,json=uploadError,proto3" json:"uploadError,omitempty"`
-	// UploadHold identifies the account limit that refused the latest upload of a
-	// store whose uploads are still pending. Those uploads wait, without
-	// retrying, until the account state changes, as when the limit is raised.
-	UploadHold SyncUploadHold `protobuf:"varint,63,opt,name=upload_hold,json=uploadHold,proto3" json:"uploadHold,omitempty"`
+	// Cloud reports account-wide cloud work, absent for a local account.
+	Cloud *SyncCloudProgress `protobuf:"bytes,1,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	// Access reports account access, not socket or cloud transfer health.
+	Access SyncAccountAccessState `protobuf:"varint,2,opt,name=access,proto3" json:"access,omitempty"`
+	// Peer reports direct work for this Session, independently of cloud work.
+	Peer *SyncPeerProgress `protobuf:"bytes,3,opt,name=peer,proto3" json:"peer,omitempty"`
 }
 
 func (x *WatchSyncStatusResponse) Reset() {
@@ -1320,438 +1262,629 @@ func (x *WatchSyncStatusResponse) Reset() {
 
 func (*WatchSyncStatusResponse) ProtoMessage() {}
 
-func (x *WatchSyncStatusResponse) GetState() SyncStatusState {
+func (x *WatchSyncStatusResponse) GetCloud() *SyncCloudProgress {
+	if x != nil {
+		return x.Cloud
+	}
+	return nil
+}
+
+func (x *WatchSyncStatusResponse) GetAccess() SyncAccountAccessState {
+	if x != nil {
+		return x.Access
+	}
+	return SyncAccountAccessState_SyncAccountAccessState_UNKNOWN
+}
+
+func (x *WatchSyncStatusResponse) GetPeer() *SyncPeerProgress {
+	if x != nil {
+		return x.Peer
+	}
+	return nil
+}
+
+// SyncTransferProgress reports work and failures observed by one transfer source.
+type SyncTransferProgress struct {
+	unknownFields []byte
+	// State is the source's transfer state.
+	State SyncStatusState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// Direction is the active transfer direction, when any.
+	Direction SyncActivityDirection `protobuf:"varint,2,opt,name=direction,proto3" json:"direction,omitempty"`
+	// PendingUploadBytes is the approximate upload backlog in bytes.
+	PendingUploadBytes uint64 `protobuf:"varint,3,opt,name=pending_upload_bytes,json=pendingUploadBytes,proto3" json:"pendingUploadBytes,omitempty"`
+	// PendingDownloadBytes is the approximate download backlog in bytes.
+	PendingDownloadBytes uint64 `protobuf:"varint,4,opt,name=pending_download_bytes,json=pendingDownloadBytes,proto3" json:"pendingDownloadBytes,omitempty"`
+	// PendingUploadCount is the approximate number of pending upload items.
+	PendingUploadCount uint32 `protobuf:"varint,5,opt,name=pending_upload_count,json=pendingUploadCount,proto3" json:"pendingUploadCount,omitempty"`
+	// PendingDownloadCount is the approximate number of pending download items.
+	PendingDownloadCount uint32 `protobuf:"varint,6,opt,name=pending_download_count,json=pendingDownloadCount,proto3" json:"pendingDownloadCount,omitempty"`
+	// UploadBytesPerSecond is the approximate current upload rate.
+	UploadBytesPerSecond uint64 `protobuf:"varint,7,opt,name=upload_bytes_per_second,json=uploadBytesPerSecond,proto3" json:"uploadBytesPerSecond,omitempty"`
+	// DownloadBytesPerSecond is the approximate current download rate.
+	DownloadBytesPerSecond uint64 `protobuf:"varint,8,opt,name=download_bytes_per_second,json=downloadBytesPerSecond,proto3" json:"downloadBytesPerSecond,omitempty"`
+	// ActiveUploadBytes is the approximate byte size of upload work in flight.
+	ActiveUploadBytes uint64 `protobuf:"varint,9,opt,name=active_upload_bytes,json=activeUploadBytes,proto3" json:"activeUploadBytes,omitempty"`
+	// ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
+	ActiveUploadTransferredBytes uint64 `protobuf:"varint,10,opt,name=active_upload_transferred_bytes,json=activeUploadTransferredBytes,proto3" json:"activeUploadTransferredBytes,omitempty"`
+	// InFlightUploadCount is the number of active upload requests.
+	InFlightUploadCount uint32 `protobuf:"varint,11,opt,name=in_flight_upload_count,json=inFlightUploadCount,proto3" json:"inFlightUploadCount,omitempty"`
+	// LastError is the latest transfer error message from this source, if any.
+	LastError string `protobuf:"bytes,12,opt,name=last_error,json=lastError,proto3" json:"lastError,omitempty"`
+	// LastActivityAt is the latest sync activity timestamp, if known.
+	LastActivityAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=last_activity_at,json=lastActivityAt,proto3" json:"lastActivityAt,omitempty"`
+}
+
+func (x *SyncTransferProgress) Reset() {
+	*x = SyncTransferProgress{}
+}
+
+func (*SyncTransferProgress) ProtoMessage() {}
+
+func (x *SyncTransferProgress) GetState() SyncStatusState {
 	if x != nil {
 		return x.State
 	}
-	return SyncStatusState_SyncStatusState_SYNCED
+	return SyncStatusState_SyncStatusState_UNKNOWN
 }
 
-func (x *WatchSyncStatusResponse) GetDirection() SyncActivityDirection {
+func (x *SyncTransferProgress) GetDirection() SyncActivityDirection {
 	if x != nil {
 		return x.Direction
 	}
 	return SyncActivityDirection_SyncActivityDirection_NONE
 }
 
-func (x *WatchSyncStatusResponse) GetTransportState() SyncTransportState {
-	if x != nil {
-		return x.TransportState
-	}
-	return SyncTransportState_SyncTransportState_UNKNOWN
-}
-
-func (x *WatchSyncStatusResponse) GetP2PState() SyncP2PState {
-	if x != nil {
-		return x.P2PState
-	}
-	return SyncP2PState_SyncP2PState_UNKNOWN
-}
-
-func (x *WatchSyncStatusResponse) GetPendingUploadBytes() uint64 {
+func (x *SyncTransferProgress) GetPendingUploadBytes() uint64 {
 	if x != nil {
 		return x.PendingUploadBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPendingDownloadBytes() uint64 {
+func (x *SyncTransferProgress) GetPendingDownloadBytes() uint64 {
 	if x != nil {
 		return x.PendingDownloadBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPendingUploadCount() uint32 {
+func (x *SyncTransferProgress) GetPendingUploadCount() uint32 {
 	if x != nil {
 		return x.PendingUploadCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPendingDownloadCount() uint32 {
+func (x *SyncTransferProgress) GetPendingDownloadCount() uint32 {
 	if x != nil {
 		return x.PendingDownloadCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetUploadBytesPerSecond() uint64 {
+func (x *SyncTransferProgress) GetUploadBytesPerSecond() uint64 {
 	if x != nil {
 		return x.UploadBytesPerSecond
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetDownloadBytesPerSecond() uint64 {
+func (x *SyncTransferProgress) GetDownloadBytesPerSecond() uint64 {
 	if x != nil {
 		return x.DownloadBytesPerSecond
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetActiveUploadBytes() uint64 {
+func (x *SyncTransferProgress) GetActiveUploadBytes() uint64 {
 	if x != nil {
 		return x.ActiveUploadBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetActiveUploadTransferredBytes() uint64 {
+func (x *SyncTransferProgress) GetActiveUploadTransferredBytes() uint64 {
 	if x != nil {
 		return x.ActiveUploadTransferredBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetInFlightUploadCount() uint32 {
+func (x *SyncTransferProgress) GetInFlightUploadCount() uint32 {
 	if x != nil {
 		return x.InFlightUploadCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetActiveStoreCount() uint32 {
-	if x != nil {
-		return x.ActiveStoreCount
-	}
-	return 0
-}
-
-func (x *WatchSyncStatusResponse) GetActivePeerCount() uint32 {
-	if x != nil {
-		return x.ActivePeerCount
-	}
-	return 0
-}
-
-func (x *WatchSyncStatusResponse) GetLastError() string {
+func (x *SyncTransferProgress) GetLastError() string {
 	if x != nil {
 		return x.LastError
 	}
 	return ""
 }
 
-func (x *WatchSyncStatusResponse) GetLastActivityAt() *timestamppb.Timestamp {
+func (x *SyncTransferProgress) GetLastActivityAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.LastActivityAt
 	}
 	return nil
 }
 
-func (x *WatchSyncStatusResponse) GetPackRangeRequestCount() uint64 {
+// SyncCloudProgress reports cloud telemetry without direct peer failures.
+type SyncCloudProgress struct {
+	unknownFields []byte
+	// Transfer reports account-wide cloud transfer progress.
+	Transfer *SyncTransferProgress `protobuf:"bytes,1,opt,name=transfer,proto3" json:"transfer,omitempty"`
+	// ActiveStoreCount is the number of stores currently contributing activity.
+	ActiveStoreCount uint32 `protobuf:"varint,2,opt,name=active_store_count,json=activeStoreCount,proto3" json:"activeStoreCount,omitempty"`
+	// PackRangeRequestCount is the number of completed packfile range requests.
+	PackRangeRequestCount uint64 `protobuf:"varint,3,opt,name=pack_range_request_count,json=packRangeRequestCount,proto3" json:"packRangeRequestCount,omitempty"`
+	// PackRangeResponseBytes is the number of bytes returned by packfile range responses.
+	PackRangeResponseBytes uint64 `protobuf:"varint,4,opt,name=pack_range_response_bytes,json=packRangeResponseBytes,proto3" json:"packRangeResponseBytes,omitempty"`
+	// PackFullResponseFallbackCount is the number of range requests served by full responses.
+	PackFullResponseFallbackCount uint64 `protobuf:"varint,5,opt,name=pack_full_response_fallback_count,json=packFullResponseFallbackCount,proto3" json:"packFullResponseFallbackCount,omitempty"`
+	// PackFullResponseFallbackBytes is the number of discarded prefix bytes from full responses.
+	PackFullResponseFallbackBytes uint64 `protobuf:"varint,6,opt,name=pack_full_response_fallback_bytes,json=packFullResponseFallbackBytes,proto3" json:"packFullResponseFallbackBytes,omitempty"`
+	// PackLastFullResponseFallbackBytes is the latest full-response prefix discard.
+	PackLastFullResponseFallbackBytes uint64 `protobuf:"varint,7,opt,name=pack_last_full_response_fallback_bytes,json=packLastFullResponseFallbackBytes,proto3" json:"packLastFullResponseFallbackBytes,omitempty"`
+	// PackManifestEntries is the number of packfile manifest entries.
+	PackManifestEntries uint32 `protobuf:"varint,8,opt,name=pack_manifest_entries,json=packManifestEntries,proto3" json:"packManifestEntries,omitempty"`
+	// PackBlockCountTotal is the sum of manifest entry block counts.
+	PackBlockCountTotal uint64 `protobuf:"varint,9,opt,name=pack_block_count_total,json=packBlockCountTotal,proto3" json:"packBlockCountTotal,omitempty"`
+	// PackBlockCountMin is the smallest manifest entry block count.
+	PackBlockCountMin uint64 `protobuf:"varint,10,opt,name=pack_block_count_min,json=packBlockCountMin,proto3" json:"packBlockCountMin,omitempty"`
+	// PackBlockCountMax is the largest manifest entry block count.
+	PackBlockCountMax uint64 `protobuf:"varint,11,opt,name=pack_block_count_max,json=packBlockCountMax,proto3" json:"packBlockCountMax,omitempty"`
+	// PackSizeBytesTotal is the sum of manifest entry pack sizes.
+	PackSizeBytesTotal uint64 `protobuf:"varint,12,opt,name=pack_size_bytes_total,json=packSizeBytesTotal,proto3" json:"packSizeBytesTotal,omitempty"`
+	// PackSizeBytesMin is the smallest manifest entry pack size.
+	PackSizeBytesMin uint64 `protobuf:"varint,13,opt,name=pack_size_bytes_min,json=packSizeBytesMin,proto3" json:"packSizeBytesMin,omitempty"`
+	// PackSizeBytesMax is the largest manifest entry pack size.
+	PackSizeBytesMax uint64 `protobuf:"varint,14,opt,name=pack_size_bytes_max,json=packSizeBytesMax,proto3" json:"packSizeBytesMax,omitempty"`
+	// PackBloomFilterCount is the number of entries with valid bloom metadata.
+	PackBloomFilterCount uint32 `protobuf:"varint,15,opt,name=pack_bloom_filter_count,json=packBloomFilterCount,proto3" json:"packBloomFilterCount,omitempty"`
+	// PackBloomMissingCount is the number of entries missing bloom metadata.
+	PackBloomMissingCount uint32 `protobuf:"varint,16,opt,name=pack_bloom_missing_count,json=packBloomMissingCount,proto3" json:"packBloomMissingCount,omitempty"`
+	// PackBloomInvalidCount is the number of entries with malformed bloom metadata.
+	PackBloomInvalidCount uint32 `protobuf:"varint,17,opt,name=pack_bloom_invalid_count,json=packBloomInvalidCount,proto3" json:"packBloomInvalidCount,omitempty"`
+	// PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
+	PackBloomMaxFalsePositiveRate float64 `protobuf:"fixed64,18,opt,name=pack_bloom_max_false_positive_rate,json=packBloomMaxFalsePositiveRate,proto3" json:"packBloomMaxFalsePositiveRate,omitempty"`
+	// PackBloomRiskPackCount is the number of packs above the bloom false-positive target.
+	PackBloomRiskPackCount uint32 `protobuf:"varint,19,opt,name=pack_bloom_risk_pack_count,json=packBloomRiskPackCount,proto3" json:"packBloomRiskPackCount,omitempty"`
+	// PackLookupCount is the number of pack lookups.
+	PackLookupCount uint64 `protobuf:"varint,20,opt,name=pack_lookup_count,json=packLookupCount,proto3" json:"packLookupCount,omitempty"`
+	// PackCandidatePacks is the total number of manifest candidates selected by lookups.
+	PackCandidatePacks uint64 `protobuf:"varint,21,opt,name=pack_candidate_packs,json=packCandidatePacks,proto3" json:"packCandidatePacks,omitempty"`
+	// PackOpenedPacks is the total number of candidate packs opened by lookups.
+	PackOpenedPacks uint64 `protobuf:"varint,22,opt,name=pack_opened_packs,json=packOpenedPacks,proto3" json:"packOpenedPacks,omitempty"`
+	// PackNegativePacks is the total number of opened candidates that missed.
+	PackNegativePacks uint64 `protobuf:"varint,23,opt,name=pack_negative_packs,json=packNegativePacks,proto3" json:"packNegativePacks,omitempty"`
+	// PackTargetHits is the total number of lookups that found the target block.
+	PackTargetHits uint64 `protobuf:"varint,24,opt,name=pack_target_hits,json=packTargetHits,proto3" json:"packTargetHits,omitempty"`
+	// PackLastCandidatePacks is the candidate count from the latest lookup.
+	PackLastCandidatePacks uint32 `protobuf:"varint,25,opt,name=pack_last_candidate_packs,json=packLastCandidatePacks,proto3" json:"packLastCandidatePacks,omitempty"`
+	// PackLastOpenedPacks is the opened pack count from the latest lookup.
+	PackLastOpenedPacks uint32 `protobuf:"varint,26,opt,name=pack_last_opened_packs,json=packLastOpenedPacks,proto3" json:"packLastOpenedPacks,omitempty"`
+	// PackLastNegativePacks is the negative pack count from the latest lookup.
+	PackLastNegativePacks uint32 `protobuf:"varint,27,opt,name=pack_last_negative_packs,json=packLastNegativePacks,proto3" json:"packLastNegativePacks,omitempty"`
+	// PackLastTargetHit is true when the latest lookup found its target.
+	PackLastTargetHit bool `protobuf:"varint,28,opt,name=pack_last_target_hit,json=packLastTargetHit,proto3" json:"packLastTargetHit,omitempty"`
+	// PackIndexCacheHits is the number of pack index cache hits.
+	PackIndexCacheHits uint64 `protobuf:"varint,29,opt,name=pack_index_cache_hits,json=packIndexCacheHits,proto3" json:"packIndexCacheHits,omitempty"`
+	// PackIndexCacheMisses is the number of pack index cache misses.
+	PackIndexCacheMisses uint64 `protobuf:"varint,30,opt,name=pack_index_cache_misses,json=packIndexCacheMisses,proto3" json:"packIndexCacheMisses,omitempty"`
+	// PackIndexCacheReadErrors is the number of pack index cache read errors.
+	PackIndexCacheReadErrors uint64 `protobuf:"varint,31,opt,name=pack_index_cache_read_errors,json=packIndexCacheReadErrors,proto3" json:"packIndexCacheReadErrors,omitempty"`
+	// PackIndexCacheWriteErrors is the number of pack index cache write errors.
+	PackIndexCacheWriteErrors uint64 `protobuf:"varint,32,opt,name=pack_index_cache_write_errors,json=packIndexCacheWriteErrors,proto3" json:"packIndexCacheWriteErrors,omitempty"`
+	// PackRemoteIndexLoads is the number of remote pack index loads.
+	PackRemoteIndexLoads uint64 `protobuf:"varint,33,opt,name=pack_remote_index_loads,json=packRemoteIndexLoads,proto3" json:"packRemoteIndexLoads,omitempty"`
+	// PackRemoteIndexBytes is the number of remote pack index bytes fetched.
+	PackRemoteIndexBytes uint64 `protobuf:"varint,34,opt,name=pack_remote_index_bytes,json=packRemoteIndexBytes,proto3" json:"packRemoteIndexBytes,omitempty"`
+	// PackLastRemoteIndexBytes is the latest remote pack index load byte count.
+	PackLastRemoteIndexBytes uint64 `protobuf:"varint,35,opt,name=pack_last_remote_index_bytes,json=packLastRemoteIndexBytes,proto3" json:"packLastRemoteIndexBytes,omitempty"`
+	// PackIndexTailFetchCount is the number of completed index-tail range fetches.
+	PackIndexTailFetchCount uint64 `protobuf:"varint,36,opt,name=pack_index_tail_fetch_count,json=packIndexTailFetchCount,proto3" json:"packIndexTailFetchCount,omitempty"`
+	// PackIndexTailFetchBytes is the number of requested index-tail range bytes.
+	PackIndexTailFetchBytes uint64 `protobuf:"varint,37,opt,name=pack_index_tail_fetch_bytes,json=packIndexTailFetchBytes,proto3" json:"packIndexTailFetchBytes,omitempty"`
+	// PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
+	PackIndexTailResponseBytes uint64 `protobuf:"varint,38,opt,name=pack_index_tail_response_bytes,json=packIndexTailResponseBytes,proto3" json:"packIndexTailResponseBytes,omitempty"`
+	// BlockStores contains owner-observed mechanics keyed by mounted block store.
+	BlockStores []*SyncBlockStoreStatus `protobuf:"bytes,39,rep,name=block_stores,json=blockStores,proto3" json:"blockStores,omitempty"`
+	// UploadError is the latest upload failure of a store whose uploads are
+	// still pending, empty while pending uploads succeed. Unlike Transfer.LastError, it
+	// ignores download and transport errors.
+	UploadError string `protobuf:"bytes,40,opt,name=upload_error,json=uploadError,proto3" json:"uploadError,omitempty"`
+	// UploadHold identifies the account limit that refused the latest upload of a
+	// store whose uploads are still pending. Those uploads wait, without
+	// retrying, until the account state changes, as when the limit is raised.
+	UploadHold SyncUploadHold `protobuf:"varint,41,opt,name=upload_hold,json=uploadHold,proto3" json:"uploadHold,omitempty"`
+}
+
+func (x *SyncCloudProgress) Reset() {
+	*x = SyncCloudProgress{}
+}
+
+func (*SyncCloudProgress) ProtoMessage() {}
+
+func (x *SyncCloudProgress) GetTransfer() *SyncTransferProgress {
+	if x != nil {
+		return x.Transfer
+	}
+	return nil
+}
+
+func (x *SyncCloudProgress) GetActiveStoreCount() uint32 {
+	if x != nil {
+		return x.ActiveStoreCount
+	}
+	return 0
+}
+
+func (x *SyncCloudProgress) GetPackRangeRequestCount() uint64 {
 	if x != nil {
 		return x.PackRangeRequestCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackRangeResponseBytes() uint64 {
+func (x *SyncCloudProgress) GetPackRangeResponseBytes() uint64 {
 	if x != nil {
 		return x.PackRangeResponseBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackFullResponseFallbackCount() uint64 {
+func (x *SyncCloudProgress) GetPackFullResponseFallbackCount() uint64 {
 	if x != nil {
 		return x.PackFullResponseFallbackCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackFullResponseFallbackBytes() uint64 {
+func (x *SyncCloudProgress) GetPackFullResponseFallbackBytes() uint64 {
 	if x != nil {
 		return x.PackFullResponseFallbackBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastFullResponseFallbackBytes() uint64 {
+func (x *SyncCloudProgress) GetPackLastFullResponseFallbackBytes() uint64 {
 	if x != nil {
 		return x.PackLastFullResponseFallbackBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackManifestEntries() uint32 {
+func (x *SyncCloudProgress) GetPackManifestEntries() uint32 {
 	if x != nil {
 		return x.PackManifestEntries
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBlockCountTotal() uint64 {
+func (x *SyncCloudProgress) GetPackBlockCountTotal() uint64 {
 	if x != nil {
 		return x.PackBlockCountTotal
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBlockCountMin() uint64 {
+func (x *SyncCloudProgress) GetPackBlockCountMin() uint64 {
 	if x != nil {
 		return x.PackBlockCountMin
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBlockCountMax() uint64 {
+func (x *SyncCloudProgress) GetPackBlockCountMax() uint64 {
 	if x != nil {
 		return x.PackBlockCountMax
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackSizeBytesTotal() uint64 {
+func (x *SyncCloudProgress) GetPackSizeBytesTotal() uint64 {
 	if x != nil {
 		return x.PackSizeBytesTotal
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackSizeBytesMin() uint64 {
+func (x *SyncCloudProgress) GetPackSizeBytesMin() uint64 {
 	if x != nil {
 		return x.PackSizeBytesMin
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackSizeBytesMax() uint64 {
+func (x *SyncCloudProgress) GetPackSizeBytesMax() uint64 {
 	if x != nil {
 		return x.PackSizeBytesMax
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBloomFilterCount() uint32 {
+func (x *SyncCloudProgress) GetPackBloomFilterCount() uint32 {
 	if x != nil {
 		return x.PackBloomFilterCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBloomMissingCount() uint32 {
+func (x *SyncCloudProgress) GetPackBloomMissingCount() uint32 {
 	if x != nil {
 		return x.PackBloomMissingCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBloomInvalidCount() uint32 {
+func (x *SyncCloudProgress) GetPackBloomInvalidCount() uint32 {
 	if x != nil {
 		return x.PackBloomInvalidCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBloomMaxFalsePositiveRate() float64 {
+func (x *SyncCloudProgress) GetPackBloomMaxFalsePositiveRate() float64 {
 	if x != nil {
 		return x.PackBloomMaxFalsePositiveRate
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackBloomRiskPackCount() uint32 {
+func (x *SyncCloudProgress) GetPackBloomRiskPackCount() uint32 {
 	if x != nil {
 		return x.PackBloomRiskPackCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLookupCount() uint64 {
+func (x *SyncCloudProgress) GetPackLookupCount() uint64 {
 	if x != nil {
 		return x.PackLookupCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackCandidatePacks() uint64 {
+func (x *SyncCloudProgress) GetPackCandidatePacks() uint64 {
 	if x != nil {
 		return x.PackCandidatePacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackOpenedPacks() uint64 {
+func (x *SyncCloudProgress) GetPackOpenedPacks() uint64 {
 	if x != nil {
 		return x.PackOpenedPacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackNegativePacks() uint64 {
+func (x *SyncCloudProgress) GetPackNegativePacks() uint64 {
 	if x != nil {
 		return x.PackNegativePacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackTargetHits() uint64 {
+func (x *SyncCloudProgress) GetPackTargetHits() uint64 {
 	if x != nil {
 		return x.PackTargetHits
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastCandidatePacks() uint32 {
+func (x *SyncCloudProgress) GetPackLastCandidatePacks() uint32 {
 	if x != nil {
 		return x.PackLastCandidatePacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastOpenedPacks() uint32 {
+func (x *SyncCloudProgress) GetPackLastOpenedPacks() uint32 {
 	if x != nil {
 		return x.PackLastOpenedPacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastNegativePacks() uint32 {
+func (x *SyncCloudProgress) GetPackLastNegativePacks() uint32 {
 	if x != nil {
 		return x.PackLastNegativePacks
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastTargetHit() bool {
+func (x *SyncCloudProgress) GetPackLastTargetHit() bool {
 	if x != nil {
 		return x.PackLastTargetHit
 	}
 	return false
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexCacheHits() uint64 {
+func (x *SyncCloudProgress) GetPackIndexCacheHits() uint64 {
 	if x != nil {
 		return x.PackIndexCacheHits
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexCacheMisses() uint64 {
+func (x *SyncCloudProgress) GetPackIndexCacheMisses() uint64 {
 	if x != nil {
 		return x.PackIndexCacheMisses
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexCacheReadErrors() uint64 {
+func (x *SyncCloudProgress) GetPackIndexCacheReadErrors() uint64 {
 	if x != nil {
 		return x.PackIndexCacheReadErrors
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexCacheWriteErrors() uint64 {
+func (x *SyncCloudProgress) GetPackIndexCacheWriteErrors() uint64 {
 	if x != nil {
 		return x.PackIndexCacheWriteErrors
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackRemoteIndexLoads() uint64 {
+func (x *SyncCloudProgress) GetPackRemoteIndexLoads() uint64 {
 	if x != nil {
 		return x.PackRemoteIndexLoads
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackRemoteIndexBytes() uint64 {
+func (x *SyncCloudProgress) GetPackRemoteIndexBytes() uint64 {
 	if x != nil {
 		return x.PackRemoteIndexBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackLastRemoteIndexBytes() uint64 {
+func (x *SyncCloudProgress) GetPackLastRemoteIndexBytes() uint64 {
 	if x != nil {
 		return x.PackLastRemoteIndexBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexTailFetchCount() uint64 {
+func (x *SyncCloudProgress) GetPackIndexTailFetchCount() uint64 {
 	if x != nil {
 		return x.PackIndexTailFetchCount
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexTailFetchBytes() uint64 {
+func (x *SyncCloudProgress) GetPackIndexTailFetchBytes() uint64 {
 	if x != nil {
 		return x.PackIndexTailFetchBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetPackIndexTailResponseBytes() uint64 {
+func (x *SyncCloudProgress) GetPackIndexTailResponseBytes() uint64 {
 	if x != nil {
 		return x.PackIndexTailResponseBytes
 	}
 	return 0
 }
 
-func (x *WatchSyncStatusResponse) GetDirectP2PDisabled() bool {
-	if x != nil {
-		return x.DirectP2PDisabled
-	}
-	return false
-}
-
-func (x *WatchSyncStatusResponse) GetBlockStores() []*SyncBlockStoreStatus {
+func (x *SyncCloudProgress) GetBlockStores() []*SyncBlockStoreStatus {
 	if x != nil {
 		return x.BlockStores
 	}
 	return nil
 }
 
-func (x *WatchSyncStatusResponse) GetLocalAccount() bool {
-	if x != nil {
-		return x.LocalAccount
-	}
-	return false
-}
-
-func (x *WatchSyncStatusResponse) GetLocalCopies() []*SyncLocalCopyStatus {
-	if x != nil {
-		return x.LocalCopies
-	}
-	return nil
-}
-
-func (x *WatchSyncStatusResponse) GetPeerUploadBytes() uint64 {
-	if x != nil {
-		return x.PeerUploadBytes
-	}
-	return 0
-}
-
-func (x *WatchSyncStatusResponse) GetPeerDownloadBytes() uint64 {
-	if x != nil {
-		return x.PeerDownloadBytes
-	}
-	return 0
-}
-
-func (x *WatchSyncStatusResponse) GetPeers() []*SyncPeerTransferStatus {
-	if x != nil {
-		return x.Peers
-	}
-	return nil
-}
-
-func (x *WatchSyncStatusResponse) GetUploadError() string {
+func (x *SyncCloudProgress) GetUploadError() string {
 	if x != nil {
 		return x.UploadError
 	}
 	return ""
 }
 
-func (x *WatchSyncStatusResponse) GetUploadHold() SyncUploadHold {
+func (x *SyncCloudProgress) GetUploadHold() SyncUploadHold {
 	if x != nil {
 		return x.UploadHold
 	}
 	return SyncUploadHold_SyncUploadHold_NONE
+}
+
+// SyncPeerProgress reports direct transport and local replication for this Session.
+type SyncPeerProgress struct {
+	unknownFields []byte
+	// State reports the direct peer path state.
+	State SyncP2PState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// LastError describes a direct path failure, independently of cloud work.
+	LastError string `protobuf:"bytes,2,opt,name=last_error,json=lastError,proto3" json:"lastError,omitempty"`
+	// Transfer reports local-account replication traffic, absent for cloud accounts.
+	Transfer *SyncTransferProgress `protobuf:"bytes,3,opt,name=transfer,proto3" json:"transfer,omitempty"`
+	// NetworkState reports local-account peer network readiness.
+	NetworkState SyncTransportState `protobuf:"varint,4,opt,name=network_state,json=networkState,proto3" json:"networkState,omitempty"`
+	// ActivePeerCount is the number of connected p2p peers.
+	ActivePeerCount uint32 `protobuf:"varint,5,opt,name=active_peer_count,json=activePeerCount,proto3" json:"activePeerCount,omitempty"`
+	// LocalCopies reports durable availability for each accepted Space head.
+	LocalCopies []*SyncLocalCopyStatus `protobuf:"bytes,6,rep,name=local_copies,json=localCopies,proto3" json:"localCopies,omitempty"`
+	// PeerUploadBytes and PeerDownloadBytes count actual block payload traffic.
+	PeerUploadBytes uint64 `protobuf:"varint,7,opt,name=peer_upload_bytes,json=peerUploadBytes,proto3" json:"peerUploadBytes,omitempty"`
+	// PeerDownloadBytes counts received block payload traffic.
+	PeerDownloadBytes uint64 `protobuf:"varint,8,opt,name=peer_download_bytes,json=peerDownloadBytes,proto3" json:"peerDownloadBytes,omitempty"`
+	// Peers breaks the payload totals down by authenticated Session peer.
+	Peers []*SyncPeerTransferStatus `protobuf:"bytes,9,rep,name=peers,proto3" json:"peers,omitempty"`
+}
+
+func (x *SyncPeerProgress) Reset() {
+	*x = SyncPeerProgress{}
+}
+
+func (*SyncPeerProgress) ProtoMessage() {}
+
+func (x *SyncPeerProgress) GetState() SyncP2PState {
+	if x != nil {
+		return x.State
+	}
+	return SyncP2PState_SyncP2PState_UNKNOWN
+}
+
+func (x *SyncPeerProgress) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *SyncPeerProgress) GetTransfer() *SyncTransferProgress {
+	if x != nil {
+		return x.Transfer
+	}
+	return nil
+}
+
+func (x *SyncPeerProgress) GetNetworkState() SyncTransportState {
+	if x != nil {
+		return x.NetworkState
+	}
+	return SyncTransportState_SyncTransportState_UNKNOWN
+}
+
+func (x *SyncPeerProgress) GetActivePeerCount() uint32 {
+	if x != nil {
+		return x.ActivePeerCount
+	}
+	return 0
+}
+
+func (x *SyncPeerProgress) GetLocalCopies() []*SyncLocalCopyStatus {
+	if x != nil {
+		return x.LocalCopies
+	}
+	return nil
+}
+
+func (x *SyncPeerProgress) GetPeerUploadBytes() uint64 {
+	if x != nil {
+		return x.PeerUploadBytes
+	}
+	return 0
+}
+
+func (x *SyncPeerProgress) GetPeerDownloadBytes() uint64 {
+	if x != nil {
+		return x.PeerDownloadBytes
+	}
+	return 0
+}
+
+func (x *SyncPeerProgress) GetPeers() []*SyncPeerTransferStatus {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
 }
 
 // SyncPeerTransferStatus reports one peer's traffic on the active transport.
@@ -4790,10 +4923,26 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 		return (*WatchSyncStatusResponse)(nil)
 	}
 	r := new(WatchSyncStatusResponse)
+	r.Access = m.Access
+	r.Cloud = protobuf_go_lite.CloneVTValue(m.Cloud)
+	r.Peer = protobuf_go_lite.CloneVTValue(m.Peer)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSyncStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SyncTransferProgress) CloneVT() *SyncTransferProgress {
+	if m == nil {
+		return (*SyncTransferProgress)(nil)
+	}
+	r := new(SyncTransferProgress)
 	r.State = m.State
 	r.Direction = m.Direction
-	r.TransportState = m.TransportState
-	r.P2PState = m.P2PState
 	r.PendingUploadBytes = m.PendingUploadBytes
 	r.PendingDownloadBytes = m.PendingDownloadBytes
 	r.PendingUploadCount = m.PendingUploadCount
@@ -4803,9 +4952,24 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	r.ActiveUploadBytes = m.ActiveUploadBytes
 	r.ActiveUploadTransferredBytes = m.ActiveUploadTransferredBytes
 	r.InFlightUploadCount = m.InFlightUploadCount
-	r.ActiveStoreCount = m.ActiveStoreCount
-	r.ActivePeerCount = m.ActivePeerCount
 	r.LastError = m.LastError
+	r.LastActivityAt = protobuf_go_lite.CloneVTValue(m.LastActivityAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncTransferProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SyncCloudProgress) CloneVT() *SyncCloudProgress {
+	if m == nil {
+		return (*SyncCloudProgress)(nil)
+	}
+	r := new(SyncCloudProgress)
+	r.ActiveStoreCount = m.ActiveStoreCount
 	r.PackRangeRequestCount = m.PackRangeRequestCount
 	r.PackRangeResponseBytes = m.PackRangeResponseBytes
 	r.PackFullResponseFallbackCount = m.PackFullResponseFallbackCount
@@ -4842,14 +5006,32 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	r.PackIndexTailFetchCount = m.PackIndexTailFetchCount
 	r.PackIndexTailFetchBytes = m.PackIndexTailFetchBytes
 	r.PackIndexTailResponseBytes = m.PackIndexTailResponseBytes
-	r.DirectP2PDisabled = m.DirectP2PDisabled
-	r.LocalAccount = m.LocalAccount
-	r.PeerUploadBytes = m.PeerUploadBytes
-	r.PeerDownloadBytes = m.PeerDownloadBytes
 	r.UploadError = m.UploadError
 	r.UploadHold = m.UploadHold
-	r.LastActivityAt = protobuf_go_lite.CloneVTValue(m.LastActivityAt)
+	r.Transfer = protobuf_go_lite.CloneVTValue(m.Transfer)
 	r.BlockStores = protobuf_go_lite.CloneVTSlice(m.BlockStores)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncCloudProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SyncPeerProgress) CloneVT() *SyncPeerProgress {
+	if m == nil {
+		return (*SyncPeerProgress)(nil)
+	}
+	r := new(SyncPeerProgress)
+	r.State = m.State
+	r.LastError = m.LastError
+	r.NetworkState = m.NetworkState
+	r.ActivePeerCount = m.ActivePeerCount
+	r.PeerUploadBytes = m.PeerUploadBytes
+	r.PeerDownloadBytes = m.PeerDownloadBytes
+	r.Transfer = protobuf_go_lite.CloneVTValue(m.Transfer)
 	r.LocalCopies = protobuf_go_lite.CloneVTSlice(m.LocalCopies)
 	r.Peers = protobuf_go_lite.CloneVTSlice(m.Peers)
 	if len(m.unknownFields) > 0 {
@@ -4858,7 +5040,7 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	return r
 }
 
-func (m *WatchSyncStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *SyncPeerProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -7063,16 +7245,36 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 	} else if this == nil || that == nil {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Cloud, that.Cloud) {
+		return false
+	}
+	if this.Access != that.Access {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Peer, that.Peer) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSyncStatusResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSyncStatusResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SyncTransferProgress) EqualVT(that *SyncTransferProgress) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
 	if this.State != that.State {
 		return false
 	}
 	if this.Direction != that.Direction {
-		return false
-	}
-	if this.TransportState != that.TransportState {
-		return false
-	}
-	if this.P2PState != that.P2PState {
 		return false
 	}
 	if this.PendingUploadBytes != that.PendingUploadBytes {
@@ -7093,16 +7295,42 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 	if this.DownloadBytesPerSecond != that.DownloadBytesPerSecond {
 		return false
 	}
-	if this.ActiveStoreCount != that.ActiveStoreCount {
+	if this.ActiveUploadBytes != that.ActiveUploadBytes {
 		return false
 	}
-	if this.ActivePeerCount != that.ActivePeerCount {
+	if this.ActiveUploadTransferredBytes != that.ActiveUploadTransferredBytes {
+		return false
+	}
+	if this.InFlightUploadCount != that.InFlightUploadCount {
 		return false
 	}
 	if this.LastError != that.LastError {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.LastActivityAt, that.LastActivityAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncTransferProgress) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncTransferProgress)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SyncCloudProgress) EqualVT(that *SyncCloudProgress) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Transfer, that.Transfer) {
+		return false
+	}
+	if this.ActiveStoreCount != that.ActiveStoreCount {
 		return false
 	}
 	if this.PackRangeRequestCount != that.PackRangeRequestCount {
@@ -7213,22 +7441,45 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 	if this.PackIndexTailResponseBytes != that.PackIndexTailResponseBytes {
 		return false
 	}
-	if this.ActiveUploadBytes != that.ActiveUploadBytes {
-		return false
-	}
-	if this.ActiveUploadTransferredBytes != that.ActiveUploadTransferredBytes {
-		return false
-	}
-	if this.InFlightUploadCount != that.InFlightUploadCount {
-		return false
-	}
-	if this.DirectP2PDisabled != that.DirectP2PDisabled {
-		return false
-	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.BlockStores, that.BlockStores, func() *SyncBlockStoreStatus { return &SyncBlockStoreStatus{} }) {
 		return false
 	}
-	if this.LocalAccount != that.LocalAccount {
+	if this.UploadError != that.UploadError {
+		return false
+	}
+	if this.UploadHold != that.UploadHold {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncCloudProgress) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncCloudProgress)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SyncPeerProgress) EqualVT(that *SyncPeerProgress) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.LastError != that.LastError {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Transfer, that.Transfer) {
+		return false
+	}
+	if this.NetworkState != that.NetworkState {
+		return false
+	}
+	if this.ActivePeerCount != that.ActivePeerCount {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.LocalCopies, that.LocalCopies, func() *SyncLocalCopyStatus { return &SyncLocalCopyStatus{} }) {
@@ -7243,17 +7494,11 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Peers, that.Peers, func() *SyncPeerTransferStatus { return &SyncPeerTransferStatus{} }) {
 		return false
 	}
-	if this.UploadError != that.UploadError {
-		return false
-	}
-	if this.UploadHold != that.UploadHold {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *WatchSyncStatusResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*WatchSyncStatusResponse)
+func (this *SyncPeerProgress) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncPeerProgress)
 	if !ok {
 		return false
 	}
@@ -9517,6 +9762,46 @@ func (x *SyncStatusState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SyncAccountAccessState to JSON.
+func (x SyncAccountAccessState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SyncAccountAccessState_name)
+}
+
+// MarshalText marshals the SyncAccountAccessState to text.
+func (x SyncAccountAccessState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SyncAccountAccessState_name)), nil
+}
+
+// MarshalJSON marshals the SyncAccountAccessState to JSON.
+func (x SyncAccountAccessState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncAccountAccessState from JSON.
+func (x *SyncAccountAccessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SyncAccountAccessState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SyncAccountAccessState enum: %v", err)
+		return
+	}
+	*x = SyncAccountAccessState(v)
+}
+
+// UnmarshalText unmarshals the SyncAccountAccessState from text.
+func (x *SyncAccountAccessState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SyncAccountAccessState_value)
+	if err != nil {
+		return err
+	}
+	*x = SyncAccountAccessState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SyncAccountAccessState from JSON.
+func (x *SyncAccountAccessState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SyncUploadHold to JSON.
 func (x SyncUploadHold) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), SyncUploadHold_name)
@@ -10988,6 +11273,72 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
+	if x.Cloud != nil || s.HasField("cloud") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cloud")
+		x.Cloud.MarshalProtoJSON(s.WithField("cloud"))
+	}
+	if x.Access != 0 || s.HasField("access") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("access")
+		x.Access.MarshalProtoJSON(s)
+	}
+	if x.Peer != nil || s.HasField("peer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peer")
+		x.Peer.MarshalProtoJSON(s.WithField("peer"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSyncStatusResponse to JSON.
+func (x *WatchSyncStatusResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSyncStatusResponse message from JSON.
+func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "cloud":
+			if s.ReadNil() {
+				x.Cloud = nil
+				return
+			}
+			x.Cloud = &SyncCloudProgress{}
+			x.Cloud.UnmarshalProtoJSON(s.WithField("cloud", true))
+		case "access":
+			s.AddField("access")
+			x.Access.UnmarshalProtoJSON(s)
+		case "peer":
+			if s.ReadNil() {
+				x.Peer = nil
+				return
+			}
+			x.Peer = &SyncPeerProgress{}
+			x.Peer.UnmarshalProtoJSON(s.WithField("peer", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSyncStatusResponse from JSON.
+func (x *WatchSyncStatusResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncTransferProgress message to JSON.
+func (x *SyncTransferProgress) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
 	if x.State != 0 || s.HasField("state") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("state")
@@ -10997,16 +11348,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("direction")
 		x.Direction.MarshalProtoJSON(s)
-	}
-	if x.TransportState != 0 || s.HasField("transportState") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("transportState")
-		x.TransportState.MarshalProtoJSON(s)
-	}
-	if x.P2PState != 0 || s.HasField("p2pState") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("p2pState")
-		x.P2PState.MarshalProtoJSON(s)
 	}
 	if x.PendingUploadBytes != 0 || s.HasField("pendingUploadBytes") {
 		s.WriteMoreIf(&wroteField)
@@ -11038,15 +11379,20 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("downloadBytesPerSecond")
 		s.WriteUint64(x.DownloadBytesPerSecond)
 	}
-	if x.ActiveStoreCount != 0 || s.HasField("activeStoreCount") {
+	if x.ActiveUploadBytes != 0 || s.HasField("activeUploadBytes") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("activeStoreCount")
-		s.WriteUint32(x.ActiveStoreCount)
+		s.WriteObjectField("activeUploadBytes")
+		s.WriteUint64(x.ActiveUploadBytes)
 	}
-	if x.ActivePeerCount != 0 || s.HasField("activePeerCount") {
+	if x.ActiveUploadTransferredBytes != 0 || s.HasField("activeUploadTransferredBytes") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("activePeerCount")
-		s.WriteUint32(x.ActivePeerCount)
+		s.WriteObjectField("activeUploadTransferredBytes")
+		s.WriteUint64(x.ActiveUploadTransferredBytes)
+	}
+	if x.InFlightUploadCount != 0 || s.HasField("inFlightUploadCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inFlightUploadCount")
+		s.WriteUint32(x.InFlightUploadCount)
 	}
 	if x.LastError != "" || s.HasField("lastError") {
 		s.WriteMoreIf(&wroteField)
@@ -11057,6 +11403,93 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("lastActivityAt")
 		x.LastActivityAt.MarshalProtoJSON(s.WithField("lastActivityAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncTransferProgress to JSON.
+func (x *SyncTransferProgress) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncTransferProgress message from JSON.
+func (x *SyncTransferProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "direction":
+			s.AddField("direction")
+			x.Direction.UnmarshalProtoJSON(s)
+		case "pending_upload_bytes", "pendingUploadBytes":
+			s.AddField("pending_upload_bytes")
+			x.PendingUploadBytes = s.ReadUint64()
+		case "pending_download_bytes", "pendingDownloadBytes":
+			s.AddField("pending_download_bytes")
+			x.PendingDownloadBytes = s.ReadUint64()
+		case "pending_upload_count", "pendingUploadCount":
+			s.AddField("pending_upload_count")
+			x.PendingUploadCount = s.ReadUint32()
+		case "pending_download_count", "pendingDownloadCount":
+			s.AddField("pending_download_count")
+			x.PendingDownloadCount = s.ReadUint32()
+		case "upload_bytes_per_second", "uploadBytesPerSecond":
+			s.AddField("upload_bytes_per_second")
+			x.UploadBytesPerSecond = s.ReadUint64()
+		case "download_bytes_per_second", "downloadBytesPerSecond":
+			s.AddField("download_bytes_per_second")
+			x.DownloadBytesPerSecond = s.ReadUint64()
+		case "active_upload_bytes", "activeUploadBytes":
+			s.AddField("active_upload_bytes")
+			x.ActiveUploadBytes = s.ReadUint64()
+		case "active_upload_transferred_bytes", "activeUploadTransferredBytes":
+			s.AddField("active_upload_transferred_bytes")
+			x.ActiveUploadTransferredBytes = s.ReadUint64()
+		case "in_flight_upload_count", "inFlightUploadCount":
+			s.AddField("in_flight_upload_count")
+			x.InFlightUploadCount = s.ReadUint32()
+		case "last_error", "lastError":
+			s.AddField("last_error")
+			x.LastError = s.ReadString()
+		case "last_activity_at", "lastActivityAt":
+			if s.ReadNil() {
+				x.LastActivityAt = nil
+				return
+			}
+			x.LastActivityAt = &timestamppb.Timestamp{}
+			x.LastActivityAt.UnmarshalProtoJSON(s.WithField("last_activity_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncTransferProgress from JSON.
+func (x *SyncTransferProgress) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncCloudProgress message to JSON.
+func (x *SyncCloudProgress) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Transfer != nil || s.HasField("transfer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transfer")
+		x.Transfer.MarshalProtoJSON(s.WithField("transfer"))
+	}
+	if x.ActiveStoreCount != 0 || s.HasField("activeStoreCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("activeStoreCount")
+		s.WriteUint32(x.ActiveStoreCount)
 	}
 	if x.PackRangeRequestCount != 0 || s.HasField("packRangeRequestCount") {
 		s.WriteMoreIf(&wroteField)
@@ -11238,26 +11671,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("packIndexTailResponseBytes")
 		s.WriteUint64(x.PackIndexTailResponseBytes)
 	}
-	if x.ActiveUploadBytes != 0 || s.HasField("activeUploadBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("activeUploadBytes")
-		s.WriteUint64(x.ActiveUploadBytes)
-	}
-	if x.ActiveUploadTransferredBytes != 0 || s.HasField("activeUploadTransferredBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("activeUploadTransferredBytes")
-		s.WriteUint64(x.ActiveUploadTransferredBytes)
-	}
-	if x.InFlightUploadCount != 0 || s.HasField("inFlightUploadCount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("inFlightUploadCount")
-		s.WriteUint32(x.InFlightUploadCount)
-	}
-	if x.DirectP2PDisabled || s.HasField("directP2pDisabled") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("directP2pDisabled")
-		s.WriteBool(x.DirectP2PDisabled)
-	}
 	if len(x.BlockStores) > 0 || s.HasField("blockStores") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("blockStores")
@@ -11266,43 +11679,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.BlockStores {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("blockStores"))
-		}
-		s.WriteArrayEnd()
-	}
-	if x.LocalAccount || s.HasField("localAccount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("localAccount")
-		s.WriteBool(x.LocalAccount)
-	}
-	if len(x.LocalCopies) > 0 || s.HasField("localCopies") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("localCopies")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.LocalCopies {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("localCopies"))
-		}
-		s.WriteArrayEnd()
-	}
-	if x.PeerUploadBytes != 0 || s.HasField("peerUploadBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("peerUploadBytes")
-		s.WriteUint64(x.PeerUploadBytes)
-	}
-	if x.PeerDownloadBytes != 0 || s.HasField("peerDownloadBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("peerDownloadBytes")
-		s.WriteUint64(x.PeerDownloadBytes)
-	}
-	if len(x.Peers) > 0 || s.HasField("peers") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("peers")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Peers {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("peers"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -11319,13 +11695,13 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the WatchSyncStatusResponse to JSON.
-func (x *WatchSyncStatusResponse) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the SyncCloudProgress to JSON.
+func (x *SyncCloudProgress) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the WatchSyncStatusResponse message from JSON.
-func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the SyncCloudProgress message from JSON.
+func (x *SyncCloudProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -11333,52 +11709,16 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "state":
-			s.AddField("state")
-			x.State.UnmarshalProtoJSON(s)
-		case "direction":
-			s.AddField("direction")
-			x.Direction.UnmarshalProtoJSON(s)
-		case "transport_state", "transportState":
-			s.AddField("transport_state")
-			x.TransportState.UnmarshalProtoJSON(s)
-		case "p2p_state", "p2pState":
-			s.AddField("p2p_state")
-			x.P2PState.UnmarshalProtoJSON(s)
-		case "pending_upload_bytes", "pendingUploadBytes":
-			s.AddField("pending_upload_bytes")
-			x.PendingUploadBytes = s.ReadUint64()
-		case "pending_download_bytes", "pendingDownloadBytes":
-			s.AddField("pending_download_bytes")
-			x.PendingDownloadBytes = s.ReadUint64()
-		case "pending_upload_count", "pendingUploadCount":
-			s.AddField("pending_upload_count")
-			x.PendingUploadCount = s.ReadUint32()
-		case "pending_download_count", "pendingDownloadCount":
-			s.AddField("pending_download_count")
-			x.PendingDownloadCount = s.ReadUint32()
-		case "upload_bytes_per_second", "uploadBytesPerSecond":
-			s.AddField("upload_bytes_per_second")
-			x.UploadBytesPerSecond = s.ReadUint64()
-		case "download_bytes_per_second", "downloadBytesPerSecond":
-			s.AddField("download_bytes_per_second")
-			x.DownloadBytesPerSecond = s.ReadUint64()
+		case "transfer":
+			if s.ReadNil() {
+				x.Transfer = nil
+				return
+			}
+			x.Transfer = &SyncTransferProgress{}
+			x.Transfer.UnmarshalProtoJSON(s.WithField("transfer", true))
 		case "active_store_count", "activeStoreCount":
 			s.AddField("active_store_count")
 			x.ActiveStoreCount = s.ReadUint32()
-		case "active_peer_count", "activePeerCount":
-			s.AddField("active_peer_count")
-			x.ActivePeerCount = s.ReadUint32()
-		case "last_error", "lastError":
-			s.AddField("last_error")
-			x.LastError = s.ReadString()
-		case "last_activity_at", "lastActivityAt":
-			if s.ReadNil() {
-				x.LastActivityAt = nil
-				return
-			}
-			x.LastActivityAt = &timestamppb.Timestamp{}
-			x.LastActivityAt.UnmarshalProtoJSON(s.WithField("last_activity_at", true))
 		case "pack_range_request_count", "packRangeRequestCount":
 			s.AddField("pack_range_request_count")
 			x.PackRangeRequestCount = s.ReadUint64()
@@ -11487,18 +11827,6 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "pack_index_tail_response_bytes", "packIndexTailResponseBytes":
 			s.AddField("pack_index_tail_response_bytes")
 			x.PackIndexTailResponseBytes = s.ReadUint64()
-		case "active_upload_bytes", "activeUploadBytes":
-			s.AddField("active_upload_bytes")
-			x.ActiveUploadBytes = s.ReadUint64()
-		case "active_upload_transferred_bytes", "activeUploadTransferredBytes":
-			s.AddField("active_upload_transferred_bytes")
-			x.ActiveUploadTransferredBytes = s.ReadUint64()
-		case "in_flight_upload_count", "inFlightUploadCount":
-			s.AddField("in_flight_upload_count")
-			x.InFlightUploadCount = s.ReadUint32()
-		case "direct_p2p_disabled", "directP2pDisabled":
-			s.AddField("direct_p2p_disabled")
-			x.DirectP2PDisabled = s.ReadBool()
 		case "block_stores", "blockStores":
 			s.AddField("block_stores")
 			if s.ReadNil() {
@@ -11517,9 +11845,122 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.BlockStores = append(x.BlockStores, v)
 			})
-		case "local_account", "localAccount":
-			s.AddField("local_account")
-			x.LocalAccount = s.ReadBool()
+		case "upload_error", "uploadError":
+			s.AddField("upload_error")
+			x.UploadError = s.ReadString()
+		case "upload_hold", "uploadHold":
+			s.AddField("upload_hold")
+			x.UploadHold.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncCloudProgress from JSON.
+func (x *SyncCloudProgress) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncPeerProgress message to JSON.
+func (x *SyncPeerProgress) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.LastError != "" || s.HasField("lastError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastError")
+		s.WriteString(x.LastError)
+	}
+	if x.Transfer != nil || s.HasField("transfer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transfer")
+		x.Transfer.MarshalProtoJSON(s.WithField("transfer"))
+	}
+	if x.NetworkState != 0 || s.HasField("networkState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("networkState")
+		x.NetworkState.MarshalProtoJSON(s)
+	}
+	if x.ActivePeerCount != 0 || s.HasField("activePeerCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("activePeerCount")
+		s.WriteUint32(x.ActivePeerCount)
+	}
+	if len(x.LocalCopies) > 0 || s.HasField("localCopies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localCopies")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.LocalCopies {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("localCopies"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.PeerUploadBytes != 0 || s.HasField("peerUploadBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerUploadBytes")
+		s.WriteUint64(x.PeerUploadBytes)
+	}
+	if x.PeerDownloadBytes != 0 || s.HasField("peerDownloadBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerDownloadBytes")
+		s.WriteUint64(x.PeerDownloadBytes)
+	}
+	if len(x.Peers) > 0 || s.HasField("peers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peers")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Peers {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("peers"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncPeerProgress to JSON.
+func (x *SyncPeerProgress) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncPeerProgress message from JSON.
+func (x *SyncPeerProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "last_error", "lastError":
+			s.AddField("last_error")
+			x.LastError = s.ReadString()
+		case "transfer":
+			if s.ReadNil() {
+				x.Transfer = nil
+				return
+			}
+			x.Transfer = &SyncTransferProgress{}
+			x.Transfer.UnmarshalProtoJSON(s.WithField("transfer", true))
+		case "network_state", "networkState":
+			s.AddField("network_state")
+			x.NetworkState.UnmarshalProtoJSON(s)
+		case "active_peer_count", "activePeerCount":
+			s.AddField("active_peer_count")
+			x.ActivePeerCount = s.ReadUint32()
 		case "local_copies", "localCopies":
 			s.AddField("local_copies")
 			if s.ReadNil() {
@@ -11562,18 +12003,12 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Peers = append(x.Peers, v)
 			})
-		case "upload_error", "uploadError":
-			s.AddField("upload_error")
-			x.UploadError = s.ReadString()
-		case "upload_hold", "uploadHold":
-			s.AddField("upload_hold")
-			x.UploadHold.UnmarshalProtoJSON(s)
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the WatchSyncStatusResponse from JSON.
-func (x *WatchSyncStatusResponse) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the SyncPeerProgress from JSON.
+func (x *SyncPeerProgress) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -17602,68 +18037,178 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Peer != nil {
+		size, err := m.Peer.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Access != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Access))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Cloud != nil {
+		size, err := m.Cloud.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SyncTransferProgress) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncTransferProgress) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncTransferProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LastActivityAt != nil {
+		size, err := m.LastActivityAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if len(m.LastError) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LastError)
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.InFlightUploadCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.InFlightUploadCount))
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.ActiveUploadTransferredBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveUploadTransferredBytes))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.ActiveUploadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveUploadBytes))
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.DownloadBytesPerSecond != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DownloadBytesPerSecond))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.UploadBytesPerSecond != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UploadBytesPerSecond))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.PendingDownloadCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingDownloadCount))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.PendingUploadCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingUploadCount))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.PendingDownloadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingDownloadBytes))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.PendingUploadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingUploadBytes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Direction != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Direction))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SyncCloudProgress) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncCloudProgress) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncCloudProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
 	if m.UploadHold != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UploadHold))
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xf8
+		dAtA[i] = 0xc8
 	}
 	if len(m.UploadError) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.UploadError)
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xf2
-	}
-	if len(m.Peers) > 0 {
-		for iNdEx := len(m.Peers) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Peers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0xea
-		}
-	}
-	if m.PeerDownloadBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PeerDownloadBytes))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xe0
-	}
-	if m.PeerUploadBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PeerUploadBytes))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xd8
-	}
-	if len(m.LocalCopies) > 0 {
-		for iNdEx := len(m.LocalCopies) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.LocalCopies[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0xd2
-		}
-	}
-	if m.LocalAccount {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LocalAccount)
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xc8
+		dAtA[i] = 0xc2
 	}
 	if len(m.BlockStores) > 0 {
 		for iNdEx := len(m.BlockStores) - 1; iNdEx >= 0; iNdEx-- {
@@ -17674,358 +18219,342 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x3
+			dAtA[i] = 0x2
 			i--
-			dAtA[i] = 0xc2
+			dAtA[i] = 0xba
 		}
-	}
-	if m.DirectP2PDisabled {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DirectP2PDisabled)
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xb8
-	}
-	if m.InFlightUploadCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.InFlightUploadCount))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xb0
-	}
-	if m.ActiveUploadTransferredBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveUploadTransferredBytes))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xa8
-	}
-	if m.ActiveUploadBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveUploadBytes))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0xa0
 	}
 	if m.PackIndexTailResponseBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexTailResponseBytes))
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0x98
+		dAtA[i] = 0xb0
 	}
 	if m.PackIndexTailFetchBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexTailFetchBytes))
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0x90
+		dAtA[i] = 0xa8
 	}
 	if m.PackIndexTailFetchCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexTailFetchCount))
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0xa0
 	}
 	if m.PackLastRemoteIndexBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLastRemoteIndexBytes))
 		i--
-		dAtA[i] = 0x3
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0x80
+		dAtA[i] = 0x98
 	}
 	if m.PackRemoteIndexBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackRemoteIndexBytes))
 		i--
 		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xf8
+		dAtA[i] = 0x90
 	}
 	if m.PackRemoteIndexLoads != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackRemoteIndexLoads))
 		i--
 		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xf0
+		dAtA[i] = 0x88
 	}
 	if m.PackIndexCacheWriteErrors != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexCacheWriteErrors))
 		i--
 		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xe8
+		dAtA[i] = 0x80
 	}
 	if m.PackIndexCacheReadErrors != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexCacheReadErrors))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xe0
+		dAtA[i] = 0xf8
 	}
 	if m.PackIndexCacheMisses != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexCacheMisses))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xd8
+		dAtA[i] = 0xf0
 	}
 	if m.PackIndexCacheHits != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackIndexCacheHits))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xd0
+		dAtA[i] = 0xe8
 	}
 	if m.PackLastTargetHit {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.PackLastTargetHit)
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xc8
+		dAtA[i] = 0xe0
 	}
 	if m.PackLastNegativePacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLastNegativePacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xc0
+		dAtA[i] = 0xd8
 	}
 	if m.PackLastOpenedPacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLastOpenedPacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xb8
+		dAtA[i] = 0xd0
 	}
 	if m.PackLastCandidatePacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLastCandidatePacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xb0
+		dAtA[i] = 0xc8
 	}
 	if m.PackTargetHits != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackTargetHits))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xa8
+		dAtA[i] = 0xc0
 	}
 	if m.PackNegativePacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackNegativePacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xa0
+		dAtA[i] = 0xb8
 	}
 	if m.PackOpenedPacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackOpenedPacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x98
+		dAtA[i] = 0xb0
 	}
 	if m.PackCandidatePacks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackCandidatePacks))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x90
+		dAtA[i] = 0xa8
 	}
 	if m.PackLookupCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLookupCount))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0xa0
 	}
 	if m.PackBloomRiskPackCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomRiskPackCount))
 		i--
-		dAtA[i] = 0x2
+		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x80
+		dAtA[i] = 0x98
 	}
 	if m.PackBloomMaxFalsePositiveRate != 0 {
 		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.PackBloomMaxFalsePositiveRate))))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xf9
+		dAtA[i] = 0x91
 	}
 	if m.PackBloomInvalidCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomInvalidCount))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xe8
+		dAtA[i] = 0x88
 	}
 	if m.PackBloomMissingCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomMissingCount))
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0xe0
+		dAtA[i] = 0x80
 	}
 	if m.PackBloomFilterCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomFilterCount))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd8
+		dAtA[i] = 0x78
 	}
 	if m.PackSizeBytesMax != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackSizeBytesMax))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd0
+		dAtA[i] = 0x70
 	}
 	if m.PackSizeBytesMin != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackSizeBytesMin))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc8
+		dAtA[i] = 0x68
 	}
 	if m.PackSizeBytesTotal != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackSizeBytesTotal))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc0
+		dAtA[i] = 0x60
 	}
 	if m.PackBlockCountMax != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBlockCountMax))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb8
+		dAtA[i] = 0x58
 	}
 	if m.PackBlockCountMin != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBlockCountMin))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb0
+		dAtA[i] = 0x50
 	}
 	if m.PackBlockCountTotal != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBlockCountTotal))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa8
+		dAtA[i] = 0x48
 	}
 	if m.PackManifestEntries != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackManifestEntries))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa0
+		dAtA[i] = 0x40
 	}
 	if m.PackLastFullResponseFallbackBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackLastFullResponseFallbackBytes))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x98
+		dAtA[i] = 0x38
 	}
 	if m.PackFullResponseFallbackBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackFullResponseFallbackBytes))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x90
+		dAtA[i] = 0x30
 	}
 	if m.PackFullResponseFallbackCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackFullResponseFallbackCount))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0x28
 	}
 	if m.PackRangeResponseBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackRangeResponseBytes))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		dAtA[i] = 0x20
 	}
 	if m.PackRangeRequestCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackRangeRequestCount))
 		i--
-		dAtA[i] = 0x78
+		dAtA[i] = 0x18
 	}
-	if m.LastActivityAt != nil {
-		size, err := m.LastActivityAt.MarshalToSizedBufferVT(dAtA[:i])
+	if m.ActiveStoreCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveStoreCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Transfer != nil {
+		size, err := m.Transfer.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x72
+		dAtA[i] = 0xa
 	}
-	if len(m.LastError) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.LastError)
+	return len(dAtA) - i, nil
+}
+
+func (m *SyncPeerProgress) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncPeerProgress) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncPeerProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Peers) > 0 {
+		for iNdEx := len(m.Peers) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Peers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if m.PeerDownloadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PeerDownloadBytes))
 		i--
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x40
+	}
+	if m.PeerUploadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PeerUploadBytes))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.LocalCopies) > 0 {
+		for iNdEx := len(m.LocalCopies) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.LocalCopies[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
 	}
 	if m.ActivePeerCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActivePeerCount))
 		i--
-		dAtA[i] = 0x60
-	}
-	if m.ActiveStoreCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ActiveStoreCount))
-		i--
-		dAtA[i] = 0x58
-	}
-	if m.DownloadBytesPerSecond != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DownloadBytesPerSecond))
-		i--
-		dAtA[i] = 0x50
-	}
-	if m.UploadBytesPerSecond != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UploadBytesPerSecond))
-		i--
-		dAtA[i] = 0x48
-	}
-	if m.PendingDownloadCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingDownloadCount))
-		i--
-		dAtA[i] = 0x40
-	}
-	if m.PendingUploadCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingUploadCount))
-		i--
-		dAtA[i] = 0x38
-	}
-	if m.PendingDownloadBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingDownloadBytes))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.PendingUploadBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingUploadBytes))
-		i--
 		dAtA[i] = 0x28
 	}
-	if m.P2PState != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.P2PState))
+	if m.NetworkState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetworkState))
 		i--
 		dAtA[i] = 0x20
 	}
-	if m.TransportState != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TransportState))
+	if m.Transfer != nil {
+		size, err := m.Transfer.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x1a
 	}
-	if m.Direction != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Direction))
+	if len(m.LastError) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LastError)
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x12
 	}
 	if m.State != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
@@ -22577,36 +23106,69 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Cloud != nil {
+		l = m.Cloud.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Access)
+	if m.Peer != nil {
+		l = m.Peer.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SyncTransferProgress) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Direction)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.TransportState)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.P2PState)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingUploadBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingDownloadBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingUploadCount)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingDownloadCount)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UploadBytesPerSecond)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.DownloadBytesPerSecond)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActiveStoreCount)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActivePeerCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActiveUploadBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActiveUploadTransferredBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.InFlightUploadCount)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LastError)
 	if m.LastActivityAt != nil {
 		l = m.LastActivityAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SyncCloudProgress) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Transfer != nil {
+		l = m.Transfer.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActiveStoreCount)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackRangeRequestCount)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackRangeResponseBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackFullResponseFallbackCount)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackFullResponseFallbackBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackLastFullResponseFallbackBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackManifestEntries)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBlockCountTotal)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBlockCountMin)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBlockCountMax)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackSizeBytesTotal)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackSizeBytesMin)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackSizeBytesMax)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomFilterCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackRangeResponseBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackFullResponseFallbackCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackFullResponseFallbackBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackLastFullResponseFallbackBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackManifestEntries)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackBlockCountTotal)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackBlockCountMin)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackBlockCountMax)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackSizeBytesTotal)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackSizeBytesMin)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackSizeBytesMax)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PackBloomFilterCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomMissingCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomInvalidCount)
 	n += protobuf_go_lite.SizeFixed64NonZero(2, m.PackBloomMaxFalsePositiveRate)
@@ -22630,27 +23192,40 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackIndexTailFetchCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackIndexTailFetchBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackIndexTailResponseBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.ActiveUploadBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.ActiveUploadTransferredBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.InFlightUploadCount)
-	n += protobuf_go_lite.SizeBoolNonZero(2, m.DirectP2PDisabled)
 	for _, e := range m.BlockStores {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(2, l)
-	}
-	n += protobuf_go_lite.SizeBoolNonZero(2, m.LocalAccount)
-	for _, e := range m.LocalCopies {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(2, l)
-	}
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PeerUploadBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PeerDownloadBytes)
-	for _, e := range m.Peers {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(2, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.UploadError)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.UploadHold)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SyncPeerProgress) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LastError)
+	if m.Transfer != nil {
+		l = m.Transfer.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetworkState)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ActivePeerCount)
+	for _, e := range m.LocalCopies {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PeerUploadBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PeerDownloadBytes)
+	for _, e := range m.Peers {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -23925,6 +24500,10 @@ func (x SyncStatusState) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x SyncAccountAccessState) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x SyncUploadHold) MarshalProtoText() string {
 	return x.String()
 }
@@ -24374,6 +24953,28 @@ func (x *SyncHeldState) String() string {
 func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchSyncStatusResponse")
+	if x.Cloud != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cloud")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Cloud)
+	}
+	if x.Access != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "access")
+		protobuf_go_lite.TextWriteStringer(&sb, SyncAccountAccessState(x.Access))
+	}
+	if x.Peer != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Peer)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchSyncStatusResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SyncTransferProgress) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SyncTransferProgress")
 	if x.State != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
 		protobuf_go_lite.TextWriteStringer(&sb, SyncStatusState(x.State))
@@ -24381,14 +24982,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	if x.Direction != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direction")
 		protobuf_go_lite.TextWriteStringer(&sb, SyncActivityDirection(x.Direction))
-	}
-	if x.TransportState != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transport_state")
-		protobuf_go_lite.TextWriteStringer(&sb, SyncTransportState(x.TransportState))
-	}
-	if x.P2PState != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "p2p_state")
-		protobuf_go_lite.TextWriteStringer(&sb, SyncP2PState(x.P2PState))
 	}
 	if x.PendingUploadBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending_upload_bytes")
@@ -24414,13 +25007,17 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "download_bytes_per_second")
 		protobuf_go_lite.TextWriteUint(&sb, x.DownloadBytesPerSecond)
 	}
-	if x.ActiveStoreCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_store_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.ActiveStoreCount)
+	if x.ActiveUploadBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_upload_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.ActiveUploadBytes)
 	}
-	if x.ActivePeerCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_peer_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.ActivePeerCount)
+	if x.ActiveUploadTransferredBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_upload_transferred_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.ActiveUploadTransferredBytes)
+	}
+	if x.InFlightUploadCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "in_flight_upload_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.InFlightUploadCount)
 	}
 	if x.LastError != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_error")
@@ -24429,6 +25026,24 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	if x.LastActivityAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_activity_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LastActivityAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SyncTransferProgress) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SyncCloudProgress) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SyncCloudProgress")
+	if x.Transfer != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Transfer)
+	}
+	if x.ActiveStoreCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_store_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.ActiveStoreCount)
 	}
 	if x.PackRangeRequestCount != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_range_request_count")
@@ -24574,22 +25189,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_index_tail_response_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.PackIndexTailResponseBytes)
 	}
-	if x.ActiveUploadBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_upload_bytes")
-		protobuf_go_lite.TextWriteUint(&sb, x.ActiveUploadBytes)
-	}
-	if x.ActiveUploadTransferredBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_upload_transferred_bytes")
-		protobuf_go_lite.TextWriteUint(&sb, x.ActiveUploadTransferredBytes)
-	}
-	if x.InFlightUploadCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "in_flight_upload_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.InFlightUploadCount)
-	}
-	if x.DirectP2PDisabled != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direct_p2p_disabled")
-		protobuf_go_lite.TextWriteBool(&sb, x.DirectP2PDisabled)
-	}
 	if len(x.BlockStores) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "block_stores")
 		for i, v := range x.BlockStores {
@@ -24602,9 +25201,43 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if x.LocalAccount != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local_account")
-		protobuf_go_lite.TextWriteBool(&sb, x.LocalAccount)
+	if x.UploadError != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_error")
+		protobuf_go_lite.TextWriteString(&sb, x.UploadError)
+	}
+	if x.UploadHold != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_hold")
+		protobuf_go_lite.TextWriteStringer(&sb, SyncUploadHold(x.UploadHold))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SyncCloudProgress) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SyncPeerProgress) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SyncPeerProgress")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, SyncP2PState(x.State))
+	}
+	if x.LastError != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_error")
+		protobuf_go_lite.TextWriteString(&sb, x.LastError)
+	}
+	if x.Transfer != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Transfer)
+	}
+	if x.NetworkState != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "network_state")
+		protobuf_go_lite.TextWriteStringer(&sb, SyncTransportState(x.NetworkState))
+	}
+	if x.ActivePeerCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "active_peer_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.ActivePeerCount)
 	}
 	if len(x.LocalCopies) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "local_copies")
@@ -24638,18 +25271,10 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if x.UploadError != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_error")
-		protobuf_go_lite.TextWriteString(&sb, x.UploadError)
-	}
-	if x.UploadHold != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_hold")
-		protobuf_go_lite.TextWriteStringer(&sb, SyncUploadHold(x.UploadHold))
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *WatchSyncStatusResponse) String() string {
+func (x *SyncPeerProgress) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -27917,6 +28542,90 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cloud", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Cloud == nil {
+				m.Cloud = &SyncCloudProgress{}
+			}
+			if err := m.Cloud.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Access", wireType)
+			}
+			m.Access = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Access = SyncAccountAccessState(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Peer", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Peer == nil {
+				m.Peer = &SyncPeerProgress{}
+			}
+			if err := m.Peer.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SyncTransferProgress) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncTransferProgress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncTransferProgress: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
 			}
@@ -27940,28 +28649,6 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TransportState", wireType)
-			}
-			m.TransportState = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.TransportState = SyncTransportState(_v)
-			if err != nil {
-				return err
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field P2PState", wireType)
-			}
-			m.P2PState = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.P2PState = SyncP2PState(_v)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PendingUploadBytes", wireType)
 			}
 			m.PendingUploadBytes = 0
@@ -27969,7 +28656,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 6:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PendingDownloadBytes", wireType)
 			}
@@ -27978,7 +28665,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 7:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PendingUploadCount", wireType)
 			}
@@ -27987,7 +28674,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 8:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PendingDownloadCount", wireType)
 			}
@@ -27996,7 +28683,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 9:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UploadBytesPerSecond", wireType)
 			}
@@ -28005,7 +28692,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 10:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DownloadBytesPerSecond", wireType)
 			}
@@ -28014,25 +28701,34 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActiveUploadBytes", wireType)
+			}
+			m.ActiveUploadBytes = 0
+			m.ActiveUploadBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActiveUploadTransferredBytes", wireType)
+			}
+			m.ActiveUploadTransferredBytes = 0
+			m.ActiveUploadTransferredBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		case 11:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ActiveStoreCount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field InFlightUploadCount", wireType)
 			}
-			m.ActiveStoreCount = 0
-			m.ActiveStoreCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.InFlightUploadCount = 0
+			m.InFlightUploadCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
 		case 12:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ActivePeerCount", wireType)
-			}
-			m.ActivePeerCount = 0
-			m.ActivePeerCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 13:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LastError", wireType)
 			}
@@ -28042,7 +28738,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LastError = v
-		case 14:
+		case 13:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LastActivityAt", wireType)
 			}
@@ -28057,7 +28753,74 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 15:
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SyncCloudProgress) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncCloudProgress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncCloudProgress: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Transfer", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Transfer == nil {
+				m.Transfer = &SyncTransferProgress{}
+			}
+			if err := m.Transfer.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActiveStoreCount", wireType)
+			}
+			m.ActiveStoreCount = 0
+			m.ActiveStoreCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackRangeRequestCount", wireType)
 			}
@@ -28066,7 +28829,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 16:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackRangeResponseBytes", wireType)
 			}
@@ -28075,7 +28838,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 17:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackFullResponseFallbackCount", wireType)
 			}
@@ -28084,7 +28847,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 18:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackFullResponseFallbackBytes", wireType)
 			}
@@ -28093,7 +28856,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 19:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastFullResponseFallbackBytes", wireType)
 			}
@@ -28102,7 +28865,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 20:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackManifestEntries", wireType)
 			}
@@ -28111,7 +28874,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 21:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBlockCountTotal", wireType)
 			}
@@ -28120,7 +28883,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 22:
+		case 10:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBlockCountMin", wireType)
 			}
@@ -28129,7 +28892,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 23:
+		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBlockCountMax", wireType)
 			}
@@ -28138,7 +28901,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 24:
+		case 12:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackSizeBytesTotal", wireType)
 			}
@@ -28147,7 +28910,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 25:
+		case 13:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackSizeBytesMin", wireType)
 			}
@@ -28156,7 +28919,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 26:
+		case 14:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackSizeBytesMax", wireType)
 			}
@@ -28165,7 +28928,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 27:
+		case 15:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomFilterCount", wireType)
 			}
@@ -28174,7 +28937,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 28:
+		case 16:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomMissingCount", wireType)
 			}
@@ -28183,7 +28946,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 29:
+		case 17:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomInvalidCount", wireType)
 			}
@@ -28192,7 +28955,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 31:
+		case 18:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomMaxFalsePositiveRate", wireType)
 			}
@@ -28204,7 +28967,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			v = uint64(_v64)
 			m.PackBloomMaxFalsePositiveRate = float64(math.Float64frombits(v))
-		case 32:
+		case 19:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomRiskPackCount", wireType)
 			}
@@ -28213,7 +28976,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 33:
+		case 20:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLookupCount", wireType)
 			}
@@ -28222,7 +28985,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 34:
+		case 21:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackCandidatePacks", wireType)
 			}
@@ -28231,7 +28994,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 35:
+		case 22:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackOpenedPacks", wireType)
 			}
@@ -28240,7 +29003,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 36:
+		case 23:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackNegativePacks", wireType)
 			}
@@ -28249,7 +29012,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 37:
+		case 24:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackTargetHits", wireType)
 			}
@@ -28258,7 +29021,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 38:
+		case 25:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastCandidatePacks", wireType)
 			}
@@ -28267,7 +29030,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 39:
+		case 26:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastOpenedPacks", wireType)
 			}
@@ -28276,7 +29039,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 40:
+		case 27:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastNegativePacks", wireType)
 			}
@@ -28285,7 +29048,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 41:
+		case 28:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastTargetHit", wireType)
 			}
@@ -28295,7 +29058,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PackLastTargetHit = bool(v)
-		case 42:
+		case 29:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexCacheHits", wireType)
 			}
@@ -28304,7 +29067,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 43:
+		case 30:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexCacheMisses", wireType)
 			}
@@ -28313,7 +29076,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 44:
+		case 31:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexCacheReadErrors", wireType)
 			}
@@ -28322,7 +29085,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 45:
+		case 32:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexCacheWriteErrors", wireType)
 			}
@@ -28331,7 +29094,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 46:
+		case 33:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackRemoteIndexLoads", wireType)
 			}
@@ -28340,7 +29103,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 47:
+		case 34:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackRemoteIndexBytes", wireType)
 			}
@@ -28349,7 +29112,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 48:
+		case 35:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackLastRemoteIndexBytes", wireType)
 			}
@@ -28358,7 +29121,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 49:
+		case 36:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexTailFetchCount", wireType)
 			}
@@ -28367,7 +29130,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 50:
+		case 37:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexTailFetchBytes", wireType)
 			}
@@ -28376,7 +29139,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 51:
+		case 38:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PackIndexTailResponseBytes", wireType)
 			}
@@ -28385,44 +29148,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 52:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ActiveUploadBytes", wireType)
-			}
-			m.ActiveUploadBytes = 0
-			m.ActiveUploadBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 53:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ActiveUploadTransferredBytes", wireType)
-			}
-			m.ActiveUploadTransferredBytes = 0
-			m.ActiveUploadTransferredBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 54:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InFlightUploadCount", wireType)
-			}
-			m.InFlightUploadCount = 0
-			m.InFlightUploadCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 55:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DirectP2PDisabled", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DirectP2PDisabled = bool(v)
-		case 56:
+		case 39:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BlockStores", wireType)
 			}
@@ -28435,17 +29161,127 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 57:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LocalAccount", wireType)
+		case 40:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UploadError", wireType)
 			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.LocalAccount = bool(v)
-		case 58:
+			m.UploadError = v
+		case 41:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UploadHold", wireType)
+			}
+			m.UploadHold = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.UploadHold = SyncUploadHold(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SyncPeerProgress) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncPeerProgress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncPeerProgress: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = SyncP2PState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastError", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LastError = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Transfer", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Transfer == nil {
+				m.Transfer = &SyncTransferProgress{}
+			}
+			if err := m.Transfer.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NetworkState", wireType)
+			}
+			m.NetworkState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.NetworkState = SyncTransportState(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActivePeerCount", wireType)
+			}
+			m.ActivePeerCount = 0
+			m.ActivePeerCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LocalCopies", wireType)
 			}
@@ -28458,7 +29294,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 59:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerUploadBytes", wireType)
 			}
@@ -28467,7 +29303,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 60:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerDownloadBytes", wireType)
 			}
@@ -28476,7 +29312,7 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 61:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Peers", wireType)
 			}
@@ -28489,27 +29325,6 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 62:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UploadError", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.UploadError = v
-		case 63:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UploadHold", wireType)
-			}
-			m.UploadHold = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.UploadHold = SyncUploadHold(_v)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

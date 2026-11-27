@@ -162,8 +162,10 @@ func watchSessionUploads(
 		}
 
 		// Take or release the hold as uploads appear and settle.
-		pending := status.GetUploadError() == "" &&
-			(status.GetPendingUploadCount() != 0 || status.GetPendingUploadBytes() != 0 || status.GetInFlightUploadCount() != 0)
+		cloud := status.GetCloud()
+		transfer := cloud.GetTransfer()
+		pending := cloud.GetUploadError() == "" &&
+			(transfer.GetPendingUploadCount() != 0 || transfer.GetPendingUploadBytes() != 0 || transfer.GetInFlightUploadCount() != 0)
 		switch {
 		case pending && release == nil:
 			release = idleTracker.serviceAttached("uploads for session " + strconv.FormatUint(uint64(index), 10))

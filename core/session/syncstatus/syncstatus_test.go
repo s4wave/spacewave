@@ -100,19 +100,19 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 	spacewaveAcc := &provider_spacewave.ProviderAccount{}
 	spacewaveAcc.SetAccountStatus(provider.ProviderAccountStatus_ProviderAccountStatus_READY)
 	tests := []struct {
-		name      string
-		acc       provider.ProviderAccount
-		transport s4wave_session.SyncTransportState
+		name   string
+		acc    provider.ProviderAccount
+		access s4wave_session.SyncAccountAccessState
 	}{
 		{
-			name:      "local",
-			acc:       &provider_local.ProviderAccount{},
-			transport: s4wave_session.SyncTransportState_SyncTransportState_UNAVAILABLE,
+			name:   "local",
+			acc:    &provider_local.ProviderAccount{},
+			access: s4wave_session.SyncAccountAccessState_SyncAccountAccessState_LOCAL,
 		},
 		{
-			name:      "spacewave",
-			acc:       spacewaveAcc,
-			transport: s4wave_session.SyncTransportState_SyncTransportState_ONLINE,
+			name:   "spacewave",
+			acc:    spacewaveAcc,
+			access: s4wave_session.SyncAccountAccessState_SyncAccountAccessState_READY,
 		},
 	}
 	for _, test := range tests {
@@ -133,23 +133,27 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 
 			// Require a synced, idle snapshot with no transfer rate.
 			resp := recvSyncStatusResponse(t, msgs)
-			if resp.GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
-				t.Fatalf("state = %v, want synced", resp.GetState())
+			transfer := resp.GetCloud().GetTransfer()
+			if test.name == "local" {
+				transfer = resp.GetPeer().GetTransfer()
 			}
-			if resp.GetDirection() != s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE {
-				t.Fatalf("direction = %v, want none", resp.GetDirection())
+			if transfer.GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
+				t.Fatalf("state = %v, want synced", transfer.GetState())
 			}
-			if resp.GetTransportState() != test.transport {
-				t.Fatalf("transport = %v, want %v", resp.GetTransportState(), test.transport)
+			if transfer.GetDirection() != s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE {
+				t.Fatalf("direction = %v, want none", transfer.GetDirection())
 			}
-			if resp.GetP2PState() != s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS {
-				t.Fatalf("p2p = %v, want no peers", resp.GetP2PState())
+			if resp.GetAccess() != test.access {
+				t.Fatalf("access = %v, want %v", resp.GetAccess(), test.access)
 			}
-			if resp.GetUploadBytesPerSecond() != 0 || resp.GetDownloadBytesPerSecond() != 0 {
+			if resp.GetPeer().GetState() != s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS {
+				t.Fatalf("p2p = %v, want no peers", resp.GetPeer().GetState())
+			}
+			if transfer.GetUploadBytesPerSecond() != 0 || transfer.GetDownloadBytesPerSecond() != 0 {
 				t.Fatalf(
 					"throughput = %d/%d, want idle",
-					resp.GetUploadBytesPerSecond(),
-					resp.GetDownloadBytesPerSecond(),
+					transfer.GetUploadBytesPerSecond(),
+					transfer.GetDownloadBytesPerSecond(),
 				)
 			}
 
@@ -218,7 +222,6 @@ func TestWaitSyncStatusWaitsForEverySource(t *testing.T) {
 func TestSyncStatusSpacewaveAggregation(t *testing.T) {
 	t.Parallel()
 
-	status := provider.ProviderAccountStatus_ProviderAccountStatus_READY
 	tests := []struct {
 		name      string
 		telemetry provider_spacewave.SyncTelemetrySnapshot
@@ -273,21 +276,18 @@ func TestSyncStatusSpacewaveAggregation(t *testing.T) {
 			t.Parallel()
 
 			// Project Spacewave telemetry into the expected sync state.
-			resp := syncStatusFromSpacewaveTelemetry(test.telemetry, status, provider_spacewave.TransportCompositionSnapshot{}, &syncStatusRateState{}, time.Unix(20, 0))
-			if resp.GetState() != test.state {
-				t.Fatalf("state = %v, want %v", resp.GetState(), test.state)
+			resp := syncStatusFromSpacewaveTelemetry(test.telemetry, &syncStatusRateState{}, time.Unix(20, 0))
+			if resp.GetTransfer().GetState() != test.state {
+				t.Fatalf("state = %v, want %v", resp.GetTransfer().GetState(), test.state)
 			}
-			if resp.GetDirection() != test.direction {
-				t.Fatalf("direction = %v, want %v", resp.GetDirection(), test.direction)
-			}
-			if resp.GetTransportState() != s4wave_session.SyncTransportState_SyncTransportState_ONLINE {
-				t.Fatalf("transport = %v, want online", resp.GetTransportState())
+			if resp.GetTransfer().GetDirection() != test.direction {
+				t.Fatalf("direction = %v, want %v", resp.GetTransfer().GetDirection(), test.direction)
 			}
 			if test.name == "uploading" {
-				if resp.GetActiveUploadBytes() != 64 || resp.GetInFlightUploadCount() != 1 {
+				if resp.GetTransfer().GetActiveUploadBytes() != 64 || resp.GetTransfer().GetInFlightUploadCount() != 1 {
 					t.Fatalf("active upload fields = %d/%d, want 64/1",
-						resp.GetActiveUploadBytes(),
-						resp.GetInFlightUploadCount(),
+						resp.GetTransfer().GetActiveUploadBytes(),
+						resp.GetTransfer().GetInFlightUploadCount(),
 					)
 				}
 			}
@@ -305,14 +305,14 @@ func TestSyncStatusLocalNoPeerAggregation(t *testing.T) {
 		false,
 		false,
 	)
-	if resp.GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
-		t.Fatalf("state = %v, want synced", resp.GetState())
+	if resp.GetTransfer().GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
+		t.Fatalf("state = %v, want synced", resp.GetTransfer().GetState())
 	}
-	if resp.GetTransportState() != s4wave_session.SyncTransportState_SyncTransportState_UNAVAILABLE {
-		t.Fatalf("transport = %v, want unavailable", resp.GetTransportState())
+	if resp.GetNetworkState() != s4wave_session.SyncTransportState_SyncTransportState_UNAVAILABLE {
+		t.Fatalf("transport = %v, want unavailable", resp.GetNetworkState())
 	}
-	if resp.GetP2PState() != s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS {
-		t.Fatalf("p2p = %v, want no peers", resp.GetP2PState())
+	if resp.GetState() != s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS {
+		t.Fatalf("p2p = %v, want no peers", resp.GetState())
 	}
 }
 
@@ -369,20 +369,20 @@ func TestSyncStatusLocalP2PLifecycleAggregation(t *testing.T) {
 
 			// Project the local pairing and transport into the expected P2P state.
 			resp := syncStatusFromLocalState(test.pairing, test.transport, test.p2pRunning)
-			if resp.GetState() != test.state {
-				t.Fatalf("state = %v, want %v", resp.GetState(), test.state)
+			if resp.GetTransfer().GetState() != test.state {
+				t.Fatalf("state = %v, want %v", resp.GetTransfer().GetState(), test.state)
 			}
-			if resp.GetP2PState() != test.p2p {
-				t.Fatalf("p2p = %v, want %v", resp.GetP2PState(), test.p2p)
+			if resp.GetState() != test.p2p {
+				t.Fatalf("p2p = %v, want %v", resp.GetState(), test.p2p)
 			}
 			if resp.GetLastError() != test.errMsg {
 				t.Fatalf("last error = %q, want %q", resp.GetLastError(), test.errMsg)
 			}
-			if resp.GetUploadBytesPerSecond() != 0 || resp.GetDownloadBytesPerSecond() != 0 {
+			if resp.GetTransfer().GetUploadBytesPerSecond() != 0 || resp.GetTransfer().GetDownloadBytesPerSecond() != 0 {
 				t.Fatalf(
 					"throughput = %d/%d, want no p2p throughput",
-					resp.GetUploadBytesPerSecond(),
-					resp.GetDownloadBytesPerSecond(),
+					resp.GetTransfer().GetUploadBytesPerSecond(),
+					resp.GetTransfer().GetDownloadBytesPerSecond(),
 				)
 			}
 		})
@@ -398,27 +398,27 @@ func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
 	first := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
 		PushedBytes:    0,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(30, 0))
-	if first.GetUploadBytesPerSecond() != 0 {
-		t.Fatalf("initial upload rate = %d, want 0", first.GetUploadBytesPerSecond())
+	}, rate, time.Unix(30, 0))
+	if first.GetTransfer().GetUploadBytesPerSecond() != 0 {
+		t.Fatalf("initial upload rate = %d, want 0", first.GetTransfer().GetUploadBytesPerSecond())
 	}
 
 	// Ignore a sample inside the rate window.
 	limited := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
 		PushedBytes:    512,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(30, int64(500*time.Millisecond)))
-	if limited.GetUploadBytesPerSecond() != 0 {
-		t.Fatalf("limited upload rate = %d, want previous 0", limited.GetUploadBytesPerSecond())
+	}, rate, time.Unix(30, int64(500*time.Millisecond)))
+	if limited.GetTransfer().GetUploadBytesPerSecond() != 0 {
+		t.Fatalf("limited upload rate = %d, want previous 0", limited.GetTransfer().GetUploadBytesPerSecond())
 	}
 
 	// Publish the rate after the window elapses.
 	updated := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes: 1,
 		PushedBytes:    1024,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(31, 0))
-	if updated.GetUploadBytesPerSecond() != 1024 {
-		t.Fatalf("updated upload rate = %d, want 1024", updated.GetUploadBytesPerSecond())
+	}, rate, time.Unix(31, 0))
+	if updated.GetTransfer().GetUploadBytesPerSecond() != 1024 {
+		t.Fatalf("updated upload rate = %d, want 1024", updated.GetTransfer().GetUploadBytesPerSecond())
 	}
 }
 
@@ -432,16 +432,16 @@ func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
 		InFlightPushes:               1,
 		ActiveUploadBytes:            4096,
 		ActiveUploadTransferredBytes: 0,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(40, 0))
+	}, rate, time.Unix(40, 0))
 
 	// Include in-flight upload progress in the next rate.
 	resp := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
 		InFlightPushes:               1,
 		ActiveUploadBytes:            4096,
 		ActiveUploadTransferredBytes: 2048,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(41, 0))
-	if resp.GetUploadBytesPerSecond() != 2048 {
-		t.Fatalf("active upload rate = %d, want 2048", resp.GetUploadBytesPerSecond())
+	}, rate, time.Unix(41, 0))
+	if resp.GetTransfer().GetUploadBytesPerSecond() != 2048 {
+		t.Fatalf("active upload rate = %d, want 2048", resp.GetTransfer().GetUploadBytesPerSecond())
 	}
 }
 
@@ -485,7 +485,7 @@ func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
 		IndexTailFetchCount:       9,
 		IndexTailFetchBytes:       2048,
 		IndexTailResponseBytes:    1024,
-	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, &syncStatusRateState{}, time.Unix(40, 0))
+	}, &syncStatusRateState{}, time.Unix(40, 0))
 	if resp.GetPackRangeRequestCount() != 3 || resp.GetPackRangeResponseBytes() != 3072 {
 		t.Fatalf("unexpected range telemetry: %+v", resp)
 	}
@@ -536,22 +536,22 @@ func TestSyncStatusProjectsCloudCompositionAndSourceMechanics(t *testing.T) {
 				CloudRemoteSequence:      9,
 			}},
 		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		provider_spacewave.TransportCompositionSnapshot{
-			DirectP2PEnabled: true,
-			P2PState:         provider_spacewave.TransportCompositionP2PStateFallbackNoPeer,
-		},
 		nil,
-		time.Time{},
-	)
-	if resp.GetTransportState() != s4wave_session.SyncTransportState_SyncTransportState_ONLINE {
-		t.Fatalf("Cloud transport = %s, want online", resp.GetTransportState())
+		time.Time{})
+
+	// A direct-path failure stays in the peer observation after cloud completion.
+	peer := syncStatusFromSpacewaveComposition(provider_spacewave.TransportCompositionSnapshot{
+		P2PState:  provider_spacewave.TransportCompositionP2PStateError,
+		LastError: "direct link failed",
+	})
+	if peer.GetState() != s4wave_session.SyncP2PState_SyncP2PState_ERROR || peer.GetLastError() != "direct link failed" {
+		t.Fatalf("peer failure = %v", peer)
 	}
-	if resp.GetDirectP2PDisabled() ||
-		resp.GetP2PState() != s4wave_session.SyncP2PState_SyncP2PState_FALLBACK_NO_PEER ||
-		resp.GetActivePeerCount() != 0 {
-		t.Fatalf("unexpected composition projection: %+v", resp)
+	if resp.GetTransfer().GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED || resp.GetTransfer().GetLastError() != "" {
+		t.Fatalf("cloud progress inherited peer failure: %v", resp)
 	}
+
+	// Check that source and convergence counters retain their store identity.
 	stores := resp.GetBlockStores()
 	if len(stores) != 1 {
 		t.Fatalf("block store projections = %d, want 1", len(stores))
@@ -612,16 +612,13 @@ func TestSyncStatusShowsHeldStore(t *testing.T) {
 	var telemetry synctelemetry.Store
 	since := time.Date(2026, 11, 15, 8, 0, 0, 0, time.UTC)
 	telemetry.SetCorruptDirty("store", 1, since, true)
-	project := func() *s4wave_session.WatchSyncStatusResponse {
+	project := func() *s4wave_session.SyncCloudProgress {
 		return syncStatusFromSpacewaveTelemetry(
 			telemetry.Snapshot(),
-			provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-			provider_spacewave.TransportCompositionSnapshot{},
 			nil,
-			time.Time{},
-		)
+			time.Time{})
 	}
-	wantHeld := func(stage string, resp *s4wave_session.WatchSyncStatusResponse, count uint32, partial bool) {
+	wantHeld := func(stage string, resp *s4wave_session.SyncCloudProgress, count uint32, partial bool) {
 		t.Helper()
 		held := resp.GetBlockStores()[0].GetHeld()
 		if held.GetDamagedBlockCount() != count || held.GetPartial() != partial || !held.GetHeldAt().AsTime().Equal(since) {
@@ -638,8 +635,8 @@ func TestSyncStatusShowsHeldStore(t *testing.T) {
 	telemetry.StartPull("store")
 	telemetry.FinishPull("store", errors.New("pull failed"))
 	resp := project()
-	if resp.GetLastError() != "pull failed" {
-		t.Fatalf("last error = %q; want the pull error", resp.GetLastError())
+	if resp.GetTransfer().GetLastError() != "pull failed" {
+		t.Fatalf("last error = %q; want the pull error", resp.GetTransfer().GetLastError())
 	}
 	wantHeld("after a pull error", resp, 2, false)
 

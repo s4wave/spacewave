@@ -190,11 +190,21 @@ function SessionSyncStatusPopover() {
       )}
 
       <div className="border-foreground/8 space-y-1.5 border-t pt-2">
-        <SyncRow label="Transport" value={status.transportLabel} />
+        <SyncRow
+          label={status.local ? 'Network' : 'Account access'}
+          value={status.transportLabel}
+        />
         <SyncRow label="P2P" value={status.p2pLabel} />
+        {status.peerError && !status.local && (
+          <SyncRow label="Peer error" value={status.peerError} tone="error" />
+        )}
         <SyncRow label="Activity" value={status.lastActivityLabel} />
         {status.lastError && (
-          <SyncRow label="Last error" value={status.lastError} tone="error" />
+          <SyncRow
+            label={status.local ? 'Peer error' : 'Cloud error'}
+            value={status.lastError}
+            tone="error"
+          />
         )}
       </div>
     </div>
