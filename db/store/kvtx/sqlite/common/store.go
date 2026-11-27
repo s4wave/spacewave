@@ -254,7 +254,7 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	}
 
 	// Start the flusher, the WAL flow and the background checkpointer.
-	s.flusher = kvtx.NewOrderedFlusher(s.markingFailure(s.flushWAL), SyncDeadline)
+	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline, hold.failStop())
 	s.flow = newWALFlow(s.walSize, s.wakeCheckpoint, walBound, &s.stats)
 	go s.runCheckpoints(ctx)
 	openStores.Store(s, struct{}{})
@@ -291,8 +291,10 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 // openFlush marks hold with its file's fail-stop mark, refuses a file whose
 // WAL flush failed in this process, and flushes the WAL before SQLite reads
 // it, so SQLite recovers only frames the drive holds, as syncWALAtOpen
-// describes. A writable Store creates its file first, so the mark covers the
-// Store's first flush. kvtx.FailStopOff turns all three off.
+// describes. The flush runs as one of the file's flushes, under its
+// kvtx.FailStop, and a failure of it fails the file. A writable Store creates
+// its file first, so the mark covers the Store's first flush.
+// kvtx.FailStopOff turns all of it off.
 func openFlush(hold *fileHold, pragmas Pragmas) error {
 	// Skip a file in memory, a file the tests keep off the device, and the
 	// switch turned off.
@@ -314,12 +316,14 @@ func openFlush(hold *fileHold, pragmas Pragmas) error {
 		return err
 	}
 
-	// Refuse a failed file, then flush the WAL.
-	if err := hold.failure(); err != nil {
-		return err
+	// Refuse a failed file, which may have no WAL to flush, then flush the
+	// WAL.
+	stop := hold.failStop()
+	if err := stop.Failed(); err != nil {
+		return fmt.Errorf("open %s: %w", hold.file.path, err)
 	}
-	if err := syncWALAtOpen(hold.file.path, pragmas.ReadOnly); err != nil {
-		return errors.Join(kvtx.ErrFlushFailed, err)
+	if err := syncWALAtOpen(hold.file.path, pragmas.ReadOnly, stop); err != nil {
+		return fmt.Errorf("open %s: %w", hold.file.path, err)
 	}
 	return nil
 }
@@ -687,16 +691,16 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	// Refuse every transaction once a WAL flush of the file failed, in this
 	// Store or another: the WAL shows commits the drive may not hold, and
 	// kvtx.AtomicCommitStore forbids reading them as stored.
-	if err := s.failure(); err != nil {
+	if err := s.flusher.Failed(); err != nil {
 		return nil, err
 	}
 
 	// Read transactions open their connection at their first read.
 	if !write {
 		if s.snapshotReads && s.urgentReads != nil && block.ReadClassOf(ctx) == block.ReadUrgent {
-			return newReadTx(s.db, s.queries, true, nil, s.urgentReads), nil
+			return newReadTx(s.db, s.queries, s.flusher, true, nil, s.urgentReads), nil
 		}
-		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns, nil), nil
+		return newReadTx(s.db, s.queries, s.flusher, s.snapshotReads, s.readTurns, nil), nil
 	}
 
 	// A read-only store never takes the writer's lock from the file's writer.
@@ -731,7 +735,7 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 
 	// Begin on the kept write connection, taking SQLite's write lock at once
 	// so the transaction never waits to upgrade from a read.
-	tx := newWriteTx(s.db, s.writeConn, s.queries, s.failure, s.flusher, s.flow, release)
+	tx := newWriteTx(s.db, s.writeConn, s.queries, s.flusher, s.flow, release)
 	if err := tx.beginWrite(ctx); err != nil {
 		return nil, err
 	}
@@ -811,38 +815,6 @@ func (s *Store[T]) flushWAL() error {
 		return err
 	}
 	return s.config.SyncWAL(&s.wal, file)
-}
-
-// markingFailure returns the flusher's flush: refuse a file whose WAL flush
-// failed in another Store, whose lost frames this flush could report durable,
-// and otherwise flush, marking the file failed when the flush fails, before
-// the flusher records the failure, so every Store on the file refuses from
-// then on.
-func (s *Store[T]) markingFailure(flush func() error) func() error {
-	return func() error {
-		if err := s.hold.failure(); err != nil {
-			return err
-		}
-		err := flush()
-		if err != nil && !kvtx.FailStopOff {
-			s.hold.fail(err)
-		}
-		return err
-	}
-}
-
-// failure returns the Store's fail-stop failure: its own flush's, or a
-// flush's of its file by another Store in the process, which it records in
-// its flusher, so every path that consults the flusher refuses from then on.
-// It must not be called from a call the flusher's Admit runs.
-func (s *Store[T]) failure() error {
-	if err := s.flusher.Failed(); err != nil {
-		return err
-	}
-	if err := s.hold.failure(); err != nil {
-		return s.flusher.Fail(err)
-	}
-	return nil
 }
 
 // dbFile returns the main database file SQLite reports, empty for one in
@@ -1232,9 +1204,6 @@ func (s *Store[T]) passOnce(ctx context.Context, q rowQuerier) checkpoint {
 	var c checkpoint
 	start := time.Now()
 	if c.err = waitCopyDelay(ctx); c.err != nil {
-		return c
-	}
-	if c.err = s.failure(); c.err != nil {
 		return c
 	}
 	c.err = s.flusher.Admit(func() error {

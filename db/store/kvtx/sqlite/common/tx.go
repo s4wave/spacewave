@@ -41,10 +41,8 @@ type Tx struct {
 	snapshot bool
 	// write marks a write transaction.
 	write bool
-	// failure records in flusher a failed WAL flush of the file by another
-	// Store, and returns the Store's failure, as Store.failure describes.
-	failure func() error
-	// flusher counts a write transaction's commit and makes it durable.
+	// flusher counts a write transaction's commit and makes it durable, and
+	// reports the failure of the file's flushes, which every read refuses.
 	flusher *kvtx.OrderedFlusher
 	// flow wakes the store's checkpointer after a commit, and holds back a
 	// write transaction whose commit outran it.
@@ -68,13 +66,12 @@ type Tx struct {
 
 // newWriteTx returns a write transaction during the writer turn that release
 // ends. beginWrite opens and begins its connection from keep or db.
-func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, failure func() error, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
+func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
 	return &Tx{
 		queries: queries,
 		db:      db,
 		keep:    keep,
 		write:   true,
-		failure: failure,
 		flusher: flusher,
 		flow:    flow,
 		release: release,
@@ -82,10 +79,11 @@ func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, failure func() err
 }
 
 // newReadTx returns a read transaction on db, in one snapshot when snapshot
-// is set, whose statements take turns when turns is set. A snapshot takes its
+// is set, whose statements take turns when turns is set, and which reads
+// nothing once a flush of flusher's file fails. A snapshot takes its
 // connection from keep when it is set, and from db otherwise.
-func newReadTx(db *sql.DB, queries *queries, snapshot bool, turns readTurns, keep *connKeep) *Tx {
-	return &Tx{queries: queries, db: db, snapshot: snapshot, turns: turns, keep: keep}
+func newReadTx(db *sql.DB, queries *queries, flusher *kvtx.OrderedFlusher, snapshot bool, turns readTurns, keep *connKeep) *Tx {
+	return &Tx{queries: queries, db: db, flusher: flusher, snapshot: snapshot, turns: turns, keep: keep}
 }
 
 // beginWrite takes the write transaction's connection and begins its SQLite
@@ -129,8 +127,13 @@ func (t *Tx) markClosed() {
 // queryer returns what the transaction reads through, beginning a snapshot
 // read's transaction at its first read.
 func (t *Tx) queryer(ctx context.Context) (sqliteQueryer, error) {
-	// Refuse reads after Commit or Discard.
+	// Refuse reads after Commit or Discard, and once a flush of the file
+	// failed: a snapshot taken before the failure may show the commits the
+	// flush lost.
 	if err := t.errIfClosed(); err != nil {
+		return nil, err
+	}
+	if err := t.flusher.Failed(); err != nil {
 		return nil, err
 	}
 
@@ -459,10 +462,8 @@ func (t *Tx) commit() (uint64, error) {
 	// Commit on the transaction's connection unless a WAL flush failed,
 	// rolling back a refused commit so the connection returns to the pool
 	// outside a transaction. COMMIT shows the write in the WAL before the
-	// flusher syncs it, so Admit orders it against a failing flush: no
-	// commit lands once the failure is recorded. A failure of the file in
-	// another Store is recorded first, outside Admit.
-	_ = t.failure()
+	// flusher syncs it, so Admit orders it against a failing flush of the
+	// file by any Store: no commit lands once the failure is recorded.
 	err := t.flusher.Admit(func() error {
 		_, err := t.conn.ExecContext(context.Background(), "COMMIT")
 		return err

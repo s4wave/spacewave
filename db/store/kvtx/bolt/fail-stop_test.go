@@ -5,11 +5,14 @@ package store_kvtx_bolt
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
@@ -233,28 +236,58 @@ func TestBoltRefusedCommitKeepsStore(t *testing.T) {
 // would: bolt fsyncs before it reuses pages from a freelist read from disk.
 // The store must record the failure from both the transaction and the batch
 // path, since after a failed fsync Linux may mark the unwritten pages clean
-// and a later Begin's fsync would succeed without them.
+// and a later Begin's fsync would succeed without them. A Begin that fails to
+// take the writer lock leaves the file as it was, and must fail only itself.
 func TestBoltFailedBeginStops(t *testing.T) {
 	ctx := context.Background()
+	lockErr := fmt.Errorf("bbolt: acquire writer lock: %w", syscall.EDEADLK)
+	syncErr := fmt.Errorf("%w: order writes: %w", bdberrors.ErrSyncFailed, errSyncFault)
 	for _, batched := range []bool{false, true} {
 		s, _ := openFailSyncStore(t)
 		begin := beginBolt
+		var fault error
 		beginBolt = func(db *bdb.DB, write bool) (*bdb.Tx, error) {
-			if write {
-				return nil, errSyncFault
+			if write && fault != nil {
+				return nil, fault
 			}
 			return begin(db, write)
 		}
-		var err error
-		if batched {
-			_, err = NewBatchStore(s, 4).NewTransaction(ctx, true)
-		} else {
-			_, err = s.NewTransaction(ctx, true)
+		t.Cleanup(func() { beginBolt = begin })
+		batch := NewBatchStore(s, 4)
+		beginTx := func() error {
+			if !batched {
+				tx, err := s.NewTransaction(ctx, true)
+				if err == nil {
+					tx.Discard()
+				}
+				return err
+			}
+			// A batch keeps its bolt transaction past Discard, so commit
+			// it to release bolt's writer lock.
+			tx, err := batch.NewTransaction(ctx, true)
+			if err != nil {
+				return err
+			}
+			tx.Discard()
+			return batch.Flush()
 		}
-		beginBolt = begin
-		if !errors.Is(err, errSyncFault) || !errors.Is(err, kvtx.ErrFlushFailed) {
+
+		// A lock failure fails the Begin alone.
+		fault = lockErr
+		if err := beginTx(); !errors.Is(err, syscall.EDEADLK) || errors.Is(err, kvtx.ErrFlushFailed) {
+			t.Fatalf("write Begin failing its writer lock returned %v (batched %v)", err, batched)
+		}
+		fault = nil
+		if err := beginTx(); err != nil {
+			t.Fatalf("write Begin after a lock failure returned %v (batched %v)", err, batched)
+		}
+
+		// A failed fsync fails the store.
+		fault = syncErr
+		if err := beginTx(); !errors.Is(err, errSyncFault) || !errors.Is(err, kvtx.ErrFlushFailed) {
 			t.Fatalf("write Begin with a failed fsync returned %v (batched %v)", err, batched)
 		}
+		fault = nil
 		if _, err := s.NewTransaction(ctx, false); !errors.Is(err, kvtx.ErrFlushFailed) {
 			t.Fatalf("read transaction after a failed Begin returned %v (batched %v)", err, batched)
 		}

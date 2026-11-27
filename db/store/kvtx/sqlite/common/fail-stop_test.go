@@ -164,18 +164,20 @@ func putKey(ctx context.Context, db kvtx.Store, key string) error {
 // would land after the frames the flush lost, and its own flush of the file
 // could succeed without them, since Linux reports a writeback error once per
 // open file and may mark the lost pages clean. Each case refuses one path
-// first, since the first refusal records the failure in b for the rest. An
-// ordered commit flushes nothing after its COMMIT, so only the refusal
-// before COMMIT keeps its write out of the WAL.
+// first, on fresh Stores. An ordered commit flushes nothing after its COMMIT,
+// so only the refusal before COMMIT keeps its write out of the WAL. A read
+// transaction opened before the failure may hold the failed write in its
+// snapshot, so its reads are refused too.
 func TestFailedFlushStopsOtherStore(t *testing.T) {
 	ctx := context.Background()
 	cases := []struct {
 		name string
-		// first refuses the case's path on b, given pre, a write transaction
-		// b opened before the failure, or nil.
+		// first refuses the case's path on b, given pre, a transaction b
+		// opened before the failure, or nil.
 		first func(b kvtx.Store, pre kvtx.Tx) error
-		// pre opens pre for first.
-		pre bool
+		// pre opens pre for first: a write transaction, or a read
+		// transaction that has read.
+		pre, preRead bool
 	}{
 		{name: "read", first: func(b kvtx.Store, _ kvtx.Tx) error {
 			_, err := b.NewTransaction(ctx, false)
@@ -190,6 +192,10 @@ func TestFailedFlushStopsOtherStore(t *testing.T) {
 		}},
 		{name: "flush", first: func(b kvtx.Store, _ kvtx.Tx) error {
 			return b.(interface{ Sync(context.Context) error }).Sync(ctx)
+		}},
+		{name: "open read", preRead: true, first: func(_ kvtx.Store, pre kvtx.Tx) error {
+			_, _, err := pre.Get(ctx, []byte("lost"))
+			return err
 		}},
 	}
 	for _, c := range cases {
@@ -225,6 +231,15 @@ func TestFailedFlushStopsOtherStore(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			if c.preRead {
+				if pre, err = b.NewTransaction(ctx, false); err != nil {
+					t.Fatal(err)
+				}
+				defer pre.Discard()
+				if _, found, err := pre.Get(ctx, []byte("lost")); err != nil || !found {
+					t.Fatalf("read of the unflushed write before the failure: found %v, %v", found, err)
+				}
+			}
 
 			// Fail a's flush of its ordered commit, which b's open write
 			// transaction leaves a no lock to commit again, then require b to
@@ -245,6 +260,70 @@ func TestFailedFlushStopsOtherStore(t *testing.T) {
 				t.Fatalf("Sync on b after a's failed flush returned %v", err)
 			}
 		})
+	}
+}
+
+// TestFlushesOfOneFileSerialize holds Store b's flush of a file after its
+// check for a failure, and fails Store a's flush of the same file meanwhile.
+// a's flush must wait for b's: Linux reports a writeback error to one
+// fdatasync of an open file and may mark the lost pages clean, so a flush by
+// b overlapping a's failed one could succeed without them, and b would mark
+// its commits durable behind frames the drive lacks.
+func TestFlushesOfOneFileSerialize(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "shared.db")
+	a, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	b, err := store_kvtx_sqlite.Open(ctx, path, "kv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	armed := failOnce(a)
+	entered, release := make(chan struct{}), make(chan struct{})
+	common.WrapWALFlush(b, func(flush func() error) error {
+		close(entered)
+		<-release
+		return flush()
+	})
+
+	// Hold b's flush of an ordered commit inside the flush.
+	ordered := kvtx.WithOrderedCommitContext(ctx)
+	if err := putKey(ordered, b, "b"); err != nil {
+		t.Fatal(err)
+	}
+	if err := putKey(ordered, a, "lost"); err != nil {
+		t.Fatal(err)
+	}
+	bDone := make(chan error, 1)
+	go func() { bDone <- b.Sync(ctx) }()
+	<-entered
+
+	// Fail a's flush. It must not run until b's ends.
+	armed.Store(true)
+	aDone := make(chan error, 1)
+	go func() { aDone <- a.Sync(ctx) }()
+	select {
+	case err := <-aDone:
+		close(release)
+		t.Fatalf("a's flush beside b's held flush returned %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	close(release)
+	if err := <-bDone; err != nil {
+		t.Fatalf("b's flush before a's failure returned %v", err)
+	}
+	if err := <-aDone; !errors.Is(err, errWALFault) {
+		t.Fatalf("a's failed flush returned %v", err)
+	}
+	if err := b.Sync(ctx); err != nil && !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("Sync on b after a's failed flush returned %v", err)
+	}
+	if _, err := b.NewTransaction(ctx, false); !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("read on b after a's failed flush returned %v", err)
 	}
 }
 

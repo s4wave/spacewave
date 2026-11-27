@@ -9,6 +9,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	"golang.org/x/sys/unix"
 )
 
@@ -39,7 +40,7 @@ func TestSyncWALAtOpenDropsPages(t *testing.T) {
 		}
 
 		// Flush it as an open does. The cache must hold none of its pages.
-		if err := syncWALAtOpen(dbPath, readOnly); err != nil {
+		if err := syncWALAtOpen(dbPath, readOnly, kvtx.NewFailStop()); err != nil {
 			t.Fatal(err)
 		}
 		if got := cachedPages(t, dbPath+"-wal"); got != 0 {

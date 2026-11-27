@@ -2,8 +2,6 @@ package kvtx
 
 import (
 	"context"
-	"errors"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -30,10 +28,12 @@ import (
 // flush does, so none starts after the failure is recorded. FailStopOff turns
 // this off.
 //
-// Flushes of one open file run one at a time, each recording its failure
-// before the next starts. Linux reports a writeback error to one fdatasync of
-// an open file, so of two overlapping flushes one could fail while the other
-// returns success for the same lost pages and marks them durable.
+// The failure, the flush lock and the gate are the file's FailStop, which
+// every flusher of the file shares. Flushes of one file run one at a time,
+// each recording its failure before the next starts. Linux reports a
+// writeback error to one fdatasync of an open file, so of two overlapping
+// flushes one could fail while the other returns success for the same lost
+// pages and marks them durable.
 type OrderedFlusher struct {
 	// flush makes every commit completed before the call durable.
 	flush func() error
@@ -46,17 +46,8 @@ type OrderedFlusher struct {
 	// durable is the highest ordered count a flush or full commit has made
 	// durable.
 	durable atomic.Uint64
-	// flushMtx serializes flushes and the calls Flushing runs, each checking
-	// for the failure and recording its own under it.
-	flushMtx sync.Mutex
-	// failStop records the first failed flush and refuses everything after it.
-	failStop bool
-	// gate orders each call Admit runs against the failure: Admit holds it
-	// shared from its check through the call's end, and recording the failure
-	// holds it alone.
-	gate sync.RWMutex
-	// failed is the first failed flush, joined with ErrFlushFailed, or nil.
-	failed atomic.Pointer[error]
+	// stop is the fail-stop state of the file flush flushes.
+	stop *FailStop
 
 	// bcast guards the fields below and broadcasts when durable advances or
 	// the deadline flush fails.
@@ -70,18 +61,17 @@ type OrderedFlusher struct {
 }
 
 // NewOrderedFlusher returns a flusher that calls flush to make commits durable
-// and flushes a pending ordered commit within deadline.
-func NewOrderedFlusher(flush func() error, deadline time.Duration) *OrderedFlusher {
-	return &OrderedFlusher{flush: flush, deadline: deadline, failStop: !FailStopOff}
+// and flushes a pending ordered commit within deadline. stop is the fail-stop
+// state of the file flush flushes, shared with every other flusher of it.
+func NewOrderedFlusher(flush func() error, deadline time.Duration, stop *FailStop) *OrderedFlusher {
+	return &OrderedFlusher{flush: flush, deadline: deadline, stop: stop}
 }
 
-// Failed returns the first failed flush, joined with ErrFlushFailed, or nil.
-// A store refuses new transactions and commits while it is set.
+// Failed returns the first failure of the flusher's file, joined with
+// ErrFlushFailed, or nil. A store refuses new transactions and commits while
+// it is set.
 func (f *OrderedFlusher) Failed() error {
-	if p := f.failed.Load(); p != nil {
-		return *p
-	}
-	return nil
+	return f.stop.Failed()
 }
 
 // Ordered counts a completed ordered commit and arms the deadline flush
@@ -120,56 +110,42 @@ func (f *OrderedFlusher) Sync(ctx context.Context) error {
 		return nil
 	}
 
-	// Flush once for every commit counted by the time this flush begins.
-	f.flushMtx.Lock()
-	defer f.flushMtx.Unlock()
-	if f.durable.Load() >= target {
+	// Flush once for every commit counted by the time this flush begins,
+	// unless a flush of the file failed.
+	return f.stop.Flushing(func() error {
+		// Skip commits a flush that held the lock before this one covered.
+		if f.durable.Load() >= target {
+			return nil
+		}
+
+		// Flush, then mark the commits counted before it durable.
+		covered := f.ordered.Load()
+		if err := f.flush(); err != nil {
+			return err
+		}
+		f.MarkDurable(covered)
 		return nil
-	}
-	if err := f.Failed(); err != nil {
-		return err
-	}
-	covered := f.ordered.Load()
-	if err := f.flush(); err != nil {
-		return f.Fail(err)
-	}
-	f.MarkDurable(covered)
-	return nil
+	}, nil)
 }
 
-// Fail records err as a failed flush, unless fail-stop is off or a failure is
-// recorded, wakes the waiters, and returns the recorded failure. A store calls
-// it when a write it made durable itself fails, such as a full commit's own
-// fsync. It waits for the calls Admit is running, so it must not be called
-// from one.
+// Fail records err as the file's failure, as FailStop.Fail does. A store
+// calls it when a write it made durable itself fails, such as a full commit's
+// own fsync. It waits for the calls Admit is running on every flusher of the
+// file, so it must not be called from one.
 func (f *OrderedFlusher) Fail(err error) error {
-	// With fail-stop off, pass the error through unrecorded.
-	if !f.failStop {
-		return err
-	}
-
-	// Record the failure once no Admit call runs, then wake the waiters.
-	joined := errors.Join(ErrFlushFailed, err)
-	f.gate.Lock()
-	recorded := f.failed.CompareAndSwap(nil, &joined)
-	f.gate.Unlock()
-	if recorded {
-		f.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			broadcast()
-		})
-	}
-	return f.Failed()
+	return f.stop.Fail(err)
 }
 
-// Admit runs call unless a flush failed, and returns the failure instead. A
-// failure is recorded only once no call Admit runs is in progress, so each
-// call either ends before the failure or does not start. A store runs through
+// Admit runs call unless a flush of the file failed, and returns the failure
+// instead. A failure is recorded only once no call any flusher of the file
+// admitted is in progress, so each call either ends before the failure or
+// does not start. A store runs through
 // it each commit that makes writes visible before a flush, and each write to
 // its file that could carry a failed commit, such as a checkpoint. call must
 // not call Admit or Fail.
 func (f *OrderedFlusher) Admit(call func() error) error {
-	f.gate.RLock()
-	defer f.gate.RUnlock()
+	f.stop.gate.RLock()
+	defer f.stop.gate.RUnlock()
 	if err := f.Failed(); err != nil {
 		return err
 	}
@@ -183,18 +159,7 @@ func (f *OrderedFlusher) Admit(call func() error) error {
 // other errors as they are, such as an error refusing a closed transaction.
 // call must not call Sync, Close, Admit, Fail or Flushing.
 func (f *OrderedFlusher) Flushing(call func() error, storageErr func(error) bool) error {
-	// Run call alone among the flushes unless one failed, and record its
-	// storage failure before the next flush starts.
-	f.flushMtx.Lock()
-	defer f.flushMtx.Unlock()
-	if err := f.Failed(); err != nil {
-		return err
-	}
-	err := call()
-	if err != nil && storageErr(err) {
-		return f.Fail(err)
-	}
-	return err
+	return f.stop.Flushing(call, storageErr)
 }
 
 // WaitDurable waits until every ordered commit counted before the call is
@@ -223,6 +188,7 @@ func (f *OrderedFlusher) WaitDurable(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return context.Cause(ctx)
+		case <-f.stop.Done():
 		case <-waitCh:
 		}
 	}

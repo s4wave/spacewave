@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"sync"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // LocalWAL flushes the WAL of one Store's database file on the local file
@@ -111,7 +113,10 @@ func (w *LocalWAL) closeLocked() error {
 // without the drop it would take those frames for committed. The flush makes
 // durable whatever pages the cache still holds dirty, so the drop keeps them,
 // and the reads after it see what the drive holds.
-func syncWALAtOpen(dbPath string, readOnly bool) error {
+//
+// The flush runs under stop, the file's fail-stop state, as one of the file's
+// flushes, and its failure fails the file.
+func syncWALAtOpen(dbPath string, readOnly bool, stop *kvtx.FailStop) error {
 	// Open the WAL, which may not exist, read-only for a reader.
 	flag := os.O_RDWR
 	if readOnly {
@@ -128,10 +133,12 @@ func syncWALAtOpen(dbPath string, readOnly bool) error {
 		return err
 	}
 
-	// Flush it, then drop its cached pages.
-	err = syncFileData(f)
-	if err == nil {
-		err = dropCachedPages(f)
-	}
+	// Flush it, then drop its cached pages, as one of the file's flushes.
+	err = stop.Flushing(func() error {
+		if err := syncFileData(f); err != nil {
+			return err
+		}
+		return dropCachedPages(f)
+	}, nil)
 	return errors.Join(err, f.Close())
 }

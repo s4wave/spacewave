@@ -54,7 +54,7 @@ const (
 
 // NewStore constructs a new key-value store from a bolt db.
 func NewStore(db *bdb.DB, bucket []byte) *Store {
-	return &Store{db: db, bucket: bucket, flusher: kvtx.NewOrderedFlusher(db.Sync, SyncDeadline)}
+	return &Store{db: db, bucket: bucket, flusher: kvtx.NewOrderedFlusher(db.Sync, SyncDeadline, kvtx.NewFailStop())}
 }
 
 // Open opens a bolt database store. It flushes once, so ordered commits that
@@ -122,11 +122,13 @@ var beginBolt = (*bdb.DB).Begin
 
 // beginWrite opens a bolt write transaction. Bolt fsyncs its file inside
 // Begin before it reuses pages from a freelist read from disk, as after an
-// open, so a Begin failing on storage fails the store for the reason a failed
-// commit does.
+// open, so a failure of that fsync, which bolt wraps in ErrSyncFailed, fails
+// the store for the reason a failed commit does. Begin's other errors, such
+// as a failure to take the writer lock in multi-process mode, leave the file
+// as it was and fail only the call.
 func (s *Store) beginWrite() (*bdb.Tx, error) {
 	txn, err := beginBolt(s.db, true)
-	if err != nil && storageErr(err) {
+	if errors.Is(err, bdberrors.ErrSyncFailed) {
 		return nil, s.flusher.Fail(err)
 	}
 	return txn, err
@@ -162,7 +164,7 @@ func (s *Store) commit(txn *bdb.Tx, commitFn func() error) error {
 	return err
 }
 
-// storageErr reports whether a Begin or commit error may come from writing or
+// storageErr reports whether a commit error may come from writing or
 // flushing the file. The errors bolt returns before it touches the file, or
 // for a file it no longer writes, are not; any other error is, so an unknown
 // one fails the store.
@@ -174,8 +176,6 @@ func storageErr(err error) bool {
 		bdberrors.ErrDatabaseReadOnly,
 		bdberrors.ErrLockFileChanged,
 		bdberrors.ErrMaxSizeReached,
-		bdberrors.ErrInvalidMapping,
-		bdberrors.ErrTimeout,
 	} {
 		if errors.Is(err, refusal) {
 			return false

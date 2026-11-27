@@ -84,7 +84,7 @@ func WrapWALFlush(s any, wrap func(flush func() error) error) {
 // wrapWALFlush replaces s's idle flusher with one that flushes through wrap.
 func (s *Store[T]) wrapWALFlush(wrap func(func() error) error) {
 	_ = s.flusher.Close()
-	s.flusher = kvtx.NewOrderedFlusher(s.markingFailure(func() error { return wrap(s.flushWAL) }), SyncDeadline)
+	s.flusher = kvtx.NewOrderedFlusher(func() error { return wrap(s.flushWAL) }, SyncDeadline, s.hold.failStop())
 }
 
 // CheckpointsDone returns the channel closed when s's checkpointer returns.
