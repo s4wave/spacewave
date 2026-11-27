@@ -238,111 +238,24 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 	}
 
 	// Store the row for this plugin instance.
-	key := pluginInstanceKey(pluginID, instanceKey)
-	c.pluginStatus.write(func() bool {
-		if c.pluginStatus.recovery[key].EqualVT(row) {
-			return false
-		}
-		c.pluginStatus.recovery[key] = row
-		return true
-	})
+	c.pluginStatus.recordRecovery(row)
 }
 
-// updatePluginExecutionStatus applies apply to a copy of a live plugin
-// instance's execution status and stores it. It does nothing once the
-// instance's status entry is gone, so a late update cannot revive it.
-// apply runs under the status lock and must only edit the row.
-func (c *Controller) updatePluginExecutionStatus(
-	pluginID,
-	instanceKey string,
-	apply func(status *bldr_plugin.PluginExecutionStatus),
-) {
-	key := pluginInstanceKey(pluginID, instanceKey)
-	c.pluginStatus.write(func() bool {
-		// Skip an instance whose status entry is gone.
-		if c.pluginStatus.plugins[key] == nil {
-			return false
-		}
-
-		// Apply the mutation to a copy of the row and store the copy.
-		current := c.pluginStatus.executions[key]
-		next := current.CloneVT()
-		if next == nil {
-			next = &bldr_plugin.PluginExecutionStatus{PluginId: pluginID, InstanceKey: instanceKey}
-		}
-		apply(next)
-		if current.EqualVT(next) {
-			return false
-		}
-		c.pluginStatus.executions[key] = next
-		return true
-	})
+// updatePluginExecutionStatus updates a live instance's execution row.
+// apply runs under the status lock and must only edit the new row.
+func (c *Controller) updatePluginExecutionStatus(pluginID, instanceKey string, apply func(*bldr_plugin.PluginExecutionStatus)) {
+	c.pluginStatus.updatePluginExecutionStatus(pluginID, instanceKey, apply)
 }
 
 // updatePluginStatus applies one status mutation to a plugin's entry.
 func (c *Controller) updatePluginStatus(
-	pluginID,
-	instanceKey string,
+	pluginID, instanceKey string,
 	state bldr_plugin.PluginState,
 	lastErrorMessage string,
 	lastErrorAt *timestamp.Timestamp,
-	recordError,
-	clearError bool,
+	recordError, clearError bool,
 ) {
-	// Apply the status mutation under the status lock.
-	key := pluginInstanceKey(pluginID, instanceKey)
-	c.pluginStatus.write(func() bool {
-		// Read the instance's current row.
-		current := c.pluginStatus.plugins[key]
-
-		// A plain UNKNOWN state removes the instance's rows.
-		if state == bldr_plugin.PluginState_PluginState_UNKNOWN && !recordError && !clearError {
-			_, hadRecovery := c.pluginStatus.recovery[key]
-			_, hadExecution := c.pluginStatus.executions[key]
-			delete(c.pluginStatus.plugins, key)
-			delete(c.pluginStatus.recovery, key)
-			delete(c.pluginStatus.executions, key)
-			return current != nil || hadRecovery || hadExecution
-		}
-
-		// Successful completion can race with plugin reference cleanup. If the
-		// instance is already gone, clearing metadata should not recreate it.
-		if state == bldr_plugin.PluginState_PluginState_UNKNOWN && clearError && current == nil {
-			return false
-		}
-
-		// Keep the current state and error unless the mutation sets them.
-		if state == bldr_plugin.PluginState_PluginState_UNKNOWN {
-			state = bldr_plugin.PluginState_PluginState_REQUESTED
-			if current != nil {
-				state = current.State
-			}
-		}
-		if !recordError {
-			if clearError {
-				lastErrorMessage = ""
-				lastErrorAt = nil
-			} else if current != nil {
-				lastErrorMessage = current.LastErrorMessage
-				lastErrorAt = current.LastErrorAt
-			}
-		}
-
-		// Store the new row when it differs from the current one.
-		next := &bldr_plugin.PluginStatus{
-			PluginId:         pluginID,
-			InstanceKey:      instanceKey,
-			Running:          state == bldr_plugin.PluginState_PluginState_RUNNING,
-			State:            state,
-			LastErrorMessage: lastErrorMessage,
-			LastErrorAt:      lastErrorAt.CloneVT(),
-		}
-		if current.EqualVT(next) {
-			return false
-		}
-		c.pluginStatus.plugins[key] = next
-		return true
-	})
+	c.pluginStatus.updatePluginStatus(pluginID, instanceKey, state, lastErrorMessage, lastErrorAt, recordError, clearError)
 }
 
 // comparePluginInstance orders plugin instances by plugin ID, then instance key.

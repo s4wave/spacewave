@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -66,6 +68,116 @@ func (r *pluginStatusRows) write(fn func() bool) {
 			r.rev++
 			broadcast()
 		}
+	})
+}
+
+// recordRecovery replaces the manifest selection facts for one instance.
+// The caller transfers the row to the status store and must not mutate it.
+func (r *pluginStatusRows) recordRecovery(row *bldr_plugin.PluginManifestRecoveryStatus) {
+	key := pluginInstanceKey(row.GetPluginId(), row.GetInstanceKey())
+	r.write(func() bool {
+		if r.recovery[key].EqualVT(row) {
+			return false
+		}
+		r.recovery[key] = row
+		return true
+	})
+}
+
+// updatePluginExecutionStatus applies apply to a copy of a live plugin
+// instance's execution status and stores it. It does nothing once the
+// instance's status entry is gone, so a late update cannot revive it.
+// apply runs under the status lock and must only edit the row.
+func (r *pluginStatusRows) updatePluginExecutionStatus(
+	pluginID,
+	instanceKey string,
+	apply func(status *bldr_plugin.PluginExecutionStatus),
+) {
+	key := pluginInstanceKey(pluginID, instanceKey)
+	r.write(func() bool {
+		// Skip an instance whose status entry is gone.
+		if r.plugins[key] == nil {
+			return false
+		}
+
+		// Apply the mutation to a copy of the row and store the copy.
+		current := r.executions[key]
+		next := current.CloneVT()
+		if next == nil {
+			next = &bldr_plugin.PluginExecutionStatus{PluginId: pluginID, InstanceKey: instanceKey}
+		}
+		apply(next)
+		if current.EqualVT(next) {
+			return false
+		}
+		r.executions[key] = next
+		return true
+	})
+}
+
+// updatePluginStatus applies one status mutation to a plugin's entry.
+func (r *pluginStatusRows) updatePluginStatus(
+	pluginID,
+	instanceKey string,
+	state bldr_plugin.PluginState,
+	lastErrorMessage string,
+	lastErrorAt *timestamp.Timestamp,
+	recordError,
+	clearError bool,
+) {
+	// Apply the status mutation under the status lock.
+	key := pluginInstanceKey(pluginID, instanceKey)
+	r.write(func() bool {
+		// Read the instance's current row.
+		current := r.plugins[key]
+
+		// A plain UNKNOWN state removes the instance's rows.
+		if state == bldr_plugin.PluginState_PluginState_UNKNOWN && !recordError && !clearError {
+			_, hadRecovery := r.recovery[key]
+			_, hadExecution := r.executions[key]
+			delete(r.plugins, key)
+			delete(r.recovery, key)
+			delete(r.executions, key)
+			return current != nil || hadRecovery || hadExecution
+		}
+
+		// Successful completion can race with plugin reference cleanup. If the
+		// instance is already gone, clearing metadata should not recreate it.
+		if state == bldr_plugin.PluginState_PluginState_UNKNOWN && clearError && current == nil {
+			return false
+		}
+
+		// Keep the current state and error unless the mutation sets them.
+		if state == bldr_plugin.PluginState_PluginState_UNKNOWN {
+			state = bldr_plugin.PluginState_PluginState_REQUESTED
+			if current != nil {
+				state = current.State
+			}
+		}
+		if !recordError {
+			if clearError {
+				lastErrorMessage = ""
+				lastErrorAt = nil
+			} else if current != nil {
+				lastErrorMessage = current.LastErrorMessage
+				lastErrorAt = current.LastErrorAt
+			}
+		}
+
+		// Store the new row when it differs from the current one.
+		next := &bldr_plugin.PluginStatus{
+			PluginId:         pluginID,
+			InstanceKey:      instanceKey,
+			Running:          state == bldr_plugin.PluginState_PluginState_RUNNING,
+			State:            state,
+			LastErrorMessage: lastErrorMessage,
+			LastErrorAt:      lastErrorAt.CloneVT(),
+		}
+		if current.EqualVT(next) {
+			return false
+		}
+		r.plugins[key] = next
+		return true
 	})
 }
 
