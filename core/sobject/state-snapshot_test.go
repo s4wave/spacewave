@@ -21,13 +21,13 @@ func TestSOStateClone(t *testing.T) {
 	}
 	before := state.CloneVT()
 	next := state.Clone()
-	if !next.EqualVT(before) || next.Ops[0] != state.Ops[0] || next.Ops[1] != state.Ops[1] {
-		t.Fatal("copy changed state or copied immutable operations")
+	if !next.EqualVT(before) || next.Ops[0] != state.Ops[0] || next.Ops[1] != state.Ops[1] || next.Checkpoint != state.Checkpoint {
+		t.Fatal("copy changed state or copied immutable operations or checkpoint")
 	}
 
 	// Mutating the state copy never changes an earlier snapshot.
 	next.Config.ConfigChainHash[0]++
-	next.Checkpoint.Inner[0]++
+	next.Checkpoint = &SOCheckpoint{Inner: []byte("replaced")}
 	next.KeyEpochs[0].Epoch++
 	next.Invites[0].Uses++
 	next.Sequence[0].Inner[0]++

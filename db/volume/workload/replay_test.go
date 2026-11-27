@@ -89,3 +89,25 @@ func TestNewReplayRejectsWideSizes(t *testing.T) {
 		}
 	}
 }
+
+// TestIsHeadKey checks that only a shared object's host key or split head,
+// as whole path segments, counts as its head.
+func TestIsHeadKey(t *testing.T) {
+	for key, want := range map[string]bool{
+		"so/a/host":             true,
+		"so/a/st/h":             true,
+		"p/so/a/st/h":           true,
+		"so/a/st/o/x/st/h":      false,
+		"so/a/st/o/xhost":       false,
+		"so/a/ghost":            false,
+		"so/a/st/h/x":           false,
+		"so//st/h":              false,
+		"st/h":                  false,
+		"also/a/st/h":           false,
+		"so/a/config-history/h": false,
+	} {
+		if got := isHeadKey([]byte(key)); got != want {
+			t.Errorf("isHeadKey(%q) = %v, want %v", key, got, want)
+		}
+	}
+}

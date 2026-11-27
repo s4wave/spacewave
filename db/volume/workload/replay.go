@@ -22,15 +22,32 @@ type Target interface {
 	block.StoreOps
 }
 
-// headSuffixes end the key of a shared object's head, whose commit publishes
-// the blocks and state before it: the whole state's host key, or the split
-// state layout's head.
-var headSuffixes = [][]byte{[]byte("/host"), []byte("/st/h")}
+// headNames are the paths under a shared object's so/<id>/ prefix that hold
+// its head, whose commit publishes the blocks and state before it: the whole
+// state's host key, or the split state layout's head.
+var headNames = [][]byte{[]byte("host"), []byte("st/h")}
 
-// isHeadKey reports whether key is a shared object's head.
+// isHeadKey reports whether key is a shared object's head: so/<id>/ and a head
+// name as whole path segments at the end of key, behind any store prefix. The
+// id is a DNS label, so it holds no slash, and a key that merely ends in the
+// bytes of a head name, such as an operation key whose hash does, lacks the
+// so segment before the id.
 func isHeadKey(key []byte) bool {
-	for _, suffix := range headSuffixes {
-		if bytes.HasSuffix(key, suffix) {
+	for _, name := range headNames {
+		// Cut the head name, then the id, off the end.
+		rest, ok := bytes.CutSuffix(key, name)
+		if !ok || !bytes.HasSuffix(rest, []byte("/")) {
+			continue
+		}
+		rest = rest[:len(rest)-1]
+		i := bytes.LastIndexByte(rest, '/')
+		if i <= 0 || i == len(rest)-1 {
+			continue
+		}
+
+		// What remains must end with the so segment.
+		parent := rest[:i]
+		if bytes.Equal(parent, []byte("so")) || bytes.HasSuffix(parent, []byte("/so")) {
 			return true
 		}
 	}

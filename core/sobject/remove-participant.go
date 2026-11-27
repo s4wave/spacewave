@@ -160,9 +160,13 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 	}
 
 	// Keep each earlier pin a later checkpoint or rejoin has not made redundant.
+	participants := make(map[string]struct{}, len(next.GetParticipants()))
+	for _, p := range next.GetParticipants() {
+		participants[p.GetPeerId()] = struct{}{}
+	}
 	pins := make(map[string]*SOOperationPosition, len(next.GetRemovedAuthors())+len(peers))
 	for _, pin := range next.GetRemovedAuthors() {
-		participates := slices.ContainsFunc(next.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == pin.GetPeerId() })
+		_, participates := participants[pin.GetPeerId()]
 		if !participates && !set.Covers(pin.GetPeerId(), pin.GetNonce()) {
 			pins[pin.GetPeerId()] = pin
 		}
@@ -223,11 +227,14 @@ func pruneRemovedParticipants(sharedObjectID string, state *SOState, targets map
 		}
 	}
 
-	// Co-sign the held checkpoint when no remaining owner signed it.
-	checkpoint := state.GetCheckpoint()
-	if checkpoint == nil {
+	// Co-sign a copy of the held checkpoint when no remaining owner signed it;
+	// Clone shares the checkpoint with earlier snapshots, so it is replaced
+	// whole rather than edited.
+	if state.GetCheckpoint() == nil {
 		return nil
 	}
+	checkpoint := state.GetCheckpoint().CloneVT()
+	state.Checkpoint = checkpoint
 	_, signers, err := checkpoint.Verify(sharedObjectID)
 	if err != nil {
 		return err

@@ -66,9 +66,10 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 // writes nothing, and the new run's writes wait for this load. The read holds
 // no lock, so it orders after no write transaction.
 //
-// A state stored in the other layout than StateLayoutEnv selects is converted
-// in a write transaction that first checks storage still holds the stamp read;
-// when it does not, another writer moved the state, so the load reads again.
+// A state stored in the other layout than StateLayoutEnv selects is converted,
+// when runs.mayConvert admits it, in a write transaction that first checks
+// storage still holds the stamp read; when it does not, another writer moved
+// the state, so the load reads again.
 func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (*sobject.SOState, soStateStamp, error) {
 	// Wait for the writes of this object past their mount check.
 	release, err := runs.Writes.Lock(ctx, true)
@@ -101,7 +102,7 @@ func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, ru
 		if err := val.Validate(e.id); err != nil {
 			return nil, stamp, err
 		}
-		if stamp.split == splitStateOn {
+		if stamp.split == splitStateOn || !runs.mayConvert(val, stamp) {
 			return val, stamp, nil
 		}
 

@@ -234,6 +234,10 @@ func scanSorted(ctx context.Context, tx kvtx.TxOps, prefix []byte, cb func(v []b
 //     encoding, including nil from empty, and refuse a state whose operations
 //     or sequence records are out of key order, which the parts could not
 //     hold in that order.
+//   - An operation or checkpoint never changes once it is in a state, as
+//     sobject.SOState.Clone states: next shares them with prev by pointer,
+//     and EqualVT passes a shared pointer as equal, so an in-place edit
+//     would be skipped here and silently dropped at the next load.
 //   - The host key and the head are never both stored: a conversion deletes
 //     the layout it leaves in the transaction that writes the other, and a
 //     fresh write deletes both first.
@@ -426,31 +430,25 @@ func deleteSOState(ctx context.Context, tx kvtx.Tx, id string) error {
 
 // convertSOState moves id's stored state, read as state under stamp, to the
 // layout splitStateOn selects, in tx, and returns the new stamp. The caller
-// checked in tx that storage holds stamp. The layout it leaves is deleted only
-// in tx, with every key of the new one written. A host key state goes to the
-// split layout only when the parts load back to its exact bytes; otherwise it
-// stays where it is and the stamp is unchanged.
+// checked in tx that storage holds stamp, and for a host key state that
+// splitRoundTrips holds for it. The layout it leaves is deleted only in tx,
+// with every key of the new one written.
 func convertSOState(ctx context.Context, tx kvtx.Tx, id string, state *sobject.SOState, stamp soStateStamp) (soStateStamp, error) {
 	// A state already in the selected layout stays.
 	if stamp.split == splitStateOn {
 		return stamp, nil
 	}
 
-	// Any split state goes back to the host key as its encoding.
+	// A split state goes back to the host key as its encoding; a host key
+	// state splits from the encoding it holds.
+	data := stamp.v
 	if stamp.split {
-		data, err := state.MarshalVT()
-		if err != nil {
+		var err error
+		if data, err = state.MarshalVT(); err != nil {
 			return stamp, err
 		}
-		return storeNewSOState(ctx, tx, id, state, data)
 	}
-
-	// A host key state splits only when the parts load back to its bytes.
-	same, err := splitRoundTrips(state, stamp.v)
-	if err != nil || !same {
-		return stamp, err
-	}
-	return storeNewSOState(ctx, tx, id, state, stamp.v)
+	return storeNewSOState(ctx, tx, id, state, data)
 }
 
 // splitRoundTrips reports whether state, split into parts as the split layout

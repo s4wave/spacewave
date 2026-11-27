@@ -9,7 +9,8 @@ import (
 
 // TestImportKeepsCheckpointAfterSignerLeaves checks that a reader keeps the
 // held checkpoint, with proofs the remaining owner signed, when the owner who
-// signed it removes itself.
+// signed it removes itself, and that the co-sign leaves the checkpoint of the
+// snapshot it was copied from unchanged.
 func TestImportKeepsCheckpointAfterSignerLeaves(t *testing.T) {
 	// Two owners and a reader hold the genesis checkpoint signed by the first owner.
 	peers := createMockPeers(t, 3)
@@ -20,8 +21,9 @@ func TestImportKeepsCheckpointAfterSignerLeaves(t *testing.T) {
 		SOParticipantRole_SOParticipantRole_READER,
 	)
 
-	// The first owner removes itself.
-	candidate := previous.CloneVT()
+	// The first owner removes itself, from a copy sharing the checkpoint.
+	held := previous.GetCheckpoint().CloneVT()
+	candidate := previous.Clone()
 	candidate.Config.Participants = candidate.Config.Participants[1:]
 	entry, err := BuildSOConfigChange(mockSharedObjectID, previous.Config, candidate.Config,
 		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
@@ -34,6 +36,9 @@ func TestImportKeepsCheckpointAfterSignerLeaves(t *testing.T) {
 	}
 	if err := pruneRemovedParticipants(mockSharedObjectID, candidate, map[string]struct{}{peers[0].GetPeerID().String(): {}}, keys[1]); err != nil {
 		t.Fatal(err)
+	}
+	if !previous.GetCheckpoint().EqualVT(held) || candidate.GetCheckpoint().EqualVT(held) {
+		t.Fatal("the co-sign edited the shared checkpoint or did not change the copy")
 	}
 
 	// The reader imports the snapshot and keeps the checkpoint.

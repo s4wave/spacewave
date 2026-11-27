@@ -319,6 +319,7 @@ func (a *ProviderAccount) buildSharedObjectTracker(sobjectID string) (keyed.Rout
 		res: newSobjectResult(),
 	}
 	tracker.runs.Reload = tracker.reload
+	tracker.runs.Log = a.le.WithField("sobject-id", sobjectID)
 	return tracker.executeSharedObjectTracker, tracker
 }
 

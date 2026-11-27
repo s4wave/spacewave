@@ -531,3 +531,35 @@ func TestSplitStateAccountPaths(t *testing.T) {
 		})
 	}
 }
+
+// TestSplitStateRefusedOnce checks that a host key state whose parts do not
+// load back to its bytes stays at the host key, and that the object's runs
+// check and log that once rather than on every mount.
+func TestSplitStateRefusedOnce(t *testing.T) {
+	// A stamp holding other bytes than the state's encoding fails the check.
+	state, _ := seedSplitTestState(t, store_inmem.NewStore(), 3)
+	data, err := state.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stamp := soStateStamp{v: append(data, 0)}
+
+	// Each run asks; only the first checks and logs.
+	var logged bytes.Buffer
+	log := logrus.New()
+	log.SetOutput(&logged)
+	runs := &SOStateRuns{Log: logrus.NewEntry(log)}
+	for range 3 {
+		if runs.mayConvert(state, stamp) {
+			t.Fatal("a state that does not round trip may convert")
+		}
+	}
+	if n := bytes.Count(logged.Bytes(), []byte("\n")); n != 1 {
+		t.Fatalf("logged %d lines, want 1", n)
+	}
+
+	// The exact bytes convert, and a split state always does.
+	if !(&SOStateRuns{}).mayConvert(state, soStateStamp{v: data}) || !runs.mayConvert(state, newSplitStamp()) {
+		t.Fatal("a state that round trips may not convert")
+	}
+}

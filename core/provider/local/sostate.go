@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/object"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // SOStateRuns joins the state funcs of the successive mount runs of one
@@ -23,6 +25,12 @@ type SOStateRuns struct {
 	// inside its write transaction, until the transaction ends. Each load
 	// takes it alone and releases it at once, as a barrier.
 	Writes csync.RWMutex
+	// Log receives the runs' warnings; nil drops them.
+	Log *logrus.Entry
+	// noSplit is set once a host key state of this object failed to load back
+	// from the split layout's parts, so later runs keep it at the host key
+	// without checking it again.
+	noSplit atomic.Bool
 	// Reload restarts the mount so it loads the stored state; it is
 	// required. It is called when storage holds other bytes than the mount
 	// loaded or last wrote, or may: after a write fails its compare, after a
@@ -30,6 +38,33 @@ type SOStateRuns struct {
 	// under it, and when such a failure's outcome cannot be read. The mount cannot write
 	// again until it reloads.
 	Reload func()
+}
+
+// mayConvert reports whether a load converts state, stored under stamp in the
+// layout splitStateOn does not select. A split state always converts. A host
+// key state splits only when its parts load back to its exact bytes; the check
+// encodes the whole state, so it runs before the conversion's write
+// transaction, holding no writer, and once per runs: after a failure the
+// object stays at the host key without another check, and the failure is
+// logged once.
+func (r *SOStateRuns) mayConvert(state *sobject.SOState, stamp soStateStamp) bool {
+	// A split state and an object already refused need no check.
+	if stamp.split {
+		return true
+	}
+	if r.noSplit.Load() {
+		return false
+	}
+
+	// Check the round trip, and remember a failure.
+	same, err := splitRoundTrips(state, stamp.v)
+	if err == nil && same {
+		return true
+	}
+	if r.noSplit.CompareAndSwap(false, true) && r.Log != nil {
+		r.Log.WithError(err).Warn("shared object state does not load back from the split layout; keeping it at the host key")
+	}
+	return false
 }
 
 // NewObjectStoreSOStateFuncs constructs a SOHostState backed by an object store and in-memory locks.
