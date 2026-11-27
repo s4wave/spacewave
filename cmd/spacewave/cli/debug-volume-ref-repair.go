@@ -29,6 +29,8 @@ type debugRefRepairArgs struct {
 	spaceID string
 	// dryRun counts the missing edges without writing them.
 	dryRun bool
+	// dropLegacySpans releases obsolete replay-span roots instead of walking them.
+	dropLegacySpans bool
 	// peerBlocks is a directory of blocks named by B58 ref, or a stopped Volume file.
 	peerBlocks string
 	// peerOut names the file of refs served by the peer.
@@ -66,6 +68,12 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Name:        "dry-run",
 			Usage:       "count the blocks lacking edges and the lists a repair would write, without writing them",
 			Destination: &a.dryRun,
+		},
+		&cli.BoolFlag{
+			Name: "drop-legacy-spans",
+			Usage: "release each walked Space's obsolete replay-span root, on a Volume no build from before the Space adapter has written since; " +
+				"with --dry-run, only count the releases",
+			Destination: &a.dropLegacySpans,
 		},
 		&cli.StringFlag{
 			Name:        "peer-blocks",
@@ -160,6 +168,7 @@ func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 		frontRoots: a.frontRoots, frontOut: a.frontOut, lacksOut: a.lacksOut,
 		peerPath: a.peerBlocks, peerOut: a.peerOut, syntheticPath: a.syntheticEmpty,
 		scanUntyped: a.scanUntyped, scanVerify: a.scanVerify,
+		dropLegacySpans: a.dropLegacySpans,
 	}
 	if a.peerOut != "" && a.peerBlocks == "" {
 		return opts, errors.New("--peer-out requires --peer-blocks")
@@ -187,6 +196,8 @@ func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 // refRepairOpts stands in for what a stopped volume cannot reach offline, and
 // selects what more the run measures.
 type refRepairOpts struct {
+	// dropLegacySpans releases obsolete replay-span roots instead of walking them.
+	dropLegacySpans bool
 	// frontRoots also walks the stored lists from every named root, as
 	// refRepair.measureFront describes.
 	frontRoots bool
@@ -229,6 +240,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Volume", path},
 		{"Dry run", strconv.FormatBool(dryRun)},
 		{"Spaces", strconv.Itoa(res.spaces)},
+		{"Legacy replay-span roots released", strconv.FormatUint(res.legacySpansReleased, 10)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
 	}
@@ -407,6 +419,11 @@ func repairVolumeRefs(
 	rr.lacks = lacks.writer
 	rr.synthetic = opts.synthetic
 	rr.scanVerify = opts.scanVerify
+	rr.dropLegacySpans = opts.dropLegacySpans
+	rr.dryRun = dryRun
+	defer rr.close()
+
+	// Enable the scan and byte measurements selected for this walk.
 	if opts.scanUntyped {
 		rr.scanUntyped()
 	}
@@ -414,7 +431,6 @@ func repairVolumeRefs(
 		rr.histogram = opts.histogram
 		rr.walker.KeepBytes()
 	}
-	defer rr.close()
 
 	// Start the list rebuild, or its dry run, then walk each Space and
 	// release the walker.

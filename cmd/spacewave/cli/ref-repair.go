@@ -17,7 +17,6 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
-
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/sirupsen/logrus"
@@ -82,6 +81,8 @@ type refRepairStoredBlock struct {
 type refRepairResult struct {
 	// spaces is the number of Spaces walked.
 	spaces int
+	// legacySpansReleased counts obsolete roots released, or planned on a dry run.
+	legacySpansReleased uint64
 	// blocks is the number of distinct blocks walked.
 	blocks uint64
 	// absent is the number of referenced blocks no read resolves.
@@ -170,6 +171,10 @@ type refRepair struct {
 	walker *refwalk.Walker
 	// scanVerify verifies the lists of the blocks the walk reads by scanning.
 	scanVerify bool
+	// dropLegacySpans releases obsolete replay-span roots instead of walking them.
+	dropLegacySpans bool
+	// dryRun compares lists and counts releases without changing the Volume.
+	dryRun bool
 	// peer reads the blocks the volume lacks, nil to read the volume alone.
 	// The walk never fills the volume from it.
 	peer block.StoreOps
@@ -418,6 +423,7 @@ const legacyReplaySpanRootName = "replay-span"
 // space_world's roots.go lists them, and the legacy replay span. It verifies
 // the list of each block that holds roots, and returns the Worlds and
 // payload roots those blocks reference.
+// With dropLegacySpans it releases the legacy root instead of walking its chain.
 func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld *bucket.ObjectRef) ([]refwalk.Node, []*block.BlockRef, error) {
 	// Each named root adds its Worlds or payload roots.
 	var worlds []refwalk.Node
@@ -432,7 +438,10 @@ func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld
 		}
 		return nil
 	}
+
+	// Visit only the roots of the bucket resolved for this Space.
 	for _, name := range spaceRootNames {
+		// Read the current holder before choosing its decode or release.
 		ref, err := r.vol.GetBucketRoot(ctx, bucketID, name)
 		if err != nil {
 			return nil, nil, err
@@ -440,6 +449,34 @@ func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld
 		if ref.GetEmpty() {
 			continue
 		}
+
+		// Release the legacy root instead of walking it. The release takes
+		// only this name, only in a Space's bucket the repair walks, and only
+		// in a writing run with the flag set; a dry run counts it. It is a
+		// compare-and-set on the ref just read, so a root that moved fails the
+		// run. It writes no block and deletes none: Land takes the root's
+		// holder from the span, by a logged down on an adopted Volume and by
+		// the adoption's recount otherwise, and the collector frees only what
+		// no other holder names. It comes before the Space's walks, so the
+		// rebuild never verifies the discarded chain or pushes its children
+		// onto the front.
+		//
+		// The release relies on the adapter holding every payload it replays
+		// under its own roots, which it does each time it mounts the Space.
+		// A build from before the adapter that wrote the Space after the
+		// adapter's last mount would have held its payloads under the span
+		// alone, so run this only on a Volume no such build has written.
+		if name == legacyReplaySpanRootName && r.dropLegacySpans {
+			if !r.dryRun {
+				if err := r.vol.SetBucketRoots(ctx, bucketID, nil, []block.NamedRoot{{Name: legacyReplaySpanRootName, Previous: ref}}); err != nil {
+					return nil, nil, err
+				}
+			}
+			r.res.legacySpansReleased++
+			continue
+		}
+
+		// Decode each surviving root by the type its name selects.
 		switch name {
 		case space_world.RootReplayBase:
 			err = addWorlds([]*block.BlockRef{ref})

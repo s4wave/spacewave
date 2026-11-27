@@ -966,6 +966,247 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("audit does not name the orphan %s: %+v", orphan.MarshalString(), audit)
 	}
 
+	// Release a legacy span without losing a World a current root also holds:
+	// on an adopted Volume, where the release logs a down, and on an unadopted
+	// one, where the adoption counts the holders after the release.
+	dropSpans := func(t *testing.T, unadopted bool) {
+		// Store a minimal World and a payload held only by the span.
+		ctx := t.Context()
+		path := filepath.Join(t.TempDir(), "legacy.s4wave")
+		vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { vol.Close() })
+		if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: restoreTestBucket, Rev: 1}); err != nil {
+			t.Fatal(err)
+		}
+
+		// Write the fixture with no counts kept, as the upgrade leaves a
+		// Volume written before the collector.
+		if unadopted {
+			writeRecords(t, vol, func(rec *block_gc.Records) error {
+				return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: block_gc.Generation_GENERATION_OPEN})
+			})
+		}
+
+		// Keep the fixture's bytes and complete child lists in one root commit.
+		entry := func(msg block.Block) *block.PutBatchEntry {
+			t.Helper()
+			data, err := msg.MarshalVT()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Address the bytes and derive their child list from content.
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			refs, err := block.ExtractBlockRefs(msg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}
+		}
+		live := entry(&world_block.World{LastChangeDisable: true})
+		payload := entry(&blob.Blob{RawData: []byte("legacy payload"), TotalSize: uint64(len("legacy payload"))})
+		span := entry(&space_world.ReplaySpan{Worlds: []*block.BlockRef{live.Ref}, Payloads: []*block.BlockRef{payload.Ref}})
+		roots := []block.NamedRoot{
+			{Name: space_world.RootReplayBase, Ref: live.Ref},
+			{Name: "private", Ref: live.Ref},
+			{Name: legacyReplaySpanRootName, Ref: span.Ref},
+		}
+		if err := vol.SetBucketRoots(ctx, restoreTestBucket, []*block.PutBatchEntry{live, payload, span}, roots); err != nil {
+			t.Fatal(err)
+		}
+
+		// A legacy-named root outside the Space bucket must also stay held.
+		if err := vol.SetBucketRoots(ctx, "other", nil, []block.NamedRoot{{Name: legacyReplaySpanRootName, Ref: live.Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		state := &space_world.InnerState{HeadRef: &bucket.ObjectRef{BucketId: restoreTestBucket, RootRef: live.Ref}}
+		cursor, err := (&space_world.ReplayCursor{Base: state, Head: state}).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		conf := kvkey.DefaultConfig()
+		key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/space-world-replay/cursor"))
+		if err := putKey(ctx, vol, key, cursor); err != nil {
+			t.Fatal(err)
+		}
+
+		// Model an older Volume whose lists still need the typed walk.
+		writeRecords(t, vol, func(rec *block_gc.Records) error {
+			state, err := rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			state.Generation = block_gc.Generation_GENERATION_OPEN
+			return rec.SetState(ctx, state)
+		})
+		unmarkLists(t, vol)
+		if err := vol.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Exercise the real flag parser and require exactly one release row.
+		run := func(flags []string, count string) {
+			t.Helper()
+			var output bytes.Buffer
+			app := &cli.App{Writer: &output, Commands: []*cli.Command{newDebugRefRepairCommand(&FormatUpgrade{})}}
+			args := append([]string{"spacewave", "ref-repair"}, flags...)
+			if err := app.RunContext(ctx, append(args, path)); err != nil {
+				t.Fatal(err)
+			}
+
+			// Ignore column padding while checking the count and row uniqueness.
+			var rows int
+			for line := range strings.Lines(output.String()) {
+				label, value, ok := strings.Cut(line, ":")
+				if ok && strings.TrimSpace(label) == "Legacy replay-span roots released" {
+					rows++
+					if strings.TrimSpace(value) != count {
+						t.Fatalf("release count = %q, want %s", value, count)
+					}
+				}
+			}
+			if rows != 1 {
+				t.Fatalf("release rows = %d, want 1", rows)
+			}
+		}
+		checkRoots := func(dropped bool) {
+			t.Helper()
+			vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer vol.Close()
+
+			// Compare every original Space root and the root outside its bucket.
+			for _, root := range roots {
+				want := root.Ref
+				if dropped && root.Name == legacyReplaySpanRootName {
+					want = nil
+				}
+				got, err := vol.GetBucketRoot(ctx, restoreTestBucket, root.Name)
+				if err != nil || !block_gc.SameRef(got, want) {
+					t.Fatalf("root %s changed unexpectedly: %v", root.Name, err)
+				}
+			}
+			got, err := vol.GetBucketRoot(ctx, "other", legacyReplaySpanRootName)
+			if err != nil || !live.Ref.EqualVT(got) {
+				t.Fatalf("root outside the Space changed: %v", err)
+			}
+		}
+
+		// Without the flag even a writing repair keeps the span root.
+		run(nil, "0")
+		checkRoots(false)
+		before, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// A dry run counts the release and leaves every byte unchanged.
+		run([]string{"--drop-legacy-spans", "--dry-run"}, "1")
+		checkRoots(false)
+		after, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(before, after) {
+			t.Fatalf("dry run changed the Volume: %v", err)
+		}
+
+		// Leave the span's lists unverified again so a drop must skip them.
+		vol, err = openStoppedVolume(ctx, le, path, volumeWritable)
+		if err != nil {
+			t.Fatal(err)
+		}
+		unmarkLists(t, vol)
+		if err := vol.Close(); err != nil {
+			t.Fatal(err)
+		}
+		run([]string{"--drop-legacy-spans"}, "1")
+		checkRoots(true)
+
+		// Check the World's exact holders and its raw bytes before and after
+		// the collector's sweep. Its three roots hold it throughout, and the
+		// span's list holds it until the span parks. Zero holders skips the
+		// count, which is exact only once the collector has netted the logs
+		// or adopted the Volume.
+		checkLive := func(holders uint64) {
+			t.Helper()
+			vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer vol.Close()
+
+			// The World is the only block reachable from any surviving root.
+			_, err = vol.InspectHolders(ctx, []*block.BlockRef{live.Ref}, 1, func(level int, _ *block.BlockRef, row block_gc.HolderRow) error {
+				if level == 0 && (holders != 0 && row.Holders != holders || !row.Stored || !row.Listed || row.Queued || row.Parked || row.Released) {
+					t.Fatalf("current root's World lost its liveness: %+v", row)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Read through both the Volume and its raw store to detect hiding or deletion.
+			for _, store := range []block.StoreOps{vol, vol.Store} {
+				data, found, err := store.GetBlock(ctx, live.Ref)
+				if err != nil || !found || !bytes.Equal(data, live.Data) {
+					t.Fatalf("current root's World cannot be read: found %v, err %v", found, err)
+				}
+			}
+		}
+		checkLive(0)
+		checkDiscarded := func(stored bool) {
+			t.Helper()
+			vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer vol.Close()
+
+			// The drop must leave the discarded lists unverified, and collection deletes their bytes.
+			_, err = vol.InspectHolders(ctx, []*block.BlockRef{span.Ref, payload.Ref}, 1, func(level int, _ *block.BlockRef, row block_gc.HolderRow) error {
+				if level == 0 && (row.Marked || row.Stored != stored) {
+					t.Fatalf("discarded block verified or stored incorrectly: marked %v, stored %v, want stored %v", row.Marked, row.Stored, stored)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		checkDiscarded(true)
+		rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, 0, volumeLoadOpts{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res := rep.res; res.Parked != 2 || !res.Flipped {
+			t.Fatalf("collector did not park just the span and payload and flip: %+v", res)
+		}
+		checkLive(3)
+		checkDiscarded(true)
+
+		// The flip reports More false, so the helper stops there. A new pass
+		// enters Sweeping and deletes the unverified span and its payload.
+		rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, 0, volumeLoadOpts{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res := rep.res; res.Swept != 2 || !res.Settled {
+			t.Fatalf("collector did not sweep just the span and payload and settle: %+v", res)
+		}
+		checkLive(3)
+		checkDiscarded(false)
+		checkRoots(true)
+	}
+	t.Run("drop legacy spans", func(t *testing.T) { dropSpans(t, false) })
+	t.Run("drop legacy spans unadopted", func(t *testing.T) { dropSpans(t, true) })
+
 	// Use a separate Volume with frees on to exercise an actual park.
 	t.Run("parked child", func(t *testing.T) { checkParkedChildScan(t, le) })
 }
