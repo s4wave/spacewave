@@ -454,6 +454,126 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	}
 }
 
+// TestCloudHostWriteBarrier checks that a mount's write of the verified
+// state cache never lands after the next mount loaded the cache. Host A
+// models the ended mount and host B the next one, over one account store and
+// one sync controller, as a tracker restart leaves them.
+func TestCloudHostWriteBarrier(t *testing.T) {
+	// Fail any request: acceptance never contacts the cloud.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request: %s", r.URL.Path)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+
+	// Open host A as the owner of a genesis state, with a persist that can
+	// pause past its context checks.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	account := &ProviderAccount{objStore: newSyncTestKvStore()}
+	var hold func()
+	persist := func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+		if hold != nil {
+			hold()
+		}
+		return account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache, changes)
+	}
+	a := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client,
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
+		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist, syncer: syncer,
+	}
+	if err := writeLocalOperation(t, a, key); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pause A's next write inside its persist.
+	paused, resume := make(chan struct{}), make(chan struct{})
+	hold = func() {
+		hold = nil
+		close(paused)
+		<-resume
+	}
+	written := make(chan error, 1)
+	go func() { written <- writeLocalOperation(t, a, key) }()
+	<-paused
+
+	// End A's run as the tracker does, closing before detaching, then load B
+	// from the cache.
+	loaded := make(chan *cloudSOHost, 1)
+	go func() {
+		a.close()
+		syncer.setPublication(a, nil)
+		cache, err := account.loadVerifiedSOStateCache(context.Background(), testSharedObjectID)
+		if err != nil {
+			t.Error(err)
+		}
+		b := &cloudSOHost{
+			le: a.le, client: client, soID: testSharedObjectID, peerID: peerID,
+			stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil), persistVerifiedStateCache: persist, syncer: syncer,
+		}
+		b.hydrateVerifiedStateCache(cache)
+		loaded <- b
+	}()
+
+	// Release A's persist once B loaded, or after a moment if B waits for it.
+	var b *cloudSOHost
+	select {
+	case b = <-loaded:
+	case <-time.After(200 * time.Millisecond):
+	}
+	close(resume)
+	if err := <-written; err != nil {
+		t.Fatal(err)
+	}
+	if b == nil {
+		b = <-loaded
+	}
+
+	// B holds the write A acknowledged, and A did not register again.
+	if got, want := len(b.stateCtr.GetValue().GetOps()), len(a.stateCtr.GetValue().GetOps()); got != want {
+		t.Errorf("next mount loaded %d operations, want the %d the ended mount acknowledged", got, want)
+	}
+	syncer.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if _, ok := syncer.publications[a]; ok {
+			t.Error("ended host registered its publication again")
+		}
+	})
+
+	// A late write of A stores nothing, so B's acknowledged write survives in
+	// the cache.
+	if err := writeLocalOperation(t, b, key); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeLocalOperation(t, a, key); !errors.Is(err, errHostClosed) {
+		t.Errorf("ended host accepted a write: %v", err)
+	}
+	cache, err := account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(cache.GetPendingPublication().GetOperations()), len(b.stateCtr.GetValue().GetOps()); got != want {
+		t.Errorf("cache holds %d pending operations, want B's %d", got, want)
+	}
+
+	// A failed persist is unknown and ends B.
+	ctx, cancel := context.WithCancel(t.Context())
+	b.ctxCancel = cancel
+	persistErr := errors.New("commit failed")
+	b.persistVerifiedStateCache = func(context.Context, *api.VerifiedSOStateCache, []*sobject.SOConfigChange) error {
+		return persistErr
+	}
+	if err := writeLocalOperation(t, b, key); !errors.Is(err, sobject.ErrStateWriteUnknown) || !errors.Is(err, persistErr) {
+		t.Fatalf("failed persist returned %v, want an unknown outcome", err)
+	}
+	if ctx.Err() == nil {
+		t.Fatal("failed persist left the host running")
+	}
+}
+
 // newTestPublicationClient returns a session client for server.
 func newTestPublicationClient(server *httptest.Server, key crypto.PrivKey, peerID peer.ID) *SessionClient {
 	return NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())

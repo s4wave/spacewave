@@ -21,7 +21,8 @@ const cloudControlBodyLimit = 1 << 20
 // retainPublication commits accepted state and its cloud obligation atomically:
 // the operations and control messages the write added, and the checkpoint when
 // it changed. The caller holds acceptMu. No watched local success precedes
-// this transaction.
+// this transaction. A failed persist returns sobject.ErrStateWriteUnknown and
+// ends the host, as persistUnknown describes.
 func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOState, added *api.PendingSOPublication, checkpoint bool) error {
 	// Reject an operation or control message that exceeds the cloud request
 	// limit.
@@ -67,9 +68,10 @@ func (h *cloudSOHost) retainPublication(ctx context.Context, state *sobject.SOSt
 	cache.PeerState = state.Clone()
 	cache.PendingPublication = pending
 
-	// Persist the accepted state and its obligation together.
+	// Persist the accepted state and its obligation together. A failed
+	// persist may have committed, so its outcome is unknown.
 	if err := h.persistVerifiedStateCache(ctx, cache, nil); err != nil {
-		return err
+		return h.persistUnknown(err)
 	}
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		h.peerState = cache.PeerState
@@ -156,7 +158,7 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	}
 
 	// A lost acknowledgment leaves the same signed request available for retry.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}
@@ -290,7 +292,9 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 		return s.held(held)
 	}
 	for i, host := range hosts {
-		if err := host.publishCheckpoint(ctx, pending[i], sentAt); err != nil {
+		// A closed host leaves its sent work pending in the cache, where the
+		// next mount publishes it again.
+		if err := host.publishCheckpoint(ctx, pending[i], sentAt); err != nil && !errors.Is(err, errHostClosed) {
 			return err
 		}
 	}

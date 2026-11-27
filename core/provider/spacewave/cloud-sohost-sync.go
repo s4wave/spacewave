@@ -17,7 +17,7 @@ func (h *cloudSOHost) peerImportLock(ctx context.Context, _ string) (sobject.SOS
 	if err := h.ensureInitialState(ctx, SeedReasonColdSeed); err != nil {
 		return nil, err
 	}
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return nil, err
 	}

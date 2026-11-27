@@ -82,7 +82,11 @@ type cloudSOHost struct {
 	// bcast guards state, trusted configuration, and notification snapshots.
 	bcast broadcast.Broadcast
 	// acceptMu serializes cache acceptance and persistence, never HTTP requests.
+	// Take it through lockAccept.
 	acceptMu csync.Mutex
+	// closed is set once the tracker run ended, after which lockAccept refuses
+	// every write. Guarded by acceptMu.
+	closed bool
 	// peerState is the durable peer snapshot retained across cache-only updates.
 	peerState *sobject.SOState
 	// pending retains only work accepted locally for cloud publication.
@@ -490,7 +494,7 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 	}
 
 	// Recheck after network work while excluding concurrent peer imports.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}
@@ -758,7 +762,7 @@ func (h *cloudSOHost) refreshBlockManifestForNonce(ctx context.Context, nonce ui
 // verification failure). The caller may fall back to an HTTP pull.
 func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMessage) error {
 	// Serialize the complete inline acceptance with cloud and peer publications.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}
@@ -916,7 +920,7 @@ func applyChangeLogEntry(
 // state since base was read, so the write is rebased onto the current state.
 func (h *cloudSOHost) acceptLocalWrite(ctx context.Context, base, written *sobject.SOState) error {
 	// Serialize acceptance.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}
@@ -999,7 +1003,7 @@ func (h *cloudSOHost) applyKeyEpoch(ctx context.Context, epoch *sobject.SOKeyEpo
 	if epoch == nil {
 		return
 	}
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return
 	}
@@ -1046,7 +1050,7 @@ func (h *cloudSOHost) applyConfigMutation(
 	epoch *sobject.SOKeyEpoch,
 ) error {
 	// Serialize with peer imports.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}
@@ -1254,7 +1258,7 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	}
 
 	// Serialize trusted head and durable lineage updates with peer imports.
-	release, err := h.acceptMu.Lock(ctx)
+	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err
 	}

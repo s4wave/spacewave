@@ -316,6 +316,10 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	detachPublication := host.attachPublication()
 	defer detachPublication()
 
+	// Close the host before detaching it and before the run returns, so the
+	// next run loads the cache after every write of this host.
+	defer host.close()
+
 	// Run the host, publishing the SharedObject once its first state is ready.
 	so := &SharedObject{
 		tkr:      t,
