@@ -62,6 +62,7 @@ import "embed"
 //go:embed title/DocumentTitleFocusContext.ts transform/TransformConfigDisplay.tsx ui/BackButton.tsx
 //go:embed ui/CollapsibleSection.tsx ui/CopyButton.tsx ui/DashboardButton.tsx ui/FactList.tsx
 //go:embed ui/MiddleEllipsis.tsx
+//go:embed ui/table/Table.tsx
 //go:embed ui/DropdownMenu.tsx ui/DropdownMenuGhostAnchor.tsx ui/DropdownTriggerButton.tsx ui/EmptyState.tsx
 //go:embed ui/ErrorState.tsx ui/ExperimentalBadge.tsx ui/FloatingWindow.tsx ui/InfoCard.tsx ui/MenuButton.tsx
 //go:embed ui/MenuButtonGroup.tsx ui/Menubar.tsx ui/ObjectKeySelector.tsx ui/OutputPanel.tsx ui/PanelHeader.tsx
