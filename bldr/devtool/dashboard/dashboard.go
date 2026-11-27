@@ -1,6 +1,6 @@
 //go:build !js
 
-package devtool
+package dashboard
 
 import (
 	"slices"
@@ -21,10 +21,10 @@ const (
 	devtoolTUIMaxErrorLines = 6
 )
 
-// renderDevtoolTUIDashboard renders the full devtool status screen for the
+// Render renders the full devtool status screen for the
 // given terminal width. servingURL is the address the devtool serves, or empty.
 // color enables ANSI styling. Tests render with color disabled.
-func renderDevtoolTUIDashboard(
+func Render(
 	snapshot *devtool_status.BldrDevtoolStatus,
 	servingURL string,
 	width int,

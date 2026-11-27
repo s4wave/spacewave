@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/s4wave/spacewave/bldr/devtool/dashboard"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/s4wave/spacewave/bldr/util/termui"
@@ -101,7 +102,7 @@ func (r *devtoolTUIRunner) render(snapshot *devtool_status.BldrDevtoolStatus) st
 			width = w
 		}
 	}
-	return renderDevtoolTUIDashboard(snapshot, r.openURL, width, tuiColorEnabled())
+	return dashboard.Render(snapshot, r.openURL, width, tuiColorEnabled())
 }
 
 // tuiColorEnabled reports whether ANSI styling should be applied. The devtool

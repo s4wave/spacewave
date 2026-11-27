@@ -1,6 +1,6 @@
 //go:build !js
 
-package devtool
+package dashboard
 
 import (
 	"strconv"
@@ -13,7 +13,7 @@ import (
 // TestRenderDevtoolTUIDashboardHeaderAndSectionsInOrder keeps the command and serving address above build detail.
 func TestRenderDevtoolTUIDashboardHeaderAndSectionsInOrder(t *testing.T) {
 	// Render the dashboard from a healthy running command snapshot.
-	dashboard := renderDevtoolTUIDashboard(representativeDevtoolTUIStatus(), "http://127.0.0.1:8080", 100, false)
+	dashboard := Render(representativeDevtoolTUIStatus(), "http://127.0.0.1:8080", 100, false)
 
 	// Check that the command header and section order stay intact.
 	assertContains(t, dashboard, "Bldr · dev")
@@ -32,7 +32,7 @@ func TestRenderDevtoolTUIDashboardHeaderAndSectionsInOrder(t *testing.T) {
 // TestRenderDevtoolTUIDashboardSurfacesFailingTargetErrorText retains actionable errors and their log paths.
 func TestRenderDevtoolTUIDashboardSurfacesFailingTargetErrorText(t *testing.T) {
 	// Render the dashboard from a snapshot with build and plugin failures.
-	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "http://127.0.0.1:8080", 100, false)
+	dashboard := Render(failingDashboardStatus(), "http://127.0.0.1:8080", 100, false)
 
 	// Falsifier: the failing build's full error text must be readable on screen.
 	assertContains(t, dashboard, "undefined: RenderRoot")
@@ -51,7 +51,7 @@ func TestRenderDevtoolTUIDashboardSurfacesFailingTargetErrorText(t *testing.T) {
 // TestRenderDevtoolTUIDashboardTargetsActiveFirst places failed and active work before ready targets.
 func TestRenderDevtoolTUIDashboardTargetsActiveFirst(t *testing.T) {
 	// Render the dashboard without a serving address.
-	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "", 100, false)
+	dashboard := Render(failingDashboardStatus(), "", 100, false)
 
 	// Check that failed, active, and ready targets appear in that order.
 	failedIdx := strings.Index(dashboard, "spacewave-app")
@@ -69,7 +69,7 @@ func TestRenderDevtoolTUIDashboardTargetsActiveFirst(t *testing.T) {
 // TestRenderDevtoolTUIDashboardRuntimeCollapsesToCounts keeps controller internals out of the overview.
 func TestRenderDevtoolTUIDashboardRuntimeCollapsesToCounts(t *testing.T) {
 	// Render the dashboard from the failing snapshot.
-	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "", 100, false)
+	dashboard := Render(failingDashboardStatus(), "", 100, false)
 
 	// Check that the runtime section collapses plugins and controllers to counts.
 	assertContains(t, dashboard, "plugins")
@@ -84,7 +84,7 @@ func TestRenderDevtoolTUIDashboardRuntimeCollapsesToCounts(t *testing.T) {
 // TestRenderDevtoolTUIDashboardRespectsWidthWithColor bounds styled failure output.
 func TestRenderDevtoolTUIDashboardRespectsWidthWithColor(t *testing.T) {
 	const width = 56
-	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "http://127.0.0.1:8080", width, true)
+	dashboard := Render(failingDashboardStatus(), "http://127.0.0.1:8080", width, true)
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(dashboard, "\n"), "\n") {
 		if got := visibleWidth(line); got > width {
@@ -115,7 +115,7 @@ func TestRenderDevtoolTUIDashboardCapsManyTargets(t *testing.T) {
 	)
 
 	// Render the dashboard and check the target count and omission notice.
-	dashboard := renderDevtoolTUIDashboard(snapshot, "", 100, false)
+	dashboard := Render(snapshot, "", 100, false)
 	assertContains(t, dashboard, "TARGETS · "+strconv.Itoa(devtoolTUIMaxTargetRows+3)+"/"+strconv.Itoa(devtoolTUIMaxTargetRows+3)+" ready")
 	assertContains(t, dashboard, "… 3 more targets")
 }
@@ -123,7 +123,7 @@ func TestRenderDevtoolTUIDashboardCapsManyTargets(t *testing.T) {
 // TestRenderDevtoolTUIDashboardHandlesNilSnapshot renders before the first status arrives.
 func TestRenderDevtoolTUIDashboardHandlesNilSnapshot(t *testing.T) {
 	// Render the dashboard before any status snapshot arrives.
-	dashboard := renderDevtoolTUIDashboard(nil, "", 80, false)
+	dashboard := Render(nil, "", 80, false)
 
 	// Check that the placeholder keeps the quit hint and omits empty sections.
 	assertContains(t, dashboard, "UNKNOWN")
@@ -266,7 +266,7 @@ func TestDesktopDashboard(t *testing.T) {
 	for _, width := range []int{32, 40, 56, 80, 100} {
 		t.Run(strconv.Itoa(width), func(t *testing.T) {
 			// Render the dashboard at this width from the starting snapshot.
-			dashboard := renderDevtoolTUIDashboard(snapshot, "", width, false)
+			dashboard := Render(snapshot, "", width, false)
 
 			// Check that the startup summary stays readable without a server.
 			assertContains(t, dashboard, "STARTING")
@@ -281,7 +281,7 @@ func TestDesktopDashboard(t *testing.T) {
 
 			// Check that color-enabled output also respects the width.
 			for _, color := range []bool{false, true} {
-				for line := range strings.SplitSeq(renderDevtoolTUIDashboard(snapshot, "", width, color), "\n") {
+				for line := range strings.SplitSeq(Render(snapshot, "", width, color), "\n") {
 					if visibleWidth(line) > width {
 						t.Fatalf("line exceeds %d columns: %q", width, line)
 					}

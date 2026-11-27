@@ -1,6 +1,6 @@
 //go:build !js
 
-package devtool
+package dashboard
 
 import (
 	"strings"
