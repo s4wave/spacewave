@@ -121,7 +121,7 @@ func (r *daemonTestReference) Release() {
 func newDaemonTestResourceClient(t *testing.T) srpc.Client {
 	t.Helper()
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(srpc.NewMux()).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(srpc.NewMux(), "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))

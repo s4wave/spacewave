@@ -44,7 +44,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -243,7 +243,7 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	handlerService := srpc.NewMux()
-	if err := resource_server.NewResourceServer(handlerRoot).Register(handlerService); err != nil {
+	if err := resource_server.NewResourceServer(handlerRoot, "").Register(handlerService); err != nil {
 		t.Fatal(err)
 	}
 
@@ -426,7 +426,7 @@ func newTestObjectTypePluginClient(t *testing.T, handler s4wave_objecttype_regis
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -627,7 +627,7 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 
 	// Load the plugin root through its resource server.
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginLoader := &testPluginLoadController{client: srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))}

@@ -239,7 +239,7 @@ func handlerClient(t *testing.T, handler registry.SRPCWorldOpHandlerServiceServe
 
 	// Wrap the handler mux with the resource server and a client pipe.
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))

@@ -291,7 +291,7 @@ func TestResourceRPCStreamingCancellationReleasesOnlyUnpublishedChildren(t *test
 func newPendingResourceTestClient(t *testing.T, ctx context.Context, root srpc.Invoker, sendErr error) (*resource_client.Client, *resource_server.ResourceServer, srpc.Client) {
 	// Register the server, optionally refusing only ResourceRpc response data.
 	t.Helper()
-	server := resource_server.NewResourceServer(root)
+	server := resource_server.NewResourceServer(root, "")
 	mux := srpc.NewMux()
 	var impl resource.SRPCResourceServiceServer = server
 	if sendErr != nil {

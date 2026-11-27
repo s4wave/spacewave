@@ -154,7 +154,7 @@ func TestTypedObjectResourceDisposesFactoryResult(t *testing.T) {
 			})
 
 			// Serve the typed mount through the production Resource protocol.
-			server := resource_server.NewResourceServer(root)
+			server := resource_server.NewResourceServer(root, "")
 			service := srpc.NewMux()
 			if err := server.Register(service); err != nil {
 				t.Fatal(err)

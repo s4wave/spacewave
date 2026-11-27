@@ -93,7 +93,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -224,7 +224,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -304,7 +304,7 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -363,7 +363,7 @@ func TestWorldOpRegistryBridgeControllerRetriesShareWriteBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -1048,7 +1048,7 @@ func TestWorldOpRegistryBridgeControllerPluginWriteGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
@@ -1887,7 +1887,7 @@ func TestBridgedOpWritesFilesThroughStackedGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))

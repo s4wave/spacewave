@@ -46,7 +46,7 @@ func TestResourceRPCStreamingMethodPreservesLegacyResourceLifetime(t *testing.T)
 	}))
 
 	// Register the resource server and connect a client over a pipe.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)

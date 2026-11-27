@@ -56,7 +56,7 @@ func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan st
 		t.Fatal(err)
 	}
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	if err := desktop_control.SRPCRegisterDesktopControlService(mux, control); err != nil {

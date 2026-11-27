@@ -257,7 +257,7 @@ type backend struct {
 func newBackend(gen int) *backend {
 	b := &backend{gen: gen, called: make(chan struct{}), releases: make(map[string]func()), names: make(map[uint32]string)}
 	serverMux := srpc.NewMux()
-	server := resource_server.NewResourceServer(b.mux())
+	server := resource_server.NewResourceServer(b.mux(), "")
 	_ = resource.SRPCRegisterResourceService(serverMux, &adoptRecorder{SRPCResourceServiceServer: server, b: b})
 	b.server = srpc.NewServer(serverMux)
 	return b

@@ -669,8 +669,7 @@ func (c *Controller) buildPluginMux(
 		bldr_plugin.PluginVolumeID,
 		registrationDone,
 	)
-	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
-	resourceSrv.SetOriginController(ControllerID)
+	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux(), ControllerID)
 	_ = resourceSrv.Register(mux)
 
 	// export this scheduler's plugin hosts to trusted plugins

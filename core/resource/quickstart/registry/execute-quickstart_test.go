@@ -51,7 +51,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+	if err := resource_server.NewResourceServer(pluginRoot, "").Register(pluginResourceMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))

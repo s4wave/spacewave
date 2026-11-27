@@ -107,7 +107,7 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 		return err
 	}
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(mux); err != nil {
 		return err
 	}
 	if err := desktop_control.SRPCRegisterDesktopControlService(mux, &fixtureDesktopControl{}); err != nil {

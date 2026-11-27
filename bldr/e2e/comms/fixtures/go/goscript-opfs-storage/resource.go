@@ -37,7 +37,7 @@ func uploadEngineResource(ctx context.Context, tb *db_testbed.Testbed, so sobjec
 	engineResource := resource_world.NewEngineResource(tb.Logger, tb.Bus, engine, space_world_optypes.LookupWorldOp, nil)
 	defer engineResource.Close()
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(engineResource.GetMux()).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(engineResource.GetMux(), "").Register(serverMux); err != nil {
 		return err
 	}
 

@@ -87,8 +87,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 			// Expose them through the resource server.
 			serverMux := srpc.NewMux()
-			resourceSrv := resource_server.NewResourceServer(rootMux)
-			resourceSrv.SetOriginController(ControllerID)
+			resourceSrv := resource_server.NewResourceServer(rootMux, ControllerID)
 			if err := resourceSrv.Register(serverMux); err != nil {
 				return nil, err
 			}

@@ -900,7 +900,7 @@ func newTestDesktopTrayResourceClient(
 
 	// Serve the tray resource over an in-memory SRPC server.
 	tray := NewDesktopTray()
-	server := resource_server.NewResourceServer(tray.GetMux())
+	server := resource_server.NewResourceServer(tray.GetMux(), "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)

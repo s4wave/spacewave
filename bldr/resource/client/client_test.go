@@ -284,7 +284,7 @@ func TestNewClientReturnsResourceClientStreamError(t *testing.T) {
 	// Register a resource server whose client stream returns an error.
 	serverMux := srpc.NewMux()
 	server := &errorResourceServer{
-		ResourceServer: resource_server.NewResourceServer(nil),
+		ResourceServer: resource_server.NewResourceServer(nil, ""),
 		err:            errors.New("resource client handler failed"),
 	}
 	if err := resource.SRPCRegisterResourceService(serverMux, server); err != nil {
@@ -1112,7 +1112,7 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 	}))
 
 	// Connect the root RPC server to a resource client.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
@@ -1176,7 +1176,7 @@ func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
 func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 	// Connect a resource server for a callable attached resource tree.
 	rootMux := srpc.NewMux()
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
@@ -1295,7 +1295,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	}))
 
 	// Connect the raw-callback server to a resource client.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)

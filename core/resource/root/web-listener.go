@@ -316,14 +316,14 @@ func newWebListener(
 		if rootMux == nil {
 			return nil, errors.New("native web listener requires the Root resource")
 		}
-		server := resource_server.NewResourceServer(rootMux)
+		server := resource_server.NewResourceServer(rootMux, "")
 		if spec.spaceID != "" {
 			binding := &webBinding{
 				le:         le.WithField("space-id", spec.spaceID),
 				sessionIdx: spec.sessionIdx,
 				spaceID:    spec.spaceID,
 			}
-			server = resource_server.NewFilteredResourceServer(rootMux, binding.filter)
+			server = resource_server.NewFilteredResourceServer(rootMux, binding.filter, "")
 		}
 		mux := srpc.NewMux()
 		if err := server.Register(mux); err != nil {

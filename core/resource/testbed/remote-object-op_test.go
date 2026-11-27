@@ -312,7 +312,7 @@ func serveRemoteClaimTestbed(t *testing.T) {
 		tb.BucketId,
 	)
 	mux := srpc.NewMux()
-	resourceServer := resource_server.NewResourceServer(root.GetMux())
+	resourceServer := resource_server.NewResourceServer(root.GetMux(), "")
 	if err := resourceServer.Register(mux); err != nil {
 		t.Fatal(err)
 	}

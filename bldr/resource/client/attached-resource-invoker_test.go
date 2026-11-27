@@ -258,7 +258,7 @@ func TestAttachedResourceCleanupRegisteredAfterDetach(t *testing.T) {
 func newAttachedInvocationTestClient(t *testing.T) (*Client, *resource_server.ResourceServer) {
 	// Register the server's root and lifecycle services on a real SRPC pipe.
 	t.Helper()
-	server := resource_server.NewResourceServer(srpc.NewMux())
+	server := resource_server.NewResourceServer(srpc.NewMux(), "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)

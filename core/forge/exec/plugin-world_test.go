@@ -22,7 +22,7 @@ func TestPluginExecAttachedWorldCancellationReachesPlugin(t *testing.T) {
 	root := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterPluginExecService(mux, service)
 	})
-	server := resource_server.NewResourceServer(root)
+	server := resource_server.NewResourceServer(root, "")
 	mux := resource_server.NewResourceMux(server.Register)
 
 	// Connect the plugin and grant its selected transactional World.
@@ -66,7 +66,7 @@ func TestPluginExecAttachedWorldPublishesBeforeReturningOutput(t *testing.T) {
 	root := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterPluginExecService(mux, &attachedWorldService{})
 	})
-	server := resource_server.NewResourceServer(root)
+	server := resource_server.NewResourceServer(root, "")
 	mux := resource_server.NewResourceMux(server.Register)
 	client := NewSRPCPluginExecServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 

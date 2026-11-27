@@ -99,8 +99,9 @@ func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHa
 		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(pluginID)),
 	)
 	defer root.Close()
-	server := resource_server.NewResourceServer(root.GetMux())
-	server.SetOriginController(worldServiceControllerID)
+	server := resource_server.NewResourceServer(root.GetMux(), worldServiceControllerID)
+
+	// Register the attributed World resource service.
 	mux := srpc.NewMux()
 	if err := mux.Register(resource.NewSRPCResourceServiceHandler(server, sdk_world_engine.SpaceWorldServiceID)); err != nil {
 		return err

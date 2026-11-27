@@ -356,7 +356,7 @@ func setupCountingResourceClient(
 
 	// Create testbedResource via resource_testbed.NewTestbedResourceServer.
 	testbedResource := resource_testbed.NewTestbedResourceServer(ctx, le, tb.Bus, tb.Volume.GetID(), tb.BucketId)
-	resourceServer := resource_server.NewResourceServer(testbedResource.GetMux())
+	resourceServer := resource_server.NewResourceServer(testbedResource.GetMux(), "")
 	if err := resourceServer.Register(mux); err != nil {
 		closePipes()
 		t.Fatal(err.Error())

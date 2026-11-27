@@ -52,7 +52,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 
 	// Register the resource server and its RPC client controller.
 	hostMux := srpc.NewMux()
-	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux())
+	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux(), "")
 	if err := resourceServer.Register(hostMux); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 
 	// Register the resource server and its RPC client controller.
 	hostMux := srpc.NewMux()
-	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux())
+	resourceServer := resource_server.NewResourceServer(pluginRoot.GetMux(), "")
 	if err := resourceServer.Register(hostMux); err != nil {
 		t.Fatal(err)
 	}
@@ -391,7 +391,7 @@ func newDesktopRuntimeOnlyWebRuntime(
 	t.Helper()
 
 	// Build the desktop-runtime-only web runtime.
-	server := resource_server.NewResourceServer(tray.GetMux())
+	server := resource_server.NewResourceServer(tray.GetMux(), "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatalf("register desktop runtime resource server: %v", err)

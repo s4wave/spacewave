@@ -74,7 +74,7 @@ func TestNativeBridgeRetainsEachCaller(t *testing.T) {
 		t.Fatal(err)
 	}
 	handlerService := srpc.NewMux()
-	if err := resource_server.NewResourceServer(handlerRoot).Register(handlerService); err != nil {
+	if err := resource_server.NewResourceServer(handlerRoot, "").Register(handlerService); err != nil {
 		t.Fatal(err)
 	}
 

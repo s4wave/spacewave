@@ -44,8 +44,8 @@ func TestResourceCallOrigin(t *testing.T) {
 
 	// Serve the root with an origin controller.
 	const originID = "test/resource-root"
-	server := resource_server.NewResourceServer(rootMux)
-	server.SetOriginController(originID)
+	server := resource_server.NewResourceServer(rootMux, originID)
+
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)

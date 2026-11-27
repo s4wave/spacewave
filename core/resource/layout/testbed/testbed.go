@@ -116,7 +116,7 @@ func setupResourceClient(ctx context.Context, tb *world_testbed.Testbed) (*resou
 	volumeID := tb.Volume.GetID()
 	bucketID := tb.BucketId
 	testbedResource := resource_testbed.NewTestbedResourceServer(ctx, le, tb.Bus, volumeID, bucketID)
-	resourceServer := resource_server.NewResourceServer(testbedResource.GetMux())
+	resourceServer := resource_server.NewResourceServer(testbedResource.GetMux(), "")
 	err = resourceServer.Register(mux)
 	if err != nil {
 		clientPipe.Close()

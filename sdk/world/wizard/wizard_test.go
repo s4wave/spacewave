@@ -54,7 +54,7 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
 	// Register the wizard resource service on the server mux.
-	resourceSrv := resource_server.NewResourceServer(r.GetMux())
+	resourceSrv := resource_server.NewResourceServer(r.GetMux(), "")
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
 		t.Fatal(err.Error())

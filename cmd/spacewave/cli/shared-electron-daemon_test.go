@@ -189,7 +189,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 
 	// Expose the core Resource tree over independent client connections.
 	resources := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(resources); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(resources); err != nil {
 		t.Fatal(err)
 	}
 

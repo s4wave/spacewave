@@ -137,8 +137,7 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			// create the resource server, refusing protected methods to plugins
 			// outside the host set apart from the Secrets the grant admits
 			c.rootResourceMux = srpc.NewMux()
-			c.server = resource_server.NewFilteredResourceServer(c.rootResourceMux, resource_root.NewPluginCallerFilter(base.GetLogger(), c.secretGrant))
-			c.server.SetOriginController(ControllerID)
+			c.server = resource_server.NewFilteredResourceServer(c.rootResourceMux, resource_root.NewPluginCallerFilter(base.GetLogger(), c.secretGrant), ControllerID)
 
 			// register the resource server to the mux
 			serviceID := c.GetServiceID()

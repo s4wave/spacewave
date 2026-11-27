@@ -57,7 +57,7 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	}
 
 	// Register the resource server on that mux.
-	resourceSrv := resource_server.NewResourceServer(rootMux)
+	resourceSrv := resource_server.NewResourceServer(rootMux, "")
 	resourceMux := srpc.NewMux()
 	if err := resourceSrv.Register(resourceMux); err != nil {
 		t.Fatal(err)
@@ -417,7 +417,7 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 	}
 
 	// Register the resource server.
-	resourceSrv := resource_server.NewResourceServer(rootMux)
+	resourceSrv := resource_server.NewResourceServer(rootMux, "")
 	resourceMux := srpc.NewMux()
 	if err := resourceSrv.Register(resourceMux); err != nil {
 		t.Fatal(err)

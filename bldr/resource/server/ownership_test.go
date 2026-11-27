@@ -12,7 +12,7 @@ import (
 func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) {
 	// Build a server and one registered client with a seeded root resource.
 	t.Helper()
-	server := NewResourceServer(nil)
+	server := NewResourceServer(nil, "")
 	client := &RemoteResourceClient{
 		server:         server,
 		clientID:       1,

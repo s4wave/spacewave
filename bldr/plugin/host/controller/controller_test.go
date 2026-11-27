@@ -32,9 +32,6 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 	if root == nil {
 		t.Fatal("expected host root")
 	}
-	if root.GetDesktopTray() == nil {
-		t.Fatal("expected desktop tray registry")
-	}
 	if root.GetStructuredLogs() == nil {
 		t.Fatal("expected structured log hub")
 	}

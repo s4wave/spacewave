@@ -382,7 +382,7 @@ func runServeCommand(
 		)
 		defer pluginRoot.Release()
 		hostMux := srpc.NewMux()
-		if err := resource_server.NewResourceServer(pluginRoot.GetMux()).Register(hostMux); err != nil {
+		if err := resource_server.NewResourceServer(pluginRoot.GetMux(), "").Register(hostMux); err != nil {
 			return err
 		}
 		hostCtrl := bifrost_rpc.NewInvokerController(le, cliBus.GetBus(),

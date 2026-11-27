@@ -76,7 +76,7 @@ func newTypedWatchFixture(t *testing.T, engineID string, wrapResourceClient ...f
 	}
 
 	// Establish the actual Resource client generation over an in-memory pipe.
-	server := resource_server.NewResourceServer(root)
+	server := resource_server.NewResourceServer(root, "")
 	service := srpc.NewMux()
 	if err := server.Register(service); err != nil {
 		t.Fatal(err)
@@ -180,7 +180,7 @@ func (f *typedWatchFixture) register(t *testing.T, typeID, label, scope string, 
 	}
 
 	// Publish the handler through its own real Resource server.
-	handler.server = resource_server.NewResourceServer(root)
+	handler.server = resource_server.NewResourceServer(root, "")
 	service := srpc.NewMux()
 	if err := handler.server.Register(service); err != nil {
 		t.Fatal(err)

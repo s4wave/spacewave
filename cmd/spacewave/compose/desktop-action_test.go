@@ -74,7 +74,7 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 		t.Fatal(err)
 	}
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	if withDesktop {

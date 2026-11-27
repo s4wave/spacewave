@@ -177,7 +177,7 @@ func TestPluginNodeFixture(t *testing.T) {
 
 	// Connect a Resource client the way the plugin does.
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(serverMux); err != nil {
 		t.Fatal(err)
 	}
 	caller := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux)))

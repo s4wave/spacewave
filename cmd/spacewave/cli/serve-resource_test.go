@@ -27,7 +27,7 @@ func TestLookupLocalResourceInvokerSelectsRegisteredService(t *testing.T) {
 
 	// Register the Resource server and invoker controller.
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(nil).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(nil, "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	ctrl := bifrost_rpc.NewInvokerController(

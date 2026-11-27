@@ -178,7 +178,7 @@ func TestPythonClientResourceLifecycleAgainstGoServer(t *testing.T) {
 	}))
 
 	// Register the ResourceServer on an srpc server.
-	server := NewResourceServer(rootMux)
+	server := NewResourceServer(rootMux, "")
 	resourceMux := srpc.NewMux()
 	if err := server.Register(resourceMux); err != nil {
 		t.Fatalf("register ResourceServer: %v", err)

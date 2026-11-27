@@ -48,7 +48,7 @@ func TestResourceRPCAbandonAfterNestedCancellation(t *testing.T) {
 	})
 
 	// Keep the ResourceClient generation open independently of the raw route.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)

@@ -44,7 +44,7 @@ func TestResourceRPCCanceledPublishedChildReturnsCountToBaseline(t *testing.T) {
 	})
 
 	// Keep the generation open while gating only ResourceRpc response delivery.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)

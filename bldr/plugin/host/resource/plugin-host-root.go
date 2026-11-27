@@ -207,9 +207,7 @@ func (r *PluginHostRoot) AccessDesktopTray(
 	ctx context.Context,
 	req *sdk_plugin_host.AccessDesktopTrayRequest,
 ) (*sdk_plugin_host.AccessDesktopTrayResponse, error) {
-	_, id, err := resource_server.ConstructChildResource(ctx, func(_ context.Context) (srpc.Invoker, struct{}, func(), error) {
-		return r.hostRoot.GetDesktopTray().GetMux(), struct{}{}, nil, nil
-	})
+	id, err := r.hostRoot.AccessDesktopTray(ctx)
 	if err != nil {
 		return nil, err
 	}

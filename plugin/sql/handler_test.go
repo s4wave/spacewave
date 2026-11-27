@@ -821,7 +821,7 @@ func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
 
 	// Expose the SQL plugin mux through the resource server.
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(serverMux); err != nil {
 		t.Fatalf("register SQL plugin resource server: %v", err)
 	}
 	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux)))
@@ -831,7 +831,7 @@ func newSQLResourceClient(t *testing.T, root srpc.Invoker) (*resource_client.Cli
 	// Connect a resource client to the supplied root mux.
 	t.Helper()
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
 	}
 	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))))
@@ -1031,7 +1031,7 @@ func newRegisterSQLHarness(t *testing.T, fake *zeroResourceRegistry) (*resource_
 
 	// Connect a resource client to the fake registry server.
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
 	}
 	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))))

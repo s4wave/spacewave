@@ -46,7 +46,7 @@ func servePortedRegistry(t *testing.T, ctx context.Context, tb *world_testbed.Te
 	// Serve the registry through an in-process resource client.
 	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(registry.GetMux()).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(registry.GetMux(), "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))

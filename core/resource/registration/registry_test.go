@@ -45,7 +45,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 
@@ -321,7 +321,7 @@ func TestPrepareRefusesForeignBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	coreMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(coreMux); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
 	pluginMux := srpc.NewMux()

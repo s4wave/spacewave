@@ -100,7 +100,7 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 	// Register the Resource service and observe generation teardown. The
 	// ResourceClient handler removes its client and every resource it retained
 	// before it returns, so its completion is the Go owner-zero observation.
-	server := resource_server.NewResourceServer(rootMux)
+	server := resource_server.NewResourceServer(rootMux, "")
 	resourceMux := srpc.NewMux()
 	if err := server.Register(resourceMux); err != nil {
 		t.Fatalf("register ResourceServer: %v", err)

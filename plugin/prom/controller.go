@@ -56,7 +56,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 				return s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(mux, h)
 			})
 			serverMux := srpc.NewMux()
-			if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
+			if err := resource_server.NewResourceServer(rootMux, "").Register(serverMux); err != nil {
 				return nil, err
 			}
 			return &Controller{

@@ -21,7 +21,7 @@ import (
 func AttachEngine(le *logrus.Entry, b bus.Bus, engine world.Engine) (srpc.Invoker, func(), error) {
 	root := resource_world.NewEngineResource(le, b, engine, lookupOp, &sdk_world.EngineInfo{})
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root.GetMux()).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(root.GetMux(), "").Register(mux); err != nil {
 		root.Close()
 		return nil, nil, err
 	}

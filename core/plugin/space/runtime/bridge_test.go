@@ -222,7 +222,7 @@ func TestBridgeScopedObjectTypeLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	service := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(service); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(service); err != nil {
 		t.Fatal(err)
 	}
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(service)))

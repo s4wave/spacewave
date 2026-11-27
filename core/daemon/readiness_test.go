@@ -109,7 +109,7 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = listener.Close() })
 			mux := srpc.NewMux()
-			if err := resource_server.NewResourceServer(nil).Register(mux); err != nil {
+			if err := resource_server.NewResourceServer(nil, "").Register(mux); err != nil {
 				t.Fatal(err)
 			}
 			served := make(chan struct{})

@@ -217,7 +217,7 @@ func runSharedDaemonFixture() error {
 			cliBus.AddRelease(release)
 		}
 		mux := srpc.NewMux()
-		buildErr = resource_server.NewResourceServer(resourceMux).Register(mux)
+		buildErr = resource_server.NewResourceServer(resourceMux, "").Register(mux)
 		if buildErr != nil {
 			return nil
 		}

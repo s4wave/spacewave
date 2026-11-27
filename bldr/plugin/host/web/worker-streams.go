@@ -23,18 +23,6 @@ type workerStreams struct {
 	closed error
 }
 
-// workerStream is one stream opened through workerStreams.
-type workerStream struct {
-	// closeHandler is the caller's close handler, called once.
-	closeHandler srpc.CloseHandler
-	// once guards closeHandler.
-	once sync.Once
-	// writer is the opened stream, set under the set's mtx once open returns.
-	writer srpc.PacketWriter
-	// ended is the error the set ended the stream with, under the set's mtx.
-	ended error
-}
-
 // newWorkerStreams wraps open, which opens a stream to the worker.
 func newWorkerStreams(open srpc.OpenStreamFunc) *workerStreams {
 	return &workerStreams{open: open, streams: make(map[*workerStream]struct{})}
@@ -58,10 +46,7 @@ func (s *workerStreams) OpenStream(ctx context.Context, msgHandler srpc.PacketDa
 		strm.close(closeErr)
 	})
 	s.mtx.Lock()
-	ended := strm.ended
-	if err == nil && ended == nil {
-		strm.writer = writer
-	}
+	ended := strm.opened(writer, err)
 	s.mtx.Unlock()
 	switch {
 	case err != nil:
@@ -82,9 +67,9 @@ func (s *workerStreams) endStreams(err error) {
 	strms := make([]*workerStream, 0, len(s.streams))
 	writers := make([]srpc.PacketWriter, 0, len(s.streams))
 	for strm := range s.streams {
-		strm.ended = err
+		writer := strm.end(err)
 		strms = append(strms, strm)
-		writers = append(writers, strm.writer)
+		writers = append(writers, writer)
 	}
 	clear(s.streams)
 	s.mtx.Unlock()
@@ -111,9 +96,4 @@ func (s *workerStreams) remove(strm *workerStream) {
 	s.mtx.Lock()
 	delete(s.streams, strm)
 	s.mtx.Unlock()
-}
-
-// close calls the caller's close handler once.
-func (s *workerStream) close(err error) {
-	s.once.Do(func() { s.closeHandler(err) })
 }

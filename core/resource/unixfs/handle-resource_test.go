@@ -281,7 +281,7 @@ func setupFSHandleResourceClientOn(
 		nil,
 	)
 	rootMux := rootResource.GetMux()
-	resourceSrv := resource_server.NewResourceServer(rootMux)
+	resourceSrv := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
 		t.Fatal(err)

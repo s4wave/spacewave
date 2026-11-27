@@ -237,7 +237,7 @@ func setupBenchRootResourceClient(ctx context.Context, b *testing.B) (srpc.Clien
 	// Serve the root resource through a counted SRPC connection.
 	wireMux := srpc.NewMux()
 	server := srpc.NewServer(wireMux)
-	resourceServer := resource_server.NewResourceServer(rootMux)
+	resourceServer := resource_server.NewResourceServer(rootMux, "")
 	if err := resourceServer.Register(wireMux); err != nil {
 		b.Fatal(err.Error())
 	}

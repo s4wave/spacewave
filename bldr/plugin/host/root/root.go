@@ -70,9 +70,12 @@ func NewRoot() *Root {
 	return r
 }
 
-// GetDesktopTray returns the process-lifetime desktop tray registry.
-func (r *Root) GetDesktopTray() *desktop_tray.DesktopTray {
-	return r.desktopTray
+// AccessDesktopTray constructs a child resource for the process-lifetime tray.
+func (r *Root) AccessDesktopTray(ctx context.Context) (uint32, error) {
+	_, id, err := resource_server.ConstructChildResource(ctx, func(_ context.Context) (srpc.Invoker, struct{}, func(), error) {
+		return r.desktopTray.GetMux(), struct{}{}, nil, nil
+	})
+	return id, err
 }
 
 // GetStructuredLogs returns the process-lifetime structured log hub.

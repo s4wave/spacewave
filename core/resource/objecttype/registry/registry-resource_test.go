@@ -351,7 +351,7 @@ func TestRegisterObjectTypeAttachedHandlerEndsWithClientGeneration(t *testing.T)
 
 	// Attach and register a handler in the caller resource generation.
 	serviceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(srpc.NewMux()).Register(serviceMux); err != nil {
+	if err := resource_server.NewResourceServer(srpc.NewMux(), "").Register(serviceMux); err != nil {
 		t.Fatalf("register attached ResourceService: %v", err)
 	}
 	attachedID, err := resources.AttachResource(ctx, "handler", serviceMux)
@@ -396,7 +396,7 @@ func newRegistryResourceClient(
 	t.Helper()
 	registry := NewObjectTypeRegistryResource(nil, testBuiltInTypeIDs...)
 	serviceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(registry.GetMux()).Register(serviceMux); err != nil {
+	if err := resource_server.NewResourceServer(registry.GetMux(), "").Register(serviceMux); err != nil {
 		t.Fatalf("register registry ResourceService: %v", err)
 	}
 

@@ -90,7 +90,7 @@ func TestResourceRouteFailureDecidesLifetimeByCode(t *testing.T) {
 	defer cancel()
 
 	// Serve the real resource server with its refusals reworded.
-	server := resource_server.NewResourceServer(lifecycleTestInvoker("test.Root"))
+	server := resource_server.NewResourceServer(lifecycleTestInvoker("test.Root"), "")
 	serverMux := srpc.NewMux()
 	rewording := &rewordingResourceServer{ResourceServer: server}
 	if err := resource.SRPCRegisterResourceService(serverMux, rewording); err != nil {

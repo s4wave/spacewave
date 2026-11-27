@@ -99,7 +99,7 @@ func SetupResourceClientWithService(
 	server := srpc.NewServer(mux)
 
 	// Serve root as the root resource
-	resourceServer := resource_server.NewResourceServer(root)
+	resourceServer := resource_server.NewResourceServer(root, "")
 	err = resourceServer.Register(mux)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -328,7 +328,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	if err := t.ResourceServer.Register(rootResourceMux); err != nil {
 		return nil, err
 	}
-	resourceSrv := resource_server.NewResourceServer(rootResourceMux)
+	resourceSrv := resource_server.NewResourceServer(rootResourceMux, "")
 	if err := resourceSrv.Register(hostMux); err != nil {
 		return nil, err
 	}

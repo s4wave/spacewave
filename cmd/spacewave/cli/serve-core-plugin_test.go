@@ -38,7 +38,7 @@ func TestNativeCorePluginUsesLocalRegistry(t *testing.T) {
 
 	// Register the object-type registry and add the native core plugin.
 	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
-	server := resource_server.NewResourceServer(registry.GetMux())
+	server := resource_server.NewResourceServer(registry.GetMux(), "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestNativeCorePluginRefusesPluginServers(t *testing.T) {
 	// Add native core over the registry and the daemon's root scheduler.
 	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	mux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(registry.GetMux()).Register(mux); err != nil {
+	if err := resource_server.NewResourceServer(registry.GetMux(), "").Register(mux); err != nil {
 		t.Fatal(err)
 	}
 	for _, ctrl := range []controller.Controller{newNativeCorePlugin(b, mux), &daemonRootScheduler{}} {

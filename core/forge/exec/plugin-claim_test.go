@@ -30,7 +30,7 @@ func TestPluginExecReceivesGrantedClaim(t *testing.T) {
 			root := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 				return SRPCRegisterPluginExecService(mux, service)
 			})
-			server := resource_server.NewResourceServer(root)
+			server := resource_server.NewResourceServer(root, "")
 			mux := resource_server.NewResourceMux(server.Register, func(mux srpc.Mux) error {
 				return SRPCRegisterPluginExecService(mux, service)
 			})

@@ -84,7 +84,7 @@ func newOpenRuntime(t *testing.T, desktop *openService) *openRuntime {
 		t.Fatal(err)
 	}
 	resourceMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(resourceMux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(resourceMux); err != nil {
 		t.Fatal(err)
 	}
 	service := bldr_resource.NewSRPCResourceServiceClient(

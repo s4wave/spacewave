@@ -99,7 +99,7 @@ func newTestDesktopTrayPublisher(
 	// Start the tray resource server and its in-process RPC transport.
 	t.Helper()
 	tray := desktop_tray.NewDesktopTray()
-	server := resource_server.NewResourceServer(tray.GetMux())
+	server := resource_server.NewResourceServer(tray.GetMux(), "")
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)

@@ -36,13 +36,15 @@ type ResourceServer struct {
 type InvokerFilter func(srpc.Invoker) srpc.Invoker
 
 // NewResourceServer constructs a ResourceServer for rootResourceMux.
-func NewResourceServer(rootResourceMux srpc.Invoker) *ResourceServer {
-	return NewFilteredResourceServer(rootResourceMux, nil)
+// originID names the controller for calls without an existing origin; empty leaves it unset.
+func NewResourceServer(rootResourceMux srpc.Invoker, originID string) *ResourceServer {
+	return NewFilteredResourceServer(rootResourceMux, nil, originID)
 }
 
 // NewFilteredResourceServer constructs a ResourceServer that routes every
 // resource call through filter. A nil filter serves calls directly.
-func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilter) *ResourceServer {
+// originID names the controller for calls without an existing origin; empty leaves it unset.
+func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilter, originID string) *ResourceServer {
 	// Supply an empty service mux when the caller has no root methods.
 	if rootResourceMux == nil {
 		rootResourceMux = srpc.NewMux()
@@ -51,17 +53,9 @@ func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilte
 	return &ResourceServer{
 		rootResourceMux: rootResourceMux,
 		filter:          filter,
+		originID:        originID,
 		clients:         make(map[uint32]*RemoteResourceClient),
 	}
-}
-
-// SetOriginController sets controllerID as the origin of directives from
-// resource calls.
-// The resources those calls construct use the same origin.
-// A call whose context already records an origin controller keeps that origin.
-// Call SetOriginController before serving.
-func (s *ResourceServer) SetOriginController(controllerID string) {
-	s.originID = controllerID
 }
 
 // withOrigin returns ctx recording the server's origin controller.

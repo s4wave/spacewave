@@ -51,7 +51,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 	}
 
 	// Connect the registry through its real Resource service.
-	registryServer := resource_server.NewResourceServer(root)
+	registryServer := resource_server.NewResourceServer(root, "")
 	registryMux := resource_server.NewResourceMux(registryServer.Register)
 	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(registryMux)))))
 	if err != nil {
@@ -86,7 +86,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 	handlerRoot := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return sdk_registry.SRPCRegisterObjectTypeHandlerService(mux, &scopedObjectTypeHandler{engineID: tb.EngineID, released: released})
 	})
-	handlerServer := resource_server.NewResourceServer(handlerRoot)
+	handlerServer := resource_server.NewResourceServer(handlerRoot, "")
 	handlerID, err := resources.AttachResource(ctx, "scoped-handler", resource_server.NewResourceMux(handlerServer.Register))
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +127,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 		}
 
 		// Connect the probe to the real Resource server and adopt its root.
-		server := resource_server.NewResourceServer(root)
+		server := resource_server.NewResourceServer(root, "")
 		mux := resource_server.NewResourceMux(server.Register)
 		client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))))
 		if err != nil {
@@ -175,7 +175,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 	globalRoot := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return sdk_world.SRPCRegisterTypedObjectResourceService(mux, typed)
 	})
-	globalServer := resource_server.NewResourceServer(globalRoot)
+	globalServer := resource_server.NewResourceServer(globalRoot, "")
 	globalMux := resource_server.NewResourceMux(globalServer.Register)
 	globalClient, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(globalMux)))))
 	if err != nil {
@@ -197,7 +197,7 @@ func TestPluginExecBorrowedWorldRetainsRegistryScope(t *testing.T) {
 	// Execute through the production bridge and its client-owned attached World tree.
 	service := &scopedWorldService{engineID: tb.EngineID, objectKey: objectKey}
 	pluginRoot := resource_server.NewResourceMux(func(mux srpc.Mux) error { return SRPCRegisterPluginExecService(mux, service) })
-	pluginServer := resource_server.NewResourceServer(pluginRoot)
+	pluginServer := resource_server.NewResourceServer(pluginRoot, "")
 	pluginMux := resource_server.NewResourceMux(pluginServer.Register)
 	client := NewSRPCPluginExecServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginMux))))
 	handler := &pluginExecHandler{

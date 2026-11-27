@@ -2,7 +2,6 @@ package plugin_host_resource
 
 import (
 	"context"
-	"io"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -72,47 +71,6 @@ func (c *testResourceClientContext) GetResourceValue(resourceID uint32) (any, er
 
 func (c *testResourceClientContext) GetAttachedResource(id uint32) (srpc.Client, error) {
 	return nil, resource.ErrResourceNotFound
-}
-
-type testWatchStream struct {
-	ctx    context.Context
-	cancel func()
-	state  *desktop_tray.DesktopTrayState
-}
-
-func (s *testWatchStream) Context() context.Context {
-	return s.ctx
-}
-
-func (s *testWatchStream) MsgSend(msg srpc.Message) error {
-	return nil
-}
-
-func (s *testWatchStream) MsgRecv(msg srpc.Message) error {
-	return io.EOF
-}
-
-func (s *testWatchStream) CloseSend() error {
-	return nil
-}
-
-func (s *testWatchStream) Close() error {
-	s.cancel()
-	return nil
-}
-
-func (s *testWatchStream) Send(resp *desktop_tray.WatchDesktopTrayResponse) error {
-	s.state = resp.GetState().CloneVT()
-	s.cancel()
-	return nil
-}
-
-func (s *testWatchStream) SendAndClose(resp *desktop_tray.WatchDesktopTrayResponse) error {
-	if resp != nil {
-		return s.Send(resp)
-	}
-	s.cancel()
-	return nil
 }
 
 func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {
@@ -194,9 +152,10 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 		t.Fatal("expected desktop tray service on plugin-accessible resource")
 	}
 
-	// Register a desktop tray entry directly on the process-lifetime root.
+	// Register a desktop tray entry through the process-lifetime root mux.
 	regClient := newTestResourceClientContext(ctx)
-	regResp, err := hostRoot.GetDesktopTray().RegisterDesktopTrayEntry(
+	tray := desktop_tray.NewSRPCDesktopTrayResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostRoot.GetMux()))))
+	regResp, err := tray.RegisterDesktopTrayEntry(
 		resource_server.WithResourceClientContext(ctx, regClient),
 		&desktop_tray.RegisterDesktopTrayEntryRequest{
 			Entry: &desktop_tray.DesktopTrayEntry{
@@ -213,7 +172,7 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 
 	// Verify the tray entry survives release of the accessing plugin root.
 	pluginRoot.Release()
-	state := snapshotDesktopTray(t, hostRoot.GetDesktopTray())
+	state := snapshotDesktopTray(t, tray)
 	if len(state.GetEntries()) != 1 {
 		t.Fatalf("expected host root entry to survive plugin root release, got %d", len(state.GetEntries()))
 	}
@@ -222,29 +181,31 @@ func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 	if !regClient.ReleaseResource(regResp.GetResourceId()) {
 		t.Fatal("expected registration release")
 	}
-	state = snapshotDesktopTray(t, hostRoot.GetDesktopTray())
+	state = snapshotDesktopTray(t, tray)
 	if len(state.GetEntries()) != 0 {
 		t.Fatalf("expected registration release to remove entry, got %d", len(state.GetEntries()))
 	}
 }
 
-func snapshotDesktopTray(t *testing.T, tray *desktop_tray.DesktopTray) *desktop_tray.DesktopTrayState {
-	// Capture one desktop tray watch response and end the watch.
+// snapshotDesktopTray captures one tray snapshot through its resource service.
+func snapshotDesktopTray(t *testing.T, tray desktop_tray.SRPCDesktopTrayResourceServiceClient) *desktop_tray.DesktopTrayState {
+	// Open the tray watch and release it after the first snapshot.
 	t.Helper()
-	ctx, cancel := context.WithCancel(context.Background())
-	strm := &testWatchStream{
-		ctx:    ctx,
-		cancel: cancel,
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	strm, err := tray.WatchDesktopTray(ctx, &desktop_tray.WatchDesktopTrayRequest{})
+	if err != nil {
+		t.Fatal(err)
 	}
-	err := tray.WatchDesktopTray(&desktop_tray.WatchDesktopTrayRequest{}, strm)
-	if err != context.Canceled {
-		t.Fatalf("expected canceled watch after snapshot, got %v", err)
+	defer strm.Close()
+
+	// Read the current tray state.
+	resp, err := strm.Recv()
+	if err != nil {
+		t.Fatal(err)
 	}
-	return strm.state
+	return resp.GetState()
 }
 
-// _ is a type assertion
-var (
-	_ resource_server.ResourceClientContext                              = (*testResourceClientContext)(nil)
-	_ desktop_tray.SRPCDesktopTrayResourceService_WatchDesktopTrayStream = (*testWatchStream)(nil)
-)
+// _ checks the mock resource client context contract.
+var _ resource_server.ResourceClientContext = (*testResourceClientContext)(nil)

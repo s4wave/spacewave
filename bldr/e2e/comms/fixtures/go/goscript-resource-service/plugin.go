@@ -86,13 +86,16 @@ func (r *registrations) addLive(delta int) {
 	})
 }
 
+// startResourceService exposes the fixture resource service to its host.
 func startResourceService() {
+	// Report initialization panics to the host.
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			postFailure(errors.Errorf("panic: %v", recovered))
 		}
 	}()
 
+	// Report the runtime start information.
 	ctx := context.Background()
 	startInfo := js.Global().Get("BLDR_PLUGIN_START_INFO")
 	postMessage(map[string]any{
@@ -102,25 +105,28 @@ func startResourceService() {
 	})
 	fmt.Fprintln(os.Stderr, "goscript resource-service stderr fallback proof")
 
+	// Acquire the worker transport.
 	pluginIO, err := web_runtime_wasm.GlobalWasmPluginIo()
 	if err != nil {
 		postFailure(err)
 		return
 	}
 
+	// Register the fixture root and resource service.
 	rootMux := srpc.NewMux()
 	root := &registrations{EchoServer: echo.NewEchoServer(nil)}
 	if err := echo.SRPCRegisterEchoer(rootMux, root); err != nil {
 		postFailure(err)
 		return
 	}
-	resourceServer := resource_server.NewResourceServer(rootMux)
+	resourceServer := resource_server.NewResourceServer(rootMux, "")
 	mux := srpc.NewMux()
 	if err := resourceServer.Register(mux); err != nil {
 		postFailure(err)
 		return
 	}
 
+	// Accept calls and announce readiness.
 	pluginIO.SetAcceptStreams(ctx, mux)
 	postMessage(map[string]any{
 		"type":  "accept-ready",

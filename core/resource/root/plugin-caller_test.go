@@ -78,7 +78,7 @@ func TestPluginCallerFilterNestedSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	coreMux := srpc.NewMux()
-	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), nil))
+	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), nil), "")
 	if err := server.Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestPluginCallerFilterSecretGrant(t *testing.T) {
 		t.Fatal(err)
 	}
 	coreMux := srpc.NewMux()
-	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), store))
+	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), store), "")
 	if err := server.Register(coreMux); err != nil {
 		t.Fatal(err)
 	}

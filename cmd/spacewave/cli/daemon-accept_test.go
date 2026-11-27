@@ -31,7 +31,7 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 
 	// Open two concurrent resource clients against the listener.
 	mux := srpc.NewMux()
-	resServer := resource_server.NewResourceServer(srpc.NewMux())
+	resServer := resource_server.NewResourceServer(srpc.NewMux(), "")
 	if err := resServer.Register(mux); err != nil {
 		t.Fatalf("register resource server: %v", err)
 	}

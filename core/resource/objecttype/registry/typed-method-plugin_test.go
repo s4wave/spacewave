@@ -36,7 +36,7 @@ func (h *typedMethodPlugin) client(t *testing.T) (srpc.Client, *resource_server.
 	if err := sdk_registry.SRPCRegisterObjectTypeHandlerService(root, h); err != nil {
 		t.Fatal(err)
 	}
-	server := resource_server.NewResourceServer(root)
+	server := resource_server.NewResourceServer(root, "")
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {
 		t.Fatal(err)

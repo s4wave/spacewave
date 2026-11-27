@@ -100,7 +100,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 
 	// Expose the core Resource tree through the server multiplexer.
 	coreMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(coreRoot).Register(coreMux); err != nil {
+	if err := resource_server.NewResourceServer(coreRoot, "").Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
 

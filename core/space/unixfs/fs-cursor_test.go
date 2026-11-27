@@ -934,7 +934,7 @@ func newTestResourceClient(
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
 	// Register the root resource service on the server multiplexer.
-	resourceSrv := resource_server.NewResourceServer(rootMux)
+	resourceSrv := resource_server.NewResourceServer(rootMux, "")
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
 		clientPipe.Close()

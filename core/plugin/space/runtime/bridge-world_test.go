@@ -96,7 +96,7 @@ func TestBridgeAttachedWorldWatch(t *testing.T) {
 
 	// Connect the real Resource client to the parent's registration service.
 	service := srpc.NewMux()
-	if err := resource_server.NewResourceServer(root).Register(service); err != nil {
+	if err := resource_server.NewResourceServer(root, "").Register(service); err != nil {
 		t.Fatal(err)
 	}
 	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(service)))))
@@ -140,7 +140,7 @@ func TestBridgeAttachedWorldWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	handlerService := srpc.NewMux()
-	if err := resource_server.NewResourceServer(handlerRoot).Register(handlerService); err != nil {
+	if err := resource_server.NewResourceServer(handlerRoot, "").Register(handlerService); err != nil {
 		t.Fatal(err)
 	}
 	handlerID, err := resources.AttachResource(ctx, "parent-handler", handlerService)

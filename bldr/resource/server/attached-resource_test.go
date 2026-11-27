@@ -29,7 +29,7 @@ func (m *mockSRPCClient) NewStream(ctx context.Context, service, method string, 
 func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
 	// Build a client with a seeded root resource and register it with the server.
 	t.Helper()
-	s := NewResourceServer(nil)
+	s := NewResourceServer(nil, "")
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &RemoteResourceClient{
 		server:         s,

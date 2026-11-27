@@ -2059,7 +2059,7 @@ func openResourceClient(
 ) (*resource_client.Client, func() error, error) {
 	// Serve the resource service over an in-memory connection.
 	serverMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {
+	if err := resource_server.NewResourceServer(rootMux, "").Register(serverMux); err != nil {
 		return nil, nil, errors.Wrap(err, "register resource server")
 	}
 	conn, closeConn, err := serveMuxedPipe(ctx, serverMux)
