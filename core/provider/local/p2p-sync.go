@@ -1054,9 +1054,11 @@ func (a *ProviderAccount) StopP2PSync() {
 	a.retireP2PSyncState(nil)
 }
 
-// serveStore is a mounted block store's reads for a peer's request.
+// serveStore boxes a mounted block store's reads for a peer's request, so
+// the mount that registered them removes only its own box.
 type serveStore struct {
-	block.StoreOps
+	// reads serves the peer's request.
+	reads block.StoreOps
 }
 
 // getServeStore returns the reads a peer's request for a block of bucketID
@@ -1066,7 +1068,7 @@ func (a *ProviderAccount) getServeStore(bucketID string) block.StoreOps {
 	if !ok {
 		return nil
 	}
-	return v.(*serveStore).StoreOps
+	return v.(*serveStore).reads
 }
 
 // getP2PStore returns the active lifecycle's store for bucketID, including its

@@ -378,6 +378,12 @@ func (s *PendingStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Stor
 	return s.reads(s.StoreOps).GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch serves the kept blocks with their child lists and reads
+// the rest from the inner store as one batch.
+func (s *PendingStore) GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error {
+	return s.reads(s.StoreOps).GetStoredBlockBatch(ctx, refs, fn)
+}
+
 // GetBlockExists reports a kept block, or asks the inner store.
 func (s *PendingStore) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
 	return s.reads(s.StoreOps).GetBlockExists(ctx, ref)
@@ -438,6 +444,25 @@ func (r pendingReads) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Store
 		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: AssertedIf(e.RefsKnown)}, nil
 	}
 	return r.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// GetStoredBlockBatch serves the kept blocks with their child lists and reads
+// the rest from the inner store as one batch.
+func (r pendingReads) GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error {
+	gen := DurableReadGeneration()
+	var rest []int
+	for i, ref := range refs {
+		e := r.s.lookup(ref)
+		if e == nil {
+			rest = append(rest, i)
+			continue
+		}
+		MarkDurableRead(ctx, ref, gen)
+		if err := fn(i, &StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: AssertedIf(e.RefsKnown)}, nil); err != nil {
+			return err
+		}
+	}
+	return GetStoredBlockBatchAt(ctx, r.StoreOps, refs, rest, fn)
 }
 
 // GetBlockExists reports a kept block, or asks the inner store.

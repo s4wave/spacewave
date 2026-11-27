@@ -45,11 +45,11 @@ func TestServeReadsBelowLocalVolume(t *testing.T) {
 // the remount's serve reads registered.
 func TestServeStoreRemount(t *testing.T) {
 	a := &ProviderAccount{}
-	prev, next := &serveStore{StoreOps: newLeafStore()}, &serveStore{StoreOps: newLeafStore()}
+	prev, next := &serveStore{reads: newLeafStore()}, &serveStore{reads: newLeafStore()}
 	a.serveStores.Store("bucket", prev)
 	a.serveStores.Store("bucket", next)
 	a.serveStores.CompareAndDelete("bucket", prev)
-	if got := a.getServeStore("bucket"); got != next.StoreOps {
+	if got := a.getServeStore("bucket"); got != next.reads {
 		t.Fatal("the exit of the previous mount dropped the remount's serve reads")
 	}
 	a.serveStores.CompareAndDelete("bucket", next)

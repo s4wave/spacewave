@@ -61,6 +61,13 @@ func (r *reconnectReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 	return stored, err
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock, which waits out
+// a lost connection per read; the RPC client reads one block per call, so a
+// batch would save no request.
+func (r *reconnectReads) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, r, refs, fn)
+}
+
 // GetBlockExists checks the block, waiting out a lost connection.
 func (r *reconnectReads) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	var found bool

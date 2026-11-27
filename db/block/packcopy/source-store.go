@@ -58,6 +58,12 @@ func (s *SourceStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	return nil, nil
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock, since a Source
+// reads one block per call.
+func (s *SourceStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, s, refs, fn)
+}
+
 // GetBlock returns the block's bytes.
 func (s *SourceStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	stored, err := s.GetStoredBlock(ctx, ref)

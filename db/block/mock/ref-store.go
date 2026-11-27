@@ -73,5 +73,11 @@ func (s *RefStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*bl
 	return stored, err
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock, since the
+// inner store keeps no references and each read attaches the recorded ones.
+func (s *RefStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, s, refs, fn)
+}
+
 // _ is a type assertion
 var _ block.StoreOps = ((*RefStore)(nil))

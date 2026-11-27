@@ -226,6 +226,11 @@ func (r *txBlocks) take() []*block.BlockRef {
 	return removed
 }
 
+// GetStoredBlockBatch passes the batch read to the transaction's block store.
+func (r *txBlocks) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, r.StoreOps, refs, fn)
+}
+
 // wrote reports whether the transaction changed a record or a block.
 func (p *physicalTx) wrote() bool {
 	btx, ok := p.tx.(BlockTx)

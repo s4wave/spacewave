@@ -100,3 +100,17 @@ func GetStoredBlockEach(ctx context.Context, store StoreOps, refs []*BlockRef, f
 	}
 	return context.Cause(ctx)
 }
+
+// GetStoredBlockBatchAt reads refs[at[j]] for each j from store as one batch
+// with GetStoredBlockBatch, and calls fn with each block's index in refs. A
+// wrapper that falls back to a second store reads in its second pass the
+// indexes its first pass missed this way.
+func GetStoredBlockBatchAt(ctx context.Context, store StoreOps, refs []*BlockRef, at []int, fn StoredBlockFunc) error {
+	sub := make([]*BlockRef, len(at))
+	for j, i := range at {
+		sub[j] = refs[i]
+	}
+	return GetStoredBlockBatch(ctx, store, sub, func(j int, stored *StoredBlock, err error) error {
+		return fn(at[j], stored, err)
+	})
+}

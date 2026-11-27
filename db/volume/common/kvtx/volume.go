@@ -817,6 +817,11 @@ func (v *Volume) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 	return v.reader().GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch reads the blocks through the volume's reader.
+func (v *Volume) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return v.reader().GetStoredBlockBatch(ctx, refs, fn)
+}
+
 // RmBlock evicts a block's bytes and its proof, and reports the removal to the
 // decoded-block cache. On a Volume that keeps liveness it keeps the block's
 // child list and count, so evicting a live block leaves a hole the collector

@@ -89,6 +89,11 @@ func (s *ReadOnlyStore) HoldCompleteRoots(ctx context.Context, refs []*BlockRef)
 	return HoldCompleteRoots(ctx, s.StoreOps, refs)
 }
 
+// GetStoredBlockBatch passes the batch read to the wrapped store.
+func (s *ReadOnlyStore) GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error {
+	return GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}
+
 // _ is a type assertion
 var (
 	_ StoreOps    = (*ReadOnlyStore)(nil)

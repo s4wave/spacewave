@@ -315,3 +315,8 @@ func (s *blockSink) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	}
 	return make([]bool, len(entries)), nil
 }
+
+// GetStoredBlockBatch passes the batch read to the destination store.
+func (s *blockSink) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}

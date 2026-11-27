@@ -95,6 +95,12 @@ func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return stored, err
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock: the key-value
+// store reads one key per call, and each block fills in its own child list.
+func (r storeReader) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, r, refs, fn)
+}
+
 // GetBlockExists reports whether the store holds ref, answering
 // false for a block a put must store again, as Volume.hideAbsent describes.
 func (r storeReader) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

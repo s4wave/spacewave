@@ -81,6 +81,11 @@ func (b *StoreRW) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlo
 	return b.readHandle.GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch reads the blocks from the read handle as one batch.
+func (b *StoreRW) GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error {
+	return GetStoredBlockBatch(ctx, b.readHandle, refs, fn)
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

@@ -230,6 +230,12 @@ func (s *sessionDirectStore) GetStoredBlock(ctx context.Context, ref *block.Bloc
 	return nil, err
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock, since each peer
+// read decides alone whether Cloud serves it.
+func (s *sessionDirectStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, s, refs, fn)
+}
+
 // sessionBlockStore keeps writes and durability on the account-owned store
 // while routing reads through the Session cache, child DEX, and Cloud stores.
 type sessionBlockStore struct {

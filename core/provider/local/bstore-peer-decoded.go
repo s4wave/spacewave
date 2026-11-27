@@ -51,3 +51,18 @@ func (r *peerDecodedReads) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	})
 	return stored, nil
 }
+
+// GetStoredBlockBatch reads the blocks from peers as one batch and marks
+// each hit as GetStoredBlock does.
+func (r *peerDecodedReads) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	p := r.p
+	return block.GetStoredBlockBatch(ctx, r.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil {
+			ref := refs[i]
+			block.KeepDecodedRefs(ctx, ref, stored, func(_ context.Context, kept *block.StoredBlock) {
+				p.fallbackFills.start(ref, kept, p.fillFromFallback)
+			})
+		}
+		return fn(i, stored, err)
+	})
+}

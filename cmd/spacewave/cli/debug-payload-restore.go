@@ -631,3 +631,8 @@ func (s *recordStore) record(e *block.PutBatchEntry) {
 		RefsKnown: e.RefsKnown,
 	})
 }
+
+// GetStoredBlockBatch passes the batch read to the store it records writes to.
+func (s *recordStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}

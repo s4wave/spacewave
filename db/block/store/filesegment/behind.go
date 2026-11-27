@@ -49,6 +49,39 @@ func (b *behind) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 	return b.fallback(ctx, ref, err)
 }
 
+// GetStoredBlockBatch reads refs from primary as one batch, then the ones it
+// missed or failed from the files as another, reporting primary's failure
+// for a block the files miss too.
+func (b *behind) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	// Read primary, keeping each miss and its failure.
+	var missed []int
+	primaryErrs := make(map[int]error)
+	err := block.GetStoredBlockBatch(ctx, b.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil {
+			return fn(i, stored, nil)
+		}
+		missed = append(missed, i)
+		if err != nil {
+			primaryErrs[i] = err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Read the misses from the files.
+	return block.GetStoredBlockBatchAt(ctx, b.files, refs, missed, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil {
+			return fn(i, stored, nil)
+		}
+		if primaryErr := primaryErrs[i]; primaryErr != nil {
+			return fn(i, nil, primaryErr)
+		}
+		return fn(i, nil, err)
+	})
+}
+
 // fallback reads the files after primary missed ref or failed with
 // primaryErr, which it returns when the files miss too.
 func (b *behind) fallback(ctx context.Context, ref *block.BlockRef, primaryErr error) (*block.StoredBlock, error) {

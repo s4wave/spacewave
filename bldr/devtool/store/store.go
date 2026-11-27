@@ -90,6 +90,11 @@ func (v *copyVolume) Close() error {
 	return err
 }
 
+// GetStoredBlockBatch passes the batch read to the volume.
+func (v *copyVolume) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, v.Volume, refs, fn)
+}
+
 // copyFile copies the file at src to a new file at dst, as a clone when the
 // filesystem can make one.
 func copyFile(src, dst string) error {

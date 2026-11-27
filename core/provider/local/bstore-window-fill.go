@@ -51,6 +51,11 @@ func (w *windowFillOps) PutBlockBatch(ctx context.Context, entries []*block.PutB
 	return have, nil
 }
 
+// GetStoredBlockBatch passes the batch read to the local store.
+func (w *windowFillOps) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, w.StoreOps, refs, fn)
+}
+
 // fillWindows makes store's pack reads fill the local store with each window
 // they fetch, while the mount fills its local store from the backend.
 func (t *bstoreTracker) fillWindows(store backendStore) {

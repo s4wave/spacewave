@@ -123,6 +123,22 @@ func (s *absentSource) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	return s.StoreOps.GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch answers the known-absent refs as not found and reads
+// the rest from the store as one batch.
+func (s *absentSource) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	var rest []int
+	for i, ref := range refs {
+		if !s.absent.has(ref) {
+			rest = append(rest, i)
+			continue
+		}
+		if err := fn(i, nil, block.NotFoundError(ref)); err != nil {
+			return err
+		}
+	}
+	return block.GetStoredBlockBatchAt(ctx, s.StoreOps, refs, rest, fn)
+}
+
 // GetCopySource returns the store's own copy source behind the same set, so a
 // copy keeps reading without filling the cache.
 func (s *absentSource) GetCopySource() block.StoreOps {

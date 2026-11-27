@@ -653,6 +653,43 @@ func (s *sourceTrackingStore) GetStoredBlock(ctx context.Context, ref *block.Blo
 	return stored, err
 }
 
+// GetStoredBlockBatch reads refs from the observed store as one batch inside
+// one demand window, and records the source of each block it finds as
+// GetStoredBlock does.
+func (s *sourceTrackingStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	// Note which blocks the upper cache already held.
+	var cached []bool
+	if s.upperCache {
+		var err error
+		cached, err = s.GetBlockExistsBatch(ctx, refs)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Read the blocks inside the demand window.
+	if s.demandStarted != nil {
+		s.demandStarted()
+		defer func() {
+			if s.demandFinished != nil {
+				s.demandFinished()
+			}
+		}()
+	}
+
+	// Record where each block came from.
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil {
+			source := s.source
+			if cached != nil && cached[i] {
+				source = SyncTelemetryBlockSourceCache
+			}
+			s.telemetry.RecordBlockSource(s.bstoreID, source)
+		}
+		return fn(i, stored, err)
+	})
+}
+
 // track runs one demand read and records its source when it finds the block.
 func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, read func() (bool, error)) (bool, error) {
 	// Note whether the upper cache already held the block.

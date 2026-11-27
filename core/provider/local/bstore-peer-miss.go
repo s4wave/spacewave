@@ -187,6 +187,12 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts, p.unserved)
 }
 
+// GetStoredBlockBatch reads each block through GetStoredBlock, since each peer
+// read logs its own miss and retries alone.
+func (p *peerMissLog) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, p, refs, fn)
+}
+
 // peerPresence is a peer store that reports whether a peer is connected.
 type peerPresence interface {
 	// HasPeerSession reports whether a peer session is open now.

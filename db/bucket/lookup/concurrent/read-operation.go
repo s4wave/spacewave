@@ -61,5 +61,11 @@ func (b *readScopeBucket) GetBucketConfig() *bucket.Config {
 	return b.conf
 }
 
+// GetStoredBlockBatch passes the batch read to the bucket's bounded read
+// operations.
+func (b *readScopeBucket) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, b.StoreOps, refs, fn)
+}
+
 // _ is a type assertion.
 var _ bucket.Bucket = (*readScopeBucket)(nil)

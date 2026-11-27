@@ -566,7 +566,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	} else {
 		serve = placement.serveReads(placement.withLinkedFiles(local), placement.remoteReads, fallbackStore)
 	}
-	served := &serveStore{StoreOps: serve}
+	served := &serveStore{reads: serve}
 	t.a.serveStores.Store(bucketID, served)
 	defer t.a.serveStores.CompareAndDelete(bucketID, served)
 

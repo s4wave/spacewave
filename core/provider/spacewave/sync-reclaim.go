@@ -225,6 +225,23 @@ func (r *reclaimReadStore) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	return r.cloud.GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch reads refs from the cache as one batch, then the ones
+// it lacks from the cloud as another.
+func (r *reclaimReadStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	var missed []int
+	err := block.GetStoredBlockBatch(ctx, r.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if stored == nil && (err == nil || errors.Is(err, block.ErrNotFound)) {
+			missed = append(missed, i)
+			return nil
+		}
+		return fn(i, stored, err)
+	})
+	if err != nil {
+		return err
+	}
+	return block.GetStoredBlockBatchAt(ctx, r.cloud, refs, missed, fn)
+}
+
 // judgePacks reads the key index of each entry and sums its live and dead
 // value bytes against live.
 func (s *syncController) judgePacks(ctx context.Context, entries []*packfile.PackfileEntry, live map[string]struct{}) ([]*reclaimPack, error) {

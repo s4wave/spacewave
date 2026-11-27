@@ -37,6 +37,11 @@ func (s *HoldingStage) HoldCompleteRoots(_ context.Context, refs []*block.BlockR
 	return held, nil
 }
 
+// GetStoredBlockBatch passes the batch read to the wrapped store.
+func (s *HoldingStage) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}
+
 // RequireStageHold fails t unless holding a root through a stage of the store
 // wrap builds over a HoldingStage reaches that stage and reports the root held.
 func RequireStageHold(t testing.TB, wrap func(block.StoreOps) block.StoreOps) {

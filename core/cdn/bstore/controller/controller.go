@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
+	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	"github.com/sirupsen/logrus"
@@ -24,6 +25,11 @@ type Controller = block_store_controller.Controller
 type blockStoreHandle struct {
 	block_store.Store
 	cdnStore *cdn_bstore.CdnBlockStore
+}
+
+// GetStoredBlockBatch passes the batch read to the block store.
+func (s *blockStoreHandle) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.Store, refs, fn)
 }
 
 // NewController builds a new anonymous CDN block store controller.

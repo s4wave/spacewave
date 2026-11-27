@@ -160,6 +160,12 @@ func (l *lazyStage) end() {
 	}
 }
 
+// GetStoredBlockBatch passes the batch read to the inner store, which serves
+// the reads.
+func (l *lazyStage) GetStoredBlockBatch(ctx context.Context, refs []*BlockRef, fn StoredBlockFunc) error {
+	return GetStoredBlockBatch(ctx, l.StoreOps, refs, fn)
+}
+
 // OverflowStage is a stage PendingStore.OpenOverflowStage opened: it takes
 // the puts past the bound and holds none of the kept blocks. The inner stage
 // opens on the first put past the bound, so a writer that stays within it

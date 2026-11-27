@@ -178,5 +178,11 @@ func (s *cursorStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
+// GetStoredBlockBatch passes the batch read to the RPC client, as
+// GetStoredBlock does.
+func (s *cursorStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}
+
 // _ verifies the mounted bucket contract.
 var _ bucket.BucketOps = (*cursorStore)(nil)

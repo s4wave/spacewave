@@ -203,6 +203,12 @@ func (o t2Ops) Sync(ctx context.Context) (bool, error) {
 	return o.StoreOps.Sync(ctx)
 }
 
+// GetStoredBlockBatch passes the batch read through, uncharged as
+// GetStoredBlock is.
+func (o t2Ops) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, o.StoreOps, refs, fn)
+}
+
 // t2Tx is a transaction reached through a relay. Reads pay a round trip each;
 // writes buffer and travel with the commit.
 type t2Tx struct {
