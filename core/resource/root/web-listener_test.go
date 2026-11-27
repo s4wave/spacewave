@@ -406,7 +406,7 @@ func TestWebListenerRegistryReusesExplicitPort(t *testing.T) {
 
 func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) {
 	// Create a root server for background listener access.
-	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil)
+	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil, nil, nil)
 	defer server.Close()
 
 	// Access a background listener and verify its lifecycle response.
@@ -459,7 +459,7 @@ func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) 
 
 func TestRootServerListsAndStopsBackgroundWebListeners(t *testing.T) {
 	// Create a root server for background listener lifecycle checks.
-	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil)
+	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil, nil, nil)
 	defer server.Close()
 
 	// Access a background listener through the root service.

@@ -68,25 +68,31 @@ type CoreRootServer struct {
 	listenerStatus    *resource_listener.StatusBroker
 }
 
-// NewCoreRootServer creates a new CoreRootServer.
-func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
+// NewCoreRootServer creates a root with its app composition and binding registry.
+// A nil binding registry creates an independent registry.
+func NewCoreRootServer(
+	le *logrus.Entry,
+	b bus.Bus,
+	bindingRegistry *process_binding.BindingRegistry,
+	mountApp MountAppFunc,
+) *CoreRootServer {
+	// Supply an independent binding registry when no parent shares one.
+	if bindingRegistry == nil {
+		bindingRegistry = process_binding.NewBindingRegistry()
+	}
+
 	// Construct the root server and its process-scoped registries.
 	s := &CoreRootServer{
-		le: le,
-		b:  b,
+		le:              le,
+		b:               b,
+		bindingRegistry: bindingRegistry,
+		mountApp:        mountApp,
 	}
 	s.stateAtomMgr = newStateAtomManager(s)
 	s.cdnRegistry = resource_cdn.NewRegistry(le, b)
 	s.webListeners = newWebListenerRegistry(le)
 	s.recoveryStatusRegistry = resource_session.NewRecoveryStatusRegistry()
-	s.bindingRegistry = process_binding.NewBindingRegistry()
 	return s
-}
-
-// SetBindingRegistry shares binding notifications with the parent Resource
-// root when this root belongs to a nested application.
-func (s *CoreRootServer) SetBindingRegistry(registry *process_binding.BindingRegistry) {
-	s.bindingRegistry = registry
 }
 
 // SetYieldBroker injects the shared listener yield broker. The composition

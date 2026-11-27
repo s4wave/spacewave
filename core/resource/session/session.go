@@ -125,27 +125,34 @@ func NewSessionResourceWithHostPluginID(
 		sess,
 		hostPluginID,
 		nil,
+		nil,
+		nil,
 	)
 }
 
 // NewSessionResourceWithHostPluginIDAndRecoveryStatus creates a new
-// SessionResource with an explicit recovery status registry.
+// SessionResource with recovery status, binding notifications, and CDN lookup.
+// cdnLookup returns (nil, nil) for IDs outside the process CDN registry.
 func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 	le *logrus.Entry,
 	b bus.Bus,
 	sess session.Session,
 	hostPluginID string,
 	recoveryStatusRegistry *RecoveryStatusRegistry,
+	bindingRegistry *process_binding.BindingRegistry,
+	cdnLookup func(sharedObjectID string) (sobject.SharedObject, *sobject.SharedObjectMeta),
 ) *SessionResource {
 	// Initialize the Session resource context and its provider-independent identity.
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	sessResource := &SessionResource{
-		le:           le,
-		b:            b,
-		session:      sess,
-		hostPluginID: hostPluginID,
-		ctx:          ctx,
-		ctxCancel:    ctxCancel,
+		le:              le,
+		b:               b,
+		session:         sess,
+		hostPluginID:    hostPluginID,
+		bindingRegistry: bindingRegistry,
+		cdnLookup:       cdnLookup,
+		ctx:             ctx,
+		ctxCancel:       ctxCancel,
 	}
 
 	// Create the recovery-status resource and register the core Session services.
@@ -229,20 +236,6 @@ func (r *SessionResource) SetCdnRootChangedHook(hook func(spaceID string)) {
 	}
 	r.cdnRootChangedRelease = release
 	r.cdnMtx.Unlock()
-}
-
-// SetCdnLookup wires a lookup from shared object id to the process-scoped
-// CDN-backed SharedObject and its synthesized metadata. Consulted by
-// MountSharedObject before falling back to the per-session SO list so CDN
-// Spaces (which are filtered out of that list) remain mountable by ULID.
-//
-// The lookup must return (nil, nil) for ids that are not CDN Spaces. Safe
-// to call once per SessionResource; subsequent calls replace the previous
-// lookup.
-func (r *SessionResource) SetCdnLookup(
-	lookup func(sharedObjectID string) (sobject.SharedObject, *sobject.SharedObjectMeta),
-) {
-	r.cdnLookup = lookup
 }
 
 // AccessStateAtom accesses a session-scoped state atom resource.
@@ -1892,11 +1885,6 @@ func acceptedCloudInviteJoinResponse(
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SessionResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
-}
-
-// SetBindingRegistry supplies the Resource root's binding event source.
-func (r *SessionResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
-	r.bindingRegistry = registry
 }
 
 // _ is a type assertion

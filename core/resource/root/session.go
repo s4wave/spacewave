@@ -106,13 +106,13 @@ func (s *CoreRootServer) newSessionResource(sess session.Session) *resource_sess
 		sess,
 		s.hostPluginID,
 		s.recoveryStatusRegistry,
+		s.bindingRegistry,
+		s.lookupCdnSharedObject,
 	)
 	sessResource.SetAppPluginIDs(s.appPluginIDs)
-	sessResource.SetBindingRegistry(s.bindingRegistry)
 	sessResource.SetCdnRootChangedHook(func(spaceID string) {
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})
-	sessResource.SetCdnLookup(s.lookupCdnSharedObject)
 	return sessResource
 }
 
@@ -342,7 +342,9 @@ func (s *CoreRootServer) WatchSessions(
 }
 
 type accountStatusWatcher interface {
+	// GetAccountBroadcast wakes consumers when account status changes.
 	GetAccountBroadcast() *broadcast.Broadcast
+	// GetAccountStatus returns the current provider account status.
 	GetAccountStatus() provider.ProviderAccountStatus
 }
 

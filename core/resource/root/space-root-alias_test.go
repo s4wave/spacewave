@@ -318,7 +318,7 @@ func setupSpaceRootAliasServer(
 	}
 	t.Cleanup(tb.Release)
 
-	return NewCoreRootServer(logrus.NewEntry(logrus.New()), tb.Bus), cancel
+	return NewCoreRootServer(logrus.NewEntry(logrus.New()), tb.Bus, nil, nil), cancel
 }
 
 func makeSpaceRootAliasDir(t *testing.T) string {

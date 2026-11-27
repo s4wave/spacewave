@@ -47,7 +47,7 @@ func (s *CoreRootServer) GetCdn(
 // lookupCdnSharedObject returns the CDN SharedObject and its synthesized
 // metadata when sharedObjectID matches the default CDN Space, otherwise
 // returns (nil, nil). Wired into each mounted SessionResource via
-// SetCdnLookup so MountSharedObject can return the anonymous singleton
+// its constructor so MountSharedObject can return the anonymous singleton
 // instead of surfacing not-found from the per-session shared object list
 // (which filters CDN Spaces out).
 func (s *CoreRootServer) lookupCdnSharedObject(

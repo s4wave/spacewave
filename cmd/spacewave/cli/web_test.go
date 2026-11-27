@@ -50,7 +50,7 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	// Register a core root server.
 	le := logrus.NewEntry(logrus.New())
 	rootMux := srpc.NewMux()
-	rootServer := resource_root.NewCoreRootServer(le, nil)
+	rootServer := resource_root.NewCoreRootServer(le, nil, nil, nil)
 	defer rootServer.Close()
 	if err := rootServer.Register(rootMux); err != nil {
 		t.Fatal(err)
@@ -410,7 +410,7 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 	// Register a core root server.
 	le := logrus.NewEntry(logrus.New())
 	rootMux := srpc.NewMux()
-	rootServer := resource_root.NewCoreRootServer(le, nil)
+	rootServer := resource_root.NewCoreRootServer(le, nil, nil, nil)
 	t.Cleanup(rootServer.Close)
 	if err := rootServer.Register(rootMux); err != nil {
 		t.Fatal(err)

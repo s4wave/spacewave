@@ -180,7 +180,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 	}
 
 	// Publish one Resource authority using the selected production serve route.
-	coreRoot := resource_root.NewCoreRootServer(le, b)
+	coreRoot := resource_root.NewCoreRootServer(le, b, nil, nil)
 	t.Cleanup(coreRoot.Close)
 	rootMux := srpc.NewMux()
 	if err := coreRoot.Register(rootMux); err != nil {

@@ -16,23 +16,25 @@ import (
 // AppStorage is a validated storage capability for a nested installation.
 // EphemeralID distinguishes privately owned Worlds; supplied engines remain caller-owned.
 type AppStorage struct {
-	StorageID   string
-	Engine      world.Engine
-	Prefix      string
+	// StorageID identifies the supplied storage.
+	StorageID string
+	// Engine serves the supplied World.
+	Engine world.Engine
+	// Prefix selects the installation within the supplied storage.
+	Prefix string
+	// EphemeralID identifies privately owned Worlds.
 	EphemeralID string
 }
 
 // AppRuntime exposes the Resource service and HTTP route of a live installation.
 type AppRuntime interface {
 	srpc.Invoker
+	// GetHTTPPathPrefix returns the installation's HTTP route prefix.
 	GetHTTPPathPrefix() string
 }
 
 // MountAppFunc attaches to the ordinary runtime composed by the root controller.
 type MountAppFunc func(context.Context, AppStorage) (AppRuntime, func(), error)
-
-// SetMountAppFunc installs the app runtime composition before serving requests.
-func (s *CoreRootServer) SetMountAppFunc(fn MountAppFunc) { s.mountApp = fn }
 
 // MountApp mounts an isolated installation using exactly one supplied storage source.
 func (s *CoreRootServer) MountApp(ctx context.Context, req *s4wave_root.MountAppRequest) (*s4wave_root.MountAppResponse, error) {
