@@ -41,7 +41,7 @@ func makeWorld(t *testing.T, pageSize int, rows int, pragmas ...string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < rows; i++ {
+	for i := range rows {
 		v := make([]byte, 200+rng.Intn(6000))
 		rng.Read(v)
 		if _, err := tx.Exec("INSERT INTO t VALUES(?,?)", i, v); err != nil {
@@ -252,7 +252,7 @@ func TestPunchProof(t *testing.T) {
 	db.QueryRow("PRAGMA freelist_count").Scan(&free0)
 	rng := rand.New(rand.NewSource(2))
 	tx, _ := db.Begin()
-	for i := 0; i < 4000; i++ {
+	for i := range 4000 {
 		v := make([]byte, 200+rng.Intn(6000))
 		rng.Read(v)
 		if _, err := tx.Exec("INSERT INTO t VALUES(?,?)", 100000+i, v); err != nil {

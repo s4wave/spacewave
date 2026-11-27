@@ -636,8 +636,8 @@ func (c *Collector) freeCandidates(ctx context.Context, res *CollectResult) (fre
 			frees = 1
 		}
 		var kept []queuedBlock
-		for i := len(c.queueBehind) - 1; i >= 0; i-- {
-			q := c.queueBehind[i]
+		for _, q := range slices.Backward(c.queueBehind) {
+
 			if q.ripe <= cursor && len(scan.cands) < frees {
 				scan.cands = append(scan.cands, q)
 				continue

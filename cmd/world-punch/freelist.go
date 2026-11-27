@@ -141,7 +141,7 @@ func walkFreelist(r io.ReaderAt, h header, tolerant bool) (*walk, error) {
 			return fail(errors.Errorf("trunk %d lists %d leaves, at most %d fit", t, n, maxLeaves))
 		}
 		start := len(w.leaves)
-		for i := uint32(0); i < n; i++ {
+		for i := range n {
 			l := binary.BigEndian.Uint32(page[8+4*i:])
 			if err := check(l, "leaf"); err != nil {
 				w.leaves = w.leaves[:start]

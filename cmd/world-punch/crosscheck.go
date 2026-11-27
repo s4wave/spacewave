@@ -487,7 +487,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	}
 	var leftovers []lateRead
 	page := make([]byte, h.pageSize)
-	for lr := 0; lr < 3; lr++ {
+	for range 3 {
 		var cands []uint32
 		for _, pg := range res.unaccPages {
 			if !reached.has(pg) && !final.has(pg) && !tried.has(pg) {
@@ -766,7 +766,7 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 	runs := make(chan run, readers*2)
 	results := make([][]pageResult, readers)
 	var wg sync.WaitGroup
-	for w := 0; w < readers; w++ {
+	for w := range readers {
 		wg.Add(1)
 		go func(w int) {
 			defer wg.Done()
@@ -881,7 +881,7 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	}
 
 	// Walk the cells for child pages, schema roots and overflow chains.
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		off := uint32(binary.BigEndian.Uint16(p[hoff+hlen+2*i:]))
 		if off < hoff+hlen || off+4 > u {
 			r.bad = fmt.Sprintf("cell %d offset %d", i, off)
@@ -997,7 +997,7 @@ func schemaRoot(rec []byte) (uint32, bool) {
 	// recText bounds its length.
 	off := [5]int64{end}
 	recordLen := int64(len(rec))
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		l := serialLen(types[i])
 		if l < 0 || l > recordLen-off[i] {
 			return 0, false

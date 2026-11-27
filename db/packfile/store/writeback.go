@@ -113,8 +113,7 @@ func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, block
 	written := uint64(len(entries))
 	if len(entries) != 0 {
 		_, err = target.PutBlockBatch(ctx, entries)
-		var dropped *block.FillsDroppedError
-		if errors.As(err, &dropped) {
+		if dropped, ok := errors.AsType[*block.FillsDroppedError](err); ok {
 			err, written = nil, written-uint64(len(dropped.At))
 		}
 	}
