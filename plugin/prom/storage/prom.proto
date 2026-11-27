@@ -3,7 +3,7 @@ package s4wave.plugin.prom;
 
 import "github.com/s4wave/spacewave/sdk/prom/prom.proto";
 
-option go_package = "github.com/s4wave/spacewave/plugin/prom;prom_plugin";
+option go_package = "github.com/s4wave/spacewave/plugin/prom/storage;promstorage";
 
 // ChunkEncoding identifies how a Chunk encodes its samples.
 enum ChunkEncoding {

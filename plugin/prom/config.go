@@ -1,14 +1,6 @@
-// Package prom_plugin stores Prometheus samples in a World, scrapes exporters
-// into it from approved Devices, and answers PromQL over it.
-//
-// Each scrape target is one World object. Its root is a block-backed key-value
-// tree holding the target's labels and scrape config, its series table, and
-// one immutable segment per commit window. A Store appends samples to an
-// in-memory window and commits the window as one segment, and a Queryable
-// serves the fork's storage.Queryable interface from the committed segments of
-// several targets. The spacewave-prom plugin registers the prom/target
-// ObjectType, whose process scrapes the target on the Device its
-// ProcessBinding approves.
+// Package prom_plugin scrapes Prometheus exporters on approved Devices and
+// serves World-backed metrics through plugin RPC handlers.
+// The sample store and committed query implementation live in storage.
 package prom_plugin
 
 import (

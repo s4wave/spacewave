@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/world"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +23,7 @@ type commitGroup struct {
 	// mtx guards the fields below.
 	mtx sync.Mutex
 	// members maps each joined target's Store to its World engine handle.
-	members map[*Store]world.Engine
+	members map[*promstorage.Store]world.Engine
 	// cancel stops the commit loop and is nil while the group has no
 	// members.
 	cancel context.CancelFunc
@@ -30,14 +31,14 @@ type commitGroup struct {
 
 // newCommitGroup constructs an empty commit group.
 func newCommitGroup(le *logrus.Entry, window time.Duration) *commitGroup {
-	return &commitGroup{le: le, window: window, members: make(map[*Store]world.Engine)}
+	return &commitGroup{le: le, window: window, members: make(map[*promstorage.Store]world.Engine)}
 }
 
 // join adds store, written through eng, to the next commits, starting the
 // commit loop for the first member. It returns the function that removes the
 // store. Removing the last member stops the loop. The uncommitted window of
 // a leaving store is dropped, as a crash would drop it.
-func (g *commitGroup) join(store *Store, eng world.Engine) func() {
+func (g *commitGroup) join(store *promstorage.Store, eng world.Engine) func() {
 	// Add the member, starting the loop if it is the first.
 	g.mtx.Lock()
 	g.members[store] = eng
@@ -80,7 +81,7 @@ func (g *commitGroup) run(ctx context.Context) {
 func (g *commitGroup) commit(ctx context.Context) {
 	// Snapshot the members and pick a World handle to write through.
 	g.mtx.Lock()
-	stores := make([]*Store, 0, len(g.members))
+	stores := make([]*promstorage.Store, 0, len(g.members))
 	var eng world.Engine
 	for store, storeEng := range g.members {
 		stores = append(stores, store)
@@ -92,7 +93,7 @@ func (g *commitGroup) commit(ctx context.Context) {
 	}
 
 	// Commit them together.
-	stats, err := CommitStores(ctx, eng, stores...)
+	stats, err := promstorage.CommitStores(ctx, eng, stores...)
 	if err != nil {
 		if ctx.Err() == nil {
 			g.le.WithError(err).Warn("commit scrape window")

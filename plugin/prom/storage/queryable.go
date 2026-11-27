@@ -1,4 +1,4 @@
-package prom_plugin
+package promstorage
 
 import (
 	"context"
@@ -72,5 +72,23 @@ func (q *Queryable) forEachTarget(ctx context.Context, fn func(*StoreReader) err
 	return nil
 }
 
-// _ is a type assertion
+// TargetLister lists the World object keys of the targets a Queryable reads.
+// The Space's set of prom/target objects is the list. A lister is where that
+// set comes from.
+type TargetLister interface {
+	// ListTargets returns the object keys of the targets to query. A key whose
+	// object does not exist is skipped by the query.
+	ListTargets(ctx context.Context) ([]string, error)
+}
+
+// StaticTargets is a TargetLister with a fixed list of object keys.
+type StaticTargets []string
+
+// ListTargets returns the fixed object keys.
+func (t StaticTargets) ListTargets(context.Context) ([]string, error) {
+	return t, nil
+}
+
+// _ checks the implemented interfaces.
+var _ TargetLister = StaticTargets(nil)
 var _ storage.Queryable = (*Queryable)(nil)

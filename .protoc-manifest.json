@@ -4258,16 +4258,23 @@
           ]
         },
         "github.com/s4wave/spacewave/plugin/prom": {
-          "hash": "e3a2059d0eb3f2a57bd8c8f20e89a6f92e2d06ef2340356b3aea1a3bea18481f",
+          "hash": "9ce52aa1bf0b50c83b93f35afae9f1d953f7ef5005dd2f9bd887bd8a5e97c564",
           "generatedFiles": [
             "plugin/prom/config.pb.go",
-            "plugin/prom/config.pb.ts",
-            "plugin/prom/prom.pb.go",
-            "plugin/prom/prom.pb.ts"
+            "plugin/prom/config.pb.ts"
           ],
           "protoFiles": [
-            "plugin/prom/config.proto",
-            "plugin/prom/prom.proto"
+            "plugin/prom/config.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/plugin/prom/storage": {
+          "hash": "5d846721f427d65396f6d5d858821da94180aa9e059de6d56ed925f903036dff",
+          "generatedFiles": [
+            "plugin/prom/storage/prom.pb.go",
+            "plugin/prom/storage/prom.pb.ts"
+          ],
+          "protoFiles": [
+            "plugin/prom/storage/prom.proto"
           ]
         },
         "github.com/s4wave/spacewave/plugin/sql": {

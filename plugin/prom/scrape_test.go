@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 	"github.com/sirupsen/logrus"
 )
@@ -48,13 +49,13 @@ func TestScrapeRunThrough(t *testing.T) {
 	cfg := &s4wave_prom.ScrapeConfig{Url: srv.URL}
 
 	// Create the target.
-	store, err := CreateStore(ctx, eng, key, labels.FromStrings("job", "node", "instance", "forge"))
+	store, err := promstorage.CreateStore(ctx, eng, key, labels.FromStrings("job", "node", "instance", "forge"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Serve PromQL over it, with helpers to query and commit.
-	svc := &queryService{engine: newQueryEngine(), q: NewQueryable(eng, worldTargets{eng: eng})}
+	svc := &queryService{engine: newQueryEngine(), q: promstorage.NewQueryable(eng, worldTargets{eng: eng})}
 	query := func(expr string, at time.Time) *s4wave_prom.QueryResponse {
 		t.Helper()
 		resp, err := svc.Query(ctx, &s4wave_prom.QueryRequest{Expr: expr, TimeMs: at.UnixMilli()})
@@ -63,9 +64,9 @@ func TestScrapeRunThrough(t *testing.T) {
 		}
 		return resp
 	}
-	commit := func(stores ...*Store) {
+	commit := func(stores ...*promstorage.Store) {
 		t.Helper()
-		if _, err := CommitStores(ctx, eng, stores...); err != nil {
+		if _, err := promstorage.CommitStores(ctx, eng, stores...); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -104,7 +105,7 @@ func TestScrapeRunThrough(t *testing.T) {
 
 	// A reopened store resumes the history after the exporter recovers.
 	failing.Store(false)
-	reopened, err := OpenStore(ctx, eng, key)
+	reopened, err := promstorage.OpenStore(ctx, eng, key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +124,7 @@ func TestScrapeRunThrough(t *testing.T) {
 	commit(store)
 	waitCtx, cancelWait := context.WithTimeout(ctx, time.Second)
 	defer cancelWait()
-	if err := store.WaitScrape(waitCtx, nil); !errors.Is(err, ErrStoodDown) {
+	if err := store.WaitScrape(waitCtx, nil); !errors.Is(err, promstorage.ErrStoodDown) {
 		t.Fatalf("first Device did not stand down: %v", err)
 	}
 	if _, status = readTarget(ctx, t, eng, key); status.GetDevicePeerId() != "peer-b" {
@@ -170,7 +171,7 @@ func TestScrapeRunThrough(t *testing.T) {
 	}
 
 	// Create the device target and scrape the registry into it.
-	device, err := CreateStore(ctx, eng, "prom/target/device", labels.FromStrings("job", "spacewave"))
+	device, err := promstorage.CreateStore(ctx, eng, "prom/target/device", labels.FromStrings("job", "spacewave"))
 	if err != nil {
 		t.Fatal(err)
 	}

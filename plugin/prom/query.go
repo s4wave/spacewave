@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage"
 	"github.com/s4wave/spacewave/db/world"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 )
 
@@ -98,7 +99,11 @@ func (s *queryService) LabelValues(ctx context.Context, req *s4wave_prom.LabelVa
 
 // lookupLabels runs lookup once per selector, or once with no matchers when
 // there are none, and returns the sorted union of the results.
-func (s *queryService) lookupLabels(ctx context.Context, match []string, lookup func(storage.Querier, []*labels.Matcher) ([]string, error)) (*s4wave_prom.LabelsResponse, error) {
+func (s *queryService) lookupLabels(
+	ctx context.Context,
+	match []string,
+	lookup func(storage.Querier, []*labels.Matcher) ([]string, error),
+) (*s4wave_prom.LabelsResponse, error) {
 	// Parse every selector before reading.
 	sets, err := parser.NewParser(parser.Options{}).ParseMetricSelectors(match)
 	if err != nil {
@@ -137,14 +142,14 @@ func convertValue(v any) *s4wave_prom.QueryResponse {
 		resp.ResultType = s4wave_prom.ResultType_RESULT_TYPE_VECTOR
 		for _, smp := range v {
 			resp.Series = append(resp.Series, &s4wave_prom.Series{
-				Labels:  NewLabelSet(smp.Metric),
+				Labels:  promstorage.NewLabelSet(smp.Metric),
 				Samples: []*s4wave_prom.Sample{{TimeMs: smp.T, Value: smp.F}},
 			})
 		}
 	case promql.Matrix:
 		resp.ResultType = s4wave_prom.ResultType_RESULT_TYPE_MATRIX
 		for _, series := range v {
-			out := &s4wave_prom.Series{Labels: NewLabelSet(series.Metric)}
+			out := &s4wave_prom.Series{Labels: promstorage.NewLabelSet(series.Metric)}
 			for _, p := range series.Floats {
 				out.Samples = append(out.Samples, &s4wave_prom.Sample{TimeMs: p.T, Value: p.F})
 			}

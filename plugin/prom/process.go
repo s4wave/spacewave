@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
@@ -81,7 +82,7 @@ func (p *targetProcess) Execute(_ *s4wave_process.ExecuteRequest, stream s4wave_
 		if ctx.Err() != nil {
 			return nil
 		}
-		if errors.Is(err, ErrStoodDown) {
+		if errors.Is(err, promstorage.ErrStoodDown) {
 			p.le.Info("another Device took over the target, standing by")
 			continue
 		}
@@ -94,7 +95,7 @@ func (p *targetProcess) Execute(_ *s4wave_process.ExecuteRequest, stream s4wave_
 // Device takes the target over.
 func (p *targetProcess) scrape(ctx context.Context, cfg *s4wave_prom.ScrapeConfig, source scrapeSource) error {
 	// Open the writer and join the commit group.
-	store, err := OpenStore(ctx, p.eng, p.objectKey)
+	store, err := promstorage.OpenStore(ctx, p.eng, p.objectKey)
 	if err != nil {
 		return err
 	}

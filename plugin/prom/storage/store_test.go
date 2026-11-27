@@ -1,17 +1,22 @@
-package prom_plugin
+package promstorage
 
 import (
 	"context"
 	"math"
+	"math/rand/v2"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/prometheus/model/histogram"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/value"
 	"github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
+	"github.com/prometheus/prometheus/tsdb/chunks"
 	"github.com/s4wave/spacewave/db/world"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 )
 
@@ -415,3 +420,213 @@ func TestStoreCompactionAndRetention(t *testing.T) {
 		t.Fatalf("expired range answered %v, %v", vec, err)
 	}
 }
+
+const (
+	// benchSeries is the number of series one simulated target scrapes.
+	benchSeries = 1000
+	// benchScrapes is the number of scrapes in one simulated hour at 15 seconds.
+	benchScrapes = 240
+	// benchWindowScrapes is the number of scrapes one commit covers: one minute.
+	benchWindowScrapes = 4
+)
+
+// BenchmarkHour commits one simulated hour of a target with 1,000 series
+// scraped every 15 seconds, one commit per minute, and then queries six of the
+// series over the last 15 minutes. It reports the bytes and blocks per commit
+// and the query latency.
+func BenchmarkHour(b *testing.B) {
+	// Create one target in a real World engine.
+	ctx := b.Context()
+	wtb := world_testbed.MustDefault(b, ctx)
+	target := labels.FromStrings("job", "bench", "instance", "bench:9100")
+	st, err := CreateStore(ctx, wtb.Engine, "prom/target/bench", target)
+	if err != nil {
+		b.Fatal(err)
+	}
+	series := make([]labels.Labels, benchSeries)
+	for i := range series {
+		series[i] = labels.FromStrings("__name__", "bench_counter", "series", "s"+strconv.Itoa(1000+i))
+	}
+
+	// Scrape the hour, committing every window. Each series is a counter with
+	// a random increment per scrape, so the chunks do not compress to nothing.
+	rng := rand.New(rand.NewPCG(1, 2))
+	counters := make([]float64, benchSeries)
+	var commits int
+	var firstBytes, sumBytes, maxBytes, sumBlocks, maxBlocks uint64
+	for from := 0; from < benchScrapes; from += benchWindowScrapes {
+		for k := from; k < from+benchWindowScrapes; k++ {
+			ts := testBaseTime + int64(k)*testStep
+			for i, lset := range series {
+				counters[i] += float64(rng.IntN(1000)) / 8
+				if err := st.Append(lset, ts, counters[i]); err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+		stats, err := CommitStores(ctx, wtb.Engine, st)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if commits == 0 {
+			firstBytes = stats.Bytes
+		}
+		commits++
+		sumBytes += stats.Bytes
+		sumBlocks += stats.Blocks
+		maxBytes = max(maxBytes, stats.Bytes)
+		maxBlocks = max(maxBlocks, stats.Blocks)
+	}
+	b.Logf("commits=%d first commit bytes=%d, bytes/commit mean=%d max=%d blocks/commit mean=%d max=%d blocks written=%d bytes written=%d",
+		commits, firstBytes, sumBytes/uint64(commits), maxBytes, sumBlocks/uint64(commits), maxBlocks, sumBlocks, sumBytes)
+
+	// Query six series over the last 15 minutes.
+	q := NewQueryable(wtb.Engine, StaticTargets{"prom/target/bench"})
+	end := testBaseTime + (benchScrapes-1)*testStep
+	start := end - 15*60*1000
+	const six = `rate(bench_counter{series=~"s100[0-5]"}[1m])`
+	b.Run("range-six-series-15m", func(b *testing.B) {
+		for range b.N {
+			res := rangeQuery(ctx, b, q, six, start, end, 15*time.Second)
+			mat, err := res.Matrix()
+			if err != nil || len(mat) != 6 {
+				b.Fatalf("got %d series, %v", len(mat), err)
+			}
+		}
+	})
+	b.Run("instant-six-series", func(b *testing.B) {
+		for range b.N {
+			res := instantQuery(ctx, b, q, six, end)
+			vec, err := res.Vector()
+			if err != nil || len(vec) != 6 {
+				b.Fatalf("got %d series, %v", len(vec), err)
+			}
+		}
+	})
+}
+
+// testBaseTime is the timestamp of the first test sample in milliseconds.
+const testBaseTime int64 = 1_700_000_000_000
+
+// testStep is the scrape interval of the test samples in milliseconds.
+const testStep int64 = 15_000
+
+// fixture is a real World engine with several targets and an in-memory
+// reference that receives every sample the stores do.
+type fixture struct {
+	// t is the running test.
+	t *testing.T
+	// eng is the World engine holding the targets.
+	eng world.Engine
+	// stores are the writers of the targets, by object key.
+	stores map[string]*Store
+	// keys lists the object keys in creation order.
+	keys []string
+	// ref is the in-memory reference holding the same samples.
+	ref *referenceQueryable
+}
+
+// newFixture starts a World engine and creates one target per label set.
+func newFixture(t *testing.T, targets ...labels.Labels) *fixture {
+	// Start the World engine the stores write to.
+	t.Helper()
+	wtb := world_testbed.MustDefault(t, t.Context())
+	f := &fixture{
+		t:      t,
+		eng:    wtb.Engine,
+		stores: make(map[string]*Store, len(targets)),
+		ref:    newReferenceQueryable(),
+	}
+
+	// Create each target as a World object.
+	for i, target := range targets {
+		key := "prom/target/" + string(rune('a'+i))
+		st, err := CreateStore(t.Context(), f.eng, key, target)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.stores[key] = st
+		f.keys = append(f.keys, key)
+	}
+	return f
+}
+
+// appendSamples appends the series' samples for scrape numbers from to to,
+// exclusive, to the target's store and to the reference.
+func (f *fixture) appendSamples(key string, series []labels.Labels, from, to int) {
+	f.t.Helper()
+	st := f.stores[key]
+	for k := from; k < to; k++ {
+		ts := testBaseTime + int64(k)*testStep
+		for i, lset := range series {
+			v := testValue(i, k)
+			if err := st.Append(lset, ts, v); err != nil {
+				f.t.Fatal(err)
+			}
+			f.ref.add(mergeLabels(st.meta, lset), ts, v)
+		}
+	}
+}
+
+// commit commits every store in one transaction.
+func (f *fixture) commit(ctx context.Context) CommitStats {
+	// Gather the stores in creation order.
+	f.t.Helper()
+	stores := make([]*Store, 0, len(f.keys))
+	for _, key := range f.keys {
+		stores = append(stores, f.stores[key])
+	}
+
+	// Commit them together.
+	stats, err := CommitStores(ctx, f.eng, stores...)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return stats
+}
+
+// queryable returns a new Queryable over all targets.
+func (f *fixture) queryable() *Queryable {
+	return NewQueryable(f.eng, StaticTargets(f.keys))
+}
+
+// testValue returns the value of series i at scrape k: a counter that grows
+// by a rate that depends on i and resets once for series 1.
+func testValue(i, k int) float64 {
+	if i == 1 && k >= 30 {
+		return float64((k - 30) * (i + 1) * 3)
+	}
+	return float64(k * (i + 1) * 3)
+}
+
+// referenceSample is a float sample of the in-memory reference storage.
+type referenceSample struct {
+	// t is the sample timestamp in milliseconds.
+	t int64
+	// f is the sample value.
+	f float64
+}
+
+// T returns the sample timestamp.
+func (s referenceSample) T() int64 { return s.t }
+
+// ST returns zero because the reference samples carry no start timestamp.
+func (s referenceSample) ST() int64 { return 0 }
+
+// F returns the sample value.
+func (s referenceSample) F() float64 { return s.f }
+
+// H returns nil because the sample is a float.
+func (s referenceSample) H() *histogram.Histogram { return nil }
+
+// FH returns nil because the sample is a float.
+func (s referenceSample) FH() *histogram.FloatHistogram { return nil }
+
+// Type returns the float value type.
+func (s referenceSample) Type() chunkenc.ValueType { return chunkenc.ValFloat }
+
+// Copy returns the sample, which holds no references.
+func (s referenceSample) Copy() chunks.Sample { return s }
+
+// _ checks the implemented interfaces.
+var _ chunks.Sample = referenceSample{}

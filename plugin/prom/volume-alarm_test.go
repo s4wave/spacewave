@@ -28,6 +28,7 @@ import (
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_alarm "github.com/s4wave/spacewave/sdk/alarm"
 	alarm_volume "github.com/s4wave/spacewave/sdk/alarm/volume"
 	alarm_watch "github.com/s4wave/spacewave/sdk/alarm/watch"
@@ -157,7 +158,7 @@ type alarmEnv struct {
 	// tb is the World testbed.
 	tb *world_testbed.Testbed
 	// store writes the device target.
-	store *Store
+	store *promstorage.Store
 	// sc scrapes the process metrics into store.
 	sc *scraper
 }
@@ -177,7 +178,7 @@ func newAlarmEnv(t *testing.T) *alarmEnv {
 	t.Cleanup(release)
 
 	// Create the device target and its scraper.
-	store, err := CreateStore(ctx, tb.Engine, alarmTargetKey, labels.FromStrings("job", "spacewave"))
+	store, err := promstorage.CreateStore(ctx, tb.Engine, alarmTargetKey, labels.FromStrings("job", "spacewave"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +224,7 @@ func (e *alarmEnv) startWatch(def *alarm_volume.Definition) {
 func (e *alarmEnv) scrape(ts time.Time) {
 	e.t.Helper()
 	e.sc.scrape(e.ctx, ts)
-	if _, err := CommitStores(e.ctx, e.tb.Engine, e.store); err != nil {
+	if _, err := promstorage.CommitStores(e.ctx, e.tb.Engine, e.store); err != nil {
 		e.t.Fatal(err)
 	}
 }
@@ -404,7 +405,7 @@ func (c targetTypes) HandleDirective(_ context.Context, di directive.Instance) (
 // newResource serves PromQL over the engine's targets.
 func (targetTypes) newResource(_ context.Context, _ *logrus.Entry, _ bus.Bus, eng world.Engine, _ world.WorldState, _ string) (srpc.Invoker, func(), error) {
 	mux := srpc.NewMux()
-	svc := &queryService{engine: newQueryEngine(), eng: eng, q: NewQueryable(eng, worldTargets{eng: eng})}
+	svc := &queryService{engine: newQueryEngine(), eng: eng, q: promstorage.NewQueryable(eng, worldTargets{eng: eng})}
 	if err := s4wave_prom.SRPCRegisterPromQueryResourceService(mux, svc); err != nil {
 		return nil, nil, err
 	}

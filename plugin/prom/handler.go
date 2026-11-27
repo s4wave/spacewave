@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/prometheus/promql"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
@@ -78,7 +79,7 @@ func (h *handler) InvokeObjectType(
 
 	// Serve the query service with the target's scrape process or the
 	// Dashboard's edits.
-	query := &queryService{engine: h.promql, eng: engine, q: NewQueryable(engine, worldTargets{eng: engine})}
+	query := &queryService{engine: h.promql, eng: engine, q: promstorage.NewQueryable(engine, worldTargets{eng: engine})}
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_prom.SRPCRegisterPromQueryResourceService(mux, query); err != nil {
 			return err

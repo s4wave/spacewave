@@ -1,4 +1,4 @@
-package prom_plugin
+package promstorage
 
 import (
 	"context"

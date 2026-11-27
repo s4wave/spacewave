@@ -6,6 +6,7 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
+	promstorage "github.com/s4wave/spacewave/plugin/prom/storage"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +29,7 @@ type scraper struct {
 	// le is the logger.
 	le *logrus.Entry
 	// store is the target's writer.
-	store *Store
+	store *promstorage.Store
 	// cfg configures the scrape.
 	cfg *s4wave_prom.ScrapeConfig
 	// peerID is the Device peer reported in the status.
@@ -43,7 +44,7 @@ type scraper struct {
 
 // newScraper constructs a scraper that reads source into the target store
 // writes, reporting the Device peerID that commits every window.
-func newScraper(le *logrus.Entry, store *Store, cfg *s4wave_prom.ScrapeConfig, peerID string, window time.Duration, source scrapeSource) *scraper {
+func newScraper(le *logrus.Entry, store *promstorage.Store, cfg *s4wave_prom.ScrapeConfig, peerID string, window time.Duration, source scrapeSource) *scraper {
 	return &scraper{
 		le:     le,
 		store:  store,
@@ -87,7 +88,7 @@ func (s *scraper) scrape(ctx context.Context, start time.Time) {
 	seen := make(map[uint64]labels.Labels, len(samples))
 	var skipped int
 	for _, smp := range samples {
-		lset := s.exportedLabels(smp.lset)
+		lset := s.store.ExportLabels(smp.lset)
 		if err := s.store.Append(lset, ts, smp.v); err != nil {
 			skipped++
 			continue
@@ -135,28 +136,4 @@ func (s *scraper) scrape(ctx context.Context, start time.Time) {
 	if err := s.store.SetStatus(status); err != nil {
 		s.le.WithError(err).Warn("encode target status")
 	}
-}
-
-// exportedLabels renames each label of lset that the target also sets to
-// exported_<name>, as Prometheus does without honor_labels.
-func (s *scraper) exportedLabels(lset labels.Labels) labels.Labels {
-	// Keep the set when no name clashes.
-	meta := s.store.meta
-	clash := false
-	lset.Range(func(l labels.Label) { clash = clash || meta.Has(l.Name) })
-	if !clash {
-		return lset
-	}
-
-	// Rebuild it with the clashing names prefixed.
-	b := labels.NewScratchBuilder(lset.Len())
-	lset.Range(func(l labels.Label) {
-		name := l.Name
-		if meta.Has(name) {
-			name = "exported_" + name
-		}
-		b.Add(name, l.Value)
-	})
-	b.Sort()
-	return b.Labels()
 }

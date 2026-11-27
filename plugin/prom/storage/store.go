@@ -1,4 +1,4 @@
-package prom_plugin
+package promstorage
 
 import (
 	"bytes"
@@ -361,4 +361,28 @@ func (s *Store) write(ctx context.Context, wtx world.WorldState, batch *commitBa
 		return kv.Commit(ctx)
 	})
 	return err
+}
+
+// ExportLabels renames each label of lset that the target also sets to
+// exported_<name>, as Prometheus does without honor_labels.
+func (s *Store) ExportLabels(lset labels.Labels) labels.Labels {
+	// Keep the set when no name clashes.
+	meta := s.meta
+	clash := false
+	lset.Range(func(l labels.Label) { clash = clash || meta.Has(l.Name) })
+	if !clash {
+		return lset
+	}
+
+	// Rebuild it with the clashing names prefixed.
+	b := labels.NewScratchBuilder(lset.Len())
+	lset.Range(func(l labels.Label) {
+		name := l.Name
+		if meta.Has(name) {
+			name = "exported_" + name
+		}
+		b.Add(name, l.Value)
+	})
+	b.Sort()
+	return b.Labels()
 }
