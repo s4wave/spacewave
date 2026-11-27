@@ -41,6 +41,80 @@ func TestNormalizeChildrenAllocs(t *testing.T) {
 	}
 }
 
+// TestReleasePendingCountsUnmovedChildren checks that releasePending counts
+// a key once exactly when it is a child the paged release has not moved yet,
+// as scanReleasePending lists them, for a release of three pages resumed at
+// its start, mid-page, at a page boundary and at its last child. A key it
+// misses would leave the freed block's holder uncounted, so the free could
+// take a block the release still holds. The keys mix moved, pending and
+// absent blocks across every page.
+func TestReleasePendingCountsUnmovedChildren(t *testing.T) {
+	ctx := context.Background()
+	const n = 2*releasePageChildren + 500
+	refs := make([]*block.BlockRef, 0, n+n/10)
+	for i := range n + n/10 {
+		ref, err := block.BuildBlockRef([]byte("release child "+strconv.Itoa(i)), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	// The first n are the release's children; the rest are absent from it.
+	children := normalizeChildren(refs[:n])
+	all := normalizeChildren(refs)
+	nexts := []uint64{0, 700, releasePageChildren, releasePageChildren + 1, n - 1}
+	edges := make(map[string]bool)
+	for _, next := range nexts {
+		edges[string(BlockKey(children[next]))] = true
+		if next != 0 {
+			edges[string(BlockKey(children[next-1]))] = true
+		}
+	}
+	var keys [][]byte
+	for i, ref := range all {
+		if key := BlockKey(ref); i%3 == 0 || edges[string(key)] {
+			keys = append(keys, key)
+		}
+	}
+
+	for _, next := range nexts {
+		t.Run(strconv.FormatUint(next, 10), func(t *testing.T) {
+			tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			rec := NewRecords(tx, []byte("l/"))
+			if err := rec.putReleasePages(ctx, children); err != nil {
+				t.Fatal(err)
+			}
+			rel := &Release{Block: []byte("freed"), Next: next, Children: n}
+			want := make(map[string]int64)
+			if err := rec.scanReleasePending(ctx, rel, func(child *block.BlockRef) error {
+				want[string(BlockKey(child))] = 1
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := releasePending(ctx, rec, &LivenessState{Release: rel}, keys)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var counted int
+			for _, key := range keys {
+				if got[string(key)] != want[string(key)] {
+					t.Errorf("key %x: pending %d, want %d", key, got[string(key)], want[string(key)])
+				}
+				counted += int(want[string(key)])
+			}
+			if counted == 0 || len(got) != counted {
+				t.Fatalf("%d keys pending, want %d of them", len(got), counted)
+			}
+		})
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
