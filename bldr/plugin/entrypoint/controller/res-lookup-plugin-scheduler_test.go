@@ -24,8 +24,25 @@ func (s *testHostScheduler) GetInstanceKey() string {
 	return ""
 }
 
-func (s *testHostScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
-	return s.statusCtr
+// PluginStatus returns the current plugin status snapshot.
+func (s *testHostScheduler) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
+	return s.statusCtr.GetValue()
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (s *testHostScheduler) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.statusCtr.WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (s *testHostScheduler) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.statusCtr.WaitValueChange(ctx, previous, nil)
 }
 
 // TestLookupPluginSchedulerStreamsHostStatus checks that a plugin sees its
@@ -82,13 +99,11 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 	})
 
 	// Wait for the scheduler to stream the running plugin status.
-	got, err := vals[0].GetPluginStatusCtr().WaitValueWithValidator(
+	got, err := vals[0].AwaitPluginStatus(
 		ctx,
 		func(status *bldr_plugin.PluginStatusSnapshot) (bool, error) {
 			return len(status.GetPlugins()) != 0, nil
-		},
-		nil,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}

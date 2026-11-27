@@ -63,7 +63,7 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 
 	// Verify the Space scheduler records the approved plugin request.
 	scheduler := gen.GetScheduler()
-	statuses := scheduler.GetPluginStatusCtr().GetValue()
+	statuses := scheduler.PluginStatus()
 	if !slices.ContainsFunc(statuses.GetPlugins(), func(status *bldr_plugin.PluginStatus) bool {
 		return status.GetPluginId() == spaceRuntimeManifestID &&
 			status.GetInstanceKey() == "space-test" &&

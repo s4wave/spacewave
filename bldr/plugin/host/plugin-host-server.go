@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	bldr_frontend "github.com/s4wave/spacewave/bldr/frontend"
@@ -397,17 +396,16 @@ func (s *PluginHostServer) WatchPluginStatus(
 		return errors.New("plugin host has no scheduler")
 	}
 	instanceKey := s.scheduler.GetInstanceKey()
-	return ccontainer.WatchChanges(
+	return bldr_plugin.WatchPluginStatus(
 		strm.Context(),
 		nil,
-		s.scheduler.GetPluginStatusCtr(),
+		s.scheduler,
 		func(status *bldr_plugin.PluginStatusSnapshot) error {
 			return strm.Send(&bldr_plugin.WatchPluginStatusResponse{
 				InstanceKey: instanceKey,
 				Status:      status,
 			})
 		},
-		nil,
 	)
 }
 

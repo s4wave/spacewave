@@ -80,7 +80,7 @@ func TestGenerationResolvesDeclaredAppPlugins(t *testing.T) {
 			}
 
 			// Forwarding and exclusion consume the same canonical declaration.
-			if got := gen.GetScheduler().GetPluginStatusCtr().GetValue().GetPlugins(); len(got) != 0 {
+			if got := gen.GetScheduler().PluginStatus().GetPlugins(); len(got) != 0 {
 				t.Fatalf("host plugins became Space installations: %v", got)
 			}
 			select {
@@ -129,11 +129,11 @@ func TestGenerationKeepsUnavailableLocalPluginLocal(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
-	snapshot, err := gen.GetScheduler().GetPluginStatusCtr().WaitValueWithValidator(ctx, func(snapshot *bldr_plugin.PluginStatusSnapshot) (bool, error) {
+	snapshot, err := gen.GetScheduler().AwaitPluginStatus(ctx, func(snapshot *bldr_plugin.PluginStatusSnapshot) (bool, error) {
 		return slices.ContainsFunc(snapshot.GetPlugins(), func(status *bldr_plugin.PluginStatus) bool {
 			return status.GetPluginId() == localID && status.GetState() == bldr_plugin.PluginState_PluginState_REQUESTED
 		}), nil
-	}, nil)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -755,7 +755,7 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 	}
 
 	// Check the plugin status.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -864,7 +864,7 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 
 	// Check the plugin status.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -912,7 +912,7 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
 		t.Fatal("expected pruned scan to keep the readable launcher candidate")
 	}
-	status = ctrl.GetPluginStatusCtr().GetValue()
+	status = ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected existing plugin status to remain, got %d", len(status.Plugins))
 	}
@@ -1016,7 +1016,7 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 	}
 
 	// Check the plugin status.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 0 {
 		t.Fatalf("expected ignored retained ref not to surface as a skip error, got %+v", status.Plugins)
 	}
@@ -1126,7 +1126,7 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 	}
 
 	// Check the plugin status.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -1242,7 +1242,7 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
 		t.Fatal("expected missing-bucket retained ref not to replace readable launcher candidate")
 	}
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -1279,7 +1279,7 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
 		t.Fatal("expected fixed lower-rev retained ref not to replace readable launcher candidate")
 	}
-	status = ctrl.GetPluginStatusCtr().GetValue()
+	status = ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected existing plugin status to remain, got %d", len(status.Plugins))
 	}
@@ -1447,7 +1447,7 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(launcherRef.GetManifestRef()) {
 		t.Fatal("expected pruned copied state to execute the readable launcher candidate")
 	}
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 0 {
 		t.Fatalf("expected no skipped-ref status after pruning, got %d plugin statuses", len(status.Plugins))
 	}
@@ -1536,7 +1536,7 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 	}
 
 	// Check the plugin status.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}

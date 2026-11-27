@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/util/ccontainer"
 )
 
 // PluginScheduler is the status view of a plugin host scheduler.
@@ -13,8 +12,13 @@ type PluginScheduler interface {
 	// GetInstanceKey returns the instance key the scheduler was configured
 	// with. Space runtimes use the Space engine ID. The root host uses "".
 	GetInstanceKey() string
-	// GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
-	GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot]
+	// PluginStatus returns the current plugin status snapshot.
+	PluginStatus() *PluginStatusSnapshot
+	// AwaitPluginStatus waits for a snapshot accepted by valid.
+	AwaitPluginStatus(ctx context.Context, valid func(*PluginStatusSnapshot) (bool, error)) (*PluginStatusSnapshot, error)
+	// WaitPluginStatusChange waits until status differs from previous according
+	// to the scheduler's snapshot comparison.
+	WaitPluginStatusChange(ctx context.Context, previous *PluginStatusSnapshot) (*PluginStatusSnapshot, error)
 }
 
 // HostPluginScheduler is a PluginScheduler that runs host plugins: the plugins

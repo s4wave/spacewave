@@ -518,9 +518,25 @@ func (r *loadRecorder) GetInstanceKey() string {
 	return ""
 }
 
-// GetPluginStatusCtr returns the stand-in scheduler's plugin status.
-func (r *loadRecorder) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
-	return r.status
+// PluginStatus returns the current plugin status snapshot.
+func (r *loadRecorder) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
+	return r.status.GetValue()
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (r *loadRecorder) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return r.status.WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (r *loadRecorder) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return r.status.WaitValueChange(ctx, previous, nil)
 }
 
 // wait waits until exactly the plugins in want have a live load.

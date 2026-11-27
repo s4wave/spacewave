@@ -427,8 +427,25 @@ func (s *testPluginScheduler) GetInstanceKey() string {
 	return s.instanceKey
 }
 
-func (s *testPluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
-	return s.statusCtr
+// PluginStatus returns the current plugin status snapshot.
+func (s *testPluginScheduler) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
+	return s.statusCtr.GetValue()
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (s *testPluginScheduler) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.statusCtr.WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (s *testPluginScheduler) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.statusCtr.WaitValueChange(ctx, previous, nil)
 }
 
 func (s *testPluginScheduler) HandleDirective(

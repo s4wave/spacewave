@@ -414,9 +414,25 @@ func (s *fakePluginScheduler) GetInstanceKey() string {
 	return ""
 }
 
-// GetPluginStatusCtr returns the writable status container.
-func (s *fakePluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
-	return s.status
+// PluginStatus returns the current plugin status snapshot.
+func (s *fakePluginScheduler) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
+	return s.status.GetValue()
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (s *fakePluginScheduler) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.status.WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (s *fakePluginScheduler) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return s.status.WaitValueChange(ctx, previous, nil)
 }
 
 func TestPluginStatusRowMapsSchedulerStates(t *testing.T) {

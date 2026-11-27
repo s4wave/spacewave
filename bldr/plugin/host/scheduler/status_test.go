@@ -118,7 +118,7 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	ctrl.recordPluginStatusError("notes", "left", "download plugin manifest", errors.New("copy failed"))
 
 	// The snapshot carries the error message, timestamp, and state.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -135,14 +135,14 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 
 	// A plain requested status update preserves the last error.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
-	status = ctrl.GetPluginStatusCtr().GetValue()
+	status = ctrl.PluginStatus()
 	if status.Plugins[0].GetLastErrorMessage() == "" {
 		t.Fatal("expected requested status update to preserve last error")
 	}
 
 	// The running status clears the last error.
 	ctrl.setPluginStatusClearingError("notes", "left", bldr_plugin.PluginState_PluginState_RUNNING)
-	status = ctrl.GetPluginStatusCtr().GetValue()
+	status = ctrl.PluginStatus()
 	plugin = status.Plugins[0]
 	if plugin.GetLastErrorMessage() != "" || plugin.GetLastErrorAt() != nil {
 		t.Fatalf("expected running status to clear last error: %#v", plugin)
@@ -166,7 +166,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 	)
 
 	// The snapshot reports the terminal failure and no running generation.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
 	}
@@ -180,7 +180,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 
 	// A fresh running generation clears the terminal failure.
 	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
-	status = ctrl.GetPluginStatusCtr().GetValue()
+	status = ctrl.PluginStatus()
 	plugin = status.Plugins[0]
 	if plugin.GetLastErrorMessage() != "" {
 		t.Fatalf("fresh running generation should clear terminal failure, got %q", plugin.GetLastErrorMessage())
@@ -250,9 +250,9 @@ func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 
 	// Snapshot the status before and after recording an error.
 	ctrl.setPluginStatus("notes", "", bldr_plugin.PluginState_PluginState_REQUESTED)
-	before := ctrl.GetPluginStatusCtr().GetValue()
+	before := ctrl.PluginStatus()
 	ctrl.recordPluginStatusError("notes", "", "execute plugin", errors.New("boom"))
-	after := ctrl.GetPluginStatusCtr().GetValue()
+	after := ctrl.PluginStatus()
 
 	// The snapshots differ because the last error changed.
 	if before.EqualVT(after) {
@@ -313,7 +313,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 	)
 
 	// The recovery row carries the refs and candidate summaries.
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.ManifestRecovery) != 1 {
 		t.Fatalf("recovery rows = %d, want 1", len(status.ManifestRecovery))
 	}
@@ -337,7 +337,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 	// Clearing the recovery status changes the snapshot.
 	before := status
 	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, 0, nil, nil)
-	after := ctrl.GetPluginStatusCtr().GetValue()
+	after := ctrl.PluginStatus()
 	if before.EqualVT(after) {
 		t.Fatal("expected recovery status changes to change the snapshot")
 	}
@@ -358,8 +358,8 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 		false,
 	)
 	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, 0, nil, nil)
-	if len(ctrl.GetPluginStatusCtr().GetValue().ManifestRecovery) != 1 {
-		t.Fatalf("expected recovery row before cleanup: %#v", ctrl.GetPluginStatusCtr().GetValue())
+	if len(ctrl.PluginStatus().ManifestRecovery) != 1 {
+		t.Fatalf("expected recovery row before cleanup: %#v", ctrl.PluginStatus())
 	}
 
 	// Removing the plugin instance clears its recovery rows.
@@ -372,7 +372,7 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 		false,
 		false,
 	)
-	status := ctrl.GetPluginStatusCtr().GetValue()
+	status := ctrl.PluginStatus()
 	if len(status.ManifestRecovery) != 0 {
 		t.Fatalf("expected recovery rows cleared with plugin instance, got %#v", status.ManifestRecovery)
 	}
@@ -456,7 +456,7 @@ func TestPluginStatusWritersSkipObservation(t *testing.T) {
 	for range watchers {
 		// Each watcher starts from the snapshot before the first write, and
 		// checks every snapshot it holds before it waits for the next.
-		current := ctrl.GetPluginStatusCtr().GetValue()
+		current := ctrl.PluginStatus()
 		go func() {
 			var seen uint64
 			for {
@@ -470,7 +470,7 @@ func TestPluginStatusWritersSkipObservation(t *testing.T) {
 					errs <- nil
 					return
 				}
-				next, err := ctrl.GetPluginStatusCtr().WaitValueChange(ctx, current, nil)
+				next, err := ctrl.WaitPluginStatusChange(ctx, current)
 				if err != nil {
 					errs <- err
 					return

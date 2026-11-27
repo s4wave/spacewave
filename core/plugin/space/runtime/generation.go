@@ -168,10 +168,9 @@ func (g *Generation) ObserveHosts() ([]plugin_host.PluginHost, func(context.Cont
 
 // ObservePluginStatus reads plugin status and waits for that exact snapshot to change.
 func (g *Generation) ObservePluginStatus() (*bldr_plugin.PluginStatusSnapshot, func(context.Context) error) {
-	status := g.scheduler.GetPluginStatusCtr()
-	snapshot := status.GetValue()
+	snapshot := g.scheduler.PluginStatus()
 	return snapshot, func(ctx context.Context) error {
-		_, err := status.WaitValueChange(ctx, snapshot, nil)
+		_, err := g.scheduler.WaitPluginStatusChange(ctx, snapshot)
 		return err
 	}
 }

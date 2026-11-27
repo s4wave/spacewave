@@ -6,16 +6,31 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
-// GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
-func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
-	return &c.pluginStatus
+// PluginStatus returns the current plugin status snapshot.
+func (c *Controller) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
+	return c.pluginStatus.GetValue()
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (c *Controller) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return c.pluginStatus.WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (c *Controller) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return c.pluginStatus.WaitValueChange(ctx, previous, nil)
 }
 
 // GetInstanceKey returns the instance key the scheduler was configured with.

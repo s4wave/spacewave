@@ -8,7 +8,6 @@ import (
 	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
@@ -20,10 +19,9 @@ func AttachPluginStatus(
 ) {
 	// Publish the current scheduler snapshot and watch for changes.
 	adapter := &pluginStatusAdapter{producer: producer}
-	statusCtr := ctrl.GetPluginStatusCtr()
-	current := statusCtr.GetValue()
+	current := ctrl.PluginStatus()
 	adapter.setPluginStatusSnapshotRows(current)
-	go adapter.watch(ctx, current, statusCtr)
+	go adapter.watch(ctx, current, ctrl)
 }
 
 type pluginStatusAdapter struct {
@@ -33,17 +31,16 @@ type pluginStatusAdapter struct {
 func (a *pluginStatusAdapter) watch(
 	ctx context.Context,
 	current *bldr_plugin.PluginStatusSnapshot,
-	statusCtr ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot],
+	scheduler bldr_plugin.PluginScheduler,
 ) {
-	_ = ccontainer.WatchChanges(
+	_ = bldr_plugin.WatchPluginStatus(
 		ctx,
 		current,
-		statusCtr,
+		scheduler,
 		func(snapshot *bldr_plugin.PluginStatusSnapshot) error {
 			a.setPluginStatusSnapshotRows(snapshot)
 			return nil
 		},
-		nil,
 	)
 }
 

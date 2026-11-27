@@ -209,14 +209,14 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		}
 		current = next
 		if version == 2 {
-			_, err := tb.GetScheduler().GetPluginStatusCtr().WaitValueWithValidator(ctx, func(status *bldr_plugin.PluginStatusSnapshot) (bool, error) {
+			_, err := tb.GetScheduler().AwaitPluginStatus(ctx, func(status *bldr_plugin.PluginStatusSnapshot) (bool, error) {
 				for _, item := range status.Plugins {
 					if item.GetPluginId() == "test-colors" && item.GetInstanceKey() == "space/first" && item.GetLastErrorMessage() != "" {
 						return true, nil
 					}
 				}
 				return false, nil
-			}, nil)
+			})
 			if err != nil {
 				t.Fatal(err)
 			}

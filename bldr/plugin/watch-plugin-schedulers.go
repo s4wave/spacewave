@@ -74,7 +74,7 @@ func WatchPluginSchedulers(
 
 		snapshots := make([]*PluginStatusSnapshot, len(current))
 		for i, scheduler := range current {
-			snapshots[i] = scheduler.GetPluginStatusCtr().GetValue()
+			snapshots[i] = scheduler.PluginStatus()
 		}
 		if err := cb(current, snapshots); err != nil {
 			return err
@@ -105,11 +105,31 @@ func waitPluginStatusChange(
 	var once sync.Once
 	for i, scheduler := range schedulers {
 		go func() {
-			_, err := scheduler.GetPluginStatusCtr().WaitValueChange(ctx, snapshots[i], nil)
+			_, err := scheduler.WaitPluginStatusChange(ctx, snapshots[i])
 			if err == nil {
 				once.Do(func() { close(changed) })
 			}
 		}()
 	}
 	return changed
+}
+
+// WatchPluginStatus calls update when the scheduler reports a change from initial, until
+// ctx ends or update fails. A nil initial waits for the first non-nil snapshot.
+func WatchPluginStatus(ctx context.Context, initial *PluginStatusSnapshot, scheduler PluginScheduler, update func(*PluginStatusSnapshot) error) error {
+	// Deliver each changed snapshot before waiting for its successor.
+	current := initial
+	for {
+		// Wait against the snapshot last delivered, including intervening changes.
+		next, err := scheduler.WaitPluginStatusChange(ctx, current)
+		if err != nil {
+			return err
+		}
+
+		// Keep the delivered snapshot as the next comparison point.
+		current = next
+		if err := update(next); err != nil {
+			return err
+		}
+	}
 }

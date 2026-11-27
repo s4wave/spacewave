@@ -179,8 +179,25 @@ func (s *daemonRootScheduler) GetInstanceKey() string {
 	return ""
 }
 
-func (s *daemonRootScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
+// PluginStatus returns the current plugin status snapshot.
+func (s *daemonRootScheduler) PluginStatus() *bldr_plugin.PluginStatusSnapshot {
 	return nil
+}
+
+// AwaitPluginStatus waits for a snapshot accepted by valid.
+func (s *daemonRootScheduler) AwaitPluginStatus(
+	ctx context.Context,
+	valid func(*bldr_plugin.PluginStatusSnapshot) (bool, error),
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return ccontainer.NewCContainer[*bldr_plugin.PluginStatusSnapshot](nil).WaitValueWithValidator(ctx, valid, nil)
+}
+
+// WaitPluginStatusChange waits until the scheduler's status differs from previous.
+func (s *daemonRootScheduler) WaitPluginStatusChange(
+	ctx context.Context,
+	previous *bldr_plugin.PluginStatusSnapshot,
+) (*bldr_plugin.PluginStatusSnapshot, error) {
+	return ccontainer.NewCContainer[*bldr_plugin.PluginStatusSnapshot](nil).WaitValueChange(ctx, previous, nil)
 }
 
 func (s *daemonRootScheduler) GetHostPluginIds() []string {

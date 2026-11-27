@@ -112,7 +112,7 @@ func selectedDesktopArtifact(b bus.Bus) (string, error) {
 	}
 
 	// Return the manifest selected for the shared web plugin instance.
-	snapshot := scheduler.GetPluginStatusCtr().GetValue()
+	snapshot := scheduler.PluginStatus()
 	for _, row := range snapshot.GetManifestRecovery() {
 		if row.GetPluginId() == "web" && row.GetInstanceKey() == "" && row.GetExecuteManifestRef() != "" {
 			return row.GetExecuteManifestRef(), nil
