@@ -23,7 +23,7 @@ func (s *PackedStore) OpenStage(ctx context.Context) (block.StoreOps, func(), er
 	if err != nil {
 		return nil, nil, err
 	}
-	return &PackedStore{log: s.log, local: stage, divert: s.divert}, release, nil
+	return &PackedStore{log: s.log, local: stage, divert: s.divert, counts: s.counts}, release, nil
 }
 
 // ReleaseRoots forwards the stage's release to the local store.

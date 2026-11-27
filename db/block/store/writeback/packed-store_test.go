@@ -14,6 +14,7 @@ import (
 // Volume holds their child lists and roots without the bytes or any marker.
 // Reads come back with their refs through every step of the read chain.
 // A block the Volume held before and a cache fill stay in the Volume.
+// A write through a stage it opens diverts as every write does.
 // With the switch off, writes go to the Volume and mark again while the packed
 // blocks still read. After a restart every block still reads.
 func TestPackedStore(t *testing.T) {
@@ -82,6 +83,17 @@ func TestPackedStore(t *testing.T) {
 	checkRead(s, leafRef, leaf, 0)
 	checkRead(s, parentRef, parent, 1)
 	checkRead(s, loose, []byte("packed loose"), 0)
+
+	// A write through a stage the PackedStore opens diverts to the Log too.
+	stage, release, err := NewPackedStore(log, ownedStore{env.vol}, true).OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	staged, _, err := stage.PutBlock(ctx, []byte("packed staged"), leafOpts)
+	release()
+	if err != nil || !log.Has(packfile.BlockKey(staged.GetHash())) {
+		t.Fatalf("staged write did not reach the Log: %v", err)
+	}
 
 	// A repeated write reports the block stored and appends nothing.
 	before := log.GetStats().LocalBytes
