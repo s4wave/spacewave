@@ -117,6 +117,35 @@ func TestReadSetsInterest(t *testing.T) {
 	}
 }
 
+// TestNamedInterestSelect checks that a named interest trims a merged change
+// to the keys and quads it holds, so a removed key's commit merged with a kept
+// key's is not reported, and shares a change it selects whole.
+func TestNamedInterestSelect(t *testing.T) {
+	interest, err := NewNamedInterest([]string{"obj/kept"}, []GraphQuad{NewGraphQuad("<obj/o>", "<p>", "", "")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	linked := NewGraphQuad("<obj/o>", "<p>", "<obj/t>", "")
+	merged := &ChangeSet{
+		Keys:  []string{"obj/kept", "obj/removed"},
+		Quads: []GraphQuad{linked, NewGraphQuad("<obj/o>", "<q>", "<obj/t>", "")},
+	}
+	got := interest.Select(merged)
+	if !slices.Equal(got.Keys, []string{"obj/kept"}) || !slices.Equal(got.Quads, []GraphQuad{linked}) {
+		t.Fatalf("selected %v %v", got.Keys, got.Quads)
+	}
+	if len(merged.Keys) != 2 || len(merged.Quads) != 2 {
+		t.Fatalf("select modified the merged change: %v", merged)
+	}
+	whole := &ChangeSet{Keys: []string{"obj/kept"}}
+	if interest.Select(whole) != whole {
+		t.Fatal("a fully selected change was copied")
+	}
+	if unknown := NewUnknownChangeSet(); interest.Select(unknown) != unknown {
+		t.Fatal("an unknown change was not passed through")
+	}
+}
+
 // TestChangeIndexSharedOnce checks that watchers sharing a read set index it
 // once, that a change to it reaches each of them, and that the set's names
 // leave the index with its last watcher.

@@ -95,11 +95,16 @@ func (r *EngineResource) watchNamedChanges(
 	defer slot.Close()
 	ctx = world.WithWatchSlot(ctx, slot)
 
-	// Send each change and advance past it. A watch that ends also advances
-	// past the changes its interest skipped, through the seqno it covered.
+	// Send the part of each change the running watch's interest selects and
+	// advance past it. A watch can hand over a union merged across revisions,
+	// such as a removed key's commit caught up together with a kept key's, so
+	// the send drops the names the interest no longer holds. A watch that
+	// ends also advances past the changes its interest skipped, through the
+	// seqno it covered.
 	afterSeqno, acked := first.GetAfterSeqno(), in.version
+	var interest *world.ChangeInterest
 	send := func(seqno uint64, changes *world.ChangeSet) error {
-		if err := stream.Send(s4wave_world.NewChangeResponse(seqno, changes)); err != nil {
+		if err := stream.Send(s4wave_world.NewChangeResponse(seqno, interest.Select(changes))); err != nil {
 			return err
 		}
 		afterSeqno = seqno
@@ -107,7 +112,9 @@ func (r *EngineResource) watchNamedChanges(
 	}
 	for {
 		// Take the interest. A delta read from here on ends the watch.
-		watchCtx, interest, version, err := in.take(ctx)
+		var watchCtx context.Context
+		var version uint64
+		watchCtx, interest, version, err = in.take(ctx)
 		if err != nil {
 			return err
 		}

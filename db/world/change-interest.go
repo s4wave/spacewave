@@ -24,6 +24,9 @@ type ChangeInterest struct {
 	// change feed indexes each set once for all the watchers sharing it, so
 	// a watcher costs one entry per set, not one per key the set read.
 	shared []*ReadSet
+	// named selects the entries of a change a named interest holds, or is
+	// nil for any other interest.
+	named *namedSelect
 }
 
 // quadField selects one field of a graph quad.

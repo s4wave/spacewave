@@ -46,27 +46,69 @@ func NewNamedInterest(keys []string, patterns []GraphQuad) (*ChangeInterest, err
 
 	// Accept an unknown change, a changed key, or a changed quad matching a
 	// pattern filed under one of its fields.
-	filter := func(changes *ChangeSet) bool {
-		if changes.Unknown {
-			return true
-		}
-		for _, key := range changes.Keys {
-			if _, ok := keySet[key]; ok {
+	sel := &namedSelect{keys: keySet, byTerm: byTerm}
+	return &ChangeInterest{filter: sel.accepts, keys: named, terms: terms, named: sel}, nil
+}
+
+// namedSelect matches the changes a named interest selects: a changed key it
+// names, and a changed quad matching a pattern filed under one of the quad's
+// fields.
+type namedSelect struct {
+	// keys are the named object keys.
+	keys map[string]struct{}
+	// byTerm files each pattern under the field the change feed indexes it by.
+	byTerm map[quadTerm][]graphPattern
+}
+
+// accepts reports whether changes is unknown or holds a selected entry.
+func (n *namedSelect) accepts(changes *ChangeSet) bool {
+	return changes.Unknown ||
+		slices.ContainsFunc(changes.Keys, n.key) ||
+		slices.ContainsFunc(changes.Quads, n.quad)
+}
+
+// key reports whether the interest names key.
+func (n *namedSelect) key(key string) bool {
+	_, ok := n.keys[key]
+	return ok
+}
+
+// quad reports whether q matches a pattern of the interest.
+func (n *namedSelect) quad(q GraphQuad) bool {
+	for _, term := range quadTerms(q) {
+		for _, p := range n.byTerm[term] {
+			if p.matches(q) {
 				return true
 			}
 		}
-		for _, q := range changes.Quads {
-			for _, term := range quadTerms(q) {
-				for _, p := range byTerm[term] {
-					if p.matches(q) {
-						return true
-					}
-				}
-			}
-		}
-		return false
 	}
-	return &ChangeInterest{filter: filter, keys: named, terms: terms}, nil
+	return false
+}
+
+// Select returns the part of changes the interest selects. A feed merges
+// the changes of several revisions into one ChangeSet and tests the union,
+// so an accepted union may carry entries for names the interest does not
+// hold. A named interest drops them, returning changes itself when it
+// selects every entry. Any other interest, and an unknown ChangeSet, return
+// changes unchanged.
+func (c *ChangeInterest) Select(changes *ChangeSet) *ChangeSet {
+	// Only a named interest can tell which entries it selects.
+	if c == nil || c.named == nil || changes == nil || changes.Unknown {
+		return changes
+	}
+
+	// Share changes when the interest selects every entry.
+	otherKey := func(k string) bool { return !c.named.key(k) }
+	otherQuad := func(q GraphQuad) bool { return !c.named.quad(q) }
+	if !slices.ContainsFunc(changes.Keys, otherKey) && !slices.ContainsFunc(changes.Quads, otherQuad) {
+		return changes
+	}
+
+	// Copy out the selected entries, leaving the shared ChangeSet intact.
+	return &ChangeSet{
+		Keys:  slices.DeleteFunc(slices.Clone(changes.Keys), otherKey),
+		Quads: slices.DeleteFunc(slices.Clone(changes.Quads), otherQuad),
+	}
 }
 
 // Names returns object keys and graph patterns that together select every
