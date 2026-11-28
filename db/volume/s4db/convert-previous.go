@@ -236,33 +236,16 @@ func checkConvertSpace(live int64, free uint64) error {
 // is removed, since the source is authoritative. Files no claim accounts for
 // are refused.
 func resumeConverted(ctx context.Context, src *s4dbv1.Reader, id, tmp, marker string) (digest, bool, error) {
-	// Read the claim and describe the new file.
-	state, c, markerInfo, err := readClaim(marker)
+	// Find the files the claim accounts for.
+	files, err := inspectClaim(id, tmp, marker)
 	if err != nil {
 		return digest{}, false, err
-	}
-	tmpInfo, err := os.Lstat(tmp)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return digest{}, false, err
-	}
-
-	// Refuse files no claim of this source accounts for. An empty marker
-	// alone is a claim a crash cut short.
-	switch {
-	case state == claimAbsent && tmpInfo == nil:
-		return digest{}, false, nil
-	case state == claimAbsent:
-		return digest{}, false, foreignFile(tmp)
-	case state == claimTorn && tmpInfo == nil:
-		return digest{}, false, removeSame(marker, markerInfo)
-	case state != claimHeld || c.src != id:
-		return digest{}, false, foreignFile(marker)
 	}
 
 	// Compare the digest with the current source, which may have changed
 	// after an interrupted attempt released its lock, and read the new
 	// file back.
-	if c.verified && tmpInfo != nil {
+	if c := files.claim; c.verified && files.tmp != nil {
 		ok, err := matchesSource(ctx, src, c.want)
 		if err != nil {
 			return digest{}, false, err
@@ -276,12 +259,7 @@ func resumeConverted(ctx context.Context, src *s4dbv1.Reader, id, tmp, marker st
 	}
 
 	// Remove the claimed attempt while the complete source is locked.
-	if tmpInfo != nil {
-		if err := removeSame(tmp, tmpInfo); err != nil {
-			return digest{}, false, err
-		}
-	}
-	return digest{}, false, removeSame(marker, markerInfo)
+	return digest{}, false, files.clear(tmp, marker)
 }
 
 // matchesSource reports whether the pairs of src have digest want.

@@ -82,17 +82,51 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 		return err
 	}
 
-	// Start a fresh sibling file.
+	// Identify the bolt file.
 	le = le.WithField("path", path)
 	le.Info("converting bolt volume to s4db")
 	start := time.Now()
-	tmp := path + ".converting"
-	if err := os.Remove(tmp); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	dst, err := s4db.Open(tmp, s4db.Options{})
+	tmp, marker := path+convertingSuffix, path+convertedMarkerSuffix
+	fi, err := os.Stat(path)
 	if err != nil {
 		return err
+	}
+	id, err := fileIdentity(fi)
+	if err != nil {
+		return err
+	}
+
+	// Clear an earlier attempt this file's claim accounts for.
+	files, err := inspectClaim(id, tmp, marker)
+	if err != nil {
+		return err
+	}
+	if err := files.clear(tmp, marker); err != nil {
+		return err
+	}
+
+	// Claim the sibling files.
+	if err := writeClaim(marker, id); err != nil {
+		return err
+	}
+	markerInfo, err := os.Lstat(marker)
+	if err != nil {
+		return err
+	}
+
+	// Create the new file exclusively and open it as a database.
+	f, err := os.OpenFile(tmp, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- beside the Volume file.
+	if err != nil {
+		return err
+	}
+	built, err := f.Stat()
+	if err := errors.Join(err, f.Close()); err != nil {
+		return err
+	}
+	claimed := claimFiles{marker: markerInfo, tmp: built}
+	dst, err := s4db.Open(tmp, s4db.Options{})
+	if err != nil {
+		return errors.Join(err, claimed.clear(tmp, marker))
 	}
 
 	// Copy the keys into it and check them.
@@ -105,17 +139,19 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 		}
 	}
 	if err := errors.Join(err, dst.Close()); err != nil {
-		return errors.Join(err, os.Remove(tmp))
+		return errors.Join(err, claimed.clear(tmp, marker))
 	}
 
-	// Replace the bolt file and drop its lock files.
+	// Replace the bolt file, drop the claim, and drop its lock files. A
+	// crash before the claim is gone leaves a marker beside an s4db file,
+	// which no later bolt conversion reads.
 	if err := src.Close(); err != nil {
 		return err
 	}
 	if err := os.Rename(tmp, path); err != nil {
 		return err
 	}
-	if err := syncDir(filepath.Dir(path)); err != nil {
+	if err := completeInstall(filepath.Dir(path), marker, markerInfo); err != nil {
 		return err
 	}
 	le.WithField("elapsed", time.Since(start)).Info("converted bolt volume to s4db")

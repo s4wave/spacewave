@@ -129,6 +129,61 @@ func appendDigest(marker string, d digest) error {
 	return errors.Join(err, f.Sync(), f.Close())
 }
 
+// claimFiles are the conversion files beside a Volume file that a claim of
+// one source accounts for, each nil when absent.
+type claimFiles struct {
+	// claim is the parsed claim when the marker holds one.
+	claim convertClaim
+	// marker describes the marker file.
+	marker os.FileInfo
+	// tmp describes the new file the claim accounts for.
+	tmp os.FileInfo
+}
+
+// inspectClaim describes the conversion files tmp and marker beside the
+// source file whose identity is id. It refuses with a permanent error a file
+// that no claim of id accounts for: a tmp file without a marker, or a marker
+// that is not a claim of id. An empty marker alone is a claim a crash cut
+// short before tmp existed.
+func inspectClaim(id, tmp, marker string) (claimFiles, error) {
+	// Read the claim and describe the new file.
+	state, c, markerInfo, err := readClaim(marker)
+	if err != nil {
+		return claimFiles{}, err
+	}
+	tmpInfo, err := os.Lstat(tmp)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return claimFiles{}, err
+	}
+
+	// Accept only files a claim of id accounts for.
+	switch {
+	case state == claimAbsent && tmpInfo == nil:
+		return claimFiles{}, nil
+	case state == claimAbsent:
+		return claimFiles{}, foreignFile(tmp)
+	case state == claimTorn && tmpInfo == nil:
+		return claimFiles{marker: markerInfo}, nil
+	case state != claimHeld || c.src != id:
+		return claimFiles{}, foreignFile(marker)
+	}
+	return claimFiles{claim: c, marker: markerInfo, tmp: tmpInfo}, nil
+}
+
+// clear removes the claimed files, the new file before the claim, each only
+// while it is still the file inspectClaim described.
+func (f claimFiles) clear(tmp, marker string) error {
+	if f.tmp != nil {
+		if err := removeSame(tmp, f.tmp); err != nil {
+			return err
+		}
+	}
+	if f.marker != nil {
+		return removeSame(marker, f.marker)
+	}
+	return nil
+}
+
 // removeSame removes name only when it still is the file fi describes, so a
 // file someone put in its place is kept. A missing name is not an error.
 func removeSame(name string, fi os.FileInfo) error {
