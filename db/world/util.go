@@ -12,7 +12,8 @@ import (
 // ExecTransaction runs cb in a transaction and commits it when write is set
 // and cb succeeds. When another writer moves the World head or the storage
 // snapshot becomes invalid, it replays cb in a fresh transaction, up to
-// maxEngineWorldStateTries more times. cb must be safe to replay: it must
+// maxEngineWorldStateTries more times, after the base's decision when cb
+// changed nothing on an undecided base. cb must be safe to replay: it must
 // create or reset its per-attempt state and perform no external effects.
 // Every attempt of a write spends one WriteBudget.
 func ExecTransaction(
@@ -29,7 +30,7 @@ func ExecTransaction(
 			return err
 		}
 		var retry bool
-		if retry, err = replayWorldOp(budget, execTransactionOnce(ctx, eng, write, cb)); !retry {
+		if retry, err = replayWorldOp(ctx, budget, execTransactionOnce(ctx, eng, write, cb)); !retry {
 			return err
 		}
 	}

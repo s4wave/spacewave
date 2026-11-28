@@ -332,13 +332,24 @@ func retryWorldOp(err error) bool {
 
 // replayWorldOp reports whether a failed attempt of a World operation replays:
 // retryWorldOp permits it and no plugin call spent the operation's budget. It
-// returns the error the operation ends with when it does not.
-func replayWorldOp(budget *WriteBudget, err error) (bool, error) {
+// returns the error the operation ends with when it does not. An attempt that
+// changed nothing on an undecided base waits for that base's decision first,
+// since a replay before it meets the same base.
+func replayWorldOp(ctx context.Context, budget *WriteBudget, err error) (bool, error) {
+	// Refuse a replay the failure or the spent budget does not permit.
 	if !retryWorldOp(err) {
 		return false, err
 	}
 	if budget.Spent() {
 		return false, &WriteBudgetSpentError{Length: budget.GetLength(), Err: err}
+	}
+
+	// Wait for an undecided base's decision before the replay meets it again.
+	var provisional *ProvisionalBaseError
+	if errors.As(err, &provisional) {
+		if werr := provisional.Wait(ctx); werr != nil {
+			return false, werr
+		}
 	}
 	return true, err
 }
@@ -392,7 +403,7 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 			return err
 		}
 		var retry bool
-		if retry, err = replayWorldOp(budget, e.performOpOnce(ctx, write, cb)); !retry {
+		if retry, err = replayWorldOp(ctx, budget, e.performOpOnce(ctx, write, cb)); !retry {
 			return err
 		}
 	}

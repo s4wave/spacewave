@@ -105,5 +105,10 @@ func (t *localTurn) published(ctx context.Context, head world.Head) {
 	}
 }
 
+// WaitBase returns at once: the base a lease reads is durable.
+func (t *localTurn) WaitBase(context.Context) error {
+	return nil
+}
+
 // _ is a type assertion
 var _ world.Turn = (*localTurn)(nil)

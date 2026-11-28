@@ -95,5 +95,10 @@ func (e *Engine) openCallerStage(ctx context.Context) (block.StoreOps, error) {
 // Release does nothing: the turn holds nothing beyond the engine's writer slot.
 func (t *callerTurn) Release() {}
 
+// WaitBase returns at once: the published head is durable.
+func (t *callerTurn) WaitBase(context.Context) error {
+	return nil
+}
+
 // _ is a type assertion
 var _ world.Turn = (*callerTurn)(nil)

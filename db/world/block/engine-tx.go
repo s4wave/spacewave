@@ -256,7 +256,8 @@ func (e *EngineTx) publishCallerHead(
 }
 
 // ProvisionalNoopGuardEnv set to "off" restores success for unchanged writes
-// built on provisional heads. With the guard on, those writes must retry.
+// built on provisional heads. With the guard on, those writes return a
+// world.ProvisionalBaseError, and retry once their base is decided.
 const ProvisionalNoopGuardEnv = "SPACEWAVE_WORLD_PROVISIONAL_NOOP_GUARD"
 
 // admit seals the transaction's blocks under its new root and proposes them
@@ -285,7 +286,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 			// A zero turn base is an empty World, not a pending candidate.
 			turnBase := turn.Base()
 			if !turnBase.Durable && !turnBase.Root.GetEmpty() && os.Getenv(ProvisionalNoopGuardEnv) != "off" {
-				return nil, nil, nil, nil, nil, errors.Wrap(world.ErrSuperseded, "unchanged write on provisional World head")
+				return nil, nil, nil, nil, nil, &world.ProvisionalBaseError{Wait: turn.WaitBase}
 			}
 		}
 		return e.baseHeadRef.Clone(), nil, nil, nil, nil, nil

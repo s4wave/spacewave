@@ -71,8 +71,12 @@ func (a *pipeAuthority) Begin(ctx context.Context) (world.Turn, error) {
 	}
 	a.mtx.Lock()
 	base := a.writer
+	var after *pipeAdmission
+	if !base.Durable && len(a.admitted) != 0 {
+		after = a.admitted[len(a.admitted)-1]
+	}
 	a.mtx.Unlock()
-	return &pipeTurn{a: a, base: base, release: release}, nil
+	return &pipeTurn{a: a, base: base, after: after, release: release}, nil
 }
 
 // waitAdmitted waits until n candidates were admitted and returns the nth
@@ -130,7 +134,15 @@ func (a *pipeAuthority) refuse(t *testing.T, n int) {
 	}
 	a.mtx.Unlock()
 
-	// Return the unchanged head to the superseded writer.
+	// Release the refused candidate's pending root, so a later candidate at
+	// its seqno can take the name, then return the unchanged head to the
+	// superseded writer.
+	err := a.store.SetRoots(t.Context(), nil, []block.NamedRoot{
+		{Name: pendingRootName(adm.candidate.Seqno), Previous: adm.candidate.Root},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	adm.resolve(head, world.Superseded)
 }
 
@@ -156,6 +168,8 @@ type pipeTurn struct {
 	a *pipeAuthority
 	// base is the writer head when the turn began.
 	base world.Head
+	// after is the undecided admission whose candidate base is, or nil.
+	after *pipeAdmission
 	// release ends the turn.
 	release func()
 }
@@ -187,6 +201,19 @@ func (t *pipeTurn) Admit(ctx context.Context, candidate world.Candidate) (world.
 // Release ends the turn.
 func (t *pipeTurn) Release() {
 	t.release()
+}
+
+// WaitBase waits until the test decides the admission base is the candidate of.
+func (t *pipeTurn) WaitBase(ctx context.Context) error {
+	if t.after == nil {
+		return nil
+	}
+	select {
+	case <-t.after.decided:
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
 }
 
 // pipeAdmission is a candidate the test decides.

@@ -737,6 +737,24 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 				}
 				bErr := b.Commit(ctx)
 
+				// C runs the same deletion through ExecTransaction, which
+				// waits for A's decision instead of spending its retries on
+				// A's root, where each attempt would change nothing again.
+				var cDone chan error
+				if mode != "off" {
+					cDone = make(chan error, 1)
+					go func() {
+						cDone <- world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+							return ws.DeleteGraphQuad(ctx, q)
+						})
+					}()
+					select {
+					case err := <-cDone:
+						t.Fatalf("C returned %v before A was decided, want a wait", err)
+					case <-time.After(50 * time.Millisecond):
+					}
+				}
+
 				// Refuse A and verify the edge survived in a fresh read snapshot.
 				pipe.refuse(t, 1)
 				if err := <-done; !world.IsSuperseded(err) {
@@ -759,6 +777,19 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 					}
 				} else if !world.IsSuperseded(bErr) {
 					t.Fatalf("B returned %v although the durable edge remains, want superseded", bErr)
+				}
+
+				// C ran again on the decided head and deleted the edge.
+				if cDone != nil {
+					select {
+					case err := <-cDone:
+						t.Fatalf("C returned %v before its deletion was admitted", err)
+					case <-time.After(100 * time.Millisecond):
+					}
+					pipe.decide(t, 2, nil, 0)
+					if err := <-cDone; err != nil {
+						t.Fatalf("C returned %v after A was refused, want its deletion", err)
+					}
 				}
 			})
 		}

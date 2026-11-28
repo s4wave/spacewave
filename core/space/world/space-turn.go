@@ -93,5 +93,20 @@ func (t *spaceTurn) Release() {
 	t.release()
 }
 
+// WaitBase waits until replay decides the pending admission the base is the
+// candidate of. It returns at once when the base is the installed head.
+func (t *spaceTurn) WaitBase(ctx context.Context) error {
+	if t.after == nil {
+		return nil
+	}
+
+	// Any outcome decides the base, a failed queue's included. Only the end
+	// of ctx leaves it undecided.
+	if _, err := t.after.WaitDecided(ctx); err != nil && ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
 var _ world.Turn = (*spaceTurn)(nil)

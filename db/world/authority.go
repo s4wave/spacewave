@@ -21,6 +21,10 @@ type Turn interface {
 	// Release ends the turn.
 	// An Admission returned by Admit outlives it.
 	Release()
+	// WaitBase waits until the Authority decides the candidate Base holds,
+	// and returns at once when Base is durable. It may be called after
+	// Release, and returns only ctx's error.
+	WaitBase(ctx context.Context) error
 }
 
 // Authority decides which candidate becomes a World's head and when a head is
