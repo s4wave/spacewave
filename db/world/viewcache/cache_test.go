@@ -12,9 +12,13 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/db/world/viewstream"
 	world_testbed "github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
 )
 
 type testStore struct{ engine world.Engine }
@@ -1250,10 +1254,37 @@ func TestRevisionCacheBehindRecursive(t *testing.T) {
 // reads the summary itself. Changes to other players' entries rerun only the
 // second. A change to the player's entry reruns both, with the same answer.
 func TestViewWaitsOnFacetedValue(t *testing.T) {
-	// Start a World and a cache the change watch feeds, as a server runs it.
-	_, engine := readsStore(t)
+	// Start storage for a World whose caller publishes exact change summaries.
+	// An Authority may publish before admission confirms a summary, requiring
+	// Unknown coverage that correctly retires every cached value.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
+	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	// Create the recorded World root and retain its cursor through engine close.
+	base, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(base.Release)
+	btx, bcs := base.BuildTransaction(nil)
+	bcs.SetBlock(world_block.NewWorld(world_block.NewestWorldFormat, false), true)
+	root, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.SetRootRef(root)
+
+	// Publish directly so facet filtering is tested with exact transition data.
+	engine, err := world_block.NewEngine(ctx, tb.Logger, base, world_mock.LookupMockOp, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close() })
 	cache := &Cache{engine: engine}
 	after, err := engine.GetSeqno(ctx)
 	if err != nil {
