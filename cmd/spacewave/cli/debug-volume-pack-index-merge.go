@@ -16,6 +16,8 @@ import (
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/s4wave/spacewave/db/volume/packmove"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/sirupsen/logrus"
 )
 
 // newDebugVolumePackIndexMergeCommand builds the command that copies the pack
@@ -51,7 +53,7 @@ func mergePackIndex(ctx context.Context, from, into, worldStore string, w io.Wri
 		return err
 	}
 	defer src.Close()
-	dst, err := s4db.Open(into, s4db.Options{})
+	dst, err := volume_s4db.Open(ctx, logrus.NewEntry(logrus.New()), into, s4db.Options{})
 	if err != nil {
 		return err
 	}

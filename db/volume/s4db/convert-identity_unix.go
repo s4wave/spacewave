@@ -18,3 +18,12 @@ func fileIdentity(fi os.FileInfo) (string, error) {
 	}
 	return strconv.FormatUint(uint64(st.Dev), 10) + ":" + strconv.FormatUint(st.Ino, 10), nil //nolint:unconvert,gosec // Dev is int32 on darwin and uint64 on linux.
 }
+
+// linkCount returns the number of names the file fi describes has.
+func linkCount(fi os.FileInfo) (uint64, error) {
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, errors.New("file link count is not available")
+	}
+	return uint64(st.Nlink), nil //nolint:unconvert // Nlink is uint16 on darwin and uint64 on linux.
+}

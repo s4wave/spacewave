@@ -44,6 +44,12 @@ var ErrMigrateShared = errors.New("volume format migration waits for other proce
 // instead.
 var ErrConvertUnsupported = errors.New("automatic volume format conversion is not supported on Windows")
 
+// ErrConvertLinked is returned when a bolt Volume file has another hard link.
+// Replacing one name would leave the other naming the bolt file, where a
+// writer's commits would miss the converted Volume. Remove the other link,
+// or copy the stopped volume with spacewave debug volume-copy.
+var ErrConvertLinked = errors.New("bolt volume file has another hard link")
+
 // Volume is the s4db volume.
 type Volume = volume_kvtx.Volume
 

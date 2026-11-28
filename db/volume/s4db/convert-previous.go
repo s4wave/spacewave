@@ -55,17 +55,45 @@ func OpenWait(ctx context.Context, le *logrus.Entry, path string, opts s4db.Opti
 
 // openDatabase opens or converts the file with the caller's writer wait policy.
 func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options, wait bool) (*s4db.DB, error) {
-	// Retain the wait policy when conversion needs to reopen the file.
+	// Follow a symbolic link at path, so a conversion replaces its target
+	// and the directory synced below is the one holding the file.
+	path, err := resolvePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sync the directory after a writable open binds its file and before
+	// the file takes a write: a bolt conversion's rename, made by this
+	// process or another, may not be durable yet and keeps no claim that
+	// says so, and until it is a crash brings the bolt file back. A sync
+	// before the open would miss a rename between the two.
 	open := func() (*s4db.DB, error) {
+		// Bind the file with the caller's writer wait policy.
+		openFile := s4db.Open
 		if wait {
-			return s4db.OpenWait(ctx, path, opts)
+			openFile = func(path string, opts s4db.Options) (*s4db.DB, error) {
+				return s4db.OpenWait(ctx, path, opts)
+			}
 		}
-		return s4db.Open(path, opts)
+		db, err := openFile(path, opts)
+		if err != nil || opts.ReadOnly || runtime.GOOS == "windows" {
+			return db, err
+		}
+
+		// Make the name that bound it durable, resolving path again: the
+		// open created the target of a symbolic link that named no file.
+		bound, err := resolvePath(path)
+		if err == nil {
+			err = syncDir(filepath.Dir(bound))
+		}
+		if err != nil {
+			return nil, errors.Join(err, db.Close())
+		}
+		return db, nil
 	}
 
 	// Finish an installation whose directory sync failed before the file
-	// takes a write: until the replace is durable a crash brings the
-	// previous file back.
+	// takes a write.
 	if !opts.ReadOnly {
 		if err := finishInstalled(path); err != nil {
 			return nil, err
@@ -89,6 +117,16 @@ func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.
 		return nil, err
 	}
 	return open()
+}
+
+// resolvePath follows the symbolic links of path, returning path itself when
+// it names no file yet.
+func resolvePath(path string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return path, nil
+	}
+	return resolved, err
 }
 
 // fenceSet holds the fenced previous files of a process's conversions, as

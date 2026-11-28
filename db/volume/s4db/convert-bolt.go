@@ -57,6 +57,8 @@ const convertChunk = 4 << 20
 //
 // The copy goes to a sibling file renamed over path once verified, so a
 // crash leaves the bolt file in place for the next open to convert again.
+// A symbolic link at path is followed, so the rename replaces the file a
+// writer opening its target sees.
 func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	// Read the magic number.
 	isBolt, err := isBoltFile(path)
@@ -66,11 +68,17 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	if runtime.GOOS == "windows" {
 		return volume.Permanent(ErrConvertUnsupported)
 	}
+	path, err = resolvePath(path)
+	if err != nil {
+		return err
+	}
 
-	// Lock the bolt file against other converters. A converter that opens
-	// the path after another replaced it, or waited for the lock while it
-	// did, leaves the path alone.
-	src, err := bdb.Open(path, 0o600, &bdb.Options{Exclusive: true})
+	// Lock the bolt file against other converters and every bolt opener.
+	// Open it read-only, so a refused conversion leaves its bytes as they
+	// were: a writable open rewrites a freelist format it does not read. A
+	// converter that opens the path after another replaced it, or waited
+	// for the lock while it did, leaves the path alone.
+	src, err := bdb.Open(path, 0o600, &bdb.Options{Exclusive: true, ReadOnly: true})
 	if errors.Is(err, bdb_errors.ErrInvalid) {
 		return removeBoltLocks(path)
 	}
@@ -94,6 +102,15 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	id, err := fileIdentity(fi)
 	if err != nil {
 		return err
+	}
+
+	// Refuse a bolt file with another name, which the rename cannot replace.
+	links, err := linkCount(fi)
+	if err != nil {
+		return err
+	}
+	if links != 1 {
+		return volume.Permanent(ErrConvertLinked)
 	}
 
 	// Clear an earlier attempt this file's claim accounts for.
@@ -141,22 +158,42 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	if err := errors.Join(err, dst.Close()); err != nil {
 		return errors.Join(err, claimed.clear(tmp, marker))
 	}
+	boltStep("copied")
 
-	// Replace the bolt file, drop the claim, and drop its lock files. A
-	// crash before the claim is gone leaves a marker beside an s4db file,
-	// which no later bolt conversion reads.
-	if err := src.Close(); err != nil {
-		return err
-	}
+	// Replace the bolt file and drop the claim while the bolt file stays
+	// locked, then unlock it and drop its lock files. A crash before the
+	// claim is gone leaves a marker beside an s4db file, which no later bolt
+	// conversion reads.
+	//
+	// Invariant: a commit to the bolt file is either inside the copy, or the
+	// bolt file stays untouched at path. The exclusive lock admits no bolt
+	// writer from the copy until the rename is durable, and a bolt opener
+	// waiting on that lock sees the rename once it gets the lock, opens path
+	// again and refuses the s4db file there. Unlocking before the rename
+	// would let a waiter commit to the bolt file that the rename then
+	// discards. A bolt opener built before bbolt checked for a replaced file
+	// keeps its old descriptor instead, and its commits after the unlock go
+	// to the replaced file.
 	if err := os.Rename(tmp, path); err != nil {
 		return err
 	}
+	boltStep("renamed")
 	if err := completeInstall(filepath.Dir(path), marker, markerInfo); err != nil {
 		return err
 	}
+	boltStep("installed")
+	if err := src.Close(); err != nil {
+		return err
+	}
+	boltStep("unlocked")
 	le.WithField("elapsed", time.Since(start)).Info("converted bolt volume to s4db")
 	return removeBoltLocks(path)
 }
+
+// boltStep is called with the name of each convertBolt step as it
+// completes: copied, renamed, installed and unlocked. Tests replace it to race another
+// opener with a step or to stop the process there.
+var boltStep = func(string) {}
 
 // removeBoltLocks removes the lock files bbolt keeps beside path.
 func removeBoltLocks(path string) error {

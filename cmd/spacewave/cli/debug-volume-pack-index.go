@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/s4db"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,7 +58,7 @@ func newDebugVolumePackIndexCommand() *cli.Command {
 // backend must not have open. It resumes from what the file holds.
 func buildPackIndex(ctx context.Context, path string, args *packIndexArgs, w io.Writer) error {
 	// Open the stopped volume file and the store over it.
-	vol, err := s4db.Open(path, s4db.Options{})
+	vol, err := volume_s4db.Open(ctx, logrus.NewEntry(logrus.New()), path, s4db.Options{})
 	if err != nil {
 		return err
 	}
