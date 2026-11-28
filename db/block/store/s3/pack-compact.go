@@ -206,8 +206,8 @@ func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry)
 }
 
 // writeValues writes the block values of keys, in order, as one packfile. For
-// duplicate keys it keeps the strongest refs source, preferring later copies
-// on a tie, with the decoded batch last. Each encoded candidate is decoded once.
+// duplicate keys it keeps the strongest refs source, as preferBlock chooses,
+// with the decoded batch last. Each encoded candidate is decoded once.
 // Returns nil when keys is empty.
 func (s *PackStore) writeValues(ctx context.Context, keys []string, values []map[string][]byte, batch map[string]*block.StoredBlock) (*packfile.PackfileEntry, error) {
 	i := 0
@@ -248,12 +248,46 @@ func (s *PackStore) writeValues(ctx context.Context, keys []string, values []map
 
 // preferBlock keeps the copy with asserted refs over listed refs over unknown
 // refs, choosing the candidate on a tie. Pack reads and pack batches only list
-// refs, and writing a pack never persists an assertion.
+// refs, and writing a pack never persists an assertion. Two listed copies
+// keep the union of their refs: a listed list may lack a child, so a later
+// copy is no more complete than an earlier one, and a merge that kept either
+// alone could delete the only copy naming a child. A union only names a child
+// some copy named, which keeps that child longer.
 func preferBlock(current, candidate *block.StoredBlock) *block.StoredBlock {
-	if candidate == nil || current != nil && current.RefsSource > candidate.RefsSource {
+	switch {
+	case candidate == nil || current != nil && current.RefsSource > candidate.RefsSource:
 		return current
+	case current == nil || current.RefsSource != block.RefsListed || candidate.RefsSource != block.RefsListed:
+		return candidate
 	}
-	return candidate
+	return &block.StoredBlock{
+		Data:       candidate.Data,
+		Refs:       unionRefs(current.Refs, candidate.Refs),
+		RefsSource: block.RefsListed,
+	}
+}
+
+// unionRefs returns the refs of a followed by those of b that a lacks.
+// It returns a when b adds none.
+func unionRefs(a, b []*block.BlockRef) []*block.BlockRef {
+	// Note the refs of a, then append each new ref of b to a clipped copy.
+	seen := make(map[string]struct{}, len(a))
+	for _, ref := range a {
+		seen[ref.MarshalString()] = struct{}{}
+	}
+	out := a
+	for _, ref := range b {
+		key := ref.MarshalString()
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		if len(out) == len(a) {
+			out = slices.Clip(a)
+		}
+		out = append(out, ref)
+	}
+	return out
 }
 
 // replace publishes output, which may be nil, then deletes the entries of

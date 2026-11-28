@@ -66,11 +66,27 @@ func TestPackStoreCompacts(t *testing.T) {
 		checkBlocks(t, store, "block", refs)
 	}
 
-	// A duplicate with unknown refs cannot erase a recorded list in either
-	// input order, and the merged pack still holds exactly one copy.
-	for _, knownFirst := range []bool{true, false} {
-		t.Run("duplicate-refs/known-first="+strconv.FormatBool(knownFirst), func(t *testing.T) {
-			// Write two one-block packs with identical bytes and different refs sources.
+	// A duplicate with unknown refs cannot erase a recorded list, and two
+	// listed copies keep the union of their lists, in either input order, so
+	// a merge that ranks an old short copy later keeps the child a corrected
+	// copy names. The merged pack still holds exactly one copy.
+	type copyRefs struct {
+		known    bool
+		children []int
+	}
+	cases := []struct {
+		name   string
+		copies [2]copyRefs
+		want   []int
+	}{
+		{"known-first", [2]copyRefs{{true, []int{0}}, {false, nil}}, []int{0}},
+		{"known-last", [2]copyRefs{{false, nil}, {true, []int{0}}}, []int{0}},
+		{"short-last", [2]copyRefs{{true, []int{0, 1}}, {true, []int{0}}}, []int{0, 1}},
+		{"lists-differ", [2]copyRefs{{true, []int{1}}, {true, []int{0}}}, []int{1, 0}},
+	}
+	for _, tc := range cases {
+		t.Run("duplicate-refs/"+tc.name, func(t *testing.T) {
+			// Write two one-block packs with identical bytes and the case's refs.
 			ctx := t.Context()
 			_, client := newFakeBucket(t, nil)
 			store := newTestPackStore(t, client)
@@ -79,15 +95,19 @@ func TestPackStoreCompacts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			child, err := block.BuildBlockRef([]byte("child"), nil)
-			if err != nil {
-				t.Fatal(err)
+			var children []*block.BlockRef
+			for _, name := range []string{"child", "other"} {
+				child, err := block.BuildBlockRef([]byte(name), nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				children = append(children, child)
 			}
 			var inputs []*packfile.PackfileEntry
-			for _, known := range []bool{knownFirst, !knownFirst} {
-				stored := &block.StoredBlock{Data: data, RefsSource: block.AssertedIf(known)}
-				if known {
-					stored.Refs = []*block.BlockRef{child}
+			for _, c := range tc.copies {
+				stored := &block.StoredBlock{Data: data, RefsSource: block.AssertedIf(c.known)}
+				for _, i := range c.children {
+					stored.Refs = append(stored.Refs, children[i])
 				}
 				entry, err := store.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
 					if stored == nil {
@@ -110,8 +130,13 @@ func TestPackStoreCompacts(t *testing.T) {
 			fresh := newTestPackStore(t, client)
 			stored, err := fresh.GetStoredBlock(ctx, ref)
 			if err != nil || stored == nil || !bytes.Equal(stored.Data, data) ||
-				stored.RefsSource != block.RefsListed || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
-				t.Fatalf("merged block = %v, %v; want its bytes and listed child", stored, err)
+				stored.RefsSource != block.RefsListed || len(stored.Refs) != len(tc.want) {
+				t.Fatalf("merged block = %v, %v; want its bytes and %d listed children", stored, err, len(tc.want))
+			}
+			for i, want := range tc.want {
+				if !stored.Refs[i].EqualsRef(children[want]) {
+					t.Fatalf("merged child %d = %s; want %s", i, stored.Refs[i].MarshalString(), children[want].MarshalString())
+				}
 			}
 
 			// Count the actual surviving blocks, catching both loss and invention.
