@@ -1,4 +1,4 @@
-//go:build !js && !wasip1
+//go:build !windows && !js && !wasip1
 
 package volume_s4db
 
@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/s4db"
+	"github.com/s4wave/spacewave/db/s4db/filelock"
 	"github.com/s4wave/spacewave/db/s4db/s4dbv1"
 	"github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
@@ -29,6 +30,11 @@ const previousFixtures = "../../s4db/s4dbv1/testdata"
 // previousHolderEnv selects the previous-format file a test process holds
 // open until its standard input closes.
 const previousHolderEnv = "SPACEWAVE_S4DBV1_HOLDER"
+
+// previousOpenerEnv selects the previous-format file a test process opens
+// as the previous engine does, waiting for a line on standard input between
+// opening the file and taking its locks.
+const previousOpenerEnv = "SPACEWAVE_S4DBV1_OPENER"
 
 // previousRow is one expected pair: its key, length and value hash.
 type previousRow struct {
@@ -128,6 +134,29 @@ func checkConverted(t *testing.T, path string, want []previousRow) {
 	}
 }
 
+// convertClosed converts path and closes the fence, which a test needs
+// before it opens the backup in this process.
+func convertClosed(ctx context.Context, le *logrus.Entry, path string) error {
+	fence, err := convertPrevious(ctx, le, path)
+	if fence != nil {
+		err = errors.Join(err, fence.Close())
+	}
+	return err
+}
+
+// sourceID returns the identity a claim records for src.
+func sourceID(t *testing.T, src *s4dbv1.Reader) string {
+	fi, err := src.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := fileIdentity(fi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
 // verifiedButNotInstalled runs the conversion through the marker and stops
 // before the install, as a crash there would, returning the new file's
 // details.
@@ -139,7 +168,7 @@ func verifiedButNotInstalled(t *testing.T, path string) os.FileInfo {
 		t.Fatal(err)
 	}
 	defer src.Close()
-	if _, err := buildConverted(ctx, src, path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
+	if _, err := buildConverted(ctx, src, sourceID(t, src), path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -163,6 +192,10 @@ func TestConvertPrevious(t *testing.T) {
 		holdPrevious(t, path)
 		return
 	}
+	if path := os.Getenv(previousOpenerEnv); path != "" {
+		openAsPrevious(t, path)
+		return
+	}
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	want := expectedRows(t)
@@ -171,23 +204,57 @@ func TestConvertPrevious(t *testing.T) {
 	t.Run("fresh", func(t *testing.T) {
 		// Convert twice.
 		path := previousVolume(t, "mixed.s4db")
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	// A stale unverified file from a crash before the marker is replaced.
-	t.Run("stale converting", func(t *testing.T) {
-		// Leave a torn new file, then convert.
+	// A file of a conversion's names that no claim accounts for is refused
+	// and kept, and so is a marker that is not a claim of this source.
+	t.Run("unowned files", func(t *testing.T) {
+		for _, name := range []string{convertingSuffix, convertedMarkerSuffix} {
+			// Leave a file the conversion did not write, then convert.
+			path := previousVolume(t, "mixed.s4db")
+			if err := os.WriteFile(path+name, []byte("someone else's"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := convertClosed(ctx, le, path); err == nil {
+				t.Fatalf("%s: converted beside an unowned file", name)
+			}
+
+			// The file and the source are as they were.
+			if b, err := os.ReadFile(path + name); err != nil || string(b) != "someone else's" {
+				t.Fatalf("%s: %q, %v", name, b, err)
+			}
+			r, err := s4dbv1.Open(path)
+			if err != nil {
+				t.Fatalf("%s: source: %v", name, err)
+			}
+			r.Close()
+		}
+	})
+
+	// A claimed build a crash cut short is replaced.
+	t.Run("claimed torn converting", func(t *testing.T) {
+		// Claim the files and leave a torn new file, then convert.
 		path := previousVolume(t, "mixed.s4db")
+		src, err := s4dbv1.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := sourceID(t, src)
+		src.Close()
+		if err := writeClaim(path+convertedMarkerSuffix, id); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(path+convertingSuffix, []byte("torn"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
@@ -200,7 +267,7 @@ func TestConvertPrevious(t *testing.T) {
 		path := previousVolume(t, "mixed.s4db")
 		verifiedButNotInstalled(t, path)
 		logger, hook := logtest.NewNullLogger()
-		if err := convertPrevious(ctx, logrus.NewEntry(logger), path); err != nil {
+		if err := convertClosed(ctx, logrus.NewEntry(logger), path); err != nil {
 			t.Fatal(err)
 		}
 		for _, e := range hook.AllEntries() {
@@ -226,7 +293,7 @@ func TestConvertPrevious(t *testing.T) {
 		}
 
 		// Resume must rebuild from the current source, preserving it as backup.
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, nil)
@@ -256,13 +323,13 @@ func TestConvertPrevious(t *testing.T) {
 		}
 
 		// Reverify every pair rather than trusting the marker's count.
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
 	})
 
-	// Windows must permit the rename while the source lock is still held.
+	// The rename happens while the source lock is still held.
 	t.Run("install with source locked", func(t *testing.T) {
 		// Build and install without closing the old-format reader.
 		path := previousVolume(t, "mixed.s4db")
@@ -274,11 +341,11 @@ func TestConvertPrevious(t *testing.T) {
 		if _, err := isBoltFile(path); !errors.Is(err, s4db.ErrOpenInProcess) {
 			t.Fatalf("format probe passed source ownership: %v", err)
 		}
-		if _, err := buildConverted(ctx, src, path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
+		if _, err := buildConverted(ctx, src, sourceID(t, src), path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := installConverted(path); err != nil {
-			t.Fatal(err)
+		if replaced, err := installConverted(path); err != nil || !replaced {
+			t.Fatalf("install: replaced %v: %v", replaced, err)
 		}
 
 		// The retained handle still reads the complete original inode.
@@ -303,7 +370,7 @@ func TestConvertPrevious(t *testing.T) {
 		if err := os.Link(path, path+preRewriteSuffix); err != nil {
 			t.Fatal(err)
 		}
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
@@ -317,10 +384,94 @@ func TestConvertPrevious(t *testing.T) {
 		if err := os.Truncate(path+convertingSuffix, built.Size()/2); err != nil {
 			t.Fatal(err)
 		}
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
+	})
+
+	// A previous-engine process that opened the file before the replace and
+	// takes its locks after it is refused before it writes the backup.
+	t.Run("previous opener", func(t *testing.T) {
+		// Open the file as the previous engine, then convert.
+		path := previousVolume(t, "mixed.s4db")
+		admit, result := startPreviousOpener(t, path)
+		fence, err := convertPrevious(ctx, le, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fence == nil {
+			t.Fatal("conversion returned no fence")
+		}
+		defer fence.Close()
+
+		// Let it take its locks on the file it opened, now the backup.
+		admit()
+		if got := result(); got != "slots full" {
+			t.Fatalf("previous opener of the backup: %s", got)
+		}
+		if err := fence.Close(); err != nil {
+			t.Fatal(err)
+		}
+		checkConverted(t, path, want)
+	})
+
+	// A failed directory sync before the replace leaves the source in place,
+	// and one after it fails the open until a later open syncs again.
+	t.Run("directory sync fails", func(t *testing.T) {
+		for _, after := range []bool{false, true} {
+			// Fail the sync after the link, or after the rename.
+			path := previousVolume(t, "mixed.s4db")
+			orig, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			syncDir = func(dir string) error {
+				cur, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				_, linkErr := os.Stat(path + preRewriteSuffix)
+				if linkErr == nil && os.SameFile(cur, orig) != after {
+					return errors.New("injected directory sync failure")
+				}
+				return syncDirectory(dir)
+			}
+			err = convertClosed(ctx, le, path)
+			syncDir = syncDirectory
+			if err == nil {
+				t.Fatalf("after %v: conversion passed a failed sync", after)
+			}
+
+			// After the rename the claim stays for the next open.
+			_, markerErr := os.Stat(path + convertedMarkerSuffix)
+			if after && markerErr != nil {
+				t.Fatalf("claim dropped before the rename was durable: %v", markerErr)
+			}
+
+			// The next open syncs before it opens the file.
+			synced := 0
+			syncDir = func(dir string) error {
+				synced++
+				return syncDirectory(dir)
+			}
+			db, err := Open(ctx, le, path, s4db.Options{})
+			syncDir = syncDirectory
+			if err != nil {
+				t.Fatalf("after %v: reopen: %v", after, err)
+			}
+			if synced == 0 {
+				t.Fatalf("after %v: reopen did not sync the directory", after)
+			}
+			if err := db.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if !after {
+				// The reopen converted again and holds a fence.
+				continue
+			}
+			checkConverted(t, path, want)
+		}
 	})
 
 	// A file another process holds is refused.
@@ -328,11 +479,11 @@ func TestConvertPrevious(t *testing.T) {
 		// Convert while another process holds the file, then once it closes.
 		path := previousVolume(t, "mixed.s4db")
 		release := startPreviousHolder(t, path)
-		if err := convertPrevious(ctx, le, path); !errors.Is(err, ErrMigrateShared) {
+		if err := convertClosed(ctx, le, path); !errors.Is(err, ErrMigrateShared) {
 			t.Fatalf("in use: %v", err)
 		}
 		release()
-		if err := convertPrevious(ctx, le, path); err != nil {
+		if err := convertClosed(ctx, le, path); err != nil {
 			t.Fatal(err)
 		}
 		checkConverted(t, path, want)
@@ -404,6 +555,87 @@ func holdPrevious(t *testing.T, path string) {
 	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// openAsPrevious opens path as the previous engine opens a file, takes its
+// locks once standard input gives a line, and prints what the previous
+// engine would have done: "admitted" when it claims a reader slot, after
+// which it writes the file, or "slots full" when it fails before writing.
+func openAsPrevious(t *testing.T, path string) {
+	// Open the file, then wait for the parent.
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	fmt.Println("open")
+	if _, err := bufio.NewReader(os.Stdin).ReadString('\n'); err != nil {
+		t.Fatal(err)
+	}
+
+	// Take and drop the writer lock, waiting, then claim a free slot
+	// without waiting, at the previous engine's lock offsets.
+	const lockWriter, lockSlot, slots = 1 << 40, 1<<40 + 1, 128
+	if _, err := filelock.Lock(f, lockWriter, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := filelock.Unlock(f, lockWriter); err != nil {
+		t.Fatal(err)
+	}
+	for i := range slots {
+		ok, err := filelock.Lock(f, lockSlot+int64(i), false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			fmt.Println("admitted")
+			return
+		}
+	}
+	fmt.Println("slots full")
+}
+
+// startPreviousOpener starts a process that opens path as the previous
+// engine does and returns the function that lets it take its locks and the
+// function that returns what it printed then.
+func startPreviousOpener(t *testing.T, path string) (func(), func() string) {
+	// Connect the opener's input and output.
+	cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestConvertPrevious$", "-test.timeout=60s")
+	cmd.Env = append(os.Environ(), previousOpenerEnv+"="+path)
+	cmd.Stderr = os.Stderr
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Start it and wait until it has the file open.
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = cmd.Process.Kill(); _ = cmd.Wait() })
+	out := bufio.NewReader(stdout)
+	if _, err := out.ReadString('\n'); err != nil {
+		t.Fatal(err)
+	}
+
+	// Admit it, then read its outcome.
+	admit := func() {
+		if _, err := io.WriteString(stdin, "go\n"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	result := func() string {
+		line, err := out.ReadString('\n')
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.TrimSpace(line)
+	}
+	return admit, result
 }
 
 // startPreviousHolder starts a process holding path open through the

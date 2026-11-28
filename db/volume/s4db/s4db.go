@@ -37,6 +37,13 @@ var Version = controller.MustParseVersion("0.0.1")
 // while another process has it open.
 var ErrMigrateShared = errors.New("volume format migration waits for other processes to close the file")
 
+// ErrConvertUnsupported is returned on Windows when a Volume file needs a
+// format conversion. Windows cannot sync a directory, so the conversion
+// cannot prove its backup link and its rename durable before the new file
+// takes writes. Copy the stopped volume with spacewave debug volume-copy
+// instead.
+var ErrConvertUnsupported = errors.New("automatic volume format conversion is not supported on Windows")
+
 // Volume is the s4db volume.
 type Volume = volume_kvtx.Volume
 

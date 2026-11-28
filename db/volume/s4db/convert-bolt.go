@@ -19,6 +19,7 @@ import (
 	bdb_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 	"golang.org/x/sync/errgroup"
@@ -61,6 +62,9 @@ func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	isBolt, err := isBoltFile(path)
 	if err != nil || !isBolt {
 		return err
+	}
+	if runtime.GOOS == "windows" {
+		return volume.Permanent(ErrConvertUnsupported)
 	}
 
 	// Lock the bolt file against other converters. A converter that opens
@@ -445,12 +449,12 @@ func (d *digest) merge(o digest) {
 	}
 }
 
-// syncDir makes a rename in dir durable. Windows cannot sync a directory and
-// orders the rename itself.
-func syncDir(dir string) error {
-	if runtime.GOOS == "windows" {
-		return nil
-	}
+// syncDir is syncDirectory. Tests replace it to fail a directory sync.
+var syncDir = syncDirectory
+
+// syncDirectory makes a rename in dir durable. Windows cannot sync a
+// directory, so neither conversion runs there.
+func syncDirectory(dir string) error {
 	f, err := os.Open(dir)
 	if err != nil {
 		return err

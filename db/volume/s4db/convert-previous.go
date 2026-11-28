@@ -4,14 +4,14 @@ package volume_s4db
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/s4wave/spacewave/db/s4db"
@@ -62,6 +62,15 @@ func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.
 		}
 		return s4db.Open(path, opts)
 	}
+
+	// Finish an installation whose directory sync failed before the file
+	// takes a write: until the replace is durable a crash brings the
+	// previous file back.
+	if !opts.ReadOnly {
+		if err := finishInstalled(path); err != nil {
+			return nil, err
+		}
+	}
 	db, err := open()
 	if !errors.Is(err, s4db.ErrPreviousFormat) {
 		return db, err
@@ -71,44 +80,103 @@ func openDatabase(ctx context.Context, le *logrus.Entry, path string, opts s4db.
 	if opts.ReadOnly {
 		return nil, volume.Permanent(errors.Join(volume.ErrReadOnlyUpgrade, err))
 	}
-	if err := convertPrevious(ctx, le, path); err != nil {
+	if runtime.GOOS == "windows" {
+		return nil, volume.Permanent(errors.Join(ErrConvertUnsupported, err))
+	}
+	fence, err := convertPrevious(ctx, le, path)
+	processFences.hold(fence)
+	if err != nil {
 		return nil, err
 	}
 	return open()
+}
+
+// fenceSet holds the fenced previous files of a process's conversions, as
+// Reader.Fence describes, until the process exits. A previous-engine process
+// that opened a file before its conversion replaced the name could otherwise
+// write the backup after the fence closed.
+type fenceSet struct {
+	// mu guards held.
+	mu sync.Mutex
+	// held are the fences, never closed.
+	held []io.Closer
+}
+
+// processFences holds this process's fences.
+var processFences = &fenceSet{}
+
+// hold keeps fence until the process exits. A nil fence is ignored.
+func (s *fenceSet) hold(fence io.Closer) {
+	if fence == nil {
+		return
+	}
+	s.mu.Lock()
+	s.held = append(s.held, fence)
+	s.mu.Unlock()
 }
 
 // convertPrevious replaces the previous-format database at path with one in
 // the current format holding the same pairs, and keeps the previous file as
 // <path>.pre-rewrite, so going back is a rename and the previous binary.
 //
-// It holds the previous file's writer lock and a slot through installation,
-// so no process writes the previous file meanwhile. A file another process
-// has open fails with ErrMigrateShared. The new file is built as
-// <path>.converting, read back whole and compared with the stream before
-// <path>.converting.ok records its digest, then linked and renamed into
-// place. A crash before the marker leaves the previous file in place and a
-// stale file the next open removes. A crash after the marker leaves a copy
-// the next open checks against the current source. A crash between the link
-// and the rename leaves the previous file under both names, and the next open
-// keeps the link. At every point there is at least one complete copy of the
-// data. A file another process converted meanwhile is left for the caller to
-// reopen.
-func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr error) {
+// It holds the previous file's writer lock and a slot from the stream through
+// the replace, so no process writes the previous file meanwhile, and returns
+// the fenced previous file once the replace happened. The caller holds that
+// fence while a previous-engine process may still wait on the writer lock,
+// since the fence is what keeps such a process off the backup. A file
+// another process has open fails with ErrMigrateShared.
+//
+// The conversion's files keep these invariants:
+//
+//  1. Nothing is removed that a claim of this conversion does not account
+//     for: <path>.converting.ok claims the conversion's files before
+//     <path>.converting exists, a file of either name without that claim is
+//     refused, and each removal checks the file's identity first.
+//  2. The new file is installed only after every pair read back from it
+//     matches the digest of the locked source.
+//  3. At every point there is at least one complete copy of the data: the
+//     source stays at path until <path>.pre-rewrite names it durably.
+//  4. A write reaches the new file only after its rename is durable: a
+//     failed directory sync leaves the claim, and the next open syncs again
+//     before it opens the file.
+//  5. The backup holds exactly the pairs the new file started with: the
+//     fence refuses previous-engine processes that opened the source before
+//     the replace.
+//
+// A crash before the digest leaves the source in place with an unverified
+// claim the next open rebuilds. A crash after it leaves a copy the next open
+// checks against the current source. A crash between the link and the
+// rename leaves the source under both names, and the next open keeps the
+// link.
+func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (io.Closer, error) {
 	// Open the previous file, taking its locks for the build.
 	src, err := s4dbv1.OpenExclusive(path)
 	switch {
 	case errors.Is(err, s4dbv1.ErrUnsupported), errors.Is(err, s4dbv1.ErrNotDatabase):
-		return nil
+		return nil, nil
 	case errors.Is(err, s4dbv1.ErrInUse):
-		return ErrMigrateShared
+		return nil, ErrMigrateShared
 	case err != nil:
-		return err
+		return nil, err
 	}
 
-	// Keep the source locked through install: every acknowledged source
-	// write must precede the stream convertPrevious verifies, and the
-	// original remains in pre-rewrite.
-	defer func() { retErr = errors.Join(retErr, src.Close()) }()
+	// Convert, then fence the source once its name was replaced, else
+	// release it. A source that fails to fence keeps its writer lock.
+	replaced, err := convertSource(ctx, le, path, src)
+	if !replaced {
+		return nil, errors.Join(err, src.Close())
+	}
+	if ferr := src.Fence(); ferr != nil {
+		le.WithError(ferr).Warn("previous volume file keeps its writer lock until the process exits")
+	}
+	return src, err
+}
+
+// convertSource converts the previous file src, which OpenExclusive opened at
+// path, and reports whether it replaced the name path, after which src must
+// stay open as convertPrevious describes.
+func convertSource(ctx context.Context, le *logrus.Entry, path string, src *s4dbv1.Reader) (bool, error) {
+	// Log with the path and time the conversion.
 	le = le.WithField("path", path)
 	start := time.Now()
 
@@ -119,26 +187,37 @@ func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr
 		err = checkConvertSpace(src.LiveBytes(), free)
 	}
 	if err != nil {
-		return volume.Permanent(err)
+		return false, volume.Permanent(err)
+	}
+
+	// Name the source for the claim.
+	fi, err := src.Stat()
+	if err != nil {
+		return false, err
+	}
+	id, err := fileIdentity(fi)
+	if err != nil {
+		return false, err
 	}
 
 	// Reuse a verified new file an earlier attempt left, else build one.
 	tmp, marker := path+convertingSuffix, path+convertedMarkerSuffix
-	want, resumed, err := resumeConverted(ctx, src, tmp, marker)
+	want, resumed, err := resumeConverted(ctx, src, id, tmp, marker)
 	if err == nil && !resumed {
 		le.Info("converting volume to the current database format")
-		want, err = buildConverted(ctx, src, tmp, marker, logConvertProgress(le))
+		want, err = buildConverted(ctx, src, id, tmp, marker, logConvertProgress(le))
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Put it in place.
-	if err := installConverted(path); err != nil {
-		return err
+	replaced, err := installConverted(path)
+	if err != nil {
+		return replaced, err
 	}
 	le.WithFields(logrus.Fields{"keys": want.n, "elapsed": time.Since(start).Round(time.Millisecond)}).Info("converted volume to the current database format")
-	return nil
+	return replaced, nil
 }
 
 // checkConvertSpace refuses a conversion when free, the bytes free on the
@@ -151,55 +230,95 @@ func checkConvertSpace(live int64, free uint64) error {
 	return nil
 }
 
-// resumeConverted reuses a file only when its digest matches both the current
-// locked source and every pair in the converted copy. The source is authoritative:
-// only its disposable conversion files are removed on a mismatch.
-func resumeConverted(ctx context.Context, src *s4dbv1.Reader, tmp, marker string) (digest, bool, error) {
-	// Compare the marker with the current source, which may have changed
-	// after an interrupted attempt released its lock.
-	want, ok := readConvertMarker(marker)
-	if ok {
-		var current digest
-		h := blake3.New()
-		err := src.Stream(ctx, func(key, value []byte) error {
-			current.add(h, key, value)
-			return nil
-		})
+// resumeConverted reuses the new file an earlier attempt left only when the
+// claim names the source id, its digest matches the current locked source,
+// and every pair of the new file matches it. A claimed attempt that does not
+// is removed, since the source is authoritative. Files no claim accounts for
+// are refused.
+func resumeConverted(ctx context.Context, src *s4dbv1.Reader, id, tmp, marker string) (digest, bool, error) {
+	// Read the claim and describe the new file.
+	state, c, markerInfo, err := readClaim(marker)
+	if err != nil {
+		return digest{}, false, err
+	}
+	tmpInfo, err := os.Lstat(tmp)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return digest{}, false, err
+	}
+
+	// Refuse files no claim of this source accounts for. An empty marker
+	// alone is a claim a crash cut short.
+	switch {
+	case state == claimAbsent && tmpInfo == nil:
+		return digest{}, false, nil
+	case state == claimAbsent:
+		return digest{}, false, foreignFile(tmp)
+	case state == claimTorn && tmpInfo == nil:
+		return digest{}, false, removeSame(marker, markerInfo)
+	case state != claimHeld || c.src != id:
+		return digest{}, false, foreignFile(marker)
+	}
+
+	// Compare the digest with the current source, which may have changed
+	// after an interrupted attempt released its lock, and read the new
+	// file back.
+	if c.verified && tmpInfo != nil {
+		ok, err := matchesSource(ctx, src, c.want)
 		if err != nil {
 			return digest{}, false, err
 		}
-		if current == want && verifyConverted(ctx, tmp, want) == nil {
-			return want, true, nil
+		if ok && verifyConverted(ctx, tmp, c.want) == nil {
+			return c.want, true, nil
 		}
 		if err := ctx.Err(); err != nil {
 			return digest{}, false, err
 		}
 	}
 
-	// Remove an incomplete or stale attempt while the complete source is locked.
-	for _, name := range []string{tmp, marker} {
-		if err := os.Remove(name); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	// Remove the claimed attempt while the complete source is locked.
+	if tmpInfo != nil {
+		if err := removeSame(tmp, tmpInfo); err != nil {
 			return digest{}, false, err
 		}
 	}
-	return digest{}, false, nil
+	return digest{}, false, removeSame(marker, markerInfo)
 }
 
-// buildConverted streams the previous file src into a new file at tmp, reads
-// every pair of the new file back against the stream's digest, and writes
-// the digest to marker. A new file that fails is removed.
-func buildConverted(ctx context.Context, src *s4dbv1.Reader, tmp, marker string, progress func(keys, bytes int64)) (digest, error) {
-	// Build, digesting the stream.
+// matchesSource reports whether the pairs of src have digest want.
+func matchesSource(ctx context.Context, src *s4dbv1.Reader, want digest) (bool, error) {
+	var current digest
+	h := blake3.New()
+	err := src.Stream(ctx, func(key, value []byte) error {
+		current.add(h, key, value)
+		return nil
+	})
+	return current == want, err
+}
+
+// buildConverted claims the conversion files for the source id, streams the
+// previous file src into a new file at tmp, reads every pair of the new file
+// back against the stream's digest, and records the digest in the claim. A
+// new file that fails is removed.
+func buildConverted(ctx context.Context, src *s4dbv1.Reader, id, tmp, marker string, progress func(keys, bytes int64)) (digest, error) {
+	// Claim the files, then build, digesting the stream. Build creates tmp
+	// exclusively.
+	if err := writeClaim(marker, id); err != nil {
+		return digest{}, err
+	}
 	want, err := streamConverted(ctx, src, tmp, progress)
+	if err != nil {
+		return digest{}, err
+	}
+	built, err := os.Lstat(tmp)
 	if err != nil {
 		return digest{}, err
 	}
 
 	// Read it back and record the digest.
 	if err := verifyConverted(ctx, tmp, want); err != nil {
-		return digest{}, errors.Join(err, os.Remove(tmp))
+		return digest{}, errors.Join(err, removeSame(tmp, built))
 	}
-	return want, writeConvertMarker(marker, want)
+	return want, appendDigest(marker, want)
 }
 
 // streamConverted builds the new file at tmp from the pairs of src in key
@@ -258,84 +377,95 @@ func verifyConverted(ctx context.Context, tmp string, want digest) error {
 	return nil
 }
 
-// writeConvertMarker records d in the marker file durably.
-func writeConvertMarker(marker string, d digest) error {
-	f, err := os.Create(marker) // #nosec G304 -- beside the Volume file.
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(f, "%d %s\n", d.n, hex.EncodeToString(d.x[:]))
-	return errors.Join(err, f.Sync(), f.Close())
-}
-
-// readConvertMarker reads the digest a marker file records, reporting false
-// for a missing or unreadable marker.
-func readConvertMarker(marker string) (digest, bool) {
-	// Read the two fields.
-	b, err := os.ReadFile(marker) // #nosec G304 -- beside the Volume file.
-	if err != nil {
-		return digest{}, false
-	}
-	fields := strings.Fields(string(b))
-	if len(fields) != 2 {
-		return digest{}, false
-	}
-
-	// Parse the count and the hash.
-	n, err := strconv.ParseInt(fields[0], 10, 64)
-	if err != nil {
-		return digest{}, false
-	}
-	x, err := hex.DecodeString(fields[1])
-	if err != nil || len(x) != 32 {
-		return digest{}, false
-	}
-	return digest{n: n, x: [32]byte(x)}, true
-}
-
-// installConverted keeps the previous file at path as <path>.pre-rewrite
-// and renames the verified new file over path. A link an earlier attempt
-// made is kept, and a new file another process already installed is left. The caller retains the
-// source reader and its writer lock through this operation.
-func installConverted(path string) error {
-	// Make the new file and the marker durable before any name refers to
+// installConverted keeps the previous file at path as <path>.pre-rewrite,
+// renames the verified new file over path and drops the claim, reporting
+// whether it replaced the name. A link an earlier attempt made is kept. The
+// caller holds the source's writer lock throughout.
+func installConverted(path string) (bool, error) {
+	// Make the new file and the claim durable before any name refers to
 	// them.
 	dir := filepath.Dir(path)
 	if err := syncDir(dir); err != nil {
-		return err
+		return false, err
 	}
 
 	// Keep the previous file under its pre-rewrite name.
 	pre := path + preRewriteSuffix
 	if err := os.Link(path, pre); err != nil {
 		if !errors.Is(err, fs.ErrExist) {
-			return err
+			return false, err
 		}
 		same, err := sameFile(path, pre)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if !same {
-			return fmt.Errorf("%s exists and is not the volume file; move it aside to convert", pre)
+			return false, fmt.Errorf("%s exists and is not the volume file; move it aside to convert", pre)
 		}
 	}
 
 	// Make the backup name durable before replacing the active source name.
 	if err := syncDir(dir); err != nil {
+		return false, err
+	}
+
+	// Put the new file in place, then make that durable and drop the claim.
+	if err := os.Rename(path+convertingSuffix, path); err != nil {
+		return false, err
+	}
+	_, _, markerInfo, err := readClaim(path + convertedMarkerSuffix)
+	if err != nil {
+		return true, err
+	}
+	return true, completeInstall(dir, path+convertedMarkerSuffix, markerInfo)
+}
+
+// completeInstall makes a rename into dir durable, then removes the claim
+// marker that markerInfo describes and makes that durable. Until the claim is
+// gone, finishInstalled repeats it at the next open.
+func completeInstall(dir, marker string, markerInfo os.FileInfo) error {
+	if err := syncDir(dir); err != nil {
+		return err
+	}
+	if markerInfo != nil {
+		if err := removeSame(marker, markerInfo); err != nil {
+			return err
+		}
+	}
+	return syncDir(dir)
+}
+
+// finishInstalled completes an installation at path whose last steps failed
+// or did not run: a claim naming the file at <path>.pre-rewrite, beside a
+// different file at path, belongs to a conversion that renamed its new file
+// into place. Any other state is left alone.
+func finishInstalled(path string) error {
+	// Find a claim that names the backup.
+	marker := path + convertedMarkerSuffix
+	state, c, markerInfo, err := readClaim(marker)
+	if err != nil || state != claimHeld {
+		return err
+	}
+	pre, err := os.Stat(path + preRewriteSuffix)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if id, err := fileIdentity(pre); err != nil || id != c.src {
 		return err
 	}
 
-	// Put the new file in place and drop the marker.
-	if err := replaceConverted(path+convertingSuffix, path); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
-		}
+	// Leave a conversion that has not renamed yet.
+	cur, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil || os.SameFile(cur, pre) {
 		return err
 	}
-	if err := os.Remove(path + convertedMarkerSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-	return syncDir(dir)
+	return completeInstall(filepath.Dir(path), marker, markerInfo)
 }
 
 // sameFile reports whether the paths a and b name the same file.
