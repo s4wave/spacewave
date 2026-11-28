@@ -1,6 +1,7 @@
 package s4db
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -80,8 +81,12 @@ func (w *writer) unlock() {
 // slots, an empty manifest in chunk 1, a log chunk at chunk 2 and the first
 // superblock. The caller holds the file's writer lock.
 func (w *writer) create() error {
-	// Leave an existing file alone. Recreate one a crash left without a
-	// header.
+	// Leave an existing file alone, and recreate only a file of zeros. A
+	// crash during creation can leave any subset of creation's writes, and
+	// none of them proves that s4db wrote the file, so a file holding other
+	// bytes without the header is refused: another program wrote it, such
+	// as a bolt Volume file with a lost first page, or creation stopped and
+	// a person must remove it.
 	s := w.db.s
 	size, err := s.size()
 	if err != nil {
@@ -95,10 +100,17 @@ func (w *writer) create() error {
 		if [8]byte(hdr[:8]) == magic || size > fileOff(chunkStart(4)) {
 			return nil
 		}
+		zero, err := zeroFile(s, size)
+		if err != nil {
+			return err
+		}
+		if !zero {
+			return ErrNotDatabase
+		}
 	}
 
 	// Write an empty slot table. The header goes last, so a crash during
-	// creation leaves a file without one that the next open recreates.
+	// creation leaves a file without one.
 	if _, err := s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err
 	}
@@ -358,4 +370,20 @@ func (w *writer) writeValues(writes []valueWrite) error {
 		buf = append(buf, wr.data...)
 	}
 	return flush()
+}
+
+// zeroFile reports whether the first size bytes of s are all zero, reading a
+// page at a time.
+func zeroFile(s storage, size int64) (bool, error) {
+	page := make([]byte, pageSize)
+	for off := int64(0); off < size; off += pageSize {
+		n := min(size-off, pageSize)
+		if _, err := s.ReadAt(page[:n], off); err != nil {
+			return false, err
+		}
+		if !bytes.Equal(page[:n], make([]byte, n)) {
+			return false, nil
+		}
+	}
+	return true, nil
 }

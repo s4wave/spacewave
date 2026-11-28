@@ -5,8 +5,10 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"errors"
 	"maps"
 	"math/rand/v2"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -21,6 +23,43 @@ func openTest(t *testing.T, path string, opts Options) *DB {
 		t.Fatal(err)
 	}
 	return db
+}
+
+// TestOpenForeignFile checks that a writable open leaves a small file another
+// program wrote untouched, and recreates a file of zeros.
+func TestOpenForeignFile(t *testing.T) {
+	// A foreign first page, as a bolt Volume file has, and a zero first page
+	// before foreign bytes, as a bolt file whose first meta page was lost has.
+	for _, at := range []int{16, pageSize + 16} {
+		foreign := filepath.Join(t.TempDir(), "foreign")
+		want := make([]byte, 64*pageSize)
+		want[at] = 0xed
+		if err := os.WriteFile(foreign, want, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if db, err := Open(foreign, Options{}); !errors.Is(err, ErrNotDatabase) {
+			if db != nil {
+				_ = db.Close()
+			}
+			t.Fatalf("open of a foreign file with a byte at %d: %v, want ErrNotDatabase", at, err)
+		}
+		got, err := os.ReadFile(foreign)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("open rewrote a foreign file with a byte at %d", at)
+		}
+	}
+
+	// A file of zeros, as a crash leaves after creation's first write.
+	zeros := filepath.Join(t.TempDir(), "zeros")
+	if err := os.WriteFile(zeros, make([]byte, 2*pageSize), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := openTest(t, zeros, Options{}).Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestKvtx runs the shared store conformance suite.
