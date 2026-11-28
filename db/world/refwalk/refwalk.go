@@ -63,15 +63,10 @@ type Walker struct {
 	visited Visited
 	// typeNames caches TypeName by type.
 	typeNames map[reflect.Type]string
-	// roots holds the refs the walk typed as object roots, by their keys,
-	// whether or not their type resolved.
-	roots map[string]struct{}
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	untyped map[string]*Untyped
 	// stops holds the reason of each such ref, by the ref's string.
 	stops map[string]string
-	// types caches object type IDs by object key across Worlds.
-	types map[string]string
 	// xfrms caches transformers by their marshaled config.
 	xfrms map[string]block.Transformer
 	// typesWorld is the World typesTx reads, nil before the first lookup.
@@ -99,10 +94,8 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 		lookup:    lookup,
 		visited:   NewMemVisited(),
 		typeNames: make(map[reflect.Type]string),
-		roots:     make(map[string]struct{}),
 		untyped:   make(map[string]*Untyped),
 		stops:     make(map[string]string),
-		types:     make(map[string]string),
 		xfrms:     make(map[string]block.Transformer),
 	}
 }
@@ -216,18 +209,24 @@ func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, e
 // world's transform, and false for one the walk already typed. A payload root
 // is an object root the operation set, referenced by the resulting World, or
 // the payload of a world.PayloadOperation, which is a blob: so once the Worlds
-// that hold an operation's outcome are walked, a payload the walk typed as an
-// object root is walked under its object's type, and the rest are blobs. An
+// that hold an operation's outcome are walked, a payload the walk finished
+// under a type, as an object root, or stopped at untyped was already walked
+// under its object's type, and the rest are blobs. The check reads the
+// Walker's Visited, so it holds nothing per object in memory. An
 // object root that no walked World references, such as one a later transaction
 // in its batch replaced, is read as a blob too, so the node is a guess, which
 // the walker keeps only when the block is certainly a blob. Under TypeRootsAs
 // every payload root is an object root of the declared type, so the node is
 // certain.
-func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
+func (w *Walker) PayloadNode(ctx context.Context, world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
 	// Skip a root a World typed, then read the rest as the declared root
 	// type, or guess a blob.
-	if _, ok := w.roots[ref.MarshalString()]; ok {
+	if w.stops[ref.MarshalString()] != "" {
 		return Node{}, false, nil
+	}
+	typed, _, err := w.visited.Reached(ctx, ref)
+	if err != nil || typed {
+		return Node{}, false, err
 	}
 	n, err := w.BlobNode(world, ref)
 	if w.rootType != nil {
@@ -680,7 +679,6 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 	if ref.GetEmpty() || root.GetBucketId() != "" {
 		return nil, nil
 	}
-	w.roots[ref.MarshalString()] = struct{}{}
 	if !root.GetTransformConfRef().GetEmpty() {
 		w.count("object root with a transform config ref", ref)
 		return nil, nil
@@ -718,25 +716,22 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 // objectRootCtor returns the root constructor of the object at key from its
 // type in world, or nil and the reason to count the root under.
 func (w *Walker) objectRootCtor(ctx context.Context, key string, world *bucket.ObjectRef) (block.Ctor, string, error) {
-	// Read the object type, caching it across Worlds.
-	typeID, ok := w.types[key]
-	if !ok {
-		tx, err := w.worldTypes(ctx, world)
-		if err != nil {
-			w.le.WithError(err).Warn("cannot open world to read object types")
-			return nil, "object in an unreadable World", nil
+	// Read the object type in world. The Visited reads each Object block
+	// once, so a cache of types would rarely hit, and one kept across Worlds
+	// would grow with every object and could give a type a later World
+	// changed.
+	tx, err := w.worldTypes(ctx, world)
+	if err != nil {
+		w.le.WithError(err).Warn("cannot open world to read object types")
+		return nil, "object in an unreadable World", nil
+	}
+	typeID, err := world_types.GetObjectType(ctx, tx, key)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, "", ctx.Err()
 		}
-		typeID, err = world_types.GetObjectType(ctx, tx, key)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil, "", ctx.Err()
-			}
-			w.le.WithError(err).Warnf("cannot read type of object %s", key)
-			return nil, "object with an unreadable type", nil
-		}
-		if typeID != "" {
-			w.types[key] = typeID
-		}
+		w.le.WithError(err).Warnf("cannot read type of object %s", key)
+		return nil, "object with an unreadable type", nil
 	}
 	if typeID == "" && w.rootType != nil {
 		return w.rootType.Constructor, "", nil

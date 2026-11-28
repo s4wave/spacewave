@@ -130,7 +130,7 @@ func TestPayloadNodeBlob(t *testing.T) {
 	// Walk the root as an operation payload no World typed.
 	w := NewWalker(logrus.NewEntry(logrus.New()), store, nil)
 	defer w.Close()
-	root, ok, err := w.PayloadNode(&bucket.ObjectRef{}, ref)
+	root, ok, err := w.PayloadNode(ctx, &bucket.ObjectRef{}, ref)
 	if err != nil || !ok {
 		t.Fatalf("payload node: ok %v, err %v", ok, err)
 	}
@@ -216,7 +216,7 @@ func TestPayloadNodeBlob(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		node, ok, err := w.PayloadNode(&bucket.ObjectRef{}, foreignRef)
+		node, ok, err := w.PayloadNode(ctx, &bucket.ObjectRef{}, foreignRef)
 		if err != nil || !ok {
 			t.Fatalf("field in the %s: payload node: ok %v, err %v", name, ok, err)
 		}
@@ -249,7 +249,7 @@ func TestPayloadNodeRootType(t *testing.T) {
 	root := func(w *Walker) Visit {
 		t.Helper()
 		defer w.Close()
-		node, ok, err := w.PayloadNode(&bucket.ObjectRef{}, ref)
+		node, ok, err := w.PayloadNode(ctx, &bucket.ObjectRef{}, ref)
 		if err != nil || !ok {
 			t.Fatalf("payload node: ok %v, err %v", ok, err)
 		}
@@ -293,7 +293,7 @@ func TestWalkResume(t *testing.T) {
 		defer w.Close()
 		w.TypeRootsAs(kvs)
 		w.VisitIn(v)
-		node, _, err := w.PayloadNode(&bucket.ObjectRef{}, ref)
+		node, _, err := w.PayloadNode(ctx, &bucket.ObjectRef{}, ref)
 		if err != nil {
 			t.Fatal(err)
 		}

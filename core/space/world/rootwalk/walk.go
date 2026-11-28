@@ -87,7 +87,7 @@ func (s *spaceWalk) walk(ctx context.Context) error {
 	}
 	payloads = append(payloads, published...)
 	for _, ref := range payloads {
-		root, ok, err := s.w.PayloadNode(s.sp.World, ref)
+		root, ok, err := s.w.PayloadNode(ctx, s.sp.World, ref)
 		if err != nil {
 			return err
 		}
