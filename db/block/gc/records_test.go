@@ -407,6 +407,45 @@ func TestFreeSkipsDequeuedEntry(t *testing.T) {
 	}
 }
 
+// TestHolesClearRefusesHoleSinceSnapshot checks that the holes-clear mark
+// is written only while the add revision is the one the snapshot that
+// found no hole read: a hole recorded since raised it, so the mark, which
+// tells Land no hole key exists, stays absent.
+func TestHolesClearRefusesHoleSinceSnapshot(t *testing.T) {
+	ctx := t.Context()
+	ref, err := block.BuildBlockRef([]byte("lost block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hole := range []bool{true, false} {
+		tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec := NewRecords(tx, []byte("l/"))
+		rev, err := rec.addRev(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if hole {
+			if err := NewRecords(tx, []byte("l/")).addHole(ctx, BlockKey(ref)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := rec.markHolesClear(ctx, rev); err != nil {
+			t.Fatal(err)
+		}
+		open, err := rec.holesOpen(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if open != hole {
+			t.Errorf("with a hole since %v: holes open %v, want %v", hole, open, hole)
+		}
+		tx.Discard()
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
