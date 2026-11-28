@@ -24,7 +24,7 @@ jobs:
     steps:
       # No checkout: workflow_run carries write authority and must never run
       # source or interpolate shell code from the workflow it reports.
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo
