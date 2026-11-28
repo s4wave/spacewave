@@ -71,7 +71,7 @@ func testLivenessCollection(t *testing.T) {
 			t.Fatal(err)
 		}
 		clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-		v.clock = clk.Now
+		setVolumeClock(t, v, clk.Now)
 		t.Cleanup(func() { _ = v.Close() })
 		tr := testTree{}
 		const pairs = 20_000

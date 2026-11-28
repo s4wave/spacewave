@@ -262,7 +262,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 		t.Fatal(err)
 	}
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-	v.clock = clk.Now
+	setVolumeClock(t, v, clk.Now)
 	observePuts(v)
 	t.Cleanup(func() { _ = v.Close() })
 
@@ -490,7 +490,7 @@ func measureWideFree(t *testing.T, children int, waiting bool) (uint64, time.Dur
 		t.Fatal(err)
 	}
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-	v.clock = clk.Now
+	setVolumeClock(t, v, clk.Now)
 	t.Cleanup(func() { _ = v.Close() })
 	tr := testTree{}
 	leaves := make([]string, children)
@@ -545,7 +545,7 @@ func measureReplacedPage(t *testing.T, shared int) (net, free kvtx_kvtest.Counts
 		t.Fatal(err)
 	}
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
-	v.clock = clk.Now
+	setVolumeClock(t, v, clk.Now)
 	t.Cleanup(func() { _ = v.Close() })
 	tr := testTree{}
 	leaves := make([]string, shared)

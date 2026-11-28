@@ -134,7 +134,7 @@ func measureLargeCommitWait(t *testing.T, leaves int) {
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
 	clk := &skewClock{}
-	v.clock = clk.Now
+	setVolumeClock(t, v, clk.Now)
 	tr := testTree{}
 	mids := storeLeaves(t, v, tr, "leaf ", leaves)
 	batch := make([]string, 0, len(mids)+1)
@@ -179,7 +179,7 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
 	clk := &skewClock{}
-	v.clock = clk.Now
+	setVolumeClock(t, v, clk.Now)
 	tr := testTree{}
 	mids := storeLeaves(t, v, tr, "leaf ", leaves)
 	names := make([]string, 0, leaves)

@@ -59,20 +59,51 @@ func openLivenessVolume(t *testing.T, store kvtx.Store, frees bool) (*Volume, *t
 
 // openConfVolume opens a Volume over store under conf.
 func openConfVolume(t *testing.T, store kvtx.Store, conf *store_kvtx.Config) (*Volume, *testClock) {
+	// Open the Volume over the fixture store.
 	t.Helper()
 	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
 	v, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), store, conf, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.clock = clk.Now
+
+	// Install the fixture clock before foreground operations use the Volume.
+	setVolumeClock(t, v, clk.Now)
 	auditCollector(t, v, conf.GetCollectorFrees())
 	t.Cleanup(func() {
 		if err := v.Close(); err != nil {
 			t.Error(err)
 		}
 	})
+
+	// Return the Volume and the clock the test advances.
 	return v, clk
+}
+
+// setVolumeClock installs a fixture clock on a newly opened Volume before
+// foreground use. Renewal is joined and adoption is excluded while it changes.
+func setVolumeClock(t *testing.T, v *Volume, clock func() time.Time) {
+	// Join the renewal reader before replacing its clock.
+	t.Helper()
+	if v.renewCancel != nil {
+		v.renewCancel()
+		<-v.renewDone
+	}
+
+	// Serialize the replacement with the background adoption's clock reads.
+	unlock, err := v.adoptMu.Lock(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.clock = clock
+	unlock()
+
+	// Start a fresh renewal reader after the clock has been installed.
+	if v.renewCancel != nil {
+		ctx, cancel := context.WithCancel(context.WithoutCancel(t.Context()))
+		v.renewCancel, v.renewDone = cancel, make(chan struct{})
+		go v.runRootRenewal(ctx)
+	}
 }
 
 // observePuts lets v store blocks nothing holds, counting them as a Volume
