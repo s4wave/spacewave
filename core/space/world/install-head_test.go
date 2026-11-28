@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"os"
 	"slices"
 	"strconv"
 	"sync"
@@ -839,7 +840,8 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 // newVolumeAdapter returns an adapter whose PendingStore keeps at most
 // maxPending bytes over a bucket of an in-memory Volume that frees once a
 // record is grace old, and a function that collects the Volume. The
-// SharedObject's block store is the same bucket.
+// SharedObject's block store is the same bucket. It queues admission root
+// moves when DeferredRootMoveEnv is on.
 func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapter, func()) {
 	// Open the bucket.
 	ctx := t.Context()
@@ -881,6 +883,7 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 	}
 	a := &Adapter{
 		moves:            newRootMoveQueue(false),
+		deferMoves:       os.Getenv(DeferredRootMoveEnv) == "on",
 		le:               logrus.NewEntry(log),
 		so:               &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}},
 		opened:           openedNow(),

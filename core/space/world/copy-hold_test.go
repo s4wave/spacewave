@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -749,13 +750,39 @@ func TestQueuedRootMoves(t *testing.T) {
 		}
 	})
 
-	// A staged admission's landing in the turn that its context cancels
-	// while another lander holds the landing turn must still land or drop
-	// its moves, so none stays queued past the writer's stage that holds its
-	// drained page.
-	t.Run("staged landing outlives cancel", func(t *testing.T) {
+	// A staged admission's landing in the turn, which its context cancels
+	// while another lander's SetRoots hangs, must drop its moves once that
+	// landing passes its bound, so none stays queued past the writer's stage
+	// that holds its drained page and the turn does not wait on the store.
+	t.Run("staged landing drops at the deadline", func(t *testing.T) {
 		ctx := t.Context()
-		a, collect, _, _ := newDropAdapter(t, "payload-the-staged-admission-skips")
+		a, collect, p, _ := newDropAdapter(t, "payload-held-by-a-hung-landing")
+		a.moves.landTimeout = 50 * time.Millisecond
+		var hang atomic.Bool
+		entered := make(chan struct{}, 1)
+		hookRoots(a, func(ctx context.Context, _ []block.NamedRoot) error {
+			if !hang.Load() {
+				return nil
+			}
+			select {
+			case entered <- struct{}{}:
+			default:
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		})
+
+		// Queue a payload hold and start a lander whose SetRoots hangs.
+		adm0 := a.newAdmission(world.Candidate{}, nil, []*block.BlockRef{p}, nil)
+		if err := a.keepAdmitted(ctx, adm0); err != nil {
+			t.Fatal(err)
+		}
+		hang.Store(true)
+		bgErr := make(chan error, 1)
+		go func() { bgErr <- a.moves.landAll(ctx, a.pages) }()
+		<-entered
+
+		// Cancel a staged turn that waits behind it.
 		stage, releaseStage, err := block.OpenStage(ctx, a.pages.StoreOps)
 		if err != nil {
 			t.Fatal(err)
@@ -766,29 +793,86 @@ func TestQueuedRootMoves(t *testing.T) {
 			t.Fatal(err)
 		}
 		adm := a.newAdmission(world.Candidate{Root: w, Staged: true}, nil, nil, nil)
-
-		unlock, err := a.moves.landMtx.Lock(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
 		cctx, cancel := context.WithCancel(ctx)
 		errCh := make(chan error, 1)
 		go func() { errCh <- a.keepAdmitted(cctx, adm) }()
 		for !a.moves.queued(&adm.moves) {
 			select {
 			case err := <-errCh:
-				unlock()
 				t.Fatalf("staged move never queued: %v", err)
 			case <-time.After(time.Millisecond):
 			}
 		}
 		cancel()
-		unlock()
-		if err := <-errCh; err != nil {
-			t.Logf("staged admission after cancel: %v", err)
+
+		// Both landings fail at the deadline with the queue dropped.
+		select {
+		case err := <-errCh:
+			if err == nil {
+				t.Fatal("staged admission accepted although its landing was dropped")
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("the staged turn waited past the landing bound")
 		}
-		if a.moves.queued(&adm.moves) {
-			t.Fatal("the staged admission's move stayed queued past its turn")
+		if err := <-bgErr; !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("hung landing returned %v, want its deadline", err)
+		}
+		if a.moves.queued(&adm.moves) || a.moves.queued(&adm0.moves) {
+			t.Fatal("a move stayed queued past the landing bound")
+		}
+		hang.Store(false)
+
+		releaseStage()
+		for range 3 {
+			collect()
+		}
+		requirePendingWhole(t, a)
+	})
+
+	// A staged admission whose landing in the turn fails drops its moves. An
+	// admission built on its candidate must fail, and no pending root may name
+	// a freed block once the stage ends.
+	t.Run("staged drop fails successor", func(t *testing.T) {
+		ctx := t.Context()
+		a, collect, _, _ := newDropAdapter(t, "payload-the-staged-admission-skips")
+		errInjected := errors.New("injected SetRoots failure")
+		var fail atomic.Bool
+		hookRoots(a, func(context.Context, []block.NamedRoot) error {
+			if fail.Load() {
+				return errInjected
+			}
+			return nil
+		})
+		stage, releaseStage, err := block.OpenStage(ctx, a.pages.StoreOps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseStage()
+		w, _, err := stage.PutBlock(ctx, []byte("page-drained-to-the-writer-stage"), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		admA := a.newAdmission(world.Candidate{Root: w, Staged: true}, nil, nil, nil)
+		fail.Store(true)
+		errA := a.keepAdmitted(ctx, admA)
+		fail.Store(false)
+		if !errors.Is(errA, errInjected) {
+			t.Fatalf("staged admission with a failed landing returned %v", errA)
+		}
+		if a.moves.queued(&admA.moves) {
+			t.Fatal("failed staged landing left its move queued")
+		}
+
+		// The successor's World reaches w through a new root page.
+		rootB := dropPage(t, "rootB", 0, w)
+		admB := a.newAdmission(world.Candidate{Root: rootB.Ref, Entries: []*block.PutBatchEntry{rootB}}, nil, nil, nil)
+		admB.after = admA
+		errB := a.keepAdmitted(ctx, admB)
+		if errB == nil {
+			errB = a.landQueued(ctx, admB)
+		}
+		if !errors.Is(errB, errInjected) {
+			t.Fatalf("successor of a failed staged admission returned %v", errB)
 		}
 
 		releaseStage()
@@ -804,9 +888,18 @@ func TestQueuedRootMoves(t *testing.T) {
 	t.Run("background landing flushes", func(t *testing.T) {
 		ctx := t.Context()
 		a, _, p, _ := newDropAdapter(t, "payload-held-by-an-upload-stage")
-		inner := a.pages.StoreOps
-		rec := &commitModeStore{StoreOps: inner, LeasedRoots: inner.(block.LeasedRoots), RootProofs: inner.(block.RootProofs)}
-		a.pages = block.NewPendingStore(rec, 64<<10)
+		var mtx sync.Mutex
+		flushed := make(map[string]bool)
+		hookRoots(a, func(ctx context.Context, roots []block.NamedRoot) error {
+			if !kvtx.IsOrderedCommitContext(ctx) {
+				mtx.Lock()
+				for _, r := range roots {
+					flushed[r.Name] = true
+				}
+				mtx.Unlock()
+			}
+			return nil
+		})
 		if a.orderedHolds {
 			t.Fatal("adapter orders holds")
 		}
@@ -826,7 +919,9 @@ func TestQueuedRootMoves(t *testing.T) {
 		if err := a.landQueued(ctx, adm); err != nil {
 			t.Fatal(err)
 		}
-		if !rec.flushed(a.payloads.name) {
+		mtx.Lock()
+		defer mtx.Unlock()
+		if !flushed[a.payloads.name] {
 			t.Fatal("the payload hold committed only ordered before its state write")
 		}
 	})
@@ -926,40 +1021,36 @@ func requirePendingWhole(t *testing.T, a *Adapter) {
 	}
 }
 
-// commitModeStore records the root names each flushed SetRoots moves, one
-// whose context does not ask for an ordered commit.
-type commitModeStore struct {
+// rootsHookStore calls hook before each SetRoots of the wrapped store, and
+// moves the roots only when hook returns nil.
+type rootsHookStore struct {
 	block.StoreOps
 	block.LeasedRoots
 	block.RootProofs
 
-	mtx   sync.Mutex
-	names map[string]bool
+	hook func(ctx context.Context, roots []block.NamedRoot) error
 }
 
 // OpenStage opens a stage of the wrapped store.
-func (s *commitModeStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+func (s *rootsHookStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
 	return s.LeasedRoots.OpenStage(ctx)
 }
 
-// SetRoots records the moved names of a flushed commit, then moves them.
-func (s *commitModeStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	if !kvtx.IsOrderedCommitContext(ctx) {
-		s.mtx.Lock()
-		if s.names == nil {
-			s.names = make(map[string]bool)
-		}
-		for _, r := range roots {
-			s.names[r.Name] = true
-		}
-		s.mtx.Unlock()
+// SetRoots moves the roots once hook accepts them.
+func (s *rootsHookStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if err := s.hook(ctx, roots); err != nil {
+		return err
 	}
 	return s.StoreOps.SetRoots(ctx, entries, roots)
 }
 
-// flushed reports whether a flushed SetRoots moved name.
-func (s *commitModeStore) flushed(name string) bool {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	return s.names[name]
+// hookRoots makes a's pending store call hook before each SetRoots.
+func hookRoots(a *Adapter, hook func(ctx context.Context, roots []block.NamedRoot) error) {
+	inner := a.pages.StoreOps
+	a.pages = block.NewPendingStore(&rootsHookStore{
+		StoreOps:    inner,
+		LeasedRoots: inner.(block.LeasedRoots),
+		RootProofs:  inner.(block.RootProofs),
+		hook:        hook,
+	}, 64<<10)
 }

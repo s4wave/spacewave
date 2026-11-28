@@ -4,8 +4,10 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/csync"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -56,10 +58,14 @@ import (
 // Locks: rootMtx, then landMtx, then mtx. A lander holds landMtx across the
 // store's SetRoots and never needs rootMtx, so a turn that queues a move under
 // rootMtx waits on no landing. mtx is never held across a call into the store.
+// Each SetRoots runs under the landing bound, so landMtx is held for at most
+// one bound, and a landing in the turn waits at most two.
 type rootMoveQueue struct {
 	// ordered is the adapter's orderedHolds, fixed at open. It sets the commit
 	// mode of every landing, whatever the lander's context asks.
 	ordered bool
+	// landTimeout bounds each landing's SetRoots, fixed at open.
+	landTimeout time.Duration
 	// landMtx serializes landings.
 	landMtx csync.Mutex
 	// mtx guards the fields below and each queued admission's
@@ -78,11 +84,21 @@ type rootMoveQueue struct {
 	turns map[*admissionMoves]struct{}
 }
 
+// rootMoveLandTimeout bounds one landing's SetRoots. A store that hangs, such
+// as a ProxyVolume whose peer stops answering without closing the stream,
+// would otherwise stall the committer's turn and the adapter's shutdown, since
+// a landing in the turn ignores cancellation. On thumper's NVMe disk, s4db
+// stores a flushed landing of 64 MiB of pages in at most 343 ms and one of
+// 1 MiB in at most 14 ms. 30 s admits a 64 MiB landing on storage writing
+// about 2 MB/s, some 90 times slower, such as an SD card or a browser's
+// storage. A landing past it drops the queue, which fails its owners closed.
+const rootMoveLandTimeout = 30 * time.Second
+
 // newRootMoveQueue returns an empty queue whose landings commit ordered when
 // ordered is set, as an adapter that orders holds requires, and flushed
-// otherwise.
+// otherwise, each within rootMoveLandTimeout.
 func newRootMoveQueue(ordered bool) *rootMoveQueue {
-	return &rootMoveQueue{ordered: ordered}
+	return &rootMoveQueue{ordered: ordered, landTimeout: rootMoveLandTimeout}
 }
 
 // join starts owner's turn, which builds on base's candidate, or on durable
@@ -250,7 +266,8 @@ func (q *rootMoveQueue) landFor(ctx context.Context, store block.RootOps, owner 
 // landTurn lands owner's moves as landFor does, inside owner's turn, for
 // moves whose holder ends with the turn, such as the writer's stage. It runs
 // past ctx's cancellation, so the moves are landed or dropped when it
-// returns and none stays queued past its holder.
+// returns and none stays queued past its holder. The landing bound limits it
+// to the landing in progress and its own, and one past the bound drops.
 func (q *rootMoveQueue) landTurn(ctx context.Context, store block.RootOps, owner *admissionMoves) error {
 	return q.landFor(context.WithoutCancel(ctx), store, owner)
 }
@@ -260,7 +277,8 @@ func (q *rootMoveQueue) landTurn(ctx context.Context, store block.RootOps, owner
 // queue. A refused or failed SetRoots drops every queued move. The commit is
 // ordered when the adapter orders holds, behind the state writes of the
 // moves' admissions, and flushed otherwise, so each move is durable before
-// its admission's state write whichever lander lands it.
+// its admission's state write whichever lander lands it. A SetRoots past
+// landTimeout fails, and drops the queue as a failed one does.
 func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, through uint64) error {
 	// Take the prefix to land.
 	q.mtx.Lock()
@@ -282,7 +300,7 @@ func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, thr
 	// A batch of markers stores nothing.
 	entries, roots, err := collapseRootMoves(batch)
 	if err == nil && (len(entries) != 0 || len(roots) != 0) {
-		err = store.SetRoots(q.commitContext(ctx), entries, roots)
+		err = q.setRoots(ctx, store, entries, roots)
 	}
 
 	// Pop them and release their stages, or drop the queue.
@@ -295,6 +313,20 @@ func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, thr
 		releaseMoves(batch)
 	case ctx.Err() == nil:
 		q.dropLocked(err)
+	}
+	return err
+}
+
+// setRoots stores entries and roots on store in the queue's commit mode,
+// within landTimeout.
+func (q *rootMoveQueue) setRoots(ctx context.Context, store block.RootOps, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Store under the bound, naming it when the bound and not ctx ended the
+	// landing.
+	sctx, cancel := context.WithTimeout(q.commitContext(ctx), q.landTimeout)
+	defer cancel()
+	err := store.SetRoots(sctx, entries, roots)
+	if err != nil && ctx.Err() == nil && sctx.Err() != nil {
+		return errors.Wrapf(err, "land root moves within %v", q.landTimeout)
 	}
 	return err
 }
