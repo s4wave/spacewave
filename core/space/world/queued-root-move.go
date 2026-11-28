@@ -23,9 +23,7 @@ type queuedRootMove struct {
 type admissionMoves struct {
 	// seq numbers the newest move queued for the admission, or is zero.
 	seq uint64
-	// epoch is the queue's drop epoch when the admission's turn began.
-	epoch uint64
-	// err is the error that dropped one of its moves, which fails its
-	// durable step.
+	// err is the error of the drop that failed the admission, which fails
+	// its turn and its durable step.
 	err error
 }

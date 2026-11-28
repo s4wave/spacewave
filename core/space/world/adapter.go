@@ -1173,21 +1173,9 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 		return err
 	}
 
-	// Hold the roots, then make the queued holds the turn's view borrowed fail
-	// this admission when they drop. The overflow stage holds the blocks it
-	// stored until the move that stores their root lands: at return in the
-	// turn, or with the admission's newest queued move.
-	if a.deferMoves {
-		a.moves.begin(&adm.moves)
-	}
-	err := a.holdAdmitted(ctx, adm, overflow.Stored())
-	if err == nil && a.deferMoves {
-		err = a.moves.depend(&adm.moves)
-	}
-	if !a.deferMoves || !a.moves.releaseWith(&adm.moves, release) {
-		release()
-	}
-	if err != nil {
+	// Hold the roots. The overflow stage holds the blocks it stored until the
+	// admission's newest move lands.
+	if err := a.holdTurn(ctx, adm, overflow.Stored(), release); err != nil {
 		return err
 	}
 
@@ -1198,14 +1186,44 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	return nil
 }
 
+// holdTurn holds adm's roots, then runs release once the moves that hold
+// them land. With deferMoves the hold is a turn a drop fails, so adm never
+// relies on holds a drop released: those of queued moves, and the overflow
+// stage of the candidate it built on. A staged candidate's moves land before
+// return, while the writer's stage still holds the pages it drained.
+func (a *Adapter) holdTurn(ctx context.Context, adm *spaceAdmission, stored bool, release func()) error {
+	// Without deferMoves each swap is durable on return.
+	if !a.deferMoves {
+		defer release()
+		return a.holdAdmitted(ctx, adm, stored)
+	}
+
+	// Hold in a turn that inherits a drop of the candidate it built on.
+	var base *admissionMoves
+	if adm.after != nil {
+		base = &adm.after.moves
+	}
+	err := a.moves.join(&adm.moves, base)
+	if err == nil {
+		err = a.moves.depend(&adm.moves, a.holdAdmitted(ctx, adm, stored))
+	}
+	if !a.moves.releaseWith(&adm.moves, release) {
+		release()
+	}
+	if err != nil || !adm.candidate.Staged {
+		return err
+	}
+	return a.landMoves(ctx, adm)
+}
+
 // holdAdmitted holds payloads and spilled candidate Worlds before queueing.
 // Each swap stores only the writer's pages and takes rootMtx only for the swap.
 //
 // A hold must be durable by its operation's state write. With orderedHolds,
 // BlockWriteOrderer keeps a crash prefix: a lost hold also loses its operation.
 // Without ordering, each swap is durable on return. With deferMoves, the swaps
-// queue and landQueued lands them before the state write, except those of a
-// staged candidate, which land in the turn. Replay and reset holds cover
+// queue and landQueued lands them before the state write; keepAdmitted lands
+// those of a staged candidate in the turn. Replay and reset holds cover
 // already durable operations and therefore always commit durably. Background
 // World holds can commit ordered because replay can rebuild them.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
@@ -1214,11 +1232,8 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 		ctx = kvtx.WithOrderedCommitContext(ctx)
 	}
 
-	// Queue the swaps for the admission's durable step. A candidate the writer
-	// drained to its stage lands in the turn instead:
-	// that stage ends with the transaction's retirement, before the durable
-	// step, and is all that holds the drained pages until the move lands.
-	if a.deferMoves && !adm.candidate.Staged {
+	// Queue the swaps for the admission, so a drop fails it with them.
+	if a.deferMoves {
 		ctx = withQueuing(ctx, &adm.moves)
 	}
 

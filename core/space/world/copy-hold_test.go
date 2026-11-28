@@ -608,72 +608,227 @@ func putUnheld(t *testing.T, store block.StoreOps, entries ...*block.PutBatchEnt
 	}
 }
 
-// TestDropBetweenPayloadAndCandidate lands a drop between holdAdmitted's
-// payload move and its candidate move, which take the root lock separately
-// while a lander drops without it. The drop removes the payload move, and the
-// collector frees the payload. The candidate move must then be refused, so no
-// later landing stores a root naming the freed payload.
-func TestDropBetweenPayloadAndCandidate(t *testing.T) {
-	// Stage a payload and a candidate that names it.
+// TestDropFailsOwners checks that a drop of queued root moves fails every
+// admission that can rely on the holds it released, so no landing stores a
+// root naming a block the collector freed, and that it spares an admission
+// whose moves already landed.
+func TestDropFailsOwners(t *testing.T) {
+	// A drop between holdAdmitted's payload move and its candidate move, which
+	// take the root lock separately while a lander drops without it, removes
+	// the payload move. The candidate move must be refused.
+	t.Run("between payload and candidate", func(t *testing.T) {
+		ctx := t.Context()
+		a, collect, p, release := newDropAdapter(t, "payload-between-drop-and-candidate")
+		c := putDropPage(t, a, "candidate-naming-", p)
+		adm := a.newAdmission(world.Candidate{Root: c}, nil, []*block.BlockRef{p}, nil)
+		if err := a.moves.join(&adm.moves, nil); err != nil {
+			t.Fatal(err)
+		}
+		qctx := withQueuing(ctx, &adm.moves)
+		if err := a.addPayloads(qctx, adm.payloads, true); err != nil {
+			t.Fatal(err)
+		}
+		dropFreed(t, a, collect, p, release, &adm.moves)
+		if err := addPending(qctx, a, c); err == nil {
+			t.Fatal("candidate move queued after its payload move was dropped")
+		}
+		if err := a.moves.depend(&adm.moves, nil); err == nil {
+			t.Fatal("admission survived the drop of its payload move")
+		}
+		requirePendingWhole(t, a)
+	})
+
+	// A staged admission whose payload scope finds the payload held by
+	// another admission's queued move borrows that hold and moves nothing. A
+	// drop before its candidate scope must fail it.
+	t.Run("staged borrow", func(t *testing.T) {
+		ctx := t.Context()
+		a, collect, p, release := newDropAdapter(t, "payload-shared-by-two-admissions")
+		cb := putDropPage(t, a, "staged-candidate-", p)
+		admA := a.newAdmission(world.Candidate{}, nil, []*block.BlockRef{p}, nil)
+		if err := a.moves.join(&admA.moves, nil); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.addPayloads(withQueuing(ctx, &admA.moves), admA.payloads, true); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.moves.depend(&admA.moves, nil); err != nil {
+			t.Fatal(err)
+		}
+
+		admB := a.newAdmission(world.Candidate{Root: cb, Staged: true}, nil, []*block.BlockRef{p}, nil)
+		if err := a.moves.join(&admB.moves, nil); err != nil {
+			t.Fatal(err)
+		}
+		bctx := withQueuing(ctx, &admB.moves)
+		if err := a.addPayloads(bctx, admB.payloads, true); err != nil {
+			t.Fatal(err)
+		}
+		if !a.moves.queued(&admA.moves) {
+			t.Fatal("the staged payload scope landed the move it borrows")
+		}
+		dropFreed(t, a, collect, p, release, &admA.moves)
+		addErr := addPending(bctx, a, cb)
+		if err := a.moves.depend(&admB.moves, addErr); err == nil {
+			t.Fatal("staged admission survived the drop of the hold it borrowed")
+		}
+		requirePendingWhole(t, a)
+	})
+
+	// An admission built on a candidate whose overflow stage a drop released
+	// must fail, since its World reaches the pages that stage held.
+	t.Run("successor of dropped overflow", func(t *testing.T) {
+		const bound = 64 << 10
+		ctx := t.Context()
+		a, collect, p, release := newDropAdapter(t, "payload-of-the-base-only")
+		leaf := dropPage(t, "leaf", bound+1)
+		rootA := dropPage(t, "rootA", 0, leaf.Ref)
+		cand := world.Candidate{Root: rootA.Ref, Entries: []*block.PutBatchEntry{leaf, rootA}}
+		admA := a.newAdmission(cand, nil, []*block.BlockRef{p}, nil)
+		if err := a.keepAdmitted(ctx, admA); err != nil {
+			t.Fatal(err)
+		}
+		if !a.moves.queued(&admA.moves) {
+			t.Fatal("the base's hold did not queue")
+		}
+		dropFreed(t, a, collect, p, release, &admA.moves)
+		for range 3 {
+			collect()
+		}
+		if _, found, err := a.pages.StoreOps.GetBlock(ctx, leaf.Ref); err != nil || found {
+			t.Fatalf("overflow leaf not freed: found %v: %v", found, err)
+		}
+
+		rootB := dropPage(t, "rootB", 0, leaf.Ref)
+		admB := a.newAdmission(world.Candidate{Root: rootB.Ref, Entries: []*block.PutBatchEntry{rootB}}, nil, nil, nil)
+		admB.after = admA
+		keepErr := a.keepAdmitted(ctx, admB)
+		landErr := a.moves.landFor(ctx, a.pages, &admB.moves)
+		if keepErr == nil && landErr == nil {
+			t.Fatal("successor accepted while its World names a freed page")
+		}
+		requirePendingWhole(t, a)
+	})
+
+	// An admission whose moves landed relies only on durable roots, so a
+	// later drop must leave it able to write its state.
+	t.Run("landed owner spared", func(t *testing.T) {
+		ctx := t.Context()
+		a, collect, p, release := newDropAdapter(t, "payload-of-the-dropped-admission")
+		stage, keep, err := block.OpenStage(ctx, a.pages.StoreOps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer keep()
+		kept, _, err := stage.PutBlock(ctx, []byte("payload-of-the-landed-admission"), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		admA := a.newAdmission(world.Candidate{}, nil, []*block.BlockRef{kept}, nil)
+		if err := a.keepAdmitted(ctx, admA); err != nil {
+			t.Fatal(err)
+		}
+		if !a.moves.queued(&admA.moves) {
+			t.Fatal("the landed admission's hold did not queue")
+		}
+		if err := a.landQueued(ctx, admA); err != nil {
+			t.Fatal(err)
+		}
+
+		admB := a.newAdmission(world.Candidate{}, nil, []*block.BlockRef{p}, nil)
+		if err := a.keepAdmitted(ctx, admB); err != nil {
+			t.Fatal(err)
+		}
+		dropFreed(t, a, collect, p, release, &admB.moves)
+		if err := a.landQueued(ctx, admA); err != nil {
+			t.Fatalf("landed admission failed by a later drop: %v", err)
+		}
+	})
+}
+
+// newDropAdapter opens an adapter that queues its admission moves, and a
+// payload that only the returned stage release holds.
+func newDropAdapter(t *testing.T, payload string) (*Adapter, func(), *block.BlockRef, func()) {
+	t.Helper()
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 64<<10, time.Nanosecond)
 	a.deferMoves = true
-	store := a.pages.StoreOps
-	stage, release, err := block.OpenStage(ctx, store)
+	stage, release, err := block.OpenStage(ctx, a.pages.StoreOps)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer release()
-	p, _, err := stage.PutBlock(ctx, []byte("payload-between-drop-and-candidate"), &block.PutOpts{RefsKnown: true})
+	t.Cleanup(release)
+	p, _, err := stage.PutBlock(ctx, []byte(payload), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	data := []byte("candidate-naming-" + p.MarshalString())
-	c, err := block.BuildBlockRef(data, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	entry := &block.PutBatchEntry{Ref: c, Data: data, Refs: []*block.BlockRef{p}, RefsKnown: true}
-	if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
-		t.Fatal(err)
-	}
+	return a, collect, p, release
+}
 
-	// Queue the payload move, then drop it and free the payload.
-	adm := a.newAdmission(world.Candidate{Root: c}, nil, []*block.BlockRef{p}, nil)
-	a.moves.begin(&adm.moves)
-	qctx := withQueuing(ctx, &adm.moves)
-	if err := a.addPayloads(qctx, adm.payloads, true); err != nil {
+// dropPage returns an entry of at least size bytes referencing children.
+func dropPage(t *testing.T, name string, size int, children ...*block.BlockRef) *block.PutBatchEntry {
+	t.Helper()
+	data := []byte(name)
+	for _, c := range children {
+		data = append(data, c.MarshalString()...)
+	}
+	if len(data) < size {
+		data = append(data, bytes.Repeat([]byte{'.'}, size-len(data))...)
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: children, RefsKnown: true}
+}
+
+// putDropPage stores a page naming child on a's kept pages.
+func putDropPage(t *testing.T, a *Adapter, name string, child *block.BlockRef) *block.BlockRef {
+	t.Helper()
+	e := dropPage(t, name, 0, child)
+	if _, err := a.pages.PutBlockBatch(t.Context(), []*block.PutBatchEntry{e}); err != nil {
+		t.Fatal(err)
+	}
+	return e.Ref
+}
+
+// dropFreed releases the stage holding p, collects p, and lands owner's
+// moves, which the strict move of p makes the store refuse and drop.
+func dropFreed(t *testing.T, a *Adapter, collect func(), p *block.BlockRef, release func(), owner *admissionMoves) {
+	t.Helper()
+	ctx := t.Context()
 	release()
 	for range 3 {
 		collect()
 	}
-	if _, found, err := store.GetBlock(ctx, p); err != nil || found {
+	if _, found, err := a.pages.StoreOps.GetBlock(ctx, p); err != nil || found {
 		t.Fatalf("payload not freed: found %v: %v", found, err)
 	}
-	if err := a.moves.landAll(ctx, a.pages); !errors.Is(err, block.ErrRootNotHeld) {
+	if err := a.moves.landFor(ctx, a.pages, owner); !errors.Is(err, block.ErrRootNotHeld) {
 		t.Fatalf("landing the dropped payload: %v", err)
 	}
+}
 
-	// The candidate move after the drop must be refused.
-	unlock, err := a.lockRoots(qctx)
+// addPending moves the pending Worlds root to hold root, as a candidate scope
+// does.
+func addPending(ctx context.Context, a *Adapter, root *block.BlockRef) error {
+	unlock, err := a.lockRoots(ctx)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	addErr := a.addRoot(qctx, &a.pendingWorlds, c)
-	unlock()
-	if addErr == nil {
-		t.Fatal("candidate move queued after its payload move was dropped")
-	}
-	if err := a.moves.depend(&adm.moves); err == nil {
-		t.Fatal("admission survived the drop of its payload move")
-	}
+	defer unlock()
+	return a.addRoot(ctx, &a.pendingWorlds, root)
+}
 
-	// A later landing stores no root naming the freed payload.
+// requirePendingWhole lands every queued move and fails when the stored
+// pending Worlds root names a freed block.
+func requirePendingWhole(t *testing.T, a *Adapter) {
+	t.Helper()
+	ctx := t.Context()
 	if err := a.moves.landAll(ctx, a.pages); err != nil {
 		t.Fatal(err)
 	}
+	store := a.pages.StoreOps
 	root, err := store.GetRoot(ctx, RootPending)
 	if err != nil {
 		t.Fatal(err)

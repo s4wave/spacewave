@@ -70,6 +70,13 @@ func (a *Adapter) landQueued(ctx context.Context, adm *spaceAdmission) error {
 			return err
 		}
 	}
+	return a.landMoves(ctx, adm)
+}
+
+// landMoves lands adm's queued root moves, and those queued before them,
+// ordered behind adm's state write when the adapter orders holds. It returns
+// the error of the drop that failed adm.
+func (a *Adapter) landMoves(ctx context.Context, adm *spaceAdmission) error {
 	if a.orderedHolds {
 		ctx = kvtx.WithOrderedCommitContext(ctx)
 	}
@@ -121,17 +128,14 @@ func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries 
 		return nil
 	}
 
-	// Queue an admission's move on the kept pages for its durable step, or
-	// land the queued moves before a move that builds on what they hold.
+	// Queue an admission's move on the kept pages, or land the queued moves
+	// before a move that builds on what they hold.
 	if owner := queuing(ctx); owner != nil && store == block.RootOps(a.pages) {
-		queued, err := a.queueMove(ctx, owner, entries, moves)
-		if err != nil {
+		if err := a.queueMove(ctx, owner, entries, moves); err != nil {
 			return err
 		}
-		if queued {
-			a.noteHeld(moves)
-			return nil
-		}
+		a.noteHeld(moves)
+		return nil
 	}
 	if a.deferMoves {
 		if err := a.moves.landAll(ctx, a.pages); err != nil {
@@ -147,10 +151,10 @@ func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries 
 
 // queueMove queues the moves for owner's durable step once the blocks they
 // require held are held now, as block.NamedRoot.RequireHeld decides. It
-// refuses with block.ErrRootNotHeld as SetRoots would, and reports false when
-// the store cannot tell, so the caller moves in the turn. The caller holds
-// rootMtx.
-func (a *Adapter) queueMove(ctx context.Context, owner *admissionMoves, entries []*block.PutBatchEntry, moves []block.NamedRoot) (bool, error) {
+// refuses with block.ErrRootNotHeld as SetRoots would. When the store cannot
+// tell, it queues the moves and lands them at once, so SetRoots checks them.
+// The caller holds rootMtx.
+func (a *Adapter) queueMove(ctx context.Context, owner *admissionMoves, entries []*block.PutBatchEntry, moves []block.NamedRoot) error {
 	// Find the stored blocks the strict moves reach past the blocks they and
 	// the queued moves store.
 	var need []*block.BlockRef
@@ -167,19 +171,19 @@ func (a *Adapter) queueMove(ctx context.Context, owner *admissionMoves, entries 
 			a.heldUnknown.Do(func() {
 				a.le.Info("block store cannot report held blocks, admission root moves land in the turn")
 			})
-			return false, nil
+			if err := a.moves.push(owner, entries, moves); err != nil {
+				return err
+			}
+			return a.moves.landFor(ctx, a.pages, owner)
 		}
 		if err != nil {
-			return false, err
+			return err
 		}
 		if i := slices.Index(held, false); i >= 0 {
-			return false, errors.Wrap(block.ErrRootNotHeld, need[i].MarshalString())
+			return errors.Wrap(block.ErrRootNotHeld, need[i].MarshalString())
 		}
 	}
-	if err := a.moves.push(owner, entries, moves); err != nil {
-		return false, err
-	}
-	return true, nil
+	return a.moves.push(owner, entries, moves)
 }
 
 // storedBoundary returns the blocks the tree under ref reaches outside entries

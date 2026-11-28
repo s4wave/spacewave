@@ -27,26 +27,30 @@ import (
 // from Admit until the collector can see the durable root that holds it, and
 // that root commits no later than the state write that queues the operation.
 // The writer's stage ends with the transaction's retirement, before the
-// durable step, so the moves of a candidate it holds pages of (Staged) land in
-// the turn and never queue. The overflow stage lasts until the admission's
-// newest move lands or is dropped. A sweep keeps the pages the queued moves
-// reach.
+// durable step, so an admission whose candidate it holds pages of (Staged)
+// lands its queued moves before its turn ends. The overflow stage lasts until
+// the admission's newest move lands or is dropped. A sweep keeps the pages the
+// queued moves reach.
 // opQueue.execute lands an admission's moves before it writes the state, and
 // a queued move that requires its blocks held keeps RequireHeld, so a block
 // freed after the turn's check refuses the landing and fails the admission
 // instead of being named.
 //
-// An admission that finds a block already held by another admission's queued
-// move borrows that hold. depend makes the borrow visible to a drop: it
-// queues an empty marker move behind the moves the admission saw, so a drop
-// fails it too, and it fails the admission at once when a drop came between
-// begin and depend, since its view then named moves no landing will store.
-// A lander drops without rootMtx, so a drop can fall between two moves of one
-// turn, such as its payload move and its candidate move, however the turn
-// holds rootMtx. push therefore refuses a move for an owner whose turn began
-// before the latest drop: every move an owner queues belongs to one drop
-// epoch and is dropped with the others. RootMoveQueue.tla models it as
-// DurableStateHolds and DurableGraphWhole.
+// Ownership: an admission relies on holds other admissions queued, a payload
+// another admission's move holds, or the pages of the pending candidate its
+// transaction built on, which that candidate's overflow stage holds. A drop
+// releases them, so it fails every owner that can rely on them, in the same
+// step that empties the queue: each owner with a queued move and each owner
+// whose turn is in flight, between join and depend. An owner whose moves all
+// landed relies only on durable roots and is unaffected. join fails an owner
+// whose base, the admission its transaction built on, a drop failed. push
+// refuses a failed owner, and every move an admission makes is a push, those
+// of a staged candidate and of a store that cannot report its held blocks
+// included, which land at once through landFor. So no landing stores a move
+// whose holds a drop released. depend ends the turn: it queues an empty marker
+// move behind the moves the owner's turn saw, so its durable step lands them
+// first. RootMoveQueue.tla models it as DurableStateHolds, DurableGraphWhole
+// and LandedKept.
 //
 // Locks: rootMtx, then landMtx, then mtx. A lander holds landMtx across the
 // store's SetRoots and never needs rootMtx, so a turn that queues a move under
@@ -66,28 +70,43 @@ type rootMoveQueue struct {
 	// stale is set when a dropped move left the adapter's held roots and root
 	// sets ahead of the store.
 	stale bool
-	// epoch counts the drops, and dropped is the error of the latest one.
-	epoch   uint64
-	dropped error
+	// turns are the owners between join and depend.
+	turns map[*admissionMoves]struct{}
 }
 
-// begin records the drop epoch before owner's turn reads the held view.
-func (q *rootMoveQueue) begin(owner *admissionMoves) {
-	q.mtx.Lock()
-	owner.epoch = q.epoch
-	q.mtx.Unlock()
-}
-
-// depend ends owner's turn: it fails with the drop's error when a drop came
-// since begin, and otherwise queues an empty marker move unless owner's newest
-// move is the last one queued, so every queued hold owner's view borrowed
-// fails owner when it drops. The caller holds no lock of the queue.
-func (q *rootMoveQueue) depend(owner *admissionMoves) error {
-	// Fail on a drop since begin, or queue the marker behind what owner saw.
+// join starts owner's turn, which builds on base's candidate, or on durable
+// roots for a nil base. It fails owner with the error of the drop that failed
+// base, since owner's World may reach pages only base's dropped moves held.
+func (q *rootMoveQueue) join(owner, base *admissionMoves) error {
+	// Inherit base's failure, or count owner among the turns a drop fails.
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
-	if owner.epoch != q.epoch {
-		return q.dropped
+	if base != nil && base.err != nil {
+		owner.err = base.err
+		return owner.err
+	}
+	if q.turns == nil {
+		q.turns = make(map[*admissionMoves]struct{})
+	}
+	q.turns[owner] = struct{}{}
+	return nil
+}
+
+// depend ends owner's turn, which failed with err or held its roots. It
+// returns err or the error of a drop that failed owner, and otherwise queues
+// an empty marker move unless owner's newest move is the last one queued, so
+// owner's durable step lands every move its turn saw and a drop of any of
+// them fails owner.
+func (q *rootMoveQueue) depend(owner *admissionMoves, err error) error {
+	// End the turn, then queue the marker behind what owner saw.
+	q.mtx.Lock()
+	defer q.mtx.Unlock()
+	delete(q.turns, owner)
+	if err != nil {
+		return err
+	}
+	if owner.err != nil {
+		return owner.err
 	}
 	if n := len(q.moves); n != 0 && q.moves[n-1].seq != owner.seq {
 		q.appendLocked(&queuedRootMove{owner: owner})
@@ -96,17 +115,15 @@ func (q *rootMoveQueue) depend(owner *admissionMoves) error {
 }
 
 // push queues a move that roots makes with entries for owner and records it as
-// owner's newest move. It refuses with the drop's error when a drop came since
-// owner's begin: that drop removed owner's earlier moves, such as the strict
-// move that holds a payload the new move reaches, so every move of an owner
-// belongs to one drop epoch and no move outlives the holds queued before it.
-// The caller holds rootMtx.
+// owner's newest move. It refuses with the drop's error an owner a drop
+// failed, whose earlier moves and the holds they made are gone. The caller
+// holds rootMtx.
 func (q *rootMoveQueue) push(owner *admissionMoves, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	// Append the move unless a drop since begin removed owner's earlier moves.
+	// Append the move unless a drop failed owner.
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
-	if owner.epoch != q.epoch {
-		return q.dropped
+	if owner.err != nil {
+		return owner.err
 	}
 	q.appendLocked(&queuedRootMove{owner: owner, entries: entries, roots: roots})
 	return nil
@@ -273,21 +290,22 @@ func (q *rootMoveQueue) drop(ctx context.Context, err error) error {
 	return nil
 }
 
-// dropLocked fails the admissions of every queued move with err, marks the
-// held view stale and releases the moves' stages. The caller holds landMtx.
+// dropLocked fails with err the owners of every queued move and every turn in
+// flight, empties the queue, marks the held view stale and releases the
+// moves' stages. The caller holds landMtx.
 func (q *rootMoveQueue) dropLocked(err error) {
-	// Empty the queue, failing each owner, then end the stages outside mtx.
+	// Empty the queue, failing each owner that can rely on it, then end the
+	// stages outside mtx.
 	q.mtx.Lock()
 	ended := q.moves
 	for _, m := range ended {
 		m.owner.err = err
 	}
+	for owner := range q.turns {
+		owner.err = err
+	}
 	q.done = q.seq
 	q.moves, q.stale = nil, true
-
-	// Fail the turns that read the view before the drop, as depend checks.
-	q.epoch++
-	q.dropped = err
 	q.mtx.Unlock()
 	releaseMoves(ended)
 }

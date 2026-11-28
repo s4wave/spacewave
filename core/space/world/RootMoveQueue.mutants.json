@@ -1,30 +1,74 @@
 [
   {
-    "name": "QueueStaged: a staged admission queues its page move past its writer's stage",
+    "name": "UngatedPush (A1): push accepts a move from an owner a drop failed",
     "replace": [
       [
-        "LandStaged == TRUE",
-        "LandStaged == FALSE"
+        "GatePush == TRUE",
+        "GatePush == FALSE"
       ]
     ],
     "expect": "DurableGraphWhole"
   },
   {
-    "name": "NoMarker: an admission that borrows a queued hold queues no move",
+    "name": "StagedDirect (B1): a staged admission lands its moves in the turn without push",
+    "replace": [
+      [
+        "StagedThroughQueue == TRUE",
+        "StagedThroughQueue == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
+  },
+  {
+    "name": "NoInherit (B2): an owner joins on a base a drop failed",
+    "replace": [
+      [
+        "InheritBase == TRUE",
+        "InheritBase == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
+  },
+  {
+    "name": "CurrentHead: f3ffc282f1, staged moves land without push and no owner inherits its base's failure",
+    "replace": [
+      [
+        "StagedThroughQueue == TRUE",
+        "StagedThroughQueue == FALSE"
+      ],
+      [
+        "InheritBase == TRUE",
+        "InheritBase == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
+  },
+  {
+    "name": "QueuedOnlyFail: a drop fails only the owners with queued moves",
+    "replace": [
+      [
+        "FailLive == TRUE",
+        "FailLive == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
+  },
+  {
+    "name": "NoMarker: an owner's durable step does not wait for the moves its turn saw",
     "replace": [
       [
         "Markers == TRUE",
         "Markers == FALSE"
       ]
     ],
-    "expect": "DurableGraphWhole"
+    "expect": "DurableStateHolds"
   },
   {
-    "name": "NoEpochCheck: a drop between the view read and the queueing goes unseen",
+    "name": "QueueStaged: a staged admission's moves stay queued past its writer's stage",
     "replace": [
       [
-        "EpochCheck == TRUE",
-        "EpochCheck == FALSE"
+        "LandNow == TRUE",
+        "LandNow == FALSE"
       ]
     ],
     "expect": "DurableGraphWhole"
@@ -50,13 +94,23 @@
     "expect": "DurableStateHolds"
   },
   {
-    "name": "SplitLock: a candidate move queues after a drop removed its turn's payload move",
+    "name": "FailLanded: a drop also fails an owner whose moves landed and whose state write is in flight",
     "replace": [
       [
-        "BoundPush == TRUE",
-        "BoundPush == FALSE"
+        "/\\ err' = [y \\in Admissions |-> err[y] \\/ Live(y)]",
+        "/\\ err' = [y \\in Admissions |-> err[y] \\/ Live(y) \\/ (reg[y] /\\ phase[y] = \"queued\")]"
       ]
     ],
-    "expect": "DurableGraphWhole"
+    "expect": "LandedKept"
+  },
+  {
+    "name": "SpareQueued: a drop spares an owner whose moves are still queued",
+    "replace": [
+      [
+        "\\/ phase[x] \\in {\"queued\", \"landing\"} /\\ Owns(queue, x)",
+        "\\/ phase[x] = \"landing\" /\\ Owns(queue, x)"
+      ]
+    ],
+    "expect": "DurableStateHolds"
   }
 ]
