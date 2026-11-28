@@ -153,7 +153,8 @@ const (
 //     through unionCopied: both may lack a child, so a copy that repairs a
 //     short list, such as a retried restore, keeps every child either one
 //     names, and the union only keeps a block longer. A gained child is held
-//     as markStored holds one.
+//     as markStored holds one, and checked through holdGained as a born
+//     block's child is.
 //  2. While Open, a copied entry of a block without a list, or with a zero
 //     count and none, is born with its refs as an unverified list, through
 //     Records.putCopied, which enters it in the run and on the front in the
@@ -266,19 +267,9 @@ func Land(
 		}
 	}
 
-	// Mark the unverified lists of the stored blocks the Land puts again,
-	// and union the copied refs into those it puts again from a copy.
-	if l.gen == Generation_GENERATION_OPEN {
-		for _, entry := range l.stored {
-			if err := l.markStored(ctx, entry); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, entry := range l.copiedStored {
-		if err := l.unionCopied(ctx, entry); err != nil {
-			return nil, err
-		}
+	// Mark or union the unverified lists of the stored blocks put again.
+	if err := l.relistStored(ctx); err != nil {
+		return nil, err
 	}
 
 	// Count the holders the born blocks give their children.
@@ -1012,6 +1003,26 @@ func adoptCounted(state *LivenessState, key []byte) bool {
 	}
 }
 
+// relistStored updates the unverified lists of the stored blocks the Land
+// puts again: while Open it marks the union with the refs of those put from
+// content, through markStored, and in any generation it unions the refs of
+// those put from a copy, through unionCopied.
+func (l *lander) relistStored(ctx context.Context) error {
+	if l.gen == Generation_GENERATION_OPEN {
+		for _, entry := range l.stored {
+			if err := l.markStored(ctx, entry); err != nil {
+				return err
+			}
+		}
+	}
+	for _, entry := range l.copiedStored {
+		if err := l.unionCopied(ctx, entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // markStored marks the unverified list of the stored block entry puts
 // again, while the generation is Open, as Land describes.
 func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) error {
@@ -1022,12 +1033,9 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 		return err
 	}
 
-	// Write the union, marked, and keep the front invariant. An adoption
-	// compares the union with the old list after the write.
-	var old []byte
-	if l.adopting {
-		old = bytes.Clone(listKeys(value))
-	}
+	// Write the union, marked, and keep the front invariant. The gained
+	// children are read from the old list after the write.
+	old := bytes.Clone(listKeys(value))
 	packed, gained, _, err := l.rec.mergeList(ctx, key, value, entry.Refs, false)
 	if err != nil {
 		return err
@@ -1045,6 +1053,11 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 		}
 	case adoptCounted(l.state, key):
 		l.up = appendGained(l.up, old, packed)
+	}
+	if gained {
+		if err := l.holdGained(ctx, old, packed); err != nil {
+			return err
+		}
 	}
 	return l.rec.markedYoung(ctx, key, packed, nil)
 }
@@ -1068,11 +1081,14 @@ func (l *lander) unionCopied(ctx context.Context, entry *block.PutBatchEntry) er
 	if err != nil || bytes.Equal(union, old) {
 		return err
 	}
+	if err := l.holdGained(ctx, old, union); err != nil {
+		return err
+	}
 	if err := l.rec.tx.Set(ctx, l.rec.key(kindChildren, key), union); err != nil {
 		return err
 	}
 
-	// Hold the gained children as markStored does.
+	// Count the gained children's holder as markStored does.
 	switch {
 	case !l.logs:
 	case !l.adopting:
@@ -1081,6 +1097,49 @@ func (l *lander) unionCopied(ctx context.Context, entry *block.PutBatchEntry) er
 		l.up = appendGained(l.up, bytes.Clone(old), union)
 	}
 	return nil
+}
+
+// holdGained checks the holds a stored block's list gains when it grows from
+// the encoded list old to union, as holdChildren checks a born block's
+// children outside the batch: a hidden child refuses the Land with an
+// AbsentError, an unverified one joins the front while Open, and on a Volume
+// that keeps the logs a listed child leaves the free queue and one stored
+// without a list refuses the Land with block.ErrRefsUnknown, since no list
+// would hold its own children. A child the batch gives birth to is stored by
+// this Land with its list. It reads the gained children's lists in one batch,
+// and the bytes of those without a list in one more.
+func (l *lander) holdGained(ctx context.Context, old, union []byte) error {
+	// Gather the gained children the batch does not give birth to.
+	var refs []*block.BlockRef
+	var keys [][]byte
+	for _, key := range appendGained(nil, old, union) {
+		if _, ok := l.born[string(key)]; ok {
+			continue
+		}
+		ref, _, err := ParseBlockKey(key)
+		if err != nil {
+			return err
+		}
+		refs, keys = append(refs, ref), append(keys, key)
+	}
+	if len(refs) == 0 {
+		return nil
+	}
+
+	// Pass each the settle's check, dequeue the listed ones, and require the
+	// unlisted ones absent.
+	listed, err := l.holdOutside(ctx, refs, keys)
+	if err != nil || !l.logs {
+		return err
+	}
+	for i, ok := range listed {
+		if ok {
+			if err := l.dequeue(ctx, keys[i]); err != nil {
+				return err
+			}
+		}
+	}
+	return l.requireListed(ctx, refs, listed)
 }
 
 // holdChildren counts the holder each born block gives each child: an

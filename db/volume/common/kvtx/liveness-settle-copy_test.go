@@ -177,6 +177,37 @@ func testLivenessSettleCopy(t *testing.T,
 		})
 	}
 
+	t.Run("copied union refuses a child stored without a list", func(t *testing.T) {
+		// P is rooted with an empty copied list, and a partial raw copy left
+		// C's bytes stored without a list. A copied put of P naming C would
+		// hold a block whose own children nothing holds, so the Land refuses
+		// it as a born block naming C is refused, and P's list stays.
+		ctx := t.Context()
+		v, _ := newLivenessVolume(t, true)
+		tr := testTree{}
+		tr.add(t, "C")
+		tr.add(t, "P", "C")
+		if err := v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, "P")}, []block.NamedRoot{{Name: "main", Ref: tr["P"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.withDirectAtomic(ctx, func(tx *physicalTx) error {
+			_, err := tx.blocks.PutBlockBatch(ctx, tr.entries("C"))
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, listed, err := v.GetChildren(ctx, tr["C"].Ref); err != nil || listed {
+			t.Fatalf("raw C listed %v, err %v", listed, err)
+		}
+		err := v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, "P", tr["C"].Ref)}, nil)
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("union onto a stored unlisted child: %v, want ErrRefsUnknown", err)
+		}
+		if got := listOf(t, v, tr["P"].Ref); len(got) != 0 {
+			t.Fatalf("refused union listed %v", got)
+		}
+	})
+
 	t.Run("copied fill of a block not listed", func(t *testing.T) {
 		// A fill drops the copied P, whose list lacks C, and counts it. A
 		// root onto P is then refused, as onto any block not stored, and C
