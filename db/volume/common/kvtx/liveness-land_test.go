@@ -117,8 +117,9 @@ func testLivenessLand(t *testing.T) {
 
 	t.Run("child put again with its stored parent", func(t *testing.T) {
 		// A staged copy puts P under main before its child C, then puts
-		// C in a batch with P again. P's list holds C, so a Volume with
-		// frees on lets the batch in. C alone it refuses.
+		// C in a batch with P again, P as a copy writes it, with refs it
+		// did not read from content. P's stored list holds C, so a Volume
+		// with frees on lets the batch in. C alone it refuses.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -130,8 +131,10 @@ func testLivenessLand(t *testing.T) {
 		if _, err := v.PutBlockBatch(ctx, tr.entries("C")); !errors.Is(err, block.ErrUnheldPut) {
 			t.Fatalf("unheld put returned %v, want ErrUnheldPut", err)
 		}
-		if _, err := v.PutBlockBatch(ctx, tr.entries("P", "C")); err != nil {
-			t.Fatal(err)
+		copied := *tr["P"]
+		copied.RefsKnown = false
+		if _, err := v.PutBlockBatch(ctx, append([]*block.PutBatchEntry{&copied}, tr.entries("C")...)); err != nil {
+			t.Fatalf("put again with a copied parent: %v", err)
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)

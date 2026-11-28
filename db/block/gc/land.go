@@ -283,7 +283,7 @@ func Land(
 	}
 
 	// Refuse or count the born blocks nothing holds.
-	if err := l.requirePutsHeld(puts); err != nil {
+	if err := l.requirePutsHeld(ctx, puts); err != nil {
 		return nil, err
 	}
 
@@ -362,6 +362,10 @@ type lander struct {
 	// stored are the first entries of the blocks stored with a child list,
 	// whose lists markStored checks.
 	stored []*block.PutBatchEntry
+	// kept are the copied entries of blocks stored with a child list, parked
+	// ones included, whose stored lists stay as they were and hold their
+	// children, as requirePutsHeld reads.
+	kept []*block.PutBatchEntry
 	// holds are the root targets and the zero counts classifyPuts reads for
 	// the stored blocks the Land holds, which it dequeues.
 	holds zeroHolds
@@ -466,7 +470,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.refills = append(l.refills, entry)
 			l.touched[key] = entry
 		case kind == putStored:
-			if !copied {
+			if copied {
+				l.kept = append(l.kept, entry)
+			} else {
 				l.stored = append(l.stored, entry)
 			}
 			l.touched[key] = entry
@@ -474,6 +480,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			b := &bornBlock{ref: entry.Ref, repark: true, keep: true}
 			l.born[key] = b
 			l.order = append(l.order, b)
+			l.kept = append(l.kept, entry)
 		case copied && l.gen == Generation_GENERATION_SWEEPING:
 			return errors.Wrapf(ErrSweeping, "copied put of %s", entry.Ref.MarshalString())
 		case copied && l.gen == Generation_GENERATION_SETTLED:
