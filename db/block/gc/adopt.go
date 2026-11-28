@@ -136,6 +136,7 @@ func Adopt(ctx context.Context, store Store, now func() time.Time) (AdoptResult,
 	// Count the holders, refuse a block stored without a child list, and
 	// settle the stored blocks' counts, marking the Volume adopted.
 	a := &adoption{store: store, run: run, res: &res}
+	a.watch, _ = store.(AdoptWatcher)
 	if err := a.count(ctx); err != nil {
 		return res, abandonAdopt(ctx, store, run, err)
 	}
@@ -357,6 +358,10 @@ type adoption struct {
 	run string
 	// res is the result.
 	res *AdoptResult
+	// watch follows the run's progress, or is nil.
+	watch AdoptWatcher
+	// slices counts the slices the run handled.
+	slices uint64
 }
 
 // count runs the adoption's passes from the cursor: it counts every holder
@@ -449,6 +454,7 @@ func (a *adoption) pass(ctx context.Context, p AdoptPhase, slice adoptSlice, end
 			}
 		}
 		a.report(cur)
+		a.progress(p)
 		return struct{}{}, more, rec.SetState(ctx, state)
 	})
 	return err
@@ -462,6 +468,14 @@ func (a *adoption) report(cur *AdoptCursor) {
 	a.res.Counted = cur.GetCounted()
 	a.res.Queued = cur.GetQueued()
 	a.res.Unknown = cur.GetUnknown()
+}
+
+// progress tells the watcher that the run handled a slice of phase p.
+func (a *adoption) progress(p AdoptPhase) {
+	a.slices++
+	if a.watch != nil {
+		a.watch.AdoptProgress(AdoptProgress{Phase: p, Slices: a.slices, Blocks: a.res.Blocks, Queued: a.res.Queued})
+	}
 }
 
 // countChildren counts a holder of each child of the blocks of the next

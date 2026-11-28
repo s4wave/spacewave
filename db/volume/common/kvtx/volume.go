@@ -147,6 +147,9 @@ type Volume struct {
 	obsoleteDone chan struct{}
 	// adoptCancel stops the background adoption, nil without one.
 	adoptCancel context.CancelFunc
+	// adoptLogged is when the adoption in progress last logged, guarded by
+	// adoptMu.
+	adoptLogged time.Time
 	// adoptDone closes when the background adoption has stopped.
 	adoptDone chan struct{}
 	// adoptWake holds one pending request for a background adoption pass,

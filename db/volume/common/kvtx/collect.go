@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -49,6 +50,26 @@ func (s collectorStore) Update(ctx context.Context, fn func(rec *block_gc.Record
 	return s.v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		return fn(p.rec, p.blocks)
 	})
+}
+
+// adoptLogInterval is the longest an adoption in progress goes unreported.
+const adoptLogInterval = time.Minute
+
+// AdoptProgress logs an adoption in progress once an interval, so a Volume
+// that adopts for hours shows its pass and how far it has come. One adoption
+// runs at a time, under adoptMu, which guards adoptLogged.
+func (s collectorStore) AdoptProgress(p block_gc.AdoptProgress) {
+	v, now := s.v, time.Now()
+	if v.le == nil || now.Sub(v.adoptLogged) < adoptLogInterval {
+		return
+	}
+	v.adoptLogged = now
+	v.le.
+		WithField("phase", p.Phase.String()).
+		WithField("slices", p.Slices).
+		WithField("blocks", p.Blocks).
+		WithField("queued", p.Queued).
+		Info("adopting the volume")
 }
 
 // View runs fn in one read snapshot of the liveness records.
