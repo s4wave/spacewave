@@ -275,8 +275,8 @@ func testLivenessSettleFlip(t *testing.T,
 		}
 		passes(t, v, clk, 3)
 		requireStored(t, v, tr, false, "P", "C", "E")
-		if has(t, store, run, nil) {
-			t.Fatal("the run outlived the settle")
+		if !has(t, store, run, nil) || countPrefix(t, store, run) != 1 {
+			t.Fatal("the settle did not retain only its proof mark")
 		}
 		requireAudit(t, v, 0)
 	})

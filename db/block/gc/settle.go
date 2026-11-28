@@ -277,8 +277,9 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 //     sweep deleted every unmarked block and every released key with it, the
 //     collector moved every other parked block to the free queue, the flip
 //     deleted the pop mark, and the settle's last step
-//     deleted the run. Every list is marked, since while Sweeping and
-//     Settled no writer stores an unmarked one. So the only unverified list
+//     deleted the run's block entries, retaining only the flip mark. Every
+//     list is marked, since while Sweeping and Settled no writer stores an
+//     unmarked one. So the only unverified list
 //     is the copied block's, which putCopied enters in the run, and reopen
 //     writes the run's completion entry: the run is complete, as the build
 //     would find it.
@@ -1239,7 +1240,11 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 		return nil
 	}
 
-	// Flip.
+	// Certify this proof's writer atomically with the flip. A mark left from
+	// building the run cannot identify a later writer that proves the front.
+	if err := rec.CertifyGeneration(ctx); err != nil {
+		return err
+	}
 	state.Generation = Generation_GENERATION_SWEEPING
 	state.GenerationVerifierRevision = ListVerifierRevision
 	res.Flipped = true
@@ -1320,9 +1325,9 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 
 // dropRunSlice deletes the run entries page names, read after the key
 // position from in a read snapshot, once a sweep pass left no unmarked
-// block, and, when page reached the run's last entry, deletes the
-// completion entry and settles the generation. No entry joins the run while
-// Sweeping, so a page that reached the end in the snapshot still does.
+// block, and, when page reached the run's last entry, settles the generation
+// while retaining the flip's verifier mark for ordinary zero-holder frees.
+// No entry joins the run while Sweeping, so a page that reached the end in the snapshot still does.
 func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, error) {
 	// Drop only while Sweeping.
 	state, err := rec.GetState(ctx)
@@ -1342,10 +1347,7 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 		return from, true, nil
 	}
 
-	// Past the last, delete the completion entry and settle.
-	if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, runComplete)); err != nil {
-		return from, false, err
-	}
+	// Past the last, retain the proof writer's mark and settle.
 	state.Generation = Generation_GENERATION_SETTLED
 	res.Settled = true
 	return from, false, rec.SetState(ctx, state)

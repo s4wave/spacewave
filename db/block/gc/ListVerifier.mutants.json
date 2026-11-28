@@ -47,12 +47,12 @@
     "name": "stale sweeping generation bypasses the state fence",
     "replace": [
       [
-        "s.revision = Current \\/ Skip = s.gen\n                THEN s.gen",
-        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n                THEN s.gen"
+        "Writer \\/ Skip = s.gen\n                THEN s.gen",
+        "Writer \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n                THEN s.gen"
       ],
       [
-        "s.revision = Current \\/ Skip = s.gen\n              THEN s.adoption",
-        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n              THEN s.adoption"
+        "Writer \\/ Skip = s.gen\n              THEN s.adoption",
+        "Writer \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n              THEN s.adoption"
       ]
     ],
     "expect": "ChildSurvives",
@@ -62,12 +62,12 @@
     "name": "stale settled generation bypasses the state fence",
     "replace": [
       [
-        "s.revision = Current \\/ Skip = s.gen\n                THEN s.gen",
-        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"settled\"\n                THEN s.gen"
+        "Writer \\/ Skip = s.gen\n                THEN s.gen",
+        "Writer \\/ Skip = s.gen \\/ s.gen = \"settled\"\n                THEN s.gen"
       ],
       [
-        "s.revision = Current \\/ Skip = s.gen\n              THEN s.adoption",
-        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"settled\"\n              THEN s.adoption"
+        "Writer \\/ Skip = s.gen\n              THEN s.adoption",
+        "Writer \\/ Skip = s.gen \\/ s.gen = \"settled\"\n              THEN s.adoption"
       ]
     ],
     "expect": "ChildSurvives",
@@ -82,6 +82,39 @@
       ]
     ],
     "expect": "CurrentRevoked",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "an older flip trusts the carried revision field",
+    "replace": [
+      [
+        "Writer == s.revision = Current /\\ (s.gen = \"open\" \\/ s.flip = Current)",
+        "Writer == s.revision = Current"
+      ]
+    ],
+    "expect": "ChildSurvives",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "settle discards the proof writer mark",
+    "replace": [
+      [
+        "s' = [s EXCEPT !.gen = \"settled\"]",
+        "s' = [s EXCEPT !.gen = \"settled\", !.flip = 0]"
+      ]
+    ],
+    "expect": "SettledProof",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "reopen carries the flip writer mark",
+    "replace": [
+      [
+        "!.gen = \"open\", !.flip = 0",
+        "!.gen = \"open\", !.flip = s.flip"
+      ]
+    ],
+    "expect": "ChildSurvives",
     "config": "ListVerifier.cfg"
   }
 ]

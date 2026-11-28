@@ -211,6 +211,12 @@ const ListVerifierRevision = 2
 // The two zero bytes distinguish it from a legacy mark followed by block keys.
 var listMark = []byte{0, 0, ListVerifierRevision}
 
+// flipMark certifies the writer that atomically flipped a proved generation.
+// A run-completion mark alone is insufficient: older writers can accept it
+// without replacing it, just as they preserve unknown state fields.
+// Reopen replaces this mark; Settled retains it to authorize ordinary frees.
+var flipMark = []byte{0, 0, ListVerifierRevision, 'f'}
+
 // The unmarked run's values, and the key of its completion entry.
 var (
 	// runReborn is the value of a run entry whose block a put stored again
@@ -223,8 +229,9 @@ var (
 	// of the block after the sweep is a birth, not a rebirth.
 	runSwept = []byte{'s'}
 	// runComplete is the key after the kind of the entry that says the run
-	// contains every block the store holds without a list from content. A
-	// block key is never empty, so no block's entry has this key.
+	// contains every block the store holds without a list from content. The
+	// flip replaces listMark with flipMark and retains it through Settled.
+	// A block key is never empty, so no block's entry has this key.
 	runComplete = []byte{}
 )
 
@@ -1161,12 +1168,19 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	})
 }
 
+// CertifyGeneration records this verifier's proof of the generation.
+// The caller must prove the generation safe to sweep (or the Volume empty),
+// and write its state in the same transaction. Reopen invalidates this proof.
+func (r *Records) CertifyGeneration(ctx context.Context) error {
+	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), flipMark)
+}
+
 // runIncomplete reports whether this verifier has not completed the run.
 // An earlier verifier may have omitted lists its marks certified.
 // It reads one key.
 func (r *Records) runIncomplete(ctx context.Context) (bool, error) {
 	value, _, err := r.tx.Get(ctx, r.key(kindUnmarked, runComplete))
-	return !bytes.Equal(value, listMark), err
+	return !bytes.Equal(value, listMark) && !bytes.Equal(value, flipMark), err
 }
 
 // addFront pushes the block at key onto the front, raising the add
@@ -1596,7 +1610,20 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 	if !found {
 		state.GenerationVerifierRevision = ListVerifierRevision
 	}
-	if state.GetGenerationVerifierRevision() != ListVerifierRevision {
+
+	// A proof authorizes frees only if the proving writer wrote its revision
+	// with the flip. Older writers preserve unknown state fields verbatim,
+	// and their flips leave an absent or run-completion mark, never flipMark.
+	// Cost: one indexed point read per non-Open state read, no scan or lock.
+	verified := true
+	if found && state.GetGeneration() != Generation_GENERATION_OPEN {
+		mark, _, err := r.tx.Get(ctx, r.key(kindUnmarked, runComplete))
+		if err != nil {
+			return state, err
+		}
+		verified = bytes.Equal(mark, flipMark)
+	}
+	if state.GetGenerationVerifierRevision() != ListVerifierRevision || !verified {
 		state.Generation = Generation_GENERATION_OPEN
 		state.GenerationVerifierRevision = ListVerifierRevision
 		r.unadopt(state)

@@ -51,8 +51,8 @@ func testLivenessSettleSweep(t *testing.T,
 		if !errors.As(err, &unmarked) || !errors.Is(err, block.ErrRefsUnknown) || !unmarked.Ref.EqualsRef(tr["U"].Ref) {
 			t.Fatalf("root onto the unmarked U err %v, want an AbsentError", err)
 		}
-		if res := collectUntil(t, v, clk, settled); res.Swept != 2 || has(t, store, run, nil) {
-			t.Fatalf("sweep = %+v, want U and K swept and the run gone", res)
+		if res := collectUntil(t, v, clk, settled); res.Swept != 2 || !has(t, store, run, nil) || countPrefix(t, store, run) != 1 {
+			t.Fatalf("sweep = %+v, want U and K swept and only the proof mark retained", res)
 		}
 		requireStored(t, v, tr, false, "U", "K")
 		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SETTLED {

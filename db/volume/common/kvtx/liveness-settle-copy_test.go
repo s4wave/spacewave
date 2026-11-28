@@ -434,7 +434,7 @@ func testLivenessSettleCopy(t *testing.T,
 		until(settled)
 		requireStored(t, v, tr, true, "A", behind, ahead)
 		requireStored(t, v, tr, false, names[1:len(names)-1]...)
-		if has(t, store, run, nil) {
+		if !has(t, store, run, nil) || countPrefix(t, store, run) != 1 {
 			t.Fatal("the drop left run entries")
 		}
 
@@ -460,7 +460,7 @@ func testLivenessSettleCopy(t *testing.T,
 		}
 		until(settled)
 		requireStored(t, v, tr, false, name)
-		if has(t, store, run, nil) {
+		if !has(t, store, run, nil) || countPrefix(t, store, run) != 1 {
 			t.Fatal("the second drop left run entries")
 		}
 		requireAudit(t, v, 0)

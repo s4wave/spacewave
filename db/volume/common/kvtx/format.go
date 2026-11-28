@@ -100,7 +100,9 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	}
 	if empty {
 		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees, GenerationVerifierRevision: block_gc.ListVerifierRevision}
-		return version, false, writeFormat(ctx, store, keys, state, nil)
+		return version, false, writeFormat(ctx, store, keys, state, func(rec *block_gc.Records) error {
+			return rec.CertifyGeneration(ctx)
+		})
 	}
 
 	// Leave a store with data as it was when this build may not upgrade it.

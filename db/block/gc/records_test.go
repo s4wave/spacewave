@@ -782,6 +782,11 @@ func TestGenerationVerifierRevision(t *testing.T) {
 					t.Fatal(err)
 				}
 
+				// A current flip also certifies its writer in the completion record.
+				if err := tx.Set(ctx, rec.key(kindUnmarked, runComplete), flipMark); err != nil {
+					t.Fatal(err)
+				}
+
 				// Every stale proof reads Open and unadopted without changing logs.
 				got, err := rec.GetState(ctx)
 				if err != nil {
@@ -808,6 +813,50 @@ func TestGenerationVerifierRevision(t *testing.T) {
 				}
 				tx.Discard()
 			}
+		}
+	}
+}
+
+// TestGenerationProofWriter refuses an older flip that carried the current
+// revision as an unknown field, including before run marks gained revisions.
+func TestGenerationProofWriter(t *testing.T) {
+	for _, generation := range []Generation{Generation_GENERATION_SWEEPING, Generation_GENERATION_SETTLED} {
+		for _, mark := range [][]byte{nil, {0, 0, 1}, listMark, {0, 0, ListVerifierRevision, 'f'}, {0, 0, ListVerifierRevision + 1, 'f'}} {
+			// Read the exact wire state produced by revision 7403a3ee79's flip.
+			ctx := t.Context()
+			tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rec := NewRecords(tx, []byte{2})
+			state := &LivenessState{}
+			wire := []byte{0x08, 0x02, 0x38, 0x02, 0x80, 0x01, 0xfc, 0x90, 0xe5, 0xfd, 0xbf, 0x8d, 0xdc, 0x9c, 0xe9, 0x01, 0xc8, 0x01, 0x02}
+			if err := state.UnmarshalVT(wire); err != nil {
+				t.Fatal(err)
+			}
+			state.Generation = generation
+			if err := rec.SetState(ctx, state); err != nil {
+				t.Fatal(err)
+			}
+			if mark != nil {
+				if err := tx.Set(ctx, rec.key(kindUnmarked, runComplete), mark); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Only the distinct mark written by a current flip proves its writer.
+			got, err := NewRecords(tx, []byte{2}).GetState(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantGen, wantAdoption := Generation_GENERATION_OPEN, Adoption_ADOPTION_UNADOPTED
+			if bytes.Equal(mark, []byte{0, 0, ListVerifierRevision, 'f'}) {
+				wantGen, wantAdoption = generation, Adoption_ADOPTION_ADOPTED
+			}
+			if got.GetGeneration() != wantGen || got.GetAdoption() != wantAdoption {
+				t.Errorf("generation %v completion %x: got %v/%v, want %v/%v", generation, mark, got.GetGeneration(), got.GetAdoption(), wantGen, wantAdoption)
+			}
+			tx.Discard()
 		}
 	}
 }
