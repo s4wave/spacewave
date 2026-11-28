@@ -40,9 +40,14 @@ func TestPackedStoreReadsEnterDecodedPool(t *testing.T) {
 		t.Fatalf("Volume holds the diverted bytes: %v %v", found, err)
 	}
 
-	// read decodes ref in a fresh read-only transaction on cache.
-	cache := block.NewDecodedBlockCache()
+	// Isolate pool metrics from other scopes retained by the process-wide pool.
+	cache, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(cache.Close)
+
+	// read decodes ref in a fresh read-only transaction on cache.
 	read := func() (block.Block, error) {
 		btx, cursor := block.NewTransaction(packed, nil, ref, nil)
 		btx.SetDecodedBlockCache(cache)
