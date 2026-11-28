@@ -7,19 +7,48 @@ import (
 	"testing"
 	"time"
 
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	"github.com/sirupsen/logrus"
 )
 
 // TestEngineUnknownChangeCount checks that the producer counts one oversized
 // span for several subscribers, not every delivery or every known change.
 func TestEngineUnknownChangeCount(t *testing.T) {
-	// Resolve the running engine under the same access scope production uses.
+	// Start storage for caller-owned publication with exact change summaries.
+	// An Authority may publish before confirming a summary and require Unknown
+	// even for a small change, independently of the changed-key bound.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
-	tb := world_testbed.MustDefault(t, ctx)
-	err := world.AccessEngine(ctx, tb.Engine, func(ctx context.Context, engine world.Engine) error {
+	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	// Retain the initial World cursor until the engine has closed.
+	base, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(base.Release)
+	btx, bcs := base.BuildTransaction(nil)
+	bcs.SetBlock(world_block.NewWorld(world_block.NewestWorldFormat, false), true)
+	root, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.SetRootRef(root)
+	engine, err := world_block.NewEngine(ctx, tb.Logger, base, world_mock.LookupMockOp, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close() })
+
+	// Exercise the public access scope and count oversized comparisons.
+	err = world.AccessEngine(ctx, engine, func(ctx context.Context, engine world.Engine) error {
 		// Read the producer's counter on the served concrete engine, not its proxy.
 		producer, ok := engine.(*world_block.Engine)
 		if !ok {
