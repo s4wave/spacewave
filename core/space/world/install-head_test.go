@@ -457,7 +457,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	go func() { done <- a.resetPayloads(ctx, false) }()
 	time.Sleep(50 * time.Millisecond)
 	adm := admit(a, first)
-	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil, false); err != nil {
+	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil); err != nil {
 		t.Fatal(err)
 	}
 	release()
@@ -1602,7 +1602,7 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 	// B rewrites the history alone, dropping Wc, as a stale trim does.
 	other := put("other")
 	locked(b, func() error {
-		return b.setRootSets(ctx, []*rootSet{&b.checkpointWorlds}, [][]*block.BlockRef{{other}}, nil, false)
+		return b.setRootSets(ctx, []*rootSet{&b.checkpointWorlds}, [][]*block.BlockRef{{other}}, nil)
 	})
 	before := map[string]*block.BlockRef{}
 	for _, name := range []string{RootReplayBase, RootCheckpoint} {

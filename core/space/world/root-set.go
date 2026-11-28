@@ -91,7 +91,7 @@ func (a *Adapter) addRoot(ctx context.Context, h *rootSet, root *block.BlockRef,
 	if !root.GetEmpty() && !h.holds(root) {
 		roots = append(slices.Clone(h.roots), root.Clone())
 	}
-	return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{roots}, entries, false)
+	return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{roots}, entries)
 }
 
 // held returns the Worlds of h that keep reports, followed by the live
@@ -107,10 +107,9 @@ func (h *rootSet) held(keep func(*block.BlockRef) bool, live []*block.BlockRef) 
 
 // setRootSets moves each set of hs onto the roots of the same index of next,
 // and roots onto their refs, in one root move with entries, so either every
-// move lands or none does. A set whose roots stay is not moved. requireHeld
-// moves the sets as block.NamedRoot.RequireHeld does. The caller holds
-// rootMtx.
-func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*block.BlockRef, entries []*block.PutBatchEntry, requireHeld bool, roots ...block.NamedRoot) error {
+// move lands or none does. A set whose roots stay is not moved. The caller
+// holds rootMtx.
+func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*block.BlockRef, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
 	// Encode each changed set as one block listing its roots, or release
 	// its name when it holds none.
 	for i, h := range hs {
@@ -126,7 +125,7 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 			return err
 		}
 		entries = append(entries, entry)
-		roots = append(roots, block.NamedRoot{Name: h.name, Ref: entry.Ref, RequireHeld: requireHeld})
+		roots = append(roots, block.NamedRoot{Name: h.name, Ref: entry.Ref})
 	}
 
 	// Move them together, then record the roots each holds.
@@ -143,14 +142,15 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 
 // appendRoots adds extra to h in one root move whose block lists extra and the
 // block h's root holds now as its Prev, so an append writes and links the same
-// however many roots h holds, until the chain reaches maxRootLinks and the
-// append rewrites the set as one block. The new block holds the earlier one
-// from the move that takes the root off it. A root of extra that h holds
-// already, or that extra repeats or leaves empty, is left out: by invariant 1
-// the stored chain references it already, so leaving it out keeps the same
-// roots held. requireHeld refuses the move with block.ErrRootNotHeld when a
-// stored root of extra is not held now, as block.NamedRoot.RequireHeld
-// describes. The caller holds rootMtx.
+// however many roots h holds. A chain at maxRootLinks is first rewritten as one
+// block by compactRoots. The new block holds the earlier one from the move
+// that takes the root off it. A root of extra that h holds already, or that
+// extra repeats or leaves empty, is left out: by invariant 1 the stored chain
+// references it already, so leaving it out keeps the same roots held.
+// requireHeld refuses the move with block.ErrRootNotHeld when a stored root of
+// extra is not held now, as block.NamedRoot.RequireHeld describes; the roots h
+// holds already are never checked again, so a root whose block the store lost
+// does not refuse every later append. The caller holds rootMtx.
 func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.BlockRef, requireHeld bool) error {
 	// Add only the roots h does not hold yet.
 	extra = slices.DeleteFunc(dedupRefs(extra), h.holds)
@@ -158,9 +158,11 @@ func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.Bl
 		return nil
 	}
 
-	// Rewrite a set whose chain reached the bound as one block.
+	// Rewrite a set whose chain reached the bound as one block first.
 	if h.links >= maxRootLinks {
-		return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{slices.Concat(h.roots, extra)}, nil, requireHeld)
+		if err := a.compactRoots(ctx, h); err != nil {
+			return err
+		}
 	}
 
 	// Record the new roots and the block they extend.
@@ -185,6 +187,24 @@ func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.Bl
 	for _, root := range extra {
 		h.keys[root.MarshalString()] = struct{}{}
 	}
+	return nil
+}
+
+// compactRoots moves h's named root onto one block listing the roots h holds,
+// so the chain it held releases in the same Land. The move requires nothing
+// held: the name holds every one of those roots until the move, and the new
+// block holds them from it, so the compaction holds the same set, a root whose
+// block the store lost included. The caller holds rootMtx.
+func (a *Adapter) compactRoots(ctx context.Context, h *rootSet) error {
+	// Encode the set as one block and move the name onto it.
+	entry, err := refsEntry(&HeldRoots{Roots: h.roots}, h.roots)
+	if err != nil {
+		return err
+	}
+	if err := a.moveRootsLocked(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: h.name, Ref: entry.Ref}); err != nil {
+		return err
+	}
+	h.links = 1
 	return nil
 }
 

@@ -1035,7 +1035,7 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 			a.checkpointWorlds.held(keep, nil),
 			a.imported.held(keepImported, nil),
 		}
-		return a.setRootSets(ctx, sets, next, nil, false, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
+		return a.setRootSets(ctx, sets, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
 	})
 }
 

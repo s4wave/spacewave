@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -382,6 +383,41 @@ func TestAdmitRepeatRewritesTree(t *testing.T) {
 	}
 	if !stored() {
 		t.Fatal("a collection freed the admitted tree")
+	}
+}
+
+// TestAdmitPassesLostPayloadAtBound holds a payload root whose block the
+// store lost, as a written-off hole leaves it, in the payload set of an
+// adapter whose Volume frees, then admits more payloads than the set's chain
+// holds before it rewrites the set as one block. Each admit requires only its
+// own payload held, so the rewrite at the bound keeps the lost root and every
+// admit commits.
+func TestAdmitPassesLostPayloadAtBound(t *testing.T) {
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 1<<20, time.Hour)
+	lost, err := block.BuildBlockRef([]byte("lost payload"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.addPayloads(ctx, []*block.BlockRef{lost}, false); err != nil {
+		t.Fatal(err)
+	}
+	for i := range maxRootLinks + 1 {
+		data := []byte("payload " + strconv.Itoa(i))
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		adm := &spaceAdmission{payloads: []*block.BlockRef{ref}, done: make(chan struct{})}
+		if err := a.holdAdmitted(ctx, adm, false); err != nil {
+			t.Fatalf("admit %d with %d links: %v", i, a.payloads.links, err)
+		}
+	}
+	if !a.payloads.holds(lost) || a.payloads.links > maxRootLinks {
+		t.Fatalf("payload set holds the lost root %v with %d links, want held within %d", a.payloads.holds(lost), a.payloads.links, maxRootLinks)
 	}
 }
 
