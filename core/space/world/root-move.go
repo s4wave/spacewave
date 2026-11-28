@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // landHook, when set, runs before each admission's queued root moves land,
@@ -69,16 +68,6 @@ func (a *Adapter) landQueued(ctx context.Context, adm *spaceAdmission) error {
 			}
 			return err
 		}
-	}
-	return a.landMoves(ctx, adm)
-}
-
-// landMoves lands adm's queued root moves, and those queued before them,
-// ordered behind adm's state write when the adapter orders holds. It returns
-// the error of the drop that failed adm.
-func (a *Adapter) landMoves(ctx context.Context, adm *spaceAdmission) error {
-	if a.orderedHolds {
-		ctx = kvtx.WithOrderedCommitContext(ctx)
 	}
 	return a.moves.landFor(ctx, a.pages, &adm.moves)
 }
@@ -174,7 +163,7 @@ func (a *Adapter) queueMove(ctx context.Context, owner *admissionMoves, entries 
 			if err := a.moves.push(owner, entries, moves); err != nil {
 				return err
 			}
-			return a.moves.landFor(ctx, a.pages, owner)
+			return a.moves.landTurn(ctx, a.pages, owner)
 		}
 		if err != nil {
 			return err

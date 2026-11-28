@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -608,11 +610,13 @@ func putUnheld(t *testing.T, store block.StoreOps, entries ...*block.PutBatchEnt
 	}
 }
 
-// TestDropFailsOwners checks that a drop of queued root moves fails every
-// admission that can rely on the holds it released, so no landing stores a
-// root naming a block the collector freed, and that it spares an admission
-// whose moves already landed.
-func TestDropFailsOwners(t *testing.T) {
+// TestQueuedRootMoves checks that queued admission root moves never let a
+// stored root name a block the collector freed, nor a state outlive its holds
+// in a crash: a drop fails every admission that can rely on the holds it
+// released and spares one whose moves already landed, a landing in the turn
+// survives its cancellation, and every landing commits as the adapter's holds
+// require, whichever lander runs it.
+func TestQueuedRootMoves(t *testing.T) {
 	// A drop between holdAdmitted's payload move and its candidate move, which
 	// take the root lock separately while a lander drops without it, removes
 	// the payload move. The candidate move must be refused.
@@ -744,6 +748,88 @@ func TestDropFailsOwners(t *testing.T) {
 			t.Fatalf("landed admission failed by a later drop: %v", err)
 		}
 	})
+
+	// A staged admission's landing in the turn that its context cancels
+	// while another lander holds the landing turn must still land or drop
+	// its moves, so none stays queued past the writer's stage that holds its
+	// drained page.
+	t.Run("staged landing outlives cancel", func(t *testing.T) {
+		ctx := t.Context()
+		a, collect, _, _ := newDropAdapter(t, "payload-the-staged-admission-skips")
+		stage, releaseStage, err := block.OpenStage(ctx, a.pages.StoreOps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseStage()
+		w, _, err := stage.PutBlock(ctx, []byte("page-drained-to-the-writer-stage"), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		adm := a.newAdmission(world.Candidate{Root: w, Staged: true}, nil, nil, nil)
+
+		unlock, err := a.moves.landMtx.Lock(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cctx, cancel := context.WithCancel(ctx)
+		errCh := make(chan error, 1)
+		go func() { errCh <- a.keepAdmitted(cctx, adm) }()
+		for !a.moves.queued(&adm.moves) {
+			select {
+			case err := <-errCh:
+				unlock()
+				t.Fatalf("staged move never queued: %v", err)
+			case <-time.After(time.Millisecond):
+			}
+		}
+		cancel()
+		unlock()
+		if err := <-errCh; err != nil {
+			t.Logf("staged admission after cancel: %v", err)
+		}
+		if a.moves.queued(&adm.moves) {
+			t.Fatal("the staged admission's move stayed queued past its turn")
+		}
+
+		releaseStage()
+		for range 3 {
+			collect()
+		}
+		requirePendingWhole(t, a)
+	})
+
+	// Without ordered holds, an admission's queued hold must commit flushed
+	// before its state write, even when a background root move, whose context
+	// asks for an ordered commit, lands it first.
+	t.Run("background landing flushes", func(t *testing.T) {
+		ctx := t.Context()
+		a, _, p, _ := newDropAdapter(t, "payload-held-by-an-upload-stage")
+		inner := a.pages.StoreOps
+		rec := &commitModeStore{StoreOps: inner, LeasedRoots: inner.(block.LeasedRoots), RootProofs: inner.(block.RootProofs)}
+		a.pages = block.NewPendingStore(rec, 64<<10)
+		if a.orderedHolds {
+			t.Fatal("adapter orders holds")
+		}
+		adm := a.newAdmission(world.Candidate{}, nil, []*block.BlockRef{p}, nil)
+		if err := a.keepAdmitted(ctx, adm); err != nil {
+			t.Fatal(err)
+		}
+		if !a.moves.queued(&adm.moves) {
+			t.Fatal("payload hold did not queue")
+		}
+
+		e := dropPage(t, "background-root", 0)
+		bctx := kvtx.WithOrderedCommitContext(ctx)
+		if err := a.moveRoots(bctx, []*block.PutBatchEntry{e}, block.NamedRoot{Name: RootBackfill, Ref: e.Ref}); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.landQueued(ctx, adm); err != nil {
+			t.Fatal(err)
+		}
+		if !rec.flushed(a.payloads.name) {
+			t.Fatal("the payload hold committed only ordered before its state write")
+		}
+	})
 }
 
 // newDropAdapter opens an adapter that queues its admission moves, and a
@@ -838,4 +924,42 @@ func requirePendingWhole(t *testing.T, a *Adapter) {
 			t.Fatalf("pending root names a freed block: %v", err)
 		}
 	}
+}
+
+// commitModeStore records the root names each flushed SetRoots moves, one
+// whose context does not ask for an ordered commit.
+type commitModeStore struct {
+	block.StoreOps
+	block.LeasedRoots
+	block.RootProofs
+
+	mtx   sync.Mutex
+	names map[string]bool
+}
+
+// OpenStage opens a stage of the wrapped store.
+func (s *commitModeStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	return s.LeasedRoots.OpenStage(ctx)
+}
+
+// SetRoots records the moved names of a flushed commit, then moves them.
+func (s *commitModeStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if !kvtx.IsOrderedCommitContext(ctx) {
+		s.mtx.Lock()
+		if s.names == nil {
+			s.names = make(map[string]bool)
+		}
+		for _, r := range roots {
+			s.names[r.Name] = true
+		}
+		s.mtx.Unlock()
+	}
+	return s.StoreOps.SetRoots(ctx, entries, roots)
+}
+
+// flushed reports whether a flushed SetRoots moved name.
+func (s *commitModeStore) flushed(name string) bool {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.names[name]
 }

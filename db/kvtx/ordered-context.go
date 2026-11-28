@@ -13,6 +13,13 @@ func WithOrderedCommitContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, orderedCommitContextKey{}, true)
 }
 
+// WithDurableCommitContext marks the write transactions committed with ctx
+// as requiring a full durability flush, overriding a WithOrderedCommitContext
+// mark of a parent context.
+func WithDurableCommitContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, orderedCommitContextKey{}, false)
+}
+
 // IsOrderedCommitContext reports whether ctx carries WithOrderedCommitContext.
 func IsOrderedCommitContext(ctx context.Context) bool {
 	ordered, _ := ctx.Value(orderedCommitContextKey{}).(bool)

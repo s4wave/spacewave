@@ -178,6 +178,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		defer cancel()
 		a := &Adapter{
+			moves: newRootMoveQueue(false),
 			queue: &opQueue{},
 			replayState: &sobject.SOReplayState{State: &sobject.SOReplayState_CaughtUp{
 				CaughtUp: &sobject.SOReplayCaughtUp{},
@@ -208,6 +209,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := &Adapter{
+		moves:  newRootMoveQueue(false),
 		opened: openedNow(),
 		le:     logrus.NewEntry(logrus.New()),
 		pages:  block.NewPendingStore(store, 1<<20),
@@ -337,6 +339,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}
 	c2 := &sobject.SOCheckpointInner{Height: 2, Authors: []*sobject.SOOperationPosition{{PeerId: p.GetPeerID().String(), Nonce: 1, OpHash: m.Hash()}}}
 	b := &Adapter{
+		moves:            newRootMoveQueue(false),
 		opened:           openedNow(),
 		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -519,6 +522,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// An adapter opened again over the same roots reads the payloads the
 	// root holds, and adds a payload beside them.
 	b := &Adapter{
+		moves:        newRootMoveQueue(false),
 		le:           a.le,
 		opened:       openedNow(),
 		pages:        block.NewPendingStore(a.pages.StoreOps, 1<<20),
@@ -628,6 +632,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	}
 	for _, name := range []string{RootReplayPayloads, RootReplayCursor} {
 		c := &Adapter{
+			moves:        newRootMoveQueue(false),
 			le:           a.le,
 			opened:       openedNow(),
 			pages:        block.NewPendingStore(&hiddenBlockStore{StoreOps: b.pages.StoreOps, hide: b.held[name]}, 1<<20),
@@ -694,6 +699,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		moves:            newRootMoveQueue(false),
 		opened:           openedNow(),
 		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -874,6 +880,7 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 		t.Fatal("the bucket holds no roots or proofs")
 	}
 	a := &Adapter{
+		moves:            newRootMoveQueue(false),
 		le:               logrus.NewEntry(log),
 		so:               &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}},
 		opened:           openedNow(),
@@ -931,6 +938,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		moves:            newRootMoveQueue(false),
 		opened:           openedNow(),
 		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -976,6 +984,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		moves:            newRootMoveQueue(false),
 		opened:           openedNow(),
 		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -1047,6 +1056,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		moves:            newRootMoveQueue(false),
 		opened:           openedNow(),
 		replayState:      newReplayOpening(),
 		le:               logrus.NewEntry(logrus.New()),
@@ -1485,6 +1495,7 @@ func TestStaleAdapterTrimFails(t *testing.T) {
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	b := &Adapter{
+		moves:            newRootMoveQueue(false),
 		le:               a.le,
 		so:               a.so,
 		opened:           openedNow(),
@@ -1557,6 +1568,7 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 	ctx := t.Context()
 	a, _ := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	b := &Adapter{
+		moves:            newRootMoveQueue(false),
 		le:               a.le,
 		so:               a.so,
 		opened:           openedNow(),

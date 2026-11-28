@@ -297,6 +297,7 @@ func testRetainedRootWaits(t *testing.T) {
 	// shows none missing, and its retrier finds P still missing without
 	// pinning the held roots again.
 	b := &Adapter{
+		moves:    newRootMoveQueue(false),
 		le:       a.le,
 		so:       a.so,
 		pages:    block.NewPendingStore(store, 1<<20),

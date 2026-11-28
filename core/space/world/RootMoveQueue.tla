@@ -23,7 +23,10 @@
 \* gone; it can run between any two steps of a turn. The durable step writes
 \* an admission's state once none of its moves is queued, unless it failed.
 \* The collector frees a block nothing holds, and a durable candidate holds
-\* its graph. A crash drops the queue and every stage.
+\* its graph. A background root move, such as a trim, a checkpoint or
+\* backfill, lands the whole queue first. Each landing commits flushed or
+\* ordered (ord is orderedHolds), and a crash drops the queue, every stage and
+\* the ordered commits no flush covered.
 \*
 \* Ownership: a drop fails every live owner, one that has joined and still has
 \* a move or a turn in flight, in the same step that empties the queue, and an
@@ -38,7 +41,9 @@
 \* owners mid-turn as well as those with queued moves, Markers holds an
 \* owner's durable step behind the moves its turn saw, LandNow lands a staged
 \* admission's moves before its writer's stage ends, and StrictPayload makes
-\* the payload move require p held.
+\* the payload move require p held. QueueCommit makes the queue, not the
+\* lander's context, choose a landing's commit mode (F1), and UncancelledLand
+\* makes a landing in the turn end landed or dropped (F2).
 
 EXTENDS Naturals, Sequences, FiniteSets
 
@@ -49,6 +54,8 @@ FailLive == TRUE
 Markers == TRUE
 LandNow == TRUE
 StrictPayload == TRUE
+QueueCommit == TRUE
+UncancelledLand == TRUE
 
 
 A == "a"
@@ -64,9 +71,9 @@ Turn == {"begun", "half", "pushed", "landing"}
 
 \* landed is a ghost: it marks an owner once all its moves landed unfailed.
 VARIABLES phase, kind, pay, share, base, reg, err, writer, ext, queue,
-          durable, freed, landed
+          durable, freed, landed, ord, unflushed
 vars == <<phase, kind, pay, share, base, reg, err, writer, ext, queue,
-          durable, freed, landed>>
+          durable, freed, landed, ord, unflushed>>
 
 Own(x) == CASE kind[x] = "ovf" -> {O[x]}
           [] kind[x] = "staged" -> {W[x]}
@@ -83,8 +90,7 @@ Live(x) == /\ reg[x]
            /\ \/ FailLive /\ phase[x] \in Turn
               \/ phase[x] \in {"queued", "landing"} /\ Owns(queue, x)
 OvHeld(x) == /\ kind[x] = "ovf" /\ ~err[x]
-             /\ \/ phase[x] \in {"idle"} \cup Turn
-                \/ phase[x] = "queued" /\ Owns(queue, x)
+             /\ phase[x] \in {"idle"} \cup Turn \/ Owns(queue, x)
 Held(b) == \/ b \in durable
            \/ b = "p" /\ ext
            \/ \E x \in Admissions : b = W[x] /\ kind[x] = "staged" /\ writer[x]
@@ -95,6 +101,8 @@ TypeOK == /\ phase \in [Admissions -> {"idle", "failed", "written", "lost",
                                        "queued"} \cup Turn]
           /\ durable \subseteq Blocks \cup {C[x] : x \in Admissions}
           /\ freed \subseteq Blocks
+          /\ unflushed \subseteq durable
+          /\ ord \in BOOLEAN
 
 Init == /\ phase = [x \in Admissions |-> "idle"]
         /\ kind \in [Admissions -> Kinds]
@@ -110,6 +118,8 @@ Init == /\ phase = [x \in Admissions |-> "idle"]
         /\ durable = {}
         /\ freed = {}
         /\ landed = [x \in Admissions |-> FALSE]
+        /\ ord \in BOOLEAN
+        /\ unflushed = {}
 
 \* A drop empties the queue and fails every live owner in one step. Its
 \* stages end with it (OvHeld).
@@ -118,17 +128,27 @@ Drop == /\ queue' = <<>>
 
 Fail(x) == phase' = [phase EXCEPT ![x] = "failed"]
 
+\* A landing commits blocks, ordered or flushed. A flushed commit also flushes
+\* every earlier ordered one; a crash loses the ordered commits not flushed.
+Store(bs, ordered) ==
+  /\ durable' = durable \cup bs
+  /\ unflushed' = IF ordered THEN unflushed \cup (bs \ durable) ELSE {}
+
+\* The commit mode of a landing by a lander outside the durable step, such as
+\* a trim, checkpoint or backfill root move, whose own context is ordered.
+BgOrdered == IF QueueCommit THEN ord ELSE TRUE
+
 \* Land the queue, then store blocks, in the turn: moveRootsOn's landAll and
 \* SetRoots. A strict SetRoots refuses a block not held.
 LandIn(x, blocks, strict, next) ==
   IF \E i \in 1..Len(queue) : queue[i].strict /\ queue[i].blocks \cap freed # {}
   THEN /\ Drop /\ Fail(x)
-       /\ UNCHANGED <<durable>>
+       /\ UNCHANGED <<durable, unflushed>>
   ELSE IF strict /\ \E b \in blocks : ~Held(b)
-  THEN /\ Fail(x) /\ durable' = durable \cup Queued /\ queue' = <<>>
+  THEN /\ Fail(x) /\ Store(Queued, ord) /\ queue' = <<>>
        /\ UNCHANGED <<err>>
   ELSE /\ phase' = [phase EXCEPT ![x] = next]
-       /\ durable' = durable \cup Queued \cup blocks /\ queue' = <<>>
+       /\ Store(Queued \cup blocks, ord) /\ queue' = <<>>
        /\ UNCHANGED <<err>>
 
 Push(x, m, next) ==
@@ -145,7 +165,7 @@ Begin(x) == /\ phase[x] = "idle"
             /\ phase' = [phase EXCEPT ![x] = "begun"]
             /\ base' = [base EXCEPT ![x] = x = B /\ phase[A] \in {"queued", "written"}]
             /\ UNCHANGED <<kind, pay, share, reg, err, writer, ext, queue,
-                           durable, freed>>
+                           durable, unflushed, freed>>
 
 \* keepAdmitted joins the queue, failing at once when its base failed, then
 \* the payload scope reads the view and pushes or borrows.
@@ -159,13 +179,14 @@ PayloadScope(x) ==
      /\ UNCHANGED <<kind, pay, share, base, writer, ext, freed>>
      /\ IF inherited
         THEN Fail(x) /\ err' = [err EXCEPT ![x] = TRUE]
-             /\ UNCHANGED <<queue, durable>>
+             /\ UNCHANGED <<queue, durable, unflushed>>
         ELSE IF need /\ ~Held("p")
-        THEN Fail(x) /\ UNCHANGED <<err, queue, durable>>
+        THEN Fail(x) /\ UNCHANGED <<err, queue, durable, unflushed>>
         ELSE IF Direct(x)
         THEN IF need THEN LandIn(x, {"p"}, StrictPayload, "half")
-             ELSE phase' = [phase EXCEPT ![x] = "half"] /\ UNCHANGED <<err, queue, durable>>
-        ELSE Push(x, m, "half") /\ UNCHANGED <<err, durable>>
+             ELSE /\ phase' = [phase EXCEPT ![x] = "half"]
+                  /\ UNCHANGED <<err, queue, durable, unflushed>>
+        ELSE Push(x, m, "half") /\ UNCHANGED <<err, durable, unflushed>>
 
 \* The candidate scope: addRoot moves the pending root onto the candidate.
 CandScope(x) ==
@@ -176,13 +197,14 @@ CandScope(x) ==
      /\ UNCHANGED <<kind, pay, share, base, reg, writer, ext, freed>>
      /\ IF Direct(x)
         THEN LandIn(x, {C[x]} \cup Own(x), FALSE, "pushed")
-        ELSE Push(x, m, "pushed") /\ UNCHANGED <<err, durable>>
+        ELSE Push(x, m, "pushed") /\ UNCHANGED <<err, durable, unflushed>>
 
 \* depend ends the turn behind every move it saw. A staged admission's moves
 \* land next, still in the turn.
 Depend(x) ==
   /\ phase[x] = "pushed"
-  /\ UNCHANGED <<kind, pay, share, base, reg, err, writer, ext, durable, freed>>
+  /\ UNCHANGED <<kind, pay, share, base, reg, err, writer, ext, durable,
+                 unflushed, freed>>
   /\ IF err[x]
      THEN Fail(x) /\ UNCHANGED <<queue>>
      ELSE /\ phase' = [phase EXCEPT ![x] =
@@ -197,56 +219,81 @@ LandTurn(x) ==
   /\ phase[x] = "landing"
   /\ UNCHANGED <<kind, pay, share, base, reg, writer, ext, freed>>
   /\ IF err[x]
-     THEN Fail(x) /\ UNCHANGED <<err, queue, durable>>
+     THEN Fail(x) /\ UNCHANGED <<err, queue, durable, unflushed>>
      ELSE LandIn(x, {}, FALSE, "queued")
+
+\* A cancelled landing in the turn fails the admission and leaves its moves
+\* queued; landTurn cannot be cancelled.
+CancelLand(x) ==
+  /\ ~UncancelledLand /\ phase[x] = "landing"
+  /\ Fail(x)
+  /\ UNCHANGED <<kind, pay, share, base, reg, err, writer, ext, queue, durable,
+                 unflushed, freed>>
 
 \* drainRetirement ends the writer's stage once the turn is over.
 EndTurn(x) == /\ writer[x] /\ phase[x] \notin {"idle"} \cup Turn
               /\ writer' = [writer EXCEPT ![x] = FALSE]
               /\ UNCHANGED <<phase, kind, pay, share, base, reg, err, ext,
-                             queue, durable, freed>>
+                             queue, durable, unflushed, freed>>
 
 ReleaseExt == /\ ext
               /\ ext' = FALSE
               /\ UNCHANGED <<phase, kind, pay, share, base, reg, err, writer,
-                             queue, durable, freed>>
+                             queue, durable, unflushed, freed>>
 
 \* landLocked lands the oldest move, or drops the whole queue when a strict
 \* move's block is gone.
 Land == /\ queue # <<>>
         /\ UNCHANGED <<phase, kind, pay, share, base, reg, writer, ext, freed>>
         /\ IF Head(queue).strict /\ Head(queue).blocks \cap freed # {}
-           THEN Drop /\ UNCHANGED <<durable>>
-           ELSE /\ durable' = durable \cup Head(queue).blocks
+           THEN Drop /\ UNCHANGED <<durable, unflushed>>
+           ELSE /\ Store(Head(queue).blocks, ord)
                 /\ queue' = Tail(queue)
                 /\ UNCHANGED <<err>>
 
-\* opQueue.execute: landQueued, then queueOperation, which a drop fails.
+\* A background root move lands the whole queue before its own move, or drops
+\* it when the store refuses a strict move.
+BgLand == /\ queue # <<>>
+          /\ UNCHANGED <<phase, kind, pay, share, base, reg, writer, ext,
+                         freed>>
+          /\ IF \E i \in 1..Len(queue) :
+                  queue[i].strict /\ queue[i].blocks \cap freed # {}
+             THEN Drop /\ UNCHANGED <<durable, unflushed>>
+             ELSE Store(Queued, BgOrdered) /\ queue' = <<>> /\ UNCHANGED <<err>>
+
+\* opQueue.execute: landQueued, then queueOperation, which a drop fails. With
+\* orderedHolds the state commits ordered behind the holds, so a crash that
+\* keeps it keeps them; otherwise the state is durable on its own.
 WriteState(x) == /\ phase[x] = "queued" /\ ~Owns(queue, x)
-                 /\ phase' = [phase EXCEPT ![x] = IF err[x] THEN "failed" ELSE "written"]
+                 /\ phase' = [phase EXCEPT ![x] =
+                                 IF err[x] THEN "failed" ELSE "written"]
+                 /\ unflushed' = IF ord THEN {} ELSE unflushed
                  /\ UNCHANGED <<kind, pay, share, base, reg, err, writer, ext,
                                 queue, durable, freed>>
 
 Collect(b) == /\ b \notin freed /\ ~Held(b)
               /\ freed' = freed \cup {b}
               /\ UNCHANGED <<phase, kind, pay, share, base, reg, err, writer,
-                             ext, queue, durable>>
+                             ext, queue, durable, unflushed>>
 
 Crash == /\ phase' = [x \in Admissions |-> IF phase[x] \in {"written", "failed"}
                                            THEN phase[x] ELSE "lost"]
          /\ writer' = [x \in Admissions |-> FALSE]
          /\ ext' = FALSE
          /\ queue' = <<>>
-         /\ UNCHANGED <<kind, pay, share, base, reg, err, durable, freed>>
+         /\ durable' = durable \ unflushed
+         /\ unflushed' = {}
+         /\ UNCHANGED <<kind, pay, share, base, reg, err, freed>>
 
 Step == \/ \E x \in Admissions : \/ Begin(x) \/ PayloadScope(x) \/ CandScope(x)
                                  \/ Depend(x) \/ LandTurn(x) \/ EndTurn(x)
-                                 \/ WriteState(x)
-        \/ ReleaseExt \/ Land \/ Crash
+                                 \/ WriteState(x) \/ CancelLand(x)
+        \/ ReleaseExt \/ Land \/ BgLand \/ Crash
         \/ \E b \in Blocks : Collect(b)
 Landed(x) == phase[x] = "queued" /\ ~Owns(queue, x) /\ ~err[x]
 Next == /\ Step
         /\ landed' = [x \in Admissions |-> landed[x] \/ Landed(x)]
+        /\ ord' = ord
 Spec == Init /\ [][Next]_vars
 
 \* A durable state names only blocks the store still has.

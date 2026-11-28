@@ -112,5 +112,25 @@
       ]
     ],
     "expect": "DurableStateHolds"
+  },
+  {
+    "name": "OrderedBackground (F1): a background root move lands admission moves ordered whatever orderedHolds is",
+    "replace": [
+      [
+        "QueueCommit == TRUE",
+        "QueueCommit == FALSE"
+      ]
+    ],
+    "expect": "DurableStateHolds"
+  },
+  {
+    "name": "CancelQueued (F2): a cancelled landing in the turn leaves a staged admission's moves queued",
+    "replace": [
+      [
+        "UncancelledLand == TRUE",
+        "UncancelledLand == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   }
 ]

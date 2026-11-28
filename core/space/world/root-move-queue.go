@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // rootMoveQueue holds the root moves of admissions, in the order the
@@ -56,6 +57,9 @@ import (
 // store's SetRoots and never needs rootMtx, so a turn that queues a move under
 // rootMtx waits on no landing. mtx is never held across a call into the store.
 type rootMoveQueue struct {
+	// ordered is the adapter's orderedHolds, fixed at open. It sets the commit
+	// mode of every landing, whatever the lander's context asks.
+	ordered bool
 	// landMtx serializes landings.
 	landMtx csync.Mutex
 	// mtx guards the fields below and each queued admission's
@@ -72,6 +76,13 @@ type rootMoveQueue struct {
 	stale bool
 	// turns are the owners between join and depend.
 	turns map[*admissionMoves]struct{}
+}
+
+// newRootMoveQueue returns an empty queue whose landings commit ordered when
+// ordered is set, as an adapter that orders holds requires, and flushed
+// otherwise.
+func newRootMoveQueue(ordered bool) *rootMoveQueue {
+	return &rootMoveQueue{ordered: ordered}
 }
 
 // join starts owner's turn, which builds on base's candidate, or on durable
@@ -236,9 +247,20 @@ func (q *rootMoveQueue) landFor(ctx context.Context, store block.RootOps, owner 
 	return owner.err
 }
 
+// landTurn lands owner's moves as landFor does, inside owner's turn, for
+// moves whose holder ends with the turn, such as the writer's stage. It runs
+// past ctx's cancellation, so the moves are landed or dropped when it
+// returns and none stays queued past its holder.
+func (q *rootMoveQueue) landTurn(ctx context.Context, store block.RootOps, owner *admissionMoves) error {
+	return q.landFor(context.WithoutCancel(ctx), store, owner)
+}
+
 // landLocked lands the queued moves up to through, or all of them for zero,
 // in one SetRoots on store. The caller holds landMtx, so only it pops the
-// queue. A refused or failed SetRoots drops every queued move.
+// queue. A refused or failed SetRoots drops every queued move. The commit is
+// ordered when the adapter orders holds, behind the state writes of the
+// moves' admissions, and flushed otherwise, so each move is durable before
+// its admission's state write whichever lander lands it.
 func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, through uint64) error {
 	// Take the prefix to land.
 	q.mtx.Lock()
@@ -260,7 +282,7 @@ func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, thr
 	// A batch of markers stores nothing.
 	entries, roots, err := collapseRootMoves(batch)
 	if err == nil && (len(entries) != 0 || len(roots) != 0) {
-		err = store.SetRoots(ctx, entries, roots)
+		err = store.SetRoots(q.commitContext(ctx), entries, roots)
 	}
 
 	// Pop them and release their stages, or drop the queue.
@@ -275,6 +297,14 @@ func (q *rootMoveQueue) landLocked(ctx context.Context, store block.RootOps, thr
 		q.dropLocked(err)
 	}
 	return err
+}
+
+// commitContext returns ctx marked with the queue's commit mode.
+func (q *rootMoveQueue) commitContext(ctx context.Context) context.Context {
+	if q.ordered {
+		return kvtx.WithOrderedCommitContext(ctx)
+	}
+	return kvtx.WithDurableCommitContext(ctx)
 }
 
 // drop drops every queued move with err, as a failed landing does, without

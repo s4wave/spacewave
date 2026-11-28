@@ -129,7 +129,7 @@ type Adapter struct {
 	// DeferredRootMoveEnv.
 	deferMoves bool
 	// moves holds the admission root moves deferMoves queued.
-	moves rootMoveQueue
+	moves *rootMoveQueue
 	// heldUnknown logs once that the store cannot report held blocks, so the
 	// admission root moves land in the turn.
 	heldUnknown sync.Once
@@ -215,6 +215,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 
 	// Share page buffering and decoding between serving and replay.
 	store := so.GetBlockStore()
+	orderedHolds := os.Getenv(OrderedHoldEnv) != "off" && (sobject.OrdersBlockWrites(so) || forceOrderedHolds.Load())
 	a := &Adapter{
 		le:                  le,
 		opened:              make(chan struct{}),
@@ -227,7 +228,8 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		missing:             make(map[string]struct{}),
 		legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
 		expectWrites:        os.Getenv(ReplayIdentityEnv) != "off" && os.Getenv(ExpectWriteEnv) != "off",
-		orderedHolds:        os.Getenv(OrderedHoldEnv) != "off" && (sobject.OrdersBlockWrites(so) || forceOrderedHolds.Load()),
+		orderedHolds:        orderedHolds,
+		moves:               newRootMoveQueue(orderedHolds),
 		deferMoves:          !opts.transient && (os.Getenv(DeferredRootMoveEnv) == "on" || forceDeferredMoves.Load()),
 		fences:              make(map[string]*spaceFence),
 		held:                make(map[string]*block.BlockRef),
@@ -1189,8 +1191,9 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 // holdTurn holds adm's roots, then runs release once the moves that hold
 // them land. With deferMoves the hold is a turn a drop fails, so adm never
 // relies on holds a drop released: those of queued moves, and the overflow
-// stage of the candidate it built on. A staged candidate's moves land before
-// return, while the writer's stage still holds the pages it drained.
+// stage of the candidate it built on. A staged candidate's moves are landed
+// or dropped before return, whether the hold failed or not, while the
+// writer's stage still holds the pages it drained.
 func (a *Adapter) holdTurn(ctx context.Context, adm *spaceAdmission, stored bool, release func()) error {
 	// Without deferMoves each swap is durable on return.
 	if !a.deferMoves {
@@ -1210,10 +1213,12 @@ func (a *Adapter) holdTurn(ctx context.Context, adm *spaceAdmission, stored bool
 	if !a.moves.releaseWith(&adm.moves, release) {
 		release()
 	}
-	if err != nil || !adm.candidate.Staged {
-		return err
+	if adm.candidate.Staged {
+		if lerr := a.moves.landTurn(ctx, a.pages, &adm.moves); err == nil {
+			err = lerr
+		}
 	}
-	return a.landMoves(ctx, adm)
+	return err
 }
 
 // holdAdmitted holds payloads and spilled candidate Worlds before queueing.

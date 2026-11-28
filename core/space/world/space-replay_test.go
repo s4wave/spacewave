@@ -43,6 +43,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 
 	// Build the adapter and its replay.
 	a := &Adapter{
+		moves:    newRootMoveQueue(false),
 		le:       logrus.NewEntry(log),
 		opts:     AdapterOptions{Bus: tb.Bus, StepFactorySet: tb.StepFactorySet},
 		bucketID: tb.BucketId,

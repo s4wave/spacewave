@@ -62,7 +62,8 @@ func runInstallHeadSignedReplay(t *testing.T, ids [2]string, returnFirst, refuse
 	}
 	so := &advancedSpace{peerID: p.GetPeerID()}
 	a := &Adapter{
-		so: so, opened: openedNow(), queue: &opQueue{},
+		moves: newRootMoveQueue(false),
+		so:    so, opened: openedNow(), queue: &opQueue{},
 		le: logrus.NewEntry(logrus.New()), pages: block.NewPendingStore(block_mock.NewMockStore(0), 1<<20),
 		missing: make(map[string]struct{}), legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
 		replayState: &sobject.SOReplayState{State: &sobject.SOReplayState_CaughtUp{CaughtUp: &sobject.SOReplayCaughtUp{}}},
