@@ -298,7 +298,7 @@ func TestDebugRefRepair(t *testing.T) {
 
 	// A dry run counts the missing edges and writes none, and its histogram
 	// counts each stored block once, with every stored byte. The World root,
-	// guessed as a payload blob, counts as the World it is also walked as.
+	// also recorded as a payload, counts once, as a World.
 	hist := refwalk.NewHistogram()
 	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{histogram: hist}, nil)
 	if err != nil {
@@ -321,10 +321,11 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("histogram: total %+v, types %+v, walked %d", total, hist.Rows(), dry.blocks)
 	}
 
-	// The World root, recorded as a payload, is read as a guessed blob, is
-	// not certainly one, and is verified for nothing.
-	if dry.notBlob != 1 || dry.payloadBlobs != 0 || !dry.notBlobSample[0].EqualVT(worldRoot) {
-		t.Fatalf("payload root that is not a blob: %+v", dry)
+	// The World root, recorded as a payload, is not guessed as a blob: the
+	// walk finished it as a World, so the payload walk skips it and reports
+	// no payload root that is not certainly a blob.
+	if dry.notBlob != 0 || dry.payloadBlobs != 0 {
+		t.Fatalf("payload root the walk typed: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole filesystem: %+v", dry)
@@ -531,10 +532,10 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal("the dry run wrote the list")
 	}
 
-	// The World root's list is marked by now, so its visit as a payload,
-	// which is not certainly a blob, counts a marked list left uncompared.
-	if re.MarkedUndecodable != 1 || len(re.MarkedUndecodableSample) != 1 || !re.MarkedUndecodableSample[0].Ref.EqualVT(worldRoot) {
-		t.Fatalf("marked list of a payload root that is not a blob: %+v", re)
+	// The payload walk skips the World root it finished as a World, so no
+	// marked list is left uncompared.
+	if re.MarkedUndecodable != 0 || len(re.MarkedUndecodableSample) != 0 {
+		t.Fatalf("marked list of a payload root the walk typed: %+v", re)
 	}
 
 	// The repair rewrites the list with the child.
