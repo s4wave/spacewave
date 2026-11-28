@@ -57,15 +57,29 @@ import (
 //     type's version is zero and needs no bus lookup. When unsure, Hold
 //     resolves the operation again, and replay adopts its saved position only
 //     with the payloads Hold resolved, so the next cursor records them too.
+//   7. No payload stops replay. A payload no source serves, such as one the
+//     store lost and wrote off, stays in the set, and the set is moved with
+//     it like any other: Hold appends it without requiring it held (see
+//     Hold), and resetPayloads flushes only the payloads the set does not
+//     hold yet and holds one its flush found no source for all the same. A
+//     payload the set holds needs no flush: the swap that added it stored
+//     its kept tree, and its reference keeps whatever the store has of it.
+//     A refusal or a stop here would leave the Space read only on this
+//     replica for good, since every retry asks for the same lost block, while
+//     a replay that reads the payload asks the peers for it on its own.
 //
 // Cost: Hold decodes each operation once, when an order first holds it, and
 // appends only the payloads it has not held, as one delta block of the root's
 // chain. Each Hold walks the order and the last order once through maps,
 // encoding no ref it encoded before. resetPayloads does its work outside
 // rootMtx: it encodes the positions' payloads and, on a drop, each held root
-// once, and builds the block of the roots it keeps. Under rootMtx it encodes
-// only the pending admissions' payloads, twice on a drop, and the roots
-// appended since it read the set, then makes one root move.
+// once, and builds the block of the roots it keeps. It takes rootMtx once
+// before the flush for one map lookup per position's payload and one
+// encoding per pending admission's payload, and its flush
+// reads and pins only the payloads the set does not hold yet, usually none,
+// since Hold and the admissions append them first. Under rootMtx at the move
+// it encodes only the pending admissions' payloads, twice on a drop, and the
+// roots appended since it read the set, then makes one root move.
 
 // payloadState is what the payload hold knows of the last order Hold saw.
 type payloadState struct {
@@ -376,17 +390,26 @@ func (a *Adapter) noteUnresolved(prev, next *payloadState, n int) {
 // is that World. Without a drop it appends what it does not hold yet. The
 // driver goroutine calls it.
 func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
-	// Read the base and the held payloads, then key the positions' payloads,
-	// outside the lock.
+	// Key the positions' payloads outside the lock.
+	positions := a.replay.payloads()
+	posKeys := newOpHold(positions, nil).keys
+	pending := a.pendingPayloads()
+
+	// Read the base, the held payloads and the payloads the set does not
+	// hold yet, which alone the flush needs.
 	unlock, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	base, snap := a.held[RootReplayBase], a.payloads.roots
+	var reach []*block.BlockRef
+	for i, ref := range positions {
+		if _, ok := a.payloads.keys[posKeys[i]]; !ok {
+			reach = append(reach, ref)
+		}
+	}
+	reach = append(reach, slices.DeleteFunc(slices.Clone(pending), a.payloads.holds)...)
 	unlock()
-	positions := a.replay.payloads()
-	posKeys := newOpHold(positions, nil).keys
-	pending := a.pendingPayloads()
 
 	// Plan the drop once the order resolved and its World is held.
 	st := a.stateHold
@@ -401,8 +424,10 @@ func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 		a.resetPlanned()
 	}
 
-	// Take the lock, and find the payloads not held yet.
-	release, err := a.lockRoots(ctx, slices.Concat(positions, pending)...)
+	// Flush the payloads the set did not hold and take the lock, holding a
+	// payload no source served all the same (invariant 7). Then find the
+	// payloads not held yet.
+	release, _, _, err := a.lockRootsServed(ctx, reach)
 	if err != nil {
 		return err
 	}

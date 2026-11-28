@@ -364,3 +364,91 @@ func testRetainedRootWaits(t *testing.T) {
 	}
 	expect(b, "dropped", []*RetainedRoot{rootA}, nil, nil, refA)
 }
+
+// TestResetPayloadsHoldsLostPayload checks, on a Volume that frees at once,
+// that cursor saves hold a payload the store lost and no peer serves instead
+// of stopping replay, and never ask the peers again for a payload the set
+// already holds. The set holds a stored payload and a lost one, and the
+// positions add a payload a peer serves and one no source serves. Both saves,
+// the one that appends and the one that drops, land with all four held, the
+// served one readable after collection, and each unserved payload asked for
+// at most once, by the save that first holds it.
+func TestResetPayloadsHoldsLostPayload(t *testing.T) {
+	// Hold a stored payload and a lost one, with the bucket's pins standing
+	// in for peers.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	bs := a.so.GetBlockStore().(*bucketStore)
+	store := &peerServedStore{
+		bucketStore: bs,
+		served:      make(map[string][]byte),
+		notFound:    make(map[string]bool),
+		tries:       make(map[string]int),
+		gate:        make(map[string]chan struct{}),
+		entered:     make(chan string, 1),
+	}
+	a.pages = block.NewPendingStore(store, 1<<20)
+	staged, endStage, err := block.OpenStage(ctx, bs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := putPayloads(ctx, t, staged, "stored payload ", 1)[0]
+	lost, err := block.BuildBlockRef([]byte("lost payload"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.addPayloads(ctx, []*block.BlockRef{live, lost}, false); err != nil {
+		t.Fatal(err)
+	}
+	endStage()
+
+	// Add positions referencing them, a payload a peer serves, and one no
+	// source serves.
+	served := store.serve([]byte("served payload"))
+	gone, err := block.BuildBlockRef([]byte("unserved payload"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := []*block.BlockRef{live, lost, served, gone}
+	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
+	a.replay = &spaceReplay{a: a, stage: newReplayStage(a.pages), base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}, positions: []spacePosition{
+		{payloads: []*block.BlockRef{live, lost}},
+		{payloads: []*block.BlockRef{served, gone}},
+	}}
+	holdOrder(a, w, all, false)
+
+	// check requires every payload held, the stored and served ones
+	// readable after collection, and the pins asked for.
+	check := func(step string) {
+		t.Helper()
+		for _, ref := range all {
+			if !a.payloads.holds(ref) {
+				t.Fatalf("%s: payload set %v dropped %s", step, a.payloads.roots, ref.MarshalString())
+			}
+		}
+		collect()
+		for _, ref := range []*block.BlockRef{live, served} {
+			if found, err := bs.GetBlockExists(ctx, ref); err != nil || !found {
+				t.Fatalf("%s: collection freed held payload %s: %v, %v", step, ref.MarshalString(), found, err)
+			}
+		}
+		if n := store.triesOf(lost); n != 0 {
+			t.Fatalf("%s: saves asked the peers %d times for the lost payload the set holds", step, n)
+		}
+		if n := store.triesOf(gone); n != 1 {
+			t.Fatalf("%s: saves asked the peers %d times for the unserved payload, want once", step, n)
+		}
+	}
+
+	// A save that appends holds them all.
+	if err := a.resetPayloads(ctx, false); err != nil {
+		t.Fatalf("the save holding a lost payload stopped replay: %v", err)
+	}
+	check("append")
+
+	// A save that may drop keeps them all, since the order names them.
+	if err := a.resetPayloads(ctx, true); err != nil {
+		t.Fatalf("the dropping save holding a lost payload stopped replay: %v", err)
+	}
+	check("drop")
+}
