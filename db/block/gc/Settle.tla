@@ -128,6 +128,10 @@
 \* the smallest config that kills it by the invariant that states its
 \* damage.
 
+\* verified and complete below mean certificates of the current verifier.
+\* ListVerifier.tla checks stale list, visit and run certificates across an
+\* interrupted Open-generation verifier upgrade, including durable crashes.
+
 EXTENDS Integers, FiniteSets
 
 CONSTANTS

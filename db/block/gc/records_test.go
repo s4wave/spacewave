@@ -95,7 +95,7 @@ func TestSettleWaitsForNetting(t *testing.T) {
 				rec.SetHolders(ctx, ref, 0, 5),
 				tx.Set(ctx, rec.queueKey(5, key), nil),
 				tx.Set(ctx, rec.key(kindFront, key), nil),
-				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark),
 				tx.Set(ctx, rec.key(kindHolesClear), nil),
 			} {
 				if err != nil {
@@ -189,7 +189,7 @@ func TestFlipRefusesWriteAfterProof(t *testing.T) {
 				UpCursor:         10,
 			}
 			for _, err := range []error{
-				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark),
 				tx.Set(ctx, rec.key(kindHolesClear), nil),
 				rec.SetState(ctx, state),
 			} {
@@ -264,7 +264,7 @@ func TestFlipPassesOnlyWrittenOffHoles(t *testing.T) {
 				UpCursor:         10,
 			}
 			for _, err := range []error{
-				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark),
 				rec.SetState(ctx, state),
 				rec.addHole(ctx, keys[0]),
 				rec.addHole(ctx, keys[1]),
@@ -696,5 +696,65 @@ func TestInspectHolders(t *testing.T) {
 	}
 	if levels[1].States[FrontZeroUnqueued] != 10 || levels[2].States[FrontHeldByHolders] != 8 {
 		t.Fatalf("states = %+v", levels)
+	}
+}
+
+// TestListVerifierRevision checks that stale lists retain their children but
+// neither certify them nor complete the run, and an uncertain read revokes a
+// current certificate without dropping its recorded children.
+func TestListVerifierRevision(t *testing.T) {
+	// Build a real child list and a transaction containing its certificates.
+	ctx := t.Context()
+	child, err := block.BuildBlockRef([]byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, err := block.BuildBlockRef([]byte("parent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	packed := EncodeChildren([]*block.BlockRef{child})
+
+	// Old certificates remain readable and cannot certify a list or run.
+	for _, marker := range [][]byte{{0}, {0, 0, ListVerifierRevision - 1}, {0, 0, ListVerifierRevision + 1}} {
+		value := append(bytes.Clone(marker), packed...)
+		if listMarked(value) {
+			t.Fatalf("stale marker %v certified a list", marker)
+		}
+		children, err := DecodeChildren(value)
+		if err != nil || len(children) != 1 || !children[0].EqualsRef(child) {
+			t.Fatalf("stale marker %v lost children: %v, %v", marker, children, err)
+		}
+		if err := tx.Set(ctx, rec.key(kindUnmarked, runComplete), marker); err != nil {
+			t.Fatal(err)
+		}
+		if incomplete, err := rec.runIncomplete(ctx); err != nil || !incomplete {
+			t.Fatalf("stale marker %v completed run: %v, %v", marker, !incomplete, err)
+		}
+	}
+
+	// Revoke a current mark through the rebuild's real batch application.
+	if err := rec.PutChildren(ctx, parent, []*block.BlockRef{child}); err != nil {
+		t.Fatal(err)
+	}
+	rb := &ListRebuild{pending: []pendingList{{entry: &block.PutBatchEntry{Ref: parent}, undecodable: true}}}
+	var res ListRebuildResult
+	if _, err := rb.apply(ctx, rec, &res, true); err != nil {
+		t.Fatal(err)
+	}
+	children, source, err := rec.GetChildList(ctx, parent)
+	if err != nil || source != block.RefsListed || len(children) != 1 || !children[0].EqualsRef(child) {
+		t.Fatalf("uncertain list: %v, source %v, error %v", children, source, err)
+	}
+	for _, kind := range []byte{kindFront, kindUnmarked} {
+		if found, err := tx.Exists(ctx, rec.key(kind, BlockKey(parent))); err != nil || !found {
+			t.Fatalf("revoked list missing from %c: found %v, error %v", kind, found, err)
+		}
 	}
 }

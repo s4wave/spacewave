@@ -29,8 +29,8 @@ const (
 	// exists from the put that stored the block until the collector frees
 	// it, so its presence is what "stored" means here. A list written from
 	// the block's content, by Land, a refill or the settle walk, begins
-	// with listMark. One an older store wrote does not, and may lack a
-	// child, as Generation_GENERATION_OPEN describes. A block key never
+	// with listMark. An unmarked list or one with an earlier verifier's mark
+	// may lack a child, as Generation_GENERATION_OPEN describes. A block key never
 	// begins with a zero byte, so the two cannot be confused.
 	kindChildren byte = 'c'
 	// kindCount keys the count record of a block by the block. A block with
@@ -125,7 +125,7 @@ const (
 	// is empty, runReborn once a put stored the block again, or runSwept
 	// once the sweep deleted it. The run is built in slices while the
 	// generation is Open, and is complete once its runComplete entry
-	// exists. The flip makes each empty entry unmarked. While Sweeping no
+	// holds listMark for this verifier. The flip makes each empty entry unmarked. While Sweeping no
 	// entry is deleted, so the run stays the run at the flip until it
 	// settles, as Generation_GENERATION_SWEEPING describes.
 	kindUnmarked byte = 'I'
@@ -201,8 +201,15 @@ var LiveKinds = []byte{
 	kindReleasePage, kindRewritten, kindPopMark, kindAddRev, kindHolesClear,
 }
 
-// listMark begins a child list written from its block's content.
-const listMark byte = 0
+// ListVerifierRevision identifies the verifier whose list and walk certificates
+// the settle trusts. Raise it whenever exact decoding, type resolution or list
+// verification changes in a way that can invalidate an earlier certificate.
+// Walkers that persist finished visits must include it in their record keys.
+const ListVerifierRevision byte = 1
+
+// listMark begins a list certified by this verifier.
+// The two zero bytes distinguish it from a legacy mark followed by block keys.
+var listMark = []byte{0, 0, ListVerifierRevision}
 
 // The unmarked run's values, and the key of its completion entry.
 var (
@@ -529,23 +536,30 @@ func (r *Records) listed(ctx context.Context, key []byte) (bool, error) {
 
 // PutChildren writes the child list of ref from its content, with listMark.
 func (r *Records) PutChildren(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
-	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), packChildren([]byte{listMark}, normalizeChildren(children)))
+	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), packChildren(listMark, normalizeChildren(children)))
 }
 
 // markList returns the packed block keys as a list value written from
 // content.
 func markList(packed []byte) []byte {
-	return append([]byte{listMark}, packed...)
+	return append(bytes.Clone(listMark), packed...)
 }
 
-// listMarked reports whether the list value was written from content.
+// listMarked reports whether this verifier certified the list value.
 func listMarked(value []byte) bool {
-	return len(value) != 0 && value[0] == listMark
+	return bytes.HasPrefix(value, listMark)
 }
 
-// listKeys returns the packed block keys of a list value, without its mark.
+// listKeys returns the packed block keys without a current or stale mark.
+// A stale certificate loses authority, never the children it records.
 func listKeys(value []byte) []byte {
-	if listMarked(value) {
+	// Read the payload of a versioned mark, regardless of its revision.
+	if len(value) >= 3 && value[0] == 0 && value[1] == 0 {
+		return value[3:]
+	}
+
+	// A legacy mark has one zero byte before its block keys.
+	if len(value) != 0 && value[0] == 0 {
 		return value[1:]
 	}
 	return value
@@ -1147,11 +1161,12 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	})
 }
 
-// runIncomplete reports whether the unmarked run lacks its completion
-// entry. It reads one key.
+// runIncomplete reports whether this verifier has not completed the run.
+// An earlier verifier may have omitted lists its marks certified.
+// It reads one key.
 func (r *Records) runIncomplete(ctx context.Context) (bool, error) {
-	done, err := r.tx.Exists(ctx, r.key(kindUnmarked, runComplete))
-	return !done, err
+	value, _, err := r.tx.Get(ctx, r.key(kindUnmarked, runComplete))
+	return !bytes.Equal(value, listMark), err
 }
 
 // addFront pushes the block at key onto the front, raising the add

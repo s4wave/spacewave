@@ -312,7 +312,7 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 func (r *Records) reopen(ctx context.Context, state *LivenessState) error {
 	state.Generation = Generation_GENERATION_OPEN
 	r.genKnown, r.gen, r.moved = true, Generation_GENERATION_OPEN, true
-	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), nil)
+	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), listMark)
 }
 
 // keepParked finishes a copied put of the parked block at key, after
@@ -971,8 +971,8 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 	if err != nil || gen != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
-	done, err := rec.tx.Exists(ctx, rec.key(kindUnmarked, runComplete))
-	if err != nil || done {
+	incomplete, err := rec.runIncomplete(ctx)
+	if err != nil || !incomplete {
 		return from, false, err
 	}
 
@@ -993,7 +993,7 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 	if page.full {
 		return from, true, nil
 	}
-	return from, false, rec.tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil)
+	return from, false, rec.tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark)
 }
 
 // frontPos is the front scan's position: the key after which it resumes,

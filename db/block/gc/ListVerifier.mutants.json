@@ -1,0 +1,20 @@
+[
+  {
+    "name": "a stale list certificate is still marked",
+    "replace": [["Marked == s.list = Current \\/ Skip = \"list\"", "Marked == TRUE"]],
+    "expect": "RunIncludesStale",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "a stale visit skips the subtree",
+    "replace": [["Finished == s.visit = Current \\/ Skip = \"visit\"", "Finished == TRUE"]],
+    "expect": "VisitsCurrent",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "a stale run proof skips rebuilding",
+    "replace": [["Complete == s.complete = Current \\/ Skip = \"run\"", "Complete == TRUE"]],
+    "expect": "RunIncludesStale",
+    "config": "ListVerifier.cfg"
+  }
+]

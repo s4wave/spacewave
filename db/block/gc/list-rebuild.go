@@ -49,12 +49,12 @@ func rebuildable(state *LivenessState) error {
 // decoded child is rewritten as the union, still marked, and notes the rewrite.
 // One that references every child is not written.
 //
-// Invariant: after a walk that finishes with an empty front, every list a root
-// reaches through the walker and that the walker decoded references every child
-// the run decoded from its block's content. Outside that invariant, and so
-// reported rather than held by the front: a marked list of a block the walker
-// could not decode or type with certainty (MarkedUndecodable), a block no read
-// resolves, and the blocks below a ref whose type the walker cannot identify.
+// Invariant: a short or uncertain list can only delay deletion.
+// After a walk finishes with an empty front, every list a root reaches through
+// the walker references every child the run decoded from its block's content.
+// An undecodable read revokes an earlier mark and returns the list to the front
+// and run without dropping any recorded child. Marks and the run's completion
+// proof from an earlier ListVerifierRevision are unverified too.
 //
 // Verify writes the union of the stored list and the refs, since a list may
 // lack a child and referencing one more only keeps a block longer. Refs that
@@ -139,8 +139,9 @@ func (r *ListRebuild) VerifyAs(ctx context.Context, ref *block.BlockRef, refs []
 }
 
 // Undecodable records that the walker reached ref, as the type typ records, and
-// could not decode it, or not with certainty. The rebuild counts and samples it
-// when its list is marked, and never writes its list.
+// could not decode it, or not with certainty. The rebuild counts and samples a
+// marked list and revokes its mark, preserving its children. A dry run only
+// reports the disagreement.
 func (r *ListRebuild) Undecodable(ctx context.Context, ref *block.BlockRef, typ string) error {
 	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref}, typ: typ, undecodable: true})
 }
@@ -252,9 +253,22 @@ func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildR
 			}
 		}
 
-		// Leave an undecodable block's list, and a marked list that
-		// references every child.
-		if p.undecodable || marked && !lacking {
+		// An uncertain read revokes the certificate, never its children.
+		if p.undecodable {
+			if write && marked {
+				children, err := DecodeChildren(value)
+				if err != nil {
+					return false, err
+				}
+				if err := rec.putCopied(ctx, p.entry.Ref, children); err != nil {
+					return false, err
+				}
+			}
+			continue
+		}
+
+		// A current marked list already references every decoded child.
+		if marked && !lacking {
 			continue
 		}
 
