@@ -1,0 +1,28 @@
+[
+  {
+    "name": "the converter unlocks the source before renaming the copy over it",
+    "replace": [["ReleaseAt == {\"installed\"}", "ReleaseAt == {\"linksynced\", \"installed\"}"]],
+    "expect": "CommitKept",
+    "config": "ConversionReconcile.cfg"
+  },
+  {
+    "name": "the converter renames the copy over the source before linking the backup",
+    "replace": [["  /\\ pc = \"linksynced\"\n  /\\ names' = [names EXCEPT !", "  /\\ pc \\in {\"built\", \"linksynced\"}\n  /\\ names' = [names EXCEPT !"]],
+    "expect": "OriginalKept",
+    "config": "ConversionReconcile-cloud.cfg"
+  },
+  {
+    "name": "an open serves the installed file without syncing the directory",
+    "replace": [["  /\\ durable' = names\n  /\\ pc' = \"serving\"", "  /\\ UNCHANGED durable\n  /\\ pc' = \"serving\""]],
+    "expect": "NewAckKept",
+    "config": "ConversionReconcile-cloud.cfg"
+  },
+  {
+    "name": "the converter clears the backup with its reserved name",
+    "replace": [
+      ["  /\\ names' = [names EXCEPT ![\"T\"] = None]\n  /\\ unlinked' = unlinked \\cup (IF names[\"T\"] # None THEN {\"T\"} ELSE {})", "  /\\ names' = [names EXCEPT ![\"T\"] = None, ![\"B\"] = None]\n  /\\ unlinked' = unlinked \\cup (IF names[\"T\"] # None THEN {\"T\"} ELSE {}) \\cup (IF names[\"B\"] # None THEN {\"B\"} ELSE {})"]
+    ],
+    "expect": "OnlyReservedRemoved",
+    "config": "ConversionReconcile-cloud.cfg"
+  }
+]
