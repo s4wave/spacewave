@@ -80,6 +80,9 @@ type Walker struct {
 	typesEngine *world_block.Engine
 	// typesTx reads object types from typesWorld.
 	typesTx world.Tx
+	// rootType types every object root the Worlds leave untyped, nil when
+	// the caller's schema names no such type. See TypeRootsAs.
+	rootType blocktype.BlockType
 	// keepBytes reads every block's bytes, leaves included, into its Visit.
 	keepBytes bool
 	// scan walks below a ref whose type the walk cannot name by scanning each
@@ -109,6 +112,18 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 // the first Walk.
 func (w *Walker) KeepBytes() {
 	w.keepBytes = true
+}
+
+// TypeRootsAs declares that every object root of the walked Worlds is a bt
+// root, and that every payload root is an object root, as in a database whose
+// every object is one key-value tree and whose operations carry no payload of
+// their own. The walk then types with certainty the root of an object whose
+// World holds no type for it, such as one written before its writer typed
+// objects, and a payload root no walked World references, such as the root an
+// operation above the checkpoint set, whose World only a replay computes. An
+// object's own type still wins. Call it before the first Walk.
+func (w *Walker) TypeRootsAs(bt blocktype.BlockType) {
+	w.rootType = bt
 }
 
 // ScanUntyped makes the walk go on below a ref whose type it cannot name:
@@ -222,12 +237,20 @@ func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, e
 // object root is walked under its object's type, and the rest are blobs. An
 // object root that no walked World references, such as one a later transaction
 // in its batch replaced, is read as a blob too, so the node is a guess, which
-// the walker keeps only when the block is certainly a blob.
+// the walker keeps only when the block is certainly a blob. Under TypeRootsAs
+// every payload root is an object root of the declared type, so the node is
+// certain.
 func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
+	// Skip a root a World typed, then read the rest as the declared root
+	// type, or guess a blob.
 	if _, ok := w.roots[ref.MarshalString()]; ok {
 		return Node{}, false, nil
 	}
 	n, err := w.BlobNode(world, ref)
+	if w.rootType != nil {
+		n.Ctor = w.rootType.Constructor
+		return n, err == nil, err
+	}
 	n.Guess = true
 	return n, err == nil, err
 }
@@ -575,6 +598,9 @@ func (w *Walker) objectRootCtor(ctx context.Context, key string, world *bucket.O
 		if typeID != "" {
 			w.types[key] = typeID
 		}
+	}
+	if typeID == "" && w.rootType != nil {
+		return w.rootType.Constructor, "", nil
 	}
 	if typeID == "" {
 		return nil, "object without a type", nil

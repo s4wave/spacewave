@@ -3,13 +3,16 @@ package refwalk
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/aperturerobotics/util/prng"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -225,5 +228,67 @@ func TestPayloadNodeBlob(t *testing.T) {
 		if len(got) != 1 || !got[0].Found || !got[0].Unsure || len(got[0].Refs) != 0 {
 			t.Fatalf("field in the %s: visits %+v, want one unsure visit with no refs", name, got)
 		}
+	}
+}
+
+// TestPayloadNodeRootType checks that a payload root no walked World typed,
+// such as the key-value tree an operation above the checkpoint set, is
+// guessed as a blob and left unsure, which compares none of its children, and
+// that a walker told every root is such a tree reads it with certainty and
+// reports its children.
+func TestPayloadNodeRootType(t *testing.T) {
+	// Write a key-value tree large enough to have children.
+	ctx := t.Context()
+	store := block_mock.NewMockStore(0)
+	tx, cursor := block.NewTransaction(store, nil, nil, nil)
+	kvs := kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault)
+	cursor.SetBlock(kvs, true)
+	kv, err := kvs.BuildKvTransaction(ctx, cursor, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 500 {
+		key := []byte("row-" + strconv.Itoa(i))
+		if err := kv.Set(ctx, key, bytes.Repeat(key, 8)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := kv.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	kv.Discard()
+	ref, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Walk it as a payload, guessed and then declared.
+	root := func(w *Walker) Visit {
+		t.Helper()
+		defer w.Close()
+		node, ok, err := w.PayloadNode(&bucket.ObjectRef{}, ref)
+		if err != nil || !ok {
+			t.Fatalf("payload node: ok %v, err %v", ok, err)
+		}
+		var top Visit
+		err = w.Walk(ctx, node, func(_ context.Context, batch []Visit) error {
+			if top.Node.Ref == nil {
+				top = batch[0]
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return top
+	}
+	le := logrus.NewEntry(logrus.New())
+	if guessed := root(NewWalker(le, store, nil)); !guessed.Unsure || len(guessed.Refs) != 0 {
+		t.Fatalf("guessed root: unsure %v, %d refs, want unsure with none", guessed.Unsure, len(guessed.Refs))
+	}
+	w := NewWalker(le, store, nil)
+	w.TypeRootsAs(blocktype.New[kvtx_block.KeyValueStore](kvtx_block.KeyValueStoreTypeID))
+	if typed := root(w); typed.Unsure || typed.DecodeErr != nil || len(typed.Refs) == 0 {
+		t.Fatalf("declared root: unsure %v, decode err %v, %d refs, want certain with refs", typed.Unsure, typed.DecodeErr, len(typed.Refs))
 	}
 }
