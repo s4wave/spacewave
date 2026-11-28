@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/blocktype"
@@ -80,13 +81,18 @@ type Walker struct {
 	rootType blocktype.BlockType
 	// keepBytes reads every block's bytes, leaves included, into its Visit.
 	keepBytes bool
+	// leafPresenceOnly skips schema validation of leaves for diagnostic walks.
+	leafPresenceOnly bool
 	// scan walks below a ref whose type the walk cannot name by scanning each
 	// block's bytes, and scans each decoded block beside its typed refs.
 	scan bool
 }
 
 // NewWalker constructs a Walker reading store, typing objects' roots with
-// lookup. Close releases it.
+// lookup. By default every schema-encoded block, including a leaf, must
+// transform-decode and pass DecodeExact before its reference list is certain.
+// A raw ByteSlice has no schema and accounts for every byte by definition, so
+// its empty list needs only presence. Close releases the walker.
 func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *Walker {
 	return &Walker{
 		le:        le,
@@ -105,6 +111,14 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 // the first Walk.
 func (w *Walker) KeepBytes() {
 	w.keepBytes = true
+}
+
+// LeafPresenceOnly skips decoding schema-encoded leaves for diagnostic walks
+// that grant no certainty about their reference lists. Such leaves report
+// Unsure, so a consumer cannot use this shortcut to verify a list. KeepBytes
+// still reads their stored bytes. Call it before the first Walk.
+func (w *Walker) LeafPresenceOnly() {
+	w.leafPresenceOnly = true
 }
 
 // TypeRootsAs declares that every object root of the walked Worlds is a bt
@@ -477,19 +491,23 @@ func (w *Walker) Close() {
 	w.typesWorld, w.typesEngine, w.typesTx = nil, nil, nil
 }
 
-// read reads, decodes and extracts the refs of one block. For a leaf it reads
-// only presence, or the bytes when the walker keeps them. It touches no walk
-// state, so reads run concurrently.
+// read reads, decodes and extracts the refs of one block. Only raw byte leaves
+// and the explicit presence-only mode skip decoding. It touches no walk state,
+// so reads run concurrently.
 func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 	// Scan a block the walk has no type for.
 	if n.Untyped != "" {
 		return w.readUntyped(ctx, n)
 	}
 
-	// Check only the presence of a block whose type holds no refs, unless
-	// the walker keeps bytes.
-	rd := Visit{Node: n, Leaf: !holdsRefs(n.Ctor())}
-	if rd.Leaf && !w.keepBytes {
+	// A type with no refs still needs to account for its schema-encoded
+	// bytes before an empty list can be verified. Only raw bytes are opaque.
+	blk := n.Ctor()
+	rd := Visit{Node: n, Leaf: !holdsRefs(blk)}
+	_, opaque := blk.(*byteslice.ByteSlice)
+	skipDecode := rd.Leaf && (opaque || w.leafPresenceOnly)
+	rd.Unsure = skipDecode && !opaque
+	if skipDecode && !w.keepBytes {
 		var err error
 		rd.Found, err = w.store.GetBlockExists(ctx, n.Ref)
 		return rd, err
@@ -507,7 +525,7 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 			data = slices.Clone(data)
 		}
 	}
-	if rd.Leaf {
+	if skipDecode {
 		return rd, nil
 	}
 
@@ -516,7 +534,6 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 		data, rd.DecodeErr = n.Xfrm.DecodeBlock(data)
 	}
 	if rd.DecodeErr == nil {
-		blk := n.Ctor()
 		if rd.DecodeErr = DecodeExact(blk, data); rd.DecodeErr == nil {
 			rd.blk = blk
 		}

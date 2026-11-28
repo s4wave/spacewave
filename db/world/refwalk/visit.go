@@ -8,11 +8,13 @@ type Visit struct {
 	Node Node
 	// Found is false when the store lacks the block.
 	Found bool
-	// Leaf is true when the block's type holds no refs, so only its presence
-	// was read, or its bytes when the walker keeps them.
+	// Leaf is true when the block's type declares no refs. A schema-encoded
+	// leaf still needs a successful exact decode before its empty list is
+	// certain; check Unsure and DecodeErr before trusting it.
 	Leaf bool
-	// Unsure reports a guessed type the walker could not confirm, as
-	// Node.Guess describes: the walker read no refs and does not descend.
+	// Unsure reports a guessed type the walker could not confirm, or a
+	// schema-encoded leaf read with LeafPresenceOnly: its list is not certain
+	// and the walker does not descend.
 	Unsure bool
 	// DecodeErr is why the block did not decode as its type, which must
 	// explain every byte as DecodeExact checks.
@@ -36,6 +38,6 @@ type Visit struct {
 	// Data is the block as stored, before any transform decodes it, when
 	// the walker keeps bytes and the block was found, or nil otherwise.
 	Data []byte
-	// blk is the decoded block, nil for a leaf or an undecodable block.
+	// blk is the decoded block, nil when decoding failed or was skipped.
 	blk any
 }

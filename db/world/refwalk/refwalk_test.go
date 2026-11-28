@@ -11,12 +11,16 @@ import (
 	"github.com/aperturerobotics/util/prng"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_snappy "github.com/s4wave/spacewave/db/block/transform/snappy"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	"github.com/s4wave/spacewave/net/hash"
+	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 	"github.com/sirupsen/logrus"
 )
 
@@ -512,6 +516,95 @@ func TestWalkInexactDecode(t *testing.T) {
 		}
 		if len(got) != 1 || !got[0].Found || !errors.Is(got[0].DecodeErr, ErrInexactDecode) || len(got[0].Refs) != 0 {
 			t.Fatalf("%s: visits %+v, want one inexact visit with no refs", name, got)
+		}
+	}
+}
+
+// TestWalkLeafDecode checks protobuf leaves before their empty reference lists
+// can be trusted, including when the walk keeps the transformed stored bytes.
+func TestWalkLeafDecode(t *testing.T) {
+	// Build a future-schema leaf whose unknown field carries a child ref.
+	ctx := t.Context()
+	store := block_mock.NewMockStore(0)
+	child, _, err := store.PutBlock(ctx, []byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	childBytes, err := child.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	exact, err := (&s4wave_wizard.WizardState{Name: "wizard"}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown := append([]byte{15<<3 | 2, byte(len(childBytes))}, childBytes...)
+	xfrm := block_transform.NewTransformerWithSteps([]block_transform.Step{&transform_snappy.Snappy{}})
+
+	// The same bytes are certain only under their actual encoding's contract.
+	for _, mode := range []struct{ keep, presence bool }{
+		{false, false}, {true, false}, {false, true}, {true, true},
+	} {
+		keep, presence := mode.keep, mode.presence
+		for _, tc := range []struct {
+			name string
+			data []byte
+			ctor block.Ctor
+			bad  bool
+		}{
+			{"exact", exact, func() block.Block { return &s4wave_wizard.WizardState{} }, false},
+			{"unknown", unknown, func() block.Block { return &s4wave_wizard.WizardState{} }, true},
+			{"transform failure", exact, func() block.Block { return &s4wave_wizard.WizardState{} }, true},
+			{"malformed", []byte{0xff}, func() block.Block { return &s4wave_wizard.WizardState{} }, true},
+			{"opaque", unknown, byteslice.NewByteSliceBlock, false},
+		} {
+			t.Run(tc.name+"/keep="+strconv.FormatBool(keep)+"/presence="+strconv.FormatBool(presence), func(t *testing.T) {
+				// Store the transformed bytes and walk with the declared leaf type.
+				data, err := xfrm.EncodeBlock(tc.data)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if tc.name == "transform failure" {
+					data = []byte{0xff}
+				}
+				ref, _, err := store.PutBlock(ctx, data, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				w := NewWalker(logrus.NewEntry(logrus.New()), store, nil)
+				defer w.Close()
+				if keep {
+					w.KeepBytes()
+				}
+				if presence {
+					w.LeafPresenceOnly()
+				}
+				var visits []Visit
+				err = w.Walk(ctx, Node{Ref: ref, Ctor: tc.ctor, Xfrm: xfrm}, func(_ context.Context, batch []Visit) error {
+					visits = append(visits, batch...)
+					return nil
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				// Invalid protobuf leaves must not certify an empty child list.
+				if len(visits) != 1 {
+					t.Fatalf("visits=%d, want one", len(visits))
+				}
+				got := visits[0]
+				unsure := presence && tc.name != "opaque"
+				bad := tc.bad && !presence
+				if !got.Leaf || !got.Found || got.Unsure != unsure || (got.DecodeErr != nil) != bad || len(got.Refs) != 0 {
+					t.Fatalf("leaf visit %+v, want decode failure=%v", got, bad)
+				}
+				if tc.name == "unknown" && !presence && !errors.Is(got.DecodeErr, ErrInexactDecode) {
+					t.Fatalf("unknown field: %v", got.DecodeErr)
+				}
+				if keep && !bytes.Equal(got.Data, data) {
+					t.Fatal("stored bytes changed during decoding")
+				}
+			})
 		}
 	}
 }
