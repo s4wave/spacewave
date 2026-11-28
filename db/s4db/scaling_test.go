@@ -31,14 +31,18 @@ const scaleTrials = 7
 
 // readCounter counts the reads a database makes of its file.
 type readCounter struct {
+	// storage is the file whose requested reads are counted.
 	storage
 	// reads counts ReadAt calls.
 	reads atomic.Int64
+	// bytes counts the bytes requested by ReadAt calls.
+	bytes atomic.Int64
 }
 
 // ReadAt counts the read and passes it on.
 func (r *readCounter) ReadAt(p []byte, off int64) (int, error) {
 	r.reads.Add(1)
+	r.bytes.Add(int64(len(p)))
 	return r.storage.ReadAt(p, off)
 }
 
@@ -124,17 +128,21 @@ func openScaled(t *testing.T, keys int) *scaled {
 
 // scaleCost is what one call of an entry point costs.
 type scaleCost struct {
-	// bytes and allocs are the heap bytes and objects allocated.
-	bytes, allocs float64
+	// bytes is the heap bytes allocated.
+	bytes float64
+	// allocs is the heap objects allocated.
+	allocs float64
 	// reads is the file reads.
 	reads float64
+	// readBytes is the bytes requested from the file.
+	readBytes float64
 	// took is the wall time.
 	took time.Duration
 }
 
 // String formats the cost.
 func (c scaleCost) String() string {
-	return fmt.Sprintf("%.0f B, %.1f allocs, %.2f reads, %v", c.bytes, c.allocs, c.reads, c.took)
+	return fmt.Sprintf("%.0f B, %.1f allocs, %.2f reads of %.0f B, %v", c.bytes, c.allocs, c.reads, c.readBytes, c.took)
 }
 
 // measure returns the cost of one call of op on each of two files: the
@@ -172,6 +180,7 @@ func measureTrial(t *testing.T, s *scaled, op func(s *scaled, i int) error, tria
 	var before, after runtime.MemStats
 	runtime.ReadMemStats(&before)
 	reads := s.rc.reads.Load()
+	readBytes := s.rc.bytes.Load()
 	start := time.Now()
 	for i := range scaleCalls {
 		if err := op(s, trial*scaleCalls+i); err != nil {
@@ -183,19 +192,22 @@ func measureTrial(t *testing.T, s *scaled, op func(s *scaled, i int) error, tria
 
 	// Average the counters over the calls.
 	return scaleCost{
-		bytes:  float64(after.TotalAlloc-before.TotalAlloc) / scaleCalls,
-		allocs: float64(after.Mallocs-before.Mallocs) / scaleCalls,
-		reads:  float64(s.rc.reads.Load()-reads) / scaleCalls,
-		took:   took / scaleCalls,
+		bytes:     float64(after.TotalAlloc-before.TotalAlloc) / scaleCalls,
+		allocs:    float64(after.Mallocs-before.Mallocs) / scaleCalls,
+		reads:     float64(s.rc.reads.Load()-reads) / scaleCalls,
+		readBytes: float64(s.rc.bytes.Load()-readBytes) / scaleCalls,
+		took:      took / scaleCalls,
 	}
 }
 
-// flat fails the test unless the cost at ten times the data stays within a
-// small factor of the cost at one: allocation and reads near equal, and time
-// under twice, where a walk of every run or chunk would take several times.
+// flat checks allocation and file-read counts at ten times the data.
+// Wall time is diagnostic: scheduling and page-cache residency vary by file.
 func flat(t *testing.T, name string, small, large scaleCost) {
+	// Report the measured time alongside the work charged to each call.
 	t.Helper()
 	t.Logf("%s: n %v; 10n %v", name, small, large)
+
+	// Reject growth in work independently of the host's concurrent load.
 	switch {
 	case large.bytes > small.bytes*1.25+512:
 		t.Errorf("%s allocates %.0f B a call at 10n against %.0f at n", name, large.bytes, small.bytes)
@@ -203,14 +215,14 @@ func flat(t *testing.T, name string, small, large scaleCost) {
 		t.Errorf("%s allocates %.1f objects a call at 10n against %.1f at n", name, large.allocs, small.allocs)
 	case large.reads > small.reads*1.25+0.5:
 		t.Errorf("%s reads %.2f times a call at 10n against %.2f at n", name, large.reads, small.reads)
-	case large.took > 2*small.took+5*time.Microsecond:
-		t.Errorf("%s takes %v a call at 10n against %v at n", name, large.took, small.took)
+	case large.readBytes > small.readBytes*1.25+512:
+		t.Errorf("%s reads %.0f B a call at 10n against %.0f at n", name, large.readBytes, small.readBytes)
 	}
 }
 
 // TestScaling runs each entry point the Volume and World layers call on a
 // file of n keys and one of 10n, with ten times the runs, and checks that a
-// call's allocation, reads and time stay flat: each should grow with the
+// call's allocation and reads stay flat: each should grow with the
 // call's own arguments, never with the file. The scheduler's checks run on
 // chunk tables of n and 10n chunks.
 func TestScaling(t *testing.T) {
