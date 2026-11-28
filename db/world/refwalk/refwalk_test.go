@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -443,6 +444,74 @@ func TestWalkResumeSharedChild(t *testing.T) {
 	for name, ref := range map[string]*block.BlockRef{"R": r, "A": a, "B": b, "C": c} {
 		if typed, _ := v.Seen(ref); !typed {
 			t.Fatalf("%s not finished after a whole walk", name)
+		}
+	}
+}
+
+// TestWalkInexactDecode checks that the walk trusts a typed decode only when
+// the type explains every byte. Bytes that hold a ref in a field the type does
+// not declare, at the top or in a nested message, or that repeat a field the
+// decode overwrites, decode without error, so a walk that trusted them would
+// miss a child. Each is undecodable and the walk does not descend.
+func TestWalkInexactDecode(t *testing.T) {
+	ctx := t.Context()
+	store := block_mock.NewMockStore(0)
+	put := func(data []byte) *block.BlockRef {
+		t.Helper()
+		ref, _, err := store.PutBlock(ctx, data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	encode := func(n *kvtx_block_iavl.Node) []byte {
+		t.Helper()
+		data, err := n.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	child := put(encode(&kvtx_block_iavl.Node{Key: []byte("C")}))
+	childRef, err := child.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Field 15 holds the child's ref as bytes, in the node or in its left
+	// child ref, and a second encoding overwrites the node's key.
+	unknown := append([]byte{15<<3 | 2, byte(len(childRef))}, childRef...)
+	nested := &block.BlockRef{}
+	if err := nested.UnmarshalVT(append(slices.Clone(childRef), unknown...)); err != nil {
+		t.Fatal(err)
+	}
+	parent := &kvtx_block_iavl.Node{Key: []byte("P"), LeftChildRef: child, Height: 1}
+	blocks := map[string][]byte{
+		"exact":          encode(parent),
+		"unknown field":  append(encode(parent), unknown...),
+		"nested unknown": encode(&kvtx_block_iavl.Node{Key: []byte("P"), LeftChildRef: nested, Height: 1}),
+		"repeated field": append(encode(parent), encode(&kvtx_block_iavl.Node{Key: []byte("Q")})...),
+	}
+	for name, data := range blocks {
+		w := NewWalker(logrus.NewEntry(logrus.New()), store, nil)
+		var got []Visit
+		node := Node{Ref: put(data), Ctor: func() block.Block { return &kvtx_block_iavl.Node{} }}
+		err := w.Walk(ctx, node, func(_ context.Context, batch []Visit) error {
+			got = append(got, batch...)
+			return nil
+		})
+		w.Close()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if name == "exact" {
+			if len(got) != 2 || got[0].DecodeErr != nil || len(got[0].Refs) != 1 {
+				t.Fatalf("exact: visits %+v, want the node and its child", got)
+			}
+			continue
+		}
+		if len(got) != 1 || !got[0].Found || !errors.Is(got[0].DecodeErr, ErrInexactDecode) || len(got[0].Refs) != 0 {
+			t.Fatalf("%s: visits %+v, want one inexact visit with no refs", name, got)
 		}
 	}
 }

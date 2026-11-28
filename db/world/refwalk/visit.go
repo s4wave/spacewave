@@ -14,7 +14,8 @@ type Visit struct {
 	// Unsure reports a guessed type the walker could not confirm, as
 	// Node.Guess describes: the walker read no refs and does not descend.
 	Unsure bool
-	// DecodeErr is why the block did not decode as its type.
+	// DecodeErr is why the block did not decode as its type, which must
+	// explain every byte as DecodeExact checks.
 	DecodeErr error
 	// Refs are the refs a write records for the decoded block, nil for a leaf.
 	// For an untyped block they are the refs a scan of its bytes found.

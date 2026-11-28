@@ -225,7 +225,7 @@ func (s *spaceWalk) heldRoots(ctx context.Context, ref *block.BlockRef) ([]*bloc
 		if err != nil || !found {
 			return roots, err
 		}
-		if err := msg.UnmarshalVT(data); err != nil {
+		if err := refwalk.DecodeExact(msg, data); err != nil {
 			return roots, s.visitRoot(ctx, ref, msg, nil, err)
 		}
 
@@ -248,7 +248,7 @@ func (s *spaceWalk) retainedRoots(ctx context.Context, ref *block.BlockRef) ([]*
 	if err != nil || !found {
 		return nil, err
 	}
-	if err := msg.UnmarshalVT(data); err != nil {
+	if err := refwalk.DecodeExact(msg, data); err != nil {
 		return nil, s.visitRoot(ctx, ref, msg, nil, err)
 	}
 
@@ -271,7 +271,7 @@ func (s *spaceWalk) spanRoots(ctx context.Context, ref *block.BlockRef) ([]*bloc
 		if err != nil || !found {
 			return worlds, payloads, err
 		}
-		if err := span.UnmarshalVT(data); err != nil {
+		if err := refwalk.DecodeExact(span, data); err != nil {
 			return worlds, payloads, s.visitRoot(ctx, ref, span, nil, err)
 		}
 
