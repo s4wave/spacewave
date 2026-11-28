@@ -119,6 +119,64 @@ func testLivenessSettleCopy(t *testing.T,
 		}
 	}
 
+	// A copy repeated over a short unverified list, as a retried restore
+	// puts the blocks a failed attempt stored, extends the list with the
+	// children it names, so the repair reaches the Volume. A list content
+	// wrote stays as it was, so a stale copied ref never joins it.
+	listOf := func(t *testing.T, v *Volume, ref *block.BlockRef) []*block.BlockRef {
+		t.Helper()
+		children, listed, err := v.GetChildren(t.Context(), ref)
+		if err != nil || !listed {
+			t.Fatalf("child list listed %v err %v", listed, err)
+		}
+		return children
+	}
+	for _, old := range []bool{false, true} {
+		t.Run("copied put again unions a short list old="+strconv.FormatBool(old), func(t *testing.T) {
+			tr := testTree{}
+			tr.add(t, "C")
+			tr.add(t, "R0")
+			var v *Volume
+			var clk *testClock
+			var store kvtx.Store
+			if old {
+				v, clk, store = oldStore(t, tr, "R0", []string{"C", "R0"})
+			} else {
+				store = newGuardedStore(t)
+				v, clk = openLivenessVolume(t, store, true)
+				if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "C"), copied(tr, "R0")}, []block.NamedRoot{{Name: "r0", Ref: tr["R0"].Ref}, {Name: "c", Ref: tr["C"].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tr.add(t, "P", "C")
+			puts := 0
+			put := func(refs ...*block.BlockRef) {
+				t.Helper()
+				p := copied(tr, "P", refs...)
+				puts++
+				if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{p}, []block.NamedRoot{{Name: "p" + strconv.Itoa(puts), Ref: p.Ref}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			put()
+			if got := listOf(t, v, tr["P"].Ref); len(got) != 0 {
+				t.Fatalf("short copy listed %v", got)
+			}
+			put(tr["C"].Ref)
+			if got := listOf(t, v, tr["P"].Ref); len(got) != 1 || !got[0].EqualsRef(tr["C"].Ref) {
+				t.Fatalf("repeated copy listed %v, want C", got)
+			}
+
+			// Settle marks P's list from content; a stale copy leaves it.
+			settleAll(t, v, clk, store, tr)
+			put(tr["C"].Ref, tr["R0"].Ref)
+			if got := listOf(t, v, tr["P"].Ref); len(got) != 1 || !got[0].EqualsRef(tr["C"].Ref) {
+				t.Fatalf("stale copy over a marked list listed %v, want C", got)
+			}
+			requireReads(t, v, tr, "P", "C", "R0")
+		})
+	}
+
 	t.Run("copied fill of a block not listed", func(t *testing.T) {
 		// A fill drops the copied P, whose list lacks C, and counts it. A
 		// root onto P is then refused, as onto any block not stored, and C

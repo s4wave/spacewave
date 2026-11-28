@@ -146,9 +146,14 @@ const (
 // with RefsKnown. Another entry is copied: its refs came from a source's
 // stored list, which may lack a child. Land keeps these invariants for one:
 //
-//  1. A copied entry never writes or marks a list. Of a stored block it
-//     stores the bytes and holds the block as a put again; its list stays as
-//     it was, and markStored skips it, so its refs never join the list.
+//  1. A copied entry never marks a list. Of a stored block it stores the
+//     bytes and holds the block as a put again, and markStored skips it. A
+//     marked list stays as it was, since content wrote it. An unverified
+//     list becomes the union of the list and the copied refs, unmarked,
+//     through unionCopied: both may lack a child, so a copy that repairs a
+//     short list, such as a retried restore, keeps every child either one
+//     names, and the union only keeps a block longer. A gained child is held
+//     as markStored holds one.
 //  2. While Open, a copied entry of a block without a list, or with a zero
 //     count and none, is born with its refs as an unverified list, through
 //     Records.putCopied, which enters it in the run and on the front in the
@@ -192,7 +197,9 @@ const (
 // While the generation is not Settled, each child list record it reads
 // returns its value, and per stored block it puts while
 // Open, its list record, which it may rewrite, with one list read per child
-// of a rewritten one, and per listed block it holds or puts, its count
+// of a rewritten one, and per stored block a copied entry puts, its list
+// record, which it rewrites when the copy names a child an unverified list
+// lacks, and per listed block it holds or puts, its count
 // record and, for a zero one, its parked key; while Sweeping, one run entry
 // read per unverified list it meets. On an adopted Volume, one queue delete
 // per stored block it holds at zero, then one up page and one down page per
@@ -259,12 +266,18 @@ func Land(
 		}
 	}
 
-	// Mark the unverified lists of the stored blocks the Land puts again.
+	// Mark the unverified lists of the stored blocks the Land puts again,
+	// and union the copied refs into those it puts again from a copy.
 	if l.gen == Generation_GENERATION_OPEN {
 		for _, entry := range l.stored {
 			if err := l.markStored(ctx, entry); err != nil {
 				return nil, err
 			}
+		}
+	}
+	for _, entry := range l.copiedStored {
+		if err := l.unionCopied(ctx, entry); err != nil {
+			return nil, err
 		}
 	}
 
@@ -366,6 +379,9 @@ type lander struct {
 	// ones included, whose stored lists stay as they were and hold their
 	// children, as requirePutsHeld reads.
 	kept []*block.PutBatchEntry
+	// copiedStored are the first copied entries of the blocks stored with a
+	// child list, not parked, whose unverified lists unionCopied extends.
+	copiedStored []*block.PutBatchEntry
 	// holds are the root targets and the zero counts classifyPuts reads for
 	// the stored blocks the Land holds, which it dequeues.
 	holds zeroHolds
@@ -472,6 +488,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		case kind == putStored:
 			if copied {
 				l.kept = append(l.kept, entry)
+				l.copiedStored = append(l.copiedStored, entry)
 			} else {
 				l.stored = append(l.stored, entry)
 			}
@@ -1030,6 +1047,40 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 		l.up = appendGained(l.up, old, packed)
 	}
 	return l.rec.markedYoung(ctx, key, packed, nil)
+}
+
+// unionCopied writes the union of the unverified list of the stored block a
+// copied entry puts again and the entry's refs, unmarked, as Land describes.
+// A marked list stays: content wrote it. While Sweeping and Settled every
+// list is marked, so only an Open or unadopted Volume writes a union. A
+// gained child is held as markStored holds one.
+func (l *lander) unionCopied(ctx context.Context, entry *block.PutBatchEntry) error {
+	// Leave a missing or marked list.
+	key := BlockKey(entry.Ref)
+	value, listed, err := l.rec.tx.Get(ctx, l.rec.key(kindChildren, key))
+	if err != nil || !listed || listMarked(value) {
+		return err
+	}
+
+	// Write the union when the copy names a child the list lacks.
+	old := listKeys(value)
+	union, err := unionChildren(old, EncodeChildren(entry.Refs))
+	if err != nil || bytes.Equal(union, old) {
+		return err
+	}
+	if err := l.rec.tx.Set(ctx, l.rec.key(kindChildren, key), union); err != nil {
+		return err
+	}
+
+	// Hold the gained children as markStored does.
+	switch {
+	case !l.logs:
+	case !l.adopting:
+		return l.rec.noteRewrite(ctx, l.state)
+	case adoptCounted(l.state, key):
+		l.up = appendGained(l.up, bytes.Clone(old), union)
+	}
+	return nil
 }
 
 // holdChildren counts the holder each born block gives each child: an
