@@ -89,12 +89,26 @@ func (s *FailStop) Fail(err error) error {
 	return s.Failed()
 }
 
+// Admit runs call unless the file failed, and returns the failure instead. A
+// failure is recorded only once no admitted call is in progress, so each call
+// either ends before the failure or does not start. call must not call Admit,
+// Fail or Flushing: Fail waits for call, and a failing flush holds flushMtx
+// while it waits.
+func (s *FailStop) Admit(call func() error) error {
+	s.gate.RLock()
+	defer s.gate.RUnlock()
+	if err := s.Failed(); err != nil {
+		return err
+	}
+	return call()
+}
+
 // Flushing runs call, a flush of the file or a write that flushes it, after
 // every earlier flush has ended and recorded its failure, unless the file
 // failed, and returns the failure instead. It records an error of call for
 // which storageErr reports true as the file's failure, and returns call's
 // other errors as they are; a nil storageErr counts every error. call must not
-// call Fail or Flushing, nor a flusher's Sync, Close or Admit.
+// call Admit, Fail or Flushing, nor a flusher's Sync or Close.
 func (s *FailStop) Flushing(call func() error, storageErr func(error) bool) error {
 	// Run call alone among the file's flushes unless one failed, and record
 	// its storage failure before the next flush starts.

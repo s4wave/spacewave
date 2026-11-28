@@ -136,20 +136,13 @@ func (f *OrderedFlusher) Fail(err error) error {
 	return f.stop.Fail(err)
 }
 
-// Admit runs call unless a flush of the file failed, and returns the failure
-// instead. A failure is recorded only once no call any flusher of the file
-// admitted is in progress, so each call either ends before the failure or
-// does not start. A store runs through
-// it each commit that makes writes visible before a flush, and each write to
-// its file that could carry a failed commit, such as a checkpoint. call must
-// not call Admit or Fail.
+// Admit runs call unless the file failed, as FailStop.Admit does, so each call
+// any flusher of the file admits ends before a failure or does not start. A
+// store runs through it each commit that makes writes visible before a flush,
+// and each write to its file that could carry a failed commit, such as a
+// checkpoint. call must not call Admit, Fail or Flushing.
 func (f *OrderedFlusher) Admit(call func() error) error {
-	f.stop.gate.RLock()
-	defer f.stop.gate.RUnlock()
-	if err := f.Failed(); err != nil {
-		return err
-	}
-	return call()
+	return f.stop.Admit(call)
 }
 
 // Flushing runs call, a commit or write that flushes the file the flush
