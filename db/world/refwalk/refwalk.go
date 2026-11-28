@@ -512,13 +512,13 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 		return rd, nil
 	}
 
-	// Decode the block as its type.
+	// Decode the block as its type, which must explain every byte.
 	if n.Xfrm != nil {
 		data, rd.DecodeErr = n.Xfrm.DecodeBlock(data)
 	}
 	if rd.DecodeErr == nil {
 		blk := n.Ctor()
-		if rd.DecodeErr = blk.UnmarshalVT(data); rd.DecodeErr == nil {
+		if rd.DecodeErr = DecodeExact(blk, data); rd.DecodeErr == nil {
 			rd.blk = blk
 		}
 	}
