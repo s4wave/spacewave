@@ -1,8 +1,6 @@
 package refwalk
 
 import (
-	"reflect"
-
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 )
@@ -30,14 +28,4 @@ type Node struct {
 	// values constructs the values of the tree the block belongs to, nil when
 	// the block is not a tree node or the tree's values are untyped.
 	values block.Ctor
-}
-
-// visitKey identifies a block as the walk read it: its ref and the type it
-// decoded the block as.
-type visitKey struct {
-	// ref is the block's ref, marshaled.
-	ref string
-	// typ is the type the block was read as, nil for a block read by
-	// scanning.
-	typ reflect.Type
 }

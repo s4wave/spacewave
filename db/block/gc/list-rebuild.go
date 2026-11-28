@@ -154,6 +154,15 @@ func (r *ListRebuild) queue(ctx context.Context, p pendingList) error {
 	return r.flush(ctx)
 }
 
+// Flush writes the pending lists, or on a dry run compares them, and returns
+// the tally of every block handed to the rebuild so far. A caller that records
+// its progress, such as the blocks its walk finished, flushes first, so the
+// progress it records covers only lists already written or compared.
+func (r *ListRebuild) Flush(ctx context.Context) (ListRebuildResult, error) {
+	err := r.flush(ctx)
+	return r.res, err
+}
+
 // listVerdict is what verifyOne did with one block's decoded refs.
 type listVerdict int
 

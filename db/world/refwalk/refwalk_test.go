@@ -3,6 +3,7 @@ package refwalk
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strconv"
 	"testing"
 
@@ -240,27 +241,7 @@ func TestPayloadNodeRootType(t *testing.T) {
 	// Write a key-value tree large enough to have children.
 	ctx := t.Context()
 	store := block_mock.NewMockStore(0)
-	tx, cursor := block.NewTransaction(store, nil, nil, nil)
-	kvs := kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault)
-	cursor.SetBlock(kvs, true)
-	kv, err := kvs.BuildKvTransaction(ctx, cursor, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := range 500 {
-		key := []byte("row-" + strconv.Itoa(i))
-		if err := kv.Set(ctx, key, bytes.Repeat(key, 8)); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := kv.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	kv.Discard()
-	ref, _, err := tx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ref := writeTree(t, store, 500)
 
 	// Walk it as a payload, guessed and then declared.
 	root := func(w *Walker) Visit {
@@ -291,4 +272,127 @@ func TestPayloadNodeRootType(t *testing.T) {
 	if typed := root(w); typed.Unsure || typed.DecodeErr != nil || len(typed.Refs) == 0 {
 		t.Fatalf("declared root: unsure %v, decode err %v, %d refs, want certain with refs", typed.Unsure, typed.DecodeErr, len(typed.Refs))
 	}
+}
+
+// TestWalkResume checks the contract a stored Visited relies on: a walk that
+// stops leaves finished only blocks whose whole subtree its visitor received,
+// and a walk resumed from the same Visited reads every block the stopped one
+// did not finish. A walk that recorded a block when it took it, before reading
+// what is below it, would leave a resumed walk skipping that subtree.
+func TestWalkResume(t *testing.T) {
+	// Write a tree of several levels, and read its graph with one walk.
+	ctx := t.Context()
+	store := block_mock.NewMockStore(0)
+	ref := writeTree(t, store, 3000)
+	kvs := blocktype.New[kvtx_block.KeyValueStore](kvtx_block.KeyValueStoreTypeID)
+	walk := func(v Visited, stopAfter int) (map[string]Visit, error) {
+		t.Helper()
+		w := NewWalker(logrus.NewEntry(logrus.New()), store, nil)
+		defer w.Close()
+		w.TypeRootsAs(kvs)
+		w.VisitIn(v)
+		node, _, err := w.PayloadNode(&bucket.ObjectRef{}, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		read := make(map[string]Visit)
+		var batches int
+		err = w.Walk(ctx, node, func(_ context.Context, batch []Visit) error {
+			if batches == stopAfter {
+				return errStop
+			}
+			batches++
+			for _, rd := range batch {
+				read[rd.Node.Ref.MarshalString()] = rd
+			}
+			return nil
+		})
+		return read, err
+	}
+	graph, err := walk(NewMemVisited(), -1)
+	if err != nil || len(graph) < 8*batchSize {
+		t.Fatalf("whole walk: %d blocks, err %v", len(graph), err)
+	}
+
+	// Stop a walk at points through it, then resume it.
+	batches := len(graph) / batchSize
+	for _, stopAfter := range []int{1, batches / 3, batches / 2, batches - 1} {
+		v := NewMemVisited()
+		first, err := walk(v, stopAfter)
+		if err != errStop {
+			t.Fatalf("stop after %d batches: %v", stopAfter, err)
+		}
+
+		// Every finished block's subtree was read.
+		read := make(map[string]bool)
+		var below func(key string) bool
+		below = func(key string) bool {
+			if got, ok := read[key]; ok {
+				return got
+			}
+			_, got := first[key]
+			for _, child := range graph[key].Refs {
+				if _, ok := graph[child.MarshalString()]; ok && got {
+					got = below(child.MarshalString())
+				}
+			}
+			read[key] = got
+			return got
+		}
+		var finished int
+		for key, rd := range graph {
+			if typed, _ := v.Seen(rd.Node.Ref); typed {
+				finished++
+				if !below(key) {
+					t.Fatalf("stop after %d batches: finished %s with %d children, not all read", stopAfter, key, len(rd.Refs))
+				}
+			}
+		}
+
+		// The resumed walk reads every block the first did not finish.
+		second, err := walk(v, -1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for key := range graph {
+			if _, again := second[key]; !again && !below(key) {
+				t.Fatalf("stop after %d batches: resumed walk skipped %s, whose subtree the first did not read", stopAfter, key)
+			}
+		}
+		if len(second) > len(graph)-finished {
+			t.Fatalf("stop after %d batches: resumed walk read %d of %d blocks, %d finished", stopAfter, len(second), len(graph), finished)
+		}
+	}
+}
+
+// errStop stops a walk in TestWalkResume.
+var errStop = errors.New("stop")
+
+// writeTree writes a key-value tree of rows rows to store and returns its
+// root.
+func writeTree(t *testing.T, store block.StoreOps, rows int) *block.BlockRef {
+	t.Helper()
+	ctx := t.Context()
+	tx, cursor := block.NewTransaction(store, nil, nil, nil)
+	kvs := kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault)
+	cursor.SetBlock(kvs, true)
+	kv, err := kvs.BuildKvTransaction(ctx, cursor, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range rows {
+		key := []byte("row-" + strconv.Itoa(i))
+		if err := kv.Set(ctx, key, bytes.Repeat(key, 8)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := kv.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	kv.Discard()
+	ref, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
 }

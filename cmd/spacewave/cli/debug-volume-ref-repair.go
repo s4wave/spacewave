@@ -422,7 +422,7 @@ func repairVolumeRefs(
 	}
 	rr.close()
 	if opts.scanUntyped {
-		rr.res.scan.only = rr.walker.ScannedOnly()
+		rr.res.scan.only = rr.visited.ScannedOnly()
 	}
 
 	// Measure the whole volume before applying any of the planned repairs.

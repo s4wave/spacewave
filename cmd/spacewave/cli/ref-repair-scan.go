@@ -150,7 +150,7 @@ func (s *refRepairScan) measureWeak(reach *block_gc.RootReach) {
 func (r *refRepair) scanFate(ref *block.BlockRef, root *block_gc.FrontRoot, roots bool) string {
 	// Prefer a read that worked to the cause of one that did not.
 	key := ref.MarshalString()
-	typed, scanned := r.walker.Reached(ref)
+	typed, scanned := r.visited.Seen(ref)
 	why, unread := r.unread[key]
 	failed, bad := r.res.scan.failed[key]
 	switch {
