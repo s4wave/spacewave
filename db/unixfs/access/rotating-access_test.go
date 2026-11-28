@@ -14,6 +14,7 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 )
 
+// TestRotatingAccessRebindsBlockedAccess retries blocked calls after each provider rotation.
 func TestRotatingAccessRebindsBlockedAccess(t *testing.T) {
 	// Create a rotating UnixFS provider that initially blocks access.
 	ctx := t.Context()
@@ -85,29 +86,39 @@ func TestRotatingAccessRebindsBlockedAccess(t *testing.T) {
 	assertRotatingAccessBody(t, secondAccessCtx, second.handle, secondBody)
 }
 
+// rotatingAccessResult holds one resolved provider or its terminal error.
 type rotatingAccessResult struct {
-	handle  *unixfs.FSHandle
+	// handle is the acquired root, or nil on failure.
+	handle *unixfs.FSHandle
+	// release ends the acquisition.
 	release func()
-	err     error
+	// err is the terminal access error.
+	err error
 }
 
+// signalContext reports when a blocked provider observes its cancellation channel.
 type signalContext struct {
+	// Context owns cancellation of this provider attempt.
 	context.Context
 
+	// started reports entry into the blocked wait.
 	started func()
 }
 
+// Done reports the wait before returning the underlying cancellation channel.
 func (s *signalContext) Done() <-chan struct{} {
 	s.started()
 	return s.Context.Done()
 }
 
+// accessRotatingHandleWithRebind retries only access attempts retired by rotation.
 func accessRotatingHandleWithRebind(
 	ctx context.Context,
 	access *unixfs_access.RotatingAccess,
 	started chan<- struct{},
 	result chan<- rotatingAccessResult,
 ) {
+	// Signal the first blocked attempt once across replacement attempts.
 	var startedOnce sync.Once
 	closeStarted := func() {
 		startedOnce.Do(func() {
@@ -115,7 +126,9 @@ func accessRotatingHandleWithRebind(
 		})
 	}
 
+	// Keep retrying while the provider invalidates a blocked acquisition.
 	for {
+		// Give this provider attempt its own cancellation scope.
 		resolveCtx, resolveCancel := context.WithCancel(ctx)
 		accessCtx := resolveCtx
 		if started != nil {
@@ -125,18 +138,22 @@ func accessRotatingHandleWithRebind(
 			}
 		}
 
+		// Publish rotation before cancellation wakes the blocked provider.
 		var releasedOnce sync.Once
 		releasedCh := make(chan struct{})
 		released := func() {
 			releasedOnce.Do(func() {
-				resolveCancel()
 				close(releasedCh)
+				resolveCancel()
 			})
 		}
 
+		// End the attempt and expose that it reached the provider.
 		handle, release, err := access.AccessUnixFS(accessCtx, released)
 		resolveCancel()
 		closeStarted()
+
+		// Rotation retries; a caller cancellation remains terminal.
 		if err != nil {
 			select {
 			case <-releasedCh:
@@ -145,6 +162,8 @@ func accessRotatingHandleWithRebind(
 			default:
 			}
 		}
+
+		// Return the acquired provider or its terminal error.
 		result <- rotatingAccessResult{
 			handle:  handle,
 			release: release,
@@ -154,6 +173,7 @@ func accessRotatingHandleWithRebind(
 	}
 }
 
+// waitRotatingAccessResult requires a usable acquisition before the deadline.
 func waitRotatingAccessResult(
 	t *testing.T,
 	ctx context.Context,
@@ -179,6 +199,7 @@ func waitRotatingAccessResult(
 	return rotatingAccessResult{}
 }
 
+// assertRotatingAccessBody checks the file bytes of the acquired provider.
 func assertRotatingAccessBody(
 	t *testing.T,
 	ctx context.Context,
@@ -205,6 +226,7 @@ func assertRotatingAccessBody(
 	}
 }
 
+// newTestRotatingAccessRoot creates an in-memory root with the requested file.
 func newTestRotatingAccessRoot(ctx context.Context, body []byte) (*unixfs.FSHandle, error) {
 	// Create an in-memory UnixFS root for the provider.
 	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
@@ -221,12 +243,14 @@ func newTestRotatingAccessRoot(ctx context.Context, body []byte) (*unixfs.FSHand
 	return rootRef, nil
 }
 
+// TestFSCursorRetriesRotatedAccess keeps a lookup alive across provider rotation.
 func TestFSCursorRetriesRotatedAccess(t *testing.T) {
 	// Create a rotating provider and signal when the cursor blocks on it.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	rotating := unixfs_access.NewRotatingAccess()
 	started := make(chan struct{})
+	// Signal the first blocked attempt once across replacement attempts.
 	var startedOnce sync.Once
 	cursor := unixfs_access.NewFSCursor(func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 		startedOnce.Do(func() { close(started) })
