@@ -790,7 +790,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20261024221644-3def6903e63a",
+      "version": "v0.0.0-20261127210914-22f96c60c0f3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -830,7 +830,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.6-0.20261127192832-dd0a38577071",
+      "version": "v0.53.6-0.20261127223115-d5c12f027689",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
