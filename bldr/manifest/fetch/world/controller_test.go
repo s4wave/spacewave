@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestControllerCoalescesManifestCollection checks shared collection and re-keying after every waiter joins.
 func TestControllerCoalescesManifestCollection(t *testing.T) {
 	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -105,6 +106,7 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		err     error
 	}
 	results := make(chan result, len(ids))
+	joined := make(chan struct{}, len(ids))
 	for _, id := range ids {
 		go func() {
 			handler := &collectionTestHandler{}
@@ -112,9 +114,19 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 				c:   ctrl,
 				dir: manifest.NewFetchManifest(id, nil, []string{"js"}, 0),
 			}
-			_, err := resolver.reconcileManifestsCore(ctx, logrus.NewEntry(logrus.New()), handler, countedWS)
+			waitCtx := &collectionWaitContext{Context: ctx, joined: joined}
+			_, err := resolver.reconcileManifestsCore(waitCtx, logrus.NewEntry(logrus.New()), handler, countedWS)
 			results <- result{id: id, handler: handler, err: err}
 		}()
+	}
+
+	// Establish that every resolver joined the same sequence-one collection.
+	for range ids {
+		select {
+		case <-joined:
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		}
 	}
 
 	// Advance the world while the first traversal is blocked. No resolver may
@@ -198,6 +210,7 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 	}
 }
 
+// TestControllerSelectedManifestCollectionBoundsReleaseReads limits collection reads to the active manifest IDs.
 func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
 	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -253,6 +266,7 @@ func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
 	}
 }
 
+// TestControllerRekeysUnsupportedHashReset rebuilds the collection after resetting an unreadable store.
 func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -321,6 +335,7 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	}
 }
 
+// TestControllerRetriesFailedAndCanceledManifestCollections retries a failed controller-owned traversal.
 func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -375,6 +390,7 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	}
 }
 
+// TestControllerRekeysManifestCollectionAfterResolverRemoval drops removed manifest IDs from the collection key.
 func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
 	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -421,6 +437,7 @@ func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
 	}
 }
 
+// buildCollectionTestWorld creates a World containing the manifest store.
 func buildCollectionTestWorld(
 	t *testing.T,
 	ctx context.Context,
@@ -455,6 +472,7 @@ func buildCollectionTestWorld(
 	return ws, tb
 }
 
+// storeCollectionTestManifest writes and links one manifest in the fixture World.
 func storeCollectionTestManifest(
 	t *testing.T,
 	ctx context.Context,
@@ -507,6 +525,7 @@ func storeCollectionTestManifest(
 	}
 }
 
+// assertCollectionTestManifest requires the resolver to publish the selected manifest revision.
 func assertCollectionTestManifest(
 	t *testing.T,
 	handler *collectionTestHandler,
@@ -535,20 +554,52 @@ func assertCollectionTestManifest(
 	}
 }
 
-type collectionCountingWorldState struct {
-	world.WorldState
-
-	mtx              sync.Mutex
-	seqno            uint64
-	traversalCount   int
-	manifestReads    atomic.Int64
-	traversalErr     error
-	seqnoAfterDelete uint64
-	started          chan struct{}
-	startedOnce      sync.Once
-	release          <-chan struct{}
+// collectionWaitContext reports the first promise wait of one resolver.
+// The counting World's GetSeqno ignores ctx, so Promise.Await is its first Done call.
+type collectionWaitContext struct {
+	// Context owns the resolver's cancellation.
+	context.Context
+	// joined records entry into the blocked collection promise.
+	joined chan<- struct{}
+	// once records this resolver only once across re-keyed collections.
+	once sync.Once
 }
 
+// Done records the promise wait and preserves the resolver's cancellation.
+func (c *collectionWaitContext) Done() <-chan struct{} {
+	// Record the first wait without counting later sequence retries again.
+	c.once.Do(func() { c.joined <- struct{}{} })
+
+	// Preserve the original cancellation signal.
+	return c.Context.Done()
+}
+
+// collectionCountingWorldState controls revision changes and graph traversal gates.
+type collectionCountingWorldState struct {
+	// WorldState supplies real object and graph operations.
+	world.WorldState
+
+	// mtx guards the controlled revision and graph traversal state.
+	mtx sync.Mutex
+	// seqno is the revision returned to collection callers.
+	seqno uint64
+	// traversalCount counts graph batches begun.
+	traversalCount int
+	// manifestReads counts object-body accesses independently of graph batches.
+	manifestReads atomic.Int64
+	// traversalErr is the injected graph traversal result.
+	traversalErr error
+	// seqnoAfterDelete advances the fixture after an unsupported store is reset.
+	seqnoAfterDelete uint64
+	// started reports the first graph traversal.
+	started chan struct{}
+	// startedOnce publishes that first traversal only once.
+	startedOnce sync.Once
+	// release gates graph traversal completion when non-nil.
+	release <-chan struct{}
+}
+
+// GetObject counts manifest-body reads through the returned object.
 func (w *collectionCountingWorldState) GetObject(
 	ctx context.Context,
 	key string,
@@ -563,18 +614,23 @@ func (w *collectionCountingWorldState) GetObject(
 	}, ok, err
 }
 
+// GetSeqno returns the revision controlled by this fixture.
 func (w *collectionCountingWorldState) GetSeqno(context.Context) (uint64, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	return w.seqno, nil
 }
 
+// collectionCountingObjectState counts reads through one manifest object.
 type collectionCountingObjectState struct {
+	// ObjectState supplies the real object's body access.
 	world.ObjectState
 
+	// manifestReads counts body-access attempts.
 	manifestReads *atomic.Int64
 }
 
+// AccessWorldState counts access to a manifest object body.
 func (s *collectionCountingObjectState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
@@ -584,6 +640,7 @@ func (s *collectionCountingObjectState) AccessWorldState(
 	return s.ObjectState.AccessWorldState(ctx, ref, cb)
 }
 
+// DeleteObject applies the configured revision change after deleting an object.
 func (w *collectionCountingWorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
 	deleted, err := w.WorldState.DeleteObject(ctx, key)
 	if err == nil && w.seqnoAfterDelete != 0 {
@@ -592,6 +649,7 @@ func (w *collectionCountingWorldState) DeleteObject(ctx context.Context, key str
 	return deleted, err
 }
 
+// LookupGraphQuadsBatch counts and gates a batched manifest graph traversal.
 func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
 	ctx context.Context,
 	filters []world.GraphQuad,
@@ -626,6 +684,7 @@ func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
 	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
+// AccessCayleyGraph counts and gates a direct manifest graph traversal.
 func (w *collectionCountingWorldState) AccessCayleyGraph(
 	ctx context.Context,
 	write bool,
@@ -660,40 +719,49 @@ func (w *collectionCountingWorldState) AccessCayleyGraph(
 	return w.WorldState.AccessCayleyGraph(ctx, write, cb)
 }
 
+// setSeqno publishes the fixture World revision.
 func (w *collectionCountingWorldState) setSeqno(seqno uint64) {
 	w.mtx.Lock()
 	w.seqno = seqno
 	w.mtx.Unlock()
 }
 
+// setTraversalErr sets the next graph traversal result.
 func (w *collectionCountingWorldState) setTraversalErr(err error) {
 	w.mtx.Lock()
 	w.traversalErr = err
 	w.mtx.Unlock()
 }
 
+// getTraversalErr returns the configured graph traversal failure.
 func (w *collectionCountingWorldState) getTraversalErr() error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	return w.traversalErr
 }
 
+// traversals returns the number of graph traversals begun.
 func (w *collectionCountingWorldState) traversals() int {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	return w.traversalCount
 }
 
+// collectionTestHandler retains values published by a manifest resolver.
 type collectionTestHandler struct {
+	// values holds published values in their assigned slots.
 	values []directive.Value
-	idle   bool
+	// idle is the last reported resolver idle state.
+	idle bool
 }
 
+// AddValue retains the resolver value and assigns its one-based ID.
 func (h *collectionTestHandler) AddValue(value directive.Value) (uint32, bool) {
 	h.values = append(h.values, value)
 	return uint32(len(h.values)), true
 }
 
+// RemoveValue removes the value identified by its one-based ID.
 func (h *collectionTestHandler) RemoveValue(id uint32) (directive.Value, bool) {
 	if id == 0 || int(id) > len(h.values) {
 		return nil, false
@@ -703,10 +771,12 @@ func (h *collectionTestHandler) RemoveValue(id uint32) (directive.Value, bool) {
 	return value, true
 }
 
+// CountValues reports the number of value slots allocated by the handler.
 func (h *collectionTestHandler) CountValues(allResolvers bool) int {
 	return len(h.values)
 }
 
+// ClearValues removes every retained value and returns its IDs.
 func (h *collectionTestHandler) ClearValues() []uint32 {
 	ids := make([]uint32, len(h.values))
 	for i := range h.values {
@@ -716,18 +786,22 @@ func (h *collectionTestHandler) ClearValues() []uint32 {
 	return ids
 }
 
+// MarkIdle records the resolver's idle state.
 func (h *collectionTestHandler) MarkIdle(idle bool) {
 	h.idle = idle
 }
 
+// AddValueRemovedCallback returns an inert removal callback registration.
 func (h *collectionTestHandler) AddValueRemovedCallback(uint32, func()) func() {
 	return func() {}
 }
 
+// AddResolverRemovedCallback returns an inert resolver callback registration.
 func (h *collectionTestHandler) AddResolverRemovedCallback(func()) func() {
 	return func() {}
 }
 
+// AddResolver returns an inert child-resolver registration.
 func (h *collectionTestHandler) AddResolver(directive.Resolver, func()) func() {
 	return func() {}
 }
