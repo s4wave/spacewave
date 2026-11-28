@@ -263,6 +263,9 @@ func TestSetRootNeverDurableUnheld(t *testing.T) {
 	t.Run("power cut", testSetRootPowerCut)
 	t.Run("deferred land", func(t *testing.T) { testSetRootDeferred(t, false) })
 	t.Run("deferred crash", func(t *testing.T) { testSetRootDeferred(t, true) })
+	t.Run("deferred drained pages", testSetRootDeferredDrained)
+	t.Run("deferred borrowed payload", func(t *testing.T) { testSetRootDeferredBorrowed(t, "off") })
+	t.Run("deferred borrowed payload expected", func(t *testing.T) { testSetRootDeferredBorrowed(t, "on") })
 }
 
 // testSetRootDeferred holds a write's queued root moves before they land until
@@ -316,8 +319,7 @@ func testSetRootDeferred(t *testing.T, crash bool) {
 	}
 
 	// Free what nothing holds, then land or lose the moves.
-	f.collect(t)
-	t.Logf("the collection before the landing freed %d blocks", f.freed)
+	collectDecoy(ctx, t, f)
 	close(resume)
 	clearLand()
 	if crash {
@@ -332,7 +334,7 @@ func testSetRootDeferred(t *testing.T, crash bool) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	f.collect(t)
+	collectDecoy(ctx, t, f)
 	requireDurableSetRoots(ctx, t, f.space(t), optypes.LookupWorldOp)
 	requireKeypair(ctx, t, "after the deferred write", eng, key, peerID)
 	got, found, err := readBlob(ctx, eng, "deferred")
@@ -349,6 +351,231 @@ func testSetRootDeferred(t *testing.T, crash bool) {
 	if !queued.Load() {
 		t.Fatal("no admission queued a root move")
 	}
+}
+
+// collectDecoy stores a block only a released stage held, collects, and
+// requires the collection to have freed it, so a test that checks what a
+// collection kept knows the collection freed what nothing held.
+func collectDecoy(ctx context.Context, t *testing.T, f *adapterFixture) {
+	t.Helper()
+	store := f.space(t).GetBlockStore()
+	stage, release, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := make([]byte, 64)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	decoy, _, err := stage.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := f.freed
+	f.collect(t)
+	if _, found, err := store.GetBlock(ctx, decoy); err != nil || found {
+		t.Fatalf("the collection kept a block nothing held: found %v, %v; %s", found, err, f.collectReport(ctx))
+	}
+	t.Logf("the collection freed %d blocks", f.freed-before)
+}
+
+// adapterOf returns the Adapter that serves eng.
+func adapterOf(ctx context.Context, t *testing.T, eng world.Engine) *space_world.Adapter {
+	t.Helper()
+	var adapter *space_world.Adapter
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, e world.Engine) error {
+		adapter = e.(*space_world.Engine).GetAdapter()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return adapter
+}
+
+// pauseFirstLanding stops the first durable step that has a queued root move
+// before its moves land. reached closes when it stops, and resume lets it go
+// on, closed at the latest when the test ends.
+func pauseFirstLanding(t *testing.T) (reached chan struct{}, resume func()) {
+	reached = make(chan struct{})
+	release := make(chan struct{})
+	var once, resumed atomic.Bool
+	clear := space_world.SetLandHook(func(q bool) error {
+		if q && once.CompareAndSwap(false, true) {
+			close(reached)
+			<-release
+		}
+		return nil
+	})
+	resume = func() {
+		if resumed.CompareAndSwap(false, true) {
+			close(release)
+		}
+	}
+	t.Cleanup(func() {
+		resume()
+		clear()
+	})
+	return reached, resume
+}
+
+// testSetRootDeferredDrained writes a transaction too large for its write
+// buffer, whose World pages drain to the writer's stage before Admit, and
+// stops any moves it queues before they land. The writer's stage ends with
+// the transaction's retirement, so a collection then must still keep the
+// pages, and the pending root the moves land must read back whole.
+func testSetRootDeferredDrained(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Second)
+	defer cancel()
+	defer space_world.ForceDeferredMoves()()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	adapter := adapterOf(ctx, t, eng)
+
+	// See the drained candidate, and stop its moves before they land.
+	t.Setenv(world_block.DurabilityTimeoutEnv, "30s")
+	var drained atomic.Bool
+	defer space_world.SetAdmittedHook(func(c world.Candidate) {
+		if c.Staged {
+			drained.Store(true)
+		}
+	})()
+	reached, resume := pauseFirstLanding(t)
+	werr := make(chan error, 1)
+	go func() {
+		werr <- world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			for i := range 6000 {
+				obj, err := ws.CreateObject(ctx, "drained-"+strconv.Itoa(i), nil)
+				world.ReleaseObjectState(obj)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}()
+	// The write either queues its moves, which stop, or lands them in its
+	// turn and returns.
+	landed := false
+	select {
+	case <-reached:
+	case err := <-werr:
+		if err != nil {
+			t.Fatal(err)
+		}
+		landed = true
+	case <-ctx.Done():
+		t.Fatal("the write neither queued a root move nor returned")
+	}
+
+	// A new turn waits out the write's retirement, which ends its stage.
+	turn, err := adapter.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	turn.Release()
+	if !drained.Load() {
+		t.Fatal("the write drained no World page to its stage")
+	}
+
+	// Free what nothing holds, then land the moves.
+	collectDecoy(ctx, t, f)
+	resume()
+	if !landed {
+		if err := <-werr; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := adapter.Acknowledge(ctx); err != nil {
+		t.Fatal(err)
+	}
+	store := f.space(t).GetBlockStore()
+	root, err := store.GetRoot(ctx, space_world.RootPending)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root.GetEmpty() {
+		t.Fatal("the pending root did not land")
+	}
+	if err := block.WalkGraph(ctx, store, []*block.BlockRef{root}, 0, nil); err != nil {
+		t.Fatalf("the pending root names a freed World page: %v", err)
+	}
+}
+
+// testSetRootDeferredBorrowed writes two objects whose root is one payload
+// that only an outside stage holds. The first write queues the strict move
+// that holds the payload and stops before it lands. The second finds the
+// payload held by that queued move and queues no move of it. The stage then
+// ends and a collection frees the payload, so the first move's landing is
+// refused, and neither write may leave a durable operation naming it, with or
+// without ExpectedWrite.
+func testSetRootDeferredBorrowed(t *testing.T, expectWrite string) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	t.Setenv(space_world.ExpectWriteEnv, expectWrite)
+	defer space_world.ForceDeferredMoves()()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	adapter := adapterOf(ctx, t, eng)
+
+	// A payload only the stage holds.
+	store := f.space(t).GetBlockStore()
+	stage, release, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	payload, _, err := stage.PutBlock(ctx, []byte("only the stage holds this payload"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Stop the first write's moves before they land.
+	reached, resume := pauseFirstLanding(t)
+	t.Setenv(world_block.DurabilityTimeoutEnv, "300ms")
+	write := func(key string) error {
+		return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			defer world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			ref, _, err := obj.GetRootRef(ctx)
+			if err != nil {
+				return err
+			}
+			ref.RootRef = payload
+			_, err = obj.SetRootRef(ctx, ref)
+			return err
+		})
+	}
+	first := make(chan error, 1)
+	go func() { first <- write("borrowed-first") }()
+	select {
+	case <-reached:
+	case <-ctx.Done():
+		t.Fatal("the first write queued no root move")
+	}
+	if err := <-first; !errors.Is(err, world.ErrDurabilityUnknown) {
+		t.Fatalf("first write returned %v, want an unknown outcome", err)
+	}
+	if err := write("borrowed-second"); !errors.Is(err, world.ErrDurabilityUnknown) {
+		t.Fatalf("second write returned %v, want an unknown outcome", err)
+	}
+
+	// End the stage, free the payload, then let the refused landing drop.
+	release()
+	collectDecoy(ctx, t, f)
+	if _, found, err := store.GetBlock(ctx, payload); err != nil || found {
+		t.Fatalf("the collection kept the released payload: found %v, %v", found, err)
+	}
+	resume()
+	if err := adapter.Acknowledge(ctx); err != nil {
+		t.Fatal(err)
+	}
+	requireDurableSetRoots(ctx, t, f.space(t), optypes.LookupWorldOp)
 }
 
 // testSetRootAbandoned tries to find a durable operation that

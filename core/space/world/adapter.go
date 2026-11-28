@@ -1159,26 +1159,33 @@ var forceOrderedHolds atomic.Bool
 var forceDeferredMoves atomic.Bool
 
 // keepAdmitted keeps candidate blocks and holds their roots before queueing.
-// Overflow blocks stay staged until the move holding them lands; drained
-// writer blocks stay staged through transaction end. In-memory puts do not
-// open an overflow stage.
+// Overflow blocks stay staged until the move holding them lands. In-memory
+// puts do not open an overflow stage.
 func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Show the candidate to a test that asked to see it.
 	if hook := admittedHook.Load(); hook != nil {
 		(*hook)(adm.candidate)
 	}
 	overflow := a.pages.OpenOverflowStage()
+	release := overflow.Release
 	if _, err := overflow.PutBlockBatch(ctx, adm.candidate.Entries); err != nil {
-		overflow.Release()
+		release()
 		return err
 	}
 
-	// The overflow stage holds the blocks it stored until the move that
-	// stores their root lands: at return in the turn, or with the
-	// admission's newest queued move.
+	// Hold the roots, then make the queued holds the turn's view borrowed fail
+	// this admission when they drop. The overflow stage holds the blocks it
+	// stored until the move that stores their root lands: at return in the
+	// turn, or with the admission's newest queued move.
+	if a.deferMoves {
+		a.moves.begin(&adm.moves)
+	}
 	err := a.holdAdmitted(ctx, adm, overflow.Stored())
-	if !a.deferMoves || !a.moves.releaseWith(&adm.moves, overflow.Release) {
-		overflow.Release()
+	if err == nil && a.deferMoves {
+		err = a.moves.depend(&adm.moves)
+	}
+	if !a.deferMoves || !a.moves.releaseWith(&adm.moves, release) {
+		release()
 	}
 	if err != nil {
 		return err
@@ -1197,16 +1204,21 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 // A hold must be durable by its operation's state write. With orderedHolds,
 // BlockWriteOrderer keeps a crash prefix: a lost hold also loses its operation.
 // Without ordering, each swap is durable on return. With deferMoves, the swaps
-// queue and landQueued lands them before the state write. Replay and reset holds cover
+// queue and landQueued lands them before the state write, except those of a
+// staged candidate, which land in the turn. Replay and reset holds cover
 // already durable operations and therefore always commit durably. Background
 // World holds can commit ordered because replay can rebuild them.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
-	// Order the swaps behind the operation's state write when it orders them,
-	// or queue them for the admission's durable step.
+	// Order the swaps behind the operation's state write when it orders them.
 	if a.orderedHolds {
 		ctx = kvtx.WithOrderedCommitContext(ctx)
 	}
-	if a.deferMoves {
+
+	// Queue the swaps for the admission's durable step. A candidate the writer
+	// drained to its stage lands in the turn instead:
+	// that stage ends with the transaction's retirement, before the durable
+	// step, and is all that holds the drained pages until the move lands.
+	if a.deferMoves && !adm.candidate.Staged {
 		ctx = withQueuing(ctx, &adm.moves)
 	}
 

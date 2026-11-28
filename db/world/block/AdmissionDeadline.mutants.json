@@ -28,25 +28,5 @@
       ]
     ],
     "expect": "ExactOutcome"
-  },
-  {
-    "name": "ReleaseOverflowAtKeep: overflow stage released when Admit returns",
-    "replace": [
-      [
-        "        /\\ overflowStage = TRUE\n",
-        "        /\\ overflowStage = FALSE\n"
-      ]
-    ],
-    "expect": "DurableStateHolds"
-  },
-  {
-    "name": "StateBeforeHold: state written before the move lands",
-    "replace": [
-      [
-        "                         /\\ move = \"landed\"\n",
-        ""
-      ]
-    ],
-    "expect": "DurableStateHolds"
   }
 ]

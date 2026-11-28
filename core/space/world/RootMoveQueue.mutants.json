@@ -1,0 +1,27 @@
+[
+  {
+    "name": "QueueStaged: a staged admission queues its page move past its writer's stage",
+    "replace": [["LandStaged == TRUE", "LandStaged == FALSE"]],
+    "expect": "DurableStateHolds"
+  },
+  {
+    "name": "NoMarker: an admission that borrows a queued hold queues no move",
+    "replace": [["Markers == TRUE", "Markers == FALSE"]],
+    "expect": "DurableStateHolds"
+  },
+  {
+    "name": "NoEpochCheck: a drop between the view read and the queueing goes unseen",
+    "replace": [["EpochCheck == TRUE", "EpochCheck == FALSE"]],
+    "expect": "DurableStateHolds"
+  },
+  {
+    "name": "LoosePayload: the payload move does not require its block held",
+    "replace": [["StrictPayload == TRUE", "StrictPayload == FALSE"]],
+    "expect": "DurableStateHolds"
+  },
+  {
+    "name": "StateBeforeLand: the state is written with its moves still queued",
+    "replace": [["/\\ phase[x] = \"queued\" /\\ ~Owns(queue, x)", "/\\ phase[x] = \"queued\""]],
+    "expect": "DurableStateHolds"
+  }
+]

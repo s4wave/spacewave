@@ -8,7 +8,8 @@ type queuedRootMove struct {
 	seq uint64
 	// owner is the place in the queue of the admission that made the move.
 	owner *admissionMoves
-	// entries are the blocks the move stores.
+	// entries are the blocks the move stores. A marker move, which depend
+	// queues, has no entries and no roots.
 	entries []*block.PutBatchEntry
 	// roots are the moves, each with the Previous the adapter held.
 	roots []block.NamedRoot
@@ -22,6 +23,8 @@ type queuedRootMove struct {
 type admissionMoves struct {
 	// seq numbers the newest move queued for the admission, or is zero.
 	seq uint64
+	// epoch is the queue's drop epoch when the admission's turn began.
+	epoch uint64
 	// err is the error that dropped one of its moves, which fails its
 	// durable step.
 	err error
