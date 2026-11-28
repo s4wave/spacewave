@@ -461,6 +461,9 @@ func runMissingTreePage(
 ) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
+	// phase logs each step's start, so a timeout names the step that spent the budget.
+	start := time.Now()
+	phase := func(name string) { t.Logf("%v: %s", time.Since(start).Round(time.Millisecond), name) }
 	f := newAdapterFixtureOn(t, fixtureOpts{maxPending: 4096})
 	eng, engRef := f.start(t)
 	defer func() { engRef.Release() }()
@@ -482,6 +485,7 @@ func runMissingTreePage(
 	}
 
 	// Fill both trees past one page: objects, each linked to the next.
+	phase("fill")
 	var keys []string
 	for i := range 64 {
 		keys = append(keys, "obj-"+strconv.Itoa(100+i))
@@ -526,6 +530,7 @@ func runMissingTreePage(
 
 	// The fill passed the page bound, so the cursor save stores the World:
 	// wait for its root to move, then for each page in the store.
+	phase("cursor save")
 	for {
 		moved, err := store.GetRoot(ctx, space_world.RootReplayCursor)
 		if err != nil {
@@ -553,6 +558,7 @@ func runMissingTreePage(
 	// cache's eviction does while its backend is out of reach, so a read
 	// misses. The Space store's RmBlock only releases a hold. Then
 	// remount, as a reload does.
+	phase("evict and remount")
 	for _, ref := range refs {
 		if err := f.volume.RmBlock(ctx, ref); err != nil {
 			t.Fatal(err)
@@ -564,6 +570,7 @@ func runMissingTreePage(
 	eng, engRef = f.remount(ctx, t, eng, engRef)
 
 	// The device's operation reads a page: replay waits on the gap.
+	phase("device write")
 	dev.write(t, so, op, false, false)
 	waitHealth(ctx, t, health, "the gap wait", func(h *sobject.SharedObjectHealth) bool {
 		return h.GetReplay().GetWaiting().GetGap() != nil
@@ -571,6 +578,7 @@ func runMissingTreePage(
 
 	// With the pages back, as the read-through refill puts them once the
 	// backend answers, replay applies the operation.
+	phase("pages returned")
 	for i, ref := range refs {
 		if _, _, err := store.PutBlock(ctx, saved[i].Data, saved[i].PutOpts(ref)); err != nil {
 			t.Fatal(err)

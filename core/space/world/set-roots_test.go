@@ -430,7 +430,7 @@ func testSetRootDeferredDrained(t *testing.T) {
 	defer space_world.ForceDeferredMoves()()
 	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
 	eng, engRef := f.start(t)
-	defer engRef.Release()
+	defer func() { engRef.Release() }()
 	adapter := adapterOf(ctx, t, eng)
 
 	// See the drained candidate, and stop its moves before they land.
@@ -445,8 +445,8 @@ func testSetRootDeferredDrained(t *testing.T) {
 	werr := make(chan error, 1)
 	go func() {
 		werr <- world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
-			for i := range 6000 {
-				obj, err := ws.CreateObject(ctx, "drained-"+strconv.Itoa(i), nil)
+			for _, key := range drainedKeys() {
+				obj, err := ws.CreateObject(ctx, key, nil)
 				world.ReleaseObjectState(obj)
 				if err != nil {
 					return err
@@ -490,17 +490,36 @@ func testSetRootDeferredDrained(t *testing.T) {
 	if err := adapter.Acknowledge(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Pending holds the pages until an install covers the write, which may
+	// already have moved them under the replay cursor, so walk pending only
+	// while it still holds them. Then collect again, remount so reads come
+	// from the store, and read every object: the written World must survive
+	// whichever root holds it.
 	store := f.space(t).GetBlockStore()
 	root, err := store.GetRoot(ctx, space_world.RootPending)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if root.GetEmpty() {
-		t.Fatal("the pending root did not land")
+	if !root.GetEmpty() {
+		if err := block.WalkGraph(ctx, store, []*block.BlockRef{root}, 0, nil); err != nil {
+			t.Fatalf("the pending root names a freed World page: %v", err)
+		}
 	}
-	if err := block.WalkGraph(ctx, store, []*block.BlockRef{root}, 0, nil); err != nil {
-		t.Fatalf("the pending root names a freed World page: %v", err)
+	collectDecoy(ctx, t, f)
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	if err := hasObjects(ctx, eng, drainedKeys()...); err != nil {
+		t.Fatalf("the drained write lost a World page: %v; %s", err, f.collectReport(ctx))
 	}
+}
+
+// drainedKeys returns the keys testSetRootDeferredDrained writes.
+func drainedKeys() []string {
+	keys := make([]string, 6000)
+	for i := range keys {
+		keys[i] = "drained-" + strconv.Itoa(i)
+	}
+	return keys
 }
 
 // testSetRootDeferredBorrowed writes two objects whose root is one payload
