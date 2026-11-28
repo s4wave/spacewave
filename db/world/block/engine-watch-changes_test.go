@@ -504,6 +504,11 @@ func TestWatchChangesCatchUpAcrossCollectedHeads(t *testing.T) {
 		}
 	}
 
+	// Publication cleanup may still hold a past head after a durable receipt.
+	if err := f.engine.WaitIdle(ctx); err != nil {
+		t.Fatal(err)
+	}
+
 	// Verify ReadRoots reports none of the past heads, then collect them all.
 	readRoots := f.engine.ReadRoots()
 	for _, past := range pastRoots {
@@ -731,7 +736,7 @@ func TestCloseEndsFollowerMissingBlockRead(t *testing.T) {
 
 	// Report the first root as a newer head with it only on an absent peer.
 	report := world.Head{Root: first, Seqno: headSeqno(t, ctx, f.engine) + 1, Durable: true}
-	armed, waiting := setPeerOnlyBlock(f.engine, first)
+	armed, waiting := setPeerOnlyBlock(t, f.engine, first)
 	armed.Store(true)
 	followed := make(chan struct{})
 	go func() {
@@ -788,7 +793,7 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 	base := f.engine.GetRootRef().GetRootRef()
 
 	// Leave the watched head's root only on an absent peer once armed.
-	armed, _ := setPeerOnlyBlock(f.engine, base)
+	armed, _ := setPeerOnlyBlock(t, f.engine, base)
 
 	// Subscribe from the head, then publish past it from another engine with
 	// the base root missing so the watch falls back to comparing trees.
@@ -833,7 +838,7 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := headSeqno(t, ctx, f.engine)
-	armed, _ := setPeerOnlyBlock(f.engine, f.engine.GetRootRef().GetRootRef())
+	armed, _ := setPeerOnlyBlock(t, f.engine, f.engine.GetRootRef().GetRootRef())
 
 	// Publish past it through another engine so f.engine records no ChangeSet,
 	// and start the watch there, so it records no span from the first head.
@@ -859,7 +864,18 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 // ref is held only by an absent peer: a read that may wait for the peer
 // blocks until its context ends, and one that may not reports ErrUnavailable.
 // waiting closes when the first read starts blocking.
-func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiting <-chan struct{}) {
+func setPeerOnlyBlock(t *testing.T, e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiting <-chan struct{}) {
+	// Join the Authority watch before replacing an engine-lifetime store.
+	// These fixtures have no subscribers or concurrent callers yet.
+	t.Helper()
+	if e.headWatchRelease != nil {
+		e.headWatchRelease()
+		e.headWatchRelease = nil
+	}
+	if err := e.WaitIdle(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
 	// Read ref as an absent peer would serve it once armed.
 	armed = &atomic.Bool{}
 	blocked := make(chan struct{})
@@ -887,6 +903,15 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) (armed *atomic.Bool, waiti
 	proofs, _ := store.(block.RootProofs)
 	e.writeBlockStore = &getFuncStore{StoreOps: store, LeasedRoots: leases, RootProofs: proofs, get: get}
 	locked.Unlock()
+
+	// Start the Authority watch with the immutable replacement already installed.
+	if e.authority != nil {
+		release, err := e.authority.WatchHead(e.closing, e.followHead)
+		if err != nil {
+			t.Fatal(err)
+		}
+		e.headWatchRelease = release
+	}
 	return armed, blocked
 }
 

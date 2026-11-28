@@ -128,7 +128,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	locked.Unlock()
 
 	// Seal the transaction's blocks under its new root and propose them.
-	nextRootRef, adm, rootBlock, changes, pending, err := e.admit(ctx, turn)
+	nextRootRef, adm, rootBlock, changes, err := e.admit(ctx, turn)
 	if e.engine.authority == nil {
 		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, changes, err)
 	}
@@ -165,8 +165,6 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if !published.EqualsRef(nextRootRef) {
 		rootBlock = nil
 		changes = nil
-	} else {
-		pending.confirm()
 	}
 
 	// Publish the receipt's head unless one at or past its seqno is
@@ -264,7 +262,7 @@ const ProvisionalNoopGuardEnv = "SPACEWAVE_WORLD_PROVISIONAL_NOOP_GUARD"
 // to the Authority as the head after the base. It returns the root, the
 // Admission, the decoded World root for the head's readers, the transaction's
 // detached summary. A transaction that changed nothing needs no Admission.
-func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *changeSummary, *pendingChange, error) {
+func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *changeSummary, error) {
 	// Capture changes and seal the transaction's blocks under its new root.
 	nroot, changes, err := e.writeTx.commitChanges(ctx)
 	if isCoordinatedWriteSnapshotError(err) {
@@ -274,7 +272,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 		err = nroot.Validate(false)
 	}
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// An unchanged root is success only if the write did not depend on a
@@ -286,10 +284,10 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 			// A zero turn base is an empty World, not a pending candidate.
 			turnBase := turn.Base()
 			if !turnBase.Durable && !turnBase.Root.GetEmpty() && os.Getenv(ProvisionalNoopGuardEnv) != "off" {
-				return nil, nil, nil, nil, nil, &world.ProvisionalBaseError{Wait: turn.WaitBase}
+				return nil, nil, nil, nil, &world.ProvisionalBaseError{Wait: turn.WaitBase}
 			}
 		}
-		return e.baseHeadRef.Clone(), nil, nil, nil, nil, nil
+		return e.baseHeadRef.Clone(), nil, nil, nil, nil
 	}
 	next := e.baseHeadRef.Clone()
 	next.RootRef = nroot
@@ -299,31 +297,33 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	// root the head's readers need.
 	batch, seqno, rootBlock, err := e.writeTx.takeCandidate(ctx, nroot, e.recordedRoots)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// Register the ChangeSet before Admit so followHead sees it if the
 	// Authority publishes the candidate before Admit returns.
-	var pending *pendingChange
+	var confirmDurable func(world.Head)
 	if e.engine.authority != nil {
-		pending = e.engine.registerPendingChange(base, nroot, changes)
+		pending := e.engine.registerPendingChange(base, nroot, changes)
+		confirmDurable = pending.confirm
 	}
 
 	// Propose the candidate. Admit takes the entries: once it returns, the
 	// buffer's copy is no longer needed.
 	adm, err := turn.Admit(ctx, world.Candidate{
-		Base:      base.Clone(),
-		Root:      nroot.Clone(),
-		Seqno:     seqno,
-		Entries:   batch.Entries,
-		Staged:    batch.Drained,
-		Operation: e.operation,
+		Base:           base.Clone(),
+		Root:           nroot.Clone(),
+		Seqno:          seqno,
+		Entries:        batch.Entries,
+		Staged:         batch.Drained,
+		Operation:      e.operation,
+		ConfirmDurable: confirmDurable,
 	})
 	batch.Complete(err)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
-	return next, adm, rootBlock, changes, pending, nil
+	return next, adm, rootBlock, changes, nil
 }
 
 // DurabilityTimeoutEnv names the server-side budget for waiting on an

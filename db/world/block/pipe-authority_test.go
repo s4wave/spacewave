@@ -110,6 +110,9 @@ func (a *pipeAuthority) decide(t *testing.T, n int, rebased *block.BlockRef, seq
 		head = world.Head{Root: rebased, Seqno: seqno, Durable: true}
 	}
 	a.mtx.Lock()
+	if adm.candidate.ConfirmDurable != nil {
+		adm.candidate.ConfirmDurable(head)
+	}
 	a.head = head
 	if adm == a.admitted[len(a.admitted)-1] {
 		a.writer = head

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -63,6 +64,45 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		head, err := f.engine.authority.Head(ctx)
 		if err != nil || !head.Root.EqualsRef(root) || !head.Durable {
 			t.Fatalf("authority head %v %v disagrees with the engine", head, err)
+		}
+	})
+
+	// A root visible in storage stays hidden from Head until Admit settles.
+	t.Run("unsettled root read", func(t *testing.T) {
+		// Keep this Authority's old cached head while another one moves storage.
+		a := f.authority()
+		before, err := a.Head(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := fixtureWriter(t, f.engine)
+		fixtureObject(t, w, "head-gate", "head-gate")
+		if err := w.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		root := f.worldRoot(t)
+
+		// Model the interval after SetRoots wrote the root but before it returned.
+		a.proposed.Store(root)
+		head, err := a.Head(ctx)
+		if err != nil || !head.Root.EqualsRef(before.Root) {
+			t.Fatalf("unsettled Head = %v, %v; want previous %v", head, err, before)
+		}
+		a.proposed.Store(nil)
+		head, err = a.Head(ctx)
+		if err != nil || !head.Root.EqualsRef(root) {
+			t.Fatalf("settled Head = %v, %v; want %v", head, err, root)
+		}
+	})
+
+	// A missing stored root cannot match the absence of a local proposal.
+	t.Run("missing root", func(t *testing.T) {
+		// Retain a cached head while reading a root name absent from storage.
+		a := NewLocalAuthority(f.le, f.base, fixtureRootName+"/missing", nil, coord.Scope{})
+		a.observe(world.Head{Root: f.worldRoot(t), Durable: true})
+		head, err := a.Head(ctx)
+		if err != nil || !head.Root.GetEmpty() {
+			t.Fatalf("missing root Head = %v, %v; want empty", head, err)
 		}
 	})
 
@@ -194,10 +234,12 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		if err != nil || after != seqno {
 			t.Fatalf("settings commit seqno %d, %v; want the unchanged %d", after, err, seqno)
 		}
-		want := f.engine.GetRootRef()
-		for !follower.GetRootRef().EqualsRef(want) {
+		// The writer may still be installing a head at the unchanged seqno.
+		// Target the durable root independently of either engine's head watch.
+		want := f.worldRoot(t)
+		for !follower.GetRootRef().GetRootRef().EqualsRef(want) {
 			changed := follower.headSignal.Load().changed
-			if follower.GetRootRef().EqualsRef(want) {
+			if follower.GetRootRef().GetRootRef().EqualsRef(want) {
 				break
 			}
 			select {
@@ -1150,4 +1192,108 @@ func measureEnginePaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
 		}
 	})
 	return costs
+}
+
+// TestWatchChangesDurableBeforeCommitReturn keeps the committer in WaitDurable
+// while the LocalAuthority's head watch delivers the exact touched names.
+func TestWatchChangesDurableBeforeCommitReturn(t *testing.T) {
+	// Open an engine whose admission cannot return durability to the committer.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	f := newVolumeFixture(t)
+	hold, release := context.WithCancel(ctx)
+	defer release()
+	waiting := make(chan struct{})
+	a := &hookAuthority{Authority: f.authority(), admitted: func(adm world.Admission) world.Admission {
+		return &heldDurableAdmission{Admission: adm, waiting: waiting, release: hold.Done()}
+	}}
+	e := f.openEngine(t, a)
+	after := headSeqno(t, ctx, e)
+
+	// Subscribe before committing and capture the first delivered window.
+	reports := make(chan *world.ChangeSet, 1)
+	watchDone := make(chan error, 1)
+	go func() {
+		watchDone <- e.WatchChanges(ctx, after, nil, func(_ uint64, cs *world.ChangeSet) error {
+			reports <- cs
+			return errWindowRead
+		})
+	}()
+
+	// Commit a real object while the Authority reports its durable head.
+	w := fixtureWriter(t, e)
+	fixtureObject(t, w, "proof/durable", "durable")
+	commitDone := make(chan error, 1)
+	go func() { commitDone <- w.Commit(ctx) }()
+	select {
+	case <-waiting:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	// Keep the original 20 ms window open, then require an exact report before
+	// releasing the committer. The channel hold makes feed scheduling deterministic.
+	timer := time.NewTimer(20 * time.Millisecond)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case err := <-commitDone:
+		t.Fatalf("committer escaped durability hold: %v", err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	select {
+	case cs := <-reports:
+		if cs.Unknown || !slices.Equal(cs.Keys, []string{"proof/durable"}) {
+			t.Fatalf("durable head changes = %+v, want exact proof/durable", cs)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	if err := <-watchDone; !errors.Is(err, errWindowRead) {
+		t.Fatal(err)
+	}
+
+	// Release the receipt and require the committer to finish successfully.
+	release()
+	if err := <-commitDone; err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestWatchChangesFailedDurabilityAbandonsSummary refuses evidence from a failed
+// write even if an external writer later publishes its exact proposed roots.
+func TestWatchChangesFailedDurabilityAbandonsSummary(t *testing.T) {
+	// Admit a real write without making it durable.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	f := newVolumeFixture(t)
+	a := newPendingAuthority(f.authority())
+	e := f.openEngine(t, a)
+	after := headSeqno(t, ctx, e)
+	w := fixtureWriter(t, e)
+	fixtureObject(t, w, "proof/failed", "failed")
+	done := make(chan error, 1)
+	go func() { done <- w.Commit(ctx) }()
+	adm := a.waitAdmitted(t)
+
+	// Fail durability and require the exact candidate's evidence to stay unusable.
+	a.fail(t, world.ErrSuperseded)
+	if err := <-done; !errors.Is(err, world.ErrSuperseded) {
+		t.Fatalf("failed durability returned %v, want ErrSuperseded", err)
+	}
+	c := adm.candidate
+	if summary := e.pendingSummary(c.Base, c.Root); summary != nil {
+		t.Fatal("failed durability confirmed its change evidence")
+	}
+
+	// Publish the same root externally without confirming the failed admission.
+	if err := a.store.SetRoots(ctx, nil, []block.NamedRoot{{Name: a.name, Ref: c.Root, Previous: c.Base}}); err != nil {
+		t.Fatal(err)
+	}
+	a.observe(world.Head{Root: c.Root, Seqno: c.Seqno, Durable: true})
+	_, cs := readChangeWindow(t, ctx, e, after)
+	if !cs.Unknown || len(cs.Keys) != 0 {
+		t.Fatalf("failed candidate's evidence was reused: %+v", cs)
+	}
 }

@@ -41,6 +41,10 @@ func (t *localTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, errors.New("world candidate base is not the turn's base")
 	}
 
+	// Keep root reads from reporting the swap before its evidence is confirmed.
+	t.a.proposed.Store(candidate.Root)
+	defer t.a.proposed.Store(nil)
+
 	// Store the entries and swap the root. The move does not require its
 	// blocks held: the candidate's boundary pages are the base's, which the
 	// root holds until this move, or blocks an open stage holds, so the
@@ -52,6 +56,11 @@ func (t *localTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		Ref:      candidate.Root,
 		Previous: candidate.Base,
 	}})
+
+	// A failed swap has no evidence to confirm and must not hide another writer.
+	if err != nil {
+		t.a.proposed.Store(nil)
+	}
 
 	// A root another writer moved supersedes the candidate.
 	if errors.Is(err, block.ErrRootMoved) {
@@ -67,6 +76,9 @@ func (t *localTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 
 	// Record the head and announce it.
 	head := world.Head{Root: candidate.Root.Clone(), Seqno: candidate.Seqno, Durable: true}
+	if candidate.ConfirmDurable != nil {
+		candidate.ConfirmDurable(head)
+	}
 	t.published(ctx, head)
 	return &decidedAdmission{seqno: candidate.Seqno, decision: world.Accepted, head: head}, nil
 }

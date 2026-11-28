@@ -54,6 +54,10 @@ type LocalAuthority struct {
 	bcast broadcast.Broadcast
 	// head is the newest head this authority read or decided.
 	head world.Head
+	// proposed is the local root whose storage swap has not yet settled its
+	// change evidence. Head keeps returning the cached head until it settles.
+	// The write turn permits only one local proposal.
+	proposed atomic.Pointer[block.BlockRef]
 	// turns guards begun and ended and wakes YieldToWriters when a turn ends.
 	turns broadcast.Broadcast
 	// begun and ended count the turns Begin started, waiting ones included,
@@ -98,6 +102,9 @@ func (a *LocalAuthority) Head(ctx context.Context) (world.Head, error) {
 	var cached world.Head
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		cached = a.head
+		if proposed := a.proposed.Load(); proposed != nil && ref.EqualsRef(proposed) {
+			ref = cached.Root
+		}
 	})
 	if ref.GetEmpty() {
 		return world.Head{}, nil

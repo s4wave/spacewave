@@ -17,6 +17,8 @@ type hookAuthority struct {
 	// admit runs before the wrapped Admit, or is nil. An error refuses the
 	// candidate.
 	admit func(ctx context.Context, candidate world.Candidate) error
+	// admitted wraps the returned admission, or is nil.
+	admitted func(world.Admission) world.Admission
 }
 
 // Begin opens the wrapped turn and hooks its Admit.
@@ -42,7 +44,13 @@ func (t *hookTurn) Admit(ctx context.Context, candidate world.Candidate) (world.
 			return nil, err
 		}
 	}
-	return t.Turn.Admit(ctx, candidate)
+
+	// Wrap the admission after the Authority has admitted the candidate.
+	adm, err := t.Turn.Admit(ctx, candidate)
+	if err == nil && t.a.admitted != nil {
+		adm = t.a.admitted(adm)
+	}
+	return adm, err
 }
 
 // newTestAuthority returns the local authority of the World root name in

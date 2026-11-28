@@ -17,7 +17,8 @@ Range(a,b) == {n \in 1..Limit : n > a /\ n <= b}
 (* Unconfirmed proposals can name keys absent from the actual publication.
    Their payload is unobservable while Unknown; the proof guard prevents it
    from being certified. A successful exact admission removes that uncertainty
-   in the implementation; retaining it forever here overapproximates delay. *)
+   before publication in the implementation (ChangeAdmission). Missing evidence
+   here represents imports, rebased heads and failed proposals. *)
 Payload(a,b) == (Range(a,b) \ missing) \cup {n + Limit : n \in Range(a,b) \cap missing}
 Covered(a,b) == Range(a,b) \subseteq ring /\ Range(a,b) \cap missing = {}
 Publish == /\ published < Limit

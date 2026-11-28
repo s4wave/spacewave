@@ -27,4 +27,10 @@ type Candidate struct {
 	// Operation is the encoded change for an Authority that replays it, or
 	// nil for one that does not. The Authority carries it without reading it.
 	Operation []byte
+	// ConfirmDurable confirms this candidate's change evidence at the decided
+	// head. The Authority calls it only after successful durability, before
+	// that head is visible through Head, WatchHead or the Admission. It may
+	// run under the Authority's lock and must not block or call the Authority.
+	// A rebased head may differ from Root. Nil means no evidence to confirm.
+	ConfirmDurable func(Head)
 }

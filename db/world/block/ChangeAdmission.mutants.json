@@ -1,0 +1,12 @@
+[
+  {
+    "name": "committer confirms after durability return",
+    "replace": [["confirmed' = (actualRoot = \"candidate\")", "confirmed' = confirmed"]],
+    "expect": "NoPrematureReport"
+  },
+  {
+    "name": "root read bypasses unsettled proposal",
+    "replace": [["phase \\in {\"durable\", \"failed\"} /\\ ~reported", "phase \\in {\"swapped\", \"durable\", \"failed\"} /\\ ~reported"]],
+    "expect": "NoPrematureReport"
+  }
+]

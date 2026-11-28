@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // pendingChange binds evidence to a candidate and its successful admission.
@@ -21,8 +22,8 @@ type pendingChange struct {
 }
 
 // confirm permits feed consumers to use a successfully admitted summary.
-func (p *pendingChange) confirm() {
-	if p != nil {
+func (p *pendingChange) confirm(head world.Head) {
+	if p != nil && head.Durable && p.root.EqualsRef(head.Root) {
 		p.confirmed.Store(true)
 	}
 }

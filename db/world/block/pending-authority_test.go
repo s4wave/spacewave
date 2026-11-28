@@ -99,7 +99,11 @@ func (a *pendingAuthority) durable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.observe(world.Head{Root: c.Root, Seqno: c.Seqno, Durable: true})
+	head := world.Head{Root: c.Root, Seqno: c.Seqno, Durable: true}
+	if c.ConfirmDurable != nil {
+		c.ConfirmDurable(head)
+	}
+	a.observe(head)
 	adm.resolve(nil)
 }
 
@@ -119,6 +123,11 @@ func (a *pendingAuthority) durableLost(t *testing.T, err error) {
 		{Name: pendingRootName(c.Seqno), Previous: c.Root},
 	}); serr != nil {
 		t.Fatal(serr)
+	}
+
+	// Confirm the successful storage decision even when its receipt is lost.
+	if c.ConfirmDurable != nil {
+		c.ConfirmDurable(world.Head{Root: c.Root, Seqno: c.Seqno, Durable: true})
 	}
 
 	// Report the wait failed.

@@ -1591,6 +1591,9 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 			if decision == world.Accepted {
 				head = a.reportable
 			}
+			if decision == world.Accepted && err == nil && adm.candidate.ConfirmDurable != nil {
+				adm.candidate.ConfirmDurable(head)
+			}
 			adm.state, adm.decision, adm.reason, adm.err, adm.head = admissionDecided, decision, reason, err, head
 			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
 			if decision == world.Accepted && !adm.abandoned && !adm.candidate.Root.GetEmpty() {
@@ -1664,16 +1667,20 @@ func (a *Adapter) installHead(ctx context.Context) error {
 	// immediate-acceptance check.
 	var placed []*spaceAdmission
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Confirm exact candidate evidence before any watcher can read this head.
+		for _, adm := range a.pending {
+			if adm.state == admissionPlaced || adm.state == admissionCovered {
+				if adm.candidate.ConfirmDurable != nil {
+					adm.candidate.ConfirmDurable(head)
+				}
+				placed = append(placed, adm)
+			}
+		}
 		if !head.Root.EqualsRef(a.reportable.Root) || head.Seqno != a.reportable.Seqno {
 			a.reportable = head
 			broadcast()
 		}
 		a.acceptHeight = height
-		for _, adm := range a.pending {
-			if adm.state == admissionPlaced || adm.state == admissionCovered {
-				placed = append(placed, adm)
-			}
-		}
 	})
 	if len(placed) != 0 {
 		a.decide(placed, world.Accepted, "", nil)
