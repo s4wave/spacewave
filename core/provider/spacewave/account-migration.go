@@ -17,12 +17,21 @@ import (
 const accountMigrationDomain = "spacewave 2026-09-10 account migration v1."
 
 // MergePairingAccount preserves both providers' resource and Session authority.
-func (a *ProviderAccount) MergePairingAccount(ctx context.Context, mounted session.Session, destination provider.ProviderAccount, ref *session.SessionRef) (func(context.Context) (*session.SessionRef, error), error) {
+func (a *ProviderAccount) MergePairingAccount(
+	ctx context.Context,
+	mounted session.Session,
+	destination provider.ProviderAccount,
+	ref *session.SessionRef,
+) (func(context.Context) (*session.SessionRef, error), error) {
 	return provider_migration.Merge(ctx, a, mounted, destination, ref)
 }
 
 // migrationClient signs with the exact Session participating in the approval.
+// A locked Session has no key and returns ErrSigningUnavailable.
 func (a *ProviderAccount) migrationClient(key crypto.PrivKey) (*SessionClient, error) {
+	if key == nil {
+		return nil, ErrSigningUnavailable
+	}
 	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return nil, err
@@ -86,16 +95,21 @@ func (a *ProviderAccount) AcceptMigrationSessions(ctx context.Context, transitio
 	return nil
 }
 
+// acceptMigration submits the source account's signed approval to the destination provider.
 func (a *ProviderAccount) acceptMigration(ctx context.Context, transition *provider.AccountTransition, source, destination crypto.PrivKey, checkOnly bool) error {
+	// Require a transition that names this provider and account as its destination.
 	if err := transition.Validate(); err != nil {
 		return err
 	}
-	if transition.GetDestination().GetProviderId() != a.GetProviderID() || transition.GetDestination().GetProviderAccountId() != a.accountID || transition.GetDestinationEndpoint() != a.p.endpoint {
+	dest := transition.GetDestination()
+	if dest.GetProviderId() != a.GetProviderID() || dest.GetProviderAccountId() != a.accountID || transition.GetDestinationEndpoint() != a.p.endpoint {
 		return errors.New("account migration names another destination provider")
 	}
 	if endpoint := transition.GetSourceEndpoint(); endpoint != "" && endpoint != a.p.endpoint {
 		return errors.New("cloud accounts must use the same configured provider to merge")
 	}
+
+	// Sign the approval with the source key and submit it as the destination Session.
 	client, err := a.migrationClient(destination)
 	if err != nil {
 		return err
@@ -114,10 +128,13 @@ func (a *ProviderAccount) acceptMigration(ctx context.Context, transition *provi
 // CommitAccountTransition verifies cloud reattachment or publishes a local
 // destination's independent receipt while retaining the source recovery account.
 func (a *ProviderAccount) CommitAccountTransition(ctx context.Context, transition *provider.AccountTransition, source, destination crypto.PrivKey) error {
+	// Build a client signed by the source Session.
 	client, err := a.migrationClient(source)
 	if err != nil {
 		return err
 	}
+
+	// Verify that a cloud destination retained the approved transition.
 	if transition.GetDestinationEndpoint() != "" {
 		info, err := client.GetAccountInfo(ctx)
 		if err != nil {
@@ -128,6 +145,8 @@ func (a *ProviderAccount) CommitAccountTransition(ctx context.Context, transitio
 		}
 		return nil
 	}
+
+	// Publish the local destination's signed receipt from the source account.
 	signer, signature, err := signAccountTransition(transition, destination)
 	if err != nil {
 		return err
@@ -143,11 +162,19 @@ func (a *ProviderAccount) CommitAccountTransition(ctx context.Context, transitio
 	return nil
 }
 
+// signAccountTransition signs the transition under the migration domain.
+// A locked Session has no key and returns ErrSigningUnavailable.
 func signAccountTransition(transition *provider.AccountTransition, key crypto.PrivKey) (string, []byte, error) {
+	// Identify the signer before encoding the transition.
+	if key == nil {
+		return "", nil, ErrSigningUnavailable
+	}
 	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return "", nil, err
 	}
+
+	// Sign the domain-separated transition bytes.
 	data, err := transition.MarshalVT()
 	if err != nil {
 		return "", nil, err
@@ -158,6 +185,7 @@ func signAccountTransition(transition *provider.AccountTransition, key crypto.Pr
 
 // submitAccountTransition requires the provider to echo the exact durable decision.
 func (c *SessionClient) submitAccountTransition(ctx context.Context, path string, body []byte, expected *provider.AccountTransition) error {
+	// Post the decision and require the provider to echo it exactly.
 	data, err := c.doPostBinary(ctx, path, body, nil, SeedReasonMutation)
 	if err != nil {
 		return err
