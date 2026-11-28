@@ -1,61 +1,76 @@
 ---- MODULE ListVerifier ----
-\* Certificate checks during an interrupted Open-generation reconcile upgrade.
-\* records.go listMarked/listKeys, settle.go runSlice/seed/flip, Cloud's
-\* listVisits.Finished and ListRebuild.Undecodable are the modeled callers.
-\* One held parent has an unknown-field child omitted by the old verifier.
-\* The old list, visit and run certificates are durable before this binary
-\* starts. Crash drops traversal state but preserves every committed record.
-\* Counts and byte decoding are abstracted: the omitted child has no holder,
-\* and the fixed exact decoder refuses its parent. Settle.tla covers counts.
-\* This model covers Open, not a generation an earlier verifier already flipped.
+\* records.go GetState is the one generation-proof boundary for every caller.
+\* Earlier verifiers may leave Open, Sweeping or Settled, with any adoption
+\* state. A retained unknown-field parent's short list omits a stored child.
+\* A current mark is also reachable after an interrupted current walk; its
+\* pending front entry must survive until an undecodable read revokes it.
+\* Counts are abstracted by adoption. Settle.tla covers their individual moves.
 EXTENDS Integers
 CONSTANT Skip
 VARIABLE s
 vars == <<s>>
-Current == 1
+Current == 2
 Marked == s.list = Current \/ Skip = "list"
 Finished == s.visit = Current \/ Skip = "visit"
 Complete == s.complete = Current \/ Skip = "run"
+Generation == IF s.revision = Current \/ Skip = s.gen
+                THEN s.gen ELSE "open"
+Adoption == IF s.revision = Current \/ Skip = s.gen
+              THEN s.adoption ELSE "unadopted"
 
-Init == s = [list |-> 0, visit |-> 0, complete |-> 0, run |-> FALSE,
-             front |-> FALSE, seeded |-> FALSE, walked |-> FALSE,
-             skipped |-> FALSE, gen |-> "open", child |-> TRUE]
+Init ==
+  \/ \E gen \in {"open", "sweeping", "settled"},
+        adoption \in {"unadopted", "adopting", "adopted"},
+        list \in {0, 1}:
+       s = [list |-> list, visit |-> 1, complete |-> 1, run |-> gen = "sweeping",
+            front |-> FALSE, seeded |-> FALSE, walked |-> FALSE,
+            skipped |-> FALSE, gen |-> gen, revision |-> 1,
+            adoption |-> adoption, child |-> TRUE]
+  \/ s = [list |-> Current, visit |-> 1, complete |-> 0, run |-> FALSE,
+          front |-> TRUE, seeded |-> FALSE, walked |-> FALSE,
+          skipped |-> FALSE, gen |-> "open", revision |-> Current,
+          adoption |-> "adopted", child |-> TRUE]
 
-\* A stale run proof cannot claim a scan that skipped earlier marked lists.
+\* A state write persists GetState's normalized generation and starts recount.
+Recount ==
+  /\ Adoption # "adopted"
+  /\ s' = [s EXCEPT !.gen = Generation, !.revision = Current,
+                     !.adoption = "adopted"]
+
 BuildRun ==
-  /\ s.gen = "open"
-  /\ ~Complete
+  /\ Generation = "open" /\ ~Complete
   /\ s' = [s EXCEPT !.run = ~Marked, !.complete = Current]
 
-\* Seeding happens after the run build, as in Collector.settle.
 Seed ==
-  /\ s.gen = "open" /\ Complete /\ ~s.seeded
+  /\ Generation = "open" /\ Complete /\ ~s.seeded
   /\ s' = [s EXCEPT !.front = @ \/ ~Marked, !.seeded = TRUE]
 
-\* A stale visit is no evidence for skipping a subtree under this decoder.
 Walk ==
-  /\ s.gen = "open" /\ ~s.walked
+  /\ Generation = "open" /\ ~s.walked
   /\ IF Finished
        THEN s' = [s EXCEPT !.walked = TRUE, !.skipped = TRUE]
        ELSE s' = [s EXCEPT !.list = -1, !.front = TRUE, !.run = TRUE,
                             !.walked = TRUE]
 
-\* A process can stop after any transaction, including before its walk.
 Crash ==
-  /\ s.gen = "open" /\ (s.seeded \/ s.walked)
+  /\ s.seeded \/ s.walked
   /\ s' = [s EXCEPT !.seeded = FALSE, !.walked = FALSE]
 
 Flip ==
-  /\ s.gen = "open" /\ Complete /\ s.seeded /\ ~s.front
-  /\ s' = [s EXCEPT !.gen = "sweeping"]
+  /\ Generation = "open" /\ Adoption = "adopted"
+  /\ Complete /\ s.seeded /\ ~s.front
+  /\ s' = [s EXCEPT !.gen = "sweeping", !.revision = Current]
 
+\* Sweep and the ordinary Settled zero-holder free share the same state read.
 Free ==
-  /\ s.gen = "sweeping" /\ s.child
+  /\ Generation \in {"sweeping", "settled"} /\ Adoption = "adopted"
+  /\ s.child
   /\ s' = [s EXCEPT !.child = FALSE]
 
-Next == BuildRun \/ Seed \/ Walk \/ Crash \/ Flip \/ Free
+Next == Recount \/ BuildRun \/ Seed \/ Walk \/ Crash \/ Flip \/ Free
 Spec == Init /\ [][Next]_vars
 ChildSurvives == s.child
 VisitsCurrent == ~s.skipped
 RunIncludesStale == Complete /\ s.list # Current => s.run
+CurrentRevoked == s.walked /\ ~s.skipped => s.list # Current /\ s.front /\ s.run
 ====

@@ -266,6 +266,10 @@ type LivenessState struct {
 	// deleted page. A Volume written before it reads zero until its first
 	// netting.
 	DownCursor uint64 `protobuf:"varint,24,opt,name=down_cursor,json=downCursor,proto3" json:"downCursor,omitempty"`
+	// GenerationVerifierRevision identifies the verifier whose proofs authorize
+	// this generation. An earlier revision reads as Open and unadopted, so no
+	// sweep or ordinary free can use its lists or counts before verification.
+	GenerationVerifierRevision uint32 `protobuf:"varint,25,opt,name=generation_verifier_revision,json=generationVerifierRevision,proto3" json:"generationVerifierRevision,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -361,6 +365,13 @@ func (x *LivenessState) GetAdoptCursor() *AdoptCursor {
 func (x *LivenessState) GetDownCursor() uint64 {
 	if x != nil {
 		return x.DownCursor
+	}
+	return 0
+}
+
+func (x *LivenessState) GetGenerationVerifierRevision() uint32 {
+	if x != nil {
+		return x.GenerationVerifierRevision
 	}
 	return 0
 }
@@ -527,6 +538,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.DownSeq = m.DownSeq
 	r.AdoptAtUnixMilli = m.AdoptAtUnixMilli
 	r.DownCursor = m.DownCursor
+	r.GenerationVerifierRevision = m.GenerationVerifierRevision
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	r.ObsoleteKinds = protobuf_go_lite.CloneBytes(m.ObsoleteKinds)
 	r.AdoptCursor = protobuf_go_lite.CloneVTValue(m.AdoptCursor)
@@ -647,6 +659,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.DownCursor != that.DownCursor {
+		return false
+	}
+	if this.GenerationVerifierRevision != that.GenerationVerifierRevision {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -970,6 +985,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("downCursor")
 		s.WriteUint64(x.DownCursor)
 	}
+	if x.GenerationVerifierRevision != 0 || s.HasField("generationVerifierRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generationVerifierRevision")
+		s.WriteUint32(x.GenerationVerifierRevision)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1034,6 +1054,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "down_cursor", "downCursor":
 			s.AddField("down_cursor")
 			x.DownCursor = s.ReadUint64()
+		case "generation_verifier_revision", "generationVerifierRevision":
+			s.AddField("generation_verifier_revision")
+			x.GenerationVerifierRevision = s.ReadUint32()
 		}
 	})
 }
@@ -1269,6 +1292,13 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.GenerationVerifierRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GenerationVerifierRevision))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc8
 	}
 	if m.DownCursor != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DownCursor))
@@ -1520,6 +1550,7 @@ func (m *LivenessState) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(2, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.DownCursor)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.GenerationVerifierRevision)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1639,6 +1670,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.DownCursor != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "down_cursor")
 		protobuf_go_lite.TextWriteUint(&sb, x.DownCursor)
+	}
+	if x.GenerationVerifierRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation_verifier_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.GenerationVerifierRevision)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1923,6 +1958,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DownCursor = 0
 			m.DownCursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 25:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GenerationVerifierRevision", wireType)
+			}
+			m.GenerationVerifierRevision = 0
+			m.GenerationVerifierRevision, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

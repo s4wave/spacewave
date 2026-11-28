@@ -205,7 +205,7 @@ var LiveKinds = []byte{
 // the settle trusts. Raise it whenever exact decoding, type resolution or list
 // verification changes in a way that can invalidate an earlier certificate.
 // Walkers that persist finished visits must include it in their record keys.
-const ListVerifierRevision byte = 1
+const ListVerifierRevision = 2
 
 // listMark begins a list certified by this verifier.
 // The two zero bytes distinguish it from a legacy mark followed by block keys.
@@ -1580,13 +1580,26 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 		return state, err
 	}
 
-	// Read a stale frees mark as frees off, then note the generation.
+	// Read a stale frees mark as frees off before normalizing the generation.
 	if state.GetFrees() {
 		mark, err := freesMark(state)
 		if err != nil {
 			return state, err
 		}
 		state.Frees = mark == state.GetFreesMark()
+	}
+
+	// No deletion proof survives a verifier change, including an earlier
+	// flip or a settled generation's zero-holder counts. Reopen before any
+	// caller sees the state, and recount frozen sweep counts through Adopt.
+	// New records have no earlier proof to invalidate.
+	if !found {
+		state.GenerationVerifierRevision = ListVerifierRevision
+	}
+	if state.GetGenerationVerifierRevision() != ListVerifierRevision {
+		state.Generation = Generation_GENERATION_OPEN
+		state.GenerationVerifierRevision = ListVerifierRevision
+		r.unadopt(state)
 	}
 	r.genKnown, r.gen = true, state.GetGeneration()
 	return state, nil

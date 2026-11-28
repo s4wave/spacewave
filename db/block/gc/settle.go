@@ -1241,6 +1241,7 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 
 	// Flip.
 	state.Generation = Generation_GENERATION_SWEEPING
+	state.GenerationVerifierRevision = ListVerifierRevision
 	res.Flipped = true
 	if err := rec.tx.Delete(ctx, rec.key(kindPopMark)); err != nil {
 		return err

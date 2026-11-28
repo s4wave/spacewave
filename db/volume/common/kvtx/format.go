@@ -99,7 +99,7 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		}
 	}
 	if empty {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees}
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees, GenerationVerifierRevision: block_gc.ListVerifierRevision}
 		return version, false, writeFormat(ctx, store, keys, state, nil)
 	}
 

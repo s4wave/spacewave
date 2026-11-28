@@ -758,3 +758,56 @@ func TestListVerifierRevision(t *testing.T) {
 		}
 	}
 }
+
+// TestGenerationVerifierRevision fences every durable generation and adoption
+// state before sweep, ordinary collection, or a rebuild can use its proofs.
+func TestGenerationVerifierRevision(t *testing.T) {
+	for _, generation := range []Generation{Generation_GENERATION_OPEN, Generation_GENERATION_SWEEPING, Generation_GENERATION_SETTLED} {
+		for _, adoption := range []Adoption{Adoption_ADOPTION_UNADOPTED, Adoption_ADOPTION_ADOPTING, Adoption_ADOPTION_ADOPTED} {
+			for _, revision := range []uint32{0, ListVerifierRevision - 1, ListVerifierRevision, ListVerifierRevision + 1} {
+				// Write a durable state exactly as the selected verifier left it.
+				ctx := t.Context()
+				tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rec := NewRecords(tx, []byte("l/"))
+				state := &LivenessState{
+					Generation: generation, Adoption: adoption,
+					GenerationVerifierRevision: revision,
+					AdoptionRun:                "earlier", AdoptCursor: &AdoptCursor{Run: "earlier"},
+					Frees: true, UpSeq: 17, DownSeq: 23,
+				}
+				if err := rec.SetState(ctx, state); err != nil {
+					t.Fatal(err)
+				}
+
+				// Every stale proof reads Open and unadopted without changing logs.
+				got, err := rec.GetState(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantGen, wantAdoption := generation, adoption
+				if revision != ListVerifierRevision {
+					wantGen, wantAdoption = Generation_GENERATION_OPEN, Adoption_ADOPTION_UNADOPTED
+					if got.GetAdoptionRun() != "" || got.GetAdoptCursor() != nil {
+						t.Fatal("stale verifier retained its adoption cursor")
+					}
+				}
+				if got.GetGeneration() != wantGen || got.GetAdoption() != wantAdoption || got.GetGenerationVerifierRevision() != ListVerifierRevision || got.GetUpSeq() != 17 || got.GetDownSeq() != 23 {
+					t.Fatalf("generation %v adoption %v revision %d read as %+v", generation, adoption, revision, got)
+				}
+
+				// The next state write persists normalization across a restart.
+				if err := rec.SetState(ctx, got); err != nil {
+					t.Fatal(err)
+				}
+				got, err = NewRecords(tx, []byte("l/")).GetState(ctx)
+				if err != nil || got.GetGeneration() != wantGen || got.GetAdoption() != wantAdoption {
+					t.Fatalf("normalized state did not persist: %+v, %v", got, err)
+				}
+				tx.Discard()
+			}
+		}
+	}
+}

@@ -1,20 +1,87 @@
 [
   {
     "name": "a stale list certificate is still marked",
-    "replace": [["Marked == s.list = Current \\/ Skip = \"list\"", "Marked == TRUE"]],
+    "replace": [
+      [
+        "Marked == s.list = Current \\/ Skip = \"list\"",
+        "Marked == TRUE"
+      ]
+    ],
     "expect": "RunIncludesStale",
     "config": "ListVerifier.cfg"
   },
   {
     "name": "a stale visit skips the subtree",
-    "replace": [["Finished == s.visit = Current \\/ Skip = \"visit\"", "Finished == TRUE"]],
+    "replace": [
+      [
+        "Finished == s.visit = Current \\/ Skip = \"visit\"",
+        "Finished == TRUE"
+      ]
+    ],
     "expect": "VisitsCurrent",
     "config": "ListVerifier.cfg"
   },
   {
     "name": "a stale run proof skips rebuilding",
-    "replace": [["Complete == s.complete = Current \\/ Skip = \"run\"", "Complete == TRUE"]],
+    "replace": [
+      [
+        "Complete == s.complete = Current \\/ Skip = \"run\"",
+        "Complete == TRUE"
+      ]
+    ],
     "expect": "RunIncludesStale",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "stale open generation bypasses the state fence",
+    "replace": [
+      [
+        "Complete == s.complete = Current \\/ Skip = \"run\"",
+        "Complete == s.complete = Current \\/ Skip = \"run\" \\/ s.gen = \"open\""
+      ]
+    ],
+    "expect": "RunIncludesStale",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "stale sweeping generation bypasses the state fence",
+    "replace": [
+      [
+        "s.revision = Current \\/ Skip = s.gen\n                THEN s.gen",
+        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n                THEN s.gen"
+      ],
+      [
+        "s.revision = Current \\/ Skip = s.gen\n              THEN s.adoption",
+        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"sweeping\"\n              THEN s.adoption"
+      ]
+    ],
+    "expect": "ChildSurvives",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "stale settled generation bypasses the state fence",
+    "replace": [
+      [
+        "s.revision = Current \\/ Skip = s.gen\n                THEN s.gen",
+        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"settled\"\n                THEN s.gen"
+      ],
+      [
+        "s.revision = Current \\/ Skip = s.gen\n              THEN s.adoption",
+        "s.revision = Current \\/ Skip = s.gen \\/ s.gen = \"settled\"\n              THEN s.adoption"
+      ]
+    ],
+    "expect": "ChildSurvives",
+    "config": "ListVerifier.cfg"
+  },
+  {
+    "name": "undecodable leaves a current certificate marked",
+    "replace": [
+      [
+        "!.list = -1",
+        "!.list = s.list"
+      ]
+    ],
+    "expect": "CurrentRevoked",
     "config": "ListVerifier.cfg"
   }
 ]

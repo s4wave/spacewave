@@ -168,7 +168,7 @@ func copyStore(
 	}
 	defer tx.Discard()
 	if reachable != nil {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: gen}
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: gen, GenerationVerifierRevision: block_gc.ListVerifierRevision}
 		if err := block_gc.NewRecords(tx, livenessPrefix).SetState(ctx, state); err != nil {
 			return err
 		}

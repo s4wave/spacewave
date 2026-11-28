@@ -253,6 +253,12 @@ export interface LivenessState {
    * netting.
    */
   downCursor?: bigint
+  /**
+   * GenerationVerifierRevision identifies the verifier whose proofs authorize
+   * this generation. An earlier revision reads as Open and unadopted, so no
+   * sweep or ordinary free can use its lists or counts before verification.
+   */
+  generationVerifierRevision?: number
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -272,6 +278,7 @@ export const LivenessState: MessageType<LivenessState> =
       [22, 'obsolete_kinds', 12],
       [23, 'adopt_cursor', 11, 0, AdoptCursor.codec],
       [24, 'down_cursor', 4],
+      [25, 'generation_verifier_revision', 13],
     ],
   )
 

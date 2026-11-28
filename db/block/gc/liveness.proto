@@ -134,6 +134,10 @@ message LivenessState {
   // deleted page. A Volume written before it reads zero until its first
   // netting.
   uint64 down_cursor = 24;
+  // GenerationVerifierRevision identifies the verifier whose proofs authorize
+  // this generation. An earlier revision reads as Open and unadopted, so no
+  // sweep or ordinary free can use its lists or counts before verification.
+  uint32 generation_verifier_revision = 25;
 }
 
 // AdoptPhase is the pass an adoption is in. The passes run in this order.
