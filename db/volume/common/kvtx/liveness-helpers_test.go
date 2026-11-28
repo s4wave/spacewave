@@ -1193,13 +1193,17 @@ func requireAdmitKept(t *testing.T, v *Volume, clk *testClock, tr testTree) {
 	requireAudit(t, v, 0)
 }
 
-// setUnadopted marks store, which must be empty, as a Volume of the current
-// format that predates adoption.
+// setUnadopted initializes an empty current-verifier Volume without adoption.
 func setUnadopted(t *testing.T, store kvtx.Store) {
 	t.Helper()
 	keys := store_kvkey.NewDefaultKVKey()
-	state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED}
-	if err := writeFormat(t.Context(), store, keys, state, nil); err != nil {
+	state := &block_gc.LivenessState{
+		Adoption:                   block_gc.Adoption_ADOPTION_UNADOPTED,
+		GenerationVerifierRevision: block_gc.ListVerifierRevision,
+	}
+	if err := writeFormat(t.Context(), store, keys, state, func(rec *block_gc.Records) error {
+		return rec.CertifyGeneration(t.Context())
+	}); err != nil {
 		t.Fatal(err)
 	}
 }

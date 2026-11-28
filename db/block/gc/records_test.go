@@ -86,9 +86,10 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			defer tx.Discard()
 			rec := NewRecords(tx, []byte("l/"))
 			state := &LivenessState{
-				Adoption:   Adoption_ADOPTION_ADOPTED,
-				Generation: Generation_GENERATION_OPEN,
-				UpCursor:   10,
+				Adoption:                   Adoption_ADOPTION_ADOPTED,
+				Generation:                 Generation_GENERATION_OPEN,
+				GenerationVerifierRevision: ListVerifierRevision,
+				UpCursor:                   10,
 			}
 			for _, err := range []error{
 				rec.PutChildren(ctx, ref, nil),
@@ -183,10 +184,11 @@ func TestFlipRefusesWriteAfterProof(t *testing.T) {
 			defer tx.Discard()
 			rec := NewRecords(tx, []byte("l/"))
 			state := &LivenessState{
-				Adoption:         Adoption_ADOPTION_ADOPTED,
-				Generation:       Generation_GENERATION_OPEN,
-				AdoptAtUnixMilli: 1,
-				UpCursor:         10,
+				Adoption:                   Adoption_ADOPTION_ADOPTED,
+				Generation:                 Generation_GENERATION_OPEN,
+				GenerationVerifierRevision: ListVerifierRevision,
+				AdoptAtUnixMilli:           1,
+				UpCursor:                   10,
 			}
 			for _, err := range []error{
 				tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark),
@@ -258,10 +260,11 @@ func TestFlipPassesOnlyWrittenOffHoles(t *testing.T) {
 			defer tx.Discard()
 			rec := NewRecords(tx, []byte("l/"))
 			state := &LivenessState{
-				Adoption:         Adoption_ADOPTION_ADOPTED,
-				Generation:       Generation_GENERATION_OPEN,
-				AdoptAtUnixMilli: 1,
-				UpCursor:         10,
+				Adoption:                   Adoption_ADOPTION_ADOPTED,
+				Generation:                 Generation_GENERATION_OPEN,
+				GenerationVerifierRevision: ListVerifierRevision,
+				AdoptAtUnixMilli:           1,
+				UpCursor:                   10,
 			}
 			for _, err := range []error{
 				tx.Set(ctx, rec.key(kindUnmarked, runComplete), listMark),
@@ -329,10 +332,11 @@ func TestNettingKeepsParkOnRaiseToZero(t *testing.T) {
 	defer tx.Discard()
 	rec := NewRecords(tx, []byte("l/"))
 	state := &LivenessState{
-		Adoption:   Adoption_ADOPTION_ADOPTED,
-		Generation: Generation_GENERATION_OPEN,
-		UpSeq:      20,
-		UpCursor:   20,
+		Adoption:                   Adoption_ADOPTION_ADOPTED,
+		Generation:                 Generation_GENERATION_OPEN,
+		GenerationVerifierRevision: ListVerifierRevision,
+		UpSeq:                      20,
+		UpCursor:                   20,
 	}
 	for _, err := range []error{
 		rec.PutChildren(ctx, parked, []*block.BlockRef{child}),
@@ -542,7 +546,8 @@ func TestSettleStatusFrontCauses(t *testing.T) {
 	}
 
 	// Publish the fixture, then classify it through an actual read-only snapshot.
-	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
+	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN,
+		GenerationVerifierRevision: ListVerifierRevision, UpCursor: 10}); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -624,7 +629,8 @@ func TestInspectHolders(t *testing.T) {
 	if err := rec.PutChildren(ctx, grandparent, parents); err != nil {
 		t.Fatal(err)
 	}
-	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
+	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN,
+		GenerationVerifierRevision: ListVerifierRevision, UpCursor: 10}); err != nil {
 		t.Fatal(err)
 	}
 	// Name the requested child twice and its grandparent once, including a leased root.
