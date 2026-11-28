@@ -481,7 +481,10 @@ func testLivenessAdoption(t *testing.T) {
 		clk.Add(block_gc.DefaultGrace + 1)
 		collectAll(t, v)
 
-		// Verify R, X as a leaf, X decoded, and C, then settle.
+		// Verify R, X as a leaf, X decoded, and C, then settle. The rebuild
+		// is upkeep, so its writes take background admission whatever
+		// context the walker passes.
+		foreground := store.foregroundWrites.Load()
 		rb, err := v.OpenListRebuild(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -494,6 +497,9 @@ func testLivenessAdoption(t *testing.T) {
 		res, err := rb.Finish(ctx)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if n := store.foregroundWrites.Load() - foreground; n != 0 {
+			t.Fatalf("rebuild opened %d foreground write transactions, want none", n)
 		}
 		if res.MarkedLacking != 1 {
 			t.Fatalf("rebuild of X leaf first = %+v, want X's marked list lacking C", res)
