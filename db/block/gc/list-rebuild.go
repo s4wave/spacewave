@@ -170,7 +170,9 @@ const (
 
 // flush writes the pending lists in one transaction while no adoption
 // counts and the generation is Open, or on a dry run compares them in one
-// read snapshot, then lets a waiting writer in.
+// read snapshot, then lets a waiting writer in. The rebuild is upkeep a later
+// run redoes, so its transactions take background admission whatever context
+// the walker passes, and a foreground writer waits behind at most one batch.
 func (r *ListRebuild) flush(ctx context.Context) error {
 	// Nothing is pending.
 	if len(r.pending) == 0 {
@@ -189,7 +191,7 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 	}
 
 	// Write each list from its refs.
-	err := r.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+	err := r.store.Update(block.WithBackground(ctx), func(rec *Records, _ block.StoreOps) error {
 		// Refuse a Volume an adoption is counting or the settle flipped.
 		res = r.res.samples()
 		state, err := rec.GetState(ctx)

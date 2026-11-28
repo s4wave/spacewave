@@ -9,9 +9,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/tidwall/btree"
@@ -34,6 +36,9 @@ type seekGuard struct {
 	mtx sync.Mutex
 	// deleted tracks committed deletes until a committed write sets the key.
 	deleted *btree.BTreeG[string]
+	// foregroundWrites counts the write transactions opened without the
+	// background marker, which take foreground writer admission.
+	foregroundWrites atomic.Uint64
 }
 
 // newSeekGuard guards the write transactions of store.
@@ -49,6 +54,9 @@ func newGuardedStore(t *testing.T) *seekGuard {
 // NewTransaction guards iteration only in a write transaction.
 func (s *seekGuard) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Open the backing store's snapshot or acquire its writer turn.
+	if write && !block.IsBackground(ctx) {
+		s.foregroundWrites.Add(1)
+	}
 	tx, err := s.Store.NewTransaction(ctx, write)
 	if err != nil || !write {
 		return tx, err
