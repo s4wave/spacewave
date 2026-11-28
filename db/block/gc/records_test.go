@@ -446,6 +446,47 @@ func TestHolesClearRefusesHoleSinceSnapshot(t *testing.T) {
 	}
 }
 
+// TestVerifyWritesMissingListMarked checks that a list rebuild that writes
+// the list of an unlisted block from the refs it decoded marks the list as
+// from content and drops the block's hole record. An unmarked list would
+// rejoin the run, and the flip would make a block the walk verified
+// unmarked.
+func TestVerifyWritesMissingListMarked(t *testing.T) {
+	ctx := t.Context()
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	child, err := block.BuildBlockRef([]byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, err := block.BuildBlockRef([]byte("parent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rec.addHole(ctx, BlockKey(ref)); err != nil {
+		t.Fatal(err)
+	}
+	entry := &block.PutBatchEntry{Ref: ref, Refs: []*block.BlockRef{child}}
+	if _, err := verifyOne(ctx, rec, entry, nil, false); err != nil {
+		t.Fatal(err)
+	}
+	listed, marked, err := rec.listState(ctx, BlockKey(ref))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hole, err := rec.hasHole(ctx, BlockKey(ref))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !listed || !marked || hole {
+		t.Fatalf("listed %v, marked %v, hole %v; want a marked list and no hole", listed, marked, hole)
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
