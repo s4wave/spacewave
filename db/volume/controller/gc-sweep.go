@@ -65,6 +65,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	defer timer.Stop()
 	hw, _ := vol.(volume.HealthWatcher)
 	reserve := &reserveWatch{hw: hw}
+	var report passReport
 	for {
 		// Pull the pass in when the volume entered the reserve.
 		entered, healthCh := reserve.entered()
@@ -94,41 +95,11 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 			continue
 		}
 
-		// Report a pass that changed anything, at Info only while it moves
-		// the settle, since netting and freeing passes run back to back, and
-		// warn of underflows.
-		settling := res.FrontScanned != 0 || res.Unmarked != 0 || res.Seeded != 0 || res.Popped != 0 ||
-			res.RefScanned != 0 || res.Parked != 0 || res.Swept != 0 || res.Flipped || res.Settled
-		if res.Netted != 0 || res.Freed != 0 || res.Lapsed != 0 || settling {
-			le := c.le.
-				WithField("netted", res.Netted).
-				WithField("counted", res.Counted).
-				WithField("queued", res.Queued).
-				WithField("freed", res.Freed).
-				WithField("kept", res.Kept).
-				WithField("leaked", res.Leaked).
-				WithField("lapsed", res.Lapsed).
-				WithField("more", res.More).
-				WithField("duration", res.Duration.String())
-			if !settling {
-				le.Debug("gc pass completed")
-			} else {
-				le = le.
-					WithField("unmarked", res.Unmarked).
-					WithField("seeded", res.Seeded).
-					WithField("front-scanned", res.FrontScanned).
-					WithField("popped", res.Popped).
-					WithField("unreferenced", res.Unreferenced).
-					WithField("ref-scanned", res.RefScanned).
-					WithField("parked", res.Parked).
-					WithField("swept", res.Swept).
-					WithField("flipped", res.Flipped).
-					WithField("settled", res.Settled)
-				if res.FrontDone {
-					le = le.WithField("front", res.Front)
-				}
-				le.Info("gc pass completed")
-			}
+		// Report the passes of a run together, and warn of underflows.
+		now := time.Now()
+		report.add(&res, now)
+		if report.due(now) {
+			report.log(c.le)
 		}
 		if res.Underflows != 0 {
 			c.le.WithField("underflows", res.Underflows).Warn("gc pass refused count changes below zero")
