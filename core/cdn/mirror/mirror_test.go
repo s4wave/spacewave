@@ -304,41 +304,31 @@ func TestMirrorTwice(t *testing.T) {
 	}
 }
 
-// TestMirrorResumes cuts a mirror after its first packs commit, then resumes
+// TestMirrorResumes cuts a mirror after its first pack commits, then resumes
 // it: the resumed copy uploads only what the cut one did not commit, and a
 // reader reads the whole tree.
 func TestMirrorResumes(t *testing.T) {
-	// Hold the first upload after the first window, long enough for every
-	// later upload to land and, if commits ran out of order, to commit, then
-	// fail it.
+	// Cut the second commit after the first pack is durably cataloged.
+	// Upload request order can differ from pack order under concurrency.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	r := writertest.NewRig(t)
 	tr := newTree(t, 24)
 	_, total := tr.head(t)
 	const uploads = 2
-	var puts atomic.Int64
-	r.Transport.SetPut(func(req *http.Request) (*http.Request, error) {
-		if puts.Add(1) != uploads+1 {
-			return req, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(500 * time.Millisecond):
-			return nil, errors.New("cut")
-		}
-	})
+	opts := options(r, uploads)
+	cut := errors.New("cut")
+	opts.Publish.Client = NewCutCommitClient(opts.Publish.Client.(cdn_publish.StagingClient), 1, cut)
 
 	// The cut mirror commits some packs, each with its subtree, and leaves
 	// the checkpoint.
 	genesis := r.Writer.Root(writertest.Space).GetCheckpoint().CloneVT()
-	if _, err := cdn_mirror.MirrorWorld(ctx, tr.world.Engine, options(r, uploads)); err == nil {
-		t.Fatal("the cut mirror succeeded")
+	if _, err := cdn_mirror.MirrorWorld(ctx, tr.world.Engine, opts); !errors.Is(err, cut) {
+		t.Fatalf("the cut mirror returned %v, want the commit cut", err)
 	}
 	landed := len(r.Writer.Root(writertest.Space).GetPacks())
-	if landed == 0 {
-		t.Fatal("the cut mirror committed no pack")
+	if landed != 1 {
+		t.Fatalf("the cut mirror committed %d packs, want 1", landed)
 	}
 	if !r.Writer.Root(writertest.Space).GetCheckpoint().EqualVT(genesis) {
 		t.Fatal("the cut mirror moved the checkpoint")
@@ -346,7 +336,6 @@ func TestMirrorResumes(t *testing.T) {
 	requireClosed(t, r, tr)
 
 	// The resumed mirror uploads only the rest, and a reader reads the tree.
-	r.Transport.SetPut(nil)
 	res, err := cdn_mirror.MirrorWorld(ctx, tr.world.Engine, options(r, uploads))
 	if err != nil {
 		t.Fatal(err)
