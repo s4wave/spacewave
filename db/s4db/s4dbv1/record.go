@@ -5,6 +5,8 @@ package s4dbv1
 import (
 	"encoding/binary"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // record is one decoded log record.
@@ -116,6 +118,10 @@ type logReader struct {
 	buf []byte
 	// off is the file offset of buf.
 	off uint64
+	// err is the first read error other than the end of the file. The log
+	// ends at a record that does not decode, but a failed read is not a
+	// torn tail: it ends the reader with err set.
+	err error
 }
 
 // newLogReader returns a reader of the records after superblock sb.
@@ -124,7 +130,7 @@ func newLogReader(r io.ReaderAt, sb superblock) *logReader {
 }
 
 // next returns the next record, following links, or false at the end of the
-// valid log.
+// valid log or after a read error, which l.err then holds.
 func (l *logReader) next() (*record, bool) {
 	// Decode the record at pos.
 	r, ok := decodeRecord(l.window(), l.seq, l.crc)
@@ -161,6 +167,7 @@ func (l *logReader) window() []byte {
 		return nil
 	}
 	if _, err := l.r.ReadAt(hdr[:], int64(l.pos)); err != nil { // #nosec G115 -- a file offset.
+		l.fail(err)
 		return nil
 	}
 	if binary.LittleEndian.Uint64(hdr[8:]) != l.seq {
@@ -171,7 +178,20 @@ func (l *logReader) window() []byte {
 	want := max(logWindow, uint64(binary.LittleEndian.Uint32(hdr[:])))
 	want = min(want, l.end-l.pos)
 	l.buf = make([]byte, want)
-	n, _ := l.r.ReadAt(l.buf, int64(l.pos)) // #nosec G115 -- a file offset.
+	n, err := l.r.ReadAt(l.buf, int64(l.pos)) // #nosec G115 -- a file offset.
+	if err != nil && l.fail(err) {
+		return nil
+	}
 	l.buf, l.off = l.buf[:n], l.pos
 	return l.buf
+}
+
+// fail records err unless it reports the end of the file, where the log
+// ends, and reports whether it recorded it.
+func (l *logReader) fail(err error) bool {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return false
+	}
+	l.err = errors.Wrapf(err, "read log at %d", l.pos)
+	return true
 }

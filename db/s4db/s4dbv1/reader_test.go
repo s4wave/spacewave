@@ -8,9 +8,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -197,6 +199,77 @@ func TestStreamTorn(t *testing.T) {
 		}
 		f.Close()
 		expectRows(t, streamRows(t, path), want)
+	}
+}
+
+// failAt is a file whose reads covering off fail with EIO, as a failing
+// drive returns them.
+type failAt struct {
+	r   io.ReaderAt
+	off int64
+}
+
+// ReadAt fails a read covering f.off and passes the others on.
+func (f failAt) ReadAt(b []byte, off int64) (int, error) {
+	if off <= f.off && f.off < off+int64(len(b)) {
+		return 0, syscall.EIO
+	}
+	return f.r.ReadAt(b, off)
+}
+
+// TestStreamReadError fails the reads of the mixed fixture's last commit,
+// once at its header and once at one of its extents, and expects Stream to
+// return the error. A failed read must not pass for the torn tail, which
+// would stream the state before that commit and drop it from a conversion.
+func TestStreamReadError(t *testing.T) {
+	for _, way := range []string{"header", "extent"} {
+		t.Run(way, func(t *testing.T) { streamReadError(t, way) })
+	}
+}
+
+// streamReadError runs one case of TestStreamReadError.
+func streamReadError(t *testing.T, way string) {
+	// Find the last commit and the offset to fail.
+	path := copyFixture(t, "mixed.s4db")
+	r, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lr := newLogReader(r.r, r.sb)
+	var last *record
+	var at int64
+	for {
+		pos := lr.pos
+		rec, ok := lr.next()
+		if !ok {
+			break
+		}
+		if rec.kind == kindCommit {
+			last, at = rec, int64(pos) // #nosec G115 -- a file offset.
+		}
+	}
+	if last == nil {
+		t.Fatal("no commit in the log")
+	}
+	if way == "extent" {
+		at = -1
+		for _, o := range last.ops {
+			if o.val.isRef {
+				at = int64(o.val.ref.off) // #nosec G115 -- a file offset.
+				break
+			}
+		}
+		if at < 0 {
+			t.Fatal("last commit has no extent")
+		}
+	}
+
+	// Stream through the failing file.
+	r.r = failAt{r: r.r, off: at}
+	err = r.Stream(context.Background(), func(key, value []byte) error { return nil })
+	r.Close()
+	if !errors.Is(err, syscall.EIO) {
+		t.Fatalf("%s read error: stream returned %v", way, err)
 	}
 }
 

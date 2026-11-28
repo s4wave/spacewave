@@ -19,6 +19,12 @@ import (
 type Reader struct {
 	// r reads the file.
 	r io.ReaderAt
+	// f is the file r reads.
+	f *os.File
+	// closeFile closes f.
+	closeFile func() error
+	// exclusive is set when the reader holds the writer lock.
+	exclusive bool
 	// release drops the locks and closes the file, nil once closed.
 	release func() error
 	// sb is the checkpoint reads start from.
@@ -37,7 +43,7 @@ type Reader struct {
 // this process has it open, with ErrUnsupported when the file is not in the
 // previous engine's format, and with ErrCorrupt when no superblock reads.
 func Open(path string) (*Reader, error) {
-	return open(path, openSourceReadOnly, lockShared)
+	return open(path, openSourceReadOnly, lockShared, false)
 }
 
 // OpenExclusive opens the previous-format database at path for the in-place
@@ -46,12 +52,12 @@ func Open(path string) (*Reader, error) {
 // handle has the file open, readers included. Its descriptor is writable only
 // because a write lock needs one. The Reader still only reads.
 func OpenExclusive(path string) (*Reader, error) {
-	return open(path, openSource, lockExclusive)
+	return open(path, openSource, lockExclusive, true)
 }
 
 // open opens path with opener, takes lock, and reads the header, the
 // superblock and the live size, releasing everything on failure.
-func open(path string, opener func(string) (*os.File, error), lock func(*os.File) (func() error, error)) (*Reader, error) {
+func open(path string, opener func(string) (*os.File, error), lock func(*os.File) (func() error, error), exclusive bool) (*Reader, error) {
 	// Share descriptor ownership with the new engine: a rejected probe must
 	// never close another descriptor of the locked source on Darwin.
 	f, closeFile, err := openRegisteredSource(path, opener)
@@ -62,7 +68,8 @@ func open(path string, opener func(string) (*os.File, error), lock func(*os.File
 	if err != nil {
 		return nil, errors.Join(err, closeFile())
 	}
-	r := &Reader{r: f, release: func() error { return errors.Join(unlock(), closeFile()) }}
+	r := &Reader{r: f, f: f, closeFile: closeFile, exclusive: exclusive}
+	r.release = func() error { return errors.Join(unlock(), closeFile()) }
 
 	// Load under the locks, releasing them on failure.
 	if err := r.load(); err != nil {
@@ -135,6 +142,55 @@ func (r *Reader) load() error {
 	}
 	r.live = live + int64(r.sb.treePages)*pageSize // #nosec G115 -- a page count.
 	return nil
+}
+
+// Fence keeps the previous engine out of the file once a conversion replaced
+// its name, so the file stays as the conversion read it, and releases the
+// writer lock. A previous-engine process that opened the file before the
+// replace waits on that lock and then claims a reader slot before it writes
+// anything. Fence takes every slot first, so each such process fails with
+// its slots-full error and closes the file. The fence lasts until Close,
+// which the caller delays for as long as such a process can still be
+// waiting. Fence needs a reader from OpenExclusive. When it fails, the
+// reader keeps the writer lock and holds the waiting processes off until
+// Close instead.
+func (r *Reader) Fence() error {
+	// Only the conversion's reader holds the writer lock to hand over.
+	if !r.exclusive {
+		return errors.New("fence needs the exclusive reader of a conversion")
+	}
+
+	// Take every slot but slot 0, which the reader holds. The writer lock
+	// kept them free, since the previous engine claims a slot only under it.
+	unlockSlots := func() error {
+		var err error
+		for i := range slots {
+			err = errors.Join(err, filelock.Unlock(r.f, lockSlot+int64(i)))
+		}
+		return err
+	}
+	r.release = func() error { return errors.Join(unlockSlots(), filelock.Unlock(r.f, lockWriter), r.closeFile()) }
+	for i := 1; i < slots; i++ {
+		ok, err := filelock.Lock(r.f, lockSlot+int64(i), false)
+		if err == nil && !ok {
+			err = ErrInUse
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	// Admit the waiting processes, which now find no slot.
+	if err := filelock.Unlock(r.f, lockWriter); err != nil {
+		return err
+	}
+	r.release = func() error { return errors.Join(unlockSlots(), r.closeFile()) }
+	return nil
+}
+
+// Stat describes the open file, which a conversion keeps after the replace.
+func (r *Reader) Stat() (os.FileInfo, error) {
+	return r.f.Stat()
 }
 
 // LiveBytes estimates the bytes the file's contents take: the tree pages at
@@ -259,6 +315,6 @@ func (r *Reader) Close() error {
 		return nil
 	}
 	err := r.release()
-	r.release, r.r, r.ov = nil, nil, nil
+	r.release, r.r, r.f, r.ov = nil, nil, nil, nil
 	return err
 }
