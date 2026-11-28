@@ -3,6 +3,7 @@ package world_control_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -484,6 +485,75 @@ func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("watch loop did not continue after unhandled operation")
+	}
+}
+
+// TestWatchLoopRunsSupersededWriteAgain proves a superseded handler write waits
+// for the next change and runs again, while a write whose durability is unknown
+// still ends the loop, since running it again could apply it twice.
+func TestWatchLoopRunsSupersededWriteAgain(t *testing.T) {
+	ctx := t.Context()
+	ws := setupRemoteWorldState(ctx, t)
+	superseded := fmt.Errorf("unchanged write on provisional World head: %w", world.ErrSuperseded)
+	unknown := fmt.Errorf("commit: %w", &world.DurabilityUnknownError{Err: superseded})
+	if !errors.Is(unknown, world.ErrDurabilityUnknown) {
+		t.Fatal("durability-unknown fixture does not wrap ErrDurabilityUnknown")
+	}
+	for _, tc := range []struct {
+		name    string
+		first   error
+		wantErr error
+	}{
+		{"superseded", superseded, nil},
+		{"durability unknown", unknown, world.ErrDurabilityUnknown},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := make(chan int, 2)
+			count := 0
+			loop := world_control.NewWatchLoop(
+				logrus.NewEntry(logrus.New()),
+				"",
+				world_control.NewWaitForStateHandler(func(
+					context.Context,
+					world.WorldState,
+					world.ObjectState,
+					*block.Cursor,
+					uint64,
+				) (bool, error) {
+					count++
+					calls <- count
+					if count == 1 {
+						return false, tc.first
+					}
+					return false, nil
+				}),
+			)
+			done := make(chan error, 1)
+			go func() {
+				done <- loop.Execute(ctx, ws)
+			}()
+
+			recvWatchLoopValue(t, calls, "initial handler")
+			if tc.wantErr != nil {
+				err := recvWatchLoopValue(t, done, "loop exit")
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("Execute err = %v, want %v", err, tc.wantErr)
+				}
+				return
+			}
+			select {
+			case err := <-done:
+				t.Fatalf("Execute returned %v after a superseded write, want a wait", err)
+			case <-time.After(50 * time.Millisecond):
+			}
+			loop.Wake()
+			if n := recvWatchLoopValue(t, calls, "rerun"); n != 2 {
+				t.Fatalf("handler call = %d, want 2", n)
+			}
+			if err := recvWatchLoopValue(t, done, "loop exit"); err != nil {
+				t.Fatalf("Execute err = %v, want nil", err)
+			}
+		})
 	}
 }
 

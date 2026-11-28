@@ -224,13 +224,27 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		handlerWs, objState,
 		rootRef, rev,
 	)
-	if errors.Is(err, world.ErrUnhandledOp) {
+	switch {
+	case errors.Is(err, world.ErrUnhandledOp):
 		if c.le != nil {
 			c.le.Debug("handler skipped unhandled operation")
 		}
 		waitForChanges = true
 		err = nil
-	} else if err != nil && c.le != nil &&
+	case world.IsSuperseded(err):
+		// A superseded write runs again after the next change to what the
+		// iteration read. Another writer that moved the head changed the
+		// seqno, so the wait returns at once. A no-op built on a
+		// provisional head waits until that head's refusal reverts what
+		// the handler read; its acceptance needs no rerun, since the
+		// handler found nothing to change.
+		if c.le != nil {
+			c.le.WithError(err).Debug("handler write superseded, running again after the next change")
+		}
+		waitForChanges = true
+		err = nil
+	}
+	if err != nil && c.le != nil &&
 		(ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
 		le := c.le.WithError(err)
 		if c.objectKey != "" {
