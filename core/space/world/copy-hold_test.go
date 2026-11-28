@@ -486,7 +486,11 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 		a, collect := newVolumeAdapter(t, bound, grace)
 		leaf := page(t, "leaf", bound+1)
 		root := page(t, "root", 0, leaf.Ref)
-		if err := a.keepAdmitted(t.Context(), admission(leaf, root)); err != nil {
+		adm := admission(leaf, root)
+		if err := a.keepAdmitted(t.Context(), adm); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.landQueued(t.Context(), adm); err != nil {
 			t.Fatal(err)
 		}
 		if a.pages.Full() {
@@ -508,7 +512,8 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 			t.Fatal(err)
 		}
 		errCh := make(chan error, 1)
-		go func() { errCh <- a.keepAdmitted(t.Context(), admission(mid, leaf, root)) }()
+		adm := admission(mid, leaf, root)
+		go func() { errCh <- a.keepAdmitted(t.Context(), adm) }()
 
 		// Wait for the leaf's page, failing at once if the admission returns
 		// before its hold, or if the page never arrives.
@@ -539,6 +544,9 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 		age(collect)
 		unlock()
 		if err := <-errCh; err != nil {
+			t.Fatal(err)
+		}
+		if err := a.landQueued(t.Context(), adm); err != nil {
 			t.Fatal(err)
 		}
 		age(collect)
@@ -572,7 +580,11 @@ func TestAdmitHoldsOverflow(t *testing.T) {
 				t.Fatalf("block %q stored=%v err %v after a cancelled admission, want absent", e.Data[:4], ok, err)
 			}
 		}
-		if err := a.keepAdmitted(t.Context(), admission(leaf, root)); err != nil {
+		adm := admission(leaf, root)
+		if err := a.keepAdmitted(t.Context(), adm); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.landQueued(t.Context(), adm); err != nil {
 			t.Fatal(err)
 		}
 		age(collect)
