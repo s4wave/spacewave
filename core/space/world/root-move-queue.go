@@ -41,7 +41,12 @@ import (
 // queues an empty marker move behind the moves the admission saw, so a drop
 // fails it too, and it fails the admission at once when a drop came between
 // begin and depend, since its view then named moves no landing will store.
-// RootMoveQueue.tla models it as DurableStateHolds.
+// A lander drops without rootMtx, so a drop can fall between two moves of one
+// turn, such as its payload move and its candidate move, however the turn
+// holds rootMtx. push therefore refuses a move for an owner whose turn began
+// before the latest drop: every move an owner queues belongs to one drop
+// epoch and is dropped with the others. RootMoveQueue.tla models it as
+// DurableStateHolds and DurableGraphWhole.
 //
 // Locks: rootMtx, then landMtx, then mtx. A lander holds landMtx across the
 // store's SetRoots and never needs rootMtx, so a turn that queues a move under
@@ -85,22 +90,35 @@ func (q *rootMoveQueue) depend(owner *admissionMoves) error {
 		return q.dropped
 	}
 	if n := len(q.moves); n != 0 && q.moves[n-1].seq != owner.seq {
-		q.seq++
-		q.moves = append(q.moves, &queuedRootMove{seq: q.seq, owner: owner})
-		owner.seq = q.seq
+		q.appendLocked(&queuedRootMove{owner: owner})
 	}
 	return nil
 }
 
 // push queues a move that roots makes with entries for owner and records it as
-// owner's newest move. The caller holds rootMtx.
-func (q *rootMoveQueue) push(owner *admissionMoves, entries []*block.PutBatchEntry, roots []block.NamedRoot) {
-	// Append the move with the next seq.
+// owner's newest move. It refuses with the drop's error when a drop came since
+// owner's begin: that drop removed owner's earlier moves, such as the strict
+// move that holds a payload the new move reaches, so every move of an owner
+// belongs to one drop epoch and no move outlives the holds queued before it.
+// The caller holds rootMtx.
+func (q *rootMoveQueue) push(owner *admissionMoves, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Append the move unless a drop since begin removed owner's earlier moves.
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
+	if owner.epoch != q.epoch {
+		return q.dropped
+	}
+	q.appendLocked(&queuedRootMove{owner: owner, entries: entries, roots: roots})
+	return nil
+}
+
+// appendLocked queues m with the next seq as its owner's newest move. The
+// caller holds mtx.
+func (q *rootMoveQueue) appendLocked(m *queuedRootMove) {
 	q.seq++
-	q.moves = append(q.moves, &queuedRootMove{seq: q.seq, owner: owner, entries: entries, roots: roots})
-	owner.seq = q.seq
+	m.seq = q.seq
+	q.moves = append(q.moves, m)
+	m.owner.seq = q.seq
 }
 
 // releaseWith runs release once owner's newest move lands or is dropped, and

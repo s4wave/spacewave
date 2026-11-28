@@ -176,7 +176,9 @@ func (a *Adapter) queueMove(ctx context.Context, owner *admissionMoves, entries 
 			return false, errors.Wrap(block.ErrRootNotHeld, need[i].MarshalString())
 		}
 	}
-	a.moves.push(owner, entries, moves)
+	if err := a.moves.push(owner, entries, moves); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

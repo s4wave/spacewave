@@ -1,27 +1,62 @@
 [
   {
     "name": "QueueStaged: a staged admission queues its page move past its writer's stage",
-    "replace": [["LandStaged == TRUE", "LandStaged == FALSE"]],
-    "expect": "DurableStateHolds"
+    "replace": [
+      [
+        "LandStaged == TRUE",
+        "LandStaged == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   },
   {
     "name": "NoMarker: an admission that borrows a queued hold queues no move",
-    "replace": [["Markers == TRUE", "Markers == FALSE"]],
-    "expect": "DurableStateHolds"
+    "replace": [
+      [
+        "Markers == TRUE",
+        "Markers == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   },
   {
     "name": "NoEpochCheck: a drop between the view read and the queueing goes unseen",
-    "replace": [["EpochCheck == TRUE", "EpochCheck == FALSE"]],
-    "expect": "DurableStateHolds"
+    "replace": [
+      [
+        "EpochCheck == TRUE",
+        "EpochCheck == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   },
   {
     "name": "LoosePayload: the payload move does not require its block held",
-    "replace": [["StrictPayload == TRUE", "StrictPayload == FALSE"]],
-    "expect": "DurableStateHolds"
+    "replace": [
+      [
+        "StrictPayload == TRUE",
+        "StrictPayload == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   },
   {
     "name": "StateBeforeLand: the state is written with its moves still queued",
-    "replace": [["/\\ phase[x] = \"queued\" /\\ ~Owns(queue, x)", "/\\ phase[x] = \"queued\""]],
+    "replace": [
+      [
+        "/\\ phase[x] = \"queued\" /\\ ~Owns(queue, x)",
+        "/\\ phase[x] = \"queued\""
+      ]
+    ],
     "expect": "DurableStateHolds"
+  },
+  {
+    "name": "SplitLock: a candidate move queues after a drop removed its turn's payload move",
+    "replace": [
+      [
+        "BoundPush == TRUE",
+        "BoundPush == FALSE"
+      ]
+    ],
+    "expect": "DurableGraphWhole"
   }
 ]

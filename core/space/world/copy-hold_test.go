@@ -607,3 +607,80 @@ func putUnheld(t *testing.T, store block.StoreOps, entries ...*block.PutBatchEnt
 		t.Fatal(err)
 	}
 }
+
+// TestDropBetweenPayloadAndCandidate lands a drop between holdAdmitted's
+// payload move and its candidate move, which take the root lock separately
+// while a lander drops without it. The drop removes the payload move, and the
+// collector frees the payload. The candidate move must then be refused, so no
+// later landing stores a root naming the freed payload.
+func TestDropBetweenPayloadAndCandidate(t *testing.T) {
+	// Stage a payload and a candidate that names it.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 64<<10, time.Nanosecond)
+	a.deferMoves = true
+	store := a.pages.StoreOps
+	stage, release, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	p, _, err := stage.PutBlock(ctx, []byte("payload-between-drop-and-candidate"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := []byte("candidate-naming-" + p.MarshalString())
+	c, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := &block.PutBatchEntry{Ref: c, Data: data, Refs: []*block.BlockRef{p}, RefsKnown: true}
+	if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Queue the payload move, then drop it and free the payload.
+	adm := a.newAdmission(world.Candidate{Root: c}, nil, []*block.BlockRef{p}, nil)
+	a.moves.begin(&adm.moves)
+	qctx := withQueuing(ctx, &adm.moves)
+	if err := a.addPayloads(qctx, adm.payloads, true); err != nil {
+		t.Fatal(err)
+	}
+	release()
+	for range 3 {
+		collect()
+	}
+	if _, found, err := store.GetBlock(ctx, p); err != nil || found {
+		t.Fatalf("payload not freed: found %v: %v", found, err)
+	}
+	if err := a.moves.landAll(ctx, a.pages); !errors.Is(err, block.ErrRootNotHeld) {
+		t.Fatalf("landing the dropped payload: %v", err)
+	}
+
+	// The candidate move after the drop must be refused.
+	unlock, err := a.lockRoots(qctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	addErr := a.addRoot(qctx, &a.pendingWorlds, c)
+	unlock()
+	if addErr == nil {
+		t.Fatal("candidate move queued after its payload move was dropped")
+	}
+	if err := a.moves.depend(&adm.moves); err == nil {
+		t.Fatal("admission survived the drop of its payload move")
+	}
+
+	// A later landing stores no root naming the freed payload.
+	if err := a.moves.landAll(ctx, a.pages); err != nil {
+		t.Fatal(err)
+	}
+	root, err := store.GetRoot(ctx, RootPending)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root != nil {
+		if err := block.WalkGraph(ctx, store, []*block.BlockRef{root}, 0, nil); err != nil {
+			t.Fatalf("pending root names a freed block: %v", err)
+		}
+	}
+}
