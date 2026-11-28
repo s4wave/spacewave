@@ -14,6 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
+	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -361,6 +362,87 @@ func TestWalkResume(t *testing.T) {
 		}
 		if len(second) > len(graph)-finished {
 			t.Fatalf("stop after %d batches: resumed walk read %d of %d blocks, %d finished", stopAfter, len(second), len(graph), finished)
+		}
+	}
+}
+
+// TestWalkResumeSharedChild checks that a block named by two blocks taken in
+// one batch finishes neither until its own subtree does. In R -> {A, B},
+// A -> B, B -> C, one batch takes A and B, and A then queues B while B is in
+// progress. A walk that counted B done for A at once would finish A before C
+// was read, and a resumed walk of A would skip B and C.
+func TestWalkResumeSharedChild(t *testing.T) {
+	// Write the graph as tree nodes, so each block's children are its refs.
+	ctx := t.Context()
+	store := block_mock.NewMockStore(0)
+	put := func(name string, left, right *block.BlockRef) *block.BlockRef {
+		t.Helper()
+		n := &kvtx_block_iavl.Node{Key: []byte(name), LeftChildRef: left, RightChildRef: right}
+		if left != nil || right != nil {
+			n.Height = 1
+		}
+		data, err := n.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref, _, err := store.PutBlock(ctx, data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	c := put("C", nil, nil)
+	b := put("B", c, nil)
+	a := put("A", b, nil)
+	r := put("R", a, b)
+	walk := func(v Visited, root *block.BlockRef, stop bool) (map[string]bool, error) {
+		t.Helper()
+		w := NewWalker(logrus.NewEntry(logrus.New()), store, nil)
+		defer w.Close()
+		w.VisitIn(v)
+		read := make(map[string]bool)
+		node := Node{Ref: root, Ctor: func() block.Block { return &kvtx_block_iavl.Node{} }}
+		err := w.Walk(ctx, node, func(_ context.Context, batch []Visit) error {
+			for _, rd := range batch {
+				if stop && rd.Node.Ref.EqualsRef(c) {
+					return errStop
+				}
+			}
+			for _, rd := range batch {
+				read[rd.Node.Ref.MarshalString()] = true
+			}
+			return nil
+		})
+		return read, err
+	}
+
+	// Stop before C: no block above C may be finished.
+	v := NewMemVisited()
+	if _, err := walk(v, r, true); err != errStop {
+		t.Fatalf("stop before C: %v", err)
+	}
+	for name, ref := range map[string]*block.BlockRef{"R": r, "A": a, "B": b, "C": c} {
+		if typed, _ := v.Seen(ref); typed {
+			t.Fatalf("%s finished with C unread", name)
+		}
+	}
+
+	// The resumed walk of A reads A, B and C, and finishes the whole graph.
+	second, err := walk(v, a, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, ref := range map[string]*block.BlockRef{"A": a, "B": b, "C": c} {
+		if !second[ref.MarshalString()] {
+			t.Fatalf("resumed walk of A skipped %s", name)
+		}
+	}
+	if _, err := walk(v, r, false); err != nil {
+		t.Fatal(err)
+	}
+	for name, ref := range map[string]*block.BlockRef{"R": r, "A": a, "B": b, "C": c} {
+		if typed, _ := v.Seen(ref); !typed {
+			t.Fatalf("%s not finished after a whole walk", name)
 		}
 	}
 }

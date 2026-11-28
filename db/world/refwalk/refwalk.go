@@ -244,14 +244,17 @@ func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node
 // visit in stack order and queues the children of each decoded block.
 //
 // It finishes a block in the Walker's Visited once visit has its read and
-// every block it queued is finished, or was found finished or in progress: a
-// block in progress is below a block in progress, so it finishes before the
-// root does. A walk that stops therefore leaves finished only blocks whose
-// whole subtree visit received, and a walk resumed from the same Visited reads
-// the rest again. Besides the Visited it holds the stack and the blocks in
+// every block it queued is finished. A queued block found finished counts at
+// once; one found in progress, such as a sibling in the same batch that
+// another sibling also names, counts when that block finishes. A walk that
+// stops therefore leaves finished only blocks whose whole subtree visit
+// received, and a walk resumed from the same Visited reads the rest again.
+// Content addressing keeps the graph acyclic, so every wait ends; a block that
+// waited on its own ancestor would stay unfinished, which a resumed walk only
+// reads again. Besides the Visited it holds the stack and the blocks in
 // progress, which grow with the depth and fanout of the graph, not its size.
 func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Context, batch []Visit) error) error {
-	wk := &walk{w: w, stack: []entry{{node: root}}, active: make(map[activeKey]struct{})}
+	wk := &walk{w: w, stack: []entry{{node: root}}, active: make(map[activeKey]*frame)}
 	for len(wk.stack) != 0 {
 		// Take the next batch of blocks neither finished nor in progress.
 		batch, frames, err := wk.take(ctx)
@@ -343,7 +346,7 @@ type walk struct {
 	// stack holds the blocks queued and not yet taken.
 	stack []entry
 	// active holds the blocks taken and not finished.
-	active map[activeKey]struct{}
+	active map[activeKey]*frame
 }
 
 // entry is a block on the walk's stack.
@@ -365,6 +368,9 @@ type frame struct {
 	// pending counts the blocks it queued that are not finished, plus one
 	// until visit has its read and its children are queued.
 	pending int
+	// waiters are the other blocks that queued this block while it was in
+	// progress; each counts it as pending until it finishes.
+	waiters []*frame
 }
 
 // activeKey identifies a block in progress by its marshaled ref and the name
@@ -377,71 +383,85 @@ type activeKey struct {
 }
 
 // take pops up to batchSize blocks from the stack that are neither finished
-// nor in progress, and returns them with their frames. It counts every other
-// popped block as done for the block that queued it.
+// nor in progress, and returns them with their frames. A popped empty ref
+// counts as done for the block that queued it at once, and a popped block in
+// progress makes that block wait on it.
 func (wk *walk) take(ctx context.Context) ([]Node, []*frame, error) {
 	// Pop the candidates, skipping empty refs and blocks in progress.
 	var nodes []Node
-	var parents []*frame
+	var frames []*frame
 	var keys []VisitKey
-	var actives []activeKey
 	for len(wk.stack) != 0 && len(nodes) != batchSize {
 		e := wk.stack[len(wk.stack)-1]
 		wk.stack = wk.stack[:len(wk.stack)-1]
-		key := VisitKey{Ref: e.node.Ref}
-		var ak activeKey
-		skip := e.node.Ref.GetEmpty()
-		if !skip {
-			if e.node.Untyped == "" {
-				key.Type = wk.w.typeName(e.node.Ctor)
-			}
-			ak = activeKey{ref: e.node.Ref.MarshalString(), typ: key.Type}
-			_, skip = wk.active[ak]
-		}
-		if skip {
+		if e.node.Ref.GetEmpty() {
 			if err := wk.done(ctx, e.parent); err != nil {
 				return nil, nil, err
 			}
 			continue
 		}
-		wk.active[ak] = struct{}{}
-		nodes, parents = append(nodes, e.node), append(parents, e.parent)
-		keys, actives = append(keys, key), append(actives, ak)
+		key := VisitKey{Ref: e.node.Ref}
+		if e.node.Untyped == "" {
+			key.Type = wk.w.typeName(e.node.Ctor)
+		}
+		ak := activeKey{ref: e.node.Ref.MarshalString(), typ: key.Type}
+		if f, ok := wk.active[ak]; ok {
+			if e.parent != nil {
+				f.waiters = append(f.waiters, e.parent)
+			}
+			continue
+		}
+		f := &frame{key: key, active: ak, parent: e.parent, pending: 1}
+		wk.active[ak] = f
+		nodes, frames, keys = append(nodes, e.node), append(frames, f), append(keys, key)
 	}
 	if len(keys) == 0 {
 		return nil, nil, nil
 	}
 
-	// Drop the candidates a walk finished.
+	// Release the candidates a walk finished to every block waiting on them.
 	finished, err := wk.w.visited.Finished(ctx, keys)
 	if err != nil {
 		return nil, nil, err
 	}
 	batch := nodes[:0]
-	frames := make([]*frame, 0, len(nodes))
+	taken := frames[:0]
 	for i, n := range nodes {
 		if finished[i] {
-			delete(wk.active, actives[i])
-			if err := wk.done(ctx, parents[i]); err != nil {
+			if err := wk.release(ctx, frames[i]); err != nil {
 				return nil, nil, err
 			}
 			continue
 		}
-		batch = append(batch, n)
-		frames = append(frames, &frame{key: keys[i], active: actives[i], parent: parents[i], pending: 1})
+		batch, taken = append(batch, n), append(taken, frames[i])
 	}
-	return batch, frames, nil
+	return batch, taken, nil
 }
 
-// done drops one pending block of f, finishing f, and then each block above it
-// that f's finish leaves with none pending. A nil f is the root's parent.
+// done drops one pending block of f. When f has none left it records f
+// finished and releases it. A nil f is the root's parent.
 func (wk *walk) done(ctx context.Context, f *frame) error {
-	for ; f != nil; f = f.parent {
-		if f.pending--; f.pending != 0 {
-			return nil
-		}
-		delete(wk.active, f.active)
-		if err := wk.w.visited.Finish(ctx, f.key); err != nil {
+	if f == nil {
+		return nil
+	}
+	if f.pending--; f.pending != 0 {
+		return nil
+	}
+	if err := wk.w.visited.Finish(ctx, f.key); err != nil {
+		return err
+	}
+	return wk.release(ctx, f)
+}
+
+// release drops finished f from the blocks in progress and counts it done for
+// the block that queued it and each block waiting on it.
+func (wk *walk) release(ctx context.Context, f *frame) error {
+	delete(wk.active, f.active)
+	if err := wk.done(ctx, f.parent); err != nil {
+		return err
+	}
+	for _, waiter := range f.waiters {
+		if err := wk.done(ctx, waiter); err != nil {
 			return err
 		}
 	}
