@@ -1050,8 +1050,8 @@ func TestReplayWaitsAtUnreadableOp(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	skip(unread)
 	first := health.GetValue().GetReplay().GetWaiting().GetPosition()
+	skip(unread)
 	var past *sobject.SharedObjectHealth
 	waitHealth(ctx, t, health, "the wait past the skip", func(h *sobject.SharedObjectHealth) bool {
 		past = h
