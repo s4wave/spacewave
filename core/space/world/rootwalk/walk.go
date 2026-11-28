@@ -181,8 +181,8 @@ func (s *spaceWalk) publishedRoots(ctx context.Context) ([]*block.BlockRef, erro
 	if err != nil || ref.GetEmpty() {
 		return nil, err
 	}
-	if typed, _ := s.w.Reached(ref); typed {
-		return nil, nil
+	if typed, _, err := s.w.Reached(ctx, ref); err != nil || typed {
+		return nil, err
 	}
 
 	// Take any other root that is not exactly the block referencing several
@@ -203,7 +203,11 @@ func (s *spaceWalk) publishedRoots(ctx context.Context) ([]*block.BlockRef, erro
 	// visitor may hold roots.
 	var rest []*block.BlockRef
 	for _, root := range roots {
-		if typed, _ := s.w.Reached(root); !typed {
+		typed, _, err := s.w.Reached(ctx, root)
+		if err != nil {
+			return nil, err
+		}
+		if !typed {
 			rest = append(rest, root)
 		}
 	}

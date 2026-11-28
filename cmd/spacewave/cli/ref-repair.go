@@ -163,6 +163,9 @@ type refRepair struct {
 	buckets bucket_store.Store
 	// walker walks the blocks below the Worlds.
 	walker *refwalk.Walker
+	// visited holds the blocks the walker finished, which the scan's report
+	// reads.
+	visited *refwalk.MemVisited
 	// scanVerify verifies the lists of the blocks the walk reads by scanning.
 	scanVerify bool
 	// dropLegacySpans releases obsolete replay-span roots instead of walking them.
@@ -191,6 +194,7 @@ type refRepair struct {
 // roots with lookup. With peer set the walk reads each block the volume
 // lacks from peer, and never fills the volume.
 func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps, lookup refwalk.LookupBlockType) *refRepair {
+	// Read through to the peer when one is set.
 	var reads block.StoreOps = vol
 	if peer != nil {
 		reads = block_store.NewStoreReadThrough(
@@ -199,11 +203,17 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 			nil,
 		)
 	}
+
+	// Keep the walker's visits in memory the scan's report reads.
+	walker := refwalk.NewWalker(le, reads, lookup)
+	visited := refwalk.NewMemVisited()
+	walker.VisitIn(visited)
 	return &refRepair{
 		le:      le,
 		vol:     vol,
 		buckets: vol,
-		walker:  refwalk.NewWalker(le, reads, lookup),
+		walker:  walker,
+		visited: visited,
 		peer:    peer,
 		unread:  make(map[string]string),
 	}

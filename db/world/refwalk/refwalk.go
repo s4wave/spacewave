@@ -58,11 +58,11 @@ type Walker struct {
 	store block.StoreOps
 	// lookup types objects' roots.
 	lookup LookupBlockType
-	// visited holds the blocks already walked, each by its ref and the type
+	// visited holds the blocks walks finished, each by its ref and the type
 	// it was read as, so a block read as one type is still read as another.
-	visited map[visitKey]struct{}
-	// readAs holds every type the walk read a block as.
-	readAs map[reflect.Type]struct{}
+	visited Visited
+	// typeNames caches TypeName by type.
+	typeNames map[reflect.Type]string
 	// roots holds the refs the walk typed as object roots, by their keys,
 	// whether or not their type resolved.
 	roots map[string]struct{}
@@ -94,16 +94,16 @@ type Walker struct {
 // lookup. Close releases it.
 func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *Walker {
 	return &Walker{
-		le:      le,
-		store:   store,
-		lookup:  lookup,
-		visited: make(map[visitKey]struct{}),
-		readAs:  make(map[reflect.Type]struct{}),
-		roots:   make(map[string]struct{}),
-		untyped: make(map[string]*Untyped),
-		stops:   make(map[string]string),
-		types:   make(map[string]string),
-		xfrms:   make(map[string]block.Transformer),
+		le:        le,
+		store:     store,
+		lookup:    lookup,
+		visited:   NewMemVisited(),
+		typeNames: make(map[reflect.Type]string),
+		roots:     make(map[string]struct{}),
+		untyped:   make(map[string]*Untyped),
+		stops:     make(map[string]string),
+		types:     make(map[string]string),
+		xfrms:     make(map[string]block.Transformer),
 	}
 }
 
@@ -136,36 +136,19 @@ func (w *Walker) ScanUntyped() {
 	w.scan = true
 }
 
-// ScannedOnly returns how many blocks the walk read by scanning alone and
-// under no type. It looks each scanned block up under every type the walk
-// read, so it costs the scanned blocks times those types.
-func (w *Walker) ScannedOnly() uint64 {
-	var n uint64
-	for key := range w.visited {
-		if key.typ == nil && !w.typed(key.ref) {
-			n++
-		}
-	}
-	return n
+// VisitIn makes the walk record the blocks it finishes in v instead of in
+// memory, as Visited describes, so a walk of a graph larger than memory
+// bounds what it holds by its stack, and one that stops can resume. Call it
+// before the first Walk.
+func (w *Walker) VisitIn(v Visited) {
+	w.visited = v
 }
 
-// Reached reports whether the walk visited ref under a type and whether it
-// visited it by scanning. A visit is not a read: the block may be absent or
+// Reached reports whether a walk finished ref under a type and whether one
+// finished it by scanning. A visit is not a read: the block may be absent or
 // fail to decode. It still answers after Close.
-func (w *Walker) Reached(ref *block.BlockRef) (typed, scanned bool) {
-	key := ref.MarshalString()
-	_, scanned = w.visited[visitKey{ref: key}]
-	return w.typed(key), scanned
-}
-
-// typed reports whether the walk visited the ref of key under a type.
-func (w *Walker) typed(key string) bool {
-	for typ := range w.readAs {
-		if _, ok := w.visited[visitKey{ref: key, typ: typ}]; ok {
-			return true
-		}
-	}
-	return false
+func (w *Walker) Reached(ctx context.Context, ref *block.BlockRef) (typed, scanned bool, err error) {
+	return w.visited.Reached(ctx, ref)
 }
 
 // Untyped returns the refs whose type the walk could not name, by reason. The
@@ -255,31 +238,25 @@ func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node
 	return n, err == nil, err
 }
 
-// Walk visits the blocks below root not visited yet, depth first, so the
-// objects of one World resolve their types in one snapshot. It reads a batch
-// from the top of the stack concurrently, then passes the batch to visit in
-// stack order and queues the children of each decoded block.
+// Walk visits the blocks below root that no walk finished, depth first, so
+// the objects of one World resolve their types in one snapshot. It reads a
+// batch from the top of the stack concurrently, then passes the batch to
+// visit in stack order and queues the children of each decoded block.
+//
+// It finishes a block in the Walker's Visited once visit has its read and
+// every block it queued is finished, or was found finished or in progress: a
+// block in progress is below a block in progress, so it finishes before the
+// root does. A walk that stops therefore leaves finished only blocks whose
+// whole subtree visit received, and a walk resumed from the same Visited reads
+// the rest again. Besides the Visited it holds the stack and the blocks in
+// progress, which grow with the depth and fanout of the graph, not its size.
 func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Context, batch []Visit) error) error {
-	stack := []Node{root}
-	for len(stack) != 0 {
-		// Take the unvisited blocks of the next batch from the top of the stack.
-		var batch []Node
-		for len(stack) != 0 && len(batch) != batchSize {
-			n := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if n.Ref.GetEmpty() {
-				continue
-			}
-			key := visitKey{ref: n.Ref.MarshalString()}
-			if n.Untyped == "" {
-				key.typ = reflect.TypeOf(n.Ctor())
-				w.readAs[key.typ] = struct{}{}
-			}
-			if _, ok := w.visited[key]; ok {
-				continue
-			}
-			w.visited[key] = struct{}{}
-			batch = append(batch, n)
+	wk := &walk{w: w, stack: []entry{{node: root}}, active: make(map[activeKey]struct{})}
+	for len(wk.stack) != 0 {
+		// Take the next batch of blocks neither finished nor in progress.
+		batch, frames, err := wk.take(ctx)
+		if err != nil {
+			return err
 		}
 		if len(batch) == 0 {
 			continue
@@ -302,28 +279,170 @@ func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Con
 			return err
 		}
 
-		// Queue the children of each decoded block, and of each scanned one
-		// the refs its bytes hold, untyped like it. A scanning walk scans a
-		// payload root it could not confirm as a blob.
+		// Queue each block's children below it, then drop its own visit from
+		// what it waits on.
 		for i := range reads {
-			n := reads[i].Node
-			if n.Untyped != "" {
-				for _, ref := range reads[i].Refs {
-					stack = append(stack, Node{Ref: ref, Untyped: n.Untyped, Xfrm: n.Xfrm, World: n.World})
-				}
-				continue
-			}
-			if reads[i].Unsure && w.scan {
-				stack = append(stack, Node{Ref: n.Ref, Untyped: "payload root that is not certainly a blob", Xfrm: n.Xfrm, World: n.World})
-			}
-			if reads[i].blk == nil {
-				continue
-			}
-			children, err := w.children(ctx, reads[i].blk, reads[i].Node, reads[i].Node.values)
+			children, err := w.queue(ctx, &reads[i])
 			if err != nil {
 				return err
 			}
-			stack = append(stack, children...)
+			f := frames[i]
+			for _, child := range children {
+				wk.stack = append(wk.stack, entry{node: child, parent: f})
+			}
+			f.pending += len(children)
+			if err := wk.done(ctx, f); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// queue returns the blocks to walk below the block rd read: the children of a
+// decoded block, and of an untyped one the refs its bytes hold, untyped like
+// it. A scanning walk scans a payload root it could not confirm as a blob.
+func (w *Walker) queue(ctx context.Context, rd *Visit) ([]Node, error) {
+	// Queue an untyped block's refs untyped.
+	n := rd.Node
+	if n.Untyped != "" {
+		out := make([]Node, len(rd.Refs))
+		for i, ref := range rd.Refs {
+			out[i] = Node{Ref: ref, Untyped: n.Untyped, Xfrm: n.Xfrm, World: n.World}
+		}
+		return out, nil
+	}
+
+	// Queue an unsure payload root for a scan, and a decoded block's children.
+	var out []Node
+	if rd.Unsure && w.scan {
+		out = append(out, Node{Ref: n.Ref, Untyped: "payload root that is not certainly a blob", Xfrm: n.Xfrm, World: n.World})
+	}
+	if rd.blk == nil {
+		return out, nil
+	}
+	children, err := w.children(ctx, rd.blk, n, n.values)
+	return append(out, children...), err
+}
+
+// typeName returns TypeName of the type ctor constructs, cached by type.
+func (w *Walker) typeName(ctor block.Ctor) string {
+	t := reflect.TypeOf(ctor())
+	name, ok := w.typeNames[t]
+	if !ok {
+		name = TypeName(t)
+		w.typeNames[t] = name
+	}
+	return name
+}
+
+// walk is the state of one Walk.
+type walk struct {
+	// w is the Walker.
+	w *Walker
+	// stack holds the blocks queued and not yet taken.
+	stack []entry
+	// active holds the blocks taken and not finished.
+	active map[activeKey]struct{}
+}
+
+// entry is a block on the walk's stack.
+type entry struct {
+	// node is the block.
+	node Node
+	// parent is the block in progress that queued it, nil for the root.
+	parent *frame
+}
+
+// frame is a block the walk took and has not finished.
+type frame struct {
+	// key identifies the block in the Visited.
+	key VisitKey
+	// active identifies the block in walk.active.
+	active activeKey
+	// parent is the block in progress that queued it, nil for the root.
+	parent *frame
+	// pending counts the blocks it queued that are not finished, plus one
+	// until visit has its read and its children are queued.
+	pending int
+}
+
+// activeKey identifies a block in progress by its marshaled ref and the name
+// of its type.
+type activeKey struct {
+	// ref is the block's marshaled ref.
+	ref string
+	// typ is VisitKey.Type.
+	typ string
+}
+
+// take pops up to batchSize blocks from the stack that are neither finished
+// nor in progress, and returns them with their frames. It counts every other
+// popped block as done for the block that queued it.
+func (wk *walk) take(ctx context.Context) ([]Node, []*frame, error) {
+	// Pop the candidates, skipping empty refs and blocks in progress.
+	var nodes []Node
+	var parents []*frame
+	var keys []VisitKey
+	var actives []activeKey
+	for len(wk.stack) != 0 && len(nodes) != batchSize {
+		e := wk.stack[len(wk.stack)-1]
+		wk.stack = wk.stack[:len(wk.stack)-1]
+		key := VisitKey{Ref: e.node.Ref}
+		var ak activeKey
+		skip := e.node.Ref.GetEmpty()
+		if !skip {
+			if e.node.Untyped == "" {
+				key.Type = wk.w.typeName(e.node.Ctor)
+			}
+			ak = activeKey{ref: e.node.Ref.MarshalString(), typ: key.Type}
+			_, skip = wk.active[ak]
+		}
+		if skip {
+			if err := wk.done(ctx, e.parent); err != nil {
+				return nil, nil, err
+			}
+			continue
+		}
+		wk.active[ak] = struct{}{}
+		nodes, parents = append(nodes, e.node), append(parents, e.parent)
+		keys, actives = append(keys, key), append(actives, ak)
+	}
+	if len(keys) == 0 {
+		return nil, nil, nil
+	}
+
+	// Drop the candidates a walk finished.
+	finished, err := wk.w.visited.Finished(ctx, keys)
+	if err != nil {
+		return nil, nil, err
+	}
+	batch := nodes[:0]
+	frames := make([]*frame, 0, len(nodes))
+	for i, n := range nodes {
+		if finished[i] {
+			delete(wk.active, actives[i])
+			if err := wk.done(ctx, parents[i]); err != nil {
+				return nil, nil, err
+			}
+			continue
+		}
+		batch = append(batch, n)
+		frames = append(frames, &frame{key: keys[i], active: actives[i], parent: parents[i], pending: 1})
+	}
+	return batch, frames, nil
+}
+
+// done drops one pending block of f, finishing f, and then each block above it
+// that f's finish leaves with none pending. A nil f is the root's parent.
+func (wk *walk) done(ctx context.Context, f *frame) error {
+	for ; f != nil; f = f.parent {
+		if f.pending--; f.pending != 0 {
+			return nil
+		}
+		delete(wk.active, f.active)
+		if err := wk.w.visited.Finish(ctx, f.key); err != nil {
+			return err
 		}
 	}
 	return nil
