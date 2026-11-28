@@ -345,8 +345,7 @@ func replayWorldOp(ctx context.Context, budget *WriteBudget, err error) (bool, e
 	}
 
 	// Wait for an undecided base's decision before the replay meets it again.
-	var provisional *ProvisionalBaseError
-	if errors.As(err, &provisional) {
+	if provisional, ok := errors.AsType[*ProvisionalBaseError](err); ok {
 		if werr := provisional.Wait(ctx); werr != nil {
 			return false, werr
 		}
