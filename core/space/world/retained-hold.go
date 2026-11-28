@@ -328,7 +328,7 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 // serves into the store, and may wait on a peer fetch for each.
 func (a *Adapter) retryRetained(ctx context.Context) (bool, error) {
 	// Read the waits.
-	unlock, err := a.rootMtx.Lock(ctx)
+	unlock, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return true, err
 	}
@@ -351,7 +351,7 @@ func (a *Adapter) retryRetained(ctx context.Context) (bool, error) {
 	defer release()
 
 	// Take rootMtx again; the pins are released after it.
-	unlock, err = a.rootMtx.Lock(ctx)
+	unlock, err = a.lockRootMtx(ctx)
 	if err != nil {
 		return true, err
 	}

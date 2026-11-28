@@ -23,6 +23,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/identity"
@@ -252,9 +253,102 @@ func TestSetRootReplaysAboveStoredWorld(t *testing.T) {
 // references a root the store may drop: after a write abandoned between its
 // hold and its operation's state write, and after a power cut at each point of
 // a write on a store that orders the hold before that state write.
+//
+// With the admission root moves queued for the durable step, a write's wait
+// ends at its deadline, which releases its writer's stage, before its moves
+// land. A collection then frees every block no root, kept page or open stage
+// holds, and the moves either land or are lost as in a crash.
 func TestSetRootNeverDurableUnheld(t *testing.T) {
 	t.Run("abandoned", testSetRootAbandoned)
 	t.Run("power cut", testSetRootPowerCut)
+	t.Run("deferred land", func(t *testing.T) { testSetRootDeferred(t, false) })
+	t.Run("deferred crash", func(t *testing.T) { testSetRootDeferred(t, true) })
+}
+
+// testSetRootDeferred holds a write's queued root moves before they land until
+// the write's durability wait ends at its deadline and its writer's stage is
+// released, frees every block nothing holds, then lets the moves land, or
+// with crash drops them unstored and remounts. Every stored operation's roots
+// must be stored after another collection. A landed write must read back
+// whole, and a crashed one must leave no object.
+func testSetRootDeferred(t *testing.T, crash bool) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	defer space_world.ForceDeferredMoves()()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, maxPending: 4096, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer func() { engRef.Release() }()
+	key, peerID := storeTestKeypair(ctx, t, eng)
+
+	// Stop the next write's moves before they land.
+	errCrash := errors.New("crashed before the durable step")
+	var queued atomic.Bool
+	reached, resume := make(chan struct{}), make(chan struct{})
+	clearLand := space_world.SetLandHook(func(q bool) error {
+		if !q {
+			return nil
+		}
+		queued.Store(true)
+		close(reached)
+		<-resume
+		if crash {
+			return errCrash
+		}
+		return nil
+	})
+	defer clearLand()
+
+	// End its wait at the deadline, which releases its writer's stage.
+	t.Setenv(world_block.DurabilityTimeoutEnv, "300ms")
+	data := make([]byte, 3<<20)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	werr := make(chan error, 1)
+	go func() { werr <- writeBlob(ctx, eng, "deferred", data) }()
+	select {
+	case <-reached:
+	case <-ctx.Done():
+		t.Fatal("the write queued no root move")
+	}
+	if err := <-werr; !errors.Is(err, world.ErrDurabilityUnknown) {
+		t.Fatalf("write before its moves landed returned %v, want an unknown outcome", err)
+	}
+
+	// Free what nothing holds, then land or lose the moves.
+	f.collect(t)
+	t.Logf("the collection before the landing freed %d blocks", f.freed)
+	close(resume)
+	clearLand()
+	if crash {
+		eng, engRef = f.remount(ctx, t, eng, engRef)
+	}
+
+	// Another write lets the adapter drop the holds of a lost write.
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "after-deferred", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	requireDurableSetRoots(ctx, t, f.space(t), optypes.LookupWorldOp)
+	requireKeypair(ctx, t, "after the deferred write", eng, key, peerID)
+	got, found, err := readBlob(ctx, eng, "deferred")
+	switch {
+	case err != nil:
+		t.Fatalf("deferred blob: %v; %s", err, f.collectReport(ctx))
+	case crash && found:
+		t.Fatal("a write whose moves were lost applied")
+	case !crash && !found:
+		t.Fatal("a write whose moves landed did not apply")
+	case found && !bytes.Equal(got, data):
+		t.Fatalf("deferred blob read %d bytes, want %d", len(got), len(data))
+	}
+	if !queued.Load() {
+		t.Fatal("no admission queued a root move")
+	}
 }
 
 // testSetRootAbandoned tries to find a durable operation that

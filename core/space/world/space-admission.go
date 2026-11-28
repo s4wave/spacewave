@@ -89,6 +89,8 @@ type spaceAdmission struct {
 	// decision, or released the admission, so decide does not keep its heads
 	// live for a publication that never comes.
 	abandoned bool
+	// moves is the admission's place in the adapter's rootMoveQueue.
+	moves admissionMoves
 }
 
 // Seqno returns the World seqno at the candidate's root.

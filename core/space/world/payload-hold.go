@@ -397,7 +397,7 @@ func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 
 	// Read the base, the held payloads and the payloads the set does not
 	// hold yet, which alone the flush needs.
-	unlock, err := a.rootMtx.Lock(ctx)
+	unlock, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return err
 	}

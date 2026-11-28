@@ -93,7 +93,15 @@ func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, stri
 			continue
 		}
 
-		// Queue it with a receipt, except in legacy mode or for an acknowledgment.
+		// Land its queued root moves, then queue it with a receipt, except in
+		// legacy mode or for an acknowledgment.
+		if err := adm.a.landQueued(ctx, adm); err != nil {
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+			queued(adm, "", nil, err)
+			continue
+		}
 		localID, pos, err := q.queueOperation(ctx, adm)
 		if err != nil && ctx.Err() != nil {
 			return context.Canceled

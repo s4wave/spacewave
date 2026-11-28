@@ -32,6 +32,10 @@ const ReplayIdentityEnv = "SPACEWAVE_WORLD_REPLAY_IDENTITY"
 // Otherwise BlockWriteOrderer lets the queued state write flush its hold too.
 const OrderedHoldEnv = "SPACEWAVE_WORLD_ORDERED_HOLD"
 
+// DeferredRootMoveEnv selects, when set to "on" at open, admission root moves
+// that land in the admission's durable step instead of the committer's turn.
+const DeferredRootMoveEnv = "SPACEWAVE_WORLD_DEFERRED_ROOT_MOVE"
+
 // RefusalHandoffEnv selects local-ID-only legacy refusals when "off" at startup.
 const RefusalHandoffEnv = "SPACEWAVE_WORLD_REFUSAL_HANDOFF"
 
@@ -121,6 +125,14 @@ type Adapter struct {
 	expectWrites bool
 	// orderedHolds selects write ordering for holdAdmitted; see OrderedHoldEnv.
 	orderedHolds bool
+	// deferMoves queues the admission root moves for the durable step; see
+	// DeferredRootMoveEnv.
+	deferMoves bool
+	// moves holds the admission root moves deferMoves queued.
+	moves rootMoveQueue
+	// heldUnknown logs once that the store cannot report held blocks, so the
+	// admission root moves land in the turn.
+	heldUnknown sync.Once
 	// unmatched holds early refusals only in legacy mode.
 	unmatched map[string]spacePosition
 	// cover records installed checkpoint coverage, nil before the first install.
@@ -216,6 +228,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
 		expectWrites:        os.Getenv(ReplayIdentityEnv) != "off" && os.Getenv(ExpectWriteEnv) != "off",
 		orderedHolds:        os.Getenv(OrderedHoldEnv) != "off" && (sobject.OrdersBlockWrites(so) || forceOrderedHolds.Load()),
+		deferMoves:          !opts.transient && (os.Getenv(DeferredRootMoveEnv) == "on" || forceDeferredMoves.Load()),
 		fences:              make(map[string]*spaceFence),
 		held:                make(map[string]*block.BlockRef),
 
@@ -264,6 +277,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 			a.stopped = true
 		})
 		stopRun()
+		a.landShutdown(ctx)
 		a.waitBackground()
 
 		// End replay only after its last user has returned.
@@ -919,7 +933,7 @@ func (a *Adapter) gatherTrim(ctx context.Context) (*trimPlan, error) {
 	}
 
 	// Note the Worlds the histories hold now.
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,20 +1154,33 @@ var heldHook atomic.Pointer[func(ordered bool) error]
 // on a SharedObject that does not report ordering its block store's writes.
 var forceOrderedHolds atomic.Bool
 
+// forceDeferredMoves, set only by tests, queues the admission root moves of an
+// Adapter opened while it is set, as DeferredRootMoveEnv does.
+var forceDeferredMoves atomic.Bool
+
 // keepAdmitted keeps candidate blocks and holds their roots before queueing.
-// Overflow blocks stay staged through holdAdmitted; drained writer blocks stay
-// staged through transaction end. In-memory puts do not open an overflow stage.
+// Overflow blocks stay staged until the move holding them lands; drained
+// writer blocks stay staged through transaction end. In-memory puts do not
+// open an overflow stage.
 func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Show the candidate to a test that asked to see it.
 	if hook := admittedHook.Load(); hook != nil {
 		(*hook)(adm.candidate)
 	}
 	overflow := a.pages.OpenOverflowStage()
-	defer overflow.Release()
 	if _, err := overflow.PutBlockBatch(ctx, adm.candidate.Entries); err != nil {
+		overflow.Release()
 		return err
 	}
-	if err := a.holdAdmitted(ctx, adm, overflow.Stored()); err != nil {
+
+	// The overflow stage holds the blocks it stored until the move that
+	// stores their root lands: at return in the turn, or with the
+	// admission's newest queued move.
+	err := a.holdAdmitted(ctx, adm, overflow.Stored())
+	if !a.deferMoves || !a.moves.releaseWith(&adm.moves, overflow.Release) {
+		overflow.Release()
+	}
+	if err != nil {
 		return err
 	}
 
@@ -1169,13 +1196,18 @@ func (a *Adapter) keepAdmitted(ctx context.Context, adm *spaceAdmission) error {
 //
 // A hold must be durable by its operation's state write. With orderedHolds,
 // BlockWriteOrderer keeps a crash prefix: a lost hold also loses its operation.
-// Without ordering, each swap is durable on return. Replay and reset holds cover
+// Without ordering, each swap is durable on return. With deferMoves, the swaps
+// queue and landQueued lands them before the state write. Replay and reset holds cover
 // already durable operations and therefore always commit durably. Background
 // World holds can commit ordered because replay can rebuild them.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
-	// Order the swaps behind the operation's state write when it orders them.
+	// Order the swaps behind the operation's state write when it orders them,
+	// or queue them for the admission's durable step.
 	if a.orderedHolds {
 		ctx = kvtx.WithOrderedCommitContext(ctx)
+	}
+	if a.deferMoves {
+		ctx = withQueuing(ctx, &adm.moves)
 	}
 
 	// Protect payloads before queueing their operation.
@@ -1666,7 +1698,7 @@ func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) 
 	}
 
 	// Take the lock for the swap.
-	unlock, err := a.rootMtx.Lock(ctx)
+	unlock, err := a.lockRootMtx(ctx)
 	if err != nil {
 		endFlush()
 		return nil, nil, nil, err
@@ -1677,36 +1709,8 @@ func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) 
 	}, unavailable, absent, nil
 }
 
-// moveRootsLocked swaps roots through the kept pages. The caller holds rootMtx.
-func (a *Adapter) moveRootsLocked(ctx context.Context, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
-	return a.moveRootsOn(ctx, a.pages, entries, roots...)
-}
-
-// moveRootsOn swaps changed held roots under the caller's rootMtx hold.
-func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
-	// A transient replay holds nothing.
-	if a.opts.transient {
-		return nil
-	}
-
-	// Move only the roots that change, from what they hold.
-	moves := make([]block.NamedRoot, 0, len(roots))
-	for _, root := range roots {
-		prev := a.held[root.Name]
-		if refEqual(prev, root.Ref) {
-			continue
-		}
-		root.Previous = prev
-		moves = append(moves, root)
-	}
-	if len(moves) == 0 && len(entries) == 0 {
-		return nil
-	}
-	if err := store.SetRoots(ctx, entries, moves); err != nil {
-		return err
-	}
-
-	// Record what they hold.
+// noteHeld records what moves hold, once they landed or queued.
+func (a *Adapter) noteHeld(moves []block.NamedRoot) {
 	for _, root := range moves {
 		if root.Ref.GetEmpty() {
 			delete(a.held, root.Name)
@@ -1714,7 +1718,6 @@ func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries 
 		}
 		a.held[root.Name] = root.Ref.Clone()
 	}
-	return nil
 }
 
 // loadRoots reads the roots an earlier run held.
@@ -1872,7 +1875,8 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef, requ
 }
 
 // sweep drops the kept pages no live World reaches: the replay base's, the
-// live Worlds' in memory, and their payloads and retained roots.
+// live Worlds' in memory, their payloads and retained roots, and the queued
+// root moves', whose landing stores the pages they reach.
 func (a *Adapter) sweep() {
 	// Mark the pages kept so far, then gather the live Worlds: a page kept
 	// after the mark may belong to a candidate admitted meanwhile.
@@ -1881,7 +1885,7 @@ func (a *Adapter) sweep() {
 
 	// Drop the pages none of them reaches.
 	base := a.replay.base.GetHeadRef().GetRootRef()
-	a.pages.Sweep(slices.Concat([]*block.BlockRef{base}, l.memory, l.candidates, l.payloads, l.retained), mark)
+	a.pages.Sweep(slices.Concat([]*block.BlockRef{base}, l.memory, l.candidates, l.payloads, l.retained, a.moves.refs()), mark)
 }
 
 // buildLookupOp resolves static operation types, then enabled bus handlers.

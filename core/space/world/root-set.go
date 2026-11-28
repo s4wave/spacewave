@@ -23,8 +23,11 @@ import (
 //
 // Invariants, which the Volume's collector relies on to free nothing live:
 //
-//  1. roots is what the stored root's block lists: it changes only after the
-//     move that stores the new block lands, and it is read from that block at
+//  1. roots is what the stored root's block lists once the adapter's queued
+//     root moves land: it changes only after the move that stores the new
+//     block lands or queues, every other move of the adapter lands the queue
+//     first, and a dropped queued move makes the next rootMtx holder read the
+//     sets again before it builds a move. It is read from the stored block at
 //     open before any move, so a move after a restart keeps every root the
 //     stored block lists unless the caller drops it. An open that cannot read
 //     the block fails rather than start from an empty set.
@@ -34,7 +37,9 @@ import (
 //     so a root both reference nets its new holder and its lost one in the same
 //     netting slice and is never at zero between them.
 //  4. A root a move adds is held until that Land by what put it: the kept pages
-//     the swap stores, a replay stage epoch, a pin, or another root.
+//     the swap stores, a replay stage epoch, a pin, an open stage, or another
+//     root. A queued admission move keeps its writer's stage, its overflow
+//     stage and its kept pages until it lands, as rootMoveQueue describes.
 //  5. A set whose roots stay is not moved because the stored block already
 //     holds them. A set that holds none releases its name and forgets its
 //     roots, so the next move holds only what its caller supplies.

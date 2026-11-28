@@ -54,6 +54,23 @@ func ForceOrderedHolds() func() {
 	return func() { forceOrderedHolds.Store(false) }
 }
 
+// ForceDeferredMoves queues the admission root moves of each Adapter opened
+// until the returned func ends it, as SPACEWAVE_WORLD_DEFERRED_ROOT_MOVE=on
+// does.
+func ForceDeferredMoves() func() {
+	forceDeferredMoves.Store(true)
+	return func() { forceDeferredMoves.Store(false) }
+}
+
+// SetLandHook makes fn run before each admission's queued root moves land,
+// with whether it queued one, until the returned func clears it. An error
+// from fn drops every queued move unstored, as a crash before the durable
+// step loses them, and fails the admission with it.
+func SetLandHook(fn func(queued bool) error) func() {
+	landHook.Store(&fn)
+	return func() { landHook.Store(nil) }
+}
+
 // SetCheckpointStoreHook sets fn until the returned function clears it.
 func SetCheckpointStoreHook(fn func(context.Context)) func() {
 	checkpointStoreHook.Store(&fn)
