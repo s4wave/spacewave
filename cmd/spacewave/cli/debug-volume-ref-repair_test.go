@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/core/space/world/rootwalk"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/byteslice"
@@ -1017,14 +1018,14 @@ func TestDebugRefRepair(t *testing.T) {
 		roots := []block.NamedRoot{
 			{Name: space_world.RootReplayBase, Ref: live.Ref},
 			{Name: "private", Ref: live.Ref},
-			{Name: legacyReplaySpanRootName, Ref: span.Ref},
+			{Name: rootwalk.LegacyReplaySpanRoot, Ref: span.Ref},
 		}
 		if err := vol.SetBucketRoots(ctx, restoreTestBucket, []*block.PutBatchEntry{live, payload, span}, roots); err != nil {
 			t.Fatal(err)
 		}
 
 		// A legacy-named root outside the Space bucket must also stay held.
-		if err := vol.SetBucketRoots(ctx, "other", nil, []block.NamedRoot{{Name: legacyReplaySpanRootName, Ref: live.Ref}}); err != nil {
+		if err := vol.SetBucketRoots(ctx, "other", nil, []block.NamedRoot{{Name: rootwalk.LegacyReplaySpanRoot, Ref: live.Ref}}); err != nil {
 			t.Fatal(err)
 		}
 		state := &space_world.InnerState{HeadRef: &bucket.ObjectRef{BucketId: restoreTestBucket, RootRef: live.Ref}}
@@ -1088,7 +1089,7 @@ func TestDebugRefRepair(t *testing.T) {
 			// Compare every original Space root and the root outside its bucket.
 			for _, root := range roots {
 				want := root.Ref
-				if dropped && root.Name == legacyReplaySpanRootName {
+				if dropped && root.Name == rootwalk.LegacyReplaySpanRoot {
 					want = nil
 				}
 				got, err := vol.GetBucketRoot(ctx, restoreTestBucket, root.Name)
@@ -1096,7 +1097,7 @@ func TestDebugRefRepair(t *testing.T) {
 					t.Fatalf("root %s changed unexpectedly: %v", root.Name, err)
 				}
 			}
-			got, err := vol.GetBucketRoot(ctx, "other", legacyReplaySpanRootName)
+			got, err := vol.GetBucketRoot(ctx, "other", rootwalk.LegacyReplaySpanRoot)
 			if err != nil || !live.Ref.EqualVT(got) {
 				t.Fatalf("root outside the Space changed: %v", err)
 			}

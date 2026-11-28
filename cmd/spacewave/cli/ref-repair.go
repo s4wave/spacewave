@@ -6,15 +6,13 @@ import (
 	"bufio"
 	"context"
 	"reflect"
-	"slices"
 	"strings"
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
-	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/core/space/world/rootwalk"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
@@ -328,254 +326,79 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 	})
 }
 
-// walkSpace walks the roots of one Space's replay: the roots its bucket holds
-// by name, the base and head Worlds of the cursor with their retained roots,
-// the World and payloads of each outcome, and the published graph the account
-// World root holds. It walks every World before any payload, so a payload the
-// Worlds reference as an object root is walked under its object's type, as
-// refwalk.Walker.PayloadNode describes.
+// walkSpace walks every block one Space retains, as rootwalk.Walk
+// describes, with the Space's roots read from the bucket that owns its
+// blocks and its published graph under the account World root.
 func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Find the bucket that owns the Space's blocks.
 	bucketID, err := findSpaceBucket(ctx, r.buckets, sc.spaceID)
 	if err != nil {
 		return err
 	}
-	spaceWorld := sc.world()
 	r.res.spaces++
 
-	// Collect the Worlds and payloads the bucket's named roots hold.
-	worlds, payloads, err := r.bucketRoots(ctx, bucketID, spaceWorld)
-	if err != nil {
-		return err
+	// Read the Space's roots from its bucket, releasing the legacy span
+	// when the run asked to.
+	sp := rootwalk.Space{
+		World: sc.world(),
+		GetRoot: func(ctx context.Context, name string) (*block.BlockRef, error) {
+			return r.vol.GetBucketRoot(ctx, bucketID, name)
+		},
+		RootBlocks:    r.vol,
+		Cursor:        sc.cursor,
+		PublishedRoot: provider_local.AccountWorldRoot,
 	}
-
-	// Collect the cursor's Worlds with their retained roots, and the World and
-	// payloads of each outcome.
-	for _, state := range []*space_world.InnerState{sc.cursor.GetBase(), sc.cursor.GetHead()} {
-		head := state.GetHeadRef()
-		if head == nil {
-			continue
-		}
-		refs := []*block.BlockRef{head.GetRootRef()}
-		for _, retained := range state.GetRetainedRoots() {
-			refs = append(refs, retained.GetRootRef())
-		}
-		for _, ref := range refs {
-			node, err := r.walker.WorldNode(head, ref)
-			if err != nil {
-				return err
-			}
-			worlds = append(worlds, node)
-		}
-	}
-	for _, outcome := range sc.cursor.GetOutcomes() {
-		node, err := r.walker.WorldNode(spaceWorld, outcome.GetWorld())
-		if err != nil {
-			return err
-		}
-		worlds = append(worlds, node)
-		payloads = append(payloads, outcome.GetPayloads()...)
-	}
-
-	// Walk each World, then each payload the Worlds did not type.
-	r.le.Infof("walking %d worlds and %d payloads of space %s in bucket %s", len(worlds), len(payloads), sc.spaceID, bucketID)
-	for _, root := range worlds {
-		if err := r.walker.Walk(ctx, root, r.walkVisit); err != nil {
-			return err
+	if r.dropLegacySpans {
+		sp.ReleaseLegacySpan = func(ctx context.Context, ref *block.BlockRef) error {
+			return r.releaseLegacySpan(ctx, bucketID, ref)
 		}
 	}
 
-	// Add the roots of the published graph that the Worlds did not reach.
-	published, err := r.publishedRoots(ctx, bucketID)
-	if err != nil {
-		return err
-	}
-	payloads = append(payloads, published...)
-	for _, ref := range payloads {
-		root, ok, err := r.walker.PayloadNode(spaceWorld, ref)
-		if err != nil {
+	// Walk the Space.
+	r.le.Infof("walking space %s in bucket %s", sc.spaceID, bucketID)
+	return rootwalk.Walk(ctx, r.walker, sp, rootwalk.Visitor{Root: r.visitRoot, Blocks: r.walkVisit})
+}
+
+// releaseLegacySpan releases the legacy replay span root of bucketID, which
+// holds ref, instead of walking its chain; a dry run counts it. It is a
+// compare-and-set on ref, so a root that moved fails the run. It writes no
+// block and deletes none: Land takes the root's holder from the span, by a
+// logged down on an adopted Volume and by the adoption's recount otherwise,
+// and the collector frees only what no other holder names. The walk reaches
+// it before the Space's Worlds, so the rebuild never verifies the discarded
+// chain or pushes its children onto the front.
+//
+// The release relies on the adapter holding every payload it replays under
+// its own roots, which it does each time it mounts the Space. A build from
+// before the adapter that wrote the Space after the adapter's last mount
+// would have held its payloads under the span alone, so run this only on a
+// Volume no such build has written.
+func (r *refRepair) releaseLegacySpan(ctx context.Context, bucketID string, ref *block.BlockRef) error {
+	if !r.dryRun {
+		roots := []block.NamedRoot{{Name: rootwalk.LegacyReplaySpanRoot, Previous: ref}}
+		if err := r.vol.SetBucketRoots(ctx, bucketID, nil, roots); err != nil {
 			return err
 		}
-		if !ok {
-			continue
-		}
-		if err := r.walker.Walk(ctx, root, r.walkVisit); err != nil {
-			return err
-		}
 	}
+	r.res.legacySpansReleased++
 	return nil
 }
 
-// legacyReplaySpanRootName is the name a Space engine before the adapter
-// held its replay span under.
-const legacyReplaySpanRootName = "replay-span"
-
-// bucketRoots reads every root a Space's bucket holds by name, as
-// space_world's roots.go lists them, and the legacy replay span. It verifies
-// the list of each block that holds roots, and returns the Worlds and
-// payload roots those blocks reference.
-// With dropLegacySpans it releases the legacy root instead of walking its chain.
-func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld *bucket.ObjectRef) ([]refwalk.Node, []*block.BlockRef, error) {
-	// Each named root adds its Worlds or payload roots.
-	var worlds []refwalk.Node
-	var payloads []*block.BlockRef
-	addWorlds := func(refs []*block.BlockRef) error {
-		for _, ref := range refs {
-			node, err := r.walker.WorldNode(spaceWorld, ref)
-			if err != nil {
-				return err
-			}
-			worlds = append(worlds, node)
-		}
-		return nil
+// visitRoot counts a root block the walk read and verifies its list: an
+// absent block keeps frontAbsent as its front cause, and an undecodable one
+// goes to the rebuild as undecodable.
+func (r *refRepair) visitRoot(ctx context.Context, rb rootwalk.RootBlock) error {
+	switch {
+	case !rb.Found:
+		r.res.absent++
+		err := r.listAbsent(rb.Ref, "root")
+		r.unread[rb.Ref.MarshalString()] = frontAbsent
+		return err
+	case rb.DecodeErr != nil:
+		return r.undecodableRoot(ctx, rb.Ref, rb.Type, rb.DecodeErr)
+	default:
+		return r.visitDecoded(ctx, rb.Ref, rb.Refs, rb.Type)
 	}
-
-	// Visit only the roots of the bucket resolved for this Space.
-	for _, name := range spaceRootNames {
-		// Read the current holder before choosing its decode or release.
-		ref, err := r.vol.GetBucketRoot(ctx, bucketID, name)
-		if err != nil {
-			return nil, nil, err
-		}
-		if ref.GetEmpty() {
-			continue
-		}
-
-		// Release the legacy root instead of walking it. The release takes
-		// only this name, only in a Space's bucket the repair walks, and only
-		// in a writing run with the flag set; a dry run counts it. It is a
-		// compare-and-set on the ref just read, so a root that moved fails the
-		// run. It writes no block and deletes none: Land takes the root's
-		// holder from the span, by a logged down on an adopted Volume and by
-		// the adoption's recount otherwise, and the collector frees only what
-		// no other holder names. It comes before the Space's walks, so the
-		// rebuild never verifies the discarded chain or pushes its children
-		// onto the front.
-		//
-		// The release relies on the adapter holding every payload it replays
-		// under its own roots, which it does each time it mounts the Space.
-		// A build from before the adapter that wrote the Space after the
-		// adapter's last mount would have held its payloads under the span
-		// alone, so run this only on a Volume no such build has written.
-		if name == legacyReplaySpanRootName && r.dropLegacySpans {
-			if !r.dryRun {
-				if err := r.vol.SetBucketRoots(ctx, bucketID, nil, []block.NamedRoot{{Name: legacyReplaySpanRootName, Previous: ref}}); err != nil {
-					return nil, nil, err
-				}
-			}
-			r.res.legacySpansReleased++
-			continue
-		}
-
-		// Decode each surviving root by the type its name selects.
-		switch name {
-		case space_world.RootReplayBase:
-			err = addWorlds([]*block.BlockRef{ref})
-		case space_world.RootRetained:
-			var roots []*block.BlockRef
-			roots, err = r.retainedRoots(ctx, ref)
-			if err == nil {
-				err = addWorlds(roots)
-			}
-		case space_world.RootReplayPayloads:
-			var roots []*block.BlockRef
-			roots, err = r.heldRoots(ctx, ref)
-			payloads = append(payloads, roots...)
-		case legacyReplaySpanRootName:
-			var spanWorlds, spanPayloads []*block.BlockRef
-			spanWorlds, spanPayloads, err = r.spanRoots(ctx, ref)
-			if err == nil {
-				err = addWorlds(spanWorlds)
-			}
-			payloads = append(payloads, spanPayloads...)
-		default:
-			var roots []*block.BlockRef
-			roots, err = r.heldRoots(ctx, ref)
-			if err == nil {
-				err = addWorlds(roots)
-			}
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	return worlds, payloads, nil
-}
-
-// publishedRoots reads the root a Space's bucket holds for the account World
-// copy, which is the root space_world.PublishedGraph gives: the World of the
-// published checkpoint, one operation's payload root, or a block referencing
-// that World and every payload root. It verifies that block's list and returns
-// the roots the walk has not reached under a type, to walk as payloads.
-//
-// Call publishedRoots after walking the Space's Worlds, since nothing here
-// says which root is the World: a World that no other root holds is then read
-// as a payload, which is not certainly a blob, so the walk verifies nothing
-// for that World and that World stays on the front for the flip to report.
-func (r *refRepair) publishedRoots(ctx context.Context, bucketID string) ([]*block.BlockRef, error) {
-	// A root the walk reached under a type is a World it has walked.
-	ref, err := r.vol.GetBucketRoot(ctx, bucketID, provider_local.AccountWorldRoot)
-	if err != nil || ref.GetEmpty() {
-		return nil, err
-	}
-	if typed, _ := r.walker.Reached(ref); typed {
-		return nil, nil
-	}
-
-	// Any other root that is not exactly the block referencing several roots is
-	// the graph's one root.
-	data, found, err := r.readRootBlock(ctx, ref)
-	if err != nil || !found {
-		return nil, err
-	}
-	roots, ok := space_world.PublishedRoots(data)
-	if !ok {
-		return []*block.BlockRef{ref}, nil
-	}
-	if err := r.visitDecoded(ctx, ref, roots, typeName(&space_world.HeldRoots{})); err != nil {
-		return nil, err
-	}
-
-	// Keep the roots the Worlds did not reach, in a slice of their own: the
-	// rebuild holds roots until it writes the list.
-	var rest []*block.BlockRef
-	for _, root := range roots {
-		if typed, _ := r.walker.Reached(root); !typed {
-			rest = append(rest, root)
-		}
-	}
-	return rest, nil
-}
-
-// spaceRootNames are the names a Space's bucket holds roots under. The
-// payloads root holds operation payloads, the replay base a World, the
-// retained root a RetainedRootSet and the legacy span a ReplaySpan chain.
-// Every other root holds a HeldRoots chain of Worlds.
-var spaceRootNames = []string{
-	space_world.RootReplayBase,
-	space_world.RootCheckpoint,
-	space_world.RootImport,
-	space_world.RootReplayCursor,
-	space_world.RootReplayPayloads,
-	space_world.RootRetained,
-	space_world.RootPending,
-	space_world.RootBackfill,
-	legacyReplaySpanRootName,
-}
-
-// readRootBlock reads a block a named root holds, or reports it absent.
-func (r *refRepair) readRootBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	// Read it from the volume alone.
-	data, found, err := r.vol.GetBlock(ctx, ref)
-	if err != nil || found {
-		return data, found, err
-	}
-
-	// Count it absent and keep that as its front cause.
-	r.res.absent++
-	err = r.listAbsent(ref, "root")
-	r.unread[ref.MarshalString()] = frontAbsent
-	return nil, false, err
 }
 
 // listAbsent streams the first absence of a ref across roots and both walks.
@@ -608,79 +431,6 @@ func (r *refRepair) undecodableRoot(ctx context.Context, ref *block.BlockRef, ty
 		return nil
 	}
 	return r.rebuild.Undecodable(ctx, ref, typ)
-}
-
-// heldRoots reads the HeldRoots chain at ref, verifying each block's list,
-// and returns its roots.
-func (r *refRepair) heldRoots(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, error) {
-	var roots []*block.BlockRef
-	for !ref.GetEmpty() {
-		data, found, err := r.readRootBlock(ctx, ref)
-		if err != nil || !found {
-			return roots, err
-		}
-		msg := &space_world.HeldRoots{}
-		if err := msg.UnmarshalVT(data); err != nil {
-			return roots, r.undecodableRoot(ctx, ref, typeName(msg), err)
-		}
-		if err := r.visitDecoded(ctx, ref, appendRef(msg.GetRoots(), msg.GetPrev()), typeName(msg)); err != nil {
-			return nil, err
-		}
-		roots = append(roots, msg.GetRoots()...)
-		ref = msg.GetPrev()
-	}
-	return roots, nil
-}
-
-// retainedRoots reads the RetainedRootSet at ref, verifying its list, and
-// returns its World roots.
-func (r *refRepair) retainedRoots(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, error) {
-	// Read and decode the set, then verify its list.
-	data, found, err := r.readRootBlock(ctx, ref)
-	if err != nil || !found {
-		return nil, err
-	}
-	msg := &space_world.RetainedRootSet{}
-	if err := msg.UnmarshalVT(data); err != nil {
-		return nil, r.undecodableRoot(ctx, ref, typeName(msg), err)
-	}
-	roots := make([]*block.BlockRef, 0, len(msg.GetRoots()))
-	for _, root := range msg.GetRoots() {
-		roots = appendRef(roots, root.GetRootRef())
-	}
-	return roots, r.visitDecoded(ctx, ref, roots, typeName(msg))
-}
-
-// spanRoots reads the ReplaySpan chain at ref, raw protobuf blocks, verifying
-// each block's list, and returns its Worlds and payload roots.
-func (r *refRepair) spanRoots(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, []*block.BlockRef, error) {
-	var worlds, payloads []*block.BlockRef
-	for !ref.GetEmpty() {
-		data, found, err := r.readRootBlock(ctx, ref)
-		if err != nil || !found {
-			return worlds, payloads, err
-		}
-		span := &space_world.ReplaySpan{}
-		if err := span.UnmarshalVT(data); err != nil {
-			return worlds, payloads, r.undecodableRoot(ctx, ref, typeName(span), err)
-		}
-		refs := appendRef(slices.Concat(span.GetWorlds(), span.GetPayloads()), span.GetPrev())
-		if err := r.visitDecoded(ctx, ref, refs, typeName(span)); err != nil {
-			return nil, nil, err
-		}
-		worlds = append(worlds, span.GetWorlds()...)
-		payloads = append(payloads, span.GetPayloads()...)
-		ref = span.GetPrev()
-	}
-	return worlds, payloads, nil
-}
-
-// appendRef appends ref to refs unless it is empty.
-func appendRef(refs []*block.BlockRef, ref *block.BlockRef) []*block.BlockRef {
-	if ref.GetEmpty() {
-		return refs
-	}
-	return append(refs, ref)
 }
 
 // walkVisit counts a batch the walk read in the histogram, when the run asked
