@@ -1,0 +1,8 @@
+[
+  {
+    "name": "certify an earlier empty read snapshot",
+    "replace": [["IF Split THEN sawEmpty[p] ELSE ~version /\\ ~data", "sawEmpty[p]"], ["/\\ Split /\\ phase[p] = \"initialize\"", "/\\ phase[p] = \"initialize\""], ["IF Split THEN \"write\" ELSE \"initialize\"", "\"write\""]],
+    "expect": "CertificateSound",
+    "config": "FormatInitialization.cfg"
+  }
+]

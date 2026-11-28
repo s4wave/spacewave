@@ -435,3 +435,64 @@ func writeLegacyStore(t *testing.T, store kvtx.Store, keys *store_kvkey.KVKey, t
 		t.Fatal(err)
 	}
 }
+
+// TestReview5EmptyInitialization must not certify a competing writer's unproved graph.
+func TestReview5EmptyInitialization(t *testing.T) {
+	// Build a real graph whose copied parent list omits its stored child.
+	ctx := t.Context()
+	base := newGuardedStore(t)
+	tr := testTree{}
+	tr.add(t, "C")
+	parent := tr.add(t, "P", "C")
+
+	// Admit a competing opener before the first initializer takes its writer.
+	var v *Volume
+	var before map[string][]byte
+	interleave := &formatInitStore{Store: base}
+	interleave.beforeWrite = func() {
+		// Initialize, store a real child and copy a short parent list onto a root.
+		v, _ = openLivenessVolume(t, base, false)
+		if _, err := v.PutBlockBatch(ctx, tr.entries("C")); err != nil {
+			t.Fatal(err)
+		}
+		p := &block.PutBatchEntry{Ref: parent, Data: tr["P"].Data, RefsKnown: false}
+		if err := v.SetBucketRoots(ctx, "test", []*block.PutBatchEntry{p}, []block.NamedRoot{{Name: "durable", Ref: parent}}); err != nil {
+			t.Fatal(err)
+		}
+
+		// Save the competing opener's unproved generation and every stored record.
+		state, _, err := v.ReadLiveness(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.GetGeneration() != block_gc.Generation_GENERATION_OPEN {
+			t.Fatalf("fixture not Open: %v", state)
+		}
+		before = storeRecords(t, base, store_kvkey.NewDefaultKVKey())
+	}
+
+	// Resume the first initializer after the competing writes have committed.
+	if _, _, err := upgradeFormat(ctx, interleave, store_kvkey.NewDefaultKVKey(), false, false); err != nil {
+		t.Fatal(err)
+	}
+	state, _, err := v.ReadLiveness(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Keep typed reconciliation available while the stored list is incomplete.
+	_, rebuildErr := v.OpenListRebuild(ctx)
+	children, source, err := v.GetChildList(ctx, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("generation=%s adoption=%s frees=%v parent_children=%d parent_source=%v rebuild_skipped=%v", state.GetGeneration(), state.GetAdoption(), state.GetFrees(), len(children), source, errors.Is(rebuildErr, block_gc.ErrListsVerified))
+	if state.GetGeneration() != block_gc.Generation_GENERATION_OPEN || rebuildErr != nil {
+		t.Fatalf("empty initializer certified a nonempty unproved generation: state=%v rebuild=%v", state, rebuildErr)
+	}
+
+	// Preserve every record committed by the second opener, including its proof.
+	if after := storeRecords(t, base, store_kvkey.NewDefaultKVKey()); !maps.EqualFunc(before, after, bytes.Equal) {
+		t.Fatal("empty initializer changed the competing opener's records")
+	}
+}

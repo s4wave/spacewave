@@ -79,30 +79,24 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	if err != nil {
 		return 0, false, err
 	}
+
+	// Only a writer that observes no version and no records can certify an
+	// empty graph. Re-read the version under that writer so a competing
+	// initializer's committed state is preserved.
+	if version == 0 {
+		var initialized bool
+		version, initialized, err = initializeEmptyFormat(ctx, store, keys, frees)
+		if err != nil || initialized {
+			return version, false, err
+		}
+	}
+
+	// Use the version found by the writer when initialization raced another open.
 	if version == store_kvkey.FormatVersion {
 		return version, false, nil
 	}
 	if version > store_kvkey.FormatVersion {
 		return 0, false, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
-	}
-
-	// Start an empty store adopted at the current format, with frees as
-	// configured: it has no holder to count again. A versioned store holds
-	// its version key, so only an unversioned one can be empty. The scan
-	// for any key steps past every deleted key at the front of the
-	// keyspace, which on a large store reads gigabytes.
-	empty := false
-	if version == 0 {
-		empty, err = storeEmpty(ctx, store)
-		if err != nil {
-			return 0, false, err
-		}
-	}
-	if empty {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees, GenerationVerifierRevision: block_gc.ListVerifierRevision}
-		return version, false, writeFormat(ctx, store, keys, state, func(rec *block_gc.Records) error {
-			return rec.CertifyGeneration(ctx)
-		})
 	}
 
 	// Leave a store with data as it was when this build may not upgrade it.
@@ -171,10 +165,11 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 }
 
 // unadoptFormat returns a format 7, 8 or 9 store's liveness state to
-// unadopted and records the current format. It keeps the generation, so a
-// store upgraded mid-sweep finishes its sweep first, the frees switch, and
-// the kinds a background sweep still owes, and adds the kinds format 10 no
-// longer reads to them, so the sweep deletes them in slices: the old
+// unadopted and records the current format. The verifier fence reopens a
+// generation proved by an older writer, including one upgraded mid-sweep.
+// It keeps the frees switch and the kinds a background sweep still owes,
+// and adds the kinds format 10 no longer reads to them, so the sweep
+// deletes them in slices: the old
 // reference graph's, since an older format recorded that it remained in a
 // field format 10 no longer reads, and block_gc.Format9Kinds. It drops the
 // release in progress, the log positions and the fields later formats
@@ -312,19 +307,48 @@ func writeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey,
 	return tx.Commit(ctx)
 }
 
-// storeEmpty reports whether store holds no key at all.
-func storeEmpty(ctx context.Context, store kvtx.Store) (bool, error) {
-	// Open a snapshot.
-	tx, err := store.NewTransaction(ctx, false)
+// initializeEmptyFormat certifies only a store whose version and records are
+// absent in the same write transaction. It returns the version observed under
+// the writer and whether it initialized the store. Any existing record,
+// including liveness state without a format key, requires the ordinary upgrade.
+func initializeEmptyFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, frees bool) (uint64, bool, error) {
+	// Read the authoritative version after acquiring the writer turn.
+	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
-		return false, err
+		return 0, false, err
 	}
 	defer tx.Discard()
+	data, found, err := tx.Get(ctx, keys.GetFormatVersionKey())
+	if err != nil {
+		return 0, false, err
+	}
+	if found {
+		version, err := store_kvkey.ParseFormatVersion(data)
+		return version, false, err
+	}
 
-	// Look for any key.
+	// Probe for any block, root, liveness state or other record before writing.
 	it := tx.Iterate(ctx, nil, false, false)
-	defer it.Close()
-	return !it.Next(), it.Err()
+	empty := !it.Next()
+	err = it.Err()
+	it.Close()
+	if err != nil || !empty {
+		return 0, false, err
+	}
+
+	// Commit the empty graph's state, certificate and format as one durable unit.
+	rec := block_gc.NewRecords(tx, livenessPrefix)
+	state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED, Frees: frees, GenerationVerifierRevision: block_gc.ListVerifierRevision}
+	if err := rec.SetState(ctx, state); err != nil {
+		return 0, false, err
+	}
+	if err := rec.CertifyGeneration(ctx); err != nil {
+		return 0, false, err
+	}
+	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
+		return 0, false, err
+	}
+	return 0, true, tx.Commit(ctx)
 }
 
 // carryLegacyRoots writes a root table entry for each named root the
