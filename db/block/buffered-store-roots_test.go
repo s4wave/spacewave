@@ -40,6 +40,10 @@ func (s *pinStore) HoldCompleteRoots(_ context.Context, refs []*BlockRef) ([]boo
 	return make([]bool, len(refs)), nil
 }
 
+func (s *pinStore) HeldRoots(_ context.Context, refs []*BlockRef) ([]bool, error) {
+	return make([]bool, len(refs)), nil
+}
+
 // held returns the number of pins the store holds on ref.
 func (s *pinStore) held(t *testing.T, ref *BlockRef) int {
 	key, err := marshalRefKey(ref)

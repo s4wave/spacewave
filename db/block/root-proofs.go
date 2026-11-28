@@ -1,12 +1,21 @@
 package block
 
-import "context"
+import (
+	"context"
+
+	"github.com/pkg/errors"
+)
+
+// ErrHeldUnknown is returned by HeldRoots for a store that holds roots but
+// cannot read whether a block is held, such as one served over RPC.
+var ErrHeldUnknown = errors.New("store cannot report held blocks")
 
 // RootProofs keeps a store's completion proofs: records that the graph under
 // a root is stored, which a graph copy reads to skip the subtree. A proof is
 // derived data and holds nothing. The collector deletes it with its block, so
 // a copy that skips a proved subtree holds it under a stage first, and a false
-// proof hides the blocks under it from every later copy.
+// proof hides the blocks under it from every later copy. It also reads the
+// holder records that proofs and RequireHeld moves rely on.
 type RootProofs interface {
 	// MarkRootsComplete records that the graphs under the roots are stored.
 	MarkRootsComplete(context.Context, []*BlockRef) error
@@ -17,6 +26,10 @@ type RootProofs interface {
 	// hold each of them in the same transaction, on a store OpenStage
 	// returned. Any other store reports none.
 	HoldCompleteRoots(context.Context, []*BlockRef) ([]bool, error)
+	// HeldRoots reports for each block whether a root move requiring it held
+	// would accept it now, reading all of them in one transaction that does
+	// not wait on the store's writer.
+	HeldRoots(context.Context, []*BlockRef) ([]bool, error)
 }
 
 // rootProofs returns the proofs of a store that holds roots, or nil.
@@ -94,4 +107,30 @@ func RootsComplete(ctx context.Context, store StoreOps, refs []*BlockRef) ([]boo
 		return make([]bool, len(refs)), nil
 	}
 	return p.RootsComplete(ctx, refs)
+}
+
+// HeldRoots reports for each block whether a root move requiring it held, as
+// NamedRoot.RequireHeld describes, would accept it now: a root, an open stage
+// or a recorded count holds the stored block, or the store does not enforce
+// the check. The answer can change once the read returns, so a caller that
+// moves later keeps RequireHeld on the move. A store that holds no roots
+// reports every block held, and one that holds roots without RootProofs
+// returns ErrHeldUnknown.
+func HeldRoots(ctx context.Context, store StoreOps, refs []*BlockRef) ([]bool, error) {
+	// A store that holds no roots refuses nothing.
+	if !HoldsRoots(store) {
+		held := make([]bool, len(refs))
+		for i := range held {
+			held[i] = true
+		}
+		return held, nil
+	}
+	p := rootProofs(store)
+	if p == nil {
+		return nil, ErrHeldUnknown
+	}
+	if len(refs) == 0 {
+		return nil, nil
+	}
+	return p.HeldRoots(ctx, refs)
 }

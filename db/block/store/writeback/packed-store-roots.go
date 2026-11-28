@@ -41,6 +41,11 @@ func (s *PackedStore) RootsComplete(ctx context.Context, refs []*block.BlockRef)
 	return block.RootsComplete(ctx, s.local, refs)
 }
 
+// HeldRoots reads which blocks the local store holds.
+func (s *PackedStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, s.local, refs)
+}
+
 // HoldCompleteRoots holds completion proofs under the local stage.
 func (s *PackedStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.HoldCompleteRoots(ctx, s.local, refs)

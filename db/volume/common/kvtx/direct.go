@@ -207,7 +207,7 @@ func (d *directTx) settle() {
 // describes, at the Volume's clock.
 func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) ([]bool, error) {
 	stageHeld := func(ctx context.Context, ref *block.BlockRef) (bool, error) {
-		return v.heldByStage(ctx, p, ref)
+		return v.heldByStage(ctx, p.rec, ref)
 	}
 	return v.landMoves(ctx, p, entries, block_gc.BucketRoots{
 		BucketID:  bucketID,
@@ -241,17 +241,18 @@ func (v *Volume) observeNotHeld(notHeld [block_gc.NotHeldPut + 1]uint64, err err
 }
 
 // heldByStage reports whether an open, unreleased stage of this process holds
-// ref by a root p's records still hold. Land asks it for a root that requires
-// its blocks held, when ref's netted holders read zero. Any open stage serves
-// as proof: a stage put lands each block's children before the block, in the
-// same transactions as its stage roots, so a block a stage root holds is stored
-// whole. An open stage is proof only at the instant of the Land. From that
-// transaction on the move's own holders keep ref, so a later release of the
-// stage changes nothing.
+// ref by a root rec still holds. Land and HeldRoots ask it for a root that
+// requires its blocks held, when ref's netted holders read zero. Any open stage
+// serves as proof: a stage put lands each block's children before the block,
+// in the same transactions as its stage roots, so a block a stage root holds is
+// stored whole. An open stage is proof only at the instant of the Land. From
+// that transaction on the move's own holders keep ref, so a later release of
+// the stage changes nothing.
 //
-// It takes rootPinMu inside p, as applyDeferred does. No caller of land holds
-// rootPinMu: it is never held while a Volume transaction opens or runs.
-func (v *Volume) heldByStage(ctx context.Context, p *physicalTx, ref *block.BlockRef) (bool, error) {
+// It takes rootPinMu inside rec's transaction, as applyDeferred does. No
+// caller of land holds rootPinMu: it is never held while a Volume transaction
+// opens or runs.
+func (v *Volume) heldByStage(ctx context.Context, rec *block_gc.Records, ref *block.BlockRef) (bool, error) {
 	// Find the open stages whose record holds ref, under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
@@ -275,7 +276,7 @@ func (v *Volume) heldByStage(ctx context.Context, p *physicalTx, ref *block.Bloc
 	// Confirm a root in the transaction: a collector releases a lapsed one.
 	key := block_gc.BlockKey(ref)
 	for _, name := range names {
-		entry, err := p.rec.GetRoot(ctx, "", name)
+		entry, err := rec.GetRoot(ctx, "", name)
 		if err != nil {
 			return false, err
 		}

@@ -771,6 +771,54 @@ func (s *PendingStore) RootsComplete(ctx context.Context, roots []*BlockRef) ([]
 	return RootsComplete(ctx, s.StoreOps, roots)
 }
 
+// HeldRoots reports for each block whether a root move requiring it held would
+// accept it now. A kept block is not stored yet, and the move that reaches it
+// stores it, so it counts as held when every stored block its kept tree
+// reaches is held. The inner store answers for those in one read.
+func (s *PendingStore) HeldRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	// Find the stored blocks each ref's kept tree reaches.
+	var ask []*BlockRef
+	at := make(map[pendingKey]int)
+	needs := make([][]int, len(refs))
+	s.mtx.RLock()
+	for i, ref := range refs {
+		walk := []*BlockRef{ref}
+		seen := make(map[pendingKey]struct{})
+		for len(walk) != 0 {
+			next := walk[len(walk)-1]
+			walk = walk[:len(walk)-1]
+			key := pendingKeyOf(next)
+			if _, ok := seen[key]; ok || next.GetEmpty() {
+				continue
+			}
+			seen[key] = struct{}{}
+			if e := s.kept[key]; e != nil {
+				walk = append(walk, e.Refs...)
+				continue
+			}
+			j, ok := at[key]
+			if !ok {
+				j = len(ask)
+				at[key] = j
+				ask = append(ask, next)
+			}
+			needs[i] = append(needs[i], j)
+		}
+	}
+	s.mtx.RUnlock()
+
+	// Hold a ref when the inner store holds every stored block it reaches.
+	stored, err := HeldRoots(ctx, s.StoreOps, ask)
+	if err != nil {
+		return nil, err
+	}
+	held := make([]bool, len(refs))
+	for i, need := range needs {
+		held[i] = !slices.ContainsFunc(need, func(j int) bool { return !stored[j] })
+	}
+	return held, nil
+}
+
 // HoldCompleteRoots reports no proofs: a PendingStore is not a stage. Its
 // stages hold proved roots through the inner stage.
 func (s *PendingStore) HoldCompleteRoots(_ context.Context, refs []*BlockRef) ([]bool, error) {

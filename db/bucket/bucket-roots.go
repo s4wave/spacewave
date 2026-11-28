@@ -53,5 +53,10 @@ func (b *bucketRW) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([
 	return block.RootsComplete(ctx, b.store, refs)
 }
 
+// HeldRoots reads which blocks the underlying store holds.
+func (b *bucketRW) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, b.store, refs)
+}
+
 // _ is a type assertion
 var _ block.LeasedRoots = (*bucketRW)(nil)

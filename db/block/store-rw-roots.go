@@ -40,5 +40,10 @@ func (b *StoreRW) RootsComplete(ctx context.Context, refs []*BlockRef) ([]bool, 
 	return RootsComplete(ctx, b.StoreOps, refs)
 }
 
+// HeldRoots reads which blocks the underlying store holds.
+func (b *StoreRW) HeldRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HeldRoots(ctx, b.StoreOps, refs)
+}
+
 // _ is a type assertion
 var _ LeasedRoots = (*StoreRW)(nil)

@@ -52,6 +52,11 @@ func (s *proofCountingStore) HoldCompleteRoots(ctx context.Context, refs []*bloc
 	return block.HoldCompleteRoots(ctx, s.Store, refs)
 }
 
+// HeldRoots forwards a held read.
+func (s *proofCountingStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, s.Store, refs)
+}
+
 // _ is a type assertion
 var (
 	_ block.LeasedRoots = (*proofCountingStore)(nil)

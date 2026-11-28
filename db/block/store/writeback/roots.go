@@ -87,6 +87,11 @@ func (m *MarkingStore) RootsComplete(ctx context.Context, refs []*block.BlockRef
 	return block.RootsComplete(ctx, m.store, refs)
 }
 
+// HeldRoots reads which blocks the inner store holds.
+func (m *MarkingStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, m.store, refs)
+}
+
 // HoldCompleteRoots holds completion proofs under the inner stage. A hold
 // writes no block, so there is nothing to mark.
 func (m *MarkingStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {

@@ -54,6 +54,11 @@ func (s *VLoggerStore) RootsComplete(ctx context.Context, refs []*block.BlockRef
 	return block.RootsComplete(ctx, s.st, refs)
 }
 
+// HeldRoots reads which blocks the underlying store holds.
+func (s *VLoggerStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, s.st, refs)
+}
+
 // HoldCompleteRoots forwards a stage hold of proved roots to the underlying stage.
 func (s *VLoggerStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.HoldCompleteRoots(ctx, s.st, refs)

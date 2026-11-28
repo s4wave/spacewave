@@ -130,6 +130,11 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 	return v.inner.RootsComplete(ctx, refs)
 }
 
+// HeldRoots reads which blocks the underlying volume holds.
+func (v *Volume) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return v.inner.HeldRoots(ctx, refs)
+}
+
 // innerStage returns the underlying volume's name of a stage this view opened,
 // or refuses a stage it did not.
 func (v *Volume) innerStage(stage string) (string, error) {

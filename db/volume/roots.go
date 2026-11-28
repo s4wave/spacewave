@@ -52,4 +52,8 @@ type RootProofs interface {
 	// RootsComplete reports which roots have a completion proof, reading all
 	// of them in one transaction.
 	RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+	// HeldRoots reports for each block whether a root move requiring it
+	// held would accept it now, as block.HeldRoots describes, in one reader
+	// transaction.
+	HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
 }

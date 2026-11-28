@@ -193,6 +193,12 @@ func (v *ProxyVolume) HoldStageCompleteRoots(ctx context.Context, stage string, 
 	return resp.GetComplete(), nil
 }
 
+// HeldRoots returns block.ErrHeldUnknown: the volume RPC does not serve the
+// holder records, so a caller keeps the hold check inside SetRoots.
+func (v *ProxyVolume) HeldRoots(context.Context, []*block.BlockRef) ([]bool, error) {
+	return nil, block.ErrHeldUnknown
+}
+
 // MarkRootsComplete records completion proofs for stored roots.
 func (v *ProxyVolume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
 	_, err := v.client.MarkRootsComplete(ctx, &volume_rpc.RefsRequest{Refs: roots})

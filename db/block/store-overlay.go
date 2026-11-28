@@ -561,6 +561,11 @@ func (o *StoreOverlay) RootsComplete(ctx context.Context, refs []*BlockRef) ([]b
 	return RootsComplete(ctx, o.held(), refs)
 }
 
+// HeldRoots reads which blocks the write store holds.
+func (o *StoreOverlay) HeldRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HeldRoots(ctx, o.held(), refs)
+}
+
 // HoldCompleteRoots holds proved roots under the write store's stage.
 func (o *StoreOverlay) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	return HoldCompleteRoots(ctx, o.held(), refs)

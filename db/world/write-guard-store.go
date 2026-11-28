@@ -172,6 +172,11 @@ func (s *guardedStore) RootsComplete(ctx context.Context, refs []*block.BlockRef
 	return block.RootsComplete(ctx, s.store, refs)
 }
 
+// HeldRoots reads which blocks the wrapped store holds.
+func (s *guardedStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, s.store, refs)
+}
+
 // HoldCompleteRoots holds proved roots in the wrapped stage.
 func (s *guardedStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.HoldCompleteRoots(ctx, s.store, refs)

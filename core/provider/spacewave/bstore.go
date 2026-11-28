@@ -624,6 +624,11 @@ func (s *sourceTrackingStore) RootsComplete(ctx context.Context, refs []*block.B
 	return block.RootsComplete(ctx, s.StoreOps, refs)
 }
 
+// HeldRoots reads which blocks the observed store holds.
+func (s *sourceTrackingStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, s.StoreOps, refs)
+}
+
 // HoldCompleteRoots holds proved roots under the observed store's stage.
 func (s *sourceTrackingStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.HoldCompleteRoots(ctx, s.StoreOps, refs)
@@ -927,6 +932,11 @@ func (b *BlockStore) MarkRootsComplete(ctx context.Context, roots []*block.Block
 // RootsComplete reads completion proofs from the local cache bucket.
 func (b *BlockStore) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.RootsComplete(ctx, b.store, refs)
+}
+
+// HeldRoots reads which blocks the local cache bucket holds.
+func (b *BlockStore) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HeldRoots(ctx, b.store, refs)
 }
 
 // HoldCompleteRoots holds proved roots under the local cache bucket's stage.

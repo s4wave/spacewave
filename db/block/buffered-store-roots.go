@@ -162,5 +162,10 @@ func (s *BufferedStore) RootsComplete(ctx context.Context, refs []*BlockRef) ([]
 	return RootsComplete(ctx, s.inner, refs)
 }
 
+// HeldRoots reads which blocks the underlying store holds.
+func (s *BufferedStore) HeldRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HeldRoots(ctx, s.inner, refs)
+}
+
 // _ is a type assertion
 var _ LeasedRoots = (*BufferedStore)(nil)

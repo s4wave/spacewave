@@ -17,6 +17,11 @@ func (b *bucketHandle) RootsComplete(ctx context.Context, refs []*block.BlockRef
 	return b.v.RootsComplete(ctx, refs)
 }
 
+// HeldRoots reads which blocks the volume holds.
+func (b *bucketHandle) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return b.v.HeldRoots(ctx, refs)
+}
+
 // HoldsRoots reports whether the volume holds roots, pins and
 // stages for a writable handle.
 func (b *bucketHandle) HoldsRoots() bool {

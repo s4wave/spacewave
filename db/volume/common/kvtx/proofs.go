@@ -238,6 +238,40 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 	return complete, nil
 }
 
+// HeldRoots reports for each block whether a root move requiring it held would
+// accept it now, as the land's held check decides: the records or an open
+// stage hold it, or the Volume does not enforce the check. It reads every
+// block in one snapshot, which never waits on the writer.
+func (v *Volume) HeldRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Accept every block where a move would land without the check.
+	held := make([]bool, len(refs))
+	if !v.HoldsRoots() || v.heldMode != block_gc.HeldEnforce {
+		for i := range held {
+			held[i] = true
+		}
+		return held, nil
+	}
+
+	// Read the records, then the open stages, of each block in one snapshot.
+	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+		for i, ref := range refs {
+			ok, err := rec.Held(ctx, ref)
+			if err == nil && !ok {
+				ok, err = v.heldByStage(ctx, rec, ref)
+			}
+			if err != nil {
+				return err
+			}
+			held[i] = ok
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return held, nil
+}
+
 // rootCompleteTx checks a root's proof inside a direct transaction. A pending
 // proof counts while the transaction still holds the root.
 func (v *Volume) rootCompleteTx(ctx context.Context, p *physicalTx, ref *block.BlockRef) (bool, error) {

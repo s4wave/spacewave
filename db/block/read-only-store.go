@@ -84,6 +84,11 @@ func (s *ReadOnlyStore) RootsComplete(ctx context.Context, refs []*BlockRef) ([]
 	return RootsComplete(ctx, s.StoreOps, refs)
 }
 
+// HeldRoots reads which blocks the underlying store holds.
+func (s *ReadOnlyStore) HeldRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HeldRoots(ctx, s.StoreOps, refs)
+}
+
 // HoldCompleteRoots forwards a stage hold of proved roots.
 func (s *ReadOnlyStore) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	return HoldCompleteRoots(ctx, s.StoreOps, refs)
